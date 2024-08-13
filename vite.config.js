@@ -1,7 +1,38 @@
-import glsl from 'vite-plugin-glsl';
-import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vite';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import path from 'path';
 
-export default defineConfig({
-  plugins: [glsl(), tsconfigPaths()]
+const plugins = [tsconfigPaths()];
+
+export default defineConfig(({ mode }) => {
+  if (mode === "lib") {
+    return {
+      plugins,
+      build: {
+        lib: {
+          entry: path.resolve(__dirname, 'src/index.ts'),
+          name: 'viz',
+          fileName: (format) => `viz.${format}.js`,
+        }
+      },
+    }
+  } else {
+    return {
+      plugins,
+      root: './examples',
+      build: {
+        outDir: 'dist',
+      },
+      resolve: {
+        alias: {
+          '@': path.resolve(__dirname, 'src'),
+        },
+      },
+      server: {
+        watch: {
+          include: path.resolve(__dirname, 'src/**'),
+        },
+      },
+    };
+  }
 });
