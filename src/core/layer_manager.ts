@@ -6,4 +6,8 @@ export class LayerManager {
   public add(layer: Layer) {
     this.layers_.push(layer);
   }
+
+  public get layers() {
+    return this.layers_;
+  }
 }

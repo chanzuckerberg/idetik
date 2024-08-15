@@ -1,4 +1,5 @@
 import { LayerManager } from "core/layer_manager";
+import { RenderableObject } from "core/renderable_object";
 import { Renderer } from "core/renderer";
 
 export class WebGLRenderer extends Renderer {
@@ -15,15 +16,17 @@ export class WebGLRenderer extends Renderer {
     this.gl.viewport(0, 0, this.width, this.height);
   }
 
+  protected renderObject(object: RenderableObject) {
+    // TODO: render object based on type
+  }
+
   protected resize(width: number, height: number) {
     this.gl.viewport(0, 0, width, height);
   }
 
-  protected renderFrame(_: number) {
+  protected clear() {
     this.gl.clearColor(0.12, 0.13, 0.25, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-
-    // TODO: add rendering code
   }
 
   private get gl() {
