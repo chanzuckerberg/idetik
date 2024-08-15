@@ -1,4 +1,4 @@
-import { RenderableObject } from "core/renderable_object";
+import { RenderableObject } from "./renderable_object";
 
 export abstract class Layer {
   private objects_: RenderableObject[] = [];

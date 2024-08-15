@@ -1,4 +1,4 @@
-import { LayerManager } from "core/layer_manager";
+import { LayerManager } from "./layer_manager";
 import { RenderableObject } from "./renderable_object";
 
 export abstract class Renderer {
