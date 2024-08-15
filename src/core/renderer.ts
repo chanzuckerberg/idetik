@@ -1,5 +1,5 @@
 import { LayerManager } from "./layer_manager";
-import { RenderableObject } from "./renderable_object";
+import { Mesh } from "objects/renderable/mesh";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
@@ -9,14 +9,14 @@ export abstract class Renderer {
   private layerManager_: LayerManager;
 
   protected abstract resize(width: number, height: number): void;
-  protected abstract renderObject(object: RenderableObject): void;
+  protected abstract renderMesh(mesh: Mesh): void;
   protected abstract clear(): void;
 
   constructor(selector: string, layerManager: LayerManager) {
     this.layerManager_ = layerManager;
     this.canvas_ = document.querySelector<HTMLCanvasElement>(selector);
     if (!this.canvas_) {
-      throw new Error(`Canvas element not found for selector: "${selector}"`);
+      throw new Error(`Canvas element not found for selector "${selector}"`);
     }
     this.updateRendererSize();
     window.addEventListener("resize", () => {
@@ -38,7 +38,15 @@ export abstract class Renderer {
   private renderFrame(_: number) {
     this.clear();
     this.layerManager_.layers.forEach((layer) => {
-      layer.objects.forEach((obj) => this.renderObject(obj));
+      layer.objects.forEach((obj) => {
+        switch (obj.type) {
+          case "Mesh":
+            this.renderMesh(obj);
+            break;
+          default:
+            throw new Error(`Unknown renderable object "${obj.type}"`);
+        }
+      });
     });
   }
 

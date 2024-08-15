@@ -6,4 +6,8 @@ export abstract class Layer {
   public get objects() {
     return this.objects_;
   }
+
+  protected addObject(object: RenderableObject) {
+    this.objects_.push(object);
+  }
 }

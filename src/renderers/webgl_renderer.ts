@@ -1,6 +1,6 @@
 import { LayerManager } from "core/layer_manager";
-import { RenderableObject } from "core/renderable_object";
 import { Renderer } from "core/renderer";
+import { Mesh } from "objects/renderable/mesh";
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
@@ -16,8 +16,8 @@ export class WebGLRenderer extends Renderer {
     this.gl.viewport(0, 0, this.width, this.height);
   }
 
-  protected renderObject(_: RenderableObject) {
-    // TODO: render object based on type
+  protected renderMesh(_: Mesh) {
+    // TODO: render mesh
   }
 
   protected resize(width: number, height: number) {
