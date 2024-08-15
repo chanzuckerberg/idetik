@@ -16,7 +16,7 @@ export class WebGLRenderer extends Renderer {
     this.gl.viewport(0, 0, this.width, this.height);
   }
 
-  protected renderObject(object: RenderableObject) {
+  protected renderObject(_: RenderableObject) {
     // TODO: render object based on type
   }
 

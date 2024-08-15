@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import eslint from 'vite-plugin-eslint';
 import path from 'path';
 
-const plugins = [tsconfigPaths()];
+const plugins = [tsconfigPaths(), eslint()];
 
 export default defineConfig(({ mode }) => {
   if (mode === "lib") {
