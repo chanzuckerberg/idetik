@@ -1,4 +1,4 @@
-import { Layer } from "./layer";
+import { Layer } from "@/core/layer";
 
 export class LayerManager {
   private layers_: Layer[] = [];

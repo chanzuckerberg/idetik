@@ -1,6 +1,6 @@
-import { LayerManager } from "core/layer_manager";
-import { Renderer } from "core/renderer";
-import { Mesh } from "objects/renderable/mesh";
+import { LayerManager } from "@/core/layer_manager";
+import { Renderer } from "@/core/renderer";
+import { Mesh } from "@/objects/renderable/mesh";
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;

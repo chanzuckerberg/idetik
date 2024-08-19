@@ -18,6 +18,10 @@ A layer-based library for interactive visualization of large datasets.
 
 3. To run the unit test suite on Chrome:
 
-   `npm test`
+   `npm test` or `npm run coverage` to generate a coverage report.
+
+   By default, the test runner will watch for changes to the source files and re-run the tests
+   automatically, so you can leave it running while you work. To run the tests once and exit, use
+   `npm run test -- --run`.
 
 4. See [package.json](package.json) for other commands available.
