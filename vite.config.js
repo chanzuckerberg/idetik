@@ -1,39 +1,52 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import eslint from 'vite-plugin-eslint';
 import path from 'path';
 
+// __dirname is not available in ES6 modules
+// https://github.com/vitejs/vite/issues/6946#issuecomment-1041506056
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+const _dirname = dirname(fileURLToPath(import.meta.url));
+
 const plugins = [tsconfigPaths(), eslint()];
 
 export default defineConfig(({ mode }) => {
-  if (mode === "lib") {
-    return {
-      plugins,
-      build: {
-        lib: {
-          entry: path.resolve(__dirname, 'src/index.ts'),
-          name: 'viz',
-          fileName: (format) => `viz.${format}.js`,
-        }
+  return {
+    plugins,
+    // use examples dir for dev server, but not for build
+    root: mode === 'development' ? './examples' : undefined,
+    build: {
+      outDir: 'dist',
+      lib: {
+        entry: path.resolve(_dirname, 'src/index.ts'),
+        name: 'viz',
+        fileName: (format) => `viz.${format}.js`,
+      }
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(_dirname, 'src'),
       },
-    }
-  } else {
-    return {
-      plugins,
-      root: './examples',
-      build: {
-        outDir: 'dist',
+    },
+    server: {
+      watch: {
+        include: path.resolve(_dirname, 'src/**'),
       },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, 'src'),
-        },
+    },
+    test: {
+      environment: "jsdom",
+      browser: {
+        enabled: true,
+        provider: "playwright",
+        name: "chromium", // browser name is required
+        headless: true,
       },
-      server: {
-        watch: {
-          include: path.resolve(__dirname, 'src/**'),
-        },
+      coverage: {
+        provider: "istanbul",
+        include: ["src/**"],
       },
-    };
+    },
   }
 });
