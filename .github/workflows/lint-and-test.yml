@@ -22,8 +22,14 @@ jobs:
           npm ci
           npx playwright install chromium
 
-      - name: Lint
-        run: npm run lint-all
+      - name: Compile (TypeScript)
+        run: npm run compile
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Lint (Prettier)
+        run: npm run format-check
 
       - name: Test
         run: npm run coverage

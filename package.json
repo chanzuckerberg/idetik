@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "compile": "tsc",
     "build": "tsc && vite build",
     "test": "vitest",
     "coverage": "vitest --coverage",
     "format": "prettier --write './**/*.{ts,html,json}'",
     "format-check": "prettier --check './**/*.{ts,html,json}'",
-    "lint": "eslint .",
-    "lint-all": "tsc & npm run lint && npm run format-check"
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
