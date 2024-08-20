@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint .",
+    "test": "vitest",
+    "coverage": "vitest --coverage",
     "format": "prettier --write './**/*.{ts,html,json}'",
     "format-check": "prettier --check './**/*.{ts,html,json}'",
-    "test": "vitest",
-    "coverage": "vitest --coverage"
+    "lint": "eslint .",
+    "lint-all": "tsc & npm run lint && npm run format-check"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

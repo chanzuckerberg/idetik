@@ -5,6 +5,7 @@ import { WebGLShaders } from "./webgl_shaders";
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
+  // @ts-expect-error TODO: use of shaders_ is not yet implemented
   private readonly shaders_: WebGLShaders;
 
   constructor(selector: string, layers: LayerManager) {
