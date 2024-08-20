@@ -1,5 +1,5 @@
 import { LayerManager } from "./layer_manager";
-import { Mesh } from "@/objects/renderable/mesh";
+import { Mesh } from "objects/renderable/mesh";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
