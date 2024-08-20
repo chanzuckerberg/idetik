@@ -19,3 +19,7 @@ test("Instantiate WebGLRenderer with no WebGL context", () => {
   canvas.getContext = () => null;
   expect(() => new WebGLRenderer("#canvas", new LayerManager())).toThrowError();
 });
+
+test("This test should fail to test CI", () => {
+  expect(1).toBe(2);
+});
