@@ -1,23 +1,37 @@
+type ShaderMap = {
+  [type: number]: {
+    shader: WebGLShader;
+    source: string;
+  };
+};
+
+const regex = /^\s*uniform\s+(?:highp|mediump|lowp|)[\w\s]+\s+(\w+)\s*;\s*$/gm;
+
 export class WebGLShaders {
   private readonly gl_: WebGL2RenderingContext;
-  private readonly program_: WebGLProgram | null;
-  private readonly uniformRegex_ =
-    /^\s*uniform\s+(?:highp|mediump|lowp|)[\w\s]+\s+(\w+)\s*;\s*$/gm;
-
+  private readonly program_: WebGLProgram;
   private uniformLocations_: Map<string, WebGLUniformLocation>;
-  private shaderSources: string[] = [];
-  private shaderObjects: WebGLShader[] = [];
+  private shaders_: ShaderMap = {};
+  private linked_ = false;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
-    this.program_ = gl.createProgram();
-    if (!this.program_) {
+    const program = gl.createProgram();
+    if (!program) {
       throw new Error(`Failed to create WebGL shader program`);
     }
+    this.program_ = program;
+
     this.uniformLocations_ = new Map<string, WebGLUniformLocation>();
   }
 
   public addShader(source: string, type: number) {
+    if (this.linked_) {
+      throw new Error(
+        "The program is already linked. Create a new shader program to add shaders."
+      );
+    }
+
     const shader = this.gl_.createShader(type);
     if (!shader) {
       throw new Error(`Failed to create a new shader of type ${type}`);
@@ -31,34 +45,39 @@ export class WebGLShaders {
       throw new Error(`Error compiling shader: ${message}`);
     }
 
-    this.gl_.attachShader(this.program, shader);
-    this.shaderSources.push(source);
-    this.shaderObjects.push(shader);
+    this.gl_.attachShader(this.program_, shader);
+    this.shaders_[type] = { shader: shader, source };
   }
 
   public link() {
-    this.gl_.linkProgram(this.program);
-    if (!this.gl_.getProgramParameter(this.program, this.gl_.LINK_STATUS)) {
-      this.deleteShaderObjects();
-      this.deleteProgram();
-      const message = this.gl_.getProgramInfoLog(this.program);
+    if (this.linked_) {
+      throw new Error("The program is already linked.");
+    }
+
+    this.gl_.linkProgram(this.program_);
+    if (!this.getParameter(this.gl_.LINK_STATUS)) {
+      this.deleteShaders();
+      const message = this.gl_.getProgramInfoLog(this.program_);
       throw new Error(`Error linking program: ${message}`);
     }
 
-    this.gl_.validateProgram(this.program);
-    if (!this.gl_.getProgramParameter(this.program, this.gl_.VALIDATE_STATUS)) {
-      this.deleteShaderObjects();
-      this.deleteProgram();
-      const message = this.gl_.getProgramInfoLog(this.program);
+    this.linked_ = true;
+
+    this.gl_.validateProgram(this.program_);
+    if (!this.getParameter(this.gl_.VALIDATE_STATUS)) {
+      this.deleteShaders();
+      const message = this.gl_.getProgramInfoLog(this.program_);
       throw new Error(`Error validating program: ${message}`);
     }
 
-    this.deleteShaderObjects();
-    this.shaderSources.forEach(s => this.preprocessUniformLocations(s));
+    for (const idx in this.shaders_) {
+      this.preprocessUniformLocations(this.shaders_[idx].source);
+    }
+    this.deleteShaders();
   }
 
   public use() {
-    this.gl_.useProgram(this.program);
+    this.gl_.useProgram(this.program_);
     const error = this.gl_.getError();
     if (error !== this.gl_.NO_ERROR) {
       throw new Error(`Error using WebGL program: ${error}`);
@@ -69,7 +88,7 @@ export class WebGLShaders {
     // Preprocessing uniform locations doesn’t work for all use cases, so we
     // can’t assume all uniform locations are cached on initialization.
     if (!this.uniformLocations_.has(name)) {
-      const location = this.gl_.getUniformLocation(this.program, name);
+      const location = this.gl_.getUniformLocation(this.program_, name);
       if (location) {
         this.uniformLocations_.set(name, location);
       } else {
@@ -81,29 +100,23 @@ export class WebGLShaders {
 
   private preprocessUniformLocations(source: string) {
     let match;
-    while ((match = this.uniformRegex_.exec(source)) !== null) {
+    while ((match = regex.exec(source)) !== null) {
       const name = match[1];
-      const location = this.gl_.getUniformLocation(this.program, name);
+      const location = this.gl_.getUniformLocation(this.program_, name);
       if (location) {
         this.uniformLocations_.set(name, location);
       }
     }
   }
 
-  private deleteShaderObjects() {
-    if (this.shaderObjects.length) {
-      this.shaderObjects.forEach((s) => this.gl_.deleteShader(s));
-    }
+  private getParameter(parameter: number) {
+    return this.gl_.getProgramParameter(this.program_, parameter);
   }
 
-  private deleteProgram() {
-    this.gl_.deleteProgram(this.program);
-  }
-
-  private get program() {
-    if (!this.program_) {
-      throw new Error(`WebGL program is not initialized or has been deleted`);
+  private deleteShaders() {
+    for (const idx in this.shaders_) {
+      this.gl_.deleteShader(this.shaders_[idx].shader);
     }
-    return this.program_;
+    this.shaders_ = {};
   }
 }
