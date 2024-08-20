@@ -1,4 +1,4 @@
-import { LayerManager } from "@/core/layer_manager";
+import { LayerManager } from "./layer_manager";
 import { Mesh } from "@/objects/renderable/mesh";
 
 export abstract class Renderer {
