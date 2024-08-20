@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint './src/**/*.{ts,tsx}'",
+    "lint": "eslint .",
     "format": "prettier --write './**/*.{ts,html,json}'",
     "test": "vitest",
     "coverage": "vitest --coverage"
