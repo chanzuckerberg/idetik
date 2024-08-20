@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write './**/*.{ts,html,json}'",
+    "format-check": "prettier --check './**/*.{ts,html,json}'",
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
