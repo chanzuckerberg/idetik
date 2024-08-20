@@ -1,9 +1,11 @@
 import { LayerManager } from "core/layer_manager";
 import { Renderer } from "core/renderer";
 import { Mesh } from "objects/renderable/mesh";
+import { WebGLShaders } from "./webgl_shaders";
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
+  private readonly shaders_: WebGLShaders;
 
   constructor(selector: string, layers: LayerManager) {
     super(selector, layers);
@@ -13,6 +15,7 @@ export class WebGLRenderer extends Renderer {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
     console.log(`WebGL version ${this.gl.getParameter(this.gl.VERSION)}`);
+    this.shaders_ = new WebGLShaders(this.gl_);
     this.gl.viewport(0, 0, this.width, this.height);
   }
 
