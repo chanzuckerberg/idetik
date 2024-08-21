@@ -39,9 +39,12 @@ export abstract class Renderer {
     this.clear();
     this.layerManager_.layers.forEach((layer) => {
       layer.objects.forEach((obj) => {
+        // Before sending the object to the renderer backend, we must verify
+        // its visibility by checking its render state and location relative
+        // to the view frustum.
         switch (obj.type) {
           case "Mesh":
-            this.renderMesh(obj);
+            this.renderMesh(obj as Mesh);
             break;
           default:
             throw new Error(`Unknown renderable object "${obj.type}"`);
