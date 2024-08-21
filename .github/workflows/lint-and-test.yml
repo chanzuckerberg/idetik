@@ -16,20 +16,25 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
+
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install dependencies
         run: |
           npm ci
           npx playwright install chromium
 
-      - name: Compile (TypeScript)
+      - name: Compile TypeScript
         run: npm run compile
 
-      - name: Lint (ESLint)
-        run: npm run lint
+      - name: Lint
+        run: |
+          npm run lint
+          npm run format-check
 
-      - name: Lint (Prettier)
-        run: npm run format-check
-
-      - name: Test
+      - name: Run tests with coverage
         run: npm run coverage
