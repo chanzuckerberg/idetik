@@ -8,8 +8,17 @@ export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {rules: {
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     'no-duplicate-imports': 'error',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    '@typescript-eslint/naming-convention': [
+      'error',
+      {
+        "selector": "classProperty",
+        "modifiers": ["private"],
+        "format": null,
+        "suffix": ["_"]
+      }
+    ]
   }},
   {ignores: ["node_modules", "dist", "coverage"]},
 ];
