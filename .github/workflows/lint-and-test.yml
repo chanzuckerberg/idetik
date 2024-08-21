@@ -37,4 +37,4 @@ jobs:
           npm run format-check
 
       - name: Run tests with coverage
-        run: npm run coverage
+        run: npm run test-with-coverage

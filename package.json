@@ -8,7 +8,7 @@
     "compile": "tsc",
     "build": "tsc && vite build",
     "test": "vitest",
-    "coverage": "vitest --coverage",
+    "test-with-coverage": "vitest run --coverage",
     "format": "prettier --write './**/*.{ts,html,json}'",
     "format-check": "prettier --check './**/*.{ts,html,json}'",
     "lint": "eslint ."
