@@ -29,7 +29,7 @@ type MeshSourceAttributeType = "vertices" | "normals" | "uvs";
 
 export class MeshSource {
   private attributes_: Map<MeshSourceAttributeType, MeshSourceAttribute>;
-  private index_: Float32Array | null = null;
+  private index_: Uint32Array | null = null;
 
   constructor() {
     this.attributes_ = new Map<MeshSourceAttributeType, MeshSourceAttribute>();
@@ -51,10 +51,10 @@ export class MeshSource {
   }
 
   public setIndex(data: number[]) {
-    this.index_ = new Float32Array(data);
+    this.index_ = new Uint32Array(data);
   }
 
-  public getIndex(): Readonly<Float32Array> | null {
+  public getIndex(): Readonly<Uint32Array> | null {
     return this.index_;
   }
 }
