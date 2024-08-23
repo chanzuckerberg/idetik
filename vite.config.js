@@ -2,6 +2,7 @@
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import eslint from 'vite-plugin-eslint';
+import glsl from 'vite-plugin-glsl';
 import path from 'path';
 
 // __dirname is not available in ES6 modules
@@ -10,7 +11,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 const _dirname = dirname(fileURLToPath(import.meta.url));
 
-const plugins = [tsconfigPaths(), eslint()];
+const plugins = [tsconfigPaths(), eslint(), glsl()];
 
 export default defineConfig(({ mode }) => {
   return {
