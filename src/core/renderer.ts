@@ -1,19 +1,18 @@
 import { LayerManager } from "./layer_manager";
 import { Mesh } from "objects/renderable/mesh";
+import { Camera } from "objects/cameras/camera";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
-  private lastTimestamp_ = 0;
   private width_ = 0;
   private height_ = 0;
-  private layerManager_: LayerManager;
+  private activeCamera_: Camera | null = null;
 
   protected abstract resize(width: number, height: number): void;
   protected abstract renderMesh(mesh: Mesh): void;
   protected abstract clear(): void;
 
-  constructor(selector: string, layerManager: LayerManager) {
-    this.layerManager_ = layerManager;
+  constructor(selector: string) {
     this.canvas_ = document.querySelector<HTMLCanvasElement>(selector);
     if (!this.canvas_) {
       throw new Error(`Canvas element not found for selector "${selector}"`);
@@ -25,19 +24,10 @@ export abstract class Renderer {
     });
   }
 
-  public render() {
-    const nextFrame = (timestamp: number) => {
-      const dt = (timestamp - this.lastTimestamp_) / 1000;
-      this.lastTimestamp_ = timestamp;
-      this.renderFrame(dt);
-      requestAnimationFrame(nextFrame);
-    };
-    requestAnimationFrame(nextFrame);
-  }
-
-  private renderFrame(_: number) {
+  public render(layerManager: LayerManager, camera: Camera) {
     this.clear();
-    this.layerManager_.layers.forEach((layer) => {
+    this.activeCamera_ = camera;
+    layerManager.layers.forEach((layer) => {
       layer.objects.forEach((obj) => {
         // Before sending the object to the renderer backend, we must verify
         // its visibility by checking its render state and location relative
@@ -70,7 +60,12 @@ export abstract class Renderer {
     return this.height_;
   }
 
-  protected get layers() {
-    return this.layerManager_;
+  protected get camera() {
+    if (this.activeCamera_ === null) {
+      throw new Error(
+        "Attempted to access the active camera before it was set."
+      );
+    }
+    return this.activeCamera_;
   }
 }

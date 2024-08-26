@@ -1,4 +1,3 @@
-import { LayerManager } from "core/layer_manager";
 import { Renderer } from "core/renderer";
 import { Mesh } from "objects/renderable/mesh";
 import { WebGLShaderProgram } from "./webgl_shader_program";
@@ -9,8 +8,8 @@ export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
 
-  constructor(selector: string, layers: LayerManager) {
-    super(selector, layers);
+  constructor(selector: string) {
+    super(selector);
 
     this.gl_ = this.canvas.getContext("webgl2");
     if (!this.gl_) {
@@ -22,8 +21,8 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected renderMesh(_: Mesh) {
-    this.getShaderProgram("mesh").use();
-    // TODO: set uniforms
+    const program = this.getShaderProgram("mesh").use();
+    program.setUniform("Projection", this.camera.projectionTransform);
     // TODO: instantiate webgl_mesh_storage (if needed)
     // TODO: render mesh
   }
