@@ -1,12 +1,13 @@
 import { LayerManager } from "core/layer_manager";
 import { Renderer } from "core/renderer";
 import { Mesh } from "objects/renderable/mesh";
-import { WebGLShaders } from "./webgl_shaders";
+import { WebGLShaderProgram } from "./webgl_shader_program";
+
+import { Shader, shaderCode } from "./shaders";
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
-  // @ts-expect-error TODO: use of shaders_ is not yet implemented
-  private readonly shaders_: WebGLShaders;
+  private readonly shaders_: Map<Shader, WebGLShaderProgram>;
 
   constructor(selector: string, layers: LayerManager) {
     super(selector, layers);
@@ -16,11 +17,14 @@ export class WebGLRenderer extends Renderer {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
     console.log(`WebGL version ${this.gl.getParameter(this.gl.VERSION)}`);
-    this.shaders_ = new WebGLShaders(this.gl_);
+    this.shaders_ = new Map<Shader, WebGLShaderProgram>();
     this.gl.viewport(0, 0, this.width, this.height);
   }
 
   protected renderMesh(_: Mesh) {
+    this.getShaderProgram("mesh").use();
+    // TODO: set uniforms
+    // TODO: instantiate webgl_mesh_storage (if needed)
     // TODO: render mesh
   }
 
@@ -31,6 +35,20 @@ export class WebGLRenderer extends Renderer {
   protected clear() {
     this.gl.clearColor(0.12, 0.13, 0.25, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+  }
+
+  private getShaderProgram(type: Shader) {
+    if (!this.shaders_.has(type)) {
+      this.shaders_.set(
+        type,
+        new WebGLShaderProgram(
+          this.gl,
+          shaderCode[type].vertex,
+          shaderCode[type].fragment
+        )
+      );
+    }
+    return this.shaders_.get(type)!;
   }
 
   private get gl() {
