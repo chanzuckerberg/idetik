@@ -60,7 +60,7 @@ export abstract class Renderer {
     return this.height_;
   }
 
-  protected get camera() {
+  protected get activeCamera() {
     if (this.activeCamera_ === null) {
       throw new Error(
         "Attempted to access the active camera before it was set."

@@ -22,7 +22,7 @@ export class WebGLRenderer extends Renderer {
 
   protected renderMesh(_: Mesh) {
     const program = this.getShaderProgram("mesh").use();
-    program.setUniform("Projection", this.camera.projectionTransform);
+    program.setUniform("Projection", this.activeCamera.projectionTransform);
     // TODO: instantiate webgl_mesh_storage (if needed)
     // TODO: render mesh
   }

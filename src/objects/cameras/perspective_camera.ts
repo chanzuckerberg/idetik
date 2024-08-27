@@ -1,7 +1,7 @@
 import { Camera } from "./camera";
-import { mat4 } from "gl-matrix";
+import { glMatrix, mat4 } from "gl-matrix";
 
-const DEFAULT_FOV = 1.047197551; // 60 degrees in radians
+const DEFAULT_FOV = 60; // degrees
 const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 
 export class PerspectiveCamera extends Camera {
@@ -23,10 +23,14 @@ export class PerspectiveCamera extends Camera {
     this.far_ = far;
   }
 
+  public get type() {
+    return "PerspectiveCamera";
+  }
+
   protected updateProjectionTransform(): void {
     mat4.perspective(
       this.projectionTransform_,
-      this.fov_,
+      glMatrix.toRadian(this.fov_),
       this.aspectRatio_,
       this.near_,
       this.far_
