@@ -1,3 +1,5 @@
+import { mat4 } from "gl-matrix";
+
 type ShaderMap = {
   [type: number]: {
     shader: WebGLShader;
@@ -43,6 +45,10 @@ export class WebGLShaderProgram {
       }
     }
     return this.uniformLocations_.get(name)!;
+  }
+
+  public setUniform(name: string, value: mat4) {
+    this.gl_.uniformMatrix4fv(this.getUniformLoc(name), false, value);
   }
 
   private preprocessUniformLocations(source: string) {
@@ -101,6 +107,7 @@ export class WebGLShaderProgram {
     if (error !== this.gl_.NO_ERROR) {
       throw new Error(`Error using WebGL program: ${error}`);
     }
+    return this;
   }
 
   private getParameter(parameter: number) {

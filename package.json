@@ -13,8 +13,12 @@
     "format-check": "prettier --check './**/*.{ts,html,json}'",
     "lint": "eslint ."
   },
+  "dependencies": {
+    "gl-matrix": "^3.4.3"
+  },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@types/gl-matrix": "^3.2.0",
     "@types/webgl2": "^0.0.11",
     "@typescript-eslint/eslint-plugin": "^8.1.0",
     "@typescript-eslint/parser": "^8.1.0",
