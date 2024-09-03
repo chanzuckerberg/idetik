@@ -3,10 +3,12 @@ import { Mesh } from "objects/renderable/mesh";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
 import { Shader, shaderCode } from "./shaders";
+import { WebGLBindings } from "./webgl_bindings";
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
+  private readonly bindings_: WebGLBindings;
 
   constructor(selector: string) {
     super(selector);
@@ -17,14 +19,24 @@ export class WebGLRenderer extends Renderer {
     }
     console.log(`WebGL version ${this.gl.getParameter(this.gl.VERSION)}`);
     this.shaders_ = new Map<Shader, WebGLShaderProgram>();
-    this.gl.viewport(0, 0, this.width, this.height);
+    this.bindings_ = new WebGLBindings(this.gl);
+    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
   }
 
-  protected renderMesh(_: Mesh) {
+  protected renderMesh(mesh: Mesh) {
     const program = this.getShaderProgram("mesh").use();
-    program.setUniform("Projection", this.activeCamera.projectionTransform);
-    // TODO: instantiate webgl_mesh_storage (if needed)
-    // TODO: render mesh
+    program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
+    program.setUniformMat4("ModelView", this.activeCamera.viewTransform);
+    program.setUniformVec2("Resolution", [this.width, this.height]);
+    program.setUniformFloat("Time", performance.now() / 1000);
+
+    this.bindings_.bind(mesh);
+    const type = this.gl.TRIANGLES;
+    if (mesh.index) {
+      this.gl.drawElements(type, mesh.index.length, this.gl.UNSIGNED_SHORT, 0);
+    } else {
+      this.gl.drawArrays(type, 0, mesh.source.itemsSize);
+    }
   }
 
   protected resize(width: number, height: number) {

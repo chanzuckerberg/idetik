@@ -29,7 +29,9 @@ export class PlaneGeometry {
         const u = ix / gridX;
         const v = 1 - iy / gridY;
 
-        this.vertices_.push(x, -y, 0);
+        // 'z = -5' is temporary until we add a transform to renderable objects
+        // which will allow us to control the camera position
+        this.vertices_.push(x, -y, -5);
         this.normals_.push(0, 1, 0);
         this.uvs_.push(u, v);
       }
