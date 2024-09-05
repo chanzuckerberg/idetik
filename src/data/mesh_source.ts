@@ -37,7 +37,7 @@ type MeshSourceAttributeType = "vertices" | "normals" | "uvs";
 
 export class MeshSource {
   private attributes_: Map<MeshSourceAttributeType, MeshSourceAttribute>;
-  private index_: Uint16Array | null = null;
+  private index_: Uint32Array | null = null;
 
   constructor() {
     this.attributes_ = new Map<MeshSourceAttributeType, MeshSourceAttribute>();
@@ -52,7 +52,7 @@ export class MeshSource {
   }
 
   public setIndex(data: number[]) {
-    this.index_ = new Uint16Array(data);
+    this.index_ = new Uint32Array(data);
   }
 
   public getAttribute(type: MeshSourceAttributeType) {
