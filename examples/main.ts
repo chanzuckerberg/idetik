@@ -9,12 +9,12 @@ const singleMeshLayer = new SingleMeshLayer();
 const layersManager = new LayerManager();
 layersManager.add(singleMeshLayer);
 
-const camera = new PerspectiveCamera();
 const renderer = new WebGLRenderer("#canvas");
+const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
 
 function animate() {
-  requestAnimationFrame(animate);
   renderer.render(layersManager, camera);
+  requestAnimationFrame(animate);
 }
 
 animate();

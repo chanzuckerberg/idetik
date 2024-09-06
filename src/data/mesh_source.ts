@@ -20,8 +20,16 @@ class MeshSourceAttribute {
     this.itemSize = itemSize;
   }
 
+  get sizeInBytes() {
+    return this.length * this.itemSize * Float32Array.BYTES_PER_ELEMENT;
+  }
+
   get data(): Readonly<Float32Array> {
     return this.data_;
+  }
+
+  get length() {
+    return this.data_.length;
   }
 }
 
@@ -43,6 +51,10 @@ export class MeshSource {
     this.attributes_.set(type, new MeshSourceAttribute(data, itemSize));
   }
 
+  public setIndex(data: number[]) {
+    this.index_ = new Uint32Array(data);
+  }
+
   public getAttribute(type: MeshSourceAttributeType) {
     if (!this.attributes_.has(type)) {
       throw Error(`Attribute ${type} was not set`);
@@ -50,11 +62,25 @@ export class MeshSource {
     return this.attributes_.get(type)!;
   }
 
-  public setIndex(data: number[]) {
-    this.index_ = new Uint32Array(data);
+  public get itemsSize() {
+    if (this.attributes_.size === 0) return 0;
+    const attr = this.attributes_.entries().next().value[1];
+    return attr.data.length / attr.itemSize;
   }
 
-  public getIndex(): Readonly<Uint32Array> | null {
+  public get sizeInBytes() {
+    let bytes = 0;
+    for (const [, value] of this.attributes_) {
+      bytes += value.sizeInBytes;
+    }
+    return bytes;
+  }
+
+  public get attributes() {
+    return this.attributes_;
+  }
+
+  public get index() {
     return this.index_;
   }
 }

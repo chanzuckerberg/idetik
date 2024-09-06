@@ -1,4 +1,4 @@
-import { mat4 } from "gl-matrix";
+import { mat4, vec2 } from "gl-matrix";
 
 type ShaderMap = {
   [type: number]: {
@@ -12,7 +12,7 @@ const regex = /^\s*uniform\s+(?:highp|mediump|lowp|)[\w\s]+\s+(\w+)\s*;\s*$/gm;
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
   private readonly program_: WebGLProgram;
-  private uniformLocations_: Map<string, WebGLUniformLocation>;
+  private uniformLocations_: Map<string, WebGLUniformLocation> = new Map();
   private shaders_: ShaderMap = {};
 
   constructor(
@@ -26,7 +26,6 @@ export class WebGLShaderProgram {
       throw new Error(`Failed to create WebGL shader program`);
     }
     this.program_ = program;
-    this.uniformLocations_ = new Map<string, WebGLUniformLocation>();
 
     this.addShader(vertexShaderSource, gl.VERTEX_SHADER);
     this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
@@ -47,8 +46,16 @@ export class WebGLShaderProgram {
     return this.uniformLocations_.get(name)!;
   }
 
-  public setUniform(name: string, value: mat4) {
+  public setUniformMat4(name: string, value: mat4) {
     this.gl_.uniformMatrix4fv(this.getUniformLoc(name), false, value);
+  }
+
+  public setUniformVec2(name: string, value: vec2) {
+    this.gl_.uniform2fv(this.getUniformLoc(name), value);
+  }
+
+  public setUniformFloat(name: string, value: number) {
+    this.gl_.uniform1f(this.getUniformLoc(name), value);
   }
 
   private preprocessUniformLocations(source: string) {

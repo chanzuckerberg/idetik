@@ -1,6 +1,7 @@
 import { LayerManager } from "./layer_manager";
 import { Mesh } from "objects/renderable/mesh";
 import { Camera } from "objects/cameras/camera";
+import { PerspectiveCamera } from "objects/cameras/perspective_camera";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
@@ -29,9 +30,7 @@ export abstract class Renderer {
     this.activeCamera_ = camera;
     layerManager.layers.forEach((layer) => {
       layer.objects.forEach((obj) => {
-        // Before sending the object to the renderer backend, we must verify
-        // its visibility by checking its render state and location relative
-        // to the view frustum.
+        // TODO: check if object is visible before sending it to the renderer backend
         switch (obj.type) {
           case "Mesh":
             this.renderMesh(obj as Mesh);
@@ -46,17 +45,27 @@ export abstract class Renderer {
   private updateRendererSize() {
     this.width_ = this.canvas.clientWidth * window.devicePixelRatio;
     this.height_ = this.canvas.clientHeight * window.devicePixelRatio;
+
+    if (this.canvas.width !== this.width_) this.canvas.width = this.width_;
+    if (this.canvas.height !== this.height_) this.canvas.height = this.height_;
+
+    if (this.activeCamera_) {
+      if (this.activeCamera_ instanceof PerspectiveCamera) {
+        this.activeCamera_.setAspectRatio(this.width_ / this.height_);
+      }
+      this.activeCamera_.updateTransforms();
+    }
   }
 
   protected get canvas() {
     return this.canvas_!;
   }
 
-  protected get width() {
+  public get width() {
     return this.width_;
   }
 
-  protected get height() {
+  public get height() {
     return this.height_;
   }
 
