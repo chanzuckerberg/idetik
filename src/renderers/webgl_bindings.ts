@@ -1,5 +1,6 @@
 import { RenderableObject } from "core/renderable_object";
-import { Mesh } from "@/objects/renderable/mesh";
+import { ImageSlice } from "objects/renderable/image_slice";
+import { Mesh } from "objects/renderable/mesh";
 
 export class WebGLBindings {
   private readonly gl_: WebGL2RenderingContext;
@@ -20,7 +21,19 @@ export class WebGLBindings {
 
     if (!objectVAO) {
       objectVAO = this.createVAO();
-      this.createBuffers(object as Mesh);
+      // TODO: all renderable objects should have some similar interface
+      // that defines their geometry and associated buffers. For now,
+      // do something much worse.
+      switch (object.type) {
+        case "Mesh":
+          this.createBuffers(object as Mesh);
+          break;
+        case "ImageSlice":
+          this.createImageSliceBuffers(object as ImageSlice);
+          break;
+        default:
+          throw new Error(`Unknown renderable object "${object.type}"`);
+      }
       this.VAOs_.set(object.uuid, objectVAO);
     }
     this.gl_.bindVertexArray(objectVAO);
@@ -59,4 +72,29 @@ export class WebGLBindings {
       );
     }
   }
+
+  private createImageSliceBuffers(imageSlice: ImageSlice) {
+    let idx = 0;
+    for (const [, value] of imageSlice.source.meshSource.attributes) {
+      const buffer = this.gl_.createBuffer();
+      const bufferType = this.gl_.ARRAY_BUFFER;
+      const size = value.itemSize;
+      this.gl_.bindBuffer(bufferType, buffer);
+      this.gl_.bufferData(bufferType, value.data, this.gl_.STATIC_DRAW);
+      this.gl_.vertexAttribPointer(idx, size, this.gl_.FLOAT, false, 0, 0);
+      this.gl_.enableVertexAttribArray(idx);
+      idx += 1;
+    }
+
+    if (imageSlice.index) {
+      const indexBuffer = this.gl_.createBuffer();
+      this.gl_.bindBuffer(this.gl_.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      this.gl_.bufferData(
+        this.gl_.ELEMENT_ARRAY_BUFFER,
+        imageSlice.index,
+        this.gl_.STATIC_DRAW
+      );
+    }
+  }
+
 }
