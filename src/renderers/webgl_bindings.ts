@@ -11,13 +11,9 @@ export class WebGLBindings {
   }
 
   public bind(object: RenderableObject) {
+    if (this.alreadyActive(object.uuid)) return;
+
     let objectVAO = this.VAOs_.get(object.uuid) || null;
-
-    if (objectVAO && objectVAO === this.currentVAO_) {
-      // this object's VAO is already active
-      return;
-    }
-
     if (!objectVAO) {
       objectVAO = this.createVAO();
     }
@@ -29,6 +25,13 @@ export class WebGLBindings {
     }
 
     this.currentVAO_ = objectVAO!;
+  }
+
+  private alreadyActive(uuid: string) {
+    if (this.currentVAO_ !== 0) {
+      return this.VAOs_.get(uuid) === this.currentVAO_;
+    }
+    return false;
   }
 
   private createVAO() {

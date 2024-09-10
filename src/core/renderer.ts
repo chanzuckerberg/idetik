@@ -29,16 +29,19 @@ export abstract class Renderer {
     this.clear();
     this.activeCamera_ = camera;
     layerManager.layers.forEach((layer) => {
-      layer.objects.forEach((obj) => {
-        // TODO: check if object is visible before sending it to the renderer backend
-        switch (obj.type) {
-          case "Mesh":
-            this.renderMesh(obj as Mesh);
-            break;
-          default:
-            throw new Error(`Unknown renderable object "${obj.type}"`);
-        }
-      });
+      layer.update();
+      if (layer.state === "ready") {
+        layer.objects.forEach((obj) => {
+          // TODO: check if object is visible before sending it to the renderer backend
+          switch (obj.type) {
+            case "Mesh":
+              this.renderMesh(obj as Mesh);
+              break;
+            default:
+              throw new Error(`Unknown renderable object "${obj.type}"`);
+          }
+        });
+      }
     });
   }
 
