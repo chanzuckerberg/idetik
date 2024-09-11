@@ -38,12 +38,4 @@ export class OmeZarrMultiscaleVolumeSource {
     console.debug("loaded chunk: ", chunk);
     return [chunk];
   }
-
-  public get itemsSize(): number {
-    return this.meshSource.itemsSize;
-  }
-
-  public get sizeInBytes(): number {
-    return this.meshSource.sizeInBytes;
-  }
 }

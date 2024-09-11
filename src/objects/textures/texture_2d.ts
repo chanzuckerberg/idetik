@@ -1,6 +1,6 @@
 import { Texture } from "./texture";
 
-export class Texture2D extends Texture { 
+export class Texture2D extends Texture {
   private readonly image_ = new Image();
   private loaded_ = false;
 

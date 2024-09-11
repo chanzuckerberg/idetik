@@ -37,7 +37,7 @@ export class WebGLRenderer extends Renderer {
     }
     const type = this.gl.TRIANGLES;
     if (mesh.index) {
-      this.gl.drawElements(type, mesh.index.length, this.gl.UNSIGNED_SHORT, 0);
+      this.gl.drawElements(type, mesh.index.length, this.gl.UNSIGNED_INT, 0);
     } else {
       this.gl.drawArrays(type, 0, mesh.source.itemsSize);
     }
