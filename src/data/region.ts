@@ -1,7 +1,7 @@
 export interface Slice {
   dimension: string;
   start: number;
-  stop: number;
+  stop?: number;
 }
 
 export type Region = Array<Slice>;
