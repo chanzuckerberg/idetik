@@ -57,7 +57,7 @@ export class MeshSource {
 
   public getAttribute(type: MeshSourceAttributeType) {
     if (!this.attributes_.has(type)) {
-      throw Error(`Attribute ${type} was not set`);
+      throw new Error(`Attribute ${type} was not set`);
     }
     return this.attributes_.get(type)!;
   }

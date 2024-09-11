@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => {
     plugins,
     // use examples dir for dev server, but not for build
     root: mode === 'development' ? './examples' : undefined,
+    publicDir: path.resolve(_dirname, 'public'),
     build: {
       outDir: 'dist',
       lib: {
