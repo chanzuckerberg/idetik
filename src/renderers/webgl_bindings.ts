@@ -16,19 +16,12 @@ export class WebGLBindings {
     let objectVAO = this.VAOs_.get(object.uuid) || null;
     if (!objectVAO) {
       objectVAO = this.createVAO();
-      // TODO: all renderable objects should have some similar interface
-      // that defines their geometry and associated buffers. For now,
-      // do something much worse.
-      switch (object.type) {
-        case "Mesh":
-          this.createBuffers(object as Mesh);
-          break;
-        default:
-          throw new Error(`Unknown renderable object "${object.type}"`);
-      }
-      this.VAOs_.set(object.uuid, objectVAO);
     }
     this.gl_.bindVertexArray(objectVAO);
+    if (!this.VAOs_.has(object.uuid)) {
+      this.createBuffers(object as Mesh);
+      this.VAOs_.set(object.uuid, objectVAO);
+    }
     this.currentVAO_ = objectVAO!;
   }
 
