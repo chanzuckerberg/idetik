@@ -69,15 +69,15 @@ export class WebGLTextures {
   private configuredDataTexture2D(texture: DataTexture2D) {
     const gl = this.gl_;
     gl.texImage2D(
-        gl.TEXTURE_2D, // target
-        0, // level
-        gl.R16UI, // internalFormat
-        texture.width,
-        texture.height,
-        0, // border
-        gl.RED_INTEGER, // format
-        gl.UNSIGNED_SHORT, // type
-        texture.data, // source
+      gl.TEXTURE_2D, // target
+      0, // level
+      gl.R16UI, // internalFormat
+      texture.width,
+      texture.height,
+      0, // border
+      gl.RED_INTEGER, // format
+      gl.UNSIGNED_SHORT, // type
+      texture.data // source
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);

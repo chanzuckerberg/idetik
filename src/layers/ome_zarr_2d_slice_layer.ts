@@ -16,17 +16,17 @@ export class OmeZarr2DSliceLayer extends Layer {
 
   public update(): void {
     if (this.state === "initialized") {
-        // TODO: pass input from renderer through update.
-        const input = {region: []};
-        this.state_ = "loading";
-        this.source_.loadChunks(input).then((chunks) => {
-            // TODO: handle mapping multiple chunks to textures.
-            const chunk = chunks[0];
-            const [height, width] = chunk.shape;
-            const texture = new DataTexture2D(chunk.data, width, height);
-            this.addObject(new Mesh(this.plane_.meshSource, texture));
-            this.state_ = "ready";
-        });
+      // TODO: pass input from renderer through update.
+      const input = { region: [] };
+      this.state_ = "loading";
+      this.source_.loadChunks(input).then((chunks) => {
+        // TODO: handle mapping many chunks to many textures.
+        const chunk = chunks[0];
+        const [height, width] = chunk.shape;
+        const texture = new DataTexture2D(chunk.data, width, height);
+        this.addObject(new Mesh(this.plane_.meshSource, texture));
+        this.state_ = "ready";
+      });
     }
   }
 }

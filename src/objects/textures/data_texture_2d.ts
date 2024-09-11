@@ -1,6 +1,6 @@
 import { Texture } from "./texture";
 
-export class DataTexture2D extends Texture { 
+export class DataTexture2D extends Texture {
   private readonly data_: Uint16Array;
   private readonly width_: number;
   private readonly height_: number;
