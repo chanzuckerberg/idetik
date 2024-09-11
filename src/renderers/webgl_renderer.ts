@@ -35,6 +35,7 @@ export class WebGLRenderer extends Renderer {
     if (mesh.texture !== null) {
       this.textures_.bind(mesh.texture);
     }
+
     const type = this.gl.TRIANGLES;
     if (mesh.index) {
       this.gl.drawElements(type, mesh.index.length, this.gl.UNSIGNED_INT, 0);

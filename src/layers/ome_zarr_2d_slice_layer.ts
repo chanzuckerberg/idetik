@@ -22,7 +22,8 @@ export class OmeZarr2DSliceLayer extends Layer {
         this.source_.loadChunks(input).then((chunks) => {
             // TODO: handle mapping multiple chunks to textures.
             const chunk = chunks[0];
-            const texture = new DataTexture2D(chunk.data, chunk.shape[0], chunk.shape[1]);
+            const [height, width] = chunk.shape;
+            const texture = new DataTexture2D(chunk.data, width, height);
             this.addObject(new Mesh(this.plane_.meshSource, texture));
             this.state_ = "ready";
         });
