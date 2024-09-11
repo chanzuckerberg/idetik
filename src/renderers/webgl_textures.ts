@@ -41,7 +41,7 @@ export class WebGLTextures {
       case "DataTexture2D":
         return this.gl_.TEXTURE_2D;
       default:
-        throw new Error(`Unknown texture type`);
+        throw new Error(`Unknown texture type ${texture.type}`);
     }
   }
 
@@ -81,7 +81,7 @@ export class WebGLTextures {
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    // Needs to be NEAREST for R16UI.
+    // I think we need NEAREST for R16UI.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   }

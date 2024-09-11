@@ -17,11 +17,13 @@ export class WebGLBindings {
     if (!objectVAO) {
       objectVAO = this.createVAO();
     }
+
     this.gl_.bindVertexArray(objectVAO);
     if (!this.VAOs_.has(object.uuid)) {
       this.createBuffers(object as Mesh);
       this.VAOs_.set(object.uuid, objectVAO);
     }
+
     this.currentVAO_ = objectVAO!;
   }
 
@@ -37,7 +39,6 @@ export class WebGLBindings {
     if (!vao) {
       throw new Error(`Unable to generate a vertex array object name`);
     }
-    this.gl_.bindVertexArray(vao);
     return vao;
   }
 
