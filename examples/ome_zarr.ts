@@ -1,7 +1,7 @@
 import {
   LayerManager,
   PerspectiveCamera,
-  ImageLayer,
+  OmeZarr2DSliceLayer,
   WebGLRenderer,
   OmeZarrMultiscaleVolumeSource,
 } from "@";
@@ -17,12 +17,9 @@ OmeZarrMultiscaleVolumeSource.open(url).then((source) => {
   // After opening the image source, we should have all the info we
   // need to define the basic geometry of the layers objects (i.e.
   // we know how many chunks there are, the overall extent).
-  // But the texture might be updated.
-  const layer = new ImageLayer(source);
+  // But the texture data still needs to be updated.
+  const layer = new OmeZarr2DSliceLayer(source);
   layersManager.add(layer);
-  // TODO: This example only needs a single load, but we need to think about
-  // when load should be called (e.g. any time the FOV or canvas size changes).
-  renderer.load(layersManager);
 });
 
 function animate() {

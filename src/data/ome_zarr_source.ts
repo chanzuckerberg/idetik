@@ -4,13 +4,6 @@ import { DataLoadInput, VolumeChunk } from "data/region";
 import { MeshSource } from "./mesh_source";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 
-export interface ImageSliceSource<ArrayType> {
-    loadChunks(input: DataLoadInput): Promise<VolumeChunk<ArrayType>[]>;
-    meshSource: MeshSource;
-    itemsSize: number;
-    sizeInBytes: number;
-};
-
 export class OmeZarrMultiscaleVolumeSource {
 
   root: zarr.Group<zarr.FetchStore>;

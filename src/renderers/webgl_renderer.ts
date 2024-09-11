@@ -1,15 +1,16 @@
 import { Renderer } from "core/renderer";
-import { ImageSlice } from "objects/renderable/image_slice";
 import { Mesh } from "objects/renderable/mesh";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
 import { Shader, shaderCode } from "./shaders";
 import { WebGLBindings } from "./webgl_bindings";
+import { WebGLTextures } from "./webgl_textures";
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
   private readonly bindings_: WebGLBindings;
+  private readonly textures_: WebGLTextures;
 
   constructor(selector: string) {
     super(selector);
@@ -21,28 +22,19 @@ export class WebGLRenderer extends Renderer {
     console.log(`WebGL version ${this.gl.getParameter(this.gl.VERSION)}`);
     this.shaders_ = new Map<Shader, WebGLShaderProgram>();
     this.bindings_ = new WebGLBindings(this.gl);
+    this.textures_ = new WebGLTextures(this.gl);
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-  }
-
-  protected renderImageSlice(imageSlice: ImageSlice) {
-    const program = this.getShaderProgram("mesh").use();
-    program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
-    program.setUniformMat4("ModelView", this.activeCamera.viewTransform);
-    program.setUniformVec2("Resolution", [this.width, this.height]);
-    program.setUniformFloat("Time", performance.now() / 1000);
-
-    this.bindings_.bind(imageSlice);
-    this.gl.drawArrays(this.gl.TRIANGLES, 0, imageSlice.source.itemsSize);
   }
 
   protected renderMesh(mesh: Mesh) {
     const program = this.getShaderProgram("mesh").use();
     program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
     program.setUniformMat4("ModelView", this.activeCamera.viewTransform);
-    program.setUniformVec2("Resolution", [this.width, this.height]);
-    program.setUniformFloat("Time", performance.now() / 1000);
 
     this.bindings_.bind(mesh);
+    if (mesh.texture !== null) {
+      this.textures_.bind(mesh.texture);
+    }
     const type = this.gl.TRIANGLES;
     if (mesh.index) {
       this.gl.drawElements(type, mesh.index.length, this.gl.UNSIGNED_SHORT, 0);

@@ -1,15 +1,13 @@
 #version 300 es
 
 precision mediump float;
+precision mediump usampler2D;
 
 layout (location = 0) out vec4 fragColor;
 
-uniform vec2 Resolution;
-uniform float Time;
+uniform usampler2D texture0;
+in vec2 TexCoords;
 
 void main() {
-    vec2 uv = gl_FragCoord.xy / Resolution.xy;
-    vec3 col = 0.5 + 0.5 * cos(Time + uv.xyx + vec3(0, 2, 4));
-
-    fragColor = vec4(col,1.0);
+    fragColor = vec4(float(texture(texture0, TexCoords).r), 0, 0, 1);
 }

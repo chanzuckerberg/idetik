@@ -2,7 +2,6 @@ import { LayerManager } from "./layer_manager";
 import { Mesh } from "objects/renderable/mesh";
 import { Camera } from "objects/cameras/camera";
 import { PerspectiveCamera } from "@/objects/cameras/perspective_camera";
-import { ImageSlice } from "objects/renderable/image_slice";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
@@ -12,7 +11,6 @@ export abstract class Renderer {
 
   protected abstract resize(width: number, height: number): void;
   protected abstract renderMesh(mesh: Mesh): void;
-  protected abstract renderImageSlice(imageSlice: ImageSlice): void;
   protected abstract clear(): void;
 
   constructor(selector: string) {
@@ -31,40 +29,19 @@ export abstract class Renderer {
     this.clear();
     this.activeCamera_ = camera;
     layerManager.layers.forEach((layer) => {
-      layer.objects.forEach((obj) => {
-        // TODO: check if object is visible before sending it to the renderer backend
-        switch (obj.type) {
-          case "Mesh":
-            this.renderMesh(obj as Mesh);
-            break;
-          case "ImageSlice":
-            this.renderImageSlice(obj as ImageSlice);
-            break;
-          default:
-            throw new Error(`Unknown renderable object "${obj.type}"`);
-        }
-      });
-    });
-  }
-
-  public load(layerManager: LayerManager) {
-    // TODO: get data-input/region from canvas and active camera FOV
-    const input = {region: []};
-    layerManager.layers.forEach((layer) => {
-      layer.objects.forEach((obj) => {
-        // TODO: check if object is visible before loading its data
-        switch (obj.type) {
-          case "ImageSlice": {
-            const imageSlice = obj as ImageSlice;
-            imageSlice.source.loadChunks(input);
-            break;
+      layer.update();
+      if (layer.state === "ready") {
+        layer.objects.forEach((obj) => {
+          // TODO: check if object is visible before sending it to the renderer backend
+          switch (obj.type) {
+            case "Mesh":
+              this.renderMesh(obj as Mesh);
+              break;
+            default:
+              throw new Error(`Unknown renderable object "${obj.type}"`);
           }
-          case "Mesh":
-            break;
-          default:
-            throw new Error(`Unknown renderable object "${obj.type}"`);
-        }
-      });
+        });
+      }
     });
   }
 
