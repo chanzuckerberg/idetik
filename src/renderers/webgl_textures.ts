@@ -66,6 +66,18 @@ export class WebGLTextures {
     return texture;
   }
 
+  private configuredTexture2D(texture: Texture2D) {
+    const gl = this.gl_;
+    const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+    const image = texture.image;
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, format, format, type, image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  }
+
   private configuredDataTexture2D(texture: DataTexture2D) {
     const gl = this.gl_;
     gl.texImage2D(
@@ -84,17 +96,5 @@ export class WebGLTextures {
     // I think we need NEAREST for R16UI.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  }
-
-  private configuredTexture2D(texture: Texture2D) {
-    const gl = this.gl_;
-    const format = gl.RGBA;
-    const type = gl.UNSIGNED_BYTE;
-    const image = texture.image;
-
-    gl.texImage2D(gl.TEXTURE_2D, 0, format, format, type, image);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }
 }

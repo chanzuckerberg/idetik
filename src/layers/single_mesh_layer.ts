@@ -1,7 +1,7 @@
 import { Layer } from "core/layer";
 import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
-import { Texture2D } from "objects/textures/texture_2d";
+import { Texture2D } from "@/objects/textures/texture_2d";
 
 export class SingleMeshLayer extends Layer {
   private plane_ = new PlaneGeometry(3, 3, 1, 1);
