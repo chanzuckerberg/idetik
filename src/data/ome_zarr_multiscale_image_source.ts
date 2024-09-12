@@ -65,9 +65,8 @@ export class OmeZarrMultiscaleImageSource {
 
   async loadChunks(region: Region): Promise<ImageChunk<Uint16Array>[]> {
     // TODO: use the input to determine what level to load.
-    // For now, just use the lowest resolution.
-    const datasetIndex = this.datasets_.length - 1;
-    const dataset = this.datasets_[datasetIndex];
+    const lowestResolutionIndex = this.datasets_.length - 1;
+    const dataset = this.datasets_[lowestResolutionIndex];
     const indices = regionToIndices(region, dataset, this.axes_);
     console.debug("loading dataset with indices", dataset, indices);
 

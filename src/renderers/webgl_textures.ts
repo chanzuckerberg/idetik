@@ -93,7 +93,9 @@ export class WebGLTextures {
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    // I think we need NEAREST for R16UI.
+    // Use NEAREST with the R16UI internal format because integer valued textures
+    // are not generally texture filterable.
+    // https://webgl2fundamentals.org/webgl/lessons/webgl-data-textures.html
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   }
