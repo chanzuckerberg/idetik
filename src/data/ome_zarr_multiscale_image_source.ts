@@ -1,7 +1,8 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { DataLoadInput, Interval, Region, ImageChunk } from "data/region";
+import { Interval, Region } from "data/region";
+import { ImageChunk } from "data/chunk";
 
 interface IdentityTransform {
   type: "identity";
@@ -62,12 +63,12 @@ export class OmeZarrMultiscaleImageSource {
     return new OmeZarrMultiscaleImageSource(root);
   }
 
-  async loadChunks(input: DataLoadInput): Promise<ImageChunk<Uint16Array>[]> {
+  async loadChunks(region: Region): Promise<ImageChunk<Uint16Array>[]> {
     // TODO: use the input to determine what level to load.
-    // For now, just use the lowest.
+    // For now, just use the lowest resolution.
     const datasetIndex = this.datasets_.length - 1;
     const dataset = this.datasets_[datasetIndex];
-    const indices = regionToIndices(input.region, dataset, this.axes_);
+    const indices = regionToIndices(region, dataset, this.axes_);
     console.debug("loading dataset with indices", dataset, indices);
 
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
@@ -87,7 +88,7 @@ export class OmeZarrMultiscaleImageSource {
       data: subarray.data as Uint16Array,
       shape: subarray.shape,
       stride: subarray.stride,
-      region: input.region,
+      region: region,
     };
     console.debug("loaded chunk ", chunk);
     return [chunk];

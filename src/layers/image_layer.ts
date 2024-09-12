@@ -2,11 +2,12 @@ import { Layer } from "core/layer";
 import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
-import { DataLoadInput, ImageChunk, Region } from "data/region";
+import { Region } from "data/region";
+import { ImageChunk } from "data/chunk";
 
 // TODO: support dtypes other than uint16.
 interface ImageLayerSource {
-  loadChunks(input: DataLoadInput): Promise<ImageChunk<Uint16Array>[]>;
+  loadChunks(input: Region): Promise<ImageChunk<Uint16Array>[]>;
 }
 
 export class ImageLayer extends Layer {
@@ -25,9 +26,8 @@ export class ImageLayer extends Layer {
 
   public update(): void {
     if (this.state === "initialized") {
-      const input = { region: this.region_ };
       this.state_ = "loading";
-      this.source_.loadChunks(input).then((chunks) => {
+      this.source_.loadChunks(this.region_).then((chunks) => {
         // TODO: handle mapping many chunks to many textures.
         if (chunks.length !== 1) {
           throw new Error(`Expected one chunk. Instead found ${chunks.length}`);

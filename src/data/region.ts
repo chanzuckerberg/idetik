@@ -26,17 +26,3 @@ export interface RegionIndex {
 
 // A region of some dimensional space.
 export type Region = Array<RegionIndex>;
-
-// The input for loading a region of a data source.
-export interface DataLoadInput {
-  region: Region;
-  renderSize?: [number, number];
-}
-
-// The output of loading a region of a data source.
-export interface ImageChunk<ArrayType> {
-  region: Region;
-  data: ArrayType;
-  shape: Array<number>;
-  stride: Array<number>;
-}
