@@ -1,7 +1,7 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { Interval, Region } from "data/region";
+import { Region } from "data/region";
 import { ImageChunk } from "data/chunk";
 
 interface IdentityTransform {
@@ -104,19 +104,20 @@ function regionToIndices(
   const indices: Array<Slice | number | null> = [];
   for (const [i, axis] of axes.entries()) {
     let index = null;
-    const regionIndex = region.find((s) => s.dimension == axis.name);
-    if (regionIndex) {
+    const match = region.find((s) => s.dimension == axis.name);
+    if (match) {
       // TODO: handle more than just scale list to transform input region.
       const scale = dataset.coordinateTransformations
         .map((transform) => transformScale(transform, i))
         .reduce((totalScale, scale) => scale * totalScale, 1);
-      if (regionIndex.index instanceof Interval) {
-        index = zarr.slice(
-          Math.floor(regionIndex.index.start / scale),
-          Math.ceil(regionIndex.index.stop / scale)
-        );
+      const regionIndex = match.index;
+      if (typeof regionIndex === "number") {
+        index = Math.round(regionIndex / scale);
       } else {
-        index = Math.round(regionIndex.index / scale);
+        index = zarr.slice(
+          Math.floor(regionIndex.start / scale),
+          Math.ceil(regionIndex.stop / scale)
+        );
       }
     }
     indices.push(index);

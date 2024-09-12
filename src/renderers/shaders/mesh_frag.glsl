@@ -9,6 +9,6 @@ uniform usampler2D texture0;
 in vec2 TexCoords;
 
 void main() {
-    float value = float(texture(texture0, TexCoords).r) / 128.0;
+    float value = float(texture(texture0, TexCoords).r) / 256.0;
     fragColor = vec4(value, value, value, 1);
 }
