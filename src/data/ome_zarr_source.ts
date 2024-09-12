@@ -3,25 +3,36 @@ import { Slice as ZarrSlice } from "@zarrita/indexing";
 
 import { DataLoadInput, VolumeChunk } from "data/region";
 
+interface IdentityTransform {
+  type: "identity";
+};
+
+interface TranslationTransform {
+  type: "translation";
+  translation: Array<number>;
+};
+
 interface ScaleTransform {
   type: "scale";
   scale: Array<number>;
-}
+};
+
+type Transform = IdentityTransform | TranslationTransform | ScaleTransform;
 
 interface Dataset {
   path: string;
-  coordinateTransformations: Array<ScaleTransform>;
-}
+  coordinateTransformations: Array<Transform>;
+};
 
 interface Axis {
   name: string;
-  type?: "space" | "time" | "channel";
-}
+  type?: string;
+};
 
 interface Multiscale {
   axes: Array<Axis>;
   datasets: Array<Dataset>;
-}
+};
 
 export class OmeZarrMultiscaleVolumeSource {
   root: zarr.Group<zarr.FetchStore>;
@@ -62,7 +73,7 @@ export class OmeZarrMultiscaleVolumeSource {
       if (match) {
         // TODO: handle more than just scale to transform input region.
         const scale = dataset.coordinateTransformations
-          .map((tfm) => tfm.scale[i])
+          .map((tfm) => tfm.type === "scale" ? tfm.scale[i] : 1)
           .reduce((totalScale, scale) => scale * totalScale, 1);
         if (match.stop === undefined) {
           index = Math.round(match.start / scale);
