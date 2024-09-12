@@ -3,9 +3,6 @@ import { Slice } from "@zarrita/indexing";
 
 import { DataLoadInput, Interval, Region, ImageChunk } from "data/region";
 
-// Definitions from v0.4 of the OME-NGFF multiscale metadata specification:
-// https://ngff.openmicroscopy.org/0.4/#metadata
-
 interface IdentityTransform {
   type: "identity";
 }
@@ -37,7 +34,8 @@ interface Multiscale {
   datasets: Array<Dataset>;
 }
 
-// An OME-Zarr multiscale image.
+// A multiscale image from a Zarr implementation of OME-NGFF v0.4:
+// https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrMultiscaleImageSource {
   root_: zarr.Group<zarr.FetchStore>;
   axes_: Array<Axis>;
@@ -56,7 +54,7 @@ export class OmeZarrMultiscaleImageSource {
     this.datasets_ = image.datasets;
   }
 
-  // Opens an OME-Zarr multiscale volume from the URL of the top-level Zarr group.
+  // Opens an OME-Zarr multiscale image from the URL of its Zarr group.
   static async open(url: string): Promise<OmeZarrMultiscaleImageSource> {
     const store = new zarr.FetchStore(url);
     const root = await zarr.open.v2(store, { kind: "group" });
@@ -64,7 +62,6 @@ export class OmeZarrMultiscaleImageSource {
     return new OmeZarrMultiscaleImageSource(root);
   }
 
-  // Loads image chunks
   async loadChunks(input: DataLoadInput): Promise<ImageChunk<Uint16Array>[]> {
     // TODO: use the input to determine what level to load.
     // For now, just use the lowest.
@@ -126,7 +123,7 @@ function regionToIndices(
   return indices;
 }
 
-// Returns a scale value from a transform at some axis index of 1 if a scale cannot be found.
+// Returns a scale from a transform at some axis index or 1 if a scale cannot be found.
 function transformScale(transform: Transform, index: number): number {
   if (transform.type !== "scale") return 1;
   if (!(transform.scale instanceof Array)) return 1;

@@ -4,7 +4,6 @@ import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { DataLoadInput, ImageChunk, Region } from "data/region";
 
-// A data source for an image layer.
 // TODO: support dtypes other than uint16.
 interface ImageLayerSource {
   loadChunks(input: DataLoadInput): Promise<ImageChunk<Uint16Array>[]>;
