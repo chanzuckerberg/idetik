@@ -80,16 +80,25 @@ export class WebGLTextures {
 
   private configuredDataTexture2D(texture: DataTexture2D) {
     const gl = this.gl_;
+    // We expect that texture pixel data is compact (i.e. row length is
+    // equal to width), so use an unpack alignment of 2 to support any
+    // texture width for uint16 pixel values.
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 2);
+    const level = 0;
+    const internalFormat = gl.R16UI;
+    const border = 0;
+    const format = gl.RED_INTEGER;
+    const type = gl.UNSIGNED_SHORT;
     gl.texImage2D(
-      gl.TEXTURE_2D, // target
-      0, // level
-      gl.R16UI, // internalFormat
+      gl.TEXTURE_2D,
+      level,
+      internalFormat,
       texture.width,
       texture.height,
-      0, // border
-      gl.RED_INTEGER, // format
-      gl.UNSIGNED_SHORT, // type
-      texture.data // source
+      border,
+      format,
+      type,
+      texture.data
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);

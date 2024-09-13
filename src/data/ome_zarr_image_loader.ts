@@ -2,7 +2,7 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "data/region";
-import { ImageChunk } from "data/chunk";
+import { ImageChunk } from "data/image_chunk";
 
 interface IdentityTransform {
   type: "identity";
@@ -37,13 +37,16 @@ interface Multiscale {
 
 // A multiscale image from a Zarr implementation of OME-NGFF v0.4:
 // https://ngff.openmicroscopy.org/0.4/#image-layout
-export class OmeZarrMultiscaleImageSource {
+export class OmeZarrImageLoader {
   root_: zarr.Group<zarr.FetchStore>;
   axes_: Array<Axis>;
   datasets_: Array<Dataset>;
 
   constructor(root: zarr.Group<zarr.FetchStore>) {
     this.root_ = root;
+    if (!("multiscales" in this.root_.attrs)) {
+      throw new Error(`multiscales property not found in root ${root}`);
+    }
     const multiscales = this.root_.attrs.multiscales as Array<Multiscale>;
     if (multiscales.length !== 1) {
       throw new Error(
@@ -53,14 +56,6 @@ export class OmeZarrMultiscaleImageSource {
     const image = multiscales[0];
     this.axes_ = image.axes;
     this.datasets_ = image.datasets;
-  }
-
-  // Opens an OME-Zarr multiscale image from the URL of its Zarr group.
-  static async open(url: string): Promise<OmeZarrMultiscaleImageSource> {
-    const store = new zarr.FetchStore(url);
-    const root = await zarr.open.v2(store, { kind: "group" });
-    console.debug("opened root ", root, root.attrs);
-    return new OmeZarrMultiscaleImageSource(root);
   }
 
   async loadChunks(region: Region): Promise<ImageChunk<Uint16Array>[]> {
