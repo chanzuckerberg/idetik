@@ -1,6 +1,6 @@
 import { Texture } from "objects/textures/texture";
 import { Texture2D } from "objects/textures/texture_2d";
-import { Uint16Texture2D } from "objects/textures/data_texture_2d";
+import { Uint16Texture2D } from "objects/textures/uint16_texture_2d";
 
 export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
@@ -38,7 +38,7 @@ export class WebGLTextures {
   private textureType(texture: Texture) {
     switch (texture.type) {
       case "Texture2D":
-      case "DataTexture2D":
+      case "Uint16Texture2D":
         return this.gl_.TEXTURE_2D;
       default:
         throw new Error(`Unknown texture type ${texture.type}`);
@@ -50,8 +50,8 @@ export class WebGLTextures {
       case "Texture2D":
         this.configuredTexture2D(texture as Texture2D);
         break;
-      case "DataTexture2D":
-        this.configuredDataTexture2D(texture as Uint16Texture2D);
+      case "Uint16Texture2D":
+        this.configuredUint16Texture2D(texture as Uint16Texture2D);
         break;
       default:
         throw new Error(`Unknown texture type ${texture.type}`);
@@ -78,7 +78,7 @@ export class WebGLTextures {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }
 
-  private configuredDataTexture2D(texture: Uint16Texture2D) {
+  private configuredUint16Texture2D(texture: Uint16Texture2D) {
     const gl = this.gl_;
     // Use an unpack alignment of 2 to support any row length of 2-byte
     // uint16 pixel values.

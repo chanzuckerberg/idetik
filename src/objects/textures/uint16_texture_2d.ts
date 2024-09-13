@@ -1,4 +1,4 @@
-import { Texture } from "./texture";
+import { Texture } from "objects/textures/texture";
 
 export class Uint16Texture2D extends Texture {
   private readonly data_: Uint16Array;
@@ -36,6 +36,6 @@ export class Uint16Texture2D extends Texture {
   }
 
   public get type() {
-    return "DataTexture2D";
+    return "Uint16Texture2D";
   }
 }
