@@ -1,7 +1,7 @@
 import { Layer } from "core/layer";
 import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
-import { DataTexture2D } from "objects/textures/data_texture_2d";
+import { Uint16Texture2D } from "objects/textures/data_texture_2d";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 
@@ -9,18 +9,17 @@ interface ImageLayerSource {
   open(): Promise<ImageChunkLoader>;
 }
 
-// TODO: support dtypes other than uint16.
 interface ImageChunkLoader {
-  loadChunks(input: Region): Promise<ImageChunk<Uint16Array>[]>;
+  loadChunks(input: Region): Promise<ImageChunk[]>;
 }
 
 export class ImageLayer extends Layer {
   private source_: ImageLayerSource;
-  private loader_: ImageChunkLoader | null = null;
   // TODO: remove this when region is passed through to update.
   private region_: Region;
   // TODO: plane geometry should be defined by data source extents and region.
   private plane_ = new PlaneGeometry(3, 3, 1, 1);
+  private loader_: ImageChunkLoader | null = null;
 
   constructor(source: ImageLayerSource, region: Region) {
     super();
@@ -59,13 +58,12 @@ export class ImageLayer extends Layer {
       throw new Error(`Expected one chunk. Instead found ${chunks.length}`);
     }
     const chunk = chunks[0];
-    if (chunk.shape.length !== 2) {
-      throw new Error(
-        `Expected a 2D chunk. Instead chunk has shape ${chunk.shape}`
-      );
-    }
-    const [height, width] = chunk.shape;
-    const texture = new DataTexture2D(chunk.data, width, height);
+    const texture = new Uint16Texture2D(
+      chunk.data,
+      chunk.shape.width,
+      chunk.shape.height,
+      chunk.rowLength
+    );
     this.addObject(new Mesh(this.plane_.meshSource, texture));
     this.state_ = "ready";
   }

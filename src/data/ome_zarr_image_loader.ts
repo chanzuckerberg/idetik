@@ -58,7 +58,7 @@ export class OmeZarrImageLoader {
     this.datasets_ = image.datasets;
   }
 
-  async loadChunks(region: Region): Promise<ImageChunk<Uint16Array>[]> {
+  async loadChunks(region: Region): Promise<ImageChunk[]> {
     // TODO: use the input to determine what level to load.
     const lowestResolutionIndex = this.datasets_.length - 1;
     const dataset = this.datasets_[lowestResolutionIndex];
@@ -78,11 +78,22 @@ export class OmeZarrImageLoader {
     }
 
     const subarray = await zarr.get(array, indices);
+    if (subarray.shape.length !== 2) {
+      throw new Error(
+        `Expected to receive a 2D subarray. Instead chunk has shape ${subarray.shape}`
+      );
+    }
+
+    if (subarray.stride[1] !== 1) {
+      throw new Error(
+        `Expected to receive packed rows. Instead found a column stride of ${subarray.stride[1]}`
+      );
+    }
+
     const chunk = {
       data: subarray.data as Uint16Array,
-      shape: subarray.shape,
-      stride: subarray.stride,
-      region: region,
+      shape: { width: subarray.shape[1], height: subarray.shape[0] },
+      rowLength: subarray.stride[0],
     };
     console.debug("loaded chunk ", chunk);
     return [chunk];
