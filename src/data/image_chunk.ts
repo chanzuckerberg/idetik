@@ -1,4 +1,4 @@
-// One 2D chunk of n-dimensional image data occupying some region.
+// One 2D chunk of n-dimensional image data.
 // TODO: include the region of this chunk.
 // TODO: support data types other than uint16.
 export interface ImageChunk {

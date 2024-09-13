@@ -13,6 +13,7 @@ interface ImageChunkLoader {
   loadChunks(input: Region): Promise<ImageChunk[]>;
 }
 
+// Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
   private source_: ImageLayerSource;
   // TODO: remove this when region is passed through to update.

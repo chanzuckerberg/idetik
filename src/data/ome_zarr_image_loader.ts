@@ -35,7 +35,7 @@ interface Multiscale {
   datasets: Array<Dataset>;
 }
 
-// A multiscale image from a Zarr implementation of OME-NGFF v0.4:
+// Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
   root_: zarr.Group<zarr.FetchStore>;
