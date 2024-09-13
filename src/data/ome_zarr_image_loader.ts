@@ -105,11 +105,13 @@ function regionToIndices(
   region: Region,
   dataset: Dataset,
   axes: Array<Axis>
-): Array<Slice | number | null> {
-  const indices: Array<Slice | number | null> = [];
+): Array<Slice | number> {
+  const indices: Array<Slice | number> = [];
   for (const [i, axis] of axes.entries()) {
-    let index = null;
     const match = region.find((s) => s.dimension == axis.name);
+    // If a match was not found use a null slice which represents
+    // the complete extent of a dimension like Python's `slice(None)`.
+    let index: Slice | number = zarr.slice(null);
     if (match) {
       // TODO: handle more than just scale list to transform input region.
       const scale = dataset.coordinateTransformations

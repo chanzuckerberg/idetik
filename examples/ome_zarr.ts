@@ -19,8 +19,8 @@ const region = [
   { dimension: "t", index: 400 },
   { dimension: "c", index: 0 },
   { dimension: "z", index: 200 },
-  { dimension: "y", index: { start: 100, stop: 900} },
-  { dimension: "x", index: { start: 150, stop: 950} },
+  { dimension: "y", index: { start: 100, stop: 900 } },
+  { dimension: "x", index: { start: 150, stop: 950 } },
 ];
 const layer = new ImageLayer(source, region);
 layerManager.add(layer);
