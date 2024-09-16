@@ -1,7 +1,6 @@
 #version 300 es
 
 precision mediump float;
-precision mediump usampler2D;
 
 layout (location = 0) out vec4 fragColor;
 
