@@ -60,6 +60,7 @@ export class OmeZarrImageLoader {
 
   async loadChunks(region: Region): Promise<ImageChunk[]> {
     // TODO: use the input to determine what level to load.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
     const dataset = this.datasets_[lowestResolutionIndex];
     const indices = regionToIndices(region, dataset, this.axes_);
@@ -114,6 +115,7 @@ function regionToIndices(
     let index: Slice | number = zarr.slice(null);
     if (match) {
       // TODO: handle more than just scale list to transform input region.
+      // https://github.com/chanzuckerberg/imaging-active-learning/issues/38
       const scale = dataset.coordinateTransformations
         .map((transform) => transformScale(transform, i))
         .reduce((totalScale, scale) => scale * totalScale, 1);

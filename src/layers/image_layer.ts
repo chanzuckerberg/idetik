@@ -17,8 +17,10 @@ interface ImageChunkLoader {
 export class ImageLayer extends Layer {
   private source_: ImageLayerSource;
   // TODO: remove this when region is passed through to update.
+  // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private region_: Region;
   // TODO: plane geometry should be defined by data source extents and region.
+  // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
   private plane_ = new PlaneGeometry(3, 3, 1, 1);
   private loader_: ImageChunkLoader | null = null;
 
@@ -55,6 +57,7 @@ export class ImageLayer extends Layer {
     this.state_ = "loading";
     const chunks = await this.loader_.loadChunks(region);
     // TODO: handle mapping many chunks to many textures.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/34
     if (chunks.length !== 1) {
       throw new Error(`Expected one chunk. Instead found ${chunks.length}`);
     }

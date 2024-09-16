@@ -6,6 +6,7 @@ export interface Interval {
 
 // An index for a specific dimension or axis in a region.
 // TODO: add a unit for the index value(s).
+// https://github.com/chanzuckerberg/imaging-active-learning/issues/36
 export interface DimensionalIndex {
   dimension: string;
   index: Interval | number;
