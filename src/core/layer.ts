@@ -4,7 +4,7 @@ type LayerState = "initialized" | "opened" | "loading" | "ready";
 
 export abstract class Layer {
   private objects_: RenderableObject[] = [];
-  protected state_: LayerState = "ready";
+  protected state_: LayerState = "initialized";
 
   public abstract update(): void;
 
