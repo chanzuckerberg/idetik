@@ -42,6 +42,10 @@ export class ImageLayer extends Layer {
       case "loading":
       case "ready":
         break;
+      default: {
+        const exhaustiveCheck: never = this.state;
+        throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
+      }
     }
   }
 
