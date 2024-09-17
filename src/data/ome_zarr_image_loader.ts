@@ -87,7 +87,7 @@ export class OmeZarrImageLoader {
 
     if (subarray.stride[1] !== 1) {
       throw new Error(
-        `Expected to receive packed rows. Instead found a column stride of ${subarray.stride[1]}`
+        `Expected to find a column stride of 1. Instead found ${subarray.stride[1]}`
       );
     }
 
