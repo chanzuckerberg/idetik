@@ -55,11 +55,12 @@ export class ImageLayer extends Layer {
   }
 
   private async load(region: Region) {
-    if (this.loader_ === null) {
+    if (this.state_ !== "opened") {
       throw new Error(`Trying to load chunks from unopened source.`);
     }
     this.state_ = "loading";
-    const chunks = await this.loader_.loadChunks(region);
+    // loader_ should be non-null when in opened state.
+    const chunks = await this.loader_!.loadChunks(region);
     // TODO: handle mapping many chunks to many textures.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/34
     if (chunks.length !== 1) {
