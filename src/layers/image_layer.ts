@@ -22,7 +22,6 @@ export class ImageLayer extends Layer {
   // TODO: plane geometry should be defined by data source extents and region.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
   private plane_ = new PlaneGeometry(3, 3, 1, 1);
-  private loader_: ImageChunkLoader | null = null;
 
   constructor(source: ImageLayerSource, region: Region) {
     super();
@@ -34,9 +33,6 @@ export class ImageLayer extends Layer {
   public update(): void {
     switch (this.state) {
       case "initialized":
-        this.open();
-        break;
-      case "opened":
         this.load(this.region_);
         break;
       case "loading":
@@ -49,18 +45,13 @@ export class ImageLayer extends Layer {
     }
   }
 
-  private async open() {
-    this.loader_ = await this.source_.open();
-    this.state_ = "opened";
-  }
-
   private async load(region: Region) {
-    if (this.state_ !== "opened") {
-      throw new Error(`Trying to load chunks from unopened source.`);
+    if (this.state_ !== "initialized") {
+      throw new Error(`Trying to load chunks more than once.`);
     }
     this.state_ = "loading";
-    // loader_ should be non-null when in opened state.
-    const chunks = await this.loader_!.loadChunks(region);
+    const loader = await this.source_.open();
+    const chunks = await loader.loadChunks(region);
     // TODO: handle mapping many chunks to many textures.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/34
     if (chunks.length !== 1) {
