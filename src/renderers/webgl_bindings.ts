@@ -1,5 +1,6 @@
 import { RenderableObject } from "core/renderable_object";
 import { Mesh } from "objects/renderable/mesh";
+import { Line } from "objects/renderable/line";
 
 export class WebGLBindings {
   private readonly gl_: WebGL2RenderingContext;
@@ -24,7 +25,16 @@ export class WebGLBindings {
 
     this.gl_.bindVertexArray(objectVAO);
     if (!this.VAOs_.has(object.uuid)) {
-      this.createBuffers(object as Mesh);
+      switch (object.type) {
+        case "Mesh":
+          this.createMeshBuffers(object as Mesh);
+          break;
+        case "Line":
+          this.createLineBuffers(object as Line);
+          break;
+        default:
+          throw new Error(`Unsupported object type: ${object.type}`);
+      }
       this.VAOs_.set(object.uuid, objectVAO);
     }
 
@@ -39,7 +49,7 @@ export class WebGLBindings {
     return vao;
   }
 
-  private createBuffers(mesh: Mesh) {
+  private createMeshBuffers(mesh: Mesh) {
     let idx = 0;
     for (const [, value] of mesh.source.attributes) {
       const buffer = this.gl_.createBuffer();
@@ -61,5 +71,64 @@ export class WebGLBindings {
         this.gl_.STATIC_DRAW
       );
     }
+  }
+
+  private createLineBuffers(line: Line) {
+    const buffer = this.gl_.createBuffer();
+    this.gl_.bindBuffer(this.gl_.ARRAY_BUFFER, buffer);
+    this.gl_.bufferData(
+      this.gl_.ARRAY_BUFFER,
+      line.geometry.vertices,
+      this.gl_.STATIC_DRAW
+    );
+
+    const size = 3;
+    const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
+
+    // current
+    this.gl_.vertexAttribPointer(
+      0,
+      size,
+      this.gl_.FLOAT,
+      false,
+      stride,
+      2 * stride
+    );
+
+    // previous
+    this.gl_.vertexAttribPointer(1, size, this.gl_.FLOAT, false, stride, 0);
+
+    // next
+    this.gl_.vertexAttribPointer(
+      2,
+      size,
+      this.gl_.FLOAT,
+      false,
+      stride,
+      4 * stride
+    );
+
+    // direction
+    this.gl_.vertexAttribPointer(
+      3,
+      1,
+      this.gl_.FLOAT,
+      false,
+      stride,
+      2 * stride + 3 * Float32Array.BYTES_PER_ELEMENT
+    );
+
+    this.gl_.enableVertexAttribArray(0);
+    this.gl_.enableVertexAttribArray(1);
+    this.gl_.enableVertexAttribArray(2);
+    this.gl_.enableVertexAttribArray(3);
+
+    const indexBuffer = this.gl_.createBuffer();
+    this.gl_.bindBuffer(this.gl_.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    this.gl_.bufferData(
+      this.gl_.ELEMENT_ARRAY_BUFFER,
+      line.geometry.index,
+      this.gl_.STATIC_DRAW
+    );
   }
 }

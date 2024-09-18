@@ -1,5 +1,6 @@
 import { LayerManager } from "./layer_manager";
 import { Mesh } from "objects/renderable/mesh";
+import { Line } from "objects/renderable/line";
 import { Camera } from "objects/cameras/camera";
 import { PerspectiveCamera } from "objects/cameras/perspective_camera";
 
@@ -11,6 +12,7 @@ export abstract class Renderer {
 
   protected abstract resize(width: number, height: number): void;
   protected abstract renderMesh(mesh: Mesh): void;
+  protected abstract renderLine(line: Line): void;
   protected abstract clear(): void;
 
   constructor(selector: string) {
@@ -34,6 +36,9 @@ export abstract class Renderer {
         switch (obj.type) {
           case "Mesh":
             this.renderMesh(obj as Mesh);
+            break;
+          case "Line":
+            this.renderLine(obj as Line);
             break;
           default:
             throw new Error(`Unknown renderable object "${obj.type}"`);

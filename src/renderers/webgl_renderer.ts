@@ -1,5 +1,8 @@
+import { mat4 } from "gl-matrix";
+
 import { Renderer } from "core/renderer";
 import { Mesh } from "objects/renderable/mesh";
+import { Line } from "objects/renderable/line";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
 import { Shader, shaderCode } from "./shaders";
@@ -37,6 +40,28 @@ export class WebGLRenderer extends Renderer {
     } else {
       this.gl.drawArrays(type, 0, mesh.source.itemsSize);
     }
+  }
+
+  protected renderLine(line: Line) {
+    const program = this.getShaderProgram("line").use();
+    const modelView = mat4.create();
+    // TODO: this is just a placeholder animation
+    const angle = (performance.now() / 1000) * Math.PI;
+    mat4.rotateY(modelView, this.activeCamera.viewTransform, angle);
+    program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
+    program.setUniformMat4("ModelView", modelView);
+    program.setUniformVec2("Resolution", [this.width, this.height]);
+    program.setUniformFloat("LineWidth", line.width);
+    program.setUniformVec3("LineColor", line.color);
+
+    this.bindings_.bind(line);
+    const type = this.gl.TRIANGLES;
+    this.gl.drawElements(
+      type,
+      line.geometry.index.length,
+      this.gl.UNSIGNED_INT,
+      0
+    );
   }
 
   protected resize(width: number, height: number) {

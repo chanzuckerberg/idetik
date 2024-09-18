@@ -1,4 +1,4 @@
-import { mat4, vec2 } from "gl-matrix";
+import { mat4, vec2, vec3 } from "gl-matrix";
 
 type ShaderMap = {
   [type: number]: {
@@ -52,6 +52,10 @@ export class WebGLShaderProgram {
 
   public setUniformVec2(name: string, value: vec2) {
     this.gl_.uniform2fv(this.getUniformLoc(name), value);
+  }
+
+  public setUniformVec3(name: string, value: vec3) {
+    this.gl_.uniform3fv(this.getUniformLoc(name), value);
   }
 
   public setUniformFloat(name: string, value: number) {
