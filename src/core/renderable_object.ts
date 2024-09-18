@@ -1,10 +1,10 @@
-import { generateUUID } from "core/utils";
+import { Node } from "core/node";
+import { Geometry } from "./geometry";
 
-export abstract class RenderableObject {
-  public readonly uuid = generateUUID();
+export abstract class RenderableObject extends Node {
+  protected geometry_ = new Geometry();
 
-  // The renderable object base class will have a local transform object.
-  // We will use this object to transform the object in world space and to
-  // calculate the local transformation matrix.
-  public abstract get type(): string;
+  public get geometry() {
+    return this.geometry_;
+  }
 }

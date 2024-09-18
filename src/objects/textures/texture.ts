@@ -1,6 +1,6 @@
-import { RenderableObject } from "core/renderable_object";
+import { Node } from "core/node";
 
-export class Texture extends RenderableObject {
+export class Texture extends Node {
   public get type() {
     return "Texture";
   }
