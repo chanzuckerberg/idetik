@@ -27,20 +27,8 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected renderMesh(mesh: Mesh) {
-    let programName = "mesh";
-    if (mesh.texture !== null) {
-      switch (mesh.texture.type) {
-        case "Texture2D":
-          programName = "mesh";
-          break;
-        case "Uint8Texture2D":
-          programName = "uint8Image";
-          break;
-        case "Uint16Texture2D":
-          programName = "uint16Image";
-          break;
-      }
-    }
+    // TODO: support shaders for pixel values of types other than unsigned ints.
+    const programName = mesh.texture?.type === "DataTexture2D" ? "uintImage" : "mesh";
     const program = this.getShaderProgram(programName).use();
     program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
     program.setUniformMat4("ModelView", this.activeCamera.viewTransform);
