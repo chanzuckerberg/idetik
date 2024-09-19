@@ -2,7 +2,7 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "data/region";
-import { ImageChunk } from "data/image_chunk";
+import { DType, ImageChunk } from "data/image_chunk";
 
 interface IdentityTransform {
   type: "identity";
@@ -72,9 +72,10 @@ export class OmeZarrImageLoader {
     });
     console.debug("opened array ", array);
 
-    if (array.dtype !== "uint16") {
+    const supportedDtypes = new Set(["uint8", "uint16"]);
+    if (!supportedDtypes.has(array.dtype)) {
       throw new Error(
-        `Only uint16 image data is supported. Instead array has dtype ${array.dtype}`
+        `Array has unsupported dtype ${array.dtype}. Supported dtypes are ${supportedDtypes}.`
       );
     }
 
@@ -92,7 +93,8 @@ export class OmeZarrImageLoader {
     }
 
     const chunk = {
-      data: subarray.data as Uint16Array,
+      data: subarray.data as (Uint8Array | Uint16Array),
+      dtype: array.dtype as DType,
       shape: { width: subarray.shape[1], height: subarray.shape[0] },
       rowLength: subarray.stride[0],
     };

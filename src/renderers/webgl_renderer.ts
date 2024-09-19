@@ -27,8 +27,20 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected renderMesh(mesh: Mesh) {
-    const programName =
-      mesh.texture?.type === "Uint16Texture2D" ? "uint16Image" : "mesh";
+    let programName = "mesh";
+    if (mesh.texture !== null) {
+      switch (mesh.texture.type) {
+        case "Texture2D":
+          programName = "mesh";
+          break;
+        case "Uint8Texture2D":
+          programName = "uint8Image";
+          break;
+        case "Uint16Texture2D":
+          programName = "uint16Image";
+          break;
+      }
+    }
     const program = this.getShaderProgram(programName).use();
     program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
     program.setUniformMat4("ModelView", this.activeCamera.viewTransform);
