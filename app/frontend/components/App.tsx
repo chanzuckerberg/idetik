@@ -9,7 +9,6 @@ import PlaybackControls from "./PlaybackControls";
 import { useEffect, useState } from "react";
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
-// Also specify a subregion in x and y to exercise that part of the API.
 const url =
     "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 const source = new OmeZarrImageSource(url);
@@ -60,7 +59,6 @@ export default function App() {
         layerManager={layerManager}
       ></Renderer>
       <PlaybackControls
-        enabled={true}
         playing={playing}
         curTime={curTime}
         numTimes={numTimes}

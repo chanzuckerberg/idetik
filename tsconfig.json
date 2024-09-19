@@ -28,5 +28,5 @@
 
     "types": ["vite-plugin-glsl/ext"]
   },
-  "include": ["examples", "src", "test", "app"]
+  "include": ["examples", "src", "test", "app/frontend"]
 }
