@@ -58,7 +58,7 @@ export default function App() {
       gap: "1em",
     }}>
       <Renderer
-        layerManager={layerManager}
+        initLayerManager={layerManager}
       ></Renderer>
       <PlaybackControls
         enabled={true}

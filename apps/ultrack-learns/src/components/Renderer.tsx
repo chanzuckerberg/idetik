@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   LayerManager,
   PerspectiveCamera,
@@ -9,22 +9,26 @@ import { Box } from "@mui/material";
 const canvasId = "canvas";
 
 interface RendererProps {
-    layerManager: LayerManager;
+    initLayerManager: LayerManager;
 }
 
 export default function Renderer(props: RendererProps) {
+  // This is a silly workaround to ensure the mount effect below
+  // does not depend on something that could be React state.
+  const layerManagerRef = useRef<LayerManager>(props.initLayerManager);
+
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
   useEffect(() => {
       const renderer = new WebGLRenderer(`#${canvasId}`);
       const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
       function animate() {
-          renderer.render(props.layerManager, camera);
+          renderer.render(layerManagerRef.current, camera);
           requestAnimationFrame(animate);
       }
       animate();
       return () => {
-          // TODO: cleanup.
+          // TODO: cleanup by disposing objects and calling cancelAnimationFrame.
       };
   }, []);
 
