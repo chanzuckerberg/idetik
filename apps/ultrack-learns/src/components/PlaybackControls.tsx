@@ -16,11 +16,6 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
             display: "flex",
             flexDirection: "row",
             gap: "1em",
-            // This margin accounts for the horizontal space take up by the
-            // input slider's value to prevent a horizontal scroll bar.
-            // TODO: improve the layout so this is not needed or consider
-            // an upstream fix.
-            marginRight: "1em",
         }}>
             <Button
                 icon="Play"
