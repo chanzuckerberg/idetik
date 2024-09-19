@@ -13,11 +13,19 @@ const _dirname = dirname(fileURLToPath(import.meta.url));
 
 const plugins = [tsconfigPaths(), eslint(), glsl()];
 
+function modeToRoot(mode) {
+  if (mode === 'development') {
+    return 'examples';
+  } else if (mode === 'prototype') {
+    return 'ultrack-prototype/frontend';
+  }
+  return undefined;
+}
+
 export default defineConfig(({ mode }) => {
   return {
     plugins,
-    // use examples dir for dev server, but not for build
-    root: mode === 'development' ? './app/frontend' : undefined,
+    root: modeToRoot(mode),
     publicDir: path.resolve(_dirname, 'public'),
     build: {
       outDir: 'dist',
