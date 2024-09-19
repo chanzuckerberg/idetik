@@ -1,9 +1,9 @@
-import { Layer } from "core/layer";
-import { Mesh } from "objects/renderable/mesh";
-import { PlaneGeometry } from "objects/geometry/plane_geometry";
-import { Uint16Texture2D } from "objects/textures/uint16_texture_2d";
-import { Region } from "data/region";
-import { ImageChunk } from "data/image_chunk";
+import { Layer } from "../core/layer";
+import { Mesh } from "../objects/renderable/mesh";
+import { PlaneGeometry } from "../objects/geometry/plane_geometry";
+import { Uint16Texture2D } from "../objects/textures/uint16_texture_2d";
+import { Region } from "../data/region";
+import { ImageChunk } from "../data/image_chunk";
 
 interface ImageLayerSource {
   open(): Promise<ImageChunkLoader>;

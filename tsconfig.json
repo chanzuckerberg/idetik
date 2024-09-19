@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "outDir": "./dist",
     "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
@@ -29,5 +28,5 @@
 
     "types": ["vite-plugin-glsl/ext"]
   },
-  "include": ["examples", "src", "test", "app"]
+  "include": ["examples", "src", "test"]
 }

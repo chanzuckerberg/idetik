@@ -23,6 +23,25 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      'no-duplicate-imports': 'error',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          "args": "all",
+          "argsIgnorePattern": "^_",
+          "destructuredArrayIgnorePattern": "^_",
+          "varsIgnorePattern": "^_"
+        }
+        ],
+      '@typescript-eslint/naming-convention': [
+        'error',
+        {
+          "selector": "classProperty",
+          "modifiers": ["private"],
+          "format": null,
+          "suffix": ["_"]
+        }
+      ],
     },
   },
 )

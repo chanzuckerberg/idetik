@@ -1,7 +1,7 @@
 import { LayerManager } from "./layer_manager";
-import { Mesh } from "objects/renderable/mesh";
-import { Camera } from "objects/cameras/camera";
-import { PerspectiveCamera } from "objects/cameras/perspective_camera";
+import { Mesh } from "../objects/renderable/mesh";
+import { Camera } from "../objects/cameras/camera";
+import { PerspectiveCamera } from "../objects/cameras/perspective_camera";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;

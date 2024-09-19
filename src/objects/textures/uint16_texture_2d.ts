@@ -1,4 +1,4 @@
-import { Texture } from "objects/textures/texture";
+import { Texture } from "../../objects/textures/texture";
 
 export class Uint16Texture2D extends Texture {
   private readonly data_: Uint16Array;

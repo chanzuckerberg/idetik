@@ -1,5 +1,5 @@
-import { Renderer } from "core/renderer";
-import { Mesh } from "objects/renderable/mesh";
+import { Renderer } from "../core/renderer";
+import { Mesh } from "../objects/renderable/mesh";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
 import { Shader, shaderCode } from "./shaders";

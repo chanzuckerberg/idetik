@@ -1,6 +1,6 @@
-import { MeshSource } from "@/data/mesh_source";
-import { RenderableObject } from "core/renderable_object";
-import { Texture } from "objects/textures/texture";
+import { MeshSource } from "../../data/mesh_source";
+import { RenderableObject } from "../../core/renderable_object";
+import { Texture } from "../textures/texture";
 
 export class Mesh extends RenderableObject {
   private source_: MeshSource;

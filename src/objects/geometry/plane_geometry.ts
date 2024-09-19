@@ -1,4 +1,4 @@
-import { MeshSource } from "data/mesh_source";
+import { MeshSource } from "../../data/mesh_source";
 
 export class PlaneGeometry {
   private vertices_: number[] = [];

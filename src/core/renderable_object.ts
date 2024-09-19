@@ -1,4 +1,4 @@
-import { generateUUID } from "core/utils";
+import { generateUUID } from "../core/utils";
 
 export abstract class RenderableObject {
   public readonly uuid = generateUUID();
