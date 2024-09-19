@@ -109,25 +109,24 @@ export class WebGLTextures {
 
   private dataTexture2DGlInternalFormat(texture: DataTexture2D): number {
     const gl = this.gl_;
-    switch (texture.data.constructor.name) {
+    switch (texture.dataType) {
       case "Uint8Array":
         return gl.R8UI;
       case "Uint16Array":
         return gl.R16UI;
     }
-    throw Error(`Unsupported data type: ${texture.data.constructor.name}`);
+    throw Error(`Unsupported data type: ${texture.dataType}`);
   }
 
   private dataTexture2DGlType(texture: DataTexture2D): number {
     const gl = this.gl_;
-    const arrayType = texture.data.constructor.name;
-    switch (arrayType) {
+    switch (texture.dataType) {
       case "Uint8Array":
         return gl.UNSIGNED_BYTE;
       case "Uint16Array":
         return gl.UNSIGNED_SHORT;
     }
-    throw Error(`Unsupported data type: ${arrayType}`);
+    throw Error(`Unsupported data type: ${texture.dataType}`);
   }
 
 }

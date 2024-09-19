@@ -4,7 +4,7 @@ precision mediump float;
 
 layout (location = 0) out vec4 fragColor;
 
-uniform lowp usampler2D texture0;
+uniform mediump usampler2D texture0;
 
 in vec2 TexCoords;
 

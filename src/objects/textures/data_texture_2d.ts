@@ -28,6 +28,10 @@ export class DataTexture2D extends Texture {
     return this.data_;
   }
 
+  public get dataType(): string {
+    return this.data.constructor.name;
+  }
+
   public get width() {
     return this.width_;
   }
