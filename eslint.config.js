@@ -9,15 +9,7 @@ export default [
   ...tseslint.configs.recommended,
   {rules: {
     'no-duplicate-imports': 'error',
-    '@typescript-eslint/no-unused-vars': [
-      'error',
-      {
-        "args": "all",
-        "argsIgnorePattern": "^_",
-        "destructuredArrayIgnorePattern": "^_",
-        "varsIgnorePattern": "^_"
-      }
-      ],
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     '@typescript-eslint/naming-convention': [
       'error',
       {
