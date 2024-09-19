@@ -3,7 +3,7 @@ import {
   LayerManager,
   PerspectiveCamera,
   WebGLRenderer,
-} from "@";
+} from "viz";
 import { Box } from "@mui/material";
 
 const canvasId = "canvas";

@@ -3,7 +3,8 @@ import {
   LayerManager,
   ImageLayer,
   OmeZarrImageSource,
-} from "@";
+} from "viz";
+
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
 import { useEffect, useState } from "react";
