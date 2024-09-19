@@ -29,5 +29,11 @@ A layer-based library for interactive visualization of large datasets.
 
 ## Ultrack active learning prototype
 
-The `ultrack-al` directory contains our first driving example of an active learning application.
+The `ultrack-prototype` directory contains our first driving example of an active learning application.
 It is a prototype for internal demos and testing, but not for production or public distribution.
+
+You can develop against by passing a mode to the local server:
+
+```shell
+npm run dev -- --mode prototype
+```
