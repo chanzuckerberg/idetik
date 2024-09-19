@@ -7,7 +7,7 @@ export class Line extends RenderableObject {
   // TODO: this geometry should be replaced after refactoring
   private geometry_: Geometry;
 
-  // TODO: support varaible color and width along the path
+  // TODO: support variable color and width along the path
   private color_: vec3 = [1.0, 0.7, 0.0];
   private width_: number = 0.05;
 
