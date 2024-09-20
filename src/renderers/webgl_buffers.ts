@@ -1,6 +1,6 @@
 import { RenderableObject } from "core/renderable_object";
 
-export class WebGLBindings {
+export class WebGLBuffers {
   private readonly gl_: WebGL2RenderingContext;
   private VAOs_: Map<string, WebGLVertexArrayObject> = new Map();
   private currentVAO_: WebGLVertexArrayObject = 0;
@@ -10,17 +10,19 @@ export class WebGLBindings {
   }
 
   public bind(object: RenderableObject) {
-    if (this.alreadyActive(object.uuid)) return;
+    const uuid = object.geometry.uuid;
 
-    let objectVAO = this.VAOs_.get(object.uuid) || null;
+    if (this.alreadyActive(uuid)) return;
+
+    let objectVAO = this.VAOs_.get(uuid) || null;
     if (!objectVAO) {
       objectVAO = this.createVAO();
     }
 
     this.gl_.bindVertexArray(objectVAO);
-    if (!this.VAOs_.has(object.uuid)) {
+    if (!this.VAOs_.has(uuid)) {
       this.createBuffers(object);
-      this.VAOs_.set(object.uuid, objectVAO);
+      this.VAOs_.set(uuid, objectVAO);
     }
 
     this.currentVAO_ = objectVAO!;
@@ -60,13 +62,13 @@ export class WebGLBindings {
         attr.itemSize,
         this.gl_.FLOAT,
         false,
-        stride * Float32Array.BYTES_PER_ELEMENT,
-        attr.offset * Float32Array.BYTES_PER_ELEMENT
+        stride,
+        attr.offset
       );
       this.gl_.enableVertexAttribArray(idx);
     });
 
-    if (indexData) {
+    if (indexData.length) {
       const indexBuffer = this.gl_.createBuffer();
       this.gl_.bindBuffer(this.gl_.ELEMENT_ARRAY_BUFFER, indexBuffer);
       this.gl_.bufferData(

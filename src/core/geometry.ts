@@ -9,8 +9,8 @@ type GeometryAttribute = {
 };
 
 export class Geometry extends Node {
-  protected vertexData_: Float32Array = new Float32Array();
-  protected indexData_: Uint32Array = new Uint32Array();
+  protected vertexData_: Float32Array;
+  protected indexData_: Uint32Array;
   private attributes_: GeometryAttribute[];
 
   constructor(vertexData: number[] = [], indexData: number[] = []) {
@@ -29,9 +29,11 @@ export class Geometry extends Node {
   }
 
   public get stride() {
-    return this.attributes_.reduce((acc, curr) => {
-      return (acc += curr.itemSize);
-    }, 0);
+    return (
+      this.attributes_.reduce((acc, curr) => {
+        return (acc += curr.itemSize);
+      }, 0) * Float32Array.BYTES_PER_ELEMENT
+    );
   }
 
   public get vertexData() {

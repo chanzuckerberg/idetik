@@ -29,9 +29,11 @@ export class PlaneGeometry extends Geometry {
 
         // 'z = -5' is temporary until we add a transform to renderable objects
         // which will allow us to control the camera position
-        vertex.push(x, -y, -5); // position
-        vertex.push(0, 0, 1); // normals
-        vertex.push(u, v); // uvs
+        const position = [x, -y, -5];
+        const normals = [0, 0, 1];
+        const uvs = [u, v];
+
+        vertex.push(...position, ...normals, ...uvs);
       }
     }
 
@@ -50,8 +52,22 @@ export class PlaneGeometry extends Geometry {
     this.vertexData_ = new Float32Array(vertex);
     this.indexData_ = new Uint32Array(index);
 
-    this.addAttribute({ type: "position", itemSize: 3, offset: 0 });
-    this.addAttribute({ type: "normal", itemSize: 3, offset: 3 });
-    this.addAttribute({ type: "uv", itemSize: 2, offset: 6 });
+    this.addAttribute({
+      type: "position",
+      itemSize: 3,
+      offset: 0,
+    });
+
+    this.addAttribute({
+      type: "normal",
+      itemSize: 3,
+      offset: 3 * Float32Array.BYTES_PER_ELEMENT,
+    });
+
+    this.addAttribute({
+      type: "uv",
+      itemSize: 2,
+      offset: 6 * Float32Array.BYTES_PER_ELEMENT,
+    });
   }
 }

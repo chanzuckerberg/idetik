@@ -1,17 +1,15 @@
 import { Renderer } from "core/renderer";
 import { RenderableObject } from "core/renderable_object";
-import { Mesh } from "objects/renderable/mesh";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
 import { Shader, shaderCode } from "./shaders";
-import { WebGLBindings } from "./webgl_bindings";
+import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
-const DEFAULT_PROGRAM: Shader = "mesh";
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
-  private readonly bindings_: WebGLBindings;
+  private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
 
   constructor(selector: string) {
@@ -24,7 +22,7 @@ export class WebGLRenderer extends Renderer {
     console.log(`WebGL version ${this.gl.getParameter(this.gl.VERSION)}`);
 
     this.shaders_ = new Map<Shader, WebGLShaderProgram>();
-    this.bindings_ = new WebGLBindings(this.gl);
+    this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
   }
@@ -36,16 +34,16 @@ export class WebGLRenderer extends Renderer {
 
     this.bindings_.bind(object);
 
-    if (object.type === "Mesh") {
-      const mesh = object as Mesh;
-      if (mesh.texture !== null) {
-        this.textures_.bind(mesh.texture);
-      }
+    if (object.textures.length) {
+      // We temporarily assume this array holds a single texture. We'll need to
+      // modify this logic to support multiple textures in the future.
+      this.textures_.bind(object.textures[0]);
     }
 
+    // TODO: Move 'type' property to RenderableObject
     const type = this.gl.TRIANGLES;
     const index = object.geometry.indexData;
-    if (index) {
+    if (index.length) {
       this.gl.drawElements(type, index.length, this.gl.UNSIGNED_INT, 0);
     } else {
       this.gl.drawArrays(type, 0, object.geometry.itemSize);
@@ -61,12 +59,14 @@ export class WebGLRenderer extends Renderer {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
 
+  // This is a temporary computed property. In the future, we want to assign the
+  // program name to the class derived from the renderable object but we need to
+  // refactor textures first (consolidating the two programs below.)
   private getProgramName(object: RenderableObject) {
-    if (object.type === "Mesh") {
-      const mesh = object as Mesh;
-      return mesh.texture?.type === "Uint16Texture2D" ? "uint16Image" : "mesh";
-    }
-    return DEFAULT_PROGRAM;
+    return object.textures.length &&
+      object.textures[0].type === "Uint16Texture2D"
+      ? "uint16Image"
+      : "mesh";
   }
 
   private getShaderProgram(type: Shader) {
