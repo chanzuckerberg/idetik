@@ -16,7 +16,7 @@ export class WebGLRenderer extends Renderer {
   constructor(selector: string) {
     super(selector);
 
-    this.gl_ = this.canvas.getContext("webgl2");
+    this.gl_ = this.canvas.getContext("webgl2", {depth: true});
     if (!this.gl_) {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
@@ -44,10 +44,17 @@ export class WebGLRenderer extends Renderer {
 
   protected renderLine(line: Line) {
     const program = this.getShaderProgram("line").use();
-    const modelView = mat4.create();
+    const view = this.activeCamera.viewTransform;
+
     // TODO: this is just a placeholder animation
-    const angle = (performance.now() / 1000) * Math.PI;
-    mat4.rotateY(modelView, this.activeCamera.viewTransform, angle);
+    const model = mat4.create();
+    const angle = (performance.now() / 10000) * Math.PI;
+    mat4.translate(model, model, [0, 0, -5]);
+    mat4.rotateY(model, model, angle);
+    mat4.translate(model, model, [0, 0, 5]);
+    const modelView = mat4.create();
+    mat4.multiply(modelView, view, model);
+
     program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
     program.setUniformMat4("ModelView", modelView);
     program.setUniformVec2("Resolution", [this.width, this.height]);
@@ -70,7 +77,9 @@ export class WebGLRenderer extends Renderer {
 
   protected clear() {
     this.gl.clearColor(0.12, 0.13, 0.25, 1.0);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.depthFunc(this.gl.LEQUAL);
   }
 
   private getShaderProgram(type: Shader) {

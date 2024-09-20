@@ -21,23 +21,25 @@ void main() {
     vec2 prevScreen = (prevPos.xy / prevPos.w) * aspectVec;
     vec2 currScreen = (currPos.xy / currPos.w) * aspectVec;
     vec2 nextScreen = (nextPos.xy / nextPos.w) * aspectVec;
+    float currZ = currPos.z / currPos.w;
 
     vec2 diff;
     if (currScreen == prevScreen) {
         // this is the first segment
-        diff = normalize(nextScreen - currScreen);
+        diff = nextScreen.xy - currScreen.xy;
     } else {
-        diff = normalize(currScreen - prevScreen);
+        diff = nextScreen.xy - prevScreen.xy;
     }
 
-    vec2 normal = vec2(-diff.y, diff.x);
-    normal *= LineWidth / 2.0 / aspectVec;
-    if (normal.y < 0.0) {
-        // we always want normal.y to point "up" in screen space
-        // so the "direction" does not get flipped between segments
-        normal = -normal;
-    }
-    vec4 offset = vec4(normal * direction, 0.0, 1.0);
+    // TODO: there are artifacts where diff is near-zero
+
+    vec2 normal = normalize(vec2(-diff.y, diff.x));
+
+    vec4 offset = vec4(
+        normal * direction * LineWidth / 2.0 / aspectVec.xy,
+        currZ,
+        1.0
+    );
     gl_Position = currPos + offset;
 
     // draw as GL_POINTS for debugging
