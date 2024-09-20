@@ -3,7 +3,7 @@ import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
-import { DataTexture2D } from "@/objects/textures/data_texture_2d";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
 
 interface ImageLayerSource {
   open(): Promise<ImageChunkLoader>;

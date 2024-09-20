@@ -1,16 +1,16 @@
 import { Texture } from "objects/textures/texture";
 
-type TypedArray = Uint8Array | Uint16Array;
+type TextureDataType = Uint8Array | Uint16Array;
 
 export class DataTexture2D extends Texture {
-  private readonly data_: TypedArray;
+  private readonly data_: TextureDataType;
   private readonly width_: number;
   private readonly height_: number;
   private readonly rowLength_: number;
   private readonly unpackAlignment_: number;
 
   constructor(
-    data: TypedArray,
+    data: TextureDataType,
     width: number,
     height: number,
     rowLength: number,
