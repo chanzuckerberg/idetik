@@ -99,7 +99,8 @@ export class OmeZarrImageLoader {
     const chunk = {
       data: subarray.data,
       shape: { width: subarray.shape[1], height: subarray.shape[0] },
-      rowLength: subarray.stride[0],
+      rowStride: subarray.stride[0],
+      rowAlignmentBytes: subarray.data.BYTES_PER_ELEMENT,
     };
     console.debug("loaded chunk ", chunk);
     return [chunk];

@@ -17,5 +17,6 @@ export interface ImageChunk {
     width: number;
     height: number;
   };
-  rowLength: number;
+  rowStride: number;
+  rowAlignmentBytes: number;
 }

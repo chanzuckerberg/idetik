@@ -59,13 +59,14 @@ export class ImageLayer extends Layer {
     }
     const chunk = chunks[0];
 
-    const unpackAlignment = 1;
+    // TODO: DataTexture2D and ImageChunk share an almost identical interface.
+    // Should we simplify this?
     const texture = new DataTexture2D(
       chunk.data,
       chunk.shape.width,
       chunk.shape.height,
-      chunk.rowLength,
-      unpackAlignment
+      chunk.rowStride,
+      chunk.rowAlignmentBytes,
     );
 
     this.addObject(new Mesh(this.plane_.meshSource, texture));

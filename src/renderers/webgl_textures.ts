@@ -80,8 +80,8 @@ export class WebGLTextures {
 
   private configuredDataTexture2D(texture: DataTexture2D) {
     const gl = this.gl_;
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
-    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.rowLength);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.rowAlignmentBytes);
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.rowStride);
     const level = 0;
     const internalFormat = this.dataTexture2DGlInternalFormat(texture);
     const border = 0;

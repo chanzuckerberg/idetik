@@ -6,22 +6,22 @@ export class DataTexture2D extends Texture {
   private readonly data_: TextureDataType;
   private readonly width_: number;
   private readonly height_: number;
-  private readonly rowLength_: number;
-  private readonly unpackAlignment_: number;
+  private readonly rowStride_: number;
+  private readonly rowAlignmentBytes_: number;
 
   constructor(
     data: TextureDataType,
     width: number,
     height: number,
-    rowLength: number,
-    unpackAlignment: number
+    rowStride: number,
+    alignmentBytes: number
   ) {
     super();
     this.data_ = data;
     this.width_ = width;
     this.height_ = height;
-    this.rowLength_ = rowLength;
-    this.unpackAlignment_ = unpackAlignment;
+    this.rowStride_ = rowStride;
+    this.rowAlignmentBytes_ = alignmentBytes;
   }
 
   public get data() {
@@ -40,12 +40,12 @@ export class DataTexture2D extends Texture {
     return this.height_;
   }
 
-  public get rowLength() {
-    return this.rowLength_;
+  public get rowStride() {
+    return this.rowStride_;
   }
 
-  public get unpackAlignment() {
-    return this.unpackAlignment_;
+  public get rowAlignmentBytes() {
+    return this.rowAlignmentBytes_;
   }
 
   public get type() {
