@@ -107,25 +107,19 @@ export class WebGLTextures {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   }
 
-  private dataTexture2DGlInternalFormat(texture: DataTexture2D): number {
+  private dataTexture2DGlInternalFormat(texture: DataTexture2D): GLenum {
     const gl = this.gl_;
-    switch (texture.dataType) {
-      case "Uint8Array":
-        return gl.R8UI;
-      case "Uint16Array":
-        return gl.R16UI;
-    }
-    throw Error(`Unsupported data type: ${texture.dataType}`);
+    if (texture.data instanceof Uint8Array) return gl.R8UI;
+    if (texture.data instanceof Uint16Array) return gl.R16UI;
+    const exhaustiveCheck: never = texture.data;
+    throw Error(`Unsupported data type: ${exhaustiveCheck}`);
   }
 
-  private dataTexture2DGlType(texture: DataTexture2D): number {
+  private dataTexture2DGlType(texture: DataTexture2D): GLenum {
     const gl = this.gl_;
-    switch (texture.dataType) {
-      case "Uint8Array":
-        return gl.UNSIGNED_BYTE;
-      case "Uint16Array":
-        return gl.UNSIGNED_SHORT;
-    }
-    throw Error(`Unsupported data type: ${texture.dataType}`);
+    if (texture.data instanceof Uint8Array) return gl.UNSIGNED_BYTE;
+    if (texture.data instanceof Uint16Array) return gl.UNSIGNED_SHORT;
+    const exhaustiveCheck: never = texture.data;
+    throw Error(`Unsupported data type: ${exhaustiveCheck}`);
   }
 }
