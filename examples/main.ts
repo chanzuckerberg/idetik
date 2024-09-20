@@ -1,15 +1,15 @@
 import {
   LayerManager,
   PerspectiveCamera,
-  SingleMeshLayer,
+  // SingleMeshLayer,
   SingleLineLayer,
   WebGLRenderer,
 } from "@";
 
-const singleMeshLayer = new SingleMeshLayer();
+// const singleMeshLayer = new SingleMeshLayer();
 const singleLineLayer = new SingleLineLayer();
 const layersManager = new LayerManager();
-layersManager.add(singleMeshLayer);
+// layersManager.add(singleMeshLayer);
 layersManager.add(singleLineLayer);
 
 const renderer = new WebGLRenderer("#canvas");
