@@ -6,7 +6,8 @@ import {
   OmeZarrImageSource,
 } from "@";
 
-const url = "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
+const url =
+  "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
 const camera = new PerspectiveCamera(60, renderer.width / renderer.height);

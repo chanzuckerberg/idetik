@@ -14,7 +14,7 @@ export class DataTexture2D extends Texture {
     width: number,
     height: number,
     rowLength: number,
-    unpackAlignment: number,
+    unpackAlignment: number
   ) {
     super();
     this.data_ = data;

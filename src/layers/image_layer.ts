@@ -58,14 +58,14 @@ export class ImageLayer extends Layer {
       throw new Error(`Expected one chunk. Instead found ${chunks.length}`);
     }
     const chunk = chunks[0];
-    
+
     const unpackAlignment = 1;
     const texture = new DataTexture2D(
       chunk.data,
       chunk.shape.width,
       chunk.shape.height,
       chunk.rowLength,
-      unpackAlignment,
+      unpackAlignment
     );
 
     this.addObject(new Mesh(this.plane_.meshSource, texture));

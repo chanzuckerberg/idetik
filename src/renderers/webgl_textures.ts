@@ -128,5 +128,4 @@ export class WebGLTextures {
     }
     throw Error(`Unsupported data type: ${texture.dataType}`);
   }
-
 }

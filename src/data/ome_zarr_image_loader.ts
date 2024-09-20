@@ -2,10 +2,11 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "data/region";
-import { ImageChunk, ImageDataType } from "data/image_chunk";
-
-// These must be kept in sync with ImageDataType.
-const supportedDtypes: ReadonlySet<string> = new Set(["uint8", "uint16"]);
+import {
+  ImageChunk,
+  imageDataTypeNames,
+  isImageDataType,
+} from "data/image_chunk";
 
 interface IdentityTransform {
   type: "identity";
@@ -75,13 +76,14 @@ export class OmeZarrImageLoader {
     });
     console.debug("opened array ", array);
 
-    if (!supportedDtypes.has(array.dtype)) {
+    const subarray = await zarr.get(array, indices);
+
+    if (!isImageDataType(subarray.data)) {
       throw new Error(
-        `Array has unsupported dtype ${array.dtype}. Supported dtypes are ${supportedDtypes}.`
+        `Subarray has an unsupported data type ${subarray.data.constructor.name}. Supported data types are ${imageDataTypeNames}.`
       );
     }
 
-    const subarray = await zarr.get(array, indices);
     if (subarray.shape.length !== 2) {
       throw new Error(
         `Expected to receive a 2D subarray. Instead chunk has shape ${subarray.shape}`
@@ -95,7 +97,7 @@ export class OmeZarrImageLoader {
     }
 
     const chunk = {
-      data: subarray.data as ImageDataType,
+      data: subarray.data,
       shape: { width: subarray.shape[1], height: subarray.shape[0] },
       rowLength: subarray.stride[0],
     };
