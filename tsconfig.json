@@ -28,5 +28,5 @@
 
     "types": ["vite-plugin-glsl/ext"]
   },
-  "include": ["examples", "src", "test", "app/frontend"]
+  "include": ["examples", "src", "test", "ultrack-prototype/frontend"]
 }
