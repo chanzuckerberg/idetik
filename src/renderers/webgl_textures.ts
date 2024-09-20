@@ -1,6 +1,6 @@
 import { Texture } from "objects/textures/texture";
 import { Texture2D } from "objects/textures/texture_2d";
-import { DataTexture2D } from "@/objects/textures/data_texture_2d";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
 
 export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
@@ -100,7 +100,7 @@ export class WebGLTextures {
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    // Use NEAREST because integer and float valued textures are not generally
+    // Use NEAREST because unsigned integer valued textures are not generally
     // texture filterable.
     // https://webgl2fundamentals.org/webgl/lessons/webgl-data-textures.html
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
