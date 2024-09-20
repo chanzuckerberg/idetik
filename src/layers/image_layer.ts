@@ -64,7 +64,7 @@ export class ImageLayer extends Layer {
       chunk.shape.height,
       chunk.rowLength
     );
-    this.addObject(new Mesh(this.plane_.meshSource, texture));
+    this.addObject(new Mesh(this.plane_, texture));
     this.state_ = "ready";
   }
 }

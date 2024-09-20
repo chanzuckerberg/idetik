@@ -1,18 +1,16 @@
-import { MeshSource } from "data/mesh_source";
+import { Geometry } from "core/geometry";
 
-export class PlaneGeometry {
-  private vertices_: number[] = [];
-  private indices_: number[] = [];
-  private normals_: number[] = [];
-  private uvs_: number[] = [];
-  private meshSource_: MeshSource | null = null;
-
+export class PlaneGeometry extends Geometry {
   constructor(
     width: number,
     height: number,
     widthSegments: number,
     heightSegments: number
   ) {
+    super();
+    const vertex: number[] = [];
+    const index: number[] = [];
+
     const halfWidth = width / 2;
     const halfHeight = height / 2;
     const gridX = widthSegments;
@@ -31,9 +29,11 @@ export class PlaneGeometry {
 
         // 'z = -5' is temporary until we add a transform to renderable objects
         // which will allow us to control the camera position
-        this.vertices_.push(x, -y, -5);
-        this.normals_.push(0, 1, 0);
-        this.uvs_.push(u, v);
+        const position = [x, -y, -5];
+        const normals = [0, 0, 1];
+        const uvs = [u, v];
+
+        vertex.push(...position, ...normals, ...uvs);
       }
     }
 
@@ -44,20 +44,30 @@ export class PlaneGeometry {
         const c = ix + 1 + gridX1 * (iy + 1);
         const d = ix + 1 + gridX1 * iy;
 
-        this.indices_.push(a, b, d);
-        this.indices_.push(b, c, d);
+        index.push(a, b, d);
+        index.push(b, c, d);
       }
     }
-  }
 
-  public get meshSource() {
-    if (!this.meshSource_) {
-      this.meshSource_ = new MeshSource();
-      this.meshSource_.setAttribute("vertices", this.vertices_, 3);
-      this.meshSource_.setAttribute("normals", this.normals_, 3);
-      this.meshSource_.setAttribute("uvs", this.uvs_, 2);
-      this.meshSource_.setIndex(this.indices_);
-    }
-    return this.meshSource_;
+    this.vertexData_ = new Float32Array(vertex);
+    this.indexData_ = new Uint32Array(index);
+
+    this.addAttribute({
+      type: "position",
+      itemSize: 3,
+      offset: 0,
+    });
+
+    this.addAttribute({
+      type: "normal",
+      itemSize: 3,
+      offset: 3 * Float32Array.BYTES_PER_ELEMENT,
+    });
+
+    this.addAttribute({
+      type: "uv",
+      itemSize: 2,
+      offset: 6 * Float32Array.BYTES_PER_ELEMENT,
+    });
   }
 }

@@ -1,6 +1,6 @@
 import { LayerManager } from "./layer_manager";
-import { Mesh } from "objects/renderable/mesh";
 import { Camera } from "objects/cameras/camera";
+import { RenderableObject } from "core/renderable_object";
 import { PerspectiveCamera } from "objects/cameras/perspective_camera";
 
 export abstract class Renderer {
@@ -10,7 +10,7 @@ export abstract class Renderer {
   private activeCamera_: Camera | null = null;
 
   protected abstract resize(width: number, height: number): void;
-  protected abstract renderMesh(mesh: Mesh): void;
+  protected abstract renderObject(object: RenderableObject): void;
   protected abstract clear(): void;
 
   constructor(selector: string) {
@@ -31,16 +31,7 @@ export abstract class Renderer {
     layerManager.layers.forEach((layer) => {
       layer.update();
       if (layer.state === "ready") {
-        layer.objects.forEach((obj) => {
-          // TODO: check if object is visible before sending it to the renderer backend
-          switch (obj.type) {
-            case "Mesh":
-              this.renderMesh(obj as Mesh);
-              break;
-            default:
-              throw new Error(`Unknown renderable object "${obj.type}"`);
-          }
-        });
+        layer.objects.forEach((obj) => this.renderObject(obj));
       }
     });
   }
