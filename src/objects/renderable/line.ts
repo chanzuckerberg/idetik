@@ -1,11 +1,8 @@
 import { vec3 } from "gl-matrix";
 
 import { RenderableObject } from "core/renderable_object";
-import { Geometry } from "objects/geometry";
 
 export class Line extends RenderableObject {
-  // TODO: this geometry should be replaced after refactoring
-  private geometry_: Geometry;
 
   // TODO: support variable color and width along the path
   private color_: vec3 = [1.0, 0.7, 0.0];
@@ -13,20 +10,38 @@ export class Line extends RenderableObject {
 
   constructor(path: number[]) {
     super();
-    const geometry = {
-      vertices: this.createVertices(path),
-      index: this.createIndex(path.length / 3),
-    };
+    this.geometry.vertexData = this.createVertices(path);
+    this.geometry.indexData = this.createIndex(path.length / 3);
+    const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
+    this.geometry.stride = stride;
+    this.geometry.addAttribute({
+      type: "position",
+      itemSize: 3,
+      offset: 2 * stride,
+    });
+    this.geometry.addAttribute({
+      type: "nextpos",
+      itemSize: 3,
+      offset: 4 * stride,
+    });
+    this.geometry.addAttribute({
+      type: "prevpos",
+      itemSize: 3,
+      offset: 0,
+    });
+    this.geometry.addAttribute({
+      type: "direction",
+      itemSize: 1,
+      offset: 3 * Float32Array.BYTES_PER_ELEMENT,
+    });
 
-    this.geometry_ = geometry;
+    // TODO: this is a hack
+    this.color = this.color_;
+    this.width = this.width_;
   }
 
   public get type() {
     return "Line";
-  }
-
-  public get geometry() {
-    return this.geometry_;
   }
 
   public get color() {
@@ -35,6 +50,7 @@ export class Line extends RenderableObject {
 
   public set color(value: vec3) {
     this.color_ = value;
+    this.addUniform("LineColor", "vec3", value);
   }
 
   public get width() {
@@ -43,6 +59,7 @@ export class Line extends RenderableObject {
 
   public set width(value: number) {
     this.width_ = value;
+    this.addUniform("LineWidth", "number", value);
   }
 
   private createVertices(path: number[]): Float32Array {

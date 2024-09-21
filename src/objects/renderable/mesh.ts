@@ -1,23 +1,21 @@
-import { MeshSource } from "@/data/mesh_source";
 import { RenderableObject } from "core/renderable_object";
+import { Geometry } from "core/geometry";
+import { Texture } from "objects/textures/texture";
 
 export class Mesh extends RenderableObject {
-  private source_: MeshSource;
-
-  constructor(source: MeshSource) {
+  constructor(geometry: Geometry | null, texture: Texture | null = null) {
     super();
-    this.source_ = source;
+
+    if (geometry) {
+      this.geometry = geometry;
+    }
+
+    if (texture) {
+      this.addTexture(texture);
+    }
   }
 
   public get type() {
     return "Mesh";
-  }
-
-  public get source(): Readonly<MeshSource> {
-    return this.source_;
-  }
-
-  public get index() {
-    return this.source_.index;
   }
 }

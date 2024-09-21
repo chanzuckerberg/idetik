@@ -34,4 +34,8 @@ export class SingleLineLayer extends Layer {
     line.color = [0.0, 1.0, 0.0];
     this.addObject(line);
   }
+
+  public update(): void {
+    this.state_ = "ready";
+  }
 }
