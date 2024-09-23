@@ -68,8 +68,7 @@ export class ImageLayer extends Layer {
       chunk.rowStride,
       chunk.rowAlignmentBytes
     );
-
-    this.addObject(new Mesh(this.plane_.meshSource, texture));
+    this.addObject(new Mesh(this.plane_, texture));
     this.state_ = "ready";
   }
 }

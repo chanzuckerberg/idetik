@@ -1,7 +1,6 @@
 import { RenderableObject } from "core/renderable_object";
-import { Mesh } from "objects/renderable/mesh";
 
-export class WebGLBindings {
+export class WebGLBuffers {
   private readonly gl_: WebGL2RenderingContext;
   private VAOs_: Map<string, WebGLVertexArrayObject> = new Map();
   private currentVAO_: WebGLVertexArrayObject = 0;
@@ -11,17 +10,19 @@ export class WebGLBindings {
   }
 
   public bind(object: RenderableObject) {
-    if (this.alreadyActive(object.uuid)) return;
+    const uuid = object.geometry.uuid;
 
-    let objectVAO = this.VAOs_.get(object.uuid) || null;
+    if (this.alreadyActive(uuid)) return;
+
+    let objectVAO = this.VAOs_.get(uuid) || null;
     if (!objectVAO) {
       objectVAO = this.createVAO();
     }
 
     this.gl_.bindVertexArray(objectVAO);
-    if (!this.VAOs_.has(object.uuid)) {
-      this.createBuffers(object as Mesh);
-      this.VAOs_.set(object.uuid, objectVAO);
+    if (!this.VAOs_.has(uuid)) {
+      this.createBuffers(object);
+      this.VAOs_.set(uuid, objectVAO);
     }
 
     this.currentVAO_ = objectVAO!;
@@ -42,25 +43,37 @@ export class WebGLBindings {
     return vao;
   }
 
-  private createBuffers(mesh: Mesh) {
-    let idx = 0;
-    for (const [, value] of mesh.source.attributes) {
-      const buffer = this.gl_.createBuffer();
-      const bufferType = this.gl_.ARRAY_BUFFER;
-      const size = value.itemSize;
-      this.gl_.bindBuffer(bufferType, buffer);
-      this.gl_.bufferData(bufferType, value.data, this.gl_.STATIC_DRAW);
-      this.gl_.vertexAttribPointer(idx, size, this.gl_.FLOAT, false, 0, 0);
-      this.gl_.enableVertexAttribArray(idx);
-      idx += 1;
-    }
+  private createBuffers(object: RenderableObject) {
+    const buffer = this.gl_.createBuffer();
+    const { vertexData, indexData, attributes, stride } = object.geometry;
 
-    if (mesh.index) {
+    const bufferType = this.gl_.ARRAY_BUFFER;
+    this.gl_.bindBuffer(bufferType, buffer);
+    this.gl_.bufferData(bufferType, vertexData, this.gl_.STATIC_DRAW);
+
+    attributes.forEach((attr) => {
+      let idx = -1;
+      if (attr.type === "position") idx = 0;
+      if (attr.type === "normal") idx = 1;
+      if (attr.type === "uv") idx = 2;
+
+      this.gl_.vertexAttribPointer(
+        idx,
+        attr.itemSize,
+        this.gl_.FLOAT,
+        false,
+        stride,
+        attr.offset
+      );
+      this.gl_.enableVertexAttribArray(idx);
+    });
+
+    if (indexData.length) {
       const indexBuffer = this.gl_.createBuffer();
       this.gl_.bindBuffer(this.gl_.ELEMENT_ARRAY_BUFFER, indexBuffer);
       this.gl_.bufferData(
         this.gl_.ELEMENT_ARRAY_BUFFER,
-        mesh.index,
+        indexData,
         this.gl_.STATIC_DRAW
       );
     }
