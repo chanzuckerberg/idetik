@@ -63,8 +63,7 @@ export class WebGLRenderer extends Renderer {
   // program name to the class derived from the renderable object but we need to
   // refactor textures first (consolidating the two programs below.)
   private getProgramName(object: RenderableObject): Shader {
-    return object.textures.length &&
-      object.textures[0].type === "DataTexture2D"
+    return object.textures.length && object.textures[0].type === "DataTexture2D"
       ? "uintImage"
       : "mesh";
   }
