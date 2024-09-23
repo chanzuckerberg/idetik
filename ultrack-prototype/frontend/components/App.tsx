@@ -32,7 +32,7 @@ export default function App() {
   // state in the visualization library. For now, use known values
   // associated with the data we are using here.
   const [curTime, setCurTime] = useState<number>(0);
-  const [numTimes, _] = useState<number>(791);
+  const [numTimes] = useState<number>(791);
 
   const [playing, setPlaying] = useState<boolean>(false);
 
