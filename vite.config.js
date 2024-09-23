@@ -19,6 +19,7 @@ function modeToRoot(mode) {
   } else if (mode === 'prototype') {
     return 'ultrack-prototype/frontend';
   }
+  console.error(`Unrecognized mode ${mode}`);
   return undefined;
 }
 

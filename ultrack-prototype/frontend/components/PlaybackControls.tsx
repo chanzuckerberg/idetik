@@ -25,7 +25,6 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
             />
 
             <InputSlider
-                id="time-frame-slider"
                 aria-labelledby="input-slider-time-frame"
                 min={0}
                 max={props.numTimes - 1}
