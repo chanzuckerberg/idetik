@@ -1,38 +1,52 @@
 import { Box } from "@mui/material";
 import { Button, InputSlider } from "@czi-sds/components";
+import { useEffect, useState } from "react";
 
-interface PlaybackControlsProps {
-    playing: boolean;
-    curTime: number;
-    numTimes: number;
-    setPlaying: (isPlaying: boolean) => void;
-    setCurTime: (curTime: number) => void;
-}
+const playbackFPS = 16;
+const playbackIntervalMs = 1000 / playbackFPS;
+// Use an arbitrary number of times just to exercise playback.
+const numTimes = 100;
 
-export default function PlaybackControls(props: PlaybackControlsProps) {
-    return (
-        <Box sx={{ 
-            display: "flex",
-            flexDirection: "row",
-            gap: "1em",
-        }}>
-            <Button
-                icon="Play"
-                sdsSize="large"
-                sdsType="primary"
-                sdsStyle="icon"
-                onClick={() => props.setPlaying(!props.playing)}
-            />
+export default function PlaybackControls() {
+  const [curTime, setCurTime] = useState<number>(0);
+  const [playing, setPlaying] = useState<boolean>(false);
 
-            <InputSlider
-                aria-labelledby="input-slider-time-frame"
-                min={0}
-                max={props.numTimes - 1}
-                valueLabelDisplay="on"
-                onChange={(_, value) => props.setCurTime(value as number)}
-                value={props.curTime}
-                sx={{ alignSelf: "flex-end" }}
-            />
-        </Box>
-    );
+  useEffect(() => {
+    console.debug("effect-playback: ", curTime, playing);
+    if (playing) {
+      const interval = setInterval(
+        () => {setCurTime((curTime + 1) % numTimes)},
+        playbackIntervalMs,
+      );
+      return () => {
+        clearInterval(interval);
+      };
+    }
+  }, [numTimes, curTime, playing]);
+
+  return (
+      <Box sx={{ 
+          display: "flex",
+          flexDirection: "row",
+          gap: "1em",
+      }}>
+          <Button
+              icon="Play"
+              sdsSize="large"
+              sdsType="primary"
+              sdsStyle="icon"
+              onClick={() => setPlaying(!playing)}
+          />
+
+          <InputSlider
+              aria-labelledby="input-slider-time-frame"
+              min={0}
+              max={numTimes - 1}
+              valueLabelDisplay="on"
+              onChange={(_, value) => setCurTime(value as number)}
+              value={curTime}
+              sx={{ alignSelf: "flex-end" }}
+          />
+      </Box>
+  );
 }
