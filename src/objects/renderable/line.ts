@@ -7,10 +7,11 @@ export class Line extends RenderableObject {
   private color_: vec3 = [1.0, 0.7, 0.0];
   private width_: number = 0.2;
 
-  constructor(path: number[]) {
+  constructor(path: [number, number, number][]) {
+    // path is an list of 3D points [x, y, z]
     super();
     this.geometry.vertexData = this.createVertices(path);
-    this.geometry.indexData = this.createIndex(path.length / 3);
+    this.geometry.indexData = this.createIndex(path.length);
     const stride = 4 * Float32Array.BYTES_PER_ELEMENT;
     this.geometry.stride = stride;
     this.geometry.addAttribute({
@@ -61,48 +62,48 @@ export class Line extends RenderableObject {
     this.addUniform("LineWidth", "number", value);
   }
 
-  private createVertices(path: number[]): Float32Array {
+  private createVertices(path: [number, number, number][]): Float32Array {
     // each point on the path is split into two vertices
     // these are pushed in opposite directions in screen-space in the vertex shader
 
     // first and last points are duplicated so
     // "current", "previous", and "next" points can be indexed in one buffer
-    const length = path.length / 3;
+    const length = path.length;
     const vertices = new Float32Array((length + 2) * 4 * 2);
     const positiveOffset = 1.0;
     const negativeOffset = -1.0;
 
     let c = 0;
-    vertices[c++] = path[0];
-    vertices[c++] = path[1];
-    vertices[c++] = path[2];
+    vertices[c++] = path[0][0];
+    vertices[c++] = path[0][1];
+    vertices[c++] = path[0][2];
     vertices[c++] = positiveOffset;
 
-    vertices[c++] = path[0];
-    vertices[c++] = path[1];
-    vertices[c++] = path[2];
+    vertices[c++] = path[0][0];
+    vertices[c++] = path[0][1];
+    vertices[c++] = path[0][2];
     vertices[c++] = negativeOffset;
 
     for (let i = 0; i < length; i++) {
-      vertices[c++] = path[i * 3 + 0];
-      vertices[c++] = path[i * 3 + 1];
-      vertices[c++] = path[i * 3 + 2];
+      vertices[c++] = path[i][0];
+      vertices[c++] = path[i][1];
+      vertices[c++] = path[i][2];
       vertices[c++] = positiveOffset;
 
-      vertices[c++] = path[i * 3 + 0];
-      vertices[c++] = path[i * 3 + 1];
-      vertices[c++] = path[i * 3 + 2];
+      vertices[c++] = path[i][0];
+      vertices[c++] = path[i][1];
+      vertices[c++] = path[i][2];
       vertices[c++] = negativeOffset;
     }
 
-    vertices[c++] = path[path.length - 3];
-    vertices[c++] = path[path.length - 2];
-    vertices[c++] = path[path.length - 1];
+    vertices[c++] = path[path.length - 1][0];
+    vertices[c++] = path[path.length - 1][1];
+    vertices[c++] = path[path.length - 1][2];
     vertices[c++] = positiveOffset;
 
-    vertices[c++] = path[path.length - 3];
-    vertices[c++] = path[path.length - 2];
-    vertices[c++] = path[path.length - 1];
+    vertices[c++] = path[path.length - 1][0];
+    vertices[c++] = path[path.length - 1][1];
+    vertices[c++] = path[path.length - 1][2];
     vertices[c++] = negativeOffset;
 
     return vertices;
