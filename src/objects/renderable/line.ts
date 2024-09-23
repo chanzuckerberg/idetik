@@ -3,7 +3,6 @@ import { vec3 } from "gl-matrix";
 import { RenderableObject } from "core/renderable_object";
 
 export class Line extends RenderableObject {
-
   // TODO: support variable color and width along the path
   private color_: vec3 = [1.0, 0.7, 0.0];
   private width_: number = 0.2;

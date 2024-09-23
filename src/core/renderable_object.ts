@@ -32,7 +32,7 @@ export abstract class RenderableObject extends Node {
     this.uniforms_.set(name, [type, value]);
   }
 
-  public get uniforms(): Map<string, [UniformType, UniformValue]>{
+  public get uniforms(): Map<string, [UniformType, UniformValue]> {
     return this.uniforms_;
   }
 }

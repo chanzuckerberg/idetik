@@ -25,10 +25,7 @@ export class SingleLineLayer extends Layer {
     let line = new Line(path);
     this.addObject(line);
 
-    path = [
-      0.0, -2.0, -5.0,
-      0.0, 2.0, -5.0,
-    ];
+    path = [0.0, -2.0, -5.0, 0.0, 2.0, -5.0];
 
     line = new Line(path);
     line.color = [0.0, 1.0, 0.0];

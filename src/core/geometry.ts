@@ -1,7 +1,12 @@
 import { Node } from "core/node";
 
 type GeometryAttributeType =
-    "position" | "normal" | "uv" | "nextpos" | "prevpos" | "direction";
+  | "position"
+  | "normal"
+  | "uv"
+  | "nextpos"
+  | "prevpos"
+  | "direction";
 
 type GeometryAttribute = {
   type: GeometryAttributeType;
@@ -43,7 +48,7 @@ export class Geometry extends Node {
 
   public set stride(value: number) {
     this.stride_ = value;
-  };
+  }
 
   public get vertexData() {
     return this.vertexData_;
