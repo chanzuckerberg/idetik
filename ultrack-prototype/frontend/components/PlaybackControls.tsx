@@ -37,7 +37,6 @@ export default function PlaybackControls() {
           />
 
           <InputSlider
-              aria-labelledby="input-slider-time-frame"
               min={0}
               max={numTimes - 1}
               valueLabelDisplay="on"
