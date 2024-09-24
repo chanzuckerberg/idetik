@@ -1,5 +1,6 @@
 import { RenderableObject } from "core/renderable_object";
 import { Renderer } from "core/renderer";
+import { getUniforms } from "core/uniforms";
 import { mat4, vec2, vec3 } from "gl-matrix";
 
 type ShaderMap = {
@@ -41,13 +42,16 @@ export class WebGLShaderProgram {
         throw new Error(`Unsupported uniform type: ${info.type}`);
       }
 
-      let source: string;
-      if (name in renderer) {
-        value = renderer[name as keyof Renderer];
-        source = "renderer";
-      } else if (name in object) {
-        value = object[name as keyof RenderableObject];
-        source = object.type;
+      let provider: string;
+      let propName;
+      if (((propName = getUniforms(renderer).get(name)), propName !== null)) {
+        value = renderer[propName as keyof Renderer];
+        provider = "renderer";
+      } else if (
+        ((propName = getUniforms(object).get(name)), propName !== null)
+      ) {
+        value = object[propName as keyof RenderableObject];
+        provider = object.type;
       } else {
         throw new Error(`Uniform "${name}" not found in renderer or object`);
       }
@@ -56,7 +60,7 @@ export class WebGLShaderProgram {
         this.setUniformUnsafe(location, value, info.type);
       } catch (error) {
         throw new Error(
-          `Error setting uniform "${name}" to "${value}" from "${source}" ` +
+          `Error setting uniform "${name}" to "${value}" from "${provider}" ` +
             `expected WebGL2 type "${info.type}" (GLEnum): ` +
             `${error}`
         );
