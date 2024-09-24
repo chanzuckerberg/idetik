@@ -28,7 +28,7 @@ export abstract class RenderableObject extends Node {
     this.geometry_ = geometry;
   }
 
-  protected addUniform(name: string, type: UniformType, value: UniformValue) {
+  protected setUniform(name: string, type: UniformType, value: UniformValue) {
     this.uniforms_.set(name, [type, value]);
   }
 

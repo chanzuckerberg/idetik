@@ -14,9 +14,9 @@ export class SingleLineLayer extends Layer {
     line.color = color;
     line.width = width;
     this.addObject(line);
-  }
 
-  public update(): void {
     this.state_ = "ready";
   }
+
+  public update(): void {}
 }

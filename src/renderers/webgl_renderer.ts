@@ -33,10 +33,8 @@ export class WebGLRenderer extends Renderer {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
     program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
     program.setUniformMat4("ModelView", this.activeCamera.viewTransform);
-    try {
+    if (program.hasUniform("Resolution")) {
       program.setUniformVec2("Resolution", [this.width, this.height]);
-    } catch {
-      // Ignore the error if the shader does not have a 'Resolution' uniform.
     }
 
     for (const [name, [type, value]] of object.uniforms.entries()) {

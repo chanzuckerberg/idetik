@@ -46,6 +46,13 @@ export class WebGLShaderProgram {
     return this.uniformLocations_.get(name)!;
   }
 
+  public hasUniform(name: string) {
+    return (
+      this.uniformLocations_.has(name) ||
+      this.gl_.getUniformLocation(this.program_, name) !== null
+    );
+  }
+
   public setUniformMat4(name: string, value: mat4) {
     this.gl_.uniformMatrix4fv(this.getUniformLoc(name), false, value);
   }
