@@ -30,7 +30,16 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
-    program.setUniforms(this, object);
+
+    program.setUniformIfNeeded("Projection", this.Projection);
+    program.setUniformIfNeeded("ModelView", this.ModelView);
+    program.setUniformIfNeeded("Resolution", this.Resolution);
+
+    switch (object.type) {
+      // TODO: set uniforms for other types of renderable objects here
+      case "Mesh":
+        break;
+    }
 
     this.bindings_.bind(object);
 

@@ -1,5 +1,3 @@
-import { RenderableObject } from "core/renderable_object";
-import { Renderer } from "core/renderer";
 import { mat4, vec2, vec3 } from "gl-matrix";
 
 type ShaderMap = {
@@ -34,34 +32,20 @@ export class WebGLShaderProgram {
     this.link();
   }
 
-  public setUniforms(renderer: Renderer, object: RenderableObject) {
-    let value: unknown;
-    for (const [name, [location, info]] of this.uniformInfo_) {
-      if (!SUPPORTED_UNIFORM_TYPES.has(info.type)) {
-        throw new Error(`Unsupported uniform type: ${info.type}`);
-      }
-
-      let source: string;
-      if (name in renderer) {
-        value = renderer[name as keyof Renderer];
-        source = "renderer";
-      } else if (name in object) {
-        value = object[name as keyof RenderableObject];
-        source = object.type;
-      } else {
-        throw new Error(`Uniform "${name}" not found in renderer or object`);
-      }
-
-      try {
-        this.setUniformUnsafe(location, value, info.type);
-      } catch (error) {
-        throw new Error(
-          `Error setting uniform "${name}" to "${value}" from "${source}" ` +
-            `expected WebGL2 type "${info.type}" (GLEnum): ` +
-            `${error}`
-        );
-      }
+  public setUniformIfNeeded(name: string, value: unknown) {
+    const [location, info] = this.uniformInfo_.get(name) ?? [];
+    if (!location || !info) {
+      return;
     }
+    this.setUniformUnsafe(location, value, info.type);
+  }
+
+  public setUniform(name: string, value: unknown) {
+    const [location, info] = this.uniformInfo_.get(name) ?? [];
+    if (!location || !info) {
+      throw new Error(`Uniform "${name}" not found in shader program`);
+    }
+    this.setUniformUnsafe(location, value, info.type);
   }
 
   private setUniformUnsafe(
@@ -83,6 +67,8 @@ export class WebGLShaderProgram {
         this.gl_.uniformMatrix4fv(location, false, value as mat4);
         break;
       default:
+        // TODO: fail earlier (in `preprocessUniformLocations`) if the shader contains a uniform
+        // with an unsupported type - that will also allow us to use an exhaustive switch
         throw new Error(`Unsupported uniform type: ${type}`);
     }
   }
@@ -95,13 +81,15 @@ export class WebGLShaderProgram {
     for (let i = 0; i < numUniforms; i++) {
       const info = this.gl_.getActiveUniform(this.program_, i);
       if (info) {
-        if (SAMPLER_TYPES.has(info.type)) {
+        if (!SAMPLER_TYPES.has(info.type)) {
           // texture samplers are also uniforms, but they are handled separately
-          continue;
-        }
-        const location = this.gl_.getUniformLocation(this.program_, info.name);
-        if (location) {
-          this.uniformInfo_.set(info.name, [location, info]);
+          const location = this.gl_.getUniformLocation(
+            this.program_,
+            info.name
+          );
+          if (location) {
+            this.uniformInfo_.set(info.name, [location, info]);
+          }
         }
       }
     }
@@ -164,13 +152,6 @@ export class WebGLShaderProgram {
     this.shaders_ = {};
   }
 }
-
-const SUPPORTED_UNIFORM_TYPES: ReadonlySet<GLenum> = new Set<GLenum>([
-  WebGL2RenderingContext.FLOAT,
-  WebGL2RenderingContext.FLOAT_VEC2,
-  WebGL2RenderingContext.FLOAT_VEC3,
-  WebGL2RenderingContext.FLOAT_MAT4,
-]);
 
 const SAMPLER_TYPES: ReadonlySet<GLenum> = new Set<GLenum>([
   WebGL2RenderingContext.SAMPLER_2D,
