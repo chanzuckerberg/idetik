@@ -10,6 +10,7 @@
       "@": ["."],
       "@/*": ["./*"]
     },
+    "jsx": "react-jsx",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -27,5 +28,5 @@
 
     "types": ["vite-plugin-glsl/ext"]
   },
-  "include": ["examples", "src", "test"]
+  "include": ["examples", "src", "test", "ultrack-prototype/frontend"]
 }
