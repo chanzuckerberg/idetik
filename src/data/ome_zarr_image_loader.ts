@@ -2,11 +2,7 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "data/region";
-import {
-  ImageChunk,
-  imageDataTypeNames,
-  isImageDataType,
-} from "data/image_chunk";
+import { ImageChunk } from "data/image_chunk";
 
 interface IdentityTransform {
   type: "identity";
@@ -37,6 +33,14 @@ interface Axis {
 interface Multiscale {
   axes: Array<Axis>;
   datasets: Array<Dataset>;
+}
+
+const dataTypes = [Uint8Array, Uint16Array] as const;
+const dataTypeNames = dataTypes.map((DataType) => DataType.name);
+export type ImageDataType = InstanceType<(typeof dataTypes)[number]>;
+
+export function isImageDataType(value: unknown): value is ImageDataType {
+  return dataTypes.some((DataType) => value instanceof DataType);
 }
 
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
@@ -80,7 +84,7 @@ export class OmeZarrImageLoader {
 
     if (!isImageDataType(subarray.data)) {
       throw new Error(
-        `Subarray has an unsupported data type ${subarray.data.constructor.name}. Supported data types are ${imageDataTypeNames}.`
+        `Subarray has an unsupported data type ${subarray.data.constructor.name}. Supported data types are ${dataTypeNames}.`
       );
     }
 
