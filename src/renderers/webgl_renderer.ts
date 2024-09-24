@@ -1,7 +1,6 @@
 import { mat4, vec2 } from "gl-matrix";
 import { Renderer } from "core/renderer";
 import { RenderableObject } from "core/renderable_object";
-import { uniform } from "core/uniforms";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
 import { Shader, shaderCode } from "./shaders";
@@ -88,17 +87,15 @@ export class WebGLRenderer extends Renderer {
     return this.gl_!;
   }
 
-  @uniform
+  // uniforms
   public get Projection(): mat4 {
     return this.activeCamera.projectionTransform;
   }
 
-  @uniform
   public get ModelView(): mat4 {
     return this.activeCamera.viewTransform;
   }
 
-  @uniform
   public get Resolution(): vec2 {
     return [this.width, this.height];
   }
