@@ -4,11 +4,13 @@ import PlaybackControls from "./PlaybackControls";
 
 export default function App() {
   return (
-    <Box sx={{
-      display: "flex",
-      flexDirection: "column",
-      gap: "1em",
-    }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "1em",
+      }}
+    >
       <Renderer></Renderer>
       <PlaybackControls></PlaybackControls>
     </Box>

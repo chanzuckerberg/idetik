@@ -11,7 +11,8 @@ import { Box } from "@mui/material";
 const canvasId = "canvas";
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
-const url = "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
+const url =
+  "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 const source = new OmeZarrImageSource(url);
 const region = [
   // TODO: when the region is state associated with the renderer or
@@ -33,8 +34,8 @@ export default function Renderer() {
     const renderer = new WebGLRenderer(`#${canvasId}`);
     const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
     function animate() {
-        renderer.render(layerManager, camera);
-        lastRequestId = requestAnimationFrame(animate);
+      renderer.render(layerManager, camera);
+      lastRequestId = requestAnimationFrame(animate);
     }
     animate();
     return () => {
@@ -47,14 +48,16 @@ export default function Renderer() {
   }, []);
 
   return (
-    <Box sx={{
+    <Box
+      sx={{
         display: "flex",
         flexDirection: "column",
         flexGrow: 1,
         width: "100%",
         height: "100%",
-    }}>
-      <canvas id={canvasId}/>
+      }}
+    >
+      <canvas id={canvasId} />
     </Box>
   );
 }

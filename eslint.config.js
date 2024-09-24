@@ -1,10 +1,16 @@
 import globals from "globals";
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
 import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default [
-  {files: ["**/*.{js,mjs,cjs,ts}"]},
+  {files: ["**/*.{js,mjs,jsx,cjs,ts,tsx}"]},
   {languageOptions: { globals: globals.browser }},
+  {plugins: {
+    'react-hooks': reactHooks,
+    'react-refresh': reactRefresh,
+  }},
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {rules: {
@@ -26,7 +32,12 @@ export default [
         "format": null,
         "suffix": ["_"]
       }
-    ]
+    ],
+    ...reactHooks.configs.recommended.rules,
+    'react-refresh/only-export-components': [
+      'warn',
+      { allowConstantExport: true },
+    ],
   }},
   {ignores: ["node_modules", "dist", "coverage"]},
 ];
