@@ -9,7 +9,7 @@ export class SingleLineLayer extends Layer {
   ) {
     super();
 
-    // TODO: add color and with to the Line constructor?
+    // TODO: add color and width to the Line constructor?
     const line = new Line(path);
     line.color = color;
     line.width = width;
