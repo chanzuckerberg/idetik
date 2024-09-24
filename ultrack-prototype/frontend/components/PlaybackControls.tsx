@@ -8,8 +8,8 @@ const playbackIntervalMs = 1000 / playbackFPS;
 const numTimes = 100;
 
 export default function PlaybackControls() {
-  const [curTime, setCurTime] = useState<number>(0);
-  const [playing, setPlaying] = useState<boolean>(false);
+  const [curTime, setCurTime] = useState(0);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     console.debug("effect-playback: ", curTime, playing);
