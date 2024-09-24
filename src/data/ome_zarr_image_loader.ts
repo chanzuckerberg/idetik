@@ -37,9 +37,9 @@ interface Multiscale {
 
 const dataTypes = [Uint8Array, Uint16Array] as const;
 const dataTypeNames = dataTypes.map((DataType) => DataType.name);
-export type ImageDataType = InstanceType<(typeof dataTypes)[number]>;
+export type DataType = InstanceType<(typeof dataTypes)[number]>;
 
-export function isImageDataType(value: unknown): value is ImageDataType {
+export function isDataType(value: unknown): value is DataType {
   return dataTypes.some((DataType) => value instanceof DataType);
 }
 
@@ -82,7 +82,7 @@ export class OmeZarrImageLoader {
 
     const subarray = await zarr.get(array, indices);
 
-    if (!isImageDataType(subarray.data)) {
+    if (!isDataType(subarray.data)) {
       throw new Error(
         `Subarray has an unsupported data type ${subarray.data.constructor.name}. Supported data types are ${dataTypeNames}.`
       );
