@@ -1,4 +1,3 @@
-import { mat4, vec2 } from "gl-matrix";
 import { Renderer } from "core/renderer";
 import { RenderableObject } from "core/renderable_object";
 import { WebGLShaderProgram } from "./webgl_shader_program";
@@ -31,9 +30,12 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
 
-    program.setUniformIfNeeded("Projection", this.Projection);
-    program.setUniformIfNeeded("ModelView", this.ModelView);
-    program.setUniformIfNeeded("Resolution", this.Resolution);
+    program.setUniformIfNeeded(
+      "Projection",
+      this.activeCamera.projectionTransform
+    );
+    program.setUniformIfNeeded("ModelView", this.activeCamera.viewTransform);
+    program.setUniformIfNeeded("Resolution", [this.width, this.height]);
 
     switch (object.type) {
       // TODO: set uniforms for other types of renderable objects here
@@ -94,18 +96,5 @@ export class WebGLRenderer extends Renderer {
 
   private get gl() {
     return this.gl_!;
-  }
-
-  // uniforms
-  public get Projection(): mat4 {
-    return this.activeCamera.projectionTransform;
-  }
-
-  public get ModelView(): mat4 {
-    return this.activeCamera.viewTransform;
-  }
-
-  public get Resolution(): vec2 {
-    return [this.width, this.height];
   }
 }
