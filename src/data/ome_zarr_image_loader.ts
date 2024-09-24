@@ -37,9 +37,9 @@ interface Multiscale {
 
 const dataTypes = [Uint8Array, Uint16Array] as const;
 const dataTypeNames = dataTypes.map((DataType) => DataType.name);
-export type DataType = InstanceType<(typeof dataTypes)[number]>;
+type DataType = InstanceType<(typeof dataTypes)[number]>;
 
-export function isDataType(value: unknown): value is DataType {
+function isDataType(value: unknown): value is DataType {
   return dataTypes.some((DataType) => value instanceof DataType);
 }
 
