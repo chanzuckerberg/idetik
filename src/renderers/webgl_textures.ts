@@ -107,7 +107,7 @@ export class WebGLTextures {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   }
 
-  private dataTexture2DGlInternalFormat(texture: DataTexture2D): GLenum {
+  private dataTexture2DGlInternalFormat(texture: DataTexture2D) {
     const gl = this.gl_;
     if (texture.data instanceof Uint8Array) return gl.R8UI;
     if (texture.data instanceof Uint16Array) return gl.R16UI;
@@ -115,7 +115,7 @@ export class WebGLTextures {
     throw Error(`Unsupported data type: ${exhaustiveCheck}`);
   }
 
-  private dataTexture2DGlType(texture: DataTexture2D): GLenum {
+  private dataTexture2DGlType(texture: DataTexture2D) {
     const gl = this.gl_;
     if (texture.data instanceof Uint8Array) return gl.UNSIGNED_BYTE;
     if (texture.data instanceof Uint16Array) return gl.UNSIGNED_SHORT;
