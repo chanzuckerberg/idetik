@@ -12,17 +12,15 @@ export default function PlaybackControls() {
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
-    console.debug("effect-playback: ", curTime, playing);
+    console.debug("PlaybackControls::useEffect::playing: ", playing);
     if (playing) {
       const interval = setInterval(
-        () => {setCurTime((curTime + 1) % numTimes)},
+        () => setCurTime((prevCurTime) => (prevCurTime + 1) % numTimes),
         playbackIntervalMs,
       );
-      return () => {
-        clearInterval(interval);
-      };
+      return () => clearInterval(interval);
     }
-  }, [numTimes, curTime, playing]);
+  }, [numTimes, playing]);
 
   return (
       <Box sx={{ 
