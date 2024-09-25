@@ -50,7 +50,6 @@ export class Line extends RenderableObject {
 
   public set color(value: vec3) {
     this.color_ = value;
-    this.setUniform("LineColor", "vec3", value);
   }
 
   public get width() {
@@ -59,7 +58,6 @@ export class Line extends RenderableObject {
 
   public set width(value: number) {
     this.width_ = value;
-    this.setUniform("LineWidth", "number", value);
   }
 
   private createVertices(path: [number, number, number][]): Float32Array {

@@ -1,5 +1,3 @@
-import { mat4, vec2, vec3 } from "gl-matrix";
-
 import { Renderer } from "core/renderer";
 import { RenderableObject } from "core/renderable_object";
 import { WebGLShaderProgram } from "./webgl_shader_program";
@@ -7,6 +5,7 @@ import { WebGLShaderProgram } from "./webgl_shader_program";
 import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
+import { Line } from "objects/renderable/line";
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
@@ -31,26 +30,20 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
-    program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
-    program.setUniformMat4("ModelView", this.activeCamera.viewTransform);
-    if (program.hasUniform("Resolution")) {
-      program.setUniformVec2("Resolution", [this.width, this.height]);
-    }
 
-    for (const [name, [type, value]] of object.uniforms.entries()) {
-      switch (type) {
-        case "mat4":
-          program.setUniformMat4(name, value as mat4);
-          break;
-        case "vec2":
-          program.setUniformVec2(name, value as vec2);
-          break;
-        case "vec3":
-          program.setUniformVec3(name, value as vec3);
-          break;
-        case "number":
-          program.setUniformFloat(name, value as number);
-          break;
+    program.setUniform("Projection", this.activeCamera.projectionTransform);
+    program.setUniform("ModelView", this.activeCamera.viewTransform);
+
+    switch (object.type) {
+      case "Line": {
+        program.setUniform("Resolution", [
+          this.canvas.width,
+          this.canvas.height,
+        ]);
+        const line = object as Line;
+        program.setUniform("LineColor", line.color);
+        program.setUniform("LineWidth", line.width);
+        break;
       }
     }
 
