@@ -25,3 +25,15 @@ A layer-based library for interactive visualization of large datasets.
    `npm run test -- --run`.
 
 4. See [package.json](package.json) for other commands available.
+
+
+## Ultrack active learning prototype
+
+The `ultrack-prototype` directory contains our first driving example of an active learning application.
+It is a prototype for internal demos and testing, but not for production or public distribution.
+
+You can run it for development purposes by passing the `prototype` mode to vite:
+
+```shell
+npm run dev -- --mode prototype
+```
