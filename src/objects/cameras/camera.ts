@@ -3,7 +3,8 @@ import { mat4 } from "gl-matrix";
 
 export abstract class Camera extends RenderableObject {
   protected projectionTransform_ = mat4.create();
-  protected viewTransform_ = mat4.create();
+  protected near_ = 0;
+  protected far_ = 0;
 
   protected abstract updateProjectionTransform(): void;
 
@@ -25,6 +26,6 @@ export abstract class Camera extends RenderableObject {
   }
 
   get viewTransform() {
-    return this.viewTransform_;
+    return this.transform.matrix;
   }
 }

@@ -6,6 +6,8 @@ import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
+import { mat4 } from "gl-matrix";
+
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
@@ -30,8 +32,14 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
 
+    const modelView = mat4.multiply(
+      mat4.create(),
+      object.transform.matrix,
+      this.activeCamera.viewTransform
+    );
+
     program.setUniform("Projection", this.activeCamera.projectionTransform);
-    program.setUniform("ModelView", this.activeCamera.viewTransform);
+    program.setUniform("ModelView", modelView);
 
     // TODO: set uniforms for other types of renderable objects here
 

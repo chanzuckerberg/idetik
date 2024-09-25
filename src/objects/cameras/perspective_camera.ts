@@ -7,8 +7,6 @@ const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 export class PerspectiveCamera extends Camera {
   private fov_: number;
   private aspectRatio_: number;
-  private near_: number;
-  private far_: number;
 
   constructor(
     fov: number = DEFAULT_FOV,
@@ -33,7 +31,7 @@ export class PerspectiveCamera extends Camera {
     return "PerspectiveCamera";
   }
 
-  protected updateProjectionTransform(): void {
+  protected updateProjectionTransform() {
     mat4.perspective(
       this.projectionTransform_,
       glMatrix.toRadian(this.fov_),
