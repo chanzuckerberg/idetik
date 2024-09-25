@@ -29,8 +29,11 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
-    program.setUniformMat4("Projection", this.activeCamera.projectionTransform);
-    program.setUniformMat4("ModelView", this.activeCamera.viewTransform);
+
+    program.setUniform("Projection", this.activeCamera.projectionTransform);
+    program.setUniform("ModelView", this.activeCamera.viewTransform);
+
+    // TODO: set uniforms for other types of renderable objects here
 
     this.bindings_.bind(object);
 
