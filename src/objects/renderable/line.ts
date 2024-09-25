@@ -8,7 +8,7 @@ export class Line extends RenderableObject {
   private width_: number = 0.2;
 
   constructor(path: [number, number, number][]) {
-    // path is an list of 3D points [x, y, z]
+    // path is a list of 3D points [x, y, z]
     super();
     this.geometry.vertexData = this.createVertices(path);
     this.geometry.indexData = this.createIndex(path.length);
