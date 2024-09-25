@@ -30,12 +30,8 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
 
-    program.setUniformIfNeeded(
-      "Projection",
-      this.activeCamera.projectionTransform
-    );
-    program.setUniformIfNeeded("ModelView", this.activeCamera.viewTransform);
-    program.setUniformIfNeeded("Resolution", [this.width, this.height]);
+    program.setUniform("Projection", this.activeCamera.projectionTransform);
+    program.setUniform("ModelView", this.activeCamera.viewTransform);
 
     // TODO: set uniforms for other types of renderable objects here
 

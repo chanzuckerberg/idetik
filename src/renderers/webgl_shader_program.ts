@@ -32,27 +32,13 @@ export class WebGLShaderProgram {
     this.link();
   }
 
-  public setUniformIfNeeded(name: string, value: unknown) {
-    const [location, info] = this.uniformInfo_.get(name) ?? [];
-    if (!location || !info) {
-      return;
-    }
-    this.setUniformUnsafe(location, value, info.type);
-  }
-
   public setUniform(name: string, value: unknown) {
     const [location, info] = this.uniformInfo_.get(name) ?? [];
     if (!location || !info) {
       throw new Error(`Uniform "${name}" not found in shader program`);
     }
-    this.setUniformUnsafe(location, value, info.type);
-  }
 
-  private setUniformUnsafe(
-    location: WebGLUniformLocation,
-    value: unknown,
-    type: GLenum
-  ) {
+    const type = info.type as SupportedUniformType;
     switch (type) {
       case this.gl_.FLOAT:
         this.gl_.uniform1f(location, value as number);
@@ -66,10 +52,10 @@ export class WebGLShaderProgram {
       case this.gl_.FLOAT_MAT4:
         this.gl_.uniformMatrix4fv(location, false, value as mat4);
         break;
-      default:
-        // TODO: fail earlier (in `preprocessUniformLocations`) if the shader contains a uniform
-        // with an unsupported type - that will also allow us to use an exhaustive switch
-        throw new Error(`Unsupported uniform type: ${type}`);
+      default: {
+        const exhaustiveCheck: never = type;
+        throw new Error(`Unhandled uniform type: ${exhaustiveCheck}`);
+      }
     }
   }
 
@@ -81,15 +67,20 @@ export class WebGLShaderProgram {
     for (let i = 0; i < numUniforms; i++) {
       const info = this.gl_.getActiveUniform(this.program_, i);
       if (info) {
-        if (!SAMPLER_TYPES.has(info.type)) {
+        if (SAMPLER_TYPES.has(info.type)) {
           // texture samplers are also uniforms, but they are handled separately
-          const location = this.gl_.getUniformLocation(
-            this.program_,
-            info.name
+          continue;
+        }
+
+        if (!SUPPORTED_UNIFORM_TYPES.has(info.type)) {
+          throw new Error(
+            `Unsupported uniform type "${info.type}" (GLenum) found in shader program for uniform "${info.name}"`
           );
-          if (location) {
-            this.uniformInfo_.set(info.name, [location, info]);
-          }
+        }
+
+        const location = this.gl_.getUniformLocation(this.program_, info.name);
+        if (location) {
+          this.uniformInfo_.set(info.name, [location, info]);
         }
       }
     }
@@ -172,3 +163,15 @@ const SAMPLER_TYPES: ReadonlySet<GLenum> = new Set<GLenum>([
   WebGL2RenderingContext.MAX_SAMPLES,
   WebGL2RenderingContext.SAMPLER_BINDING,
 ]);
+
+// using an array and converting to a set allows us to also create a type here
+const SUPPORTED_UNIFORM_TYPES_ = [
+  WebGL2RenderingContext.FLOAT,
+  WebGL2RenderingContext.FLOAT_VEC2,
+  WebGL2RenderingContext.FLOAT_VEC3,
+  WebGL2RenderingContext.FLOAT_MAT4,
+] as const;
+type SupportedUniformType = (typeof SUPPORTED_UNIFORM_TYPES_)[GLenum];
+const SUPPORTED_UNIFORM_TYPES: ReadonlySet<GLenum> = new Set<GLenum>(
+  SUPPORTED_UNIFORM_TYPES_
+);
