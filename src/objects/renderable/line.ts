@@ -34,10 +34,6 @@ export class Line extends RenderableObject {
       itemSize: 1,
       offset: 3 * Float32Array.BYTES_PER_ELEMENT,
     });
-
-    // TODO: this is a hack
-    this.color = this.color_;
-    this.width = this.width_;
   }
 
   public get type() {
