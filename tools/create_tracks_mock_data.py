@@ -46,7 +46,7 @@ def _query_tracks(
         The time window to query the tracks data.
     include_children : bool
         Whether to include the children of the node_id in the query.
-    
+
     Returns
     -------
     list[TrackData]
@@ -58,9 +58,7 @@ def _query_tracks(
     track_ids = [current_node["track_id"]]
 
     if include_children:
-        track_ids.extend(
-            df[df["parent_id"] == node_id]["track_id"].unique().tolist()
-        )
+        track_ids.extend(df[df["parent_id"] == node_id]["track_id"].unique().tolist())
 
     before_time = current_node["t"] - time_window // 2
     after_time = current_node["t"] + time_window - time_window // 2
@@ -76,9 +74,9 @@ def _query_tracks(
 
         if track_df_window.empty:
             print(track_df)
-            raise ValueError(f"No data for track {track_id} in the time window at {current_node['t']}")
-        
-        size = len(track_df_window)
+            raise ValueError(
+                f"No data for track {track_id} in the time window at {current_node['t']}"
+            )
 
         track_data = TrackData(
             track_id=track_id,
@@ -94,10 +92,8 @@ def _query_tracks(
 
 def _get_divisions(df: pd.DataFrame, n_samples: int) -> pd.DataFrame:
     df = df[df["track_id"].isin(df["parent_track_id"])]
-    div_df = (
-        df
-        .groupby("track_id", as_index=False)
-        .apply(lambda x: x.loc[x["t"].idxmax()])
+    div_df = df.groupby("track_id", as_index=False).apply(
+        lambda x: x.loc[x["t"].idxmax()]
     )
     return div_df.sample(n=n_samples, random_state=RNG)
 
@@ -113,8 +109,12 @@ def _get_disappearances(df: pd.DataFrame, n_samples: int) -> pd.DataFrame:
 
 
 def main() -> None:
-    df = pd.read_csv("https://public.czbiohub.org/royerlab/ultrack/multi-color/tracks.csv")
-    df[["t", "track_id", "id", "parent_id", "parent_track_id"]] = df[["t", "track_id", "id", "parent_id", "parent_track_id"]].astype(int)
+    df = pd.read_csv(
+        "https://public.czbiohub.org/royerlab/ultrack/multi-color/tracks.csv"
+    )
+    df[["t", "track_id", "id", "parent_id", "parent_track_id"]] = df[
+        ["t", "track_id", "id", "parent_id", "parent_track_id"]
+    ].astype(int)
 
     for col in ["z", "y", "x"]:
         if col not in df.columns:
@@ -131,10 +131,14 @@ def main() -> None:
         ("disappearance", _get_disappearances),
     ]:
         for sample in sampling_func(df, n_samples=5).itertuples():
-
             task_data = CellEventTaskData(
                 node_id=sample.id,
-                tracks_data=_query_tracks(df, sample.id, time_window=10, include_children=task_type=="division"),
+                tracks_data=_query_tracks(
+                    df,
+                    sample.id,
+                    time_window=10,
+                    include_children=task_type == "division",
+                ),
             )
             annotation_task = AnnotationTask(
                 task_id=count,
@@ -145,10 +149,7 @@ def main() -> None:
             count += 1
 
     with open("mock_data.json", "w") as f:
-        pretty_json = json.dumps(
-            [task.dict() for task in mock_data],
-            indent=4
-        )
+        pretty_json = json.dumps([task.dict() for task in mock_data], indent=4)
         f.write(pretty_json)
 
 
