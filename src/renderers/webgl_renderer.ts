@@ -37,11 +37,7 @@ export class WebGLRenderer extends Renderer {
     program.setUniformIfNeeded("ModelView", this.activeCamera.viewTransform);
     program.setUniformIfNeeded("Resolution", [this.width, this.height]);
 
-    switch (object.type) {
-      // TODO: set uniforms for other types of renderable objects here
-      case "Mesh":
-        break;
-    }
+    // TODO: set uniforms for other types of renderable objects here
 
     this.bindings_.bind(object);
 
