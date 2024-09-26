@@ -1,4 +1,4 @@
-import { mat4, vec2 } from "gl-matrix";
+import { mat4, vec2, vec3 } from "gl-matrix";
 
 type ShaderMap = {
   [type: number]: {
@@ -7,12 +7,11 @@ type ShaderMap = {
   };
 };
 
-const regex = /^\s*uniform\s+(?:highp|mediump|lowp|)[\w\s]+\s+(\w+)\s*;\s*$/gm;
-
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
   private readonly program_: WebGLProgram;
-  private uniformLocations_: Map<string, WebGLUniformLocation> = new Map();
+  private uniformInfo_: Map<string, [WebGLUniformLocation, WebGLActiveInfo]> =
+    new Map();
   private shaders_: ShaderMap = {};
 
   constructor(
@@ -21,6 +20,7 @@ export class WebGLShaderProgram {
     fragmentShaderSource: string
   ) {
     this.gl_ = gl;
+
     const program = gl.createProgram();
     if (!program) {
       throw new Error(`Failed to create WebGL shader program`);
@@ -32,39 +32,56 @@ export class WebGLShaderProgram {
     this.link();
   }
 
-  public getUniformLoc(name: string) {
-    // Preprocessing uniform locations doesn’t work for all use cases, so we
-    // can’t assume all uniform locations are cached on initialization.
-    if (!this.uniformLocations_.has(name)) {
-      const location = this.gl_.getUniformLocation(this.program_, name);
-      if (location) {
-        this.uniformLocations_.set(name, location);
-      } else {
-        throw new Error(`Uniform ${name} not found in shader program`);
+  public setUniform(name: string, value: unknown) {
+    const [location, info] = this.uniformInfo_.get(name) ?? [];
+    if (!location || !info) {
+      throw new Error(`Uniform "${name}" not found in shader program`);
+    }
+
+    const type = info.type as SupportedUniformType;
+    switch (type) {
+      case this.gl_.FLOAT:
+        this.gl_.uniform1f(location, value as number);
+        break;
+      case this.gl_.FLOAT_VEC2:
+        this.gl_.uniform2fv(location, value as vec2);
+        break;
+      case this.gl_.FLOAT_VEC3:
+        this.gl_.uniform3fv(location, value as vec3);
+        break;
+      case this.gl_.FLOAT_MAT4:
+        this.gl_.uniformMatrix4fv(location, false, value as mat4);
+        break;
+      default: {
+        const exhaustiveCheck: never = type;
+        throw new Error(`Unhandled uniform type: ${exhaustiveCheck}`);
       }
     }
-    return this.uniformLocations_.get(name)!;
   }
 
-  public setUniformMat4(name: string, value: mat4) {
-    this.gl_.uniformMatrix4fv(this.getUniformLoc(name), false, value);
-  }
+  private preprocessUniformLocations() {
+    const numUniforms = this.gl_.getProgramParameter(
+      this.program_,
+      this.gl_.ACTIVE_UNIFORMS
+    );
+    for (let i = 0; i < numUniforms; i++) {
+      const info = this.gl_.getActiveUniform(this.program_, i);
+      if (info) {
+        if (SAMPLER_TYPES.has(info.type)) {
+          // texture samplers are also uniforms, but they are handled separately
+          continue;
+        }
 
-  public setUniformVec2(name: string, value: vec2) {
-    this.gl_.uniform2fv(this.getUniformLoc(name), value);
-  }
+        if (!SUPPORTED_UNIFORM_TYPES.has(info.type)) {
+          throw new Error(
+            `Unsupported uniform type "${info.type}" (GLenum) found in shader program for uniform "${info.name}"`
+          );
+        }
 
-  public setUniformFloat(name: string, value: number) {
-    this.gl_.uniform1f(this.getUniformLoc(name), value);
-  }
-
-  private preprocessUniformLocations(source: string) {
-    let match;
-    while ((match = regex.exec(source)) !== null) {
-      const name = match[1];
-      const location = this.gl_.getUniformLocation(this.program_, name);
-      if (location) {
-        this.uniformLocations_.set(name, location);
+        const location = this.gl_.getUniformLocation(this.program_, info.name);
+        if (location) {
+          this.uniformInfo_.set(info.name, [location, info]);
+        }
       }
     }
   }
@@ -102,9 +119,7 @@ export class WebGLShaderProgram {
       throw new Error(`Error validating program: ${message}`);
     }
 
-    for (const idx in this.shaders_) {
-      this.preprocessUniformLocations(this.shaders_[idx].source);
-    }
+    this.preprocessUniformLocations();
     this.deleteShaders();
   }
 
@@ -128,3 +143,35 @@ export class WebGLShaderProgram {
     this.shaders_ = {};
   }
 }
+
+const SAMPLER_TYPES: ReadonlySet<GLenum> = new Set<GLenum>([
+  WebGL2RenderingContext.SAMPLER_2D,
+  WebGL2RenderingContext.SAMPLER_CUBE,
+  WebGL2RenderingContext.SAMPLER_3D,
+  WebGL2RenderingContext.SAMPLER_2D_ARRAY,
+  WebGL2RenderingContext.SAMPLER_2D_SHADOW,
+  WebGL2RenderingContext.SAMPLER_CUBE_SHADOW,
+  WebGL2RenderingContext.SAMPLER_2D_ARRAY_SHADOW,
+  WebGL2RenderingContext.INT_SAMPLER_2D,
+  WebGL2RenderingContext.INT_SAMPLER_3D,
+  WebGL2RenderingContext.INT_SAMPLER_CUBE,
+  WebGL2RenderingContext.INT_SAMPLER_2D_ARRAY,
+  WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D,
+  WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_3D,
+  WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_CUBE,
+  WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D_ARRAY,
+  WebGL2RenderingContext.MAX_SAMPLES,
+  WebGL2RenderingContext.SAMPLER_BINDING,
+]);
+
+// using an array and converting to a set allows us to also create a type here
+const SUPPORTED_UNIFORM_TYPES_ = [
+  WebGL2RenderingContext.FLOAT,
+  WebGL2RenderingContext.FLOAT_VEC2,
+  WebGL2RenderingContext.FLOAT_VEC3,
+  WebGL2RenderingContext.FLOAT_MAT4,
+] as const;
+type SupportedUniformType = (typeof SUPPORTED_UNIFORM_TYPES_)[GLenum];
+const SUPPORTED_UNIFORM_TYPES: ReadonlySet<GLenum> = new Set<GLenum>(
+  SUPPORTED_UNIFORM_TYPES_
+);
