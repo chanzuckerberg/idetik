@@ -49,9 +49,14 @@ export abstract class Renderer {
         this.activeCamera_.setAspectRatio(this.width_ / this.height_);
       }
       if (this.activeCamera_ instanceof OrthographicCamera) {
-        this.activeCamera_.setFrame(0, this.width, 0, this.height);
+        this.activeCamera_.setFrame(
+          -this.width / 2,
+          this.width / 2,
+          -this.height / 2,
+          this.height / 2
+        );
       }
-      this.activeCamera_.updateTransforms();
+      this.activeCamera_.update();
     }
   }
 

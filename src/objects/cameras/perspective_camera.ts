@@ -20,7 +20,7 @@ export class PerspectiveCamera extends Camera {
     this.near_ = near;
     this.far_ = far;
 
-    this.updateProjectionTransform();
+    this.updateProjectionMatrix();
   }
 
   public setAspectRatio(aspectRatio: number) {
@@ -31,9 +31,9 @@ export class PerspectiveCamera extends Camera {
     return "PerspectiveCamera";
   }
 
-  protected updateProjectionTransform() {
+  protected updateProjectionMatrix() {
     mat4.perspective(
-      this.projectionTransform_,
+      this.projectionMatrix_,
       glMatrix.toRadian(this.fov_),
       this.aspectRatio_,
       this.near_,

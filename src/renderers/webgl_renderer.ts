@@ -35,10 +35,10 @@ export class WebGLRenderer extends Renderer {
     const modelView = mat4.multiply(
       mat4.create(),
       object.transform.matrix,
-      this.activeCamera.viewTransform
+      this.activeCamera.transform.matrix
     );
 
-    program.setUniform("Projection", this.activeCamera.projectionTransform);
+    program.setUniform("Projection", this.activeCamera.projectionMatrix);
     program.setUniform("ModelView", modelView);
 
     // TODO: set uniforms for other types of renderable objects here

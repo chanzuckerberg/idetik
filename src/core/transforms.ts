@@ -1,13 +1,12 @@
 import { vec3, mat4 } from "gl-matrix";
 
-export class Transform {
+export class AffineTransform {
   private dirty_ = true;
   private matrix_ = mat4.create();
-  private position_ = vec3.create();
+  private translation_ = vec3.create();
 
-  public translate(axis: vec3, distance: number) {
-    const v = vec3.scale(vec3.create(), axis, distance);
-    vec3.add(this.position_, this.position_, v);
+  public translate(vec: vec3) {
+    vec3.add(this.translation_, this.translation_, vec);
     this.dirty_ = true;
   }
 
@@ -18,7 +17,7 @@ export class Transform {
   public get matrix() {
     if (this.dirty_) {
       this.matrix_ = mat4.create();
-      mat4.translate(this.matrix_, this.matrix_, this.position_);
+      mat4.translate(this.matrix_, this.matrix_, this.translation_);
 
       this.dirty_ = false;
     }

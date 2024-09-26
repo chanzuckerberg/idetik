@@ -24,7 +24,7 @@ export class OrthographicCamera extends Camera {
     this.near_ = near;
     this.far_ = far;
 
-    this.updateProjectionTransform();
+    this.updateProjectionMatrix();
   }
 
   public setFrame(left: number, right: number, bottom: number, top: number) {
@@ -38,9 +38,9 @@ export class OrthographicCamera extends Camera {
     return "OrthographicCamera";
   }
 
-  protected updateProjectionTransform() {
+  protected updateProjectionMatrix() {
     mat4.ortho(
-      this.projectionTransform_,
+      this.projectionMatrix_,
       this.left_,
       this.right_,
       this.bottom_,
