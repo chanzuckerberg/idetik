@@ -1,6 +1,6 @@
 import {
   LayerManager,
-  PerspectiveCamera,
+  OrthographicCamera,
   SingleMeshLayer,
   WebGLRenderer,
 } from "@";
@@ -10,7 +10,13 @@ const layersManager = new LayerManager();
 layersManager.add(singleMeshLayer);
 
 const renderer = new WebGLRenderer("#canvas");
-const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
+
+const camera = new OrthographicCamera(
+  -renderer.width / 2,
+  renderer.width / 2,
+  -renderer.height / 2,
+  renderer.height / 2
+);
 
 function animate() {
   renderer.render(layersManager, camera);

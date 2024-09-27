@@ -2,29 +2,21 @@ import { RenderableObject } from "core/renderable_object";
 import { mat4 } from "gl-matrix";
 
 export abstract class Camera extends RenderableObject {
-  protected projectionTransform_ = mat4.create();
-  protected viewTransform_ = mat4.create();
+  protected projectionMatrix_ = mat4.create();
+  protected near_ = 0;
+  protected far_ = 0;
 
-  protected abstract updateProjectionTransform(): void;
-
-  constructor() {
-    super();
-    this.updateProjectionTransform();
-  }
+  protected abstract updateProjectionMatrix(): void;
 
   public get type() {
     return "Camera";
   }
 
-  public updateTransforms() {
-    this.updateProjectionTransform();
+  public update() {
+    this.updateProjectionMatrix();
   }
 
-  get projectionTransform() {
-    return this.projectionTransform_;
-  }
-
-  get viewTransform() {
-    return this.viewTransform_;
+  get projectionMatrix() {
+    return this.projectionMatrix_;
   }
 }
