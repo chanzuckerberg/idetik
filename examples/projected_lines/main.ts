@@ -1,4 +1,9 @@
-import { LayerManager, PerspectiveCamera, ProjectedLineLayer, WebGLRenderer } from "@";
+import {
+  LayerManager,
+  PerspectiveCamera,
+  ProjectedLineLayer,
+  WebGLRenderer,
+} from "@";
 
 const layersManager = new LayerManager();
 const layer = new ProjectedLineLayer();
