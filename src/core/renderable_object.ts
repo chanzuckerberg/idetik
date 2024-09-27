@@ -1,10 +1,12 @@
 import { Node } from "core/node";
-import { Geometry } from "./geometry";
-import { Texture } from "@/objects/textures/texture";
+import { Geometry } from "core/geometry";
+import { Texture } from "objects/textures/texture";
+import { AffineTransform } from "core/transforms";
 
 export abstract class RenderableObject extends Node {
   private geometry_ = new Geometry();
   private textures_: Texture[] = [];
+  private transform_ = new AffineTransform();
 
   public addTexture(texture: Texture) {
     this.textures_.push(texture);
@@ -16,6 +18,10 @@ export abstract class RenderableObject extends Node {
 
   public get textures() {
     return this.textures_;
+  }
+
+  public get transform() {
+    return this.transform_;
   }
 
   public set geometry(geometry: Geometry) {
