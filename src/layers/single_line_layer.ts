@@ -4,8 +4,8 @@ import { LineGeometry } from "objects/geometry/line_geometry";
 
 interface LineLayerParameters {
   path: [number, number, number][];
-  color?: [number, number, number];
-  width?: number;
+  color: [number, number, number];
+  width: number;
 }
 
 export class LineLayer extends Layer {

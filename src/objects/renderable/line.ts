@@ -3,8 +3,8 @@ import { LineGeometry } from "objects/geometry/line_geometry";
 
 interface LineParameters {
   geometry: LineGeometry;
-  color?: [number, number, number];
-  width?: number;
+  color: [number, number, number];
+  width: number;
 }
 
 export class Line extends RenderableObject {
@@ -14,8 +14,8 @@ export class Line extends RenderableObject {
   constructor({ geometry, color, width }: LineParameters) {
     super();
     this.geometry = geometry;
-    this.color_ = color || [0.0, 0.0, 0.0];
-    this.width_ = width || 0.5;
+    this.color_ = color;
+    this.width_ = width;
   }
 
   public get type() {
