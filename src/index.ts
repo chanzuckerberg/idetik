@@ -5,6 +5,7 @@ export { OrthographicCamera } from "objects/cameras/orthographic_camera";
 export { LayerManager } from "core/layer_manager";
 
 export { SingleMeshLayer } from "layers/single_mesh_layer";
+export { ProjectedLineLayer } from "layers/projected_line_layer";
 
 export { ImageLayer } from "layers/image_layer";
 

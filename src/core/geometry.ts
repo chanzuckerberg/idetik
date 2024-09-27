@@ -1,6 +1,12 @@
 import { Node } from "core/node";
 
-type GeometryAttributeType = "position" | "normal" | "uv";
+type GeometryAttributeType =
+  | "position"
+  | "normal"
+  | "uv"
+  | "next_position"
+  | "previous_position"
+  | "direction";
 
 type GeometryAttribute = {
   type: GeometryAttributeType;
