@@ -2,6 +2,7 @@ import { LayerManager } from "./layer_manager";
 import { Camera } from "objects/cameras/camera";
 import { RenderableObject } from "core/renderable_object";
 import { PerspectiveCamera } from "objects/cameras/perspective_camera";
+import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
@@ -47,7 +48,15 @@ export abstract class Renderer {
       if (this.activeCamera_ instanceof PerspectiveCamera) {
         this.activeCamera_.setAspectRatio(this.width_ / this.height_);
       }
-      this.activeCamera_.updateTransforms();
+      if (this.activeCamera_ instanceof OrthographicCamera) {
+        this.activeCamera_.setFrame(
+          -this.width / 2,
+          this.width / 2,
+          -this.height / 2,
+          this.height / 2
+        );
+      }
+      this.activeCamera_.update();
     }
   }
 
