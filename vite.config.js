@@ -44,7 +44,10 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       watch: {
-        include: path.resolve(_dirname, 'src/**'),
+        include: [
+          path.resolve(_dirname, 'src/**'),
+          path.resolve(_dirname, 'examples/**'),
+        ],
       },
     },
     test: {

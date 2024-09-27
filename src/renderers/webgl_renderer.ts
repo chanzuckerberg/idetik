@@ -5,6 +5,7 @@ import { WebGLShaderProgram } from "./webgl_shader_program";
 import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
+import { ProjectedLine } from "objects/renderable/projected_line";
 
 import { mat4 } from "gl-matrix";
 
@@ -17,7 +18,7 @@ export class WebGLRenderer extends Renderer {
   constructor(selector: string) {
     super(selector);
 
-    this.gl_ = this.canvas.getContext("webgl2");
+    this.gl_ = this.canvas.getContext("webgl2", { depth: true });
     if (!this.gl_) {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
@@ -41,7 +42,18 @@ export class WebGLRenderer extends Renderer {
     program.setUniform("Projection", this.activeCamera.projectionMatrix);
     program.setUniform("ModelView", modelView);
 
-    // TODO: set uniforms for other types of renderable objects here
+    switch (object.type) {
+      case "ProjectedLine": {
+        program.setUniform("Resolution", [
+          this.canvas.width,
+          this.canvas.height,
+        ]);
+        const line = object as ProjectedLine;
+        program.setUniform("LineColor", line.color);
+        program.setUniform("LineWidth", line.width);
+        break;
+      }
+    }
 
     this.bindings_.bind(object);
 
@@ -67,13 +79,15 @@ export class WebGLRenderer extends Renderer {
 
   protected clear() {
     this.gl.clearColor(0, 0, 0, 1.0);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    this.gl.enable(this.gl.DEPTH_TEST);
   }
 
   // This is a temporary computed property. In the future, we want to assign the
   // program name to the class derived from the renderable object but we need to
   // refactor textures first (consolidating the two programs below.)
-  private getProgramName(object: RenderableObject): Shader {
+  private getProgramName(object: RenderableObject) {
+    if (object.type === "ProjectedLine") return "projectedLine";
     return object.textures.length && object.textures[0].type === "DataTexture2D"
       ? "uintImage"
       : "mesh";
