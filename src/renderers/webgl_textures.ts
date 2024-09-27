@@ -48,10 +48,10 @@ export class WebGLTextures {
   private configureTexture(texture: Texture) {
     switch (texture.type) {
       case "Texture2D":
-        this.configuredTexture2D(texture as Texture2D);
+        this.configureTexture2D(texture as Texture2D);
         break;
       case "DataTexture2D":
-        this.configuredDataTexture2D(texture as DataTexture2D);
+        this.configureDataTexture2D(texture as DataTexture2D);
         break;
       default:
         throw new Error(`Unknown texture type ${texture.type}`);
@@ -66,7 +66,7 @@ export class WebGLTextures {
     return texture;
   }
 
-  private configuredTexture2D(texture: Texture2D) {
+  private configureTexture2D(texture: Texture2D) {
     const gl = this.gl_;
     const format = gl.RGBA;
     const type = gl.UNSIGNED_BYTE;
@@ -78,7 +78,7 @@ export class WebGLTextures {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }
 
-  private configuredDataTexture2D(texture: DataTexture2D) {
+  private configureDataTexture2D(texture: DataTexture2D) {
     const gl = this.gl_;
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.rowAlignmentBytes);
     gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.rowStride);

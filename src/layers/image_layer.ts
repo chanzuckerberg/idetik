@@ -58,9 +58,6 @@ export class ImageLayer extends Layer {
       throw new Error(`Expected one chunk. Instead found ${chunks.length}`);
     }
     const chunk = chunks[0];
-
-    // TODO: DataTexture2D and ImageChunk share an almost identical interface.
-    // Should we simplify this?
     const texture = new DataTexture2D(
       chunk.data,
       chunk.shape.width,
