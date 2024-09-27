@@ -1,21 +1,24 @@
 import { Layer } from "core/layer";
 import { Line } from "objects/renderable/line";
+import { LineGeometry } from "objects/geometry/line_geometry";
 
-export class SingleLineLayer extends Layer {
-  constructor(
-    path: [number, number, number][],
-    color: [number, number, number] = [1.0, 0.7, 0.0],
-    width: number = 0.2
-  ) {
+interface LineLayerParameters {
+  path: [number, number, number][];
+  color?: [number, number, number];
+  width?: number;
+}
+
+export class LineLayer extends Layer {
+  constructor(lines: LineLayerParameters[] = []) {
     super();
-
-    // TODO: add color and width to the Line constructor?
-    const line = new Line(path);
-    line.color = color;
-    line.width = width;
-    this.addObject(line);
-
+    lines.forEach(this.addLine);
     this.state_ = "ready";
+  }
+
+  public addLine(line: LineLayerParameters) {
+    const { path, color, width } = line;
+    const geometry = new LineGeometry(path);
+    this.addObject(new Line({ geometry, color, width }));
   }
 
   public update(): void {}

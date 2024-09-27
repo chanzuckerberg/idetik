@@ -46,6 +46,7 @@ export class WebGLBuffers {
   private createBuffers(object: RenderableObject) {
     const buffer = this.gl_.createBuffer();
     const { vertexData, indexData, attributes, stride } = object.geometry;
+    console.log(attributes, stride);
 
     const bufferType = this.gl_.ARRAY_BUFFER;
     this.gl_.bindBuffer(bufferType, buffer);
@@ -56,9 +57,10 @@ export class WebGLBuffers {
       if (attr.type === "position") idx = 0;
       if (attr.type === "normal") idx = 1;
       if (attr.type === "uv") idx = 2;
-      if (attr.type == "nextpos") idx = 3;
-      if (attr.type == "prevpos") idx = 4;
+      if (attr.type == "next_position") idx = 3;
+      if (attr.type == "previous_position") idx = 4;
       if (attr.type == "direction") idx = 5;
+      console.log(`Attribute ${attr.type} at index ${idx}`);
 
       this.gl_.vertexAttribPointer(
         idx,

@@ -10,6 +10,8 @@ uniform mat4 ModelView;
 uniform vec2 Resolution;
 uniform float LineWidth;
 
+out float distanceFromCenter;
+
 void main() {
     mat4 projModelView = Projection * ModelView;
 
@@ -24,14 +26,17 @@ void main() {
     float currZ = currPos.z / currPos.w;
 
     vec2 diff;
-    if (currScreen == prevScreen) {
-        // this is the first segment
-        diff = nextScreen.xy - currScreen.xy;
+    if (prevScreen == currScreen) {
+        // first point on the path
+        diff = nextScreen - currScreen;
+    } else if (nextScreen == currScreen) {
+        // last point on the path
+        diff = currScreen - prevScreen;
     } else {
-        diff = nextScreen.xy - prevScreen.xy;
+        vec2 prevDiff = currScreen - prevScreen;
+        vec2 nextDiff = nextScreen - currScreen;
+        diff = normalize(prevDiff) + normalize(nextDiff);
     }
-
-    // TODO: there are artifacts where diff is near-zero
 
     vec2 normal = normalize(vec2(-diff.y, diff.x));
 
@@ -41,6 +46,9 @@ void main() {
         1.0
     );
     gl_Position = currPos + offset;
+
+    // distance from center
+    distanceFromCenter = direction;
 
     // draw as GL_POINTS for debugging
     gl_PointSize = 5.0;

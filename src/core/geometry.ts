@@ -4,8 +4,8 @@ type GeometryAttributeType =
   | "position"
   | "normal"
   | "uv"
-  | "nextpos"
-  | "prevpos"
+  | "next_position"
+  | "previous_position"
   | "direction";
 
 type GeometryAttribute = {
@@ -18,7 +18,6 @@ export class Geometry extends Node {
   protected vertexData_: Float32Array;
   protected indexData_: Uint32Array;
   private attributes_: GeometryAttribute[];
-  private stride_: number | null = null;
 
   constructor(vertexData: number[] = [], indexData: number[] = []) {
     super();
@@ -36,9 +35,6 @@ export class Geometry extends Node {
   }
 
   public get stride() {
-    if (this.stride_ !== null) {
-      return this.stride_;
-    }
     return (
       this.attributes_.reduce((acc, curr) => {
         return (acc += curr.itemSize);
@@ -46,24 +42,12 @@ export class Geometry extends Node {
     );
   }
 
-  public set stride(value: number) {
-    this.stride_ = value;
-  }
-
   public get vertexData() {
     return this.vertexData_;
   }
 
-  public set vertexData(data: Float32Array) {
-    this.vertexData_ = data;
-  }
-
   public get indexData() {
     return this.indexData_;
-  }
-
-  public set indexData(data: Uint32Array) {
-    this.indexData_ = data;
   }
 
   public get attributes() {

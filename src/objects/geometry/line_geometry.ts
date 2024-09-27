@@ -1,0 +1,85 @@
+import { Geometry } from "core/geometry";
+
+export class LineGeometry extends Geometry {
+  constructor(path: [number, number, number][]) {
+    super();
+    this.vertexData_ = this.createVertices(path);
+    this.indexData_ = this.createIndex(path.length);
+    this.addAttribute({
+      type: "position",
+      itemSize: 3,
+      offset: 0,
+    });
+    this.addAttribute({
+      type: "previous_position",
+      itemSize: 3,
+      offset: 3 * Float32Array.BYTES_PER_ELEMENT,
+    });
+    this.addAttribute({
+      type: "next_position",
+      itemSize: 3,
+      offset: 6 * Float32Array.BYTES_PER_ELEMENT,
+    });
+    this.addAttribute({
+      type: "direction",
+      itemSize: 1,
+      offset: 9 * Float32Array.BYTES_PER_ELEMENT,
+    });
+  }
+
+  private createVertices(path: [number, number, number][]): Float32Array {
+    // each point on the path is split into two vertices
+    // these are pushed in opposite directions in screen-space in the vertex shader
+
+    const vertices = new Float32Array(2 * path.length * (3 + 3 + 3 + 1));
+
+    let c = 0;
+    for (const i of [...Array(path.length).keys()]) {
+      for (const direction of [-1.0, 1.0]) {
+        const current = path[i];
+        vertices[c++] = current[0];
+        vertices[c++] = current[1];
+        vertices[c++] = current[2];
+
+        const previous = path[i - 1] || path[i];
+        vertices[c++] = previous[0];
+        vertices[c++] = previous[1];
+        vertices[c++] = previous[2];
+
+        const next = path[i + 1] || path[i];
+        vertices[c++] = next[0];
+        vertices[c++] = next[1];
+        vertices[c++] = next[2];
+
+        vertices[c++] = direction;
+      }
+    }
+
+    return vertices;
+  }
+
+  private createIndex(length: number): Uint32Array {
+    // each line segment is a quad split into two triangles
+    //       0 ----- 2
+    //       |     / |      ^
+    //       |    /  |  +direction
+    // point a   /   point b
+    //       |  /    |  -direction
+    //       | /     |      v
+    //       1 ----- 3
+
+    const indices = new Uint32Array((length - 1) * 6);
+    let c = 0;
+
+    for (let i = 0; i < 2 * length; i += 2) {
+      indices[c++] = i + 0;
+      indices[c++] = i + 1;
+      indices[c++] = i + 2;
+
+      indices[c++] = i + 2;
+      indices[c++] = i + 1;
+      indices[c++] = i + 3;
+    }
+    return indices;
+  }
+}
