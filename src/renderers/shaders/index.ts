@@ -1,15 +1,15 @@
-import lineVertexShader from "./line_vert.glsl";
-import lineFragmentShader from "./line_frag.glsl";
+import projectedLineVertexShader from "./projected_line_vert.glsl";
+import projectedLineFragmentShader from "./projected_line_frag.glsl";
 import meshVertexShader from "./mesh_vert.glsl";
 import meshFragmentShader from "./mesh_frag.glsl";
 import uint16ImageFragmentShader from "./uint16_image_frag.glsl";
 
-export type Shader = "line" | "mesh" | "uint16Image";
+export type Shader = "projectedLine" | "mesh" | "uint16Image";
 
-export const shaderCode = {
-  line: {
-    vertex: lineVertexShader,
-    fragment: lineFragmentShader,
+export const shaderCode: Record<Shader, { vertex: string; fragment: string }> = {
+  projectedLine: {
+    vertex: projectedLineVertexShader,
+    fragment: projectedLineFragmentShader,
   },
   mesh: {
     vertex: meshVertexShader,
@@ -20,3 +20,4 @@ export const shaderCode = {
     fragment: uint16ImageFragmentShader,
   },
 };
+

@@ -1,7 +1,7 @@
-import { LayerManager, PerspectiveCamera, LineLayer, WebGLRenderer } from "@";
+import { LayerManager, PerspectiveCamera, ProjectedLineLayer, WebGLRenderer } from "@";
 
 const layersManager = new LayerManager();
-const layer = new LineLayer();
+const layer = new ProjectedLineLayer();
 layersManager.add(layer);
 
 const helixA = generateHelix({

@@ -1,13 +1,13 @@
 import { RenderableObject } from "core/renderable_object";
-import { LineGeometry } from "objects/geometry/line_geometry";
+import { ProjectedLineGoemetry } from "objects/geometry/projected_line_geometry";
 
 interface LineParameters {
-  geometry: LineGeometry;
+  geometry: ProjectedLineGoemetry;
   color: [number, number, number];
   width: number;
 }
 
-export class Line extends RenderableObject {
+export class ProjectedLine extends RenderableObject {
   private color_: [number, number, number];
   private width_: number;
 
@@ -19,7 +19,7 @@ export class Line extends RenderableObject {
   }
 
   public get type() {
-    return "Line";
+    return "ProjectedLine";
   }
 
   public get color() {

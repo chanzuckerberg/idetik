@@ -1,6 +1,6 @@
 import { Geometry } from "core/geometry";
 
-export class LineGeometry extends Geometry {
+export class ProjectedLineGoemetry extends Geometry {
   // this creates the geometry for a screen-space projected line
   // each point on the input path is split into two vertices
   // these are pushed in opposite directions in screen-space to create width

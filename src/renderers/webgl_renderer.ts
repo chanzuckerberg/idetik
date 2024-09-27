@@ -5,7 +5,7 @@ import { WebGLShaderProgram } from "./webgl_shader_program";
 import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
-import { Line } from "objects/renderable/line";
+import { ProjectedLine } from "objects/renderable/projected_line";
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
@@ -35,12 +35,12 @@ export class WebGLRenderer extends Renderer {
     program.setUniform("ModelView", this.activeCamera.viewTransform);
 
     switch (object.type) {
-      case "Line": {
+      case "ProjectedLine": {
         program.setUniform("Resolution", [
           this.canvas.width,
           this.canvas.height,
         ]);
-        const line = object as Line;
+        const line = object as ProjectedLine;
         program.setUniform("LineColor", line.color);
         program.setUniform("LineWidth", line.width);
         break;
@@ -79,7 +79,7 @@ export class WebGLRenderer extends Renderer {
   // program name to the class derived from the renderable object but we need to
   // refactor textures first (consolidating the two programs below.)
   private getProgramName(object: RenderableObject) {
-    if (object.type === "Line") return "line";
+    if (object.type === "ProjectedLine") return "projectedLine";
     return object.textures.length &&
       object.textures[0].type === "Uint16Texture2D"
       ? "uint16Image"
