@@ -10,8 +10,7 @@ uniform mat4 ModelView;
 uniform vec2 Resolution;
 uniform float LineWidth;
 
-out float distanceFromCenter;
-
+// adapted from https://github.com/mattdesl/webgl-lines
 void main() {
     mat4 projModelView = Projection * ModelView;
 
@@ -33,6 +32,9 @@ void main() {
         // last point on the path
         diff = currScreen - prevScreen;
     } else {
+        // middle point on the path
+        // combine the two directions to get a cheap miter
+        // this is not a true miter join, but it also doesn't explode
         vec2 prevDiff = currScreen - prevScreen;
         vec2 nextDiff = nextScreen - currScreen;
         diff = normalize(prevDiff) + normalize(nextDiff);
@@ -46,9 +48,6 @@ void main() {
         1.0
     );
     gl_Position = currPos + offset;
-
-    // distance from center
-    distanceFromCenter = direction;
 
     // draw as GL_POINTS for debugging
     gl_PointSize = 5.0;

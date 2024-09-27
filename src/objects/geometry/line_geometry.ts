@@ -1,6 +1,13 @@
 import { Geometry } from "core/geometry";
 
 export class LineGeometry extends Geometry {
+  // this creates the geometry for a screen-space projected line
+  // each point on the input path is split into two vertices
+  // these are pushed in opposite directions in screen-space to create width
+  // this is done in the vertex shader by moving the vertices along the path normal
+  // See:
+  //  https://mattdesl.svbtle.com/drawing-lines-is-hard#screenspace-projected-lines_2
+  //  https://github.com/spite/THREE.MeshLine
   constructor(path: [number, number, number][]) {
     super();
     this.vertexData_ = this.createVertices(path);
@@ -28,9 +35,6 @@ export class LineGeometry extends Geometry {
   }
 
   private createVertices(path: [number, number, number][]): Float32Array {
-    // each point on the path is split into two vertices
-    // these are pushed in opposite directions in screen-space in the vertex shader
-
     const vertices = new Float32Array(2 * path.length * (3 + 3 + 3 + 1));
 
     let c = 0;
