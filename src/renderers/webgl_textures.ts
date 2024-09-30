@@ -83,10 +83,10 @@ export class WebGLTextures {
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.rowAlignmentBytes);
     gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.rowStride);
     const level = 0;
-    const internalFormat = this.dataTexture2DGlInternalFormat(texture);
     const border = 0;
-    const format = gl.RED_INTEGER;
-    const type = this.dataTexture2DGlType(texture);
+    const { internalFormat, format, type } =
+      this.dataTexture2DGlTextureProps(texture);
+
     gl.texImage2D(
       gl.TEXTURE_2D,
       level,
@@ -107,18 +107,22 @@ export class WebGLTextures {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   }
 
-  private dataTexture2DGlInternalFormat(texture: DataTexture2D) {
+  private dataTexture2DGlTextureProps(texture: DataTexture2D) {
     const gl = this.gl_;
-    if (texture.data instanceof Uint8Array) return gl.R8UI;
-    if (texture.data instanceof Uint16Array) return gl.R16UI;
-    const exhaustiveCheck: never = texture.data;
-    throw Error(`Unsupported data type: ${exhaustiveCheck}`);
-  }
-
-  private dataTexture2DGlType(texture: DataTexture2D) {
-    const gl = this.gl_;
-    if (texture.data instanceof Uint8Array) return gl.UNSIGNED_BYTE;
-    if (texture.data instanceof Uint16Array) return gl.UNSIGNED_SHORT;
+    if (texture.data instanceof Uint8Array) {
+      return {
+        internalFormat: gl.R8UI,
+        format: gl.RED_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+      };
+    }
+    if (texture.data instanceof Uint16Array) {
+      return {
+        internalFormat: gl.R16UI,
+        format: gl.RED_INTEGER,
+        type: gl.UNSIGNED_SHORT,
+      };
+    }
     const exhaustiveCheck: never = texture.data;
     throw Error(`Unsupported data type: ${exhaustiveCheck}`);
   }
