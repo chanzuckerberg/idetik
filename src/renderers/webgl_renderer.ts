@@ -88,9 +88,8 @@ export class WebGLRenderer extends Renderer {
   // refactor textures first (consolidating the two programs below.)
   private getProgramName(object: RenderableObject) {
     if (object.type === "ProjectedLine") return "projectedLine";
-    return object.textures.length &&
-      object.textures[0].type === "Uint16Texture2D"
-      ? "uint16Image"
+    return object.textures.length && object.textures[0].type === "DataTexture2D"
+      ? "uintImage"
       : "mesh";
   }
 

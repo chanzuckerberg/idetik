@@ -35,6 +35,14 @@ interface Multiscale {
   datasets: Array<Dataset>;
 }
 
+const dataTypes = [Uint8Array, Uint16Array] as const;
+const dataTypeNames = dataTypes.map((DataType) => DataType.name);
+type DataType = InstanceType<(typeof dataTypes)[number]>;
+
+function isDataType(value: unknown): value is DataType {
+  return dataTypes.some((DataType) => value instanceof DataType);
+}
+
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
@@ -72,13 +80,14 @@ export class OmeZarrImageLoader {
     });
     console.debug("opened array ", array);
 
-    if (array.dtype !== "uint16") {
+    const subarray = await zarr.get(array, indices);
+
+    if (!isDataType(subarray.data)) {
       throw new Error(
-        `Only uint16 image data is supported. Instead array has dtype ${array.dtype}`
+        `Subarray has an unsupported data type ${subarray.data.constructor.name}. Supported data types are ${dataTypeNames}.`
       );
     }
 
-    const subarray = await zarr.get(array, indices);
     if (subarray.shape.length !== 2) {
       throw new Error(
         `Expected to receive a 2D subarray. Instead chunk has shape ${subarray.shape}`
@@ -92,9 +101,10 @@ export class OmeZarrImageLoader {
     }
 
     const chunk = {
-      data: subarray.data as Uint16Array,
+      data: subarray.data,
       shape: { width: subarray.shape[1], height: subarray.shape[0] },
-      rowLength: subarray.stride[0],
+      rowStride: subarray.stride[0],
+      rowAlignmentBytes: subarray.data.BYTES_PER_ELEMENT,
     };
     console.debug("loaded chunk ", chunk);
     return [chunk];

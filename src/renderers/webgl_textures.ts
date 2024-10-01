@@ -1,6 +1,6 @@
 import { Texture } from "objects/textures/texture";
 import { Texture2D } from "objects/textures/texture_2d";
-import { Uint16Texture2D } from "objects/textures/uint16_texture_2d";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
 
 export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
@@ -38,7 +38,7 @@ export class WebGLTextures {
   private textureType(texture: Texture) {
     switch (texture.type) {
       case "Texture2D":
-      case "Uint16Texture2D":
+      case "DataTexture2D":
         return this.gl_.TEXTURE_2D;
       default:
         throw new Error(`Unknown texture type ${texture.type}`);
@@ -48,10 +48,10 @@ export class WebGLTextures {
   private configureTexture(texture: Texture) {
     switch (texture.type) {
       case "Texture2D":
-        this.configuredTexture2D(texture as Texture2D);
+        this.configureTexture2D(texture as Texture2D);
         break;
-      case "Uint16Texture2D":
-        this.configuredUint16Texture2D(texture as Uint16Texture2D);
+      case "DataTexture2D":
+        this.configureDataTexture2D(texture as DataTexture2D);
         break;
       default:
         throw new Error(`Unknown texture type ${texture.type}`);
@@ -66,7 +66,7 @@ export class WebGLTextures {
     return texture;
   }
 
-  private configuredTexture2D(texture: Texture2D) {
+  private configureTexture2D(texture: Texture2D) {
     const gl = this.gl_;
     const format = gl.RGBA;
     const type = gl.UNSIGNED_BYTE;
@@ -78,17 +78,15 @@ export class WebGLTextures {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }
 
-  private configuredUint16Texture2D(texture: Uint16Texture2D) {
+  private configureDataTexture2D(texture: DataTexture2D) {
     const gl = this.gl_;
-    // Use an unpack alignment of 2 to support any row length of 2-byte
-    // uint16 pixel values.
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 2);
-    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.rowLength);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.rowAlignmentBytes);
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.rowStride);
     const level = 0;
-    const internalFormat = gl.R16UI;
     const border = 0;
-    const format = gl.RED_INTEGER;
-    const type = gl.UNSIGNED_SHORT;
+    const { internalFormat, format, type } =
+      this.dataTexture2DGlTextureProps(texture);
+
     gl.texImage2D(
       gl.TEXTURE_2D,
       level,
@@ -102,10 +100,30 @@ export class WebGLTextures {
     );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    // Use NEAREST with the R16UI internal format because integer valued textures
-    // are not generally texture filterable.
+    // Use NEAREST because unsigned integer valued textures are not generally
+    // texture filterable.
     // https://webgl2fundamentals.org/webgl/lessons/webgl-data-textures.html
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  }
+
+  private dataTexture2DGlTextureProps(texture: DataTexture2D) {
+    const gl = this.gl_;
+    if (texture.data instanceof Uint8Array) {
+      return {
+        internalFormat: gl.R8UI,
+        format: gl.RED_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+      };
+    }
+    if (texture.data instanceof Uint16Array) {
+      return {
+        internalFormat: gl.R16UI,
+        format: gl.RED_INTEGER,
+        type: gl.UNSIGNED_SHORT,
+      };
+    }
+    const exhaustiveCheck: never = texture.data;
+    throw Error(`Unsupported data type: ${exhaustiveCheck}`);
   }
 }

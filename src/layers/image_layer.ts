@@ -1,9 +1,9 @@
 import { Layer } from "core/layer";
 import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
-import { Uint16Texture2D } from "objects/textures/uint16_texture_2d";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
 
 interface ImageLayerSource {
   open(): Promise<ImageChunkLoader>;
@@ -58,11 +58,12 @@ export class ImageLayer extends Layer {
       throw new Error(`Expected one chunk. Instead found ${chunks.length}`);
     }
     const chunk = chunks[0];
-    const texture = new Uint16Texture2D(
+    const texture = new DataTexture2D(
       chunk.data,
       chunk.shape.width,
       chunk.shape.height,
-      chunk.rowLength
+      chunk.rowStride,
+      chunk.rowAlignmentBytes
     );
     this.addObject(new Mesh(this.plane_, texture));
     this.state_ = "ready";

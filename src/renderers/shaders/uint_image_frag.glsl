@@ -1,11 +1,10 @@
 #version 300 es
 
 precision mediump float;
-precision mediump usampler2D;
 
 layout (location = 0) out vec4 fragColor;
 
-uniform usampler2D texture0;
+uniform mediump usampler2D texture0;
 
 in vec2 TexCoords;
 
