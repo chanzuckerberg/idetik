@@ -8,22 +8,12 @@ import {
 } from "@";
 import { Box } from "@mui/material";
 
+import { videoLayerProps } from "../video_layer_props";
+
 const canvasId = "canvas";
 
-// Source is 5D, so provide indices at 3 dimensions to project to 2D.
-const url =
-  "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
-const source = new OmeZarrImageSource(url);
-const timeInterval = { start: 100, stop: 150 };
-const region = [
-  // TODO: when the region is state associated with the renderer or
-  // layer manager, and we have a reference to that, then sync it
-  // with React state that captures the time-point.
-  { dimension: "T", index: timeInterval },
-  { dimension: "C", index: 0 },
-  { dimension: "Z", index: 0 },
-];
-const layer = new VideoLayer(source, region, "T");
+const source = new OmeZarrImageSource(videoLayerProps.url);
+const layer = new VideoLayer(source, videoLayerProps.region, videoLayerProps.timeDimension);
 const layerManager = new LayerManager();
 layerManager.add(layer);
 
@@ -34,14 +24,15 @@ interface RendererProps {
 export default function Renderer(props: RendererProps) {
   const { curTime } = props;
 
-  // Update region and reload when time changes.
   useEffect(() => {
+    console.debug("Renderer::useEffect::curTime: ", curTime);
     layer.setTimeIndex(curTime);
   }, [curTime]);
 
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
   useEffect(() => {
+    console.debug("Renderer::mount: ", curTime);
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
     const camera = new PerspectiveCamera(60, renderer.width / renderer.height);

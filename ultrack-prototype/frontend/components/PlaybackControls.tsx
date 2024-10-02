@@ -2,12 +2,12 @@ import { Box } from "@mui/material";
 import { Button, InputSlider } from "@czi-sds/components";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
+import { videoLayerTimeInterval } from "../video_layer_props";
+
 const playbackFPS = 16;
 const playbackIntervalMs = 1000 / playbackFPS;
-// TODO: these come from the time interval defined in the Renderer
-// component. These should be defined once.
-const minTime = 100;
-const maxTime = 149;
+const minTime = videoLayerTimeInterval.start;
+const maxTime = videoLayerTimeInterval.stop - 1;
 const numTimes = maxTime - minTime + 1;
 
 interface PlaybackControlsProps {
