@@ -68,11 +68,9 @@ export class VideoLayer extends Layer {
     const { start, stop } = this.timeInterval_;
     const chunkIndex = Math.round(index - start);
     if (chunkIndex < 0) {
-      throw new Error(
-        `Time index ${index} is before the start time of ${start}`
-      );
+      throw new Error(`Time index ${index} is before the start time: ${start}`);
     } else if (chunkIndex >= this.dataChunks_.length) {
-      throw new Error(`Time index ${index} is after the stop time of ${stop}.`);
+      throw new Error(`Time index ${index} is after the stop time: ${stop}.`);
     }
     const chunk = this.dataChunks_[chunkIndex];
     // TODO: create one object and update the texture in-place.
