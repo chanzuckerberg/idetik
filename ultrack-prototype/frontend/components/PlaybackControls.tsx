@@ -1,26 +1,35 @@
 import { Box } from "@mui/material";
 import { Button, InputSlider } from "@czi-sds/components";
-import { useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
 const playbackFPS = 16;
 const playbackIntervalMs = 1000 / playbackFPS;
-// Use an arbitrary number of times just to exercise playback.
-const numTimes = 100;
+// TODO: these come from the time interval defined in the Renderer
+// component. These should be defined once.
+const minTime = 100;
+const maxTime = 149;
+const numTimes = maxTime - minTime + 1;
 
-export default function PlaybackControls() {
-  const [curTime, setCurTime] = useState(0);
+interface PlaybackControlsProps {
+  curTime: number;
+  setCurTime: Dispatch<SetStateAction<number>>;
+}
+
+export default function PlaybackControls(props: PlaybackControlsProps) {
+  const { curTime, setCurTime } = props;
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     console.debug("PlaybackControls::useEffect::playing: ", playing);
     if (playing) {
       const interval = setInterval(
-        () => setCurTime((prevCurTime) => (prevCurTime + 1) % numTimes),
+        () =>
+          setCurTime((prevCurTime) => minTime + ((prevCurTime + 1) % numTimes)),
         playbackIntervalMs
       );
       return () => clearInterval(interval);
     }
-  }, [playing]);
+  }, [playing, setCurTime]);
 
   return (
     <Box
@@ -39,8 +48,8 @@ export default function PlaybackControls() {
       />
 
       <InputSlider
-        min={0}
-        max={numTimes - 1}
+        min={minTime}
+        max={maxTime}
         valueLabelDisplay="on"
         onChange={(_, value) => setCurTime(value as number)}
         value={curTime}

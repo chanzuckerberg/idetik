@@ -38,8 +38,10 @@ export class VideoLayer extends Layer {
       );
     }
     const timeIndex = this.region_[this.timeDimensionIndex_].index;
-    if (typeof(timeIndex) === "number") {
-        throw new Error(`Time index is a number (${timeIndex}). It should be an interval.`);
+    if (typeof timeIndex === "number") {
+      throw new Error(
+        `Time index is a number (${timeIndex}). It should be an interval.`
+      );
     }
     this.timeInterval_ = timeIndex;
   }
@@ -66,9 +68,11 @@ export class VideoLayer extends Layer {
     const { start, stop } = this.timeInterval_;
     const chunkIndex = Math.round(index - start);
     if (chunkIndex < 0) {
-        throw new Error(`Time index ${index} is before the start time of ${start}`);
+      throw new Error(
+        `Time index ${index} is before the start time of ${start}`
+      );
     } else if (chunkIndex >= this.dataChunks_.length) {
-        throw new Error(`Time index ${index} is after the stop time of ${stop}.`);
+      throw new Error(`Time index ${index} is after the stop time of ${stop}.`);
     }
     const chunk = this.dataChunks_[chunkIndex];
     // TODO: create one object and update the texture in-place.

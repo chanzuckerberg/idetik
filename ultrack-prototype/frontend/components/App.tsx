@@ -1,8 +1,10 @@
 import { Box } from "@mui/material";
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
+import { useState } from "react";
 
 export default function App() {
+  const [curTime, setCurTime] = useState(0);
   return (
     <Box
       sx={{
@@ -11,8 +13,11 @@ export default function App() {
         gap: "1em",
       }}
     >
-      <Renderer></Renderer>
-      <PlaybackControls></PlaybackControls>
+      <Renderer curTime={curTime}></Renderer>
+      <PlaybackControls
+        curTime={curTime}
+        setCurTime={setCurTime}
+      ></PlaybackControls>
     </Box>
   );
 }
