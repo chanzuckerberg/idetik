@@ -12,9 +12,8 @@ import { videoLayerProps } from "../video_layer_props";
 
 const canvasId = "canvas";
 
-const source = new OmeZarrImageSource(videoLayerProps.url);
 const layer = new VideoLayer(
-  source,
+  new OmeZarrImageSource(videoLayerProps.url),
   videoLayerProps.region,
   videoLayerProps.timeDimension
 );
