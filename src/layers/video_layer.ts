@@ -19,7 +19,6 @@ export class VideoLayer extends Layer {
   // TODO: plane geometry should be defined by data source extents and region.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
   private plane_ = new PlaneGeometry(3, 3, 1, 1);
-  private loader_: ImageChunkLoader | null = null;
   private region_: Region;
   private timeInterval_: Interval;
   private timeDimensionIndex_: number;
@@ -89,13 +88,13 @@ export class VideoLayer extends Layer {
       throw new Error(`Trying to open chunk loader more than once.`);
     }
     this.state_ = "loading";
-    this.loader_ = await this.source_.open();
-    // Wait to load the whole sub-region passed in.
+    const loader = await this.source_.open();
+    // Wait to load the whole region over all time points.
     this.dataChunks_ = [];
     for (let t = this.timeInterval_.start; t < this.timeInterval_.stop; ++t) {
       const region = structuredClone(this.region_);
       region[this.timeDimensionIndex_].index = t;
-      const chunk = await this.loader_!.loadChunk(region);
+      const chunk = await loader.loadChunk(region);
       this.dataChunks_.push(chunk);
     }
     this.state_ = "ready";
