@@ -13,7 +13,11 @@ import { videoLayerProps } from "../video_layer_props";
 const canvasId = "canvas";
 
 const source = new OmeZarrImageSource(videoLayerProps.url);
-const layer = new VideoLayer(source, videoLayerProps.region, videoLayerProps.timeDimension);
+const layer = new VideoLayer(
+  source,
+  videoLayerProps.region,
+  videoLayerProps.timeDimension
+);
 const layerManager = new LayerManager();
 layerManager.add(layer);
 
@@ -32,7 +36,7 @@ export default function Renderer(props: RendererProps) {
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
   useEffect(() => {
-    console.debug("Renderer::mount: ", curTime);
+    console.debug("Renderer::mount");
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
     const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
