@@ -13,7 +13,7 @@ interface ImageChunkLoader {
   loadChunk(input: Region): Promise<ImageChunk>;
 }
 
-// Loads data from an image source into renderable objects.
+// Loads 2D+t image data from an image source into renderable objects.
 export class VideoLayer extends Layer {
   private readonly source_: ImageLayerSource;
   // TODO: plane geometry should be defined by data source extents and region.
