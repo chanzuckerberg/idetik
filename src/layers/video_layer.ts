@@ -96,8 +96,8 @@ export class VideoLayer extends Layer {
     const loader = await this.source_.open();
     // Wait to load the whole region over all time points.
     this.dataChunks_ = [];
+    const region = structuredClone(this.region_);
     for (let t = this.timeInterval_.start; t < this.timeInterval_.stop; ++t) {
-      const region = structuredClone(this.region_);
       region[this.timeDimensionIndex_].index = t;
       const chunk = await loader.loadChunk(region);
       this.dataChunks_.push(chunk);
