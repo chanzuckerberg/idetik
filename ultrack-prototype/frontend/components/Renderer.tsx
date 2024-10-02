@@ -39,6 +39,7 @@ export default function Renderer(props: RendererProps) {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
+    // TODO: use an Orthographic camera.
     const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
     function animate() {
       renderer.render(layerManager, camera);
