@@ -15,21 +15,20 @@ interface ImageChunkLoader {
 
 // Loads data from an image source into renderable objects.
 export class VideoLayer extends Layer {
-  private source_: ImageLayerSource;
+  private readonly source_: ImageLayerSource;
   // TODO: plane geometry should be defined by data source extents and region.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
-  private plane_ = new PlaneGeometry(3, 3, 1, 1);
-  private region_: Region;
-  private timeInterval_: Interval;
-  private timeDimensionIndex_: number;
-  private dataChunks_: ImageChunk[];
+  private readonly plane_ = new PlaneGeometry(3, 3, 1, 1);
+  private readonly region_: Region;
+  private readonly timeInterval_: Interval;
+  private readonly timeDimensionIndex_: number;
+  private dataChunks_: ImageChunk[] = [];
 
   constructor(source: ImageLayerSource, region: Region, timeDimension: string) {
     super();
     this.state_ = "initialized";
     this.source_ = source;
     this.region_ = region;
-    this.dataChunks_ = [];
     this.timeDimensionIndex_ = region.findIndex(
       (x) => x.dimension == timeDimension
     );
@@ -38,10 +37,11 @@ export class VideoLayer extends Layer {
         `Could not find dimension ${timeDimension} in ${JSON.stringify(region)}`
       );
     }
-    // TODO: validate that time index in region is an interval;
-    // error if not, or possibly coerce singletons.
-    this.timeInterval_ = this.region_[this.timeDimensionIndex_]
-      .index as Interval;
+    const timeIndex = this.region_[this.timeDimensionIndex_].index;
+    if (typeof(timeIndex) === "number") {
+        throw new Error(`Time index is a number (${timeIndex}). It should be an interval.`);
+    }
+    this.timeInterval_ = timeIndex;
   }
 
   public update(): void {
@@ -64,13 +64,11 @@ export class VideoLayer extends Layer {
       throw new Error(`Trying to set time index before ready: ${this.state_}`);
     }
     const { start, stop } = this.timeInterval_;
-    let chunkIndex = Math.round(index - start);
+    const chunkIndex = Math.round(index - start);
     if (chunkIndex < 0) {
-        console.warn(`Time index ${index} is before the start time of ${start}. Clamping to first frame.`);
-        chunkIndex = 0;
+        throw new Error(`Time index ${index} is before the start time of ${start}`);
     } else if (chunkIndex >= this.dataChunks_.length) {
-        console.warn(`Time index ${index} is after the stop time of ${stop}. Clamping to last frame.`);
-        chunkIndex = this.dataChunks_.length - 1;
+        throw new Error(`Time index ${index} is after the stop time of ${stop}.`);
     }
     const chunk = this.dataChunks_[chunkIndex];
     // TODO: create one object and update the texture in-place.

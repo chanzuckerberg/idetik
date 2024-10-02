@@ -15,13 +15,13 @@ interface ImageChunkLoader {
 
 // Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
-  private source_: ImageLayerSource;
+  private readonly source_: ImageLayerSource;
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
-  private region_: Region;
+  private readonly region_: Region;
   // TODO: plane geometry should be defined by data source extents and region.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
-  private plane_ = new PlaneGeometry(3, 3, 1, 1);
+  private readonly plane_ = new PlaneGeometry(3, 3, 1, 1);
 
   constructor(source: ImageLayerSource, region: Region) {
     super();
