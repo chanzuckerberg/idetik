@@ -63,13 +63,16 @@ export class VideoLayer extends Layer {
     if (this.state_ !== "ready") {
       throw new Error(`Trying to set time index before ready: ${this.state_}`);
     }
-
-    const chunkIndex = Math.round(index - this.timeInterval_.start);
-    console.debug(
-      `Accessing chunk at index: ${index}, ${chunkIndex}, ${this.dataChunks_.length}`
-    );
+    const { start, stop } = this.timeInterval_;
+    let chunkIndex = Math.round(index - start);
+    if (chunkIndex < 0) {
+        console.warn(`Time index ${index} is before the start time of ${start}. Clamping to first frame.`);
+        chunkIndex = 0;
+    } else if (chunkIndex >= this.dataChunks_.length) {
+        console.warn(`Time index ${index} is after the stop time of ${stop}. Clamping to last frame.`);
+        chunkIndex = this.dataChunks_.length - 1;
+    }
     const chunk = this.dataChunks_[chunkIndex];
-
     // TODO: create one object and update the texture in-place.
     // Or use a texture array and update the index for the shader.
     const texture = new DataTexture2D(
