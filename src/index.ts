@@ -8,6 +8,7 @@ export { SingleMeshLayer } from "layers/single_mesh_layer";
 export { ProjectedLineLayer } from "layers/projected_line_layer";
 
 export { ImageLayer } from "layers/image_layer";
+export { VideoLayer } from "layers/video_layer";
 
 export { OmeZarrImageSource } from "data/ome_zarr_image_source";
 

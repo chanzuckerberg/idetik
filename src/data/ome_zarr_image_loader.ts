@@ -66,7 +66,7 @@ export class OmeZarrImageLoader {
     this.datasets_ = image.datasets;
   }
 
-  async loadChunks(region: Region): Promise<ImageChunk[]> {
+  async loadChunk(region: Region): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
@@ -107,7 +107,7 @@ export class OmeZarrImageLoader {
       rowAlignmentBytes: subarray.data.BYTES_PER_ELEMENT,
     };
     console.debug("loaded chunk ", chunk);
-    return [chunk];
+    return chunk;
   }
 }
 

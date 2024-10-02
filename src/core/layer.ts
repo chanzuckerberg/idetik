@@ -19,4 +19,8 @@ export abstract class Layer {
   protected addObject(object: RenderableObject) {
     this.objects_.push(object);
   }
+
+  protected clearObjects() {
+    this.objects_ = [];
+  }
 }

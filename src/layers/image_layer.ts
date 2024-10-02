@@ -10,7 +10,7 @@ interface ImageLayerSource {
 }
 
 interface ImageChunkLoader {
-  loadChunks(input: Region): Promise<ImageChunk[]>;
+  loadChunk(input: Region): Promise<ImageChunk>;
 }
 
 // Loads data from an image source into renderable objects.
@@ -51,13 +51,7 @@ export class ImageLayer extends Layer {
     }
     this.state_ = "loading";
     const loader = await this.source_.open();
-    const chunks = await loader.loadChunks(region);
-    // TODO: handle mapping many chunks to many textures.
-    // https://github.com/chanzuckerberg/imaging-active-learning/issues/34
-    if (chunks.length !== 1) {
-      throw new Error(`Expected one chunk. Instead found ${chunks.length}`);
-    }
-    const chunk = chunks[0];
+    const chunk = await loader.loadChunk(region);
     const texture = new DataTexture2D(
       chunk.data,
       chunk.shape.width,
