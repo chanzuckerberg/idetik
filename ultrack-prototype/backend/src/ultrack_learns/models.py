@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from enum import auto, StrEnum
 
 from pydantic import BaseModel
@@ -9,7 +11,6 @@ Path3D = list[tuple[float, float, float]]
 
 class TaskType(StrEnum):
     APPEARANCE = auto()
-    DEATH = auto()
     DISAPPEARANCE = auto()
     DIVISION = auto()
 
@@ -26,6 +27,6 @@ class TaskData(BaseModel):
 
 
 class Task(BaseModel):
-    task_id: int
+    task_id: UUID
     task_type: TaskType
     task_data: TaskData

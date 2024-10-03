@@ -1,429 +1,204 @@
-from ultrack_learns.models import Task
-mock_data = [
-  {
-    "task_id": 0,
-    "task_type": "division",
-    "task_data": {
-      "node_id": 34000252,
-      "tracks_data": [
-        {
-          "track_id": 775,
-          "time": [28, 29, 30, 31, 32, 33],
-          "position": [
-            [1350.0, 1822.0],
-            [1350.0, 1825.0],
-            [1351.0, 1831.0],
-            [1350.0, 1826.0],
-            [1350.0, 1827.0],
-            [1351.0, 1827.0]
-          ]
-        },
-        {
-          "track_id": 776,
-          "time": [34, 35, 36, 37, 38],
-          "position": [
-            [1347.0, 1818.0],
-            [1343.0, 1820.0],
-            [1341.0, 1820.0],
-            [1345.0, 1824.0],
-            [1350.0, 1824.0]
-          ]
-        },
-        {
-          "track_id": 777,
-          "time": [34, 35, 36, 37, 38],
-          "position": [
-            [1353.0, 1841.0],
-            [1356.0, 1842.0],
-            [1356.0, 1842.0],
-            [1367.0, 1840.0],
-            [1378.0, 1844.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 1,
-    "task_type": "division",
-    "task_data": {
-      "node_id": 255000270,
-      "tracks_data": [
-        {
-          "track_id": 438,
-          "time": [249, 250, 251, 252, 253, 254],
-          "position": [
-            [729.0, 129.0],
-            [725.0, 121.0],
-            [729.0, 88.0],
-            [728.0, 77.0],
-            [726.0, 74.0],
-            [723.0, 74.0]
-          ]
-        },
-        {
-          "track_id": 439,
-          "time": [255, 256, 257, 258, 259],
-          "position": [
-            [720.0, 72.0],
-            [714.0, 72.0],
-            [705.0, 78.0],
-            [694.0, 77.0],
-            [689.0, 79.0]
-          ]
-        },
-        {
-          "track_id": 440,
-          "time": [255, 256, 257, 258, 259],
-          "position": [
-            [734.0, 109.0],
-            [737.0, 100.0],
-            [737.0, 97.0],
-            [738.0, 95.0],
-            [736.0, 94.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 2,
-    "task_type": "division",
-    "task_data": {
-      "node_id": 226000398,
-      "tracks_data": [
-        {
-          "track_id": 651,
-          "time": [220, 221, 222, 223, 224, 225],
-          "position": [
-            [1135.0, 1417.0],
-            [1138.0, 1414.0],
-            [1139.0, 1414.0],
-            [1142.0, 1411.0],
-            [1144.0, 1410.0],
-            [1147.0, 1405.0]
-          ]
-        },
-        {
-          "track_id": 652,
-          "time": [226, 227, 228, 229, 230],
-          "position": [
-            [1152.0, 1400.0],
-            [1155.0, 1396.0],
-            [1159.0, 1393.0],
-            [1161.0, 1392.0],
-            [1164.0, 1390.0]
-          ]
-        },
-        {
-          "track_id": 653,
-          "time": [226, 227, 228, 229, 230],
-          "position": [
-            [1155.0, 1442.0],
-            [1152.0, 1445.0],
-            [1149.0, 1444.0],
-            [1143.0, 1444.0],
-            [1142.0, 1441.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 3,
-    "task_type": "division",
-    "task_data": {
-      "node_id": 218000013,
-      "tracks_data": [
-        {
-          "track_id": 98,
-          "time": [212, 213, 214, 215, 216, 217],
-          "position": [
-            [23.0, 1658.0],
-            [22.0, 1659.0],
-            [22.0, 1659.0],
-            [22.0, 1659.0],
-            [23.0, 1660.0],
-            [23.0, 1660.0]
-          ]
-        },
-        {
-          "track_id": 99,
-          "time": [218, 219, 220, 221, 222],
-          "position": [
-            [24.0, 1649.0],
-            [25.0, 1651.0],
-            [24.0, 1653.0],
-            [24.0, 1651.0],
-            [21.0, 1652.0]
-          ]
-        },
-        {
-          "track_id": 100,
-          "time": [218, 219, 220, 221, 222],
-          "position": [
-            [22.0, 1673.0],
-            [23.0, 1673.0],
-            [24.0, 1673.0],
-            [26.0, 1671.0],
-            [27.0, 1675.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 4,
-    "task_type": "division",
-    "task_data": {
-      "node_id": 84000183,
-      "tracks_data": [
-        {
-          "track_id": 434,
-          "time": [78, 79, 80, 81, 82, 83],
-          "position": [
-            [833.0, 167.0],
-            [833.0, 166.0],
-            [834.0, 164.0],
-            [831.0, 163.0],
-            [830.0, 162.0],
-            [831.0, 164.0]
-          ]
-        },
-        {
-          "track_id": 435,
-          "time": [84, 85, 86, 87, 88],
-          "position": [
-            [824.0, 156.0],
-            [818.0, 151.0],
-            [818.0, 152.0],
-            [817.0, 153.0],
-            [815.0, 144.0]
-          ]
-        },
-        {
-          "track_id": 438,
-          "time": [84, 85, 86, 87, 88],
-          "position": [
-            [838.0, 173.0],
-            [842.0, 175.0],
-            [841.0, 175.0],
-            [842.0, 177.0],
-            [848.0, 191.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 5,
-    "task_type": "appearance",
-    "task_data": {
-      "node_id": 293000694,
-      "tracks_data": [
-        {
-          "track_id": 1375,
-          "time": [292, 293, 294, 295, 296, 297],
-          "position": [
-            [1375.0, 9.0],
-            [1375.0, 8.0],
-            [1370.0, 8.0],
-            [1365.0, 9.0],
-            [1362.0, 9.0],
-            [1360.0, 7.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 6,
-    "task_type": "appearance",
-    "task_data": {
-      "node_id": 1000068,
-      "tracks_data": [
-        {
-          "track_id": 222,
-          "time": [0, 1, 2, 3, 4, 5],
-          "position": [
-            [503.0, 1681.0],
-            [503.0, 1680.0],
-            [500.0, 1682.0],
-            [501.0, 1684.0],
-            [508.0, 1685.0],
-            [515.0, 1683.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 7,
-    "task_type": "appearance",
-    "task_data": {
-      "node_id": 166000040,
-      "tracks_data": [
-        {
-          "track_id": 1022,
-          "time": [165, 166, 167, 168, 169, 170],
-          "position": [
-            [182.0, 1673.0],
-            [183.0, 1674.0],
-            [184.0, 1674.0],
-            [183.0, 1675.0],
-            [184.0, 1674.0],
-            [183.0, 1675.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 8,
-    "task_type": "appearance",
-    "task_data": {
-      "node_id": 245000585,
-      "tracks_data": [
-        {
-          "track_id": 1232,
-          "time": [244, 245, 246, 247, 248, 249],
-          "position": [
-            [1432.0, 1170.0],
-            [1432.0, 1170.0],
-            [1432.0, 1171.0],
-            [1432.0, 1170.0],
-            [1432.0, 1169.0],
-            [1431.0, 1171.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 9,
-    "task_type": "appearance",
-    "task_data": {
-      "node_id": 242000425,
-      "tracks_data": [
-        {
-          "track_id": 1212,
-          "time": [241, 242, 243, 244, 245, 246],
-          "position": [
-            [1053.0, 669.0],
-            [1056.0, 666.0],
-            [1059.0, 664.0],
-            [1060.0, 664.0],
-            [1060.0, 665.0],
-            [1061.0, 665.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 10,
-    "task_type": "disappearance",
-    "task_data": {
-      "node_id": 262000173,
-      "tracks_data": [
-        {
-          "track_id": 812,
-          "time": [256, 257, 258, 259, 260, 261],
-          "position": [
-            [422.0, 1849.0],
-            [424.0, 1851.0],
-            [424.0, 1852.0],
-            [424.0, 1852.0],
-            [424.0, 1853.0],
-            [425.0, 1854.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 11,
-    "task_type": "disappearance",
-    "task_data": {
-      "node_id": 262000532,
-      "tracks_data": [
-        {
-          "track_id": 1220,
-          "time": [256, 257, 258, 259, 260, 261],
-          "position": [
-            [1237.0, 1218.0],
-            [1237.0, 1220.0],
-            [1237.0, 1217.0],
-            [1238.0, 1215.0],
-            [1239.0, 1216.0],
-            [1240.0, 1217.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 12,
-    "task_type": "disappearance",
-    "task_data": {
-      "node_id": 272000547,
-      "tracks_data": [
-        {
-          "track_id": 733,
-          "time": [266, 267, 268, 269, 270, 271],
-          "position": [
-            [1288.0, 77.0],
-            [1287.0, 76.0],
-            [1284.0, 77.0],
-            [1282.0, 76.0],
-            [1280.0, 74.0],
-            [1280.0, 74.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 13,
-    "task_type": "disappearance",
-    "task_data": {
-      "node_id": 226000442,
-      "tracks_data": [
-        {
-          "track_id": 609,
-          "time": [220, 221, 222, 223, 224, 225],
-          "position": [
-            [1242.0, 1746.0],
-            [1249.0, 1745.0],
-            [1255.0, 1743.0],
-            [1257.0, 1742.0],
-            [1260.0, 1741.0],
-            [1263.0, 1742.0]
-          ]
-        }
-      ]
-    }
-  },
-  {
-    "task_id": 14,
-    "task_type": "disappearance",
-    "task_data": {
-      "node_id": 300000094,
-      "tracks_data": [
-        {
-          "track_id": 297,
-          "time": [294, 295, 296, 297, 298, 299],
-          "position": [
-            [198.0, 582.0],
-            [198.0, 584.0],
-            [198.0, 585.0],
-            [199.0, 586.0],
-            [200.0, 586.0],
-            [203.0, 586.0]
-          ]
-        }
-      ]
-    }
-  }
-]
-mock_data = [Task(**data) for data in mock_data]
+from collections import Counter
+from contextlib import asynccontextmanager
+from random import choices, getrandbits, sample, seed
+from uuid import UUID
+
+import pandas as pd
+from fastapi import FastAPI, APIRouter, Depends
+from sqlalchemy import func, select
+from sqlalchemy.orm import aliased, Session
+
+from ultrack_learns.models import Task, TaskData, TaskType
+from ultrack_learns.db import (
+    get_session,
+    session_context,
+    set_up_db,
+    track_points_around_node,
+    TrackPoint,
+)
+
+SAMPLE_DATA_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color/tracks.csv"
+
+
+@asynccontextmanager
+async def mock_lifespan(app: FastAPI):
+    print("Starting lifespan")
+    set_up_db()
+    with session_context() as db:
+        seed_mock_data(db)
+    yield
+    # TODO: clean up mock data if needed
+
+
+def seed_mock_data(db: Session):
+    print("Seeding mock data")
+    if count := db.query(TrackPoint).count():
+        print(f"Data already seeded ({count} items)- delete DB and restart to re-seed")
+        print(f"DB file: '{db.bind.url.database}'")
+        return
+
+    print(f"Downloading sample data from {SAMPLE_DATA_URL}")
+    df = pd.read_csv(SAMPLE_DATA_URL)
+
+    print("Inserting data into the database")
+    for row in df.itertuples():
+        parent_id = row.parent_id if row.parent_id != -1 else None
+        parent_track_id = row.parent_track_id if row.parent_track_id != -1 else None
+        z = row.z if "z" in df.columns else None
+        db.add(
+            TrackPoint(
+                id=row.id,
+                parent_id=parent_id,
+                track_id=row.track_id,
+                parent_track_id=parent_track_id,
+                t=row.t,
+                z=z,
+                y=row.y,
+                x=row.x,
+            )
+        )
+    db.commit()
+    print(f"Inserted {len(df)} rows")
+
+
+def _get_appearances(db: Session, n_samples: int):
+    query = select(TrackPoint).where(TrackPoint.parent_track_id.is_(None))
+    possible_appearances = db.execute(query).scalars().all()
+
+    if len(possible_appearances) < n_samples:
+        return possible_appearances
+    else:
+        return sample(possible_appearances, n_samples)
+
+
+def _get_disappearances(db: Session, n_samples: int):
+    parent_ids_subquery = (
+        select(TrackPoint.parent_track_id)
+        .where(~TrackPoint.parent_track_id.is_(None))
+        .distinct()
+    )
+    query = select(TrackPoint).where(~TrackPoint.track_id.in_(parent_ids_subquery))
+    possible_disappearances = db.execute(query).scalars().all()
+
+    if len(possible_disappearances) < n_samples:
+        return possible_disappearances
+    else:
+        return sample(possible_disappearances, n_samples)
+
+
+def _get_divisions(db: Session, n_samples: int):
+    parent_ids_subquery = (
+        select(TrackPoint.parent_track_id)
+        .where(~TrackPoint.parent_track_id.is_(None))
+        .distinct()
+    )
+
+    max_t_subquery = (
+        select(TrackPoint.track_id, func.max(TrackPoint.t).label("max_t"))
+        .group_by(TrackPoint.track_id)
+        .subquery()
+    )
+
+    TrackPointAlias = aliased(TrackPoint)
+
+    query = (
+        select(TrackPointAlias)
+        .join(
+            max_t_subquery,
+            (TrackPointAlias.track_id == max_t_subquery.c.track_id)
+            & (TrackPointAlias.t == max_t_subquery.c.max_t),
+        )
+        .where(TrackPointAlias.track_id.in_(parent_ids_subquery))
+    )
+    divisions = db.execute(query).scalars().all()
+
+    if len(divisions) < n_samples:
+        return divisions
+    else:
+        return sample(divisions, n_samples)
+
+
+sampling_functions = {
+    TaskType.APPEARANCE: _get_appearances,
+    TaskType.DISAPPEARANCE: _get_disappearances,
+    TaskType.DIVISION: _get_divisions,
+}
+
+# TODO: mock routes should be the same as the real routes
+mock_router = APIRouter(prefix="/mock_data")
+
+
+# TODO: use a more sophisticated cache
+CACHE = {}
+
+
+@mock_router.get("/task")
+def all_tasks(
+    rng_seed: int = 42,
+    num_tasks: int = 10,
+    db: Session = Depends(get_session),
+) -> list[Task]:
+    key = (rng_seed, num_tasks)
+    if key in CACHE:
+        return CACHE[key]
+    seed(rng_seed)
+    tasks = []
+    task_types = Counter(choices(list(TaskType), k=num_tasks))
+    for task_type, count in task_types.items():
+        task_roots = sampling_functions[task_type](db, count)
+        task_data = [
+            TaskData(
+                node_id=root_node.id,
+                tracks_data=track_points_around_node(
+                    db,
+                    root_node.id,
+                    time_window=10,
+                    include_children=task_type == TaskType.DIVISION,
+                ),
+            )
+            for root_node in task_roots
+        ]
+        tasks.extend(
+            [
+                Task(
+                    task_id=UUID(int=getrandbits(128), version=4),
+                    task_type=task_type,
+                    task_data=data,
+                )
+                for data in task_data
+            ]
+        )
+    CACHE[key] = tasks
+    return tasks
+
+
+@mock_router.get("/task/{task_id}")
+def task(
+    task_id: UUID,
+    rng_seed: int = 42,
+    num_tasks: int = 10,
+    db: Session = Depends(get_session),
+) -> Task | None:
+    tasks = all_tasks(rng_seed, num_tasks, db)
+    return next((t for t in tasks if t.task_id == task_id), None)
+
+
+def write_mock_data_json():
+    import argparse
+    from pydantic.json import pydantic_encoder
+    import json
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--num_tasks", type=int, default=10)
+    args = parser.parse_args()
+
+    set_up_db()
+    with session_context() as db:
+        seed_mock_data(db)
+        print("Generating mock data")
+        tasks = all_tasks(db=db, rng_seed=args.seed, num_tasks=args.num_tasks)
+    print("Writing mock data to mock_data.json")
+    with open("mock_data.json", "w") as f:
+        pretty_json = json.dumps(tasks, indent=4, default=pydantic_encoder)
+        f.write(pretty_json)
