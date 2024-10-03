@@ -58,7 +58,7 @@ def seed_mock_data(db: Session):
             )
         )
     db.commit()
-    print(f"Inserted {len(df)} rows")
+    print(f"Inserted {db.query(TrackPoint).count()} rows")
 
 
 def _get_appearances(db: Session, n_samples: int):

@@ -33,14 +33,20 @@ Documentation for the API can be found at `http://localhost:8000/docs`.
 
 ### Mock Data
 
-Mock data is downloaded from a hard-coded URL in the development server. Data are then stored in a
-SQLite database on startup. You can set `ULTRACK_DB_URL` to set the path to the database file. The
-default is `ultrack_tmp.db`
+Data are downloaded from a hard-coded URL and stored in a SQLite database on startup. You can set
+`ULTRACK_DB_URL` to set the path to the database file. The default is `ultrack_tmp.db`.
 
-To generate static mock data (`mock_data.json`), run the following command.
+To generate static mock data (`mock_data.json`), run the `write-mock-data-json` command with `uv`.
 
 ```bash
-$ uv run write-mock-data-json
+$ uv run write-mock-data-json --help
+usage: write-mock-data-json [-h] [--seed SEED] [--num_tasks NUM_TASKS]
+
+options:
+  -h, --help            show this help message and exit
+  --seed SEED
+  --num_tasks NUM_TASKS
+
 ```
 
 Otherwise, mock data is avaialable via the development server at `http://localhost:8000/mock-data`.
@@ -52,3 +58,5 @@ Mock data endpoints are:
   still generates the full list of tasks. Task generation is cached based on `rng_seed` and
   `num_tasks` for each run.
 
+Mock data will eventually be controlled by an environment variable and served on the production
+endpoints.
