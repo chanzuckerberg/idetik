@@ -61,7 +61,7 @@ export class VideoLayer extends Layer {
     }
   }
 
-  public async setTimeIndex(index: number) {
+  public setTimeIndex(index: number) {
     if (this.state_ !== "ready") {
       throw new Error(`Trying to set time index before ready: ${this.state_}`);
     }
