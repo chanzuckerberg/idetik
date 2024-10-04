@@ -96,14 +96,16 @@ export class VideoLayer extends Layer {
     // Wait to load the whole region over all time points.
     this.dataChunks_ = [];
     const loadPromises = [];
-    const {start, stop} = this.timeInterval_;
+    const { start, stop } = this.timeInterval_;
     console.debug(`Loading chunks from times ${start} to ${stop}`);
     for (let t = start; t < stop; ++t) {
       const region = structuredClone(this.region_);
       region[this.timeDimensionIndex_].index = t;
-      loadPromises.push(loader.loadChunk(region).then(
-        (chunk) => this.dataChunks_[t - start] = chunk
-      ));
+      loadPromises.push(
+        loader
+          .loadChunk(region)
+          .then((chunk) => (this.dataChunks_[t - start] = chunk))
+      );
     }
     console.debug(`Waiting for ${loadPromises.length} promises`);
     await Promise.all(loadPromises);
