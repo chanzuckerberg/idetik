@@ -63,7 +63,8 @@ export class VideoLayer extends Layer {
 
   public setTimeIndex(index: number) {
     if (this.state_ !== "ready") {
-      throw new Error(`Trying to set time index before ready: ${this.state_}`);
+      console.warn(`Trying to set time index before ready: ${this.state_}`);
+      return;
     }
     const { start, stop } = this.timeInterval_;
     const chunkIndex = Math.round(index - start);
@@ -94,15 +95,22 @@ export class VideoLayer extends Layer {
     const loader = await this.source_.open();
     // Wait to load the whole region over all time points.
     this.dataChunks_ = [];
-    const region = structuredClone(this.region_);
-    for (let t = this.timeInterval_.start; t < this.timeInterval_.stop; ++t) {
+    const loadPromises = [];
+    const {start, stop} = this.timeInterval_;
+    console.debug(`Loading chunks from times ${start} to ${stop}`);
+    for (let t = start; t < stop; ++t) {
+      const region = structuredClone(this.region_);
       region[this.timeDimensionIndex_].index = t;
-      const chunk = await loader.loadChunk(region);
-      this.dataChunks_.push(chunk);
+      loadPromises.push(loader.loadChunk(region).then(
+        (chunk) => this.dataChunks_[t - start] = chunk
+      ));
     }
+    console.debug(`Waiting for ${loadPromises.length} promises`);
+    await Promise.all(loadPromises);
+
     this.state_ = "ready";
     // TODO: some way to notify that state changed to ready so that
     // slider can be kept in sync with time index.
-    this.setTimeIndex(this.timeInterval_.start);
+    this.setTimeIndex(start);
   }
 }
