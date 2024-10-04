@@ -97,7 +97,9 @@ export class VideoLayer extends Layer {
     this.dataChunks_ = [];
     const loadPromises = [];
     const { start, stop } = this.timeInterval_;
-    console.debug(`Loading chunks from times ${start} to ${stop}`);
+    // TODO: this assumes that time-steps are unitary when they might
+    // have a scale associated with them. We should load the whole
+    // region in and map back the chunks appropriately.
     for (let t = start; t < stop; ++t) {
       const region = structuredClone(this.region_);
       region[this.timeDimensionIndex_].index = t;
@@ -107,7 +109,6 @@ export class VideoLayer extends Layer {
           .then((chunk) => (this.dataChunks_[t - start] = chunk))
       );
     }
-    console.debug(`Waiting for ${loadPromises.length} promises`);
     await Promise.all(loadPromises);
 
     this.state_ = "ready";
