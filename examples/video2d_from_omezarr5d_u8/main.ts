@@ -15,7 +15,7 @@ const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
 // Source is technically 5D (even though Z is unitary),
 // so provide indices at 3 dimensions to project to 2D.
 const source = new OmeZarrImageSource(url);
-const timeInterval = { start: 100, stop: 150 };
+const timeInterval = { start: 100, stop: 120 };
 const region = [
   { dimension: "T", index: timeInterval },
   { dimension: "C", index: 0 },
