@@ -22,7 +22,7 @@ const region = [
 ];
 const contrastLimits = {
   low: 0,
-  high: 255,
+  high: 200,
 };
 const layer = new ImageLayer(source, region, contrastLimits);
 layerManager.add(layer);
