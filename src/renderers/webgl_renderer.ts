@@ -32,7 +32,8 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected renderObject(object: RenderableObject) {
-    const program = this.getShaderProgram(this.getProgramName(object)).use();
+    const programName = this.getProgramName(object);
+    const program = this.getShaderProgram(programName).use();
 
     const modelView = mat4.multiply(
       mat4.create(),
@@ -56,8 +57,10 @@ export class WebGLRenderer extends Renderer {
       }
       case "Mesh": {
         // TODO: is this a case for a dedicated image object?
-        const mesh = object as Mesh;
-        program.setUniform("ContrastLimits", mesh.contrastLimits);
+        if (programName === "uintImage") {
+          const mesh = object as Mesh;
+          program.setUniform("ContrastLimits", mesh.contrastLimits);
+        }
         break;
       }
     }
