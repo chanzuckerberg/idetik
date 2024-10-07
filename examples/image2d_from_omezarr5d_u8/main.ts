@@ -20,7 +20,11 @@ const region = [
   { dimension: "C", index: 0 },
   { dimension: "Z", index: 0 },
 ];
-const layer = new ImageLayer(source, region);
+const contrastLimits = {
+  low: 0,
+  high: 255,
+};
+const layer = new ImageLayer(source, region, contrastLimits);
 layerManager.add(layer);
 
 function animate() {

@@ -3,7 +3,13 @@ import { Geometry } from "core/geometry";
 import { Texture } from "objects/textures/texture";
 
 export class Mesh extends RenderableObject {
-  constructor(geometry: Geometry | null, texture: Texture | null = null) {
+  private contrastLimits_: [number, number];
+
+  constructor(
+    geometry: Geometry | null,
+    texture: Texture | null = null,
+    contrastLimits: [number, number] = [0, 255]
+  ) {
     super();
 
     if (geometry) {
@@ -13,6 +19,12 @@ export class Mesh extends RenderableObject {
     if (texture) {
       this.addTexture(texture);
     }
+
+    this.contrastLimits_ = contrastLimits;
+  }
+
+  public get contrastLimits() {
+    return this.contrastLimits_;
   }
 
   public get type() {

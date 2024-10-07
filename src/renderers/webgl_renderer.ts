@@ -6,6 +6,7 @@ import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 import { ProjectedLine } from "objects/renderable/projected_line";
+import { Mesh } from "objects/renderable/mesh";
 
 import { mat4 } from "gl-matrix";
 
@@ -51,6 +52,12 @@ export class WebGLRenderer extends Renderer {
         const line = object as ProjectedLine;
         program.setUniform("LineColor", line.color);
         program.setUniform("LineWidth", line.width);
+        break;
+      }
+      case "Mesh": {
+        // TODO: is this a case for a dedicated image object?
+        const mesh = object as Mesh;
+        program.setUniform("ContrastLimits", mesh.contrastLimits);
         break;
       }
     }

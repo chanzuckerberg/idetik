@@ -13,6 +13,17 @@ interface ImageChunkLoader {
   loadChunks(input: Region): Promise<ImageChunk[]>;
 }
 
+type ContrastLimits = {
+  low: number;
+  high: number;
+};
+
+// TODO: should default values be type dependent?
+const defaultContrastLimits = {
+  low: 0,
+  high: 255,
+};
+
 // Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
   private source_: ImageLayerSource;
@@ -22,12 +33,18 @@ export class ImageLayer extends Layer {
   // TODO: plane geometry should be defined by data source extents and region.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
   private plane_ = new PlaneGeometry(3, 3, 1, 1);
+  private readonly contrastLimits_: ContrastLimits;
 
-  constructor(source: ImageLayerSource, region: Region) {
+  constructor(
+    source: ImageLayerSource,
+    region: Region,
+    contrastLimits: ContrastLimits = defaultContrastLimits
+  ) {
     super();
     this.state_ = "initialized";
     this.source_ = source;
     this.region_ = region;
+    this.contrastLimits_ = contrastLimits;
   }
 
   public update(): void {
@@ -65,7 +82,11 @@ export class ImageLayer extends Layer {
       chunk.rowStride,
       chunk.rowAlignmentBytes
     );
-    this.addObject(new Mesh(this.plane_, texture));
+    const contrastLimits: [number, number] = [
+      this.contrastLimits_.low,
+      this.contrastLimits_.high,
+    ];
+    this.addObject(new Mesh(this.plane_, texture, contrastLimits));
     this.state_ = "ready";
   }
 }

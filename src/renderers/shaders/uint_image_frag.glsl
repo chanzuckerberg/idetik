@@ -5,13 +5,13 @@ precision mediump float;
 layout (location = 0) out vec4 fragColor;
 
 uniform mediump usampler2D texture0;
+uniform vec2 ContrastLimits;
 
 in vec2 TexCoords;
 
 void main() {
-    // TODO: normalization of the value should be controlled by variable
-    // parameters (e.g. contrast limits).
-    // https://github.com/chanzuckerberg/imaging-active-learning/issues/32
-    float value = float(texture(texture0, TexCoords).r) / 256.0;
+    float pixel = float(texture(texture0, TexCoords).r);
+    float range = ContrastLimits.y - ContrastLimits.x;
+    float value = (pixel - ContrastLimits.x) / range;
     fragColor = vec4(value, value, value, 1);
 }
