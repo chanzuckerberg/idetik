@@ -8,7 +8,7 @@ export class SingleMeshLayer extends Layer {
 
   constructor() {
     super();
-    this.state_ = "loading";
+    this.setState("loading");
     const plane = new PlaneGeometry(600, 600, 1, 1);
     const mesh = new Mesh(plane, this.texture_);
 
@@ -16,8 +16,8 @@ export class SingleMeshLayer extends Layer {
   }
 
   public update(): void {
-    if (this.texture_.loaded) {
-      this.state_ = "ready";
+    if (this.texture_.loaded && this.state !== "ready") {
+      this.setState("ready");
     }
   }
 }
