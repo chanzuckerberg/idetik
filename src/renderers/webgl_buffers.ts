@@ -56,8 +56,8 @@ export class WebGLBuffers {
       if (attr.type === "position") idx = 0;
       if (attr.type === "normal") idx = 1;
       if (attr.type === "uv") idx = 2;
-      if (attr.type == "next_position") idx = 3;
-      if (attr.type == "previous_position") idx = 4;
+      if (attr.type == "previous_position") idx = 3;
+      if (attr.type == "next_position") idx = 4;
       if (attr.type == "direction") idx = 5;
 
       this.gl_.vertexAttribPointer(
