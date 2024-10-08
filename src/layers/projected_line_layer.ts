@@ -12,7 +12,7 @@ export class ProjectedLineLayer extends Layer {
   constructor(lines: LineParameters[] = []) {
     super();
     lines.forEach(this.addLine);
-    this.state_ = "ready";
+    this.setState("ready");
   }
 
   public addLine(line: LineParameters) {

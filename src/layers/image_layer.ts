@@ -25,7 +25,7 @@ export class ImageLayer extends Layer {
 
   constructor(source: ImageLayerSource, region: Region) {
     super();
-    this.state_ = "initialized";
+    this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
   }
@@ -46,10 +46,10 @@ export class ImageLayer extends Layer {
   }
 
   private async load(region: Region) {
-    if (this.state_ !== "initialized") {
+    if (this.state !== "initialized") {
       throw new Error(`Trying to load chunks more than once.`);
     }
-    this.state_ = "loading";
+    this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
     const texture = new DataTexture2D(
@@ -60,6 +60,6 @@ export class ImageLayer extends Layer {
       chunk.rowAlignmentBytes
     );
     this.addObject(new Mesh(this.plane_, texture));
-    this.state_ = "ready";
+    this.setState("ready");
   }
 }
