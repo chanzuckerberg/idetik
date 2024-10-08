@@ -29,9 +29,7 @@ if (slider === null) throw new Error("Time slider not found.");
 slider.min = timeInterval.start.toString();
 slider.max = (timeInterval.stop - 1).toString();
 slider.addEventListener("input", (event) => {
-  if (!(event.target instanceof HTMLInputElement)) return;
-  const value = event.target.valueAsNumber;
-  console.log("slider changed: ", value);
+  const value = (event.target as HTMLInputElement).valueAsNumber;
   layer.setTimeIndex(value);
 });
 
