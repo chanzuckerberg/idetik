@@ -37,3 +37,9 @@ You can run it for development purposes by passing the `prototype` mode to vite:
 ```shell
 npm run dev -- --mode prototype
 ```
+
+### Backend server
+
+The backend server for the prototype is in the `ultrack-prototype/backend` directory. This is a
+Python FastAPI server that serves the data and provides an API for the frontend to interact with.
+See the README in that directory for more information on installing and running the server.
