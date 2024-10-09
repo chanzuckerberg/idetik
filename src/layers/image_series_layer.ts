@@ -2,20 +2,12 @@ import { Layer } from "core/layer";
 import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Interval, Region } from "data/region";
-import { ImageChunk } from "data/image_chunk";
+import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
-
-type ImageLayerSource = {
-  open(): Promise<ImageChunkLoader>;
-};
-
-type ImageChunkLoader = {
-  loadChunk(input: Region): Promise<ImageChunk>;
-};
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
-  private readonly source_: ImageLayerSource;
+  private readonly source_: ImageChunkSource;
   // TODO: plane geometry should be defined by data source extents and region.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
   private readonly plane_ = new PlaneGeometry(3, 3, 1, 1);
@@ -24,7 +16,7 @@ export class ImageSeriesLayer extends Layer {
   private readonly timeDimensionIndex_: number;
   private dataChunks_: ImageChunk[] = [];
 
-  constructor(source: ImageLayerSource, region: Region, timeDimension: string) {
+  constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
     super();
     this.setState("initialized");
     this.source_ = source;
