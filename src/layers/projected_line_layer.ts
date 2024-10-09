@@ -11,7 +11,7 @@ interface LineParameters {
 export class ProjectedLineLayer extends Layer {
   constructor(lines: LineParameters[] = []) {
     super();
-    lines.forEach(this.addLine);
+    lines.forEach((line) => this.addLine(line));
     this.setState("ready");
   }
 
