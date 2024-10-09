@@ -1,3 +1,5 @@
+import { mat4 } from "gl-matrix";
+
 import { LayerManager } from "./layer_manager";
 import { Camera } from "objects/cameras/camera";
 import { RenderableObject } from "core/renderable_object";
@@ -11,7 +13,7 @@ export abstract class Renderer {
   private activeCamera_: Camera | null = null;
 
   protected abstract resize(width: number, height: number): void;
-  protected abstract renderObject(object: RenderableObject): void;
+  protected abstract renderObject(object: RenderableObject, modelMatrix: mat4): void;
   protected abstract clear(): void;
 
   constructor(selector: string) {
@@ -32,7 +34,14 @@ export abstract class Renderer {
     layerManager.layers.forEach((layer) => {
       layer.update();
       if (layer.state === "ready") {
-        layer.objects.forEach((obj) => this.renderObject(obj));
+        layer.objects.forEach((obj) => {
+          const modelMatrix = mat4.multiply(
+            mat4.create(),
+            obj.transform.matrix,
+            layer.transform.matrix
+          );
+          this.renderObject(obj, modelMatrix)
+        });
       }
     });
   }

@@ -30,13 +30,13 @@ export class WebGLRenderer extends Renderer {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
   }
 
-  protected renderObject(object: RenderableObject) {
+  protected renderObject(object: RenderableObject, modelMatrix: mat4) {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
 
     const modelView = mat4.multiply(
       mat4.create(),
-      object.transform.matrix,
-      this.activeCamera.transform.matrix
+      modelMatrix,
+      this.activeCamera.transform.inverse
     );
 
     program.setUniform("Projection", this.activeCamera.projectionMatrix);
