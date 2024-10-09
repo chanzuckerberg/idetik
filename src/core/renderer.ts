@@ -13,7 +13,10 @@ export abstract class Renderer {
   private activeCamera_: Camera | null = null;
 
   protected abstract resize(width: number, height: number): void;
-  protected abstract renderObject(object: RenderableObject, modelMatrix: mat4): void;
+  protected abstract renderObject(
+    object: RenderableObject,
+    modelMatrix: mat4
+  ): void;
   protected abstract clear(): void;
 
   constructor(selector: string) {
@@ -40,7 +43,7 @@ export abstract class Renderer {
             obj.transform.matrix,
             layer.transform.matrix
           );
-          this.renderObject(obj, modelMatrix)
+          this.renderObject(obj, modelMatrix);
         });
       }
     });
