@@ -45,6 +45,7 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
         sdsSize="large"
         sdsType="primary"
         sdsStyle="icon"
+        disabled={!enabled}
         onClick={() => setPlaying(!playing)}
       />
 
