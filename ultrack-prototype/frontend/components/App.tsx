@@ -18,8 +18,8 @@ export default function App() {
       <Renderer
         playbackEnabled={playbackEnabled}
         setPlaybackEnabled={setPlaybackEnabled}
-        curTime={curTime}>
-      </Renderer>
+        curTime={curTime}
+      ></Renderer>
       <PlaybackControls
         enabled={playbackEnabled}
         curTime={curTime}
