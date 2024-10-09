@@ -67,7 +67,7 @@ export class VideoLayer extends Layer {
       return;
     }
     const { start, stop } = this.timeInterval_;
-    const chunkIndex = Math.round(index - start);
+    const chunkIndex = index - start;
     if (chunkIndex < 0) {
       throw new Error(`Time index ${index} is before the start time: ${start}`);
     } else if (chunkIndex >= this.dataChunks_.length) {
