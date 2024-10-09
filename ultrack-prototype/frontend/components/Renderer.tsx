@@ -20,11 +20,11 @@ const layer = new VideoLayer(
 const layerManager = new LayerManager();
 layerManager.add(layer);
 
-interface RendererProps {
+type RendererProps = {
   playbackEnabled: boolean;
   setPlaybackEnabled: Dispatch<SetStateAction<boolean>>;
   curTime: number;
-}
+};
 
 export default function Renderer(props: RendererProps) {
   const { playbackEnabled, setPlaybackEnabled, curTime } = props;

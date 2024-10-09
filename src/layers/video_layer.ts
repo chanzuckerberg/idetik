@@ -5,13 +5,13 @@ import { Interval, Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 
-interface ImageLayerSource {
+type ImageLayerSource = {
   open(): Promise<ImageChunkLoader>;
-}
+};
 
-interface ImageChunkLoader {
+type ImageChunkLoader = {
   loadChunk(input: Region): Promise<ImageChunk>;
-}
+};
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class VideoLayer extends Layer {

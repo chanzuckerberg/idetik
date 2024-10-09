@@ -10,11 +10,11 @@ const minTime = videoLayerTimeInterval.start;
 const maxTime = videoLayerTimeInterval.stop - 1;
 const numTimes = maxTime - minTime + 1;
 
-interface PlaybackControlsProps {
+type PlaybackControlsProps = {
   enabled: boolean;
   curTime: number;
   setCurTime: Dispatch<SetStateAction<number>>;
-}
+};
 
 export default function PlaybackControls(props: PlaybackControlsProps) {
   const { enabled, curTime, setCurTime } = props;

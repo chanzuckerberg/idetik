@@ -4,36 +4,36 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 
-interface IdentityTransform {
+type IdentityTransform = {
   type: "identity";
-}
+};
 
-interface TranslationTransform {
+type TranslationTransform = {
   type: "translation";
   translation: Array<number>;
-}
+};
 
-interface ScaleTransform {
+type ScaleTransform = {
   type: "scale";
   scale: Array<number>;
-}
+};
 
 type Transform = IdentityTransform | TranslationTransform | ScaleTransform;
 
-interface Dataset {
+type Dataset = {
   path: string;
   coordinateTransformations: Array<Transform>;
-}
+};
 
-interface Axis {
+type Axis = {
   name: string;
   type?: string;
-}
+};
 
-interface Multiscale {
+type Multiscale = {
   axes: Array<Axis>;
   datasets: Array<Dataset>;
-}
+};
 
 const dataTypes = [Uint8Array, Uint16Array] as const;
 const dataTypeNames = dataTypes.map((DataType) => DataType.name);
