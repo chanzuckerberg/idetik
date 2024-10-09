@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect } from "react";
 import {
-  ImageLayer,
+  ImageSeriesLayer,
   LayerManager,
   OmeZarrImageSource,
   PerspectiveCamera,
@@ -8,30 +8,42 @@ import {
 } from "@";
 import { Box } from "@mui/material";
 
+import { imageSeriesProps } from "../image_series_props";
+
 const canvasId = "canvas";
 
-// Source is 5D, so provide indices at 3 dimensions to project to 2D.
-const url =
-  "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
-const source = new OmeZarrImageSource(url);
-const region = [
-  // TODO: when the region is state associated with the renderer or
-  // layer manager, and we have a reference to that, then sync it
-  // with React state that captures the time-point.
-  { dimension: "t", index: 400 },
-  { dimension: "c", index: 0 },
-  { dimension: "z", index: 300 },
-];
-const layer = new ImageLayer(source, region);
+const layer = new ImageSeriesLayer(
+  new OmeZarrImageSource(imageSeriesProps.url),
+  imageSeriesProps.region,
+  imageSeriesProps.timeDimension
+);
 const layerManager = new LayerManager();
 layerManager.add(layer);
 
-export default function Renderer() {
+type RendererProps = {
+  playbackEnabled: boolean;
+  setPlaybackEnabled: Dispatch<SetStateAction<boolean>>;
+  curTime: number;
+};
+
+export default function Renderer(props: RendererProps) {
+  const { playbackEnabled, setPlaybackEnabled, curTime } = props;
+
+  useEffect(() => {
+    console.debug("Renderer::useEffect::curTime: ", curTime);
+    if (playbackEnabled) {
+      layer.setTimeIndex(curTime);
+    }
+  }, [curTime, playbackEnabled]);
+
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
   useEffect(() => {
+    console.debug("Renderer::mount");
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
+    // TODO: use an orthographic camera.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/78
     const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
     function animate() {
       renderer.render(layerManager, camera);
@@ -46,6 +58,12 @@ export default function Renderer() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    // TODO: need to remove observer as part of dismount function.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/77
+    layer.onStateChange((newState) => setPlaybackEnabled(newState === "ready"));
+  }, [setPlaybackEnabled]);
 
   return (
     <Box

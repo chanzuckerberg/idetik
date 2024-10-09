@@ -1,6 +1,6 @@
 import { RenderableObject } from "./renderable_object";
 
-type LayerState = "initialized" | "loading" | "ready";
+export type LayerState = "initialized" | "loading" | "ready";
 
 type StateChangeCallback = (
   newState: LayerState,
@@ -35,5 +35,9 @@ export abstract class Layer {
 
   protected addObject(object: RenderableObject) {
     this.objects_.push(object);
+  }
+
+  protected clearObjects() {
+    this.objects_ = [];
   }
 }
