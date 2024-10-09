@@ -2,11 +2,11 @@ import { Box } from "@mui/material";
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
 import { useState } from "react";
-import { videoLayerTimeInterval } from "../video_layer_props";
+import { imageSeriesTimeInterval } from "../image_series_props";
 
 export default function App() {
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
-  const [curTime, setCurTime] = useState(videoLayerTimeInterval.start);
+  const [curTime, setCurTime] = useState(imageSeriesTimeInterval.start);
   return (
     <Box
       sx={{

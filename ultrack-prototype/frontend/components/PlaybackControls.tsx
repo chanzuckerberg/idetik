@@ -2,12 +2,12 @@ import { Box } from "@mui/material";
 import { Button, InputSlider } from "@czi-sds/components";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 
-import { videoLayerTimeInterval } from "../video_layer_props";
+import { imageSeriesTimeInterval } from "../image_series_props";
 
 const playbackFPS = 16;
 const playbackIntervalMs = 1000 / playbackFPS;
-const minTime = videoLayerTimeInterval.start;
-const maxTime = videoLayerTimeInterval.stop - 1;
+const minTime = imageSeriesTimeInterval.start;
+const maxTime = imageSeriesTimeInterval.stop - 1;
 const numTimes = maxTime - minTime + 1;
 
 type PlaybackControlsProps = {

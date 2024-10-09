@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction, useEffect } from "react";
 import {
-  VideoLayer,
+  ImageSeriesLayer,
   LayerManager,
   OmeZarrImageSource,
   PerspectiveCamera,
@@ -8,14 +8,14 @@ import {
 } from "@";
 import { Box } from "@mui/material";
 
-import { videoLayerProps } from "../video_layer_props";
+import { imageSeriesProps } from "../image_series_props";
 
 const canvasId = "canvas";
 
-const layer = new VideoLayer(
-  new OmeZarrImageSource(videoLayerProps.url),
-  videoLayerProps.region,
-  videoLayerProps.timeDimension
+const layer = new ImageSeriesLayer(
+  new OmeZarrImageSource(imageSeriesProps.url),
+  imageSeriesProps.region,
+  imageSeriesProps.timeDimension
 );
 const layerManager = new LayerManager();
 layerManager.add(layer);
@@ -60,6 +60,7 @@ export default function Renderer(props: RendererProps) {
 
   useEffect(() => {
     // TODO: need to remove observer as part of dismount function.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/77
     layer.onStateChange((newState) => setPlaybackEnabled(newState === "ready"));
   }, [setPlaybackEnabled]);
 

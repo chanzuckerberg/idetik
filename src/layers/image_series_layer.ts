@@ -14,7 +14,7 @@ type ImageChunkLoader = {
 };
 
 // Loads 2D+t image data from an image source into renderable objects.
-export class VideoLayer extends Layer {
+export class ImageSeriesLayer extends Layer {
   private readonly source_: ImageLayerSource;
   // TODO: plane geometry should be defined by data source extents and region.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
@@ -98,8 +98,9 @@ export class VideoLayer extends Layer {
     const loadPromises = [];
     const { start, stop } = this.timeInterval_;
     // TODO: this assumes that time-steps are unitary when they might
-    // have a scale associated with them. We should load the whole
-    // region in and map back the chunks appropriately.
+    // have a scale associated with them. We could instead load the
+    // whole region in and map back the chunks appropriately.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/75
     for (let t = start; t < stop; ++t) {
       const region = structuredClone(this.region_);
       region[this.timeDimensionIndex_].index = t;

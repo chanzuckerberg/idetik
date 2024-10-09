@@ -1,8 +1,8 @@
 import {
   LayerManager,
   LayerState,
+  ImageSeriesLayer,
   PerspectiveCamera,
-  VideoLayer,
   WebGLRenderer,
   OmeZarrImageSource,
 } from "@";
@@ -14,7 +14,7 @@ const renderer = new WebGLRenderer("#canvas");
 const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
 
 // Source is 5D, so provide an interval in T and scalar indices in C (first of
-// three channels) and Z (first of only depth) to get a 2D video.
+// three channels) and Z (first of only depth) to get a 2D image series.
 const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 100, stop: 120 };
 const region = [
@@ -22,7 +22,7 @@ const region = [
   { dimension: "C", index: 0 },
   { dimension: "Z", index: 0 },
 ];
-const layer = new VideoLayer(source, region, "T");
+const layer = new ImageSeriesLayer(source, region, "T");
 layerManager.add(layer);
 
 const slider = document.querySelector<HTMLInputElement>("#slider");
