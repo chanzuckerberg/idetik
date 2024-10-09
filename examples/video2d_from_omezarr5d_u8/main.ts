@@ -1,5 +1,6 @@
 import {
   LayerManager,
+  LayerState,
   PerspectiveCamera,
   VideoLayer,
   WebGLRenderer,
@@ -28,9 +29,16 @@ const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
 slider.min = timeInterval.start.toString();
 slider.max = (timeInterval.stop - 1).toString();
-slider.addEventListener("input", (event) => {
-  const value = (event.target as HTMLInputElement).valueAsNumber;
-  layer.setTimeIndex(value);
+
+layer.onStateChange((newState: LayerState) => {
+  if (newState === "ready") {
+    // TODO: do we need to protect this from being added more than once?
+    slider.addEventListener("input", (event) => {
+      const value = (event.target as HTMLInputElement).valueAsNumber;
+      layer.setTimeIndex(value);
+    });
+    layer.setTimeIndex(slider.valueAsNumber);
+  }
 });
 
 function animate() {

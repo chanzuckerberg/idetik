@@ -2,9 +2,11 @@ import { Box } from "@mui/material";
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
 import { useState } from "react";
+import { videoLayerTimeInterval } from "../video_layer_props";
 
 export default function App() {
-  const [curTime, setCurTime] = useState(0);
+  const [playbackEnabled, setPlaybackEnabled] = useState(false);
+  const [curTime, setCurTime] = useState(videoLayerTimeInterval.start);
   return (
     <Box
       sx={{
@@ -13,8 +15,13 @@ export default function App() {
         gap: "1em",
       }}
     >
-      <Renderer curTime={curTime}></Renderer>
+      <Renderer
+        playbackEnabled={playbackEnabled}
+        setPlaybackEnabled={setPlaybackEnabled}
+        curTime={curTime}>
+      </Renderer>
       <PlaybackControls
+        enabled={playbackEnabled}
         curTime={curTime}
         setCurTime={setCurTime}
       ></PlaybackControls>

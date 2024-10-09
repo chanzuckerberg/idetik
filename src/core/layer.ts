@@ -1,6 +1,6 @@
 import { RenderableObject } from "./renderable_object";
 
-type LayerState = "initialized" | "loading" | "ready";
+export type LayerState = "initialized" | "loading" | "ready";
 
 type StateChangeCallback = (
   newState: LayerState,

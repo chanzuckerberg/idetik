@@ -11,12 +11,13 @@ const maxTime = videoLayerTimeInterval.stop - 1;
 const numTimes = maxTime - minTime + 1;
 
 interface PlaybackControlsProps {
+  enabled: boolean;
   curTime: number;
   setCurTime: Dispatch<SetStateAction<number>>;
 }
 
 export default function PlaybackControls(props: PlaybackControlsProps) {
-  const { curTime, setCurTime } = props;
+  const { enabled, curTime, setCurTime } = props;
   const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
       <InputSlider
         min={minTime}
         max={maxTime}
+        disabled={!enabled}
         valueLabelDisplay="on"
         onChange={(_, value) => setCurTime(value as number)}
         value={curTime}

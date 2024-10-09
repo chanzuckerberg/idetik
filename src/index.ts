@@ -3,6 +3,7 @@ export { PerspectiveCamera } from "objects/cameras/perspective_camera";
 export { OrthographicCamera } from "objects/cameras/orthographic_camera";
 
 export { Layer } from "core/layer";
+export type { LayerState } from "core/layer";
 
 export { LayerManager } from "core/layer_manager";
 

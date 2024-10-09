@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect } from "react";
 import {
   VideoLayer,
   LayerManager,
@@ -21,16 +21,20 @@ const layerManager = new LayerManager();
 layerManager.add(layer);
 
 interface RendererProps {
+  playbackEnabled: boolean;
+  setPlaybackEnabled: Dispatch<SetStateAction<boolean>>;
   curTime: number;
 }
 
 export default function Renderer(props: RendererProps) {
-  const { curTime } = props;
+  const { playbackEnabled, setPlaybackEnabled, curTime } = props;
 
   useEffect(() => {
     console.debug("Renderer::useEffect::curTime: ", curTime);
-    layer.setTimeIndex(curTime);
-  }, [curTime]);
+    if (playbackEnabled) {
+      layer.setTimeIndex(curTime);
+    }
+  }, [curTime, playbackEnabled]);
 
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
@@ -53,6 +57,11 @@ export default function Renderer(props: RendererProps) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    // TODO: need to remove observer as part of dismount function.
+    layer.onStateChange((newState) => setPlaybackEnabled(newState === "ready"));
+  }, [setPlaybackEnabled]);
 
   return (
     <Box

@@ -26,7 +26,7 @@ export class VideoLayer extends Layer {
 
   constructor(source: ImageLayerSource, region: Region, timeDimension: string) {
     super();
-    this.state_ = "initialized";
+    this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
     this.timeDimensionIndex_ = region.findIndex(
@@ -62,8 +62,8 @@ export class VideoLayer extends Layer {
   }
 
   public setTimeIndex(index: number) {
-    if (this.state_ !== "ready") {
-      console.warn(`Trying to set time index before ready: ${this.state_}`);
+    if (this.state !== "ready") {
+      console.warn(`Trying to set time index before ready: ${this.state}`);
       return;
     }
     const { start, stop } = this.timeInterval_;
@@ -88,10 +88,10 @@ export class VideoLayer extends Layer {
   }
 
   private async load() {
-    if (this.state_ !== "initialized") {
+    if (this.state !== "initialized") {
       throw new Error(`Trying to open chunk loader more than once.`);
     }
-    this.state_ = "loading";
+    this.setState("loading");
     const loader = await this.source_.open();
     // Wait to load the whole region over all time points.
     this.dataChunks_ = [];
@@ -111,9 +111,6 @@ export class VideoLayer extends Layer {
     }
     await Promise.all(loadPromises);
 
-    this.state_ = "ready";
-    // TODO: some way to notify that state changed to ready so that
-    // slider can be kept in sync with time index.
-    this.setTimeIndex(start);
+    this.setState("ready");
   }
 }
