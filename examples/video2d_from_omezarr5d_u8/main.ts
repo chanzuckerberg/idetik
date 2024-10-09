@@ -13,8 +13,8 @@ const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
 const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
 
-// Source is technically 5D (even though Z is unitary),
-// so provide indices at 3 dimensions to project to 2D.
+// Source is 5D, so provide an interval in T and scalar indices in C (first of
+// three channels) and Z (first of only depth) to get a 2D video.
 const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 100, stop: 120 };
 const region = [
@@ -32,7 +32,6 @@ slider.max = (timeInterval.stop - 1).toString();
 
 layer.onStateChange((newState: LayerState) => {
   if (newState === "ready") {
-    // TODO: do we need to protect this from being added more than once?
     slider.addEventListener("input", (event) => {
       const value = (event.target as HTMLInputElement).valueAsNumber;
       layer.setTimeIndex(value);
