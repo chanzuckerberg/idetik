@@ -37,7 +37,6 @@ export class AffineTransform {
       this.inverse_ = null;
       this.dirty_ = false;
     }
-    this.inverse_ = mat4.invert(mat4.create(), this.matrix_);
     return this.matrix_;
   }
 

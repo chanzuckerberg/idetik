@@ -15,7 +15,7 @@ export abstract class Renderer {
   protected abstract resize(width: number, height: number): void;
   protected abstract renderObject(
     object: RenderableObject,
-    modelMatrix: mat4
+    modelView: mat4
   ): void;
   protected abstract clear(): void;
 
@@ -38,12 +38,18 @@ export abstract class Renderer {
       layer.update();
       if (layer.state === "ready") {
         layer.objects.forEach((obj) => {
-          const modelMatrix = mat4.multiply(
+          const modelView = mat4.multiply(
             mat4.create(),
             obj.transform.matrix,
             layer.transform.matrix
           );
-          this.renderObject(obj, modelMatrix);
+          mat4.multiply(
+            modelView,
+            modelView,
+            this.activeCamera.transform.inverse
+          );
+
+          this.renderObject(obj, modelView);
         });
       }
     });
