@@ -3,7 +3,7 @@ import {
   ImageSeriesLayer,
   LayerManager,
   OmeZarrImageSource,
-  PerspectiveCamera,
+  OrthographicCamera,
   WebGLRenderer,
 } from "@";
 import { Box } from "@mui/material";
@@ -42,9 +42,13 @@ export default function Renderer(props: RendererProps) {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
-    // TODO: use an orthographic camera.
-    // https://github.com/chanzuckerberg/imaging-active-learning/issues/78
-    const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
+    const camera = new OrthographicCamera(
+      -renderer.width / 2,
+      renderer.width / 2,
+      -renderer.height / 2,
+      renderer.height / 2
+    );
+
     function animate() {
       renderer.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);

@@ -10,7 +10,7 @@ export class ImageSeriesLayer extends Layer {
   private readonly source_: ImageChunkSource;
   // TODO: plane geometry should be defined by data source extents and region.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
-  private readonly plane_ = new PlaneGeometry(3, 3, 1, 1);
+  private readonly plane_ = new PlaneGeometry(600, 600, 1, 1);
   private readonly region_: Region;
   private readonly timeInterval_: Interval;
   private readonly timeDimensionIndex_: number;
