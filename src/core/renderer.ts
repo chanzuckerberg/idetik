@@ -38,6 +38,8 @@ export abstract class Renderer {
       layer.update();
       if (layer.state === "ready") {
         layer.objects.forEach((obj) => {
+          // TODO: cache the modelView matrix
+          // https://github.com/chanzuckerberg/imaging-active-learning/issues/80
           const modelView = mat4.multiply(
             mat4.create(),
             obj.transform.matrix,
