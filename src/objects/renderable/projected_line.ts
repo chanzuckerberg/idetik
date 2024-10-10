@@ -1,8 +1,8 @@
 import { RenderableObject } from "core/renderable_object";
-import { ProjectedLineGoemetry } from "objects/geometry/projected_line_geometry";
+import { ProjectedLineGeometry } from "objects/geometry/projected_line_geometry";
 
 interface LineParameters {
-  geometry: ProjectedLineGoemetry;
+  geometry: ProjectedLineGeometry;
   color: [number, number, number];
   width: number;
 }
