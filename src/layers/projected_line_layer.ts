@@ -2,11 +2,11 @@ import { Layer } from "core/layer";
 import { ProjectedLine } from "objects/renderable/projected_line";
 import { ProjectedLineGeometry } from "objects/geometry/projected_line_geometry";
 
-interface LineParameters {
+type LineParameters = {
   path: [number, number, number][];
   color: [number, number, number];
   width: number;
-}
+};
 
 export class ProjectedLineLayer extends Layer {
   constructor(lines: LineParameters[] = []) {

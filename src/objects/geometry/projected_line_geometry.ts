@@ -45,12 +45,12 @@ export class ProjectedLineGeometry extends Geometry {
         vertices[c++] = current[1];
         vertices[c++] = current[2];
 
-        const previous = path[i - 1] || path[i];
+        const previous = path[i - 1] ?? path[i];
         vertices[c++] = previous[0];
         vertices[c++] = previous[1];
         vertices[c++] = previous[2];
 
-        const next = path[i + 1] || path[i];
+        const next = path[i + 1] ?? path[i];
         vertices[c++] = next[0];
         vertices[c++] = next[1];
         vertices[c++] = next[2];

@@ -4,36 +4,36 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 
-interface IdentityTransform {
+type IdentityTransform = {
   type: "identity";
-}
+};
 
-interface TranslationTransform {
+type TranslationTransform = {
   type: "translation";
   translation: Array<number>;
-}
+};
 
-interface ScaleTransform {
+type ScaleTransform = {
   type: "scale";
   scale: Array<number>;
-}
+};
 
 type Transform = IdentityTransform | TranslationTransform | ScaleTransform;
 
-interface Dataset {
+type Dataset = {
   path: string;
   coordinateTransformations: Array<Transform>;
-}
+};
 
-interface Axis {
+type Axis = {
   name: string;
   type?: string;
-}
+};
 
-interface Multiscale {
+type Multiscale = {
   axes: Array<Axis>;
   datasets: Array<Dataset>;
-}
+};
 
 const dataTypes = [Uint8Array, Uint16Array] as const;
 const dataTypeNames = dataTypes.map((DataType) => DataType.name);
@@ -66,7 +66,7 @@ export class OmeZarrImageLoader {
     this.datasets_ = image.datasets;
   }
 
-  async loadChunks(region: Region): Promise<ImageChunk[]> {
+  async loadChunk(region: Region): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
@@ -107,7 +107,7 @@ export class OmeZarrImageLoader {
       rowAlignmentBytes: subarray.data.BYTES_PER_ELEMENT,
     };
     console.debug("loaded chunk ", chunk);
-    return [chunk];
+    return chunk;
   }
 }
 

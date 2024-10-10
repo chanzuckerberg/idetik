@@ -5,7 +5,7 @@ interface LineParameters {
   geometry: ProjectedLineGeometry;
   color: [number, number, number];
   width: number;
-}
+};
 
 export class ProjectedLine extends RenderableObject {
   private color_: [number, number, number];

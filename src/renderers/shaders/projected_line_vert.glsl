@@ -22,13 +22,12 @@ void main() {
     vec2 prevScreen = (prevPos.xy / prevPos.w) * aspectVec;
     vec2 currScreen = (currPos.xy / currPos.w) * aspectVec;
     vec2 nextScreen = (nextPos.xy / nextPos.w) * aspectVec;
-    float currZ = currPos.z / currPos.w;
 
     vec2 diff;
-    if (prevScreen == currScreen) {
+    if (prevPos == currPos) {
         // first point on the path
         diff = nextScreen - currScreen;
-    } else if (nextScreen == currScreen) {
+    } else if (nextPos == currPos) {
         // last point on the path
         diff = currScreen - prevScreen;
     } else {
@@ -43,9 +42,9 @@ void main() {
     vec2 normal = normalize(vec2(-diff.y, diff.x));
 
     vec4 offset = vec4(
-        normal * direction * LineWidth / 2.0 / aspectVec.xy,
-        currZ,
-        1.0
+        normal * direction * LineWidth / 2.0 / aspectVec,
+        0.0,
+        0.0
     );
     gl_Position = currPos + offset;
 
