@@ -43,6 +43,7 @@ export class AffineTransform {
   public get inverse() {
     if (this.dirtyMatrix_ || this.dirtyInverse_) {
       mat4.invert(this.inverse_, this.matrix);
+      this.dirtyInverse_ = false;
     }
     return this.inverse_;
   }
