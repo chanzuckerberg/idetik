@@ -1,5 +1,6 @@
 import { quat } from "gl-matrix";
 import {
+  Layer,
   LayerManager,
   PerspectiveCamera,
   ProjectedLineLayer,
@@ -47,11 +48,6 @@ const stationaryLayer = new ProjectedLineLayer([
     width: 0.1,
   },
 ]);
-stationaryLayer.transform.translate([0.0, 0.0, 5]);
-stationaryLayer.transform.rotate(
-  quat.fromEuler(quat.create(), 45.0, -45.0, 0.0)
-);
-stationaryLayer.transform.translate([0.0, 0.0, -5]);
 layersManager.add(stationaryLayer);
 layersManager.add(movingLayer);
 
@@ -60,12 +56,14 @@ const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
 
 animate();
 
-const rotate = () => {
-  movingLayer.transform.translate([0.0, 0.0, 5]);
-  movingLayer.transform.rotate(quat.fromEuler(quat.create(), 0.1, 0.2, 0.5));
-  movingLayer.transform.translate([0.0, 0.0, -5]);
+const rotateAboutCenter = (layer: Layer, x: number, y: number, z: number) => {
+  layer.transform.translate([0.0, 0.0, 5]);
+  layer.transform.rotate(quat.fromEuler(quat.create(), x, y, z));
+  layer.transform.translate([0.0, 0.0, -5]);
 };
-setInterval(rotate, 5);
+
+rotateAboutCenter(stationaryLayer, 45.0, -45.0, 0.0);
+setInterval(rotateAboutCenter, 5, movingLayer, 0.1, 0.2, 0.5);
 
 function animate() {
   renderer.render(layersManager, camera);
