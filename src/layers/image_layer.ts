@@ -13,7 +13,7 @@ export class ImageLayer extends Layer {
   private readonly region_: Region;
   // TODO: plane geometry should be defined by data source extents and region.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
-  private readonly plane_ = new PlaneGeometry(600, 600, 1, 1);
+  private readonly plane_ = new PlaneGeometry(1920, 1440, 1, 1);
 
   constructor(source: ImageChunkSource, region: Region) {
     super();
