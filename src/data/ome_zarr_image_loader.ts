@@ -3,6 +3,7 @@ import { Slice } from "@zarrita/indexing";
 
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
+import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 
 type IdentityTransform = {
   type: "identity";
@@ -100,11 +101,18 @@ export class OmeZarrImageLoader {
       );
     }
 
+    const rowAlignment = subarray.data.BYTES_PER_ELEMENT;
+    if (!isTextureUnpackRowAlignment(rowAlignment)) {
+      throw new Error(
+        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
+      );
+    }
+
     const chunk = {
       data: subarray.data,
       shape: { width: subarray.shape[1], height: subarray.shape[0] },
       rowStride: subarray.stride[0],
-      rowAlignmentBytes: subarray.data.BYTES_PER_ELEMENT,
+      rowAlignmentBytes: rowAlignment,
     };
     console.debug("loaded chunk ", chunk);
     return chunk;
