@@ -28,12 +28,7 @@ export class AffineTransform {
 
   public get matrix() {
     if (this.dirtyMatrix_) {
-      mat4.fromRotationTranslationScale(
-        this.matrix_,
-        this.rotation_,
-        this.translation_,
-        this.scale_
-      );
+      this.computeMatrix();
       this.dirtyMatrix_ = false;
       this.dirtyInverse_ = true;
     }
@@ -42,9 +37,22 @@ export class AffineTransform {
 
   public get inverse() {
     if (this.dirtyMatrix_ || this.dirtyInverse_) {
-      mat4.invert(this.inverse_, this.matrix);
+      this.computeInverse();
       this.dirtyInverse_ = false;
     }
     return this.inverse_;
+  }
+
+  private computeMatrix() {
+    mat4.fromRotationTranslationScale(
+      this.matrix_,
+      this.rotation_,
+      this.translation_,
+      this.scale_
+    );
+  }
+
+  private computeInverse() {
+    mat4.invert(this.inverse_, this.matrix);
   }
 }
