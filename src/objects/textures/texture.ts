@@ -10,9 +10,15 @@ export type TextureDataType = "unsigned_byte" | "unsigned_short";
 
 export type TextureUnpackRowAlignment = 1 | 2 | 4 | 8;
 
+export function isTextureUnpackRowAlignment(
+  value: number
+): value is TextureUnpackRowAlignment {
+  return value === 1 || value === 2 || value === 4 || value === 8;
+}
+
 export abstract class Texture extends Node {
   public dataFormat: TextureDataFormat = "rgba";
-  public datatType: TextureDataType = "unsigned_byte";
+  public dataType: TextureDataType = "unsigned_byte";
   public maxFilter: TextureFilter = "nearest";
   public minFilter: TextureFilter = "nearest";
   public mipmapLevels = 1;
@@ -24,7 +30,7 @@ export abstract class Texture extends Node {
 
   public abstract get width(): number;
   public abstract get height(): number;
-  public abstract get data(): ArrayBufferView | HTMLImageElement | null;
+  public abstract get data(): TexImageSource | ArrayBufferView | null;
 
   public get type() {
     return "Texture";

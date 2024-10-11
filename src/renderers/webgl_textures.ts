@@ -48,7 +48,7 @@ export class WebGLTextures {
   }
 
   private configureTexture(texture: Texture) {
-    this.configureTextureParamaters(texture);
+    this.configureTextureParameters(texture);
     this.allocateTextureStorage(texture);
 
     if (texture.data !== null) {
@@ -56,7 +56,7 @@ export class WebGLTextures {
     }
   }
 
-  private configureTextureParamaters(texture: Texture) {
+  private configureTextureParameters(texture: Texture) {
     const gl = this.gl_;
 
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
@@ -97,7 +97,7 @@ export class WebGLTextures {
     this.gl_.texStorage2D(
       this.getGLTextureType(texture),
       texture.mipmapLevels,
-      this.getGLInternalFormat(texture.dataFormat, texture.datatType) as GLenum,
+      this.getGLInternalFormat(texture.dataFormat, texture.dataType),
       texture.width,
       texture.height
     );
@@ -116,8 +116,12 @@ export class WebGLTextures {
       texture.width,
       texture.height,
       this.getGLFormat(texture.dataFormat),
-      this.getGLType(texture.datatType),
-      texture.data as HTMLImageElement
+      this.getGLType(texture.dataType),
+      // This function has multiple overloads. We are temporarily casting it to
+      // ArrayBufferView to ensure the correct overload is called. Once we
+      // consolidate Texture2D and DataTexture2D, we can remove this cast.
+      // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D#syntax
+      texture.data as ArrayBufferView
     );
   }
 

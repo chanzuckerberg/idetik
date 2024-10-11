@@ -4,7 +4,6 @@ import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Interval, Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
-import { TextureUnpackRowAlignment } from "objects/textures/texture";
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -77,12 +76,11 @@ export class ImageSeriesLayer extends Layer {
 
     texture.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {
-      texture.datatType = "unsigned_short";
+      texture.dataType = "unsigned_short";
     }
 
     texture.unpackRowLength = chunk.rowStride;
-    texture.unpackAlignment =
-      chunk.rowAlignmentBytes as TextureUnpackRowAlignment;
+    texture.unpackAlignment = chunk.rowAlignmentBytes;
 
     this.clearObjects();
     this.addObject(new Mesh(this.plane_, texture));
