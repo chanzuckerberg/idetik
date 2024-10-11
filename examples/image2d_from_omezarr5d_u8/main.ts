@@ -14,8 +14,8 @@ const padding = 64;
 const camera = new OrthographicCamera(
   0 - padding,
   1920 + padding,
-  0 - padding,
-  1440 + padding
+  -1440 - padding,
+  0 + padding
 );
 
 // Source is technically 5D (even though Z is unitary),
