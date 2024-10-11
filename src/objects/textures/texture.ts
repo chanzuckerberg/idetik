@@ -1,6 +1,31 @@
 import { Node } from "core/node";
 
-export class Texture extends Node {
+export type TextureFilter = "nearest" | "linear";
+
+export type TextureWrapMode = "repeat" | "clamp_to_edge";
+
+export type TextureDataFormat = "rgb" | "rgba" | "red_integer";
+
+export type TextureDataType = "unsigned_byte" | "unsigned_short";
+
+export type TextureUnpackRowAlignment = 1 | 2 | 4 | 8;
+
+export abstract class Texture extends Node {
+  public dataFormat: TextureDataFormat = "rgba";
+  public datatType: TextureDataType = "unsigned_byte";
+  public maxFilter: TextureFilter = "nearest";
+  public minFilter: TextureFilter = "nearest";
+  public mipmapLevels = 1;
+  public unpackAlignment: TextureUnpackRowAlignment = 4;
+  public unpackRowLength = 0;
+  public wrapR: TextureWrapMode = "repeat";
+  public wrapS: TextureWrapMode = "repeat";
+  public wrapT: TextureWrapMode = "repeat";
+
+  public abstract get width(): number;
+  public abstract get height(): number;
+  public abstract get data(): ArrayBufferView | HTMLImageElement | null;
+
   public get type() {
     return "Texture";
   }

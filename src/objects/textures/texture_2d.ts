@@ -25,7 +25,15 @@ export class Texture2D extends Texture {
     throw new Error("Failed to load texture image");
   }
 
-  public get image() {
+  public get width() {
+    return this.image_.width;
+  }
+
+  public get height() {
+    return this.image_.height;
+  }
+
+  public get data() {
     return this.image_;
   }
 
