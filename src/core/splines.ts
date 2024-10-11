@@ -2,40 +2,41 @@ import { vec3 } from "gl-matrix";
 
 type BezierParams = {
   path: vec3[];
-  n: number;
+  pointsPerSegment: number;
   x?: number[];
-  fac?: number;
+  tangentFactor?: number;
 };
 
-export function cubicHermiteInterpolation(params: BezierParams): vec3[] {
-  const { path, n } = params;
-  let { x, fac } = params;
+export function cubicBezierInterpolation({
+  path,
+  pointsPerSegment,
+  x,
+  tangentFactor = 1.0 / 3.0,
+}: BezierParams): vec3[] {
   if (!x) {
     x = new Array(path.length).fill(0).map((_, i) => i);
   }
-  if (!fac) {
-    fac = 1.0 / 3.0;
-  }
   const tangents = pathTangents(path, x);
 
-  const out = Array((path.length - 1) * n);
+  const out = Array((path.length - 1) * pointsPerSegment);
 
   // a cubic bezier curve is defined by 4 control points: a, b, c, d
   // for interpolation of a segment:
   // * a and d are the endpoints of the curve segment
   // * b and c are control points that define curvature
-  // here we use 1/3 of the tangent at each endpoint as the control points
+  // default is 1/3 of the tangent at each endpoint as the control points
   // this is equivalent to a cubic Hermite spline
   for (let i = 0; i < path.length - 1; i++) {
     const a = path[i];
     const d = path[i + 1];
     const b = vec3.clone(tangents[i]);
-    vec3.scaleAndAdd(b, a, b, fac);
+    vec3.scaleAndAdd(b, a, b, tangentFactor);
     const c = vec3.clone(tangents[i + 1]);
-    vec3.scaleAndAdd(c, d, c, -fac);
-    for (let t = 0; t < n; t++) {
-      const o = (out[i * n + t] = vec3.create());
-      vec3.bezier(o, a, b, c, d, t / n);
+    vec3.scaleAndAdd(c, d, c, -tangentFactor);
+    for (let p = 0; p < pointsPerSegment; p++) {
+      const t = p / pointsPerSegment;
+      const o = (out[i * pointsPerSegment + p] = vec3.create());
+      vec3.bezier(o, a, b, c, d, t);
     }
   }
 

@@ -19,5 +19,3 @@ export { ImageSeriesLayer } from "layers/image_series_layer";
 export { OmeZarrImageSource } from "data/ome_zarr_image_source";
 
 export { WebGLRenderer } from "renderers/webgl_renderer";
-
-export { cubicHermiteInterpolation } from "core/splines";
