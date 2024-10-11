@@ -24,6 +24,8 @@ export abstract class Layer {
     return this.state_;
   }
 
+  // TODO: make the layer transform private when we settle on an API for units/coordinates
+  // https://github.com/chanzuckerberg/imaging-active-learning/issues/83
   public get transform() {
     return this.transform_;
   }
