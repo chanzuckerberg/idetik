@@ -71,10 +71,17 @@ export class ImageSeriesLayer extends Layer {
     const texture = new DataTexture2D(
       chunk.data,
       chunk.shape.width,
-      chunk.shape.height,
-      chunk.rowStride,
-      chunk.rowAlignmentBytes
+      chunk.shape.height
     );
+
+    texture.dataFormat = "red_integer";
+    if (chunk.data instanceof Uint16Array) {
+      texture.dataType = "unsigned_short";
+    }
+
+    texture.unpackRowLength = chunk.rowStride;
+    texture.unpackAlignment = chunk.rowAlignmentBytes;
+
     this.clearObjects();
     this.addObject(new Mesh(this.plane_, texture));
   }
