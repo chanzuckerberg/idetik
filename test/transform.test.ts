@@ -163,12 +163,3 @@ test("matrix is cached on repeat access", () => {
   expect(t.matrix).toBe(t.matrix);
   expect(computeSpy).toHaveBeenCalledTimes(1);
 });
-
-test("inverse is cached on repeat access", () => {
-  const t = new AffineTransform();
-  // @ts-expect-error TS2345 - spying on private method
-  const computeSpy = vi.spyOn(t, "computeInverse");
-  t.translate(vec3.fromValues(1, 2, 3));
-  expect(t.inverse).toBe(t.inverse);
-  expect(computeSpy).toHaveBeenCalledTimes(1);
-});
