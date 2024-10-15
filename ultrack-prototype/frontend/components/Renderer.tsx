@@ -42,12 +42,7 @@ export default function Renderer(props: RendererProps) {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
-    const camera = new OrthographicCamera(
-      -renderer.width / 2,
-      renderer.width / 2,
-      -renderer.height / 2,
-      renderer.height / 2
-    );
+    const camera = new OrthographicCamera(0, 1920, 0, 1440);
 
     function animate() {
       renderer.render(layerManager, camera);

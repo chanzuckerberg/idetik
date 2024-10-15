@@ -10,12 +10,10 @@ const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(
-  -renderer.width / 2,
-  renderer.width / 2,
-  -renderer.height / 2,
-  renderer.height / 2
-);
+// This matches the sub-region index in x/y, but is presented
+// incorrectly because of the plane geometry and scaling of
+// those dimensions.
+const camera = new OrthographicCamera(150, 950, 100, 900);
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
 // Also specify a subregion in x and y to exercise that part of the API.

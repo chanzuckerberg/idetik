@@ -11,12 +11,7 @@ const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(
-  -renderer.width / 2,
-  renderer.width / 2,
-  -renderer.height / 2,
-  renderer.height / 2
-);
+const camera = new OrthographicCamera(0, 1920, 0, 1440);
 
 // Source is 5D, so provide an interval in T and scalar indices in C (first of
 // three channels) and Z (first of only depth) to get a 2D image series.
