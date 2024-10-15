@@ -27,6 +27,7 @@ export abstract class Texture extends Node {
   public wrapR: TextureWrapMode = "repeat";
   public wrapS: TextureWrapMode = "repeat";
   public wrapT: TextureWrapMode = "repeat";
+  public needsUpdate = true;
 
   public abstract get width(): number;
   public abstract get height(): number;
