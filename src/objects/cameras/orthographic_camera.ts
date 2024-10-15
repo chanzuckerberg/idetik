@@ -53,7 +53,6 @@ export class OrthographicCamera extends Camera {
     // that the actual orthographic projection includes the frame.
     // Alternatively, we could letterbox the canvas itself, but that is rare in
     // most visualization applications.
-
     const width = this.right_ - this.left_;
     const height = this.top_ - this.bottom_;
     const frameAspectRatio = width / height;
