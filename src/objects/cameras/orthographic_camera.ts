@@ -44,29 +44,24 @@ export class OrthographicCamera extends Camera {
   }
 
   protected updateProjectionMatrix() {
-    // Assuming the camera frame covers the whole canvas and we want to maintain
-    // aspect ratios of images and geometries in general, then we need to set
-    // the frame and canvas aspect ratio together.
-    // This also means that the parameter values of the orthographic camera are
-    // effectively suggestive (i.e. they may change). The best we can do is guarantee
-    // that the actual orthographic projection includes the frame.
-    // Alternatively, we could letterbox the canvas itself, but that is rare in
-    // most visualization applications.
+    // The following code ensures that the orthographic projection matrix
+    // is updated so that the aspect ratio of renderable objects is respected
+    // (e.g. image pixels are isotropic).
     const width = this.right_ - this.left_;
     const height = this.top_ - this.bottom_;
     const frameAspectRatio = width / height;
 
+    // When the viewport is wider than the frame, scale the x-coordinates
+    // of this camera's frame to define the orthographic projection.
+    // Otherwise, scale the y-coordinates of the frame.
     let horizontalScale = 1;
     let verticalScale = 1;
-    // The viewport is wider than the frame, so scale the x-coordinates
-    // of the frame.
     if (this.viewportAspectRatio_ > frameAspectRatio) {
       horizontalScale = this.viewportAspectRatio_ / frameAspectRatio;
-      // The viewport is taller than the frame, so scale the y-coordinates
-      // of the frame.
     } else {
       verticalScale = frameAspectRatio / this.viewportAspectRatio_;
     }
+    // Ensure this camera's frame remains centered in the viewport.
     const horizontalCenter = 0.5 * (this.left_ + this.right_);
     const verticalCenter = 0.5 * (this.bottom_ + this.top_);
     const halfWidth = 0.5 * width;
