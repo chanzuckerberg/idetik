@@ -27,7 +27,7 @@ export class WebGLRenderer extends Renderer {
     this.shaders_ = new Map<Shader, WebGLShaderProgram>();
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
-    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+    this.resize(this.canvas.width, this.canvas.height);
   }
 
   protected renderObject(object: RenderableObject) {
@@ -73,6 +73,7 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected resize(width: number, height: number) {
+    console.debug("Renderer::resize", width, height);
     this.gl.viewport(0, 0, width, height);
   }
 

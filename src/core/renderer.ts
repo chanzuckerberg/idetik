@@ -2,7 +2,7 @@ import { LayerManager } from "./layer_manager";
 import { Camera } from "objects/cameras/camera";
 import { RenderableObject } from "core/renderable_object";
 import { PerspectiveCamera } from "objects/cameras/perspective_camera";
-import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
+import { OrthographicCamera } from "objects/cameras/orthographic_camera";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
