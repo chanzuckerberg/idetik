@@ -73,7 +73,6 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected resize(width: number, height: number) {
-    console.debug("Renderer::resize", width, height);
     this.gl.viewport(0, 0, width, height);
   }
 

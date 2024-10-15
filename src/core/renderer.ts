@@ -43,18 +43,12 @@ export abstract class Renderer {
   }
 
   private updateRendererSize() {
-    console.debug(
-      "Renderer::updateRendererSize",
-      this.canvas.width,
-      this.canvas.height,
-      this.canvas.clientWidth,
-      this.canvas.clientHeight,
-      window.devicePixelRatio
-    );
     this.width_ = this.canvas.clientWidth * window.devicePixelRatio;
     this.height_ = this.canvas.clientHeight * window.devicePixelRatio;
+
     if (this.canvas.width !== this.width_) this.canvas.width = this.width_;
     if (this.canvas.height !== this.height_) this.canvas.height = this.height_;
+
     this.updateActiveCamera();
   }
 

@@ -29,7 +29,6 @@ export class OrthographicCamera extends Camera {
   }
 
   public setViewportAspectRatio(aspectRatio: number) {
-    console.debug("OrthographicCamera::setViewportAspectRatio", aspectRatio);
     this.viewportAspectRatio_ = aspectRatio;
   }
 
@@ -80,10 +79,6 @@ export class OrthographicCamera extends Camera {
       -(verticalCenter + verticalScale * halfHeight),
       this.near_,
       this.far_
-    );
-    console.debug(
-      "OrthographicCamera::updateProjectionMatrix",
-      this.projectionMatrix_
     );
   }
 }
