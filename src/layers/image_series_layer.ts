@@ -111,7 +111,12 @@ export class ImageSeriesLayer extends Layer {
 
     if (this.dataChunks_.length > 0) {
       const chunk = this.dataChunks_[0];
-      this.plane_ = new PlaneGeometry(chunk.shape.width, chunk.shape.height, 1, 1);
+      this.plane_ = new PlaneGeometry(
+        chunk.shape.width,
+        chunk.shape.height,
+        1,
+        1
+      );
     }
 
     this.setState("ready");

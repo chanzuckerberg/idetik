@@ -13,7 +13,12 @@ export class SingleMeshLayer extends Layer {
 
   public update(): void {
     if (this.texture_.loaded && this.state !== "ready") {
-      const plane = new PlaneGeometry(this.texture_.width, this.texture_.height, 1, 1);
+      const plane = new PlaneGeometry(
+        this.texture_.width,
+        this.texture_.height,
+        1,
+        1
+      );
       const mesh = new Mesh(plane, this.texture_);
       this.addObject(mesh);
       this.setState("ready");

@@ -46,7 +46,12 @@ export class ImageLayer extends Layer {
       chunk.shape.width,
       chunk.shape.height
     );
-    const plane = new PlaneGeometry(chunk.shape.width, chunk.shape.height, 1, 1);
+    const plane = new PlaneGeometry(
+      chunk.shape.width,
+      chunk.shape.height,
+      1,
+      1
+    );
 
     texture.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {
