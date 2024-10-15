@@ -8,7 +8,7 @@ import {
 
 export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
-  private textures_: Map<string, WebGLTexture> = new Map();
+  private readonly textures_: Map<string, WebGLTexture> = new Map();
   private currentTexture_: WebGLTexture = 0;
 
   constructor(gl: WebGL2RenderingContext) {
@@ -16,7 +16,7 @@ export class WebGLTextures {
   }
 
   public bind(texture: Texture) {
-    if (this.alreadyActive(texture.uuid)) return;
+    if (this.alreadyActive(texture.uuid) && !texture.needsUpdate) return;
 
     let textureId = this.textures_.get(texture.uuid) || null;
     if (!textureId) {
@@ -27,6 +27,13 @@ export class WebGLTextures {
     if (!this.textures_.has(texture.uuid)) {
       this.configureTexture(texture);
       this.textures_.set(texture.uuid, textureId);
+    }
+
+    if (texture.needsUpdate && texture.data !== null) {
+      // Currently, we don't support mipmaps, so we always update the base level (0).
+      const mipmapLevel = 0;
+      this.uploadTextureSubData(texture, mipmapLevel, { x: 0, y: 0 });
+      texture.needsUpdate = false;
     }
 
     this.currentTexture_ = textureId;
@@ -50,10 +57,6 @@ export class WebGLTextures {
   private configureTexture(texture: Texture) {
     this.configureTextureParameters(texture);
     this.allocateTextureStorage(texture);
-
-    if (texture.data !== null) {
-      this.uploadTextureSubData(texture, 0, { x: 0, y: 0 });
-    }
   }
 
   private configureTextureParameters(texture: Texture) {

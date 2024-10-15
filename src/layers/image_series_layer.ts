@@ -14,6 +14,7 @@ export class ImageSeriesLayer extends Layer {
   private readonly region_: Region;
   private readonly timeInterval_: Interval;
   private readonly timeDimensionIndex_: number;
+  private texture_: DataTexture2D | null = null;
   private dataChunks_: ImageChunk[] = [];
 
   constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
@@ -66,24 +67,12 @@ export class ImageSeriesLayer extends Layer {
       throw new Error(`Time index ${index} is after the stop time: ${stop}.`);
     }
     const chunk = this.dataChunks_[chunkIndex];
-    // TODO: create one object and update the texture in-place.
-    // Or use a texture array and update the index for the shader.
-    const texture = new DataTexture2D(
-      chunk.data,
-      chunk.shape.width,
-      chunk.shape.height
-    );
-
-    texture.dataFormat = "red_integer";
-    if (chunk.data instanceof Uint16Array) {
-      texture.dataType = "unsigned_short";
+    if (this.texture_ === null) {
+      this.initializeTexture(chunk);
+      this.addObject(new Mesh(this.plane_, this.texture_));
+    } else {
+      this.texture_.data = chunk.data;
     }
-
-    texture.unpackRowLength = chunk.rowStride;
-    texture.unpackAlignment = chunk.rowAlignmentBytes;
-
-    this.clearObjects();
-    this.addObject(new Mesh(this.plane_, texture));
   }
 
   private async load() {
@@ -112,5 +101,20 @@ export class ImageSeriesLayer extends Layer {
     await Promise.all(loadPromises);
 
     this.setState("ready");
+  }
+
+  private initializeTexture(chunk: ImageChunk) {
+    this.texture_ = new DataTexture2D(
+      chunk.data,
+      chunk.shape.width,
+      chunk.shape.height
+    );
+
+    this.texture_.unpackRowLength = chunk.rowStride;
+    this.texture_.unpackAlignment = chunk.rowAlignmentBytes;
+    this.texture_.dataFormat = "red_integer";
+    if (chunk.data instanceof Uint16Array) {
+      this.texture_.dataType = "unsigned_short";
+    }
   }
 }
