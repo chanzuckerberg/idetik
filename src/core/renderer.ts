@@ -1,5 +1,3 @@
-import { mat4 } from "gl-matrix";
-
 import { LayerManager } from "./layer_manager";
 import { Camera } from "objects/cameras/camera";
 import { RenderableObject } from "core/renderable_object";
@@ -13,10 +11,7 @@ export abstract class Renderer {
   private activeCamera_: Camera | null = null;
 
   protected abstract resize(width: number, height: number): void;
-  protected abstract renderObject(
-    object: RenderableObject,
-    modelView: mat4
-  ): void;
+  protected abstract renderObject(object: RenderableObject): void;
   protected abstract clear(): void;
 
   constructor(selector: string) {
@@ -38,20 +33,7 @@ export abstract class Renderer {
       layer.update();
       if (layer.state === "ready") {
         layer.objects.forEach((obj) => {
-          // TODO: cache the modelView matrix
-          // https://github.com/chanzuckerberg/imaging-active-learning/issues/80
-          const modelView = mat4.multiply(
-            mat4.create(),
-            obj.transform.matrix,
-            layer.transform.matrix
-          );
-          mat4.multiply(
-            modelView,
-            modelView,
-            this.activeCamera.transform.inverse
-          );
-
-          this.renderObject(obj, modelView);
+          this.renderObject(obj);
         });
       }
     });

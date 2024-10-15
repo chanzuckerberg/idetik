@@ -1,4 +1,3 @@
-import { AffineTransform } from "core/transforms";
 import { RenderableObject } from "./renderable_object";
 
 export type LayerState = "initialized" | "loading" | "ready";
@@ -12,7 +11,6 @@ export abstract class Layer {
   private objects_: RenderableObject[] = [];
   private state_: LayerState = "initialized";
   private callbacks_: StateChangeCallback[] = [];
-  private transform_ = new AffineTransform();
 
   public abstract update(): void;
 
@@ -22,10 +20,6 @@ export abstract class Layer {
 
   public get state() {
     return this.state_;
-  }
-
-  public get transform() {
-    return this.transform_;
   }
 
   public onStateChange(callback: StateChangeCallback) {
