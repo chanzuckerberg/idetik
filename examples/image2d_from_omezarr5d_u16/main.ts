@@ -10,9 +10,6 @@ const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-// TODO: specify the camera coordinates in the same frame as the
-// region. Currently coordinates are with respect to the size of
-// a chunk fetched with the region below.
 const camera = new OrthographicCamera(0, 457, 0, 457);
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
