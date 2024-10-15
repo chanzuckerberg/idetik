@@ -46,14 +46,15 @@ export class OrthographicCamera extends Camera {
   protected updateProjectionMatrix() {
     // The following code ensures that the orthographic projection matrix
     // is updated so that the aspect ratio of renderable objects is respected
-    // (e.g. image pixels are isotropic).
+    // (e.g. image pixels are isotropic) by padding the camera frame to form
+    // the viewport frame.
     const width = this.right_ - this.left_;
     const height = this.top_ - this.bottom_;
     const frameAspectRatio = width / height;
 
-    // When the viewport is wider than the frame, scale the x-coordinates
-    // of this camera's frame to define the orthographic projection.
-    // Otherwise, scale the y-coordinates of the frame.
+    // When the viewport is wider than the camera frame, add horizontal
+    // padding such that the height is unchanged. Otherwise, add vertical
+    // padding such that the width is unchanged.
     let horizontalScale = 1;
     let verticalScale = 1;
     if (this.viewportAspectRatio_ > frameAspectRatio) {
@@ -61,7 +62,7 @@ export class OrthographicCamera extends Camera {
     } else {
       verticalScale = frameAspectRatio / this.viewportAspectRatio_;
     }
-    // Ensure this camera's frame remains centered in the viewport.
+    // Center the camera frame in the padded viewport frame.
     const horizontalCenter = 0.5 * (this.left_ + this.right_);
     const verticalCenter = 0.5 * (this.bottom_ + this.top_);
     const halfWidth = 0.5 * width;
