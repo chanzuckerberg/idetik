@@ -64,8 +64,8 @@ export class OrthographicCamera extends Camera {
     // of the frame.
     if (this.viewportAspectRatio_ > frameAspectRatio) {
       horizontalScale = this.viewportAspectRatio_ / frameAspectRatio;
-    // The viewport is taller than the frame, so scale the y-coordinates
-    // of the frame.
+      // The viewport is taller than the frame, so scale the y-coordinates
+      // of the frame.
     } else {
       verticalScale = frameAspectRatio / this.viewportAspectRatio_;
     }
@@ -75,13 +75,16 @@ export class OrthographicCamera extends Camera {
     const halfHeight = 0.5 * height;
     mat4.ortho(
       this.projectionMatrix_,
-      horizontalCenter - (horizontalScale * halfWidth),
-      horizontalCenter + (horizontalScale * halfWidth),
-      verticalCenter - (verticalScale * halfHeight),
-      verticalCenter + (verticalScale * halfHeight),
+      horizontalCenter - horizontalScale * halfWidth,
+      horizontalCenter + horizontalScale * halfWidth,
+      verticalCenter - verticalScale * halfHeight,
+      verticalCenter + verticalScale * halfHeight,
       this.near_,
       this.far_
     );
-    console.debug("OrthographicCamera::updateProjectionMatrix", this.projectionMatrix_);
+    console.debug(
+      "OrthographicCamera::updateProjectionMatrix",
+      this.projectionMatrix_
+    );
   }
 }
