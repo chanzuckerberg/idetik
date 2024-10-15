@@ -28,7 +28,10 @@ export abstract class Renderer {
 
   public render(layerManager: LayerManager, camera: Camera) {
     this.clear();
-    this.activeCamera_ = camera;
+    if (this.activeCamera_ !== camera) {
+      this.activeCamera_ = camera;
+      this.updateActiveCamera();
+    }
     layerManager.layers.forEach((layer) => {
       layer.update();
       if (layer.state === "ready") {
@@ -38,17 +41,18 @@ export abstract class Renderer {
       }
     });
   }
-
+  
   private updateRendererSize() {
     console.debug("Renderer::updateRendererSize", this.canvas.width, this.canvas.height, this.canvas.clientWidth, this.canvas.clientHeight, window.devicePixelRatio);
     this.width_ = this.canvas.clientWidth * window.devicePixelRatio;
     this.height_ = this.canvas.clientHeight * window.devicePixelRatio;
-
-    const aspectRatio = this.width_ / this.height_;
-
     if (this.canvas.width !== this.width_) this.canvas.width = this.width_;
     if (this.canvas.height !== this.height_) this.canvas.height = this.height_;
+    this.updateActiveCamera();
+  }
 
+  private updateActiveCamera() {
+    const aspectRatio = this.width_ / this.height_;
     if (this.activeCamera_) {
       if (this.activeCamera_ instanceof PerspectiveCamera) {
         this.activeCamera_.setAspectRatio(aspectRatio);
