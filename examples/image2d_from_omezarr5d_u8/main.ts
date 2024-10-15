@@ -10,12 +10,11 @@ const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const padding = 64;
 const camera = new OrthographicCamera(
-  0 - padding,
-  1920 + padding,
-  -1440 - padding,
-  0 + padding
+  0,
+  1920,
+  -1440,
+  0
 );
 
 // Source is technically 5D (even though Z is unitary),
