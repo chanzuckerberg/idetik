@@ -8,12 +8,10 @@ import { DataTexture2D } from "objects/textures/data_texture_2d";
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
   private readonly source_: ImageChunkSource;
-  // TODO: plane geometry should be defined by data source extents and region.
-  // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
-  private readonly plane_ = new PlaneGeometry(1920, 1440, 1, 1);
   private readonly region_: Region;
   private readonly timeInterval_: Interval;
   private readonly timeDimensionIndex_: number;
+  private plane_: PlaneGeometry | null = null;
   private dataChunks_: ImageChunk[] = [];
 
   constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
@@ -110,6 +108,11 @@ export class ImageSeriesLayer extends Layer {
       );
     }
     await Promise.all(loadPromises);
+
+    if (this.dataChunks_.length > 0) {
+      const chunk = this.dataChunks_[0];
+      this.plane_ = new PlaneGeometry(chunk.shape.width, chunk.shape.height, 1, 1);
+    }
 
     this.setState("ready");
   }
