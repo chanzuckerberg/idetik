@@ -54,7 +54,7 @@ export abstract class Renderer {
         this.activeCamera_.setAspectRatio(aspectRatio);
       }
       if (this.activeCamera_ instanceof OrthographicCamera) {
-        this.activeCamera_.setAspectRatio(aspectRatio);
+        this.activeCamera_.setViewportAspectRatio(aspectRatio);
       }
       this.activeCamera_.update();
     }

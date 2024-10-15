@@ -6,7 +6,7 @@ export class OrthographicCamera extends Camera {
   private right_: number;
   private bottom_: number;
   private top_: number;
-  private aspectRatio_: number = 1;
+  private viewportAspectRatio_: number = 1;
 
   constructor(
     left: number,
@@ -28,23 +28,8 @@ export class OrthographicCamera extends Camera {
     this.updateProjectionMatrix();
   }
 
-  public setAspectRatio(aspectRatio: number) {
-    console.debug("OrthographicCamera::setAspectRatio: ", aspectRatio, this.left_, this.right_, this.bottom_, this.top_);
-    // When aspect ratio of canvas is wide, maintain horizontal center.
-    if (aspectRatio > 1) {
-      const height = this.top_ - this.bottom_;
-      const halfWidth = 0.5 * (aspectRatio * height);
-      const horizontalCenter = 0.5 * (this.right_ + this.left_);
-      this.left_ = horizontalCenter - halfWidth;
-      this.right_ = horizontalCenter + halfWidth;
-    // When aspect ratio of canvas is tall, maintain vertical center.
-    } else if (aspectRatio < 1) {
-      const width = this.right_ - this.left_;
-      const halfHeight = 0.5 * (width / aspectRatio);
-      const verticalCenter = 0.5 * (this.top_ + this.bottom_);
-      this.bottom_ = verticalCenter - halfHeight;
-      this.top_ = verticalCenter + halfHeight;
-    }
+  public setViewportAspectRatio(aspectRatio: number) {
+    this.viewportAspectRatio_ = aspectRatio;
   }
 
   public setFrame(left: number, right: number, bottom: number, top: number) {
@@ -63,22 +48,36 @@ export class OrthographicCamera extends Camera {
     // aspect ratios of images and geometries in general, then we need to set
     // the frame and canvas aspect ratio together.
     // This also means that the parameter values of the orthographic camera are
-    // suggestive (i.e. they may change).
+    // effectively suggestive (i.e. they may change). The best we can do is guarantee
+    // that the actual orthographic projection includes the frame.
     // Alternatively, we could letterbox the canvas itself, but that is rare in
     // most visualization applications.
-    let xMult = 1;
-    let yMult = 1;
-    if (this.aspectRatio_ > 1) {
-      xMult = this.aspectRatio_;
+
+    const width = this.right_ - this.left_;
+    const height = this.top_ - this.bottom_;
+    const frameAspectRatio = width / height;
+
+    let horizontalScale = 1;
+    let verticalScale = 1;
+    // The viewport is wider than the frame, so scale the x-coordinates
+    // of the frame.
+    if (this.viewportAspectRatio_ > frameAspectRatio) {
+      horizontalScale = this.viewportAspectRatio_ / frameAspectRatio;
+    // The viewport is taller than the frame, so scale the y-coordinates
+    // of the frame.
     } else {
-      yMult = 1 / this.aspectRatio_;
+      verticalScale = frameAspectRatio / this.viewportAspectRatio_;
     }
+    const horizontalCenter = 0.5 * (this.left_ + this.right_);
+    const verticalCenter = 0.5 * (this.bottom_ + this.top_);
+    const halfWidth = 0.5 * width;
+    const halfHeight = 0.5 * height;
     mat4.ortho(
       this.projectionMatrix_,
-      this.left_ * xMult,
-      this.right_ * xMult,
-      this.bottom_ * yMult,
-      this.top_ * yMult,
+      horizontalCenter - (horizontalScale * halfWidth),
+      horizontalCenter + (horizontalScale * halfWidth),
+      verticalCenter - (verticalScale * halfHeight),
+      verticalCenter + (verticalScale * halfHeight),
       this.near_,
       this.far_
     );
