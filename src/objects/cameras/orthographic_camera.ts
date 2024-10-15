@@ -51,28 +51,25 @@ export class OrthographicCamera extends Camera {
     const width = this.right_ - this.left_;
     const height = this.top_ - this.bottom_;
     const frameAspectRatio = width / height;
-
     // When the viewport is wider than the camera frame, add horizontal
     // padding such that the height is unchanged. Otherwise, add vertical
     // padding such that the width is unchanged.
-    let horizontalScale = 1;
-    let verticalScale = 1;
+    let viewportHalfWidth = 0.5 * width;
+    let viewportHalfHeight = 0.5 * height;
     if (this.viewportAspectRatio_ > frameAspectRatio) {
-      horizontalScale = this.viewportAspectRatio_ / frameAspectRatio;
+      viewportHalfWidth *= this.viewportAspectRatio_ / frameAspectRatio;
     } else {
-      verticalScale = frameAspectRatio / this.viewportAspectRatio_;
+      viewportHalfHeight *= frameAspectRatio / this.viewportAspectRatio_;
     }
     // Center the camera frame in the padded viewport frame.
     const horizontalCenter = 0.5 * (this.left_ + this.right_);
     const verticalCenter = 0.5 * (this.bottom_ + this.top_);
-    const halfWidth = 0.5 * width;
-    const halfHeight = 0.5 * height;
     mat4.ortho(
       this.projectionMatrix_,
-      horizontalCenter - horizontalScale * halfWidth,
-      horizontalCenter + horizontalScale * halfWidth,
-      -(verticalCenter - verticalScale * halfHeight),
-      -(verticalCenter + verticalScale * halfHeight),
+      horizontalCenter - viewportHalfWidth,
+      horizontalCenter + viewportHalfWidth,
+      -(verticalCenter - viewportHalfHeight),
+      -(verticalCenter + viewportHalfHeight),
       this.near_,
       this.far_
     );
