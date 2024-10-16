@@ -41,17 +41,9 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
-    const texture = new DataTexture2D(
-      chunk.data,
-      chunk.shape.width,
-      chunk.shape.height
-    );
-    const plane = new PlaneGeometry(
-      chunk.shape.width,
-      chunk.shape.height,
-      1,
-      1
-    );
+    const shape = chunk.shape;
+    const texture = new DataTexture2D(chunk.data, shape.width, shape.height);
+    const plane = new PlaneGeometry(shape.width, shape.height, 1, 1);
 
     texture.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {
