@@ -98,6 +98,7 @@ export class ImageSeriesLayer extends Layer {
       );
     }
     await Promise.all(loadPromises);
+
     this.setState("ready");
   }
 

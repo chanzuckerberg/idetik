@@ -43,7 +43,6 @@ export default function Renderer(props: RendererProps) {
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
     const camera = new OrthographicCamera(0, 1920, 0, 1440);
-
     function animate() {
       renderer.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
