@@ -1,7 +1,7 @@
 import { Texture } from "objects/textures/texture";
 
 export class DataTexture2D extends Texture {
-  private readonly data_: ArrayBufferView;
+  private data_: ArrayBufferView;
   private readonly width_: number;
   private readonly height_: number;
 
@@ -10,6 +10,11 @@ export class DataTexture2D extends Texture {
     this.data_ = data;
     this.width_ = width;
     this.height_ = height;
+  }
+
+  public set data(data: ArrayBufferView) {
+    this.data_ = data;
+    this.needsUpdate = true;
   }
 
   public get type() {
