@@ -6,7 +6,6 @@ import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 import { ProjectedLine } from "objects/renderable/projected_line";
-import { Axes } from "objects/renderable/axes";
 
 import { mat4 } from "gl-matrix";
 
@@ -43,11 +42,6 @@ export class WebGLRenderer extends Renderer {
     program.setUniform("Projection", this.activeCamera.projectionMatrix);
 
     switch (object.type) {
-      case "Axes": {
-        const axes = object as Axes;
-        program.setUniform("LineColor", axes.color);
-        break;
-      }
       case "ProjectedLine": {
         program.setUniform("Resolution", [
           this.canvas.width,
@@ -69,7 +63,7 @@ export class WebGLRenderer extends Renderer {
     }
 
     // TODO: Move 'type' property to RenderableObject
-    const type = object.type === "Axes" ? this.gl.LINES : this.gl.TRIANGLES;
+    const type = this.gl.TRIANGLES;
     const index = object.geometry.indexData;
     if (index.length) {
       this.gl.drawElements(type, index.length, this.gl.UNSIGNED_INT, 0);
@@ -92,7 +86,6 @@ export class WebGLRenderer extends Renderer {
   // program name to the class derived from the renderable object but we need to
   // refactor textures first (consolidating the two programs below.)
   private getProgramName(object: RenderableObject) {
-    if (object.type === "Axes") return "line";
     if (object.type === "ProjectedLine") return "projectedLine";
     return object.textures.length && object.textures[0].type === "DataTexture2D"
       ? "uintImage"
