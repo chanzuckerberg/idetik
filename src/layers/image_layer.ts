@@ -11,9 +11,6 @@ export class ImageLayer extends Layer {
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
-  // TODO: plane geometry should be defined by data source extents and region.
-  // https://github.com/chanzuckerberg/imaging-active-learning/issues/35
-  private readonly plane_ = new PlaneGeometry(3, 3, 1, 1);
 
   constructor(source: ImageChunkSource, region: Region) {
     super();
@@ -44,11 +41,9 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
-    const texture = new DataTexture2D(
-      chunk.data,
-      chunk.shape.width,
-      chunk.shape.height
-    );
+    const shape = chunk.shape;
+    const texture = new DataTexture2D(chunk.data, shape.width, shape.height);
+    const plane = new PlaneGeometry(shape.width, shape.height, 1, 1);
 
     texture.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {
@@ -58,7 +53,7 @@ export class ImageLayer extends Layer {
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
 
-    this.addObject(new Mesh(this.plane_, texture));
+    this.addObject(new Mesh(plane, texture));
     this.setState("ready");
   }
 }

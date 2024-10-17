@@ -2,7 +2,7 @@ import { LayerManager } from "./layer_manager";
 import { Camera } from "objects/cameras/camera";
 import { RenderableObject } from "core/renderable_object";
 import { PerspectiveCamera } from "objects/cameras/perspective_camera";
-import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
+import { OrthographicCamera } from "objects/cameras/orthographic_camera";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
@@ -28,7 +28,10 @@ export abstract class Renderer {
 
   public render(layerManager: LayerManager, camera: Camera) {
     this.clear();
-    this.activeCamera_ = camera;
+    if (this.activeCamera_ !== camera) {
+      this.activeCamera_ = camera;
+      this.updateActiveCamera();
+    }
     layerManager.layers.forEach((layer) => {
       layer.update();
       if (layer.state === "ready") {
@@ -46,17 +49,17 @@ export abstract class Renderer {
     if (this.canvas.width !== this.width_) this.canvas.width = this.width_;
     if (this.canvas.height !== this.height_) this.canvas.height = this.height_;
 
+    this.updateActiveCamera();
+  }
+
+  private updateActiveCamera() {
+    const aspectRatio = this.width_ / this.height_;
     if (this.activeCamera_) {
       if (this.activeCamera_ instanceof PerspectiveCamera) {
-        this.activeCamera_.setAspectRatio(this.width_ / this.height_);
+        this.activeCamera_.setAspectRatio(aspectRatio);
       }
       if (this.activeCamera_ instanceof OrthographicCamera) {
-        this.activeCamera_.setFrame(
-          -this.width / 2,
-          this.width / 2,
-          -this.height / 2,
-          this.height / 2
-        );
+        this.activeCamera_.setViewportAspectRatio(aspectRatio);
       }
       this.activeCamera_.update();
     }

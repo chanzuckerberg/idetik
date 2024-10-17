@@ -10,13 +10,7 @@ const layersManager = new LayerManager();
 layersManager.add(singleMeshLayer);
 
 const renderer = new WebGLRenderer("#canvas");
-
-const camera = new OrthographicCamera(
-  -renderer.width / 2,
-  renderer.width / 2,
-  -renderer.height / 2,
-  renderer.height / 2
-);
+const camera = new OrthographicCamera(0, 870, 0, 870);
 
 function animate() {
   renderer.render(layersManager, camera);

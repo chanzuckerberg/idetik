@@ -1,16 +1,16 @@
 import {
   LayerManager,
-  PerspectiveCamera,
   ImageLayer,
   WebGLRenderer,
   OmeZarrImageSource,
+  OrthographicCamera,
 } from "@";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
+const camera = new OrthographicCamera(0, 457, 0, 457);
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
 // Also specify a subregion in x and y to exercise that part of the API.

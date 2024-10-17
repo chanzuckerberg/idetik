@@ -2,7 +2,7 @@ import {
   LayerManager,
   LayerState,
   ImageSeriesLayer,
-  PerspectiveCamera,
+  OrthographicCamera,
   WebGLRenderer,
   OmeZarrImageSource,
 } from "@";
@@ -11,9 +11,7 @@ const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-// TODO: use an orthographic camera.
-// https://github.com/chanzuckerberg/imaging-active-learning/issues/78
-const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
+const camera = new OrthographicCamera(0, 1920, 0, 1440);
 
 // Source is 5D, so provide an interval in T and scalar indices in C (first of
 // three channels) and Z (first of only depth) to get a 2D image series.
