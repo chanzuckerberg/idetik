@@ -11,7 +11,7 @@ const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(-1920, 1920, -1440, 1440);
+const camera = new OrthographicCamera(-2000, 2000, -2000, 2000);
 
 // Source is technically 5D (even though Z is unitary),
 // so provide indices at 3 dimensions to project to 2D.
@@ -22,9 +22,9 @@ const region = [
   { dimension: "Z", index: 0 },
 ];
 const layer = new ImageLayer(source, region);
-const axes = new AxesLayer({ length: 1920, width: 0.005 });
-layerManager.add(axes);
+const axes = new AxesLayer({ length: 1920, width: 0.01 });
 layerManager.add(layer);
+layerManager.add(axes);
 
 function animate() {
   renderer.render(layerManager, camera);
