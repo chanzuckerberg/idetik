@@ -22,9 +22,9 @@ const region = [
   { dimension: "Z", index: 0 },
 ];
 const layer = new ImageLayer(source, region);
-const axes = new AxesLayer({length: 1920, width: 100});
-layerManager.add(axes);
+const axes = new AxesLayer({ length: 1920, width: 32 });
 layerManager.add(layer);
+layerManager.add(axes);
 
 function animate() {
   renderer.render(layerManager, camera);
