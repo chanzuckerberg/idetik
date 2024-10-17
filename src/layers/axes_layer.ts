@@ -6,41 +6,43 @@ export class AxesLayer extends Layer {
   constructor(params: { length: number; width: number }) {
     super();
     const { length, width } = params;
-    const x = new ProjectedLineGeometry([
-      [0, 0, 0],
-      [length, 0, 0],
-    ]);
-    const y = new ProjectedLineGeometry([
-      [0, 0, 0],
-      [0, length, 0],
-    ]);
-    const z = new ProjectedLineGeometry([
-      [0, 0, 0],
-      [0, 0, length],
-    ]);
     this.addObject(
-      new ProjectedLine({
-        geometry: x,
+      makeAxis({
+        end: [length, 0, 0],
+        width: width,
         color: [1, 0, 0],
-        width: width,
       })
     );
     this.addObject(
-      new ProjectedLine({
-        geometry: y,
+      makeAxis({
+        end: [0, length, 0],
+        width: width,
         color: [0, 1, 0],
-        width: width,
       })
     );
     this.addObject(
-      new ProjectedLine({
-        geometry: z,
-        color: [0, 0, 1],
+      makeAxis({
+        end: [0, 0, length],
         width: width,
+        color: [0, 0, 1],
       })
     );
     this.setState("ready");
   }
 
   public update(): void {}
+}
+
+function makeAxis(params: {
+  end: [number, number, number];
+  width: number;
+  color: [number, number, number];
+}) {
+  const { end, width, color } = params;
+  const geometry = new ProjectedLineGeometry([[0, 0, 0], end]);
+  return new ProjectedLine({
+    geometry: geometry,
+    color: color,
+    width: width,
+  });
 }
