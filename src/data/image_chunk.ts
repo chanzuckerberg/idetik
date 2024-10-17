@@ -9,6 +9,7 @@ export type ImageChunk = {
   shape: {
     width: number;
     height: number;
+    channels: number;
   };
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
