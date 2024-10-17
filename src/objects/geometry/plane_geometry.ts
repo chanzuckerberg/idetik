@@ -25,9 +25,7 @@ export class PlaneGeometry extends Geometry {
         const u = ix / gridX;
         const v = 1 - iy / gridY;
 
-        // 'z = -5' is temporary until we add a transform to renderable objects
-        // which will allow us to control the camera position
-        const position = [x, y, -5];
+        const position = [x, y, 0];
         const normals = [0, 0, 1];
         const uvs = [u, v];
 
