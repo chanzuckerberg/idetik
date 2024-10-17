@@ -33,13 +33,26 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
 
+    const viewportTransform = mat4.fromValues(
+      1, 0, 0, 0,
+      0, -1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1,
+    );
+
     const modelView = mat4.multiply(
       mat4.create(),
       object.transform.matrix,
-      this.activeCamera.transform.inverse
+      this.activeCamera.transform.inverse,
     );
     program.setUniform("ModelView", modelView);
-    program.setUniform("Projection", this.activeCamera.projectionMatrix);
+    const projection = mat4.create();
+    mat4.multiply(
+      projection,
+      viewportTransform,
+      this.activeCamera.projectionMatrix,
+    );
+    program.setUniform("Projection", projection);
 
     switch (object.type) {
       case "ProjectedLine": {

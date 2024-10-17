@@ -23,7 +23,7 @@ export class PlaneGeometry extends Geometry {
       for (let ix = 0; ix < gridX1; ++ix) {
         const x = ix * segmentW;
         const u = ix / gridX;
-        const v = 1 - iy / gridY;
+        const v = iy / gridY;
 
         const position = [x, y, 0];
         const normals = [0, 0, 1];
