@@ -12,6 +12,7 @@ import {
 // payload roughly equivalent to task 0 from
 // https://public.czbiohub.org/royerlab/ultrack/multi-color/mock_data.json
 // TODO: we don't want to transform the coordinates manually like this
+// https://github.com/chanzuckerberg/imaging-active-learning/issues/88
 const trackAPath: vec3[] = [
   [1822.0, 1440 - 1350.0, 0.0],
   [1825.0, 1440 - 1350.0, 0.0],
