@@ -64,6 +64,13 @@ export class WebGLTextures {
 
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
     gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.unpackRowLength);
+    // Our assumption is that the first element of the texture data
+    // corresponds to the top-left pixel, which with a plane starting
+    // at (0, 0) and without any other transforms should be at (0, 0).
+    // Therefore, there is no need to change the unpack order.
+    // The content will appear flipped when using the default WebGL
+    // coordinate system, but that is consistent with our assumptions.
+    // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
     gl.texParameteri(
       this.getGLTextureType(texture),

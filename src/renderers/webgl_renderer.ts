@@ -7,7 +7,24 @@ import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 import { ProjectedLine } from "objects/renderable/projected_line";
 
-import { mat4 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
+
+// The library's coordinate system is left-handed.
+// With the default camera, the standard basis vectors should
+// look as follows.
+// (1, 0, 0) points to the right of the screen
+// (0, 1, 0) points to the bottom of the screen
+// (0, 0, 1) points out of the screen
+// WebGL's coordinate system is right-handed where the vectors
+// point in the same directions except that
+// (0, 1, 0) points to the top of the screen
+// Therefore, this transform makes the appropriate flip in y.
+// TODO: flips is a misleading name here since 1 means do not
+// flip and -1 means flip. Something like directions would be
+// better.
+const flips: vec3 = [1, -1, 1];
+const modelFlip = mat4.create();
+mat4.fromScaling(modelFlip, flips);
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
@@ -33,26 +50,19 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(this.getProgramName(object)).use();
 
-    const viewportTransform = mat4.fromValues(
-      1, 0, 0, 0,
-      0, -1, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1,
-    );
-
     const modelView = mat4.multiply(
       mat4.create(),
       object.transform.matrix,
-      this.activeCamera.transform.inverse,
+      this.activeCamera.transform.inverse
     );
     program.setUniform("ModelView", modelView);
     const projection = mat4.create();
-    mat4.multiply(
-      projection,
-      viewportTransform,
-      this.activeCamera.projectionMatrix,
-    );
+    mat4.multiply(projection, modelFlip, this.activeCamera.projectionMatrix);
     program.setUniform("Projection", projection);
+
+    if (object.textures.length > 0) {
+      program.setUniform("Flips", flips);
+    }
 
     switch (object.type) {
       case "ProjectedLine": {

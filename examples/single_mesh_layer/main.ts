@@ -15,7 +15,7 @@ const renderer = new WebGLRenderer("#canvas");
 const camera = new PerspectiveCamera(60);
 camera.transform.translate([500, 500, 900]);
 
-const axes = new AxesLayer({length: 870, width: 10});
+const axes = new AxesLayer({ length: 870, width: 10 });
 layersManager.add(singleMeshLayer);
 layersManager.add(axes);
 
