@@ -3,25 +3,29 @@ import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
 import { useState } from "react";
 import { imageSeriesTimeInterval } from "../image_series_props";
-import Tasks from "./Tasks";
-import { TaskProps } from "./Task";
+import Tasks, { TaskInfo } from "./Tasks";
+import Question from "./Question";
 
-const tasks: TaskProps[] = [];
-tasks.push({index: 0, complete: true});
-for (let i=1; i < 30; ++i) {
-  tasks.push({index: i, complete: false});
+const tasks: TaskInfo[] = [];
+for (let i = 0; i < 30; ++i) {
+  tasks.push({
+    index: i,
+    question: `Is this Cell Division ${i + 1}?`,
+    answers: ["Yes", "No", "Uncertain"],
+  });
 }
 
 export default function App() {
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
   const [curTime, setCurTime] = useState(imageSeriesTimeInterval.start);
+  const [taskIndex, setTaskIndex] = useState(0);
   return (
     <Box
       sx={{
-          height: "100vh",
-          display: "flex",
-          flexDirection: "row",
-        }}
+        height: "100vh",
+        display: "flex",
+        flexDirection: "row",
+      }}
     >
       <Box
         sx={{
@@ -31,7 +35,11 @@ export default function App() {
           borderRight: 1,
         }}
       >
-        <Tasks tasks={tasks}/>
+        <Tasks
+          tasks={tasks}
+          taskIndex={taskIndex}
+          setTaskIndex={setTaskIndex}
+        />
       </Box>
       <Box
         sx={{
@@ -40,7 +48,6 @@ export default function App() {
           display: "flex",
           flexDirection: "column",
           gap: "1em",
-          overflowY: "auto",
         }}
       >
         <Renderer
@@ -48,6 +55,10 @@ export default function App() {
           setPlaybackEnabled={setPlaybackEnabled}
           curTime={curTime}
         ></Renderer>
+        <Question
+          question={tasks[taskIndex].question}
+          answers={tasks[taskIndex].answers}
+        ></Question>
         <PlaybackControls
           enabled={playbackEnabled}
           curTime={curTime}
