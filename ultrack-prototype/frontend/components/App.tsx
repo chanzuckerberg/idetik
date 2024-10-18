@@ -1,11 +1,16 @@
-import { Box, Drawer } from "@mui/material";
+import { Box } from "@mui/material";
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
 import { useState } from "react";
 import { imageSeriesTimeInterval } from "../image_series_props";
 import Tasks from "./Tasks";
+import { TaskProps } from "./Task";
 
-const drawerWidth = 300;
+const tasks: TaskProps[] = [];
+tasks.push({index: 0, complete: true});
+for (let i=1; i < 30; ++i) {
+  tasks.push({index: i, complete: false});
+}
 
 export default function App() {
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
@@ -13,23 +18,21 @@ export default function App() {
   return (
     <Box
       sx={{
-          width: "100%",
-          height: "100%",
+          height: "100vh",
           display: "flex",
           flexDirection: "row",
         }}
     >
-      <Drawer
-        variant="permanent"
-        anchor="left"
+      <Box
         sx={{
-          "width": drawerWidth,
-          "flexShrink": 0,
-          "& .MuiDrawer-paper": { width: drawerWidth, boxSizing: "border-box" },
+          height: "100%",
+          display: "flex",
+          flex: 1,
+          borderRight: 1,
         }}
       >
-        <Tasks/>
-      </Drawer>
+        <Tasks tasks={tasks}/>
+      </Box>
       <Box
         sx={{
           width: "100%",
@@ -37,6 +40,7 @@ export default function App() {
           display: "flex",
           flexDirection: "column",
           gap: "1em",
+          overflowY: "auto",
         }}
       >
         <Renderer

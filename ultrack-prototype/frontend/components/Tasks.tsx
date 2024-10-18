@@ -1,20 +1,32 @@
-import { Box } from "@mui/material";
-import Task from "./Task";
+import { Box, Typography } from "@mui/material";
+import Task, { TaskProps } from "./Task";
 import { Button } from "@czi-sds/components";
 
-export default function Tasks() {
+type TasksProps = {
+    tasks: TaskProps[],
+};
+
+export default function Tasks(props: TasksProps) {
+    const { tasks } = props;
     return (
         <Box
             sx={{
                 display: "flex",
                 flexDirection: "column",
                 gap: "1em",
+                margin: "1em",
             }}>
-            <h1>Review Cell Divisions</h1>
-            <h2>1 of 3 annotations reviewed</h2>
-            <Task index={0} complete={true}/>
-            <Task index={1} complete={false}/>
-            <Task index={2} complete={false}/>
+            <Typography variant="h3">Review Cell Divisions</Typography>
+            <Typography variant="subtitle1">1 of 3 annotations reviewed</Typography>
+            <Box
+                sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    overflowY: "auto",
+                }}
+            >
+                {tasks.map((t) => <Task key={t.index} index={t.index} complete={t.complete}/> )}
+            </Box>
             <Box
                 sx={{
                     display: "flex",
@@ -22,8 +34,8 @@ export default function Tasks() {
                     gap: "1em",
                 }}
             >
-                <Button sdsStyle="square">Previous</Button>
-                <Button sdsStyle="square">Next</Button>
+                <Button sdsType="primary" sdsStyle="square">Previous</Button>
+                <Button sdsType="primary" sdsStyle="square">Next</Button>
             </Box>
         </Box>
     )
