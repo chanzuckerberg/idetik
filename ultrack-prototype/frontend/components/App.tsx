@@ -32,7 +32,6 @@ export default function App() {
         sx={{
           height: "100%",
           display: "flex",
-          flex: 1,
           borderRight: 1,
         }}
       >
