@@ -1,3 +1,5 @@
+import { vec3 } from "gl-matrix";
+
 import { Geometry } from "core/geometry";
 
 export class ProjectedLineGeometry extends Geometry {
@@ -8,7 +10,7 @@ export class ProjectedLineGeometry extends Geometry {
   // See:
   //  https://mattdesl.svbtle.com/drawing-lines-is-hard#screenspace-projected-lines_2
   //  https://github.com/spite/THREE.MeshLine
-  constructor(path: [number, number, number][]) {
+  constructor(path: vec3[]) {
     super();
     this.vertexData_ = this.createVertices(path);
     this.indexData_ = this.createIndex(path.length);
@@ -34,7 +36,7 @@ export class ProjectedLineGeometry extends Geometry {
     });
   }
 
-  private createVertices(path: [number, number, number][]): Float32Array {
+  private createVertices(path: vec3[]): Float32Array {
     const vertices = new Float32Array(2 * path.length * (3 + 3 + 3 + 1));
 
     let c = 0;
