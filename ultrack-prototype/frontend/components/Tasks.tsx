@@ -60,7 +60,7 @@ export default function Tasks(props: TasksProps) {
         }}
       >
         <Button
-          sdsType="primary"
+          sdsType="secondary"
           sdsStyle="square"
           disabled={taskIndex == 0}
           onClick={() => setTaskIndex(taskIndex - 1)}
@@ -68,7 +68,7 @@ export default function Tasks(props: TasksProps) {
           Previous
         </Button>
         <Button
-          sdsType="primary"
+          sdsType="secondary"
           sdsStyle="square"
           disabled={taskIndex == tasks.length - 1}
           onClick={() => setTaskIndex(taskIndex + 1)}

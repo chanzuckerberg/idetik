@@ -6,9 +6,9 @@ import { imageSeriesTimeInterval } from "../image_series_props";
 import Tasks, { TaskInfo } from "./Tasks";
 import Question from "./Question";
 
-const tasks: TaskInfo[] = [];
+const defaultTasks: TaskInfo[] = [];
 for (let i = 0; i < 30; ++i) {
-  tasks.push({
+  defaultTasks.push({
     index: i,
     question: `Is this Cell Division ${i + 1}?`,
     answers: ["Yes", "No", "Uncertain"],
@@ -19,6 +19,7 @@ export default function App() {
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
   const [curTime, setCurTime] = useState(imageSeriesTimeInterval.start);
   const [taskIndex, setTaskIndex] = useState(0);
+  const [tasks, setTasks] = useState(defaultTasks);
   return (
     <Box
       sx={{
@@ -56,8 +57,9 @@ export default function App() {
           curTime={curTime}
         ></Renderer>
         <Question
-          question={tasks[taskIndex].question}
-          answers={tasks[taskIndex].answers}
+          taskIndex={taskIndex}
+          tasks={tasks}
+          setTasks={setTasks}
         ></Question>
         <PlaybackControls
           enabled={playbackEnabled}
