@@ -25,8 +25,8 @@ export default function Question(props: QuestionProps) {
           gap: "1em",
         }}
       >
-        {answers.map((answer) => (
-          <Button sdsType="primary" sdsStyle="square">
+        {answers.map((answer, i) => (
+          <Button key={i} sdsType="primary" sdsStyle="square">
             {answer}
           </Button>
         ))}
