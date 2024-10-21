@@ -2,14 +2,14 @@ import { InputCheckbox } from "@czi-sds/components";
 import { Box } from "@mui/material";
 import { Dispatch, SetStateAction } from "react";
 
-export type TaskProps = {
+export type TaskItemProps = {
   index: number;
   complete: boolean;
   active: boolean;
   setTaskIndex: Dispatch<SetStateAction<number>>;
 };
 
-export default function Task(props: TaskProps) {
+export default function TaskItem(props: TaskItemProps) {
   const { index, complete, active, setTaskIndex } = props;
   return (
     <Box

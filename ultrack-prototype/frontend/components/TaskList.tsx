@@ -1,22 +1,16 @@
 import { Box, Typography } from "@mui/material";
-import Task from "./Task";
+import TaskItem from "./TaskItem";
 import { Button } from "@czi-sds/components";
 import { Dispatch, SetStateAction } from "react";
+import { Task } from "../task";
 
-export type TaskInfo = {
-  index: number;
-  question: string;
-  answers: string[];
-  answerIndex?: number;
-};
-
-type TasksProps = {
-  tasks: TaskInfo[];
+type TaskListProps = {
+  tasks: Task[];
   taskIndex: number;
   setTaskIndex: Dispatch<SetStateAction<number>>;
 };
 
-export default function Tasks(props: TasksProps) {
+export default function TaskList(props: TaskListProps) {
   const { tasks, taskIndex, setTaskIndex } = props;
   const numReviewed = tasks.reduce(
     (num, t) => num + (t.answerIndex === undefined ? 0 : 1),
@@ -42,7 +36,7 @@ export default function Tasks(props: TasksProps) {
         }}
       >
         {tasks.map((t) => (
-          <Task
+          <TaskItem
             key={t.index}
             index={t.index}
             complete={t.answerIndex !== undefined}

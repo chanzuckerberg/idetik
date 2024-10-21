@@ -1,6 +1,6 @@
 import { Button } from "@czi-sds/components";
 import { Box, Typography } from "@mui/material";
-import { TaskInfo } from "./Tasks";
+import { TaskInfo } from "./TaskList";
 import { Dispatch, SetStateAction } from "react";
 
 export type QuestionProps = {

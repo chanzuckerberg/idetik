@@ -3,10 +3,11 @@ import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
 import { useState } from "react";
 import { imageSeriesTimeInterval } from "../image_series_props";
-import Tasks, { TaskInfo } from "./Tasks";
+import TaskList from "./TaskList";
 import Question from "./Question";
+import { Task } from "../task";
 
-const defaultTasks: TaskInfo[] = [];
+const defaultTasks: Task[] = [];
 for (let i = 0; i < 30; ++i) {
   defaultTasks.push({
     index: i,
@@ -37,7 +38,7 @@ export default function App() {
           flexGrow: 0,
         }}
       >
-        <Tasks
+        <TaskList
           tasks={tasks}
           taskIndex={taskIndex}
           setTaskIndex={setTaskIndex}
