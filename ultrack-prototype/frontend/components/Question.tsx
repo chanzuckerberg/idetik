@@ -7,10 +7,11 @@ export type QuestionProps = {
   taskIndex: number;
   tasks: TaskInfo[];
   setTasks: Dispatch<SetStateAction<TaskInfo[]>>;
+  setTaskIndex: Dispatch<SetStateAction<number>>;
 };
 
 export default function Question(props: QuestionProps) {
-  const { taskIndex, tasks, setTasks } = props;
+  const { taskIndex, tasks, setTasks, setTaskIndex } = props;
   const task = tasks[taskIndex];
 
   const setAnswerIndex = (answerIndex: number) => {
@@ -43,7 +44,12 @@ export default function Question(props: QuestionProps) {
             key={i}
             sdsType={task.answerIndex === i ? "primary" : "secondary"}
             sdsStyle="square"
-            onClick={() => setAnswerIndex(i)}
+            onClick={() => {
+              setAnswerIndex(i);
+              if (taskIndex < tasks.length - 1) {
+                setTaskIndex(taskIndex + 1);
+              }
+            }}
           >
             {answer}
           </Button>

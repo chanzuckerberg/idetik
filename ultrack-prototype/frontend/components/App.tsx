@@ -59,6 +59,7 @@ export default function App() {
           taskIndex={taskIndex}
           tasks={tasks}
           setTasks={setTasks}
+          setTaskIndex={setTaskIndex}
         ></Question>
         <PlaybackControls
           enabled={playbackEnabled}
