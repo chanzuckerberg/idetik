@@ -38,7 +38,6 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
         display: "flex",
         flexDirection: "row",
         gap: "1em",
-        margin: "1em",
       }}
     >
       <Button
@@ -57,7 +56,6 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
         valueLabelDisplay="on"
         onChange={(_, value) => setCurTime(value as number)}
         value={curTime}
-        sx={{ alignSelf: "flex-end" }}
       />
     </Box>
   );

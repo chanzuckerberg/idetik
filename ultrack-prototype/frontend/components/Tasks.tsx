@@ -28,7 +28,6 @@ export default function Tasks(props: TasksProps) {
         display: "flex",
         flexDirection: "column",
         gap: "1em",
-        margin: "1em",
       }}
     >
       <Typography variant="h3">Review Cell Divisions</Typography>

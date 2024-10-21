@@ -27,6 +27,8 @@ export default function App() {
         display: "flex",
         flexDirection: "row",
         gap: "1em",
+        boxSizing: "border-box",
+        padding: "1em",
       }}
     >
       <Box
