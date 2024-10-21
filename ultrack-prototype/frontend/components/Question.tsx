@@ -1,12 +1,12 @@
 import { Button } from "@czi-sds/components";
 import { Box, Typography } from "@mui/material";
-import { TaskInfo } from "./TaskList";
+import { Task } from "../task";
 import { Dispatch, SetStateAction } from "react";
 
 export type QuestionProps = {
   taskIndex: number;
-  tasks: TaskInfo[];
-  setTasks: Dispatch<SetStateAction<TaskInfo[]>>;
+  tasks: Task[];
+  setTasks: Dispatch<SetStateAction<Task[]>>;
   setTaskIndex: Dispatch<SetStateAction<number>>;
 };
 
@@ -46,9 +46,9 @@ export default function Question(props: QuestionProps) {
             sdsStyle="square"
             onClick={() => {
               setAnswerIndex(i);
-              if (taskIndex < tasks.length - 1) {
-                setTaskIndex(taskIndex + 1);
-              }
+              setTaskIndex((prevIndex) =>
+                prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
+              );
             }}
           >
             {answer}

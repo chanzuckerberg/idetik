@@ -56,7 +56,11 @@ export default function TaskList(props: TaskListProps) {
           sdsType="secondary"
           sdsStyle="square"
           disabled={taskIndex == 0}
-          onClick={() => setTaskIndex(taskIndex - 1)}
+          onClick={() =>
+            setTaskIndex((prevIndex) =>
+              prevIndex > 0 ? prevIndex - 1 : prevIndex
+            )
+          }
         >
           Previous
         </Button>
@@ -64,7 +68,11 @@ export default function TaskList(props: TaskListProps) {
           sdsType="secondary"
           sdsStyle="square"
           disabled={taskIndex == tasks.length - 1}
-          onClick={() => setTaskIndex(taskIndex + 1)}
+          onClick={() =>
+            setTaskIndex((prevIndex) =>
+              prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
+            )
+          }
         >
           Next
         </Button>
