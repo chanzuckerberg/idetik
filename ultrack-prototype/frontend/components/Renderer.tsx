@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
   ImageSeriesLayer,
   LayerManager,
@@ -7,33 +7,54 @@ import {
   WebGLRenderer,
 } from "@";
 
-import { imageSeriesProps } from "../image_series_props";
+import { imageUrl } from "../lib/mock_data";
+import { Task, taskLayers, tracksLayerCamera } from "../lib/tasks";
 
 const canvasId = "canvas";
 
-const layer = new ImageSeriesLayer(
-  new OmeZarrImageSource(imageSeriesProps.url),
-  imageSeriesProps.region,
-  imageSeriesProps.timeDimension
-);
+const imageSource = new OmeZarrImageSource(imageUrl);
+let camera = new OrthographicCamera(0, 1920, 0, 1440);
 const layerManager = new LayerManager();
-layerManager.add(layer);
 
 type RendererProps = {
+  curTime: number;
   playbackEnabled: boolean;
   setPlaybackEnabled: Dispatch<SetStateAction<boolean>>;
-  curTime: number;
+  task: Task;
 };
 
 export default function Renderer(props: RendererProps) {
-  const { playbackEnabled, setPlaybackEnabled, curTime } = props;
+  const { curTime, setPlaybackEnabled, task } = props;
+  const [imageSeriesLayer, setImageSeriesLayer] =
+    useState<ImageSeriesLayer | null>(null);
 
   useEffect(() => {
     console.debug("Renderer::useEffect::curTime: ", curTime);
-    if (playbackEnabled) {
-      layer.setTimeIndex(curTime);
+    if (imageSeriesLayer !== null) {
+      setTimeIndexWhenReady(imageSeriesLayer, curTime);
     }
-  }, [curTime, playbackEnabled]);
+  }, [curTime, imageSeriesLayer]);
+
+  useEffect(() => {
+    setPlaybackEnabled(false);
+    if (!task) {
+      return;
+    }
+    layerManager.layers.length = 0;
+    const { tracksLayer, imageSeriesLayer } = taskLayers(task, imageSource);
+    setImageSeriesLayer(imageSeriesLayer);
+    layerManager.add(tracksLayer);
+    layerManager.add(imageSeriesLayer);
+
+    // TODO: update the camera in-place instead of creating a new one (this will make zoom/pan callbacks easier to manage)
+    camera = tracksLayerCamera(tracksLayer);
+
+    // TODO: need to remove observer as part of dismount function.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/77
+    imageSeriesLayer.onStateChange((newState) =>
+      setPlaybackEnabled(newState === "ready")
+    );
+  }, [task, setPlaybackEnabled]);
 
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
@@ -41,7 +62,6 @@ export default function Renderer(props: RendererProps) {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
-    const camera = new OrthographicCamera(0, 1920, 0, 1440);
     function animate() {
       renderer.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
@@ -50,17 +70,11 @@ export default function Renderer(props: RendererProps) {
     return () => {
       // TODO: cleanup by disposing objects owned by the renderer and camera.
       if (lastRequestId > 0) {
-        console.log(`Cancelling animation frame ${lastRequestId}`);
+        console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);
       }
     };
   }, []);
-
-  useEffect(() => {
-    // TODO: need to remove observer as part of dismount function.
-    // https://github.com/chanzuckerberg/imaging-active-learning/issues/77
-    layer.onStateChange((newState) => setPlaybackEnabled(newState === "ready"));
-  }, [setPlaybackEnabled]);
 
   return (
     <canvas
@@ -73,4 +87,16 @@ export default function Renderer(props: RendererProps) {
       }}
     />
   );
+}
+
+function setTimeIndexWhenReady(layer: ImageSeriesLayer, timeIndex: number) {
+  if (layer.state === "ready") {
+    layer.setTimeIndex(timeIndex);
+  } else {
+    layer.onStateChange((newState) => {
+      if (newState === "ready") {
+        layer.setTimeIndex(timeIndex);
+      }
+    });
+  }
 }

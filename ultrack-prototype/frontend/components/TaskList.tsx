@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material";
 import TaskItem from "./TaskItem";
 import { Button } from "@czi-sds/components";
 import { Dispatch, SetStateAction } from "react";
-import { Task } from "../task";
+import { Task } from "../lib/tasks";
 
 type TaskListProps = {
   tasks: Task[];

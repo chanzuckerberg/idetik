@@ -1,25 +1,25 @@
 import { Box } from "@mui/material";
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
-import { useCallback, useState } from "react";
-import { imageSeriesTimeInterval } from "../image_series_props";
+import { useCallback, useEffect, useState } from "react";
 import TaskList from "./TaskList";
 import Question from "./Question";
-import { Answer, Task } from "../task";
-
-const defaultTasks: Task[] = [];
-for (let i = 0; i < 30; ++i) {
-  defaultTasks.push({
-    index: i,
-    question: `Is this Cell Division ${i + 1}?`,
-  });
-}
+import { Answer, Task } from "../lib/tasks";
+import { fetchTasks } from "../lib/mock_data";
 
 export default function App() {
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
-  const [curTime, setCurTime] = useState(imageSeriesTimeInterval.start);
+  const [curTime, setCurTime] = useState(0);
   const [taskIndex, setTaskIndex] = useState(0);
-  const [tasks, setTasks] = useState(defaultTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  // TODO: we want to fetch new tasks more than just on mount
+  useEffect(() => {
+    const fetchOnMount = async () => {
+      setTasks(await fetchTasks());
+    };
+    fetchOnMount();
+  }, []);
 
   const setTaskAnswer = useCallback(
     (answer: Answer) => {
@@ -33,6 +33,29 @@ export default function App() {
       );
     },
     [tasks, setTasks, taskIndex, setTaskIndex]
+  );
+
+  // TODO: task navigation can be owned by the task list component
+  useEffect(() => {
+    const navigateTask = (event: KeyboardEvent) => {
+      if (event.key === "ArrowDown") {
+        setTaskIndex((prevTask) => Math.min(prevTask + 1, tasks.length - 1));
+      } else if (event.key === "ArrowUp") {
+        setTaskIndex((prevTask) => Math.max(prevTask - 1, 0));
+      }
+    };
+    document.addEventListener("keydown", navigateTask);
+
+    return () => {
+      document.removeEventListener("keydown", navigateTask);
+    };
+  }, [tasks, setTaskIndex]);
+
+  // TODO: make task explicitly nullable, or handle a null task here (instead of in child components)
+  const task = tasks[taskIndex];
+  console.debug(
+    `App::taskIndex: ${taskIndex}/${tasks.length}, task:`,
+    task
   );
 
   return (
@@ -71,6 +94,7 @@ export default function App() {
         <Renderer
           playbackEnabled={playbackEnabled}
           setPlaybackEnabled={setPlaybackEnabled}
+          task={task}
           curTime={curTime}
         ></Renderer>
         <Question
@@ -78,11 +102,13 @@ export default function App() {
           setTaskAnswer={setTaskAnswer}
         ></Question>
         <PlaybackControls
-          enabled={playbackEnabled}
           curTime={curTime}
+          enabled={playbackEnabled}
           setCurTime={setCurTime}
+          task={task}
         ></PlaybackControls>
       </Box>
     </Box>
   );
 }
+
