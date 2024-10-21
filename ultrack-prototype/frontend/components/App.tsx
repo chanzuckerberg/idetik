@@ -26,13 +26,13 @@ export default function App() {
         height: "100vh",
         display: "flex",
         flexDirection: "row",
+        gap: "1em",
       }}
     >
       <Box
         sx={{
-          height: "100%",
           display: "flex",
-          borderRight: 1,
+          flexGrow: 0,
         }}
       >
         <Tasks
@@ -47,6 +47,7 @@ export default function App() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
+          flexGrow: 1,
           gap: "1em",
         }}
       >

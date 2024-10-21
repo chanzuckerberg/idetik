@@ -38,6 +38,7 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
         display: "flex",
         flexDirection: "row",
         gap: "1em",
+        margin: "1em",
       }}
     >
       <Button
