@@ -37,6 +37,7 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
       sx={{
         display: "flex",
         flexDirection: "row",
+        alignItems: "center",
         gap: "1em",
       }}
     >
