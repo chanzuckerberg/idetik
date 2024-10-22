@@ -5,33 +5,15 @@ export class Texture2DArray extends Texture {
   private readonly width_: number;
   private readonly height_: number;
   private readonly depth_: number;
-  private readonly sliceByteLength_: number;
 
-  constructor(
-    data: ArrayBufferView,
-    width: number,
-    height: number,
-    sliceByteLength: number
-  ) {
+  constructor(data: ArrayBufferView, width: number, height: number) {
     super();
-
-    if (data.byteLength < sliceByteLength) {
-      throw new Error(
-        "The size of a slice must be greater than or equal to the size of the data"
-      );
-    }
-
-    if (data.byteLength % sliceByteLength !== 0) {
-      throw new Error(
-        "The size of a slice must be divisible by the size of the data"
-      );
-    }
 
     this.data_ = data;
     this.width_ = width;
     this.height_ = height;
-    this.sliceByteLength_ = sliceByteLength;
-    this.depth_ = data.byteLength / sliceByteLength;
+    // We currently assume that each slice's size is equal to the image's area
+    this.depth_ = data.byteLength / (width * height);
   }
 
   public get type() {
@@ -57,9 +39,5 @@ export class Texture2DArray extends Texture {
 
   public get depth() {
     return this.depth_;
-  }
-
-  public get layerOffset() {
-    return this.sliceByteLength_;
   }
 }

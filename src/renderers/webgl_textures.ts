@@ -34,7 +34,7 @@ export class WebGLTextures {
     if (texture.needsUpdate && texture.data !== null) {
       // Currently, we don't support mipmaps, so we always update the base level (0).
       const mipmapLevel = 0;
-      this.uploadTextureSubData(texture, mipmapLevel, { x: 0, y: 0 });
+      this.uploadTextureSubData(texture, mipmapLevel, { x: 0, y: 0, z: 0 });
       texture.needsUpdate = false;
     }
 
@@ -126,7 +126,7 @@ export class WebGLTextures {
   private uploadTextureSubData(
     texture: Texture,
     mipmapLevel: number,
-    offset: { x: number; y: number }
+    offset: { x: number; y: number; z: number }
   ) {
     if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D) {
       this.gl_.texSubImage2D(
@@ -145,13 +145,12 @@ export class WebGLTextures {
         texture.data as ArrayBufferView
       );
     } else if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D_ARRAY) {
-      const zOffset = 0;
       this.gl_.texSubImage3D(
         this.getGLTextureType(texture),
         mipmapLevel,
         offset.x,
         offset.y,
-        zOffset,
+        offset.z,
         texture.width,
         texture.height,
         (texture as Texture2DArray).depth,
