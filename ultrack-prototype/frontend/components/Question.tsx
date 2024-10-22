@@ -1,6 +1,6 @@
 import { Button } from "@czi-sds/components";
 import { Box, Typography } from "@mui/material";
-import { Task } from "../task";
+import { Answer, Task } from "../task";
 import { Dispatch, SetStateAction } from "react";
 
 export type QuestionProps = {
@@ -14,9 +14,9 @@ export default function Question(props: QuestionProps) {
   const { taskIndex, tasks, setTasks, setTaskIndex } = props;
   const task = tasks[taskIndex];
 
-  const setAnswerIndex = (answerIndex: number) => {
+  const setAnswer = (answer: Answer) => {
     const updatedTask = structuredClone(task);
-    updatedTask.answerIndex = answerIndex;
+    updatedTask.answer = answer;
     const updatedTasks = Array(...tasks);
     updatedTasks[taskIndex] = updatedTask;
     setTasks(updatedTasks);
@@ -39,19 +39,20 @@ export default function Question(props: QuestionProps) {
           gap: "1em",
         }}
       >
-        {task.answers.map((answer, i) => (
+        {Object.entries(Answer).map(([answer, label]) => (
           <Button
-            key={i}
-            sdsType={task.answerIndex === i ? "primary" : "secondary"}
+            key={answer}
+            sdsType={task.answer === answer ? "primary" : "secondary"}
             sdsStyle="square"
             onClick={() => {
-              setAnswerIndex(i);
+              const key = answer as keyof typeof Answer;
+              setAnswer(Answer[key]);
               setTaskIndex((prevIndex) =>
                 prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
               );
             }}
           >
-            {answer}
+            {label}
           </Button>
         ))}
       </Box>

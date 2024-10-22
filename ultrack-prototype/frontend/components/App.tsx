@@ -12,7 +12,6 @@ for (let i = 0; i < 30; ++i) {
   defaultTasks.push({
     index: i,
     question: `Is this Cell Division ${i + 1}?`,
-    answers: ["Yes", "No", "Uncertain"],
   });
 }
 

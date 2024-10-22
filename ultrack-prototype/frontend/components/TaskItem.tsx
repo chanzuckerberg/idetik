@@ -1,28 +1,38 @@
-import { InputCheckbox } from "@czi-sds/components";
-import { Box } from "@mui/material";
+import { Button, Icon } from "@czi-sds/components";
 import { Dispatch, SetStateAction } from "react";
+import { Answer } from "../task";
 
 export type TaskItemProps = {
   index: number;
-  complete: boolean;
+  answer?: Answer;
   active: boolean;
   setTaskIndex: Dispatch<SetStateAction<number>>;
 };
 
+function sdsIcon(answer: Answer | undefined) {
+  if (answer === undefined) return "DotsHorizontal";
+  switch (answer) {
+    case Answer.YES:
+      return "CheckCircle";
+    case Answer.NO:
+      return "XMarkCircle";
+    case Answer.UNCERTAIN:
+      return "ExclamationMarkCircle";
+  }
+}
+
 export default function TaskItem(props: TaskItemProps) {
-  const { index, complete, active, setTaskIndex } = props;
+  const { index, answer, active, setTaskIndex } = props;
   return (
-    <Box
-      sx={{
-        backgroundColor: active ? "#cccccc" : null,
-      }}
+    <Button
+      endIcon={<Icon sdsIcon={sdsIcon(answer)} sdsType="static" sdsSize="s" />}
+      sdsType={active ? "primary" : "secondary"}
+      sdsStyle="minimal"
+      isAllCaps={false}
+      sx={{ justifyContent: "space-between" }}
+      onClick={() => setTaskIndex(index)}
     >
-      <InputCheckbox
-        label={index + 1 + " Track"}
-        stage={complete ? "checked" : "unchecked"}
-        disabled={complete}
-        onClick={() => setTaskIndex(index)}
-      />
-    </Box>
+      {`${index + 1} Track`}
+    </Button>
   );
 }

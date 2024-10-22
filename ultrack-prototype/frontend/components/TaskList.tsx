@@ -13,7 +13,7 @@ type TaskListProps = {
 export default function TaskList(props: TaskListProps) {
   const { tasks, taskIndex, setTaskIndex } = props;
   const numReviewed = tasks.reduce(
-    (num, t) => num + (t.answerIndex === undefined ? 0 : 1),
+    (num, t) => num + (t.answer === undefined ? 0 : 1),
     0
   );
   return (
@@ -39,7 +39,7 @@ export default function TaskList(props: TaskListProps) {
           <TaskItem
             key={t.index}
             index={t.index}
-            complete={t.answerIndex !== undefined}
+            answer={t.answer}
             active={t.index == taskIndex}
             setTaskIndex={setTaskIndex}
           />
