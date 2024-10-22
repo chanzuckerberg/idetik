@@ -34,4 +34,3 @@ test("Remove state change callback", () => {
 
   expect(callback).toHaveBeenCalledTimes(0);
 });
-

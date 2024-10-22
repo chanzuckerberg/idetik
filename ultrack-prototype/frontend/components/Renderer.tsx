@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction, useEffect } from "react";
 import {
   ImageSeriesLayer,
   LayerManager,
+  LayerState,
   OmeZarrImageSource,
   OrthographicCamera,
   WebGLRenderer,
@@ -58,9 +59,12 @@ export default function Renderer(props: RendererProps) {
   }, []);
 
   useEffect(() => {
-    // TODO: need to remove observer as part of dismount function.
-    // https://github.com/chanzuckerberg/imaging-active-learning/issues/77
-    layer.pushStateChangeCallback((newState) => setPlaybackEnabled(newState === "ready"));
+    const onStateChange = (newState: LayerState) =>
+      setPlaybackEnabled(newState === "ready");
+    layer.pushStateChangeCallback(onStateChange);
+    return () => {
+      layer.removeStateChangeCallback(onStateChange);
+    };
   }, [setPlaybackEnabled]);
 
   return (
