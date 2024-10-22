@@ -19,8 +19,19 @@ test("Default layer state is 'initialized'", () => {
 test("State change callback", () => {
   const layer = new TestLayer();
   const callback = vi.fn();
-  layer.onStateChange(callback);
+  layer.pushStateChangeCallback(callback);
   layer.setStateReady();
 
   expect(callback).toHaveBeenCalledWith("ready", "initialized");
 });
+
+test("Remove state change callback", () => {
+  const layer = new TestLayer();
+  const callback = vi.fn();
+  layer.pushStateChangeCallback(callback);
+  layer.removeStateChangeCallback(callback);
+  layer.setStateReady();
+
+  expect(callback).toHaveBeenCalledTimes(0);
+});
+

@@ -60,7 +60,7 @@ export default function Renderer(props: RendererProps) {
   useEffect(() => {
     // TODO: need to remove observer as part of dismount function.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/77
-    layer.onStateChange((newState) => setPlaybackEnabled(newState === "ready"));
+    layer.pushStateChangeCallback((newState) => setPlaybackEnabled(newState === "ready"));
   }, [setPlaybackEnabled]);
 
   return (
