@@ -49,7 +49,7 @@ export class OrthographicCamera extends Camera {
     // (e.g. image pixels are isotropic) by padding the camera frame to form
     // the viewport frame.
     const width = this.right_ - this.left_;
-    const height = this.top_ - this.bottom_;
+    const height = this.bottom_ - this.top_;
     const frameAspectRatio = width / height;
     // When the viewport is wider than the camera frame, add horizontal
     // padding such that the height is unchanged. Otherwise, add vertical
@@ -68,8 +68,8 @@ export class OrthographicCamera extends Camera {
       this.projectionMatrix_,
       horizontalCenter - viewportHalfWidth,
       horizontalCenter + viewportHalfWidth,
-      verticalCenter - viewportHalfHeight,
-      verticalCenter + viewportHalfHeight,
+      -(verticalCenter - viewportHalfHeight),
+      -(verticalCenter + viewportHalfHeight),
       this.near_,
       this.far_
     );
