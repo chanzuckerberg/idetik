@@ -6,6 +6,8 @@ import {
   TextureDataFormat,
 } from "objects/textures/texture";
 
+import { Texture2DArray } from "objects/textures/texture_2d_array";
+
 export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
   private readonly textures_: Map<string, WebGLTexture> = new Map();
@@ -97,13 +99,28 @@ export class WebGLTextures {
   }
 
   private allocateTextureStorage(texture: Texture) {
-    this.gl_.texStorage2D(
-      this.getGLTextureType(texture),
-      texture.mipmapLevels,
-      this.getGLInternalFormat(texture.dataFormat, texture.dataType),
-      texture.width,
-      texture.height
-    );
+    if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D) {
+      this.gl_.texStorage2D(
+        this.getGLTextureType(texture),
+        texture.mipmapLevels,
+        this.getGLInternalFormat(texture.dataFormat, texture.dataType),
+        texture.width,
+        texture.height
+      );
+    } else if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D_ARRAY) {
+      this.gl_.texStorage3D(
+        this.getGLTextureType(texture),
+        texture.mipmapLevels,
+        this.getGLInternalFormat(texture.dataFormat, texture.dataType),
+        texture.width,
+        texture.height,
+        (texture as Texture2DArray).depth
+      );
+    } else {
+      throw new Error(
+        "Attempting to allocate storage for an unsupported texture type"
+      );
+    }
   }
 
   private uploadTextureSubData(
@@ -111,21 +128,42 @@ export class WebGLTextures {
     mipmapLevel: number,
     offset: { x: number; y: number }
   ) {
-    this.gl_.texSubImage2D(
-      this.getGLTextureType(texture),
-      mipmapLevel,
-      offset.x,
-      offset.y,
-      texture.width,
-      texture.height,
-      this.getGLFormat(texture.dataFormat),
-      this.getGLType(texture.dataType),
-      // This function has multiple overloads. We are temporarily casting it to
-      // ArrayBufferView to ensure the correct overload is called. Once we
-      // consolidate Texture2D and DataTexture2D, we can remove this cast.
-      // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D#syntax
-      texture.data as ArrayBufferView
-    );
+    if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D) {
+      this.gl_.texSubImage2D(
+        this.getGLTextureType(texture),
+        mipmapLevel,
+        offset.x,
+        offset.y,
+        texture.width,
+        texture.height,
+        this.getGLFormat(texture.dataFormat),
+        this.getGLType(texture.dataType),
+        // This function has multiple overloads. We are temporarily casting it to
+        // ArrayBufferView to ensure the correct overload is called. Once we
+        // consolidate Texture2D and DataTexture2D, we can remove this cast.
+        // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D#syntax
+        texture.data as ArrayBufferView
+      );
+    } else if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D_ARRAY) {
+      const zOffset = 0;
+      this.gl_.texSubImage3D(
+        this.getGLTextureType(texture),
+        mipmapLevel,
+        offset.x,
+        offset.y,
+        zOffset,
+        texture.width,
+        texture.height,
+        (texture as Texture2DArray).depth,
+        this.getGLFormat(texture.dataFormat),
+        this.getGLType(texture.dataType),
+        texture.data as ArrayBufferView
+      );
+    } else {
+      throw new Error(
+        "Attempting to upload data for an unsupported texture type"
+      );
+    }
   }
 
   private getGLTextureType(texture: Texture) {
@@ -133,6 +171,8 @@ export class WebGLTextures {
       case "Texture2D":
       case "DataTexture2D":
         return this.gl_.TEXTURE_2D;
+      case "Texture2DArray":
+        return this.gl_.TEXTURE_2D_ARRAY;
       default:
         throw new Error(`Unknown texture type ${texture.type}`);
     }
