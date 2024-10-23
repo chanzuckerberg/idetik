@@ -34,7 +34,7 @@ export default function App() {
       <Box
         sx={{
           display: "flex",
-          flexGrow: 0,
+          flex: 0,
         }}
       >
         <TaskList
@@ -49,7 +49,7 @@ export default function App() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          flexGrow: 1,
+          flex: 1,
           gap: "1em",
         }}
       >

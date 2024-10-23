@@ -26,6 +26,7 @@ export default function Question(props: QuestionProps) {
     <Box
       sx={{
         display: "flex",
+        flex: 0,
         flexDirection: "column",
         alignItems: "center",
         gap: "1em",
