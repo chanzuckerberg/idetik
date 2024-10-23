@@ -7,8 +7,6 @@ import {
   WebGLRenderer,
 } from "@";
 
-import { Box } from "@mui/material";
-
 import { imageSeriesProps } from "../image_series_props";
 
 const canvasId = "canvas";
@@ -65,14 +63,14 @@ export default function Renderer(props: RendererProps) {
   }, [setPlaybackEnabled]);
 
   return (
-    <Box
-      sx={{
-        display: "flex",
+    <canvas
+      id={canvasId}
+      style={{
+        width: "100%",
+        height: "100%",
         flex: 1,
         minHeight: 0,
       }}
-    >
-      <canvas id={canvasId} style={{ width: "100%", height: "100%" }} />
-    </Box>
+    />
   );
 }
