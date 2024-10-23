@@ -40,20 +40,22 @@ export default function Renderer(props: RendererProps) {
     if (!task) {
       return;
     }
-    layerManager.layers.length = 0;
     const { tracksLayer, imageSeriesLayer } = taskLayers(task, imageSource);
+    imageSeriesLayer.update();
     setImageSeriesLayer(imageSeriesLayer);
-    layerManager.add(tracksLayer);
-    layerManager.add(imageSeriesLayer);
-
-    // TODO: update the camera in-place instead of creating a new one (this will make zoom/pan callbacks easier to manage)
-    camera = tracksLayerCamera(tracksLayer);
 
     // TODO: need to remove observer as part of dismount function.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/77
-    imageSeriesLayer.onStateChange((newState) =>
-      setPlaybackEnabled(newState === "ready")
-    );
+    imageSeriesLayer.onStateChange((newState) => {
+      if (newState === "ready") {
+        setPlaybackEnabled(true);
+        layerManager.layers.length = 0;
+        layerManager.add(tracksLayer);
+        layerManager.add(imageSeriesLayer);
+        // TODO: update the camera in-place instead of creating a new one (this will make zoom/pan callbacks easier to manage)
+        camera = tracksLayerCamera(tracksLayer, 2.0);
+      }
+    });
   }, [task, setPlaybackEnabled]);
 
   // Use the mount-effect so that the renderer can find the corresponding
