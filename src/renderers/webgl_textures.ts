@@ -34,7 +34,11 @@ export class WebGLTextures {
     if (texture.needsUpdate && texture.data !== null) {
       // Currently, we don't support mipmaps, so we always update the base level (0).
       const mipmapLevel = 0;
-      this.uploadTextureSubData(texture, mipmapLevel, { x: 0, y: 0, z: 0 });
+
+      // The offsets are always set to zero because we are replacing the entire data set.
+      const offset = { x: 0, y: 0, z: 0 };
+
+      this.uploadTextureSubData(texture, mipmapLevel, offset);
       texture.needsUpdate = false;
     }
 
