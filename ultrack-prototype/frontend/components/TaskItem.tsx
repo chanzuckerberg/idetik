@@ -10,14 +10,14 @@ export type TaskItemProps = {
 };
 
 function sdsIcon(answer: Answer | undefined) {
-  if (answer === undefined) return "DotsHorizontal";
+  if (answer === undefined) return "FlagOutline";
   switch (answer) {
     case Answer.YES:
-      return "CheckCircle";
+      return "FlagCheck";
     case Answer.NO:
-      return "XMarkCircle";
+      return "FlagXMark";
     case Answer.UNCERTAIN:
-      return "ExclamationMarkCircle";
+      return "FlagQuestionMark";
   }
 }
 
