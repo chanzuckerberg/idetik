@@ -47,7 +47,7 @@ const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 28, stop: 39 };
 const region = [
   { dimension: "T", index: timeInterval },
-  { dimension: "C", index: 0 },
+  { dimension: "C", index: { start: 0, stop: 3 } },
   { dimension: "Z", index: 0 },
 ];
 
