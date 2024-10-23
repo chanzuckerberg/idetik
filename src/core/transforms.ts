@@ -18,6 +18,11 @@ export class AffineTransform {
     this.dirty_ = true;
   }
 
+  public setTranslation(vec: vec3) {
+    vec3.copy(this.translation_, vec);
+    this.dirty_ = true;
+  }
+
   public scale(vec: vec3) {
     vec3.multiply(this.scale_, this.scale_, vec);
     vec3.multiply(this.translation_, this.translation_, vec);

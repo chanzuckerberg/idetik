@@ -1,3 +1,4 @@
+import { vec2 } from "gl-matrix";
 import { LayerManager } from "./layer_manager";
 import { Camera } from "objects/cameras/camera";
 import { RenderableObject } from "core/renderable_object";
@@ -84,5 +85,13 @@ export abstract class Renderer {
       );
     }
     return this.activeCamera_;
+  }
+
+  public clientToClip(position: vec2): vec2 {
+    const [x, y] = position;
+    return vec2.fromValues(
+      (2 * x) / this.canvas.clientWidth - 1,
+      1 - (2 * y) / this.canvas.clientHeight
+    );
   }
 }
