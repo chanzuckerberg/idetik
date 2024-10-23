@@ -89,15 +89,9 @@ export class OmeZarrImageLoader {
       );
     }
 
-    if (subarray.shape.length !== 2) {
+    if (subarray.shape.length !== 2 && subarray.shape.length !== 3) {
       throw new Error(
-        `Expected to receive a 2D subarray. Instead chunk has shape ${subarray.shape}`
-      );
-    }
-
-    if (subarray.stride[1] !== 1) {
-      throw new Error(
-        `Expected to find a column stride of 1. Instead found ${subarray.stride[1]}`
+        `Expected to receive a 2D or 3D subarray. Instead chunk has shape ${subarray.shape}`
       );
     }
 
@@ -110,8 +104,12 @@ export class OmeZarrImageLoader {
 
     const chunk = {
       data: subarray.data,
-      shape: { width: subarray.shape[1], height: subarray.shape[0] },
-      rowStride: subarray.stride[0],
+      shape: {
+        width: subarray.shape[subarray.shape.length - 1],
+        height: subarray.shape[subarray.shape.length - 2],
+        channels: subarray.shape.length === 3 ? subarray.shape[0] : 1,
+      },
+      rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
     };
     console.debug("loaded chunk ", chunk);
