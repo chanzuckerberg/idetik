@@ -6,6 +6,8 @@ import {
   TextureDataFormat,
 } from "objects/textures/texture";
 
+import { Texture2D } from "objects/textures/texture_2d";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 
 export class WebGLTextures {
@@ -103,7 +105,7 @@ export class WebGLTextures {
   }
 
   private allocateTextureStorage(texture: Texture) {
-    if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D) {
+    if (this.isTexture2D(texture) || this.isDataTexture2D(texture)) {
       this.gl_.texStorage2D(
         this.getGLTextureType(texture),
         texture.mipmapLevels,
@@ -111,14 +113,14 @@ export class WebGLTextures {
         texture.width,
         texture.height
       );
-    } else if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D_ARRAY) {
+    } else if (this.isTexture2DArray(texture)) {
       this.gl_.texStorage3D(
         this.getGLTextureType(texture),
         texture.mipmapLevels,
         this.getGLInternalFormat(texture.dataFormat, texture.dataType),
         texture.width,
         texture.height,
-        (texture as Texture2DArray).depth
+        texture.depth
       );
     } else {
       throw new Error(
@@ -132,7 +134,7 @@ export class WebGLTextures {
     mipmapLevel: number,
     offset: { x: number; y: number; z: number }
   ) {
-    if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D) {
+    if (this.isTexture2D(texture) || this.isDataTexture2D(texture)) {
       this.gl_.texSubImage2D(
         this.getGLTextureType(texture),
         mipmapLevel,
@@ -148,7 +150,7 @@ export class WebGLTextures {
         // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D#syntax
         texture.data as ArrayBufferView
       );
-    } else if (this.getGLTextureType(texture) === this.gl_.TEXTURE_2D_ARRAY) {
+    } else if (this.isTexture2DArray(texture)) {
       this.gl_.texSubImage3D(
         this.getGLTextureType(texture),
         mipmapLevel,
@@ -157,7 +159,7 @@ export class WebGLTextures {
         offset.z,
         texture.width,
         texture.height,
-        (texture as Texture2DArray).depth,
+        texture.depth,
         this.getGLFormat(texture.dataFormat),
         this.getGLType(texture.dataType),
         texture.data as ArrayBufferView
@@ -170,14 +172,12 @@ export class WebGLTextures {
   }
 
   private getGLTextureType(texture: Texture) {
-    switch (texture.type) {
-      case "Texture2D":
-      case "DataTexture2D":
-        return this.gl_.TEXTURE_2D;
-      case "Texture2DArray":
-        return this.gl_.TEXTURE_2D_ARRAY;
-      default:
-        throw new Error(`Unknown texture type ${texture.type}`);
+    if (this.isTexture2D(texture) || this.isDataTexture2D(texture)) {
+      return this.gl_.TEXTURE_2D;
+    } else if (this.isTexture2DArray(texture)) {
+      return this.gl_.TEXTURE_2D_ARRAY;
+    } else {
+      throw new Error(`Unknown texture type ${texture.type}`);
     }
   }
 
@@ -242,5 +242,17 @@ export class WebGLTextures {
     throw Error(
       `Unsupported data format and type combination ${format}/${type}`
     );
+  }
+
+  private isTexture2D(texture: Texture): texture is Texture2D {
+    return texture.type === "Texture2D";
+  }
+
+  private isDataTexture2D(texture: Texture): texture is DataTexture2D {
+    return texture.type === "DataTexture2D";
+  }
+
+  private isTexture2DArray(texture: Texture): texture is Texture2DArray {
+    return (texture as Texture2DArray).type === "Texture2DArray";
   }
 }
