@@ -23,13 +23,13 @@ export default function App() {
   const [tasks, setTasks] = useState(defaultTasks);
 
   const setTaskAnswer = (answer: Answer) => {
-    const updatedTask = structuredClone(tasks[taskIndex]);
-    updatedTask.answer = answer;
-    const updatedTasks = Array(...tasks);
-    updatedTasks[taskIndex] = updatedTask;
-    setTasks(updatedTasks);
-    setTaskIndex((prevIndex) =>
-      prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
+    setTasks((prevTasks) =>
+      prevTasks.map((task, index) =>
+        index === taskIndex ? { ...task, answer } : task
+      )
+    );
+    setTaskIndex((prevIdx) =>
+      prevIdx < tasks.length - 1 ? prevIdx + 1 : prevIdx
     );
   };
 
