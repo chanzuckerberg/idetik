@@ -4,13 +4,12 @@ import { Answer } from "../task";
 
 export type TaskItemProps = {
   index: number;
-  answer?: Answer;
+  answer: Answer;
   active: boolean;
   setTaskIndex: Dispatch<SetStateAction<number>>;
 };
 
-function sdsIcon(answer: Answer | undefined) {
-  if (answer === undefined) return "FlagOutline";
+function sdsIcon(answer: Answer) {
   switch (answer) {
     case Answer.YES:
       return "FlagCheck";
@@ -19,6 +18,7 @@ function sdsIcon(answer: Answer | undefined) {
     case Answer.UNCERTAIN:
       return "FlagQuestionMark";
   }
+  return "FlagOutline";
 }
 
 export default function TaskItem(props: TaskItemProps) {

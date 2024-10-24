@@ -28,19 +28,21 @@ export default function Question(props: QuestionProps) {
           gap: "1em",
         }}
       >
-        {Object.entries(Answer).map(([answer, label]) => (
-          <Button
-            key={answer}
-            sdsType={task.answer === answer ? "primary" : "secondary"}
-            sdsStyle="square"
-            onClick={() => {
-              const key = answer as keyof typeof Answer;
-              setTaskAnswer(Answer[key]);
-            }}
-          >
-            {label}
-          </Button>
-        ))}
+        {Object.entries(Answer)
+          .slice(1)
+          .map(([answer, label]) => (
+            <Button
+              key={answer}
+              sdsType={task.answer === answer ? "primary" : "secondary"}
+              sdsStyle="square"
+              onClick={() => {
+                const key = answer as keyof typeof Answer;
+                setTaskAnswer(Answer[key]);
+              }}
+            >
+              {label}
+            </Button>
+          ))}
       </Box>
     </Box>
   );
