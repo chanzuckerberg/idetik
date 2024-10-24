@@ -2,7 +2,7 @@ import { Button } from "@czi-sds/components";
 import { Box, Typography } from "@mui/material";
 import { Answer, Task } from "../task";
 
-const answers: Array<Answer> = ["Yes", "No", "Uncertain"];
+const answers: Answer[] = ["Yes", "No", "Uncertain"];
 
 export type QuestionProps = {
   task: Task;
