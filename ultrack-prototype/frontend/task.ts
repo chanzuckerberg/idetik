@@ -1,9 +1,4 @@
-export enum Answer {
-  UNANSWERED = "Unanswered",
-  YES = "Yes",
-  NO = "No",
-  UNCERTAIN = "Uncertain",
-}
+export type Answer = "Unanswered" | "Yes" | "No" | "Uncertain";
 
 export type Task = {
   index: number;

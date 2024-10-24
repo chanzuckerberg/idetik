@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material";
 import TaskItem from "./TaskItem";
 import { Button } from "@czi-sds/components";
 import { Dispatch, SetStateAction } from "react";
-import { Answer, Task } from "../task";
+import { Task } from "../task";
 
 type TaskListProps = {
   tasks: Task[];
@@ -13,7 +13,7 @@ type TaskListProps = {
 export default function TaskList(props: TaskListProps) {
   const { tasks, taskIndex, setTaskIndex } = props;
   const numReviewed = tasks.reduce(
-    (num, t) => num + (t.answer === Answer.UNANSWERED ? 0 : 1),
+    (num, t) => num + (t.answer === "Unanswered" ? 0 : 1),
     0
   );
   return (

@@ -11,11 +11,11 @@ export type TaskItemProps = {
 
 function sdsIcon(answer: Answer) {
   switch (answer) {
-    case Answer.YES:
+    case "Yes":
       return "FlagCheck";
-    case Answer.NO:
+    case "No":
       return "FlagXMark";
-    case Answer.UNCERTAIN:
+    case "Uncertain":
       return "FlagQuestionMark";
   }
   return "FlagOutline";
