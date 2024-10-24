@@ -53,10 +53,7 @@ export default function App() {
 
   // TODO: make task explicitly nullable, or handle a null task here (instead of in child components)
   const task = tasks[taskIndex];
-  console.debug(
-    `App::taskIndex: ${taskIndex}/${tasks.length}, task:`,
-    task
-  );
+  console.debug(`App::taskIndex: ${taskIndex}/${tasks.length}, task:`, task);
 
   return (
     <Box
@@ -111,4 +108,3 @@ export default function App() {
     </Box>
   );
 }
-

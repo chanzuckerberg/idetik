@@ -23,7 +23,7 @@ export type Task = {
     tracks_data: Track[];
   };
   answer?: Answer;
-  index: number
+  index: number;
   question: string;
 };
 
