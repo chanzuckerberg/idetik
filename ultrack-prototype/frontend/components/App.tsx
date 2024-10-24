@@ -1,11 +1,11 @@
 import { Box } from "@mui/material";
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { imageSeriesTimeInterval } from "../image_series_props";
 import TaskList from "./TaskList";
 import Question from "./Question";
-import { Task } from "../task";
+import { Answer, Task } from "../task";
 
 const defaultTasks: Task[] = [];
 for (let i = 0; i < 30; ++i) {
@@ -20,6 +20,21 @@ export default function App() {
   const [curTime, setCurTime] = useState(imageSeriesTimeInterval.start);
   const [taskIndex, setTaskIndex] = useState(0);
   const [tasks, setTasks] = useState(defaultTasks);
+
+  const setTaskAnswer = useCallback(
+    (answer: Answer) => {
+      const updatedTask = structuredClone(tasks[taskIndex]);
+      updatedTask.answer = answer;
+      const updatedTasks = Array(...tasks);
+      updatedTasks[taskIndex] = updatedTask;
+      setTasks(updatedTasks);
+      setTaskIndex((prevIndex) =>
+        prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
+      );
+    },
+    [tasks, setTasks, taskIndex, setTaskIndex]
+  );
+
   return (
     <Box
       sx={{
@@ -59,10 +74,8 @@ export default function App() {
           curTime={curTime}
         ></Renderer>
         <Question
-          taskIndex={taskIndex}
-          tasks={tasks}
-          setTasks={setTasks}
-          setTaskIndex={setTaskIndex}
+          task={tasks[taskIndex]}
+          setTaskAnswer={setTaskAnswer}
         ></Question>
         <PlaybackControls
           enabled={playbackEnabled}
