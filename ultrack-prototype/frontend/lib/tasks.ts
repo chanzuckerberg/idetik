@@ -81,7 +81,6 @@ export function taskLayers(
   const timeInterval = taskTimeInterval(task);
   const region = [
     { dimension: "T", index: timeInterval },
-    { dimension: "C", index: 0 },
     { dimension: "Z", index: 0 },
   ];
 
