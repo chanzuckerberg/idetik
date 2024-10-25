@@ -2,6 +2,8 @@ import { Button } from "@czi-sds/components";
 import { Box, Typography } from "@mui/material";
 import { Answer, Task } from "../lib/tasks";
 
+const answers: Answer[] = ["Yes", "No", "Uncertain"];
+
 export type QuestionProps = {
   task: Task | null;
   setTaskAnswer: (answer: Answer) => void;
@@ -28,17 +30,14 @@ export default function Question(props: QuestionProps) {
           gap: "1em",
         }}
       >
-        {Object.entries(Answer).map(([answer, label]) => (
+        {answers.map((answer) => (
           <Button
             key={answer}
             sdsType={task?.answer === answer ? "primary" : "secondary"}
             sdsStyle="square"
-            onClick={() => {
-              const key = answer as keyof typeof Answer;
-              setTaskAnswer(Answer[key]);
-            }}
+            onClick={() => setTaskAnswer(answer)}
           >
-            {label}
+            {answer}
           </Button>
         ))}
       </Box>

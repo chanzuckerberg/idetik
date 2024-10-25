@@ -7,12 +7,6 @@ import {
   ProjectedLineLayer,
 } from "@";
 
-export enum Answer {
-  YES = "Yes",
-  NO = "No",
-  UNCERTAIN = "Uncertain",
-}
-
 type Track = {
   track_id: number;
   time: number[];
@@ -75,12 +69,14 @@ function isValidTaskType(taskType: unknown): taskType is TaskType {
   );
 }
 
+export type Answer = "Unanswered" | "Yes" | "No" | "Uncertain";
+
 // TODO: create a function to validate tasks as they come from the server
 export class Task {
   task_id!: string;
   task_type!: TaskType;
   task_data!: TaskData;
-  answer?: Answer;
+  answer: Answer = "Unanswered";
 
   timeInterval_: { start: number; stop: number } | null = null;
   tracksLayer_: ProjectedLineLayer | null = null;

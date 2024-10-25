@@ -1,24 +1,24 @@
 import { Button, Icon } from "@czi-sds/components";
 import { Dispatch, SetStateAction } from "react";
-import { Answer } from "../task";
+import { Answer } from "../lib/tasks";
 
 export type TaskItemProps = {
   index: number;
-  answer?: Answer;
+  answer: Answer;
   active: boolean;
   setTaskIndex: Dispatch<SetStateAction<number>>;
 };
 
-function sdsIcon(answer: Answer | undefined) {
-  if (answer === undefined) return "FlagOutline";
+function sdsIcon(answer: Answer) {
   switch (answer) {
-    case Answer.YES:
+    case "Yes":
       return "FlagCheck";
-    case Answer.NO:
+    case "No":
       return "FlagXMark";
-    case Answer.UNCERTAIN:
+    case "Uncertain":
       return "FlagQuestionMark";
   }
+  return "FlagOutline";
 }
 
 export default function TaskItem(props: TaskItemProps) {

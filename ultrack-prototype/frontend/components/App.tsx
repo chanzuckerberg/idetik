@@ -14,6 +14,7 @@ export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   // TODO: we want to fetch new tasks more than just on mount
+  // TODO: fetching and syncing might be better handled by `TaskList`
   useEffect(() => {
     const fetchOnMount = async () => {
       setTasks(await fetchTasks());
@@ -32,8 +33,8 @@ export default function App() {
         return task;
       })
     );
-    setTaskIndex((prevIndex) =>
-      prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
+    setTaskIndex((prevIdx) =>
+      prevIdx < tasks.length - 1 ? prevIdx + 1 : prevIdx
     );
   };
 
