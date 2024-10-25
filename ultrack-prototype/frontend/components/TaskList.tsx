@@ -1,7 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import TaskItem from "./TaskItem";
 import { Button } from "@czi-sds/components";
-import { Dispatch, SetStateAction } from "react";
+import { useEffect, Dispatch, SetStateAction } from "react";
 import { Task } from "../lib/tasks";
 
 type TaskListProps = {
@@ -16,6 +16,22 @@ export default function TaskList(props: TaskListProps) {
     (num, t) => num + (t.answer === undefined ? 0 : 1),
     0
   );
+
+  useEffect(() => {
+    const navigateTask = (event: KeyboardEvent) => {
+      if (event.key === "ArrowDown") {
+        setTaskIndex((prevTask) => Math.min(prevTask + 1, tasks.length - 1));
+      } else if (event.key === "ArrowUp") {
+        setTaskIndex((prevTask) => Math.max(prevTask - 1, 0));
+      }
+    };
+    document.addEventListener("keydown", navigateTask);
+
+    return () => {
+      document.removeEventListener("keydown", navigateTask);
+    };
+  }, [tasks, setTaskIndex]);
+
   return (
     <Box
       sx={{

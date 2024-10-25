@@ -10,7 +10,7 @@ type PlaybackControlsProps = {
   curTime: number;
   enabled: boolean;
   setCurTime: Dispatch<SetStateAction<number>>;
-  task?: Task;
+  task: Task | null;
 };
 
 export default function PlaybackControls(props: PlaybackControlsProps) {

@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import TaskList from "./TaskList";
 import Question from "./Question";
 import { Answer, Task } from "../lib/tasks";
@@ -21,35 +21,23 @@ export default function App() {
     fetchOnMount();
   }, []);
 
-  const setTaskAnswer = useCallback(
-    (answer: Answer) => {
-      tasks[taskIndex].answer = answer;
-      setTasks([...tasks]);
-      setTaskIndex((prevIndex) =>
-        prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
-      );
-    },
-    [tasks, setTasks, taskIndex, setTaskIndex]
-  );
+  const setTaskAnswer = (answer: Answer) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task, index) => {
+        if (index === taskIndex) {
+          const newTask = task.clone();
+          newTask.answer = answer;
+          return newTask;
+        }
+        return task;
+      })
+    );
+    setTaskIndex((prevIndex) =>
+      prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
+    );
+  };
 
-  // TODO: task navigation can be owned by the task list component
-  useEffect(() => {
-    const navigateTask = (event: KeyboardEvent) => {
-      if (event.key === "ArrowDown") {
-        setTaskIndex((prevTask) => Math.min(prevTask + 1, tasks.length - 1));
-      } else if (event.key === "ArrowUp") {
-        setTaskIndex((prevTask) => Math.max(prevTask - 1, 0));
-      }
-    };
-    document.addEventListener("keydown", navigateTask);
-
-    return () => {
-      document.removeEventListener("keydown", navigateTask);
-    };
-  }, [tasks, setTaskIndex]);
-
-  // TODO: make task explicitly nullable, or handle a null task here (instead of in child components)
-  const task = tasks[taskIndex];
+  const task = tasks[taskIndex] ?? null;
   console.debug(`App::taskIndex: ${taskIndex}/${tasks.length}, task:`, task);
 
   return (

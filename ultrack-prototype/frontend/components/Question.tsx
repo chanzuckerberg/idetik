@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 import { Answer, Task } from "../lib/tasks";
 
 export type QuestionProps = {
-  task: Task;
+  task: Task | null;
   setTaskAnswer: (answer: Answer) => void;
 };
 

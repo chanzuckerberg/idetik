@@ -122,6 +122,10 @@ export class Task {
     return new Task(task_id, task_type as TaskType, task_data as TaskData);
   }
 
+  public clone(): Task {
+    return new Task(this.task_id, this.task_type, this.task_data);
+  }
+
   public get question(): string {
     switch (this.task_type) {
       case "appearance":

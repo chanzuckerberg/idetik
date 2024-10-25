@@ -14,6 +14,7 @@ import { LoadingIndicator } from "@czi-sds/components";
 
 const canvasId = "canvas";
 
+// TODO: consider useRef for these objects
 const imageSource = new OmeZarrImageSource(imageUrl);
 let camera = new OrthographicCamera(0, 1920, 0, 1440);
 const layerManager = new LayerManager();
@@ -22,7 +23,7 @@ type RendererProps = {
   curTime: number;
   playbackEnabled: boolean;
   setPlaybackEnabled: Dispatch<SetStateAction<boolean>>;
-  task?: Task;
+  task: Task | null;
 };
 
 export default function Renderer(props: RendererProps) {
@@ -51,10 +52,12 @@ export default function Renderer(props: RendererProps) {
     imageSeriesLayer.onStateChange((newState) => {
       if (newState === "ready") {
         setPlaybackEnabled(true);
+        // TODO: update the data on the layers instead of creating new ones
         layerManager.layers.length = 0;
         layerManager.add(tracksLayer);
         layerManager.add(imageSeriesLayer);
-        // TODO: update the camera in-place instead of creating a new one (this will make zoom/pan callbacks easier to manage)
+        // TODO: update the camera in-place instead of creating a new one
+        // (this will make zoom/pan callbacks easier to manage)
         camera = task.camera(2.0);
       }
     });
