@@ -82,7 +82,7 @@ export default function App() {
         ></Renderer>
         <Question
           disabled={!playbackEnabled}
-          task={tasks[taskIndex]}
+          task={task}
           setTaskAnswer={setTaskAnswer}
         ></Question>
         <PlaybackControls

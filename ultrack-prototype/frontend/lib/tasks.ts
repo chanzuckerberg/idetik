@@ -137,7 +137,7 @@ export class Task {
     }
   }
 
-  tracksAs3DPaths(): vec3[][] {
+  private tracksAs3DPaths(): vec3[][] {
     const tracksData = this.task_data.tracks_data;
     return tracksData.map((track) => {
       // TODO: this 1440 - pos[1] is a hack to flip the y-axis.
