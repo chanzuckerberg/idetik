@@ -87,14 +87,12 @@ export default function Renderer(props: RendererProps) {
         minHeight: 0,
         display: "flex",
         flexDirection: "column",
-        alignItems: "center"
-      }}>
-      <canvas
-        id={canvasId}
-        style={{ width: "100%", height: "100%" }}
-      />
+        alignItems: "center",
+      }}
+    >
+      <canvas id={canvasId} style={{ width: "100%", height: "100%" }} />
       {!playbackEnabled && (
-        <Box sx={{ margin: "-3em" }} >
+        <Box sx={{ margin: "-3em" }}>
           <LoadingIndicator sdsStyle="tag" />
         </Box>
       )}

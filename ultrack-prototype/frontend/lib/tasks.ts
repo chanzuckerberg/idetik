@@ -67,12 +67,13 @@ function isValidTaskData(taskData: unknown): taskData is TaskData {
 }
 
 const TASK_TYPES = ["appearance", "disappearance", "division"] as const;
-type TaskType = typeof TASK_TYPES[number];
+type TaskType = (typeof TASK_TYPES)[number];
 
 function isValidTaskType(taskType: unknown): taskType is TaskType {
-  return typeof taskType === "string" && TASK_TYPES.includes(taskType as TaskType);
+  return (
+    typeof taskType === "string" && TASK_TYPES.includes(taskType as TaskType)
+  );
 }
-
 
 // TODO: create a function to validate tasks as they come from the server
 export class Task {
@@ -81,7 +82,7 @@ export class Task {
   task_data!: TaskData;
   answer?: Answer;
 
-  timeInterval_: { start: number, stop: number } | null = null;
+  timeInterval_: { start: number; stop: number } | null = null;
   tracksLayer_: ProjectedLineLayer | null = null;
 
   private constructor(
@@ -98,22 +99,24 @@ export class Task {
   }
 
   static fromJSON(json: unknown): Task {
-    if (typeof json !== 'object' || json === null) {
-      throw new Error('Invalid input: expected a JSON object');
+    if (typeof json !== "object" || json === null) {
+      throw new Error("Invalid input: expected a JSON object");
     }
 
     const { task_id, task_type, task_data } = json as Record<string, unknown>;
 
-    if (typeof task_id !== 'string') {
-      throw new Error('Invalid task_id, expected a string (uuid)');
+    if (typeof task_id !== "string") {
+      throw new Error("Invalid task_id, expected a string (uuid)");
     }
 
     if (!isValidTaskType(task_type)) {
-      throw new Error(`Invalid task_type "{task_type}", expected one of ${TASK_TYPES}`);
+      throw new Error(
+        `Invalid task_type "{task_type}", expected one of ${TASK_TYPES}`
+      );
     }
 
     if (!isValidTaskData(task_data)) {
-      throw new Error('Invalid task_data');
+      throw new Error("Invalid task_data");
     }
 
     return new Task(task_id, task_type as TaskType, task_data as TaskData);
@@ -145,12 +148,15 @@ export class Task {
     });
   }
 
-  private get timeInterval(): { start: number, stop: number } {
+  private get timeInterval(): { start: number; stop: number } {
     if (!this.timeInterval_) {
       const tracksData = this.task_data.tracks_data;
       const time = tracksData.flatMap((track) => track.time);
       // add 1 to the max time because we expect the interval to be open
-      this.timeInterval_ = { start: Math.min(...time), stop: Math.max(...time) + 1 };
+      this.timeInterval_ = {
+        start: Math.min(...time),
+        stop: Math.max(...time) + 1,
+      };
     }
     return this.timeInterval_;
   }
@@ -163,7 +169,10 @@ export class Task {
     return this.timeInterval.start;
   }
 
-  imageSeriesLayer(source: OmeZarrImageSource, preLoad = true): ImageSeriesLayer {
+  imageSeriesLayer(
+    source: OmeZarrImageSource,
+    preLoad = true
+  ): ImageSeriesLayer {
     const region = [
       { dimension: "T", index: this.timeInterval },
       { dimension: "Z", index: 0 },
@@ -188,7 +197,10 @@ export class Task {
     return this.tracksLayer_;
   }
 
-  public layers(imageSource: OmeZarrImageSource): { imageSeriesLayer: ImageSeriesLayer; tracksLayer: ProjectedLineLayer } {
+  public layers(imageSource: OmeZarrImageSource): {
+    imageSeriesLayer: ImageSeriesLayer;
+    tracksLayer: ProjectedLineLayer;
+  } {
     const layers = {
       imageSeriesLayer: this.imageSeriesLayer(imageSource),
       tracksLayer: this.tracksLayer(),
@@ -207,9 +219,7 @@ export class Task {
       yMax + padding
     );
   }
-
-
-};
+}
 
 // https://colorbrewer2.org/?type=qualitative&scheme=Set1&n=6
 // prettier-ignore
