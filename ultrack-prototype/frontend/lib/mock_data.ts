@@ -6,10 +6,8 @@ export const imageUrl =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 
 // TODO: so far these are all division tasks
-const tasks: Task[] = [
+const tasks = [
   {
-    index: 0,
-    question: "Is this a cell division?",
     task_id: "331b2fb3-d19e-4224-9382-cc710f0f1c69",
     task_type: "division",
     task_data: {
@@ -53,8 +51,6 @@ const tasks: Task[] = [
     },
   },
   {
-    index: 1,
-    question: "Is this a cell division?",
     task_id: "d1ba5c0f-afdb-491d-8376-099813199de0",
     task_type: "division",
     task_data: {
@@ -95,13 +91,23 @@ const tasks: Task[] = [
     },
   },
   {
-    index: 2,
-    question: "Is this a cell division?",
     task_id: "cc419a5e-6794-4d2e-ae72-9aff56459afe",
     task_type: "division",
     task_data: {
       node_id: 280000583,
       tracks_data: [
+        {
+          track_id: 655,
+          time: [274, 275, 276, 277, 278, 279],
+          position: [
+            [135, 1232],
+            [133, 1229],
+            [133, 1226],
+            [133, 1227],
+            [134, 1230],
+            [133, 1230],
+          ],
+        },
         {
           track_id: 656,
           time: [280, 281, 282, 283, 284],
@@ -124,24 +130,10 @@ const tasks: Task[] = [
             [131, 1225],
           ],
         },
-        {
-          track_id: 655,
-          time: [274, 275, 276, 277, 278, 279],
-          position: [
-            [135, 1232],
-            [133, 1229],
-            [133, 1226],
-            [133, 1227],
-            [134, 1230],
-            [133, 1230],
-          ],
-        },
       ],
     },
   },
   {
-    index: 3,
-    question: "Is this a cell division?",
     task_id: "eb3d7873-04c3-405b-965c-982bd7a7bf5e",
     task_type: "division",
     task_data: {
@@ -185,8 +177,6 @@ const tasks: Task[] = [
     },
   },
   {
-    index: 4,
-    question: "Is this a cell division?",
     task_id: "a97bcc25-ea3f-451c-91d4-d2b30f8f95ef",
     task_type: "division",
     task_data: {
@@ -230,8 +220,6 @@ const tasks: Task[] = [
     },
   },
   {
-    index: 5,
-    question: "Is this a cell division?",
     task_id: "fd4cb8b3-174a-454f-b926-847b8248f803",
     task_type: "division",
     task_data: {
@@ -275,8 +263,6 @@ const tasks: Task[] = [
     },
   },
   {
-    index: 6,
-    question: "Is this a cell division?",
     task_id: "71992790-f25b-48cf-ac7e-c515fcb4d02b",
     task_type: "division",
     task_data: {
@@ -320,24 +306,11 @@ const tasks: Task[] = [
     },
   },
   {
-    index: 7,
-    question: "Is this a cell division?",
     task_id: "f8a88518-6c57-44bc-a92e-6b951cce9c77",
     task_type: "division",
     task_data: {
       node_id: 94000170,
       tracks_data: [
-        {
-          track_id: 400,
-          time: [94, 95, 96, 97, 98],
-          position: [
-            [937, 778],
-            [934, 778],
-            [936, 777],
-            [942, 778],
-            [944, 773],
-          ],
-        },
         {
           track_id: 398,
           time: [88, 89, 90, 91, 92, 93],
@@ -348,6 +321,17 @@ const tasks: Task[] = [
             [927, 766],
             [927, 768],
             [928, 769],
+          ],
+        },
+        {
+          track_id: 400,
+          time: [94, 95, 96, 97, 98],
+          position: [
+            [937, 778],
+            [934, 778],
+            [936, 777],
+            [942, 778],
+            [944, 773],
           ],
         },
         {
@@ -365,8 +349,6 @@ const tasks: Task[] = [
     },
   },
   {
-    index: 8,
-    question: "Is this a cell division?",
     task_id: "e1cca7b0-5002-4ab4-8a1c-0f222293ea28",
     task_type: "division",
     task_data: {
@@ -410,8 +392,6 @@ const tasks: Task[] = [
     },
   },
   {
-    index: 9,
-    question: "Is this a cell division?",
     task_id: "f9e53cfb-29dc-479c-8ee3-e9ad9f177981",
     task_type: "division",
     task_data: {
@@ -458,5 +438,5 @@ const tasks: Task[] = [
 
 // TODO: perhaps could be an async iterator or something
 export async function fetchTasks(): Promise<Task[]> {
-  return tasks;
+  return tasks.map((task) => Task.fromJSON(task));
 }

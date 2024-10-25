@@ -35,12 +35,12 @@ export default function TaskList(props: TaskListProps) {
           overflowY: "auto",
         }}
       >
-        {tasks.map((t) => (
+        {tasks.map((t, index) => (
           <TaskItem
-            key={t.index}
-            index={t.index}
+            key={t.task_id}
+            index={index}
             answer={t.answer}
-            active={t.index == taskIndex}
+            active={taskIndex === index}
             setTaskIndex={setTaskIndex}
           />
         ))}

@@ -8,7 +8,7 @@ import {
 } from "@";
 
 import { imageUrl } from "../lib/mock_data";
-import { Task, taskLayers, tracksLayerCamera } from "../lib/tasks";
+import { Task } from "../lib/tasks";
 
 const canvasId = "canvas";
 
@@ -20,7 +20,7 @@ type RendererProps = {
   curTime: number;
   playbackEnabled: boolean;
   setPlaybackEnabled: Dispatch<SetStateAction<boolean>>;
-  task: Task;
+  task?: Task;
 };
 
 export default function Renderer(props: RendererProps) {
@@ -40,7 +40,7 @@ export default function Renderer(props: RendererProps) {
     if (!task) {
       return;
     }
-    const { tracksLayer, imageSeriesLayer } = taskLayers(task, imageSource);
+    const { tracksLayer, imageSeriesLayer } = task.layers(imageSource);
     imageSeriesLayer.update();
     setImageSeriesLayer(imageSeriesLayer);
 
@@ -53,7 +53,7 @@ export default function Renderer(props: RendererProps) {
         layerManager.add(tracksLayer);
         layerManager.add(imageSeriesLayer);
         // TODO: update the camera in-place instead of creating a new one (this will make zoom/pan callbacks easier to manage)
-        camera = tracksLayerCamera(tracksLayer, 2.0);
+        camera = task.camera(2.0);
       }
     });
   }, [task, setPlaybackEnabled]);

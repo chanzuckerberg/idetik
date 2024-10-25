@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import { Button, InputSlider } from "@czi-sds/components";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { Task, taskTimeInterval } from "../lib/tasks";
+import { Task } from "../lib/tasks";
 
 const playbackFPS = 16;
 const playbackIntervalMs = 1000 / playbackFPS;
@@ -10,14 +10,15 @@ type PlaybackControlsProps = {
   curTime: number;
   enabled: boolean;
   setCurTime: Dispatch<SetStateAction<number>>;
-  task: Task;
+  task?: Task;
 };
 
 export default function PlaybackControls(props: PlaybackControlsProps) {
   const { curTime, enabled, setCurTime, task } = props;
   const [playing, setPlaying] = useState(false);
 
-  const { start: minTime, stop: maxTime } = taskTimeInterval(task);
+  const minTime = task?.minTime ?? 0;
+  const maxTime = task?.maxTime ?? 0;
 
   useEffect(() => {
     if (!playing || !enabled) {
@@ -59,7 +60,6 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
         disabled={!enabled}
         onClick={() => setPlaying(!playing)}
       />
-
       <InputSlider
         min={minTime}
         // the slider component is closed on the right, so we need to subtract 1

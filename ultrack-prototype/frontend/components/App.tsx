@@ -23,11 +23,8 @@ export default function App() {
 
   const setTaskAnswer = useCallback(
     (answer: Answer) => {
-      const updatedTask = structuredClone(tasks[taskIndex]);
-      updatedTask.answer = answer;
-      const updatedTasks = Array(...tasks);
-      updatedTasks[taskIndex] = updatedTask;
-      setTasks(updatedTasks);
+      tasks[taskIndex].answer = answer;
+      setTasks([...tasks]);
       setTaskIndex((prevIndex) =>
         prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
       );
