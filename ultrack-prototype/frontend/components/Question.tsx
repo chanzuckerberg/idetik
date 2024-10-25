@@ -5,12 +5,13 @@ import { Answer, Task } from "../lib/tasks";
 const answers: Answer[] = ["Yes", "No", "Uncertain"];
 
 export type QuestionProps = {
+  disabled: boolean;
   task: Task | null;
   setTaskAnswer: (answer: Answer) => void;
 };
 
 export default function Question(props: QuestionProps) {
-  const { task, setTaskAnswer } = props;
+  const { disabled, task, setTaskAnswer } = props;
 
   return (
     <Box
@@ -36,6 +37,7 @@ export default function Question(props: QuestionProps) {
             sdsType={task?.answer === answer ? "primary" : "secondary"}
             sdsStyle="square"
             onClick={() => setTaskAnswer(answer)}
+            disabled={disabled}
           >
             {answer}
           </Button>

@@ -81,6 +81,7 @@ export default function App() {
           curTime={curTime}
         ></Renderer>
         <Question
+          disabled={!playbackEnabled}
           task={tasks[taskIndex]}
           setTaskAnswer={setTaskAnswer}
         ></Question>
