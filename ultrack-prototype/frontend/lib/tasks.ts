@@ -131,7 +131,16 @@ export class Task {
   }
 
   public clone(): Task {
-    return new Task(this.taskId, this.taskType, this.taskData);
+    return new Task(this.taskId, this.taskType, {
+      nodeId: this.taskData.nodeId,
+      tracksData: this.taskData.tracksData.map((track) => ({
+        trackId: track.trackId,
+        time: [...track.time],
+        position: track.position.map((pos) => [
+          ...pos,
+        ]) as typeof track.position,
+      })),
+    });
   }
 
   public get question(): string {
