@@ -39,8 +39,8 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
   }, [enabled, maxTime, minTime, playing, setCurTime]);
 
   useEffect(() => {
-    setCurTime(minTime);
-  }, [minTime, setCurTime, task]);
+    setCurTime(task?.minTime ?? 0);
+  }, [task, setCurTime]);
 
   return (
     <Box
