@@ -9,6 +9,8 @@ import {
 
 import { imageUrl } from "../lib/mock_data";
 import { Task } from "../lib/tasks";
+import { Box } from "@mui/material";
+import { LoadingIndicator } from "@czi-sds/components";
 
 const canvasId = "canvas";
 
@@ -24,7 +26,7 @@ type RendererProps = {
 };
 
 export default function Renderer(props: RendererProps) {
-  const { curTime, setPlaybackEnabled, task } = props;
+  const { curTime, playbackEnabled, setPlaybackEnabled, task } = props;
   const [imageSeriesLayer, setImageSeriesLayer] =
     useState<ImageSeriesLayer | null>(null);
 
@@ -79,15 +81,24 @@ export default function Renderer(props: RendererProps) {
   }, []);
 
   return (
-    <canvas
-      id={canvasId}
-      style={{
-        width: "100%",
-        height: "100%",
+    <Box
+      sx={{
         flex: 1,
         minHeight: 0,
-      }}
-    />
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center"
+      }}>
+      <canvas
+        id={canvasId}
+        style={{ width: "100%", height: "100%" }}
+      />
+      {!playbackEnabled && (
+        <Box sx={{ margin: "-3em" }} >
+          <LoadingIndicator sdsStyle="tag" />
+        </Box>
+      )}
+    </Box>
   );
 }
 
