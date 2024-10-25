@@ -53,7 +53,7 @@ export default function TaskList(props: TaskListProps) {
       >
         {tasks.map((t, index) => (
           <TaskItem
-            key={t.task_id}
+            key={t.taskId}
             index={index}
             answer={t.answer}
             active={taskIndex === index}

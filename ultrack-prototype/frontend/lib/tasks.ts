@@ -8,56 +8,68 @@ import {
 } from "@";
 
 type Track = {
-  track_id: number;
+  trackId: number;
   time: number[];
   position: vec2[] | vec3[];
 };
 
-function isValidTrack(track: unknown): track is Track {
-  if (typeof track !== "object" || track === null) {
-    return false;
+function trackFromJSON(trackJSON: unknown): Track {
+  if (typeof trackJSON !== "object" || trackJSON === null) {
+    throw new Error("Invalid input: expected a JSON object");
   }
 
-  const { track_id, time, position } = track as Record<string, unknown>;
+  const { track_id, time, position } = trackJSON as Record<string, unknown>;
 
   if (typeof track_id !== "number") {
-    return false;
+    throw new Error("Invalid trackId, expected a number");
   }
 
   if (!Array.isArray(time) || time.some((t) => typeof t !== "number")) {
-    return false;
+    throw new Error("Invalid time, expected an array of numbers");
   }
 
   if (!Array.isArray(position) || position.some((pos) => !Array.isArray(pos))) {
-    return false;
+    throw new Error("Invalid position, expected an array of arrays");
   }
 
-  // TODO: validate position and time have the same length
+  if (!position.every((pos) => pos.length === 2 || pos.length === 3)) {
+    throw new Error(
+      "Invalid position, expected an array of 2 or 3 element arrays"
+    );
+  }
 
-  return true;
+  if (position.length !== time.length) {
+    throw new Error(
+      "Invalid position or time, expected arrays of the same length"
+    );
+  }
+
+  return { trackId: track_id, time, position };
 }
 
 type TaskData = {
-  node_id: number;
-  tracks_data: Track[];
+  nodeId: number;
+  tracksData: Track[];
 };
 
-function isValidTaskData(taskData: unknown): taskData is TaskData {
-  if (typeof taskData !== "object" || taskData === null) {
-    return false;
+function taskDataFromJSON(taskDataJSON: unknown): TaskData {
+  if (typeof taskDataJSON !== "object" || taskDataJSON === null) {
+    throw new Error("Invalid input: expected a JSON object");
   }
 
-  const { node_id, tracks_data } = taskData as Record<string, unknown>;
+  const { node_id, tracks_data } = taskDataJSON as Record<string, unknown>;
 
   if (typeof node_id !== "number") {
-    return false;
+    throw new Error("Invalid nodeId, expected a number");
   }
 
-  if (!Array.isArray(tracks_data) || !tracks_data.every(isValidTrack)) {
-    return false;
+  if (!Array.isArray(tracks_data)) {
+    throw new Error("Invalid tracksData, expected an array");
   }
 
-  return true;
+  const tracksData = tracks_data.map(trackFromJSON);
+
+  return { nodeId: node_id, tracksData };
 }
 
 const TASK_TYPES = ["appearance", "disappearance", "division"] as const;
@@ -73,25 +85,18 @@ export type Answer = "Unanswered" | "Yes" | "No" | "Uncertain";
 
 // TODO: create a function to validate tasks as they come from the server
 export class Task {
-  task_id!: string;
-  task_type!: TaskType;
-  task_data!: TaskData;
+  taskId: string;
+  taskType: TaskType;
+  taskData: TaskData;
   answer: Answer = "Unanswered";
 
-  timeInterval_: { start: number; stop: number } | null = null;
-  tracksLayer_: ProjectedLineLayer | null = null;
+  private timeInterval_: { start: number; stop: number } | null = null;
+  private tracksLayer_: ProjectedLineLayer | null = null;
 
-  private constructor(
-    task_id: string,
-    task_type: TaskType,
-    task_data: {
-      node_id: number;
-      tracks_data: Track[];
-    }
-  ) {
-    this.task_id = task_id;
-    this.task_type = task_type;
-    this.task_data = task_data;
+  private constructor(taskId: string, taskType: TaskType, taskData: TaskData) {
+    this.taskId = taskId;
+    this.taskType = taskType;
+    this.taskData = taskData;
   }
 
   static fromJSON(json: unknown): Task {
@@ -99,31 +104,33 @@ export class Task {
       throw new Error("Invalid input: expected a JSON object");
     }
 
-    const { task_id, task_type, task_data } = json as Record<string, unknown>;
+    const {
+      task_id: taskId,
+      task_type: taskType,
+      task_data,
+    } = json as Record<string, unknown>;
 
-    if (typeof task_id !== "string") {
-      throw new Error("Invalid task_id, expected a string (uuid)");
+    if (typeof taskId !== "string") {
+      throw new Error("Invalid taskId, expected a string (uuid)");
     }
 
-    if (!isValidTaskType(task_type)) {
+    if (!isValidTaskType(taskType)) {
       throw new Error(
-        `Invalid task_type "{task_type}", expected one of ${TASK_TYPES}`
+        `Invalid task_type "{taskType}", expected one of ${TASK_TYPES}`
       );
     }
 
-    if (!isValidTaskData(task_data)) {
-      throw new Error("Invalid task_data");
-    }
+    const taskData = taskDataFromJSON(task_data);
 
-    return new Task(task_id, task_type as TaskType, task_data as TaskData);
+    return new Task(taskId, taskType, taskData);
   }
 
   public clone(): Task {
-    return new Task(this.task_id, this.task_type, this.task_data);
+    return new Task(this.taskId, this.taskType, this.taskData);
   }
 
   public get question(): string {
-    switch (this.task_type) {
+    switch (this.taskType) {
       case "appearance":
         return "Is this a cell appearance event?";
       case "disappearance":
@@ -131,14 +138,14 @@ export class Task {
       case "division":
         return "Is this a cell division event?";
       default: {
-        const exhaustiveCheck: never = this.task_type;
+        const exhaustiveCheck: never = this.taskType;
         throw new Error(`Unhandled task type: ${exhaustiveCheck}`);
       }
     }
   }
 
   private tracksAs3DPaths(): vec3[][] {
-    const tracksData = this.task_data.tracks_data;
+    const tracksData = this.taskData.tracksData;
     return tracksData.map((track) => {
       // TODO: this 1440 - pos[1] is a hack to flip the y-axis.
       return track.position.map((pos) => {
@@ -150,7 +157,7 @@ export class Task {
 
   private get timeInterval(): { start: number; stop: number } {
     if (!this.timeInterval_) {
-      const tracksData = this.task_data.tracks_data;
+      const tracksData = this.taskData.tracksData;
       const time = tracksData.flatMap((track) => track.time);
       // add 1 to the max time because we expect the interval to be open
       this.timeInterval_ = {
