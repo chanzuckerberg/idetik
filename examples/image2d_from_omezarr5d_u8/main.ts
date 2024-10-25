@@ -36,8 +36,11 @@ const region = [
 ];
 const layer = new ImageLayer(source, region);
 
-let camera: PerspectiveCamera | OrthographicCamera;
-toggleCamera();
+const axes = new AxesLayer({ length: 1920, width: 0.01 });
+layerManager.add(layer);
+layerManager.add(axes);
+
+let camera: PerspectiveCamera | OrthographicCamera = perspectiveCam;
 
 // TODO: would be nice to provide these functions in the library
 const clientToWorld = (clientPos: vec2) => {
@@ -96,11 +99,6 @@ document.addEventListener("keydown", (event) => {
 
 function toggleCamera() {
   camera = camera === orthoCam ? perspectiveCam : orthoCam;
-  const width = camera.type == "PerspectiveCamera" ? 20 : 0.01;
-  const axes = new AxesLayer({ length: 1920, width });
-  layerManager.layers.length = 0;
-  layerManager.add(layer);
-  layerManager.add(axes);
 }
 
 animate();
