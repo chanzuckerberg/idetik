@@ -32,7 +32,12 @@ function trackFromJSON(trackJSON: unknown): Track {
     throw new Error("Invalid position, expected an array of arrays");
   }
 
-  if (!position.every((pos) => pos.length === 2 || pos.length === 3)) {
+  if (
+    !(
+      position.every((pos) => pos.length === 2) ||
+      position.every((pos) => pos.length === 3)
+    )
+  ) {
     throw new Error(
       "Invalid position, expected an array of 2 or 3 element arrays"
     );
