@@ -1,7 +1,7 @@
 import { Box } from "@mui/material";
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { imageSeriesTimeInterval } from "../image_series_props";
 import TaskList from "./TaskList";
 import Question from "./Question";
@@ -12,6 +12,7 @@ for (let i = 0; i < 30; ++i) {
   defaultTasks.push({
     index: i,
     question: `Is this Cell Division ${i + 1}?`,
+    answer: "Unanswered",
   });
 }
 
@@ -21,19 +22,16 @@ export default function App() {
   const [taskIndex, setTaskIndex] = useState(0);
   const [tasks, setTasks] = useState(defaultTasks);
 
-  const setTaskAnswer = useCallback(
-    (answer: Answer) => {
-      const updatedTask = structuredClone(tasks[taskIndex]);
-      updatedTask.answer = answer;
-      const updatedTasks = Array(...tasks);
-      updatedTasks[taskIndex] = updatedTask;
-      setTasks(updatedTasks);
-      setTaskIndex((prevIndex) =>
-        prevIndex < tasks.length - 1 ? prevIndex + 1 : prevIndex
-      );
-    },
-    [tasks, setTasks, taskIndex, setTaskIndex]
-  );
+  const setTaskAnswer = (answer: Answer) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task, index) =>
+        index === taskIndex ? { ...task, answer } : task
+      )
+    );
+    setTaskIndex((prevIdx) =>
+      prevIdx < tasks.length - 1 ? prevIdx + 1 : prevIdx
+    );
+  };
 
   return (
     <Box
