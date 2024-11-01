@@ -6,7 +6,8 @@ type GeometryAttributeType =
   | "uv"
   | "next_position"
   | "previous_position"
-  | "direction";
+  | "direction"
+  | "distance";
 
 type GeometryAttribute = {
   type: GeometryAttributeType;

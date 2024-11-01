@@ -11,6 +11,7 @@ interface LineParameters {
 export class ProjectedLine extends RenderableObject {
   private color_: vec3;
   private width_: number;
+  private taperOffset_: number = 0.5;
 
   constructor({ geometry, color, width }: LineParameters) {
     super();
@@ -37,5 +38,13 @@ export class ProjectedLine extends RenderableObject {
 
   public set width(value: number) {
     this.width_ = value;
+  }
+
+  public get taperOffset() {
+    return this.taperOffset_;
+  }
+
+  public set taperOffset(value: number) {
+    this.taperOffset_ = value;
   }
 }

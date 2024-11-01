@@ -50,6 +50,7 @@ export class WebGLRenderer extends Renderer {
         const line = object as ProjectedLine;
         program.setUniform("LineColor", line.color);
         program.setUniform("LineWidth", line.width);
+        program.setUniform("TaperOffset", line.taperOffset);
         break;
       }
     }
@@ -80,6 +81,7 @@ export class WebGLRenderer extends Renderer {
     this.gl.clearColor(1, 1, 1, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.depthFunc(this.gl.LEQUAL);
   }
 
   // This is a temporary computed property. In the future, we want to assign the
