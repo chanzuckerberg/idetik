@@ -4,8 +4,23 @@ import PlaybackControls from "./PlaybackControls";
 import { useEffect, useState } from "react";
 import TaskList from "./TaskList";
 import Question from "./Question";
-import { Answer, Task } from "../lib/tasks";
-import { fetchTasks } from "../lib/mock_data";
+import { AnswerType, Task } from "../lib/tasks";
+import {
+  fetchTasks as fetchMockTasks,
+  postAnswers as postMockAnswers,
+} from "../lib/mock_data";
+import {
+  fetchTasks as fetchRealTasks,
+  postAnswers as postRealAnswers,
+} from "../lib/data";
+
+let fetchTasks = fetchRealTasks;
+let postAnswers = postRealAnswers;
+
+if (import.meta.env.VITE_MOCK_ULTRACK === "true") {
+  fetchTasks = fetchMockTasks;
+  postAnswers = postMockAnswers;
+}
 
 export default function App() {
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
@@ -15,19 +30,26 @@ export default function App() {
 
   // TODO: we want to fetch new tasks more than just on mount
   // TODO: fetching and syncing might be better handled by `TaskList`
+  // TODO: fetch the latest answers as well, or prevent overwriting them when refreshing?
   useEffect(() => {
     const fetchOnMount = async () => {
-      setTasks(await fetchTasks());
+      const tasks = await fetchTasks();
+      console.debug("App::fetched tasks", tasks);
+      setTasks(tasks);
     };
     fetchOnMount();
   }, []);
 
-  const setTaskAnswer = (answer: Answer) => {
+  const task = tasks[taskIndex] ?? null;
+  console.debug(`App::taskIndex: ${taskIndex}/${tasks.length}, task:`, task);
+
+  const setTaskAnswer = (answer: AnswerType) => {
     setTasks((prevTasks) =>
       prevTasks.map((task, index) => {
         if (index === taskIndex) {
           const newTask = task.clone();
-          newTask.answer = answer;
+          newTask.answer.value = answer;
+          newTask.answer.synced = "not_synced";
           return newTask;
         }
         return task;
@@ -38,8 +60,45 @@ export default function App() {
     );
   };
 
-  const task = tasks[taskIndex] ?? null;
-  console.debug(`App::taskIndex: ${taskIndex}/${tasks.length}, task:`, task);
+  useEffect(() => {
+    const answersToSync = tasks
+      .map((task) => task.answer)
+      .filter((answer) => answer.synced === "not_synced");
+
+    if (answersToSync.length === 0) {
+      return;
+    }
+
+    const setPending = () => {
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => {
+          if (task.answer.synced === "not_synced") {
+            const newTask = task.clone();
+            newTask.answer.synced = "pending";
+            return newTask;
+          }
+          return task;
+        })
+      );
+    };
+    setPending();
+
+    const postAnswersToSync = async () => {
+      const synced = await postAnswers(answersToSync);
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => {
+          const syncedAnswer = synced.find((a) => a.taskId === task.taskId);
+          if (syncedAnswer) {
+            const newTask = task.clone();
+            newTask.answer.synced = syncedAnswer.synced;
+            return newTask;
+          }
+          return task;
+        })
+      );
+    };
+    postAnswersToSync();
+  }, [tasks, setTasks]);
 
   return (
     <Box

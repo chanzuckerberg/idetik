@@ -1,8 +1,9 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from enum import auto, StrEnum
 
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel, Field
 
 
 Path2D = list[tuple[float, float]]
@@ -30,3 +31,19 @@ class Task(BaseModel):
     task_id: UUID
     task_type: TaskType
     task_data: TaskData
+
+
+class AnswerType(StrEnum):
+    YES = auto()
+    NO = auto()
+    UNCERTAIN = auto()
+
+
+class Answer(BaseModel):
+    answer_id: UUID
+    task_id: UUID
+    created_at: AwareDatetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        init=False,
+    )
+    answer: AnswerType

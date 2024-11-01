@@ -15,6 +15,7 @@ from ultrack_learns.db import (
     set_up_db,
     track_points_around_node,
     TrackPoint,
+    Task as TaskRecord,
 )
 
 SAMPLE_DATA_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color/tracks.csv"
@@ -136,6 +137,7 @@ CACHE = {}
 def all_tasks(
     rng_seed: int = 42,
     num_tasks: int = 10,
+    time_window: int = 16,
     db: Session = Depends(get_session),
 ) -> list[Task]:
     key = (rng_seed, num_tasks)
@@ -144,6 +146,8 @@ def all_tasks(
     seed(rng_seed)
     tasks = []
     task_types = Counter(choices(list(TaskType), k=num_tasks))
+    # TODO: the client does not yet support different task types
+    task_types = {TaskType.DIVISION: num_tasks}
     for task_type, count in task_types.items():
         task_roots = sampling_functions[task_type](db, count)
         task_data = [
@@ -152,7 +156,7 @@ def all_tasks(
                 tracks_data=track_points_around_node(
                     db,
                     root_node.id,
-                    time_window=10,
+                    time_window=time_window,
                     include_children=task_type == TaskType.DIVISION,
                 ),
             )
@@ -168,6 +172,22 @@ def all_tasks(
                 for data in task_data
             ]
         )
+
+    for task in tasks:
+        db.add(
+            TaskRecord(
+                task_id=task.task_id,
+                task_type=task.task_type,
+                node_id=task.task_data.node_id,
+            )
+        )
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print("Error committing tasks to the database")
+        print(e)
+
     CACHE[key] = tasks
     return tasks
 
