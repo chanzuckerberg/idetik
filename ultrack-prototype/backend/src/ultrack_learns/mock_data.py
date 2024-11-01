@@ -140,7 +140,7 @@ def all_tasks(
     time_window: int = 16,
     db: Session = Depends(get_session),
 ) -> list[Task]:
-    key = (rng_seed, num_tasks)
+    key = (rng_seed, num_tasks, time_window)
     if key in CACHE:
         return CACHE[key]
     seed(rng_seed)
