@@ -86,14 +86,15 @@ imageSeriesLayer.onStateChange((newState: LayerState) => {
     slider.addEventListener("input", (event) => {
       const value = (event.target as HTMLInputElement).valueAsNumber;
       imageSeriesLayer.setTimeIndex(value);
-      lineLayer.setTime(value);
+      lineLayer.setTimeIndex(value);
     });
     imageSeriesLayer.setTimeIndex(slider.valueAsNumber);
+    lineLayer.setTimeIndex(slider.valueAsNumber);
   }
 });
 
 const setLayerTime = () => {
-  const t = Math.round(performance.now() / 100 % 10 + 28);
+  const t = Math.round(((performance.now() / 100) % 10) + 28);
   slider.value = t.toString();
   slider.dispatchEvent(new Event("input"));
 };

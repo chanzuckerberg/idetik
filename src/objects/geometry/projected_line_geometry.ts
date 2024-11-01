@@ -69,7 +69,8 @@ export class ProjectedLineGeometry extends Geometry {
         vertices[c++] = direction;
         vertices[c++] = distance;
       }
-      distance += vec3.distance(path[i], path[i + 1] ?? path[i]) / total_distance;
+      distance +=
+        vec3.distance(path[i], path[i + 1] ?? path[i]) / total_distance;
     }
 
     return vertices;

@@ -5,7 +5,7 @@ import { ProjectedLineGeometry } from "objects/geometry/projected_line_geometry"
 
 type TrackParameters = {
   path: vec3[];
-  interpolation?: { pointsPerSegment: number, tangentFactor?: number};
+  interpolation?: { pointsPerSegment: number; tangentFactor?: number };
   time?: number[];
   color: vec3;
   width: number;
@@ -37,25 +37,22 @@ export class TracksLayer extends Layer {
     this.addObject(new ProjectedLine({ geometry, color, width }));
   }
 
-  public setTime(t: number) {
-    // iterate through tracks and objects
+  public setTimeIndex(index: number) {
     for (const [i, track] of this.tracks_.entries()) {
       if (!track.time) {
         continue;
       }
       let offset = 0.5;
-      if (t < track.time[0]) {
+      if (index < track.time[0]) {
         offset = -1.5;
-      } else if (t > track.time[track.time.length - 1]) {
+      } else if (index > track.time[track.time.length - 1]) {
         offset = 1.5;
       }
-      const timeIndex = track.time.findIndex((time) => time === t);
-      console.log(`Time index: ${timeIndex}`);
+      const timeIndex = track.time.findIndex((time) => time === index);
       if (track.time && timeIndex !== -1) {
         offset = timeIndex / (track.time.length - 1);
       }
       const object = this.objects[i] as ProjectedLine;
-      console.log(`Setting taper offset to ${offset}`);
       object.taperOffset = offset;
     }
   }
@@ -98,7 +95,7 @@ type BezierParams = {
   tangentFactor?: number;
 };
 
-export function cubicBezierInterpolation({
+function cubicBezierInterpolation({
   path,
   pointsPerSegment,
   tangentFactor = 1.0 / 3.0,
@@ -136,17 +133,16 @@ function pathTangents(path: vec3[]): vec3[] {
   }
 
   const tangents: vec3[] = Array(path.length);
+  const m0 = vec3.create();
+  const m1 = vec3.create();
   for (let i = 0; i < path.length; i++) {
-    const prev = path[i - 1] ?? path[i];
     const curr = path[i];
     const next = path[i + 1] ?? path[i];
 
-    const m0 = vec3.create();
-    const m1 = vec3.create();
     tangents[i] = vec3.create();
 
     if (i !== 0) {
-      vec3.sub(m0, curr, prev);
+      vec3.copy(m0, m1);
     }
 
     if (i !== path.length - 1) {
