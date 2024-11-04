@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import {
   ImageSeriesLayer,
   LayerManager,
+  LayerState,
   OmeZarrImageSource,
   OrthographicCamera,
   WebGLRenderer,
@@ -33,12 +34,22 @@ export default function Renderer(props: RendererProps) {
 
   useEffect(() => {
     console.debug("Renderer::useEffect::curTime: ", curTime);
-    if (imageSeriesLayer !== null) {
-      setTimeIndexWhenReady(imageSeriesLayer, curTime);
+    if (imageSeriesLayer === null) return;
+    if (imageSeriesLayer.state === "ready") {
+      imageSeriesLayer.setTimeIndex(curTime);
+      return;
     }
+    const onStateChange = (newState: LayerState) => {
+      if (newState === "ready") {
+        imageSeriesLayer.setTimeIndex(curTime);
+      }
+    };
+    imageSeriesLayer.addStateChangeCallback(onStateChange);
+    return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
   }, [curTime, imageSeriesLayer]);
 
   useEffect(() => {
+    console.debug("Renderer::useEffect::task: ", task);
     setPlaybackEnabled(false);
     if (!task) {
       return;
@@ -46,10 +57,7 @@ export default function Renderer(props: RendererProps) {
     const { tracksLayer, imageSeriesLayer } = task.layers(imageSource);
     imageSeriesLayer.update();
     setImageSeriesLayer(imageSeriesLayer);
-
-    // TODO: need to remove observer as part of dismount function.
-    // https://github.com/chanzuckerberg/imaging-active-learning/issues/77
-    imageSeriesLayer.onStateChange((newState) => {
+    const onStateChange = (newState: LayerState) => {
       if (newState === "ready") {
         setPlaybackEnabled(true);
         // TODO: update the data on the layers instead of creating new ones
@@ -60,7 +68,9 @@ export default function Renderer(props: RendererProps) {
         // (this will make zoom/pan callbacks easier to manage)
         camera = task.camera(2.0);
       }
-    });
+    };
+    imageSeriesLayer.addStateChangeCallback(onStateChange);
+    return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
   }, [task, setPlaybackEnabled]);
 
   // Use the mount-effect so that the renderer can find the corresponding
@@ -101,16 +111,4 @@ export default function Renderer(props: RendererProps) {
       )}
     </Box>
   );
-}
-
-function setTimeIndexWhenReady(layer: ImageSeriesLayer, timeIndex: number) {
-  if (layer.state === "ready") {
-    layer.setTimeIndex(timeIndex);
-  } else {
-    layer.onStateChange((newState) => {
-      if (newState === "ready") {
-        layer.setTimeIndex(timeIndex);
-      }
-    });
-  }
 }
