@@ -1,37 +1,45 @@
 import { Box } from "@mui/material";
 import Renderer from "./Renderer";
 import PlaybackControls from "./PlaybackControls";
-import { useState } from "react";
-import { imageSeriesTimeInterval } from "../image_series_props";
+import { useEffect, useState } from "react";
 import TaskList from "./TaskList";
 import Question from "./Question";
-import { Answer, Task } from "../task";
-
-const defaultTasks: Task[] = [];
-for (let i = 0; i < 30; ++i) {
-  defaultTasks.push({
-    index: i,
-    question: `Is this Cell Division ${i + 1}?`,
-    answer: "Unanswered",
-  });
-}
+import { Answer, Task } from "../lib/tasks";
+import { fetchTasks } from "../lib/mock_data";
 
 export default function App() {
   const [playbackEnabled, setPlaybackEnabled] = useState(false);
-  const [curTime, setCurTime] = useState(imageSeriesTimeInterval.start);
+  const [curTime, setCurTime] = useState(0);
   const [taskIndex, setTaskIndex] = useState(0);
-  const [tasks, setTasks] = useState(defaultTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  // TODO: we want to fetch new tasks more than just on mount
+  // TODO: fetching and syncing might be better handled by `TaskList`
+  useEffect(() => {
+    const fetchOnMount = async () => {
+      setTasks(await fetchTasks());
+    };
+    fetchOnMount();
+  }, []);
 
   const setTaskAnswer = (answer: Answer) => {
     setTasks((prevTasks) =>
-      prevTasks.map((task, index) =>
-        index === taskIndex ? { ...task, answer } : task
-      )
+      prevTasks.map((task, index) => {
+        if (index === taskIndex) {
+          const newTask = task.clone();
+          newTask.answer = answer;
+          return newTask;
+        }
+        return task;
+      })
     );
     setTaskIndex((prevIdx) =>
       prevIdx < tasks.length - 1 ? prevIdx + 1 : prevIdx
     );
   };
+
+  const task = tasks[taskIndex] ?? null;
+  console.debug(`App::taskIndex: ${taskIndex}/${tasks.length}, task:`, task);
 
   return (
     <Box
@@ -69,16 +77,19 @@ export default function App() {
         <Renderer
           playbackEnabled={playbackEnabled}
           setPlaybackEnabled={setPlaybackEnabled}
+          task={task}
           curTime={curTime}
         ></Renderer>
         <Question
-          task={tasks[taskIndex]}
+          disabled={!playbackEnabled}
+          task={task}
           setTaskAnswer={setTaskAnswer}
         ></Question>
         <PlaybackControls
-          enabled={playbackEnabled}
           curTime={curTime}
+          enabled={playbackEnabled}
           setCurTime={setCurTime}
+          task={task}
         ></PlaybackControls>
       </Box>
     </Box>
