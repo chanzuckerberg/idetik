@@ -44,10 +44,12 @@ export default function Renderer(props: RendererProps) {
         imageSeriesLayer.setTimeIndex(curTime);
       }
     };
+    imageSeriesLayer.pushStateChangeCallback(onStateChange);
     return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
   }, [curTime, imageSeriesLayer]);
 
   useEffect(() => {
+    console.debug("Renderer::useEffect::task: ", task);
     setPlaybackEnabled(false);
     if (!task) {
       return;
