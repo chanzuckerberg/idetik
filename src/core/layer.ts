@@ -22,7 +22,7 @@ export abstract class Layer {
     return this.state_;
   }
 
-  public pushStateChangeCallback(callback: StateChangeCallback) {
+  public addStateChangeCallback(callback: StateChangeCallback) {
     this.callbacks_.push(callback);
   }
 

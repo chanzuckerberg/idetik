@@ -44,7 +44,7 @@ export default function Renderer(props: RendererProps) {
         imageSeriesLayer.setTimeIndex(curTime);
       }
     };
-    imageSeriesLayer.pushStateChangeCallback(onStateChange);
+    imageSeriesLayer.addStateChangeCallback(onStateChange);
     return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
   }, [curTime, imageSeriesLayer]);
 
@@ -69,7 +69,7 @@ export default function Renderer(props: RendererProps) {
         camera = task.camera(2.0);
       }
     };
-    imageSeriesLayer.pushStateChangeCallback(onStateChange);
+    imageSeriesLayer.addStateChangeCallback(onStateChange);
     return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
   }, [task, setPlaybackEnabled]);
 
