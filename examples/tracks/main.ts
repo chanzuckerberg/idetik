@@ -57,14 +57,14 @@ const layerManager = new LayerManager();
 layerManager.add(lineLayer);
 layerManager.add(imageSeriesLayer);
 
-const { xMin: left, xMax: right, yMin: top, yMax: bottom} = lineLayer.extent;
+const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
 // TODO: instead of padding, we should add zoom to the camera
 const padding = 0.25 * Math.max(right - left, bottom - top);
 const camera = new OrthographicCamera(
   left - padding,
   right + padding,
   top - padding,
-  bottom + padding,
+  bottom + padding
 );
 
 const slider = document.querySelector<HTMLInputElement>("#slider");
