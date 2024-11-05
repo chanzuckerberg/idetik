@@ -3,7 +3,8 @@ import {
   ImageLayer,
   WebGLRenderer,
   OmeZarrImageSource,
-  OrthographicCamera,
+  // OrthographicCamera,
+  PerspectiveCamera,
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 
@@ -11,7 +12,9 @@ const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(-2000, 2000, 2000, -2000);
+// const camera = new OrthographicCamera(-2000, 2000, 2000, -2000);
+const camera = new PerspectiveCamera(60, 1, 0.1, 10000);
+camera.transform.translate([0, 0, 5000]);
 
 // Source is technically 5D (even though Z is unitary),
 // so provide indices at 3 dimensions to project to 2D.
