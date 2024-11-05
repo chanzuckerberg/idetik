@@ -9,6 +9,21 @@ import { ProjectedLine } from "objects/renderable/projected_line";
 
 import { mat4 } from "gl-matrix";
 
+// The library's coordinate system is left-handed.
+// With the default camera, the standard basis vectors should
+// look as follows.
+// (1, 0, 0) points to the right of the screen
+// (0, 1, 0) points to the bottom of the screen
+// (0, 0, 1) points out of the screen
+// WebGL's coordinate system is right-handed where the vectors
+// point in the same directions except that
+// (0, 1, 0) points to the top of the screen
+// Therefore, this transform makes the appropriate flip in y.
+const axisDirection = mat4.fromScaling(
+  mat4.create(),
+  [1, -1, 1],
+);
+
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
@@ -39,7 +54,12 @@ export class WebGLRenderer extends Renderer {
       this.activeCamera.transform.inverse
     );
     program.setUniform("ModelView", modelView);
-    program.setUniform("Projection", this.activeCamera.projectionMatrix);
+    const projection = mat4.multiply(
+      mat4.create(),
+      axisDirection,
+      this.activeCamera.projectionMatrix,
+    )
+    program.setUniform("Projection", projection);
 
     switch (object.type) {
       case "ProjectedLine": {

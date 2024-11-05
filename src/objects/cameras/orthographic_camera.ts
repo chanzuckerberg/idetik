@@ -68,8 +68,8 @@ export class OrthographicCamera extends Camera {
       this.projectionMatrix_,
       horizontalCenter - viewportHalfWidth,
       horizontalCenter + viewportHalfWidth,
-      -(verticalCenter - viewportHalfHeight),
-      -(verticalCenter + viewportHalfHeight),
+      verticalCenter - viewportHalfHeight,
+      verticalCenter + viewportHalfHeight,
       this.near_,
       this.far_
     );
