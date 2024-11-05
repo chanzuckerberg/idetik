@@ -22,8 +22,16 @@ export abstract class Layer {
     return this.state_;
   }
 
-  public onStateChange(callback: StateChangeCallback) {
+  public addStateChangeCallback(callback: StateChangeCallback) {
     this.callbacks_.push(callback);
+  }
+
+  public removeStateChangeCallback(callback: StateChangeCallback) {
+    const index = this.callbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.callbacks_.splice(index, 1);
   }
 
   protected setState(newState: LayerState) {

@@ -13,13 +13,14 @@ const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
 const camera = new OrthographicCamera(0, 1920, 0, 1440);
 
-// Source is 5D, so provide an interval in T and scalar indices in C (first of
-// three channels) and Z (first of only depth) to get a 2D image series.
+// Source is 5D, so provide an interval in T and C (all three channels)
+// and scalar indices in Z (first of only depth) to get a 2D image series.
 const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 100, stop: 120 };
+const channels = { start: 0, stop: 3 };
 const region = [
   { dimension: "T", index: timeInterval },
-  { dimension: "C", index: 0 },
+  { dimension: "C", index: channels },
   { dimension: "Z", index: 0 },
 ];
 const layer = new ImageSeriesLayer(source, region, "T");
@@ -30,7 +31,7 @@ if (slider === null) throw new Error("Time slider not found.");
 slider.min = timeInterval.start.toString();
 slider.max = (timeInterval.stop - 1).toString();
 
-layer.onStateChange((newState: LayerState) => {
+layer.addStateChangeCallback((newState: LayerState) => {
   if (newState === "ready") {
     slider.addEventListener("input", (event) => {
       const value = (event.target as HTMLInputElement).valueAsNumber;

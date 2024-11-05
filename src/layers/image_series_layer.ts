@@ -3,7 +3,7 @@ import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Interval, Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
-import { DataTexture2D } from "objects/textures/data_texture_2d";
+import { Texture2DArray } from "objects/textures/texture_2d_array";
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -11,7 +11,7 @@ export class ImageSeriesLayer extends Layer {
   private readonly region_: Region;
   private readonly timeInterval_: Interval;
   private readonly timeDimensionIndex_: number;
-  private texture_: DataTexture2D | null = null;
+  private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
 
   constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
@@ -103,7 +103,7 @@ export class ImageSeriesLayer extends Layer {
   }
 
   private initializeTexture(chunk: ImageChunk) {
-    this.texture_ = new DataTexture2D(
+    this.texture_ = new Texture2DArray(
       chunk.data,
       chunk.shape.width,
       chunk.shape.height
