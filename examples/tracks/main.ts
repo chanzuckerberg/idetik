@@ -63,11 +63,9 @@ const padding = 0.25 * Math.max(right - left, bottom - top);
 const camera = new OrthographicCamera(
   left - padding,
   right + padding,
-  bottom + padding,
   top - padding,
+  bottom + padding,
 );
-camera.setFrame(-2000, 2000, 2000, -2000);
-camera.setFrame(1800, 1920, 1440, 1300);
 
 const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
