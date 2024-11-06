@@ -79,8 +79,8 @@ const imageSeriesLayer = new ImageSeriesLayer(source, region, "T");
 const renderer = new WebGLRenderer("#canvas");
 
 const layerManager = new LayerManager();
-layerManager.add(imageSeriesLayer);
 layerManager.add(lineLayer);
+layerManager.add(imageSeriesLayer);
 
 const { xMin: left, xMax: right, yMin: bottom, yMax: top } = lineLayer.extent;
 // TODO: instead of padding, we should add zoom to the camera
