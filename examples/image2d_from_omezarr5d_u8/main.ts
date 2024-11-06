@@ -46,7 +46,7 @@ let camera: PerspectiveCamera | OrthographicCamera = perspectiveCam;
 const clientToWorld = (clientPos: vec2) => {
   const clipPos = renderer.clientToClip(clientPos);
   const d = camera == perspectiveCam ? clipDistance : 0;
-  return camera.clipToWorld(clipPos, d);
+  return camera.clipToWorld(vec3.fromValues(clipPos[0], clipPos[1], d));
 };
 
 document.addEventListener("wheel", (event) => {
@@ -59,8 +59,8 @@ document.addEventListener("wheel", (event) => {
   }
   // pan to zoom in on the mouse position
   const postZoomPos = clientToWorld(clientPos);
-  const dWorld = vec2.sub(vec2.create(), postZoomPos, preZoomPos);
-  camera.pan(vec2.scale(vec2.create(), dWorld, -1));
+  const dWorld = vec3.sub(vec3.create(), postZoomPos, preZoomPos);
+  camera.pan(vec3.scale(vec3.create(), dWorld, -1));
   console.log(camera);
 });
 
@@ -72,8 +72,8 @@ document.addEventListener("mousedown", (event) => {
   const onMouseMove = (event: MouseEvent) => {
     const clientPos = vec2.fromValues(event.clientX, event.clientY);
     const worldPos = clientToWorld(clientPos);
-    const dWorld = vec2.sub(vec2.create(), worldPos, worldStart);
-    camera.pan(vec2.scale(vec2.create(), dWorld, -1));
+    const dWorld = vec3.sub(vec3.create(), worldPos, worldStart);
+    camera.pan(vec3.scale(vec3.create(), dWorld, -1));
     worldStart = worldPos;
   };
 
