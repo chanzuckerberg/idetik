@@ -1,19 +1,30 @@
 import { Camera } from "./camera";
-import { glMatrix, mat4 } from "gl-matrix";
+import { glMatrix, mat4, vec3 } from "gl-matrix";
 
 const DEFAULT_FOV = 60; // degrees
 const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
+
+type PerspectiveCameraOptions = {
+  fov?: number;
+  aspectRatio?: number;
+  near?: number;
+  far?: number;
+  position?: vec3;
+};
 
 export class PerspectiveCamera extends Camera {
   private fov_: number;
   private aspectRatio_: number;
 
-  constructor(
-    fov: number = DEFAULT_FOV,
-    aspectRatio: number = DEFAULT_ASPECT_RATIO,
-    near = 0.1,
-    far = 1000.0
-  ) {
+  constructor(options: PerspectiveCameraOptions = {}) {
+    const {
+      fov = DEFAULT_FOV,
+      aspectRatio = DEFAULT_ASPECT_RATIO,
+      near = 0.1,
+      far = 10000,
+      position = vec3.create(),
+    } = options;
+
     if (fov <= 0 || fov >= 180) {
       throw new Error(`Invalid field of view: ${fov}`);
     }
@@ -22,6 +33,8 @@ export class PerspectiveCamera extends Camera {
     this.aspectRatio_ = aspectRatio;
     this.near_ = near;
     this.far_ = far;
+
+    this.transform.setTranslation(position);
 
     this.updateProjectionMatrix();
   }

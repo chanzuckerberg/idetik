@@ -15,9 +15,8 @@ const url =
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
 const orthoCam = new OrthographicCamera(-2000, 2000, -2000, 2000);
-const perspectiveCam = new PerspectiveCamera(60, 1, 0.1, 10000);
 const cameraPos = vec3.fromValues(0, 0, 5000);
-perspectiveCam.transform.translate(cameraPos);
+const perspectiveCam = new PerspectiveCamera({ fov: 60, position: cameraPos });
 // project the (negative) camera position to clip space
 // to get the distance to the image plane (z = 0)
 const projectedCameraPos = vec3.transformMat4(
