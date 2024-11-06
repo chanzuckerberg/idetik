@@ -14,6 +14,9 @@ export class PerspectiveCamera extends Camera {
     near = 0.1,
     far = 1000.0
   ) {
+    if (fov <= 0 || fov >= 180) {
+      throw new Error(`Invalid field of view: ${fov}`);
+    }
     super();
     this.fov_ = fov;
     this.aspectRatio_ = aspectRatio;
@@ -29,6 +32,14 @@ export class PerspectiveCamera extends Camera {
 
   public get type() {
     return "PerspectiveCamera";
+  }
+
+  public get fov() {
+    return this.fov_;
+  }
+
+  public get effectiveFov() {
+    return this.fov_ / this.zoom_;
   }
 
   protected updateProjectionMatrix() {
