@@ -1,15 +1,18 @@
-import { vec2 } from "gl-matrix";
+import { vec2, vec3 } from "gl-matrix";
 import { LayerManager } from "./layer_manager";
 import { Camera } from "objects/cameras/camera";
 import { RenderableObject } from "core/renderable_object";
 import { PerspectiveCamera } from "objects/cameras/perspective_camera";
 import { OrthographicCamera } from "objects/cameras/orthographic_camera";
+import { CameraControls } from "objects/cameras/controls";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
   private width_ = 0;
   private height_ = 0;
   private activeCamera_: Camera | null = null;
+  private controls_: CameraControls | null = null;
+  private controlCallbacks_: [string, (event: Event) => void][] = [];
 
   protected abstract resize(width: number, height: number): void;
   protected abstract renderObject(object: RenderableObject): void;
@@ -40,6 +43,32 @@ export abstract class Renderer {
           this.renderObject(obj);
         });
       }
+    });
+  }
+
+  public setControls(controls: CameraControls) {
+    this.unbindControls();
+    this.controls_ = controls;
+    this.bindControls();
+  }
+
+  private unbindControls() {
+    this.controlCallbacks_.forEach(([event, listener]) => {
+      this.canvas.removeEventListener(event, listener);
+    });
+  }
+
+  private bindControls() {
+    if (!this.controls_) {
+      throw new Error("Unable to unbind controls before they are set");
+    }
+    const clientToClip = this.clientToClip.bind(this);
+    this.controlCallbacks_ = this.controls_.callbacks(
+      this.canvas,
+      clientToClip
+    );
+    this.controlCallbacks_.forEach(([event, listener]) => {
+      this.canvas.addEventListener(event, listener);
     });
   }
 
@@ -87,11 +116,12 @@ export abstract class Renderer {
     return this.activeCamera_;
   }
 
-  public clientToClip(position: vec2): vec2 {
+  public clientToClip(position: vec2, depth: number = 0): vec3 {
     const [x, y] = position;
-    return vec2.fromValues(
+    return vec3.fromValues(
       (2 * x) / this.canvas.clientWidth - 1,
-      1 - (2 * y) / this.canvas.clientHeight
+      1 - (2 * y) / this.canvas.clientHeight,
+      depth
     );
   }
 }
