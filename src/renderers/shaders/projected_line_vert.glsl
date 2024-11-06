@@ -6,13 +6,14 @@ layout (location = 0) in vec3 inPosition;
 layout (location = 3) in vec3 inPrevPosition;
 layout (location = 4) in vec3 inNextPosition;
 layout (location = 5) in float direction;
-layout (location = 6) in float distance;
+layout (location = 6) in float path_proportion;
 
 uniform mat4 Projection;
 uniform mat4 ModelView;
 uniform vec2 Resolution;
 uniform float LineWidth;
 uniform float TaperOffset;
+uniform float TaperPower;
 
 // adapted from https://github.com/mattdesl/webgl-lines
 void main() {
@@ -43,12 +44,12 @@ void main() {
         diff = normalize(prevDiff) + normalize(nextDiff);
     }
 
-    // direction is + or -, but also encodes distance on path
+    // direction is + or -; which way to project the vertex away from the path
+    // path_proportion is the distance along the path, from 0 to 1
     float d = sign(direction);
-    float t = clamp(distance - TaperOffset, -0.5, 0.5);
+    float t = clamp(path_proportion - TaperOffset, -0.5, 0.5);
     float angle = PI * t;
-    float taper = pow(cos(angle), 1.5);
-
+    float taper = pow(cos(angle), TaperPower);
 
     vec2 normal = normalize(vec2(-diff.y, diff.x));
 

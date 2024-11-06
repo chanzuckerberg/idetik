@@ -51,6 +51,7 @@ export class WebGLRenderer extends Renderer {
         program.setUniform("LineColor", line.color);
         program.setUniform("LineWidth", line.width);
         program.setUniform("TaperOffset", line.taperOffset);
+        program.setUniform("TaperPower", line.taperPower);
         break;
       }
     }

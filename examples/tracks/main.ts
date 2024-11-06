@@ -40,13 +40,6 @@ const trackCPath: vec3[] = [
 const trackCTime = [34, 35, 36, 37, 38];
 const interpolation = { pointsPerSegment: 10, tangentFactor: 0.3 };
 
-// TODO: intermediate paths should be handled by the TracksLayer
-// this requires encoding the path relationships
-const aToB: vec3[] = [trackAPath[trackAPath.length - 1], trackBPath[0]];
-const aToC: vec3[] = [trackAPath[trackAPath.length - 1], trackCPath[0]];
-const aToBTime = [33, 34];
-const aToCTime = [33, 34];
-
 const lineLayer = new TracksLayer([
   {
     path: trackAPath,
@@ -69,8 +62,6 @@ const lineLayer = new TracksLayer([
     width: 0.02,
     interpolation,
   },
-  { path: aToB, time: aToBTime, color: [1.0, 0.5, 0.0], width: 0.02 },
-  { path: aToC, time: aToCTime, color: [1.0, 0.5, 0.5], width: 0.02 },
 ]);
 
 const url =

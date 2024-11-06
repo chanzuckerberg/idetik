@@ -34,7 +34,11 @@ export class TracksLayer extends Layer {
       geometry = new ProjectedLineGeometry(track.path);
     }
     const { color, width } = track;
-    this.addObject(new ProjectedLine({ geometry, color, width }));
+    const taperOffset = 0.5;
+    const taperPower = 1.5;
+    this.addObject(
+      new ProjectedLine({ geometry, color, width, taperOffset, taperPower })
+    );
   }
 
   public setTimeIndex(index: number) {

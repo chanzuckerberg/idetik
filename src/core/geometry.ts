@@ -7,7 +7,7 @@ type GeometryAttributeType =
   | "next_position"
   | "previous_position"
   | "direction"
-  | "distance";
+  | "path_proportion";
 
 type GeometryAttribute = {
   type: GeometryAttributeType;
