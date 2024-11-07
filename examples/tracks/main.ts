@@ -11,29 +11,27 @@ import {
 
 // payload roughly equivalent to task 0 from
 // https://public.czbiohub.org/royerlab/ultrack/multi-color/mock_data.json
-// TODO: we don't want to transform the coordinates manually like this
-// https://github.com/chanzuckerberg/imaging-active-learning/issues/88
 const trackAPath: vec3[] = [
-  [1822.0, 1440 - 1350.0, 0.0],
-  [1825.0, 1440 - 1350.0, 0.0],
-  [1831.0, 1440 - 1351.0, 0.0],
-  [1826.0, 1440 - 1350.0, 0.0],
-  [1827.0, 1440 - 1350.0, 0.0],
-  [1827.0, 1440 - 1351.0, 0.0],
+  [1822.0, 1350.0, 0.0],
+  [1825.0, 1350.0, 0.0],
+  [1831.0, 1351.0, 0.0],
+  [1826.0, 1350.0, 0.0],
+  [1827.0, 1350.0, 0.0],
+  [1827.0, 1351.0, 0.0],
 ];
 const trackBPath: vec3[] = [
-  [1818.0, 1440 - 1347.0, 0.0],
-  [1820.0, 1440 - 1343.0, 0.0],
-  [1820.0, 1440 - 1341.0, 0.0],
-  [1824.0, 1440 - 1345.0, 0.0],
-  [1824.0, 1440 - 1350.0, 0.0],
+  [1818.0, 1347.0, 0.0],
+  [1820.0, 1343.0, 0.0],
+  [1820.0, 1341.0, 0.0],
+  [1824.0, 1345.0, 0.0],
+  [1824.0, 1350.0, 0.0],
 ];
 const trackCPath: vec3[] = [
-  [1841.0, 1440 - 1353.0, 0.0],
-  [1842.0, 1440 - 1356.0, 0.0],
-  [1842.0, 1440 - 1356.0, 0.0],
-  [1840.0, 1440 - 1367.0, 0.0],
-  [1844.0, 1440 - 1378.0, 0.0],
+  [1841.0, 1353.0, 0.0],
+  [1842.0, 1356.0, 0.0],
+  [1842.0, 1356.0, 0.0],
+  [1840.0, 1367.0, 0.0],
+  [1844.0, 1378.0, 0.0],
 ];
 const lineLayer = new ProjectedLineLayer([
   { path: trackAPath, color: [1.0, 0.0, 0.0], width: 0.01 },
@@ -59,16 +57,14 @@ const layerManager = new LayerManager();
 layerManager.add(lineLayer);
 layerManager.add(imageSeriesLayer);
 
-const { xMin: left, xMax: right, yMin: bottom, yMax: top } = lineLayer.extent;
+const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
 // TODO: instead of padding, we should add zoom to the camera
-const padding = 0.25 * Math.max(right - left, top - bottom);
+const padding = 0.25 * Math.max(right - left, bottom - top);
 const camera = new OrthographicCamera(
   left - padding,
   right + padding,
-  bottom - padding,
-  top + padding,
-  0.0,
-  100
+  top - padding,
+  bottom + padding
 );
 
 const slider = document.querySelector<HTMLInputElement>("#slider");

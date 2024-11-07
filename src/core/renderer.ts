@@ -118,7 +118,7 @@ export abstract class Renderer {
     const [x, y] = position;
     return vec3.fromValues(
       (2 * x) / this.canvas.clientWidth - 1,
-      1 - (2 * y) / this.canvas.clientHeight,
+      (2 * y) / this.canvas.clientHeight - 1,
       depth
     );
   }

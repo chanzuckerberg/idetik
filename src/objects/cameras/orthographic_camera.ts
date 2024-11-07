@@ -9,8 +9,8 @@ export class OrthographicCamera extends Camera {
   constructor(
     left: number,
     right: number,
-    bottom: number,
     top: number,
+    bottom: number,
     near = 0,
     far = 100.0
   ) {
