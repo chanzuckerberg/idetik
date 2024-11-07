@@ -46,7 +46,7 @@ void main() {
         0.0,
         0.0
     );
-    gl_Position = currPos + offset;
+    gl_Position = currPos + offset * currPos.w;
 
     // draw as GL_POINTS for debugging
     gl_PointSize = 5.0;
