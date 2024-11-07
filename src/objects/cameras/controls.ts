@@ -1,6 +1,5 @@
 import { vec2, vec3 } from "gl-matrix";
 import { Camera } from "./camera";
-import { PerspectiveCamera } from "./perspective_camera";
 
 type ClientToClip = (clientPos: vec2, depth: number) => vec3;
 type ClientToWorld = (clientPos: vec2, depth: number) => vec3;
@@ -23,9 +22,11 @@ export class NullControls implements CameraControls {
 
 export class PanZoomControls implements CameraControls {
   private camera_: Camera;
+  private panTarget_: vec3;
 
-  constructor(camera: Camera) {
+  constructor(camera: Camera, panTarget: vec3 = vec3.fromValues(0, 0, 0)) {
     this.camera_ = camera;
+    this.panTarget_ = panTarget;
   }
 
   public callbacks(
@@ -60,7 +61,7 @@ export class PanZoomControls implements CameraControls {
     // pan to zoom in on the mouse position
     const postZoomPos = clientToWorld(clientPos, this.clipDepth);
     const deltaWorld = vec3.sub(vec3.create(), preZoomPos, postZoomPos);
-    this.camera_.pan(deltaWorld);
+    this.pan(deltaWorld);
   }
 
   private mousedown(
@@ -78,7 +79,7 @@ export class PanZoomControls implements CameraControls {
       const clientPos = vec2.fromValues(event.clientX, event.clientY);
       const worldPos = clientToWorld(clientPos, this.clipDepth);
       const deltaWorld = vec3.sub(vec3.create(), worldStart, worldPos);
-      this.camera_.pan(deltaWorld);
+      this.pan(deltaWorld);
       worldStart = worldPos;
     };
 
@@ -91,21 +92,29 @@ export class PanZoomControls implements CameraControls {
     target.addEventListener("mouseup", onMouseUp);
   }
 
+  private pan(deltaWorld: vec3): void {
+    this.camera_.pan(deltaWorld);
+    vec3.add(this.panTarget_, this.panTarget_, deltaWorld);
+  }
+
+  public set panTarget(panTarget: vec3) {
+    this.panTarget_ = panTarget;
+  }
+
   private get clipDepth() {
-    let distance = 0;
-    if (this.camera_ instanceof PerspectiveCamera) {
-      const targetToPosition = vec3.sub(
-        vec3.create(),
-        this.camera_.target,
-        this.camera_.position
-      );
-      const projectedViewVector = vec3.transformMat4(
-        vec3.create(),
-        targetToPosition,
-        this.camera_.projectionMatrix
-      );
-      distance = vec3.length(projectedViewVector);
-    }
+    const targetToPosition = vec3.sub(
+      vec3.create(),
+      this.panTarget_,
+      this.camera_.position
+    );
+    const projectedViewVector = vec3.transformMat4(
+      vec3.create(),
+      targetToPosition,
+      this.camera_.projectionMatrix
+    );
+    // TODO: the distance should be projected onto the camera's view
+    // normal when we start rotating cameras
+    const distance = vec3.length(projectedViewVector);
     return distance;
   }
 }

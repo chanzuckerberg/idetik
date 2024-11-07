@@ -34,6 +34,10 @@ export abstract class Camera extends RenderableObject {
     this.transform.translate(vec);
   }
 
+  public get position() {
+    return this.transform.translation;
+  }
+
   public clipToWorld(position: vec3): vec3 {
     const clipPos = vec4.fromValues(position[0], position[1], position[2], 1);
     const projectionInverse = mat4.invert(mat4.create(), this.projectionMatrix);
