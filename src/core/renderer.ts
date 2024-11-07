@@ -4,14 +4,14 @@ import { Camera } from "objects/cameras/camera";
 import { RenderableObject } from "core/renderable_object";
 import { PerspectiveCamera } from "objects/cameras/perspective_camera";
 import { OrthographicCamera } from "objects/cameras/orthographic_camera";
-import { CameraControls } from "objects/cameras/controls";
+import { CameraControls, NullControls } from "objects/cameras/controls";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
   private width_ = 0;
   private height_ = 0;
   private activeCamera_: Camera | null = null;
-  private controls_: CameraControls | null = null;
+  private controls_: CameraControls = new NullControls();
   private controlCallbacks_: [string, (event: Event) => void][] = [];
 
   protected abstract resize(width: number, height: number): void;
@@ -56,12 +56,10 @@ export abstract class Renderer {
     this.controlCallbacks_.forEach(([event, listener]) => {
       this.canvas.removeEventListener(event, listener);
     });
+    this.controlCallbacks_ = [];
   }
 
   private bindControls() {
-    if (!this.controls_) {
-      throw new Error("Unable to unbind controls before they are set");
-    }
     const clientToClip = this.clientToClip.bind(this);
     this.controlCallbacks_ = this.controls_.callbacks(
       this.canvas,

@@ -18,6 +18,14 @@ export class AffineTransform {
     this.dirty_ = true;
   }
 
+  public lookAt(target: vec3, up: vec3 = vec3.fromValues(0, 1, 0)) {
+    mat4.getRotation(
+      this.rotation_,
+      mat4.lookAt(mat4.create(), this.translation_, target, up)
+    );
+    this.dirty_ = true;
+  }
+
   public setTranslation(vec: vec3) {
     vec3.copy(this.translation_, vec);
     this.dirty_ = true;

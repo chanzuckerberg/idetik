@@ -10,11 +10,14 @@ type PerspectiveCameraOptions = {
   near?: number;
   far?: number;
   position?: vec3;
+  target?: vec3;
 };
 
 export class PerspectiveCamera extends Camera {
   private fov_: number;
   private aspectRatio_: number;
+  private position_: vec3;
+  private target_: vec3;
 
   constructor(options: PerspectiveCameraOptions = {}) {
     const {
@@ -23,6 +26,7 @@ export class PerspectiveCamera extends Camera {
       near = 0.1,
       far = 10000,
       position = vec3.create(),
+      target = vec3.create(),
     } = options;
 
     if (fov <= 0 || fov >= 180) {
@@ -34,7 +38,10 @@ export class PerspectiveCamera extends Camera {
     this.near_ = near;
     this.far_ = far;
 
+    this.position_ = position;
+    this.target_ = target;
     this.transform.setTranslation(position);
+    this.transform.lookAt(target);
 
     this.updateProjectionMatrix();
   }
@@ -53,6 +60,24 @@ export class PerspectiveCamera extends Camera {
 
   public get effectiveFov() {
     return this.fov_ / this.zoom_;
+  }
+
+  public get position() {
+    return this.position_;
+  }
+
+  public set position(position: vec3) {
+    this.position_ = position;
+    this.transform.setTranslation(position);
+  }
+
+  public get target() {
+    return this.target_;
+  }
+
+  public set target(target: vec3) {
+    this.target_ = target;
+    this.transform.lookAt(target);
   }
 
   protected updateProjectionMatrix() {
