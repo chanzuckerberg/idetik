@@ -1,6 +1,6 @@
 import { Button, Icon } from "@czi-sds/components";
 import { Dispatch, SetStateAction } from "react";
-import { Answer } from "../task";
+import { Answer } from "../lib/tasks";
 
 export type TaskItemProps = {
   index: number;

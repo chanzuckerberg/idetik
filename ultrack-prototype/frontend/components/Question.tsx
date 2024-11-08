@@ -1,16 +1,17 @@
 import { Button } from "@czi-sds/components";
 import { Box, Typography } from "@mui/material";
-import { Answer, Task } from "../task";
+import { Answer, Task } from "../lib/tasks";
 
 const answers: Answer[] = ["Yes", "No", "Uncertain"];
 
 export type QuestionProps = {
-  task: Task;
+  disabled: boolean;
+  task: Task | null;
   setTaskAnswer: (answer: Answer) => void;
 };
 
 export default function Question(props: QuestionProps) {
-  const { task, setTaskAnswer } = props;
+  const { disabled, task, setTaskAnswer } = props;
 
   return (
     <Box
@@ -22,7 +23,7 @@ export default function Question(props: QuestionProps) {
         gap: "1em",
       }}
     >
-      <Typography variant="h3">{task.question}</Typography>
+      <Typography variant="h3">{task?.question ?? ""}</Typography>
       <Box
         sx={{
           display: "flex",
@@ -33,9 +34,10 @@ export default function Question(props: QuestionProps) {
         {answers.map((answer) => (
           <Button
             key={answer}
-            sdsType={task.answer === answer ? "primary" : "secondary"}
+            sdsType={task?.answer === answer ? "primary" : "secondary"}
             sdsStyle="square"
             onClick={() => setTaskAnswer(answer)}
+            disabled={disabled}
           >
             {answer}
           </Button>
