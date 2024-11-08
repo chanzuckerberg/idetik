@@ -36,16 +36,16 @@ export default function Renderer(props: RendererProps) {
 
   useEffect(() => {
     console.debug("Renderer::useEffect::curTime: ", curTime);
-    if (imageSeriesLayer === null) return;
+    if (imageSeriesLayer === null || tracksLayer === null) return;
     if (imageSeriesLayer.state === "ready") {
       imageSeriesLayer.setTimeIndex(curTime);
-      tracksLayer?.setTimeIndex(curTime);
+      tracksLayer.setTimeIndex(curTime);
       return;
     }
     const onStateChange = (newState: LayerState) => {
       if (newState === "ready") {
         imageSeriesLayer.setTimeIndex(curTime);
-        tracksLayer?.setTimeIndex(curTime);
+        tracksLayer.setTimeIndex(curTime);
       }
     };
     imageSeriesLayer.addStateChangeCallback(onStateChange);
