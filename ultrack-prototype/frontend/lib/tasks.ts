@@ -206,6 +206,7 @@ export class Task {
           time: track.time,
           color: COLOR_CYCLE[i % COLOR_CYCLE.length],
           width: 0.01,
+          interpolation: { pointsPerSegment: 10, tangentFactor: 0.3 },
         };
       });
       this.tracksLayer_ = new TracksLayer(tracks);

@@ -3,7 +3,7 @@ import { Button, InputSlider } from "@czi-sds/components";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Task } from "../lib/tasks";
 
-const playbackFPS = 16;
+const playbackFPS = 8;
 const playbackIntervalMs = 1000 / playbackFPS;
 
 type PlaybackControlsProps = {
