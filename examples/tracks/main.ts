@@ -5,7 +5,7 @@ import {
   LayerState,
   OrthographicCamera,
   OmeZarrImageSource,
-  ProjectedLineLayer,
+  TracksLayer,
   WebGLRenderer,
 } from "@";
 
@@ -19,6 +19,7 @@ const trackAPath: vec3[] = [
   [1827.0, 1350.0, 0.0],
   [1827.0, 1351.0, 0.0],
 ];
+const trackATime = [28, 29, 30, 31, 32, 33];
 const trackBPath: vec3[] = [
   [1818.0, 1347.0, 0.0],
   [1820.0, 1343.0, 0.0],
@@ -26,6 +27,7 @@ const trackBPath: vec3[] = [
   [1824.0, 1345.0, 0.0],
   [1824.0, 1350.0, 0.0],
 ];
+const trackBTime = [34, 35, 36, 37, 38];
 const trackCPath: vec3[] = [
   [1841.0, 1353.0, 0.0],
   [1842.0, 1356.0, 0.0],
@@ -33,10 +35,31 @@ const trackCPath: vec3[] = [
   [1840.0, 1367.0, 0.0],
   [1844.0, 1378.0, 0.0],
 ];
-const lineLayer = new ProjectedLineLayer([
-  { path: trackAPath, color: [1.0, 0.0, 0.0], width: 0.01 },
-  { path: trackBPath, color: [0.0, 1.0, 0.0], width: 0.01 },
-  { path: trackCPath, color: [0.0, 0.0, 1.0], width: 0.01 },
+const trackCTime = [34, 35, 36, 37, 38];
+const interpolation = { pointsPerSegment: 10, tangentFactor: 0.3 };
+
+const lineLayer = new TracksLayer([
+  {
+    path: trackAPath,
+    time: trackATime,
+    color: [1.0, 0.0, 0.0],
+    width: 0.02,
+    interpolation,
+  },
+  {
+    path: trackBPath,
+    time: trackBTime,
+    color: [0.0, 1.0, 0.0],
+    width: 0.02,
+    interpolation,
+  },
+  {
+    path: trackCPath,
+    time: trackCTime,
+    color: [0.0, 1.0, 1.0],
+    width: 0.02,
+    interpolation,
+  },
 ]);
 
 const url =
@@ -58,14 +81,9 @@ layerManager.add(lineLayer);
 layerManager.add(imageSeriesLayer);
 
 const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
-// TODO: instead of padding, we should add zoom to the camera
-const padding = 0.25 * Math.max(right - left, bottom - top);
-const camera = new OrthographicCamera(
-  left - padding,
-  right + padding,
-  top - padding,
-  bottom + padding
-);
+const camera = new OrthographicCamera(left, right, top, bottom);
+camera.zoom = 0.5;
+camera.transform.translate([0, 0, 1]);
 
 const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
@@ -77,8 +95,10 @@ imageSeriesLayer.addStateChangeCallback((newState: LayerState) => {
     slider.addEventListener("input", (event) => {
       const value = (event.target as HTMLInputElement).valueAsNumber;
       imageSeriesLayer.setTimeIndex(value);
+      lineLayer.setTimeIndex(value);
     });
     imageSeriesLayer.setTimeIndex(slider.valueAsNumber);
+    lineLayer.setTimeIndex(slider.valueAsNumber);
   }
 });
 

@@ -34,12 +34,21 @@ export class ProjectedLineGeometry extends Geometry {
       itemSize: 1,
       offset: 9 * Float32Array.BYTES_PER_ELEMENT,
     });
+    this.addAttribute({
+      type: "path_proportion",
+      itemSize: 1,
+      offset: 10 * Float32Array.BYTES_PER_ELEMENT,
+    });
   }
 
   private createVertices(path: vec3[]): Float32Array {
-    const vertices = new Float32Array(2 * path.length * (3 + 3 + 3 + 1));
+    const vertices = new Float32Array(2 * path.length * (3 + 3 + 3 + 1 + 1));
 
     let c = 0;
+    let path_proportion = 0.0;
+    const total_distance = path.reduce((acc, curr, i) => {
+      return acc + vec3.distance(curr, path[i + 1] ?? curr);
+    }, 0.0);
     for (const i of [...Array(path.length).keys()]) {
       for (const direction of [-1.0, 1.0]) {
         const current = path[i];
@@ -58,7 +67,10 @@ export class ProjectedLineGeometry extends Geometry {
         vertices[c++] = next[2];
 
         vertices[c++] = direction;
+        vertices[c++] = path_proportion;
       }
+      path_proportion +=
+        vec3.distance(path[i], path[i + 1] ?? path[i]) / total_distance;
     }
 
     return vertices;

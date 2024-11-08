@@ -67,6 +67,8 @@ export class WebGLRenderer extends Renderer {
         const line = object as ProjectedLine;
         program.setUniform("LineColor", line.color);
         program.setUniform("LineWidth", line.width);
+        program.setUniform("TaperOffset", line.taperOffset);
+        program.setUniform("TaperPower", line.taperPower);
         break;
       }
     }
