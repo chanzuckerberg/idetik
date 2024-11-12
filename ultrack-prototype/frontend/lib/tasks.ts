@@ -3,7 +3,6 @@ import { vec2, vec3 } from "gl-matrix";
 import {
   ImageSeriesLayer,
   OmeZarrImageSource,
-  OrthographicCamera,
   ProjectedLineLayer,
 } from "@";
 
@@ -229,15 +228,15 @@ export class Task {
     return layers;
   }
 
-  public camera(paddingFactor: number = 1.0): OrthographicCamera {
+  public camera(paddingFactor: number = 1.0) {
     const { xMin, xMax, yMin, yMax } = this.tracksLayer().extent;
     const padding = paddingFactor * Math.max(xMax - xMin, yMax - yMin);
-    return new OrthographicCamera(
-      xMin - padding,
-      xMax + padding,
-      yMin - padding,
-      yMax + padding
-    );
+    return {
+      xMin: xMin - padding,
+      xMax: xMax + padding,
+      yMin: yMin - padding,
+      yMax: yMax + padding,
+    };
   }
 }
 

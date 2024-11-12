@@ -12,12 +12,14 @@ import { imageUrl } from "../lib/mock_data";
 import { Task } from "../lib/tasks";
 import { Box } from "@mui/material";
 import { LoadingIndicator } from "@czi-sds/components";
+import { PanZoomControls } from "@/objects/cameras/controls";
 
 const canvasId = "canvas";
 
 // TODO: consider useRef for these objects
 const imageSource = new OmeZarrImageSource(imageUrl);
-let camera = new OrthographicCamera(0, 1920, 0, 1440);
+const camera = new OrthographicCamera(0, 1920, 0, 1440);
+const controls = new PanZoomControls(camera, camera.position);
 const layerManager = new LayerManager();
 
 type RendererProps = {
@@ -64,9 +66,10 @@ export default function Renderer(props: RendererProps) {
         layerManager.layers.length = 0;
         layerManager.add(tracksLayer);
         layerManager.add(imageSeriesLayer);
-        // TODO: update the camera in-place instead of creating a new one
-        // (this will make zoom/pan callbacks easier to manage)
-        camera = task.camera(2.0);
+        const {xMin, xMax, yMin, yMax} = task.camera(2.0);
+        camera.setFrame(xMin, xMax, yMax, yMin);
+        camera.update();
+        controls.panTarget = camera.position;
       }
     };
     imageSeriesLayer.addStateChangeCallback(onStateChange);
@@ -79,6 +82,7 @@ export default function Renderer(props: RendererProps) {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
+    renderer.setControls(controls);
     function animate() {
       renderer.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
