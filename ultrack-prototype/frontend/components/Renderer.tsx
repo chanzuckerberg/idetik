@@ -66,7 +66,7 @@ export default function Renderer(props: RendererProps) {
         layerManager.layers.length = 0;
         layerManager.add(tracksLayer);
         layerManager.add(imageSeriesLayer);
-        const {xMin, xMax, yMin, yMax} = task.camera(2.0);
+        const { xMin, xMax, yMin, yMax } = task.camera(2.0);
         camera.setFrame(xMin, xMax, yMax, yMin);
         camera.update();
         controls.panTarget = camera.position;

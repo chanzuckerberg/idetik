@@ -1,10 +1,6 @@
 import { vec2, vec3 } from "gl-matrix";
 
-import {
-  ImageSeriesLayer,
-  OmeZarrImageSource,
-  ProjectedLineLayer,
-} from "@";
+import { ImageSeriesLayer, OmeZarrImageSource, ProjectedLineLayer } from "@";
 
 type Track = {
   trackId: number;
