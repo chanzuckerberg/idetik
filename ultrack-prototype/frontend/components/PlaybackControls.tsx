@@ -65,7 +65,7 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
         // the slider component is closed on the right, so we need to subtract 1
         max={maxTime - 1}
         disabled={!enabled}
-        valueLabelDisplay="on"
+        valueLabelDisplay={playing ? "off" : "on"}
         onChange={(_, value) => setCurTime(value as number)}
         value={curTime}
       />
