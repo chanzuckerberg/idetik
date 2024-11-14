@@ -1,7 +1,7 @@
 import { Layer } from "core/layer";
 import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
-import { Region } from "data/region";
+import { Interval, Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 
@@ -43,7 +43,25 @@ export class ImageLayer extends Layer {
     const chunk = await loader.loadChunk(region);
     const shape = chunk.shape;
     const texture = new DataTexture2D(chunk.data, shape.width, shape.height);
-    const plane = new PlaneGeometry(shape.width, shape.height, 1, 1);
+    if (chunk.region.length !== 2) {
+      throw new Error(
+        `Expected region length of 2. Instead found ${chunk.region.length}`
+      );
+    }
+    const origin = chunk.region.map((index) => (index.index as Interval).start);
+    const size = chunk.region.map(
+      (index) =>
+        (index.index as Interval).stop - (index.index as Interval).start
+    );
+
+    const plane = new PlaneGeometry(
+      size[1],
+      size[0],
+      1,
+      1,
+      origin[1],
+      origin[0]
+    );
 
     texture.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {

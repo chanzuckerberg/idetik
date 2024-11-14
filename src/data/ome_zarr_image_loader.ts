@@ -1,7 +1,7 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { Region } from "data/region";
+import { Interval, Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 
@@ -72,7 +72,8 @@ export class OmeZarrImageLoader {
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
     const dataset = this.datasets_[lowestResolutionIndex];
-    const indices = regionToIndices(region, dataset, this.axes_);
+    const [indices, chunkRegion] = regionToIndices(region, dataset, this.axes_);
+
     console.debug("loading dataset with indices", dataset, indices);
 
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
@@ -102,6 +103,9 @@ export class OmeZarrImageLoader {
       );
     }
 
+    const extent = getExtent(this.axes_, dataset, array);
+    const clampedRegion = clampRegion(chunkRegion, extent);
+
     const chunk = {
       data: subarray.data,
       shape: {
@@ -109,6 +113,7 @@ export class OmeZarrImageLoader {
         height: subarray.shape[subarray.shape.length - 2],
         channels: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
+      region: clampedRegion,
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
     };
@@ -117,24 +122,45 @@ export class OmeZarrImageLoader {
   }
 }
 
+function getExtent(
+  axes: Array<Axis>,
+  dataset: Dataset,
+  array: zarr.Array<zarr.DataType>
+): Region {
+  const extent: Region = [];
+  for (const [i, axis] of axes.entries()) {
+    const scale = getScale(dataset, i);
+    extent.push({
+      dimension: axis.name,
+      index: { start: 0, stop: array.shape[i] * scale },
+    });
+  }
+  return extent;
+}
+
+function getScale(dataset: Dataset, index: number): number {
+  // TODO: handle more than just scale list to transform input region.
+  // https://github.com/chanzuckerberg/imaging-active-learning/issues/38
+  return dataset.coordinateTransformations
+    .map((transform) => transformScale(transform, index))
+    .reduce((totalScale, scale) => scale * totalScale, 1);
+}
+
 // Converts a region to indices within an OME-Zarr image array.
 function regionToIndices(
   region: Region,
   dataset: Dataset,
   axes: Array<Axis>
-): Array<Slice | number> {
+): [Array<Slice | number>, Region] {
   const indices: Array<Slice | number> = [];
+  const indicesRegion: Region = [];
   for (const [i, axis] of axes.entries()) {
+    const scale = getScale(dataset, i);
     const match = region.find((s) => s.dimension == axis.name);
     // If a match was not found use a null slice which represents
     // the complete extent of a dimension like Python's `slice(None)`.
     let index: Slice | number = zarr.slice(null);
     if (match) {
-      // TODO: handle more than just scale list to transform input region.
-      // https://github.com/chanzuckerberg/imaging-active-learning/issues/38
-      const scale = dataset.coordinateTransformations
-        .map((transform) => transformScale(transform, i))
-        .reduce((totalScale, scale) => scale * totalScale, 1);
       const regionIndex = match.index;
       if (typeof regionIndex === "number") {
         index = Math.round(regionIndex / scale);
@@ -143,11 +169,20 @@ function regionToIndices(
           Math.floor(regionIndex.start / scale),
           Math.ceil(regionIndex.stop / scale)
         );
+        indicesRegion.push(match);
       }
+    } else {
+      indicesRegion.push({
+        dimension: axis.name,
+        index: {
+          start: -Infinity,
+          stop: Infinity,
+        },
+      });
     }
     indices.push(index);
   }
-  return indices;
+  return [indices, indicesRegion];
 }
 
 // Returns a scale from a transform at some axis index or 1 if a scale cannot be found.
@@ -155,4 +190,21 @@ function transformScale(transform: Transform, index: number): number {
   if (transform.type !== "scale") return 1;
   if (!(transform.scale instanceof Array)) return 1;
   return transform.scale[index];
+}
+
+function clampRegion(region: Region, bounds: Region) {
+  const clamped: Region = [];
+  for (const r of region) {
+    const match = bounds.find((b) => b.dimension == r.dimension);
+    if (match === undefined) continue;
+    const rIndex = r.index as Interval;
+    const bIndex = match.index as Interval;
+    const start = Math.max(rIndex.start, bIndex.start);
+    const stop = Math.min(rIndex.stop, bIndex.stop);
+    clamped.push({
+      dimension: match.dimension,
+      index: { start: start, stop: stop },
+    });
+  }
+  return clamped;
 }

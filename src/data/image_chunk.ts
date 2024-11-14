@@ -11,6 +11,7 @@ export type ImageChunk = {
     height: number;
     channels: number;
   };
+  region: Region;
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
 };
