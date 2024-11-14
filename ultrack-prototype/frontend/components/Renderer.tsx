@@ -5,6 +5,7 @@ import {
   LayerState,
   OmeZarrImageSource,
   OrthographicCamera,
+  TracksLayer,
   WebGLRenderer,
 } from "@";
 
@@ -33,22 +34,25 @@ export default function Renderer(props: RendererProps) {
   const { curTime, playbackEnabled, setPlaybackEnabled, task } = props;
   const [imageSeriesLayer, setImageSeriesLayer] =
     useState<ImageSeriesLayer | null>(null);
+  const [tracksLayer, setTracksLayer] = useState<TracksLayer | null>(null);
 
   useEffect(() => {
     console.debug("Renderer::useEffect::curTime: ", curTime);
-    if (imageSeriesLayer === null) return;
+    if (imageSeriesLayer === null || tracksLayer === null) return;
     if (imageSeriesLayer.state === "ready") {
       imageSeriesLayer.setTimeIndex(curTime);
+      tracksLayer.setTimeIndex(curTime);
       return;
     }
     const onStateChange = (newState: LayerState) => {
       if (newState === "ready") {
         imageSeriesLayer.setTimeIndex(curTime);
+        tracksLayer.setTimeIndex(curTime);
       }
     };
     imageSeriesLayer.addStateChangeCallback(onStateChange);
     return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
-  }, [curTime, imageSeriesLayer]);
+  }, [curTime, imageSeriesLayer, tracksLayer]);
 
   useEffect(() => {
     console.debug("Renderer::useEffect::task: ", task);
@@ -59,6 +63,7 @@ export default function Renderer(props: RendererProps) {
     const { tracksLayer, imageSeriesLayer } = task.layers(imageSource);
     imageSeriesLayer.update();
     setImageSeriesLayer(imageSeriesLayer);
+    setTracksLayer(tracksLayer);
     const onStateChange = (newState: LayerState) => {
       if (newState === "ready") {
         setPlaybackEnabled(true);

@@ -1,6 +1,10 @@
 import { vec2, vec3 } from "gl-matrix";
 
-import { ImageSeriesLayer, OmeZarrImageSource, ProjectedLineLayer } from "@";
+import {
+  ImageSeriesLayer,
+  OmeZarrImageSource,
+  TracksLayer,
+} from "@";
 
 type Track = {
   trackId: number;
@@ -91,7 +95,7 @@ export class Task {
   answer: Answer = "Unanswered";
 
   private timeInterval_: { start: number; stop: number } | null = null;
-  private tracksLayer_: ProjectedLineLayer | null = null;
+  private tracksLayer_: TracksLayer | null = null;
 
   private constructor(taskId: string, taskType: TaskType, taskData: TaskData) {
     this.taskId = taskId;
@@ -153,16 +157,6 @@ export class Task {
     }
   }
 
-  private tracksAs3DPaths(): vec3[][] {
-    const tracksData = this.taskData.tracksData;
-    return tracksData.map((track) => {
-      return track.position.map((pos) => {
-        const z = pos.length === 3 ? pos[2] : 0;
-        return [pos[0], pos[1], z];
-      });
-    });
-  }
-
   private get timeInterval(): { start: number; stop: number } {
     if (!this.timeInterval_) {
       const tracksData = this.taskData.tracksData;
@@ -199,22 +193,29 @@ export class Task {
     return layer;
   }
 
-  tracksLayer(): ProjectedLineLayer {
+  tracksLayer(): TracksLayer {
     if (this.tracksLayer_ === null) {
-      this.tracksLayer_ = new ProjectedLineLayer(
-        this.tracksAs3DPaths().map((path, i) => ({
-          path,
+      const tracksData = this.taskData.tracksData;
+      const tracks = tracksData.map((track, i) => {
+        return {
+          path: track.position.map((pos) => {
+            const z = pos.length === 3 ? pos[2] : 0;
+            return vec3.fromValues(pos[0], pos[1], z);
+          }),
+          time: track.time,
           color: COLOR_CYCLE[i % COLOR_CYCLE.length],
           width: 0.01,
-        }))
-      );
+          interpolation: { pointsPerSegment: 10, tangentFactor: 0.3 },
+        };
+      });
+      this.tracksLayer_ = new TracksLayer(tracks);
     }
     return this.tracksLayer_;
   }
 
   public layers(imageSource: OmeZarrImageSource): {
     imageSeriesLayer: ImageSeriesLayer;
-    tracksLayer: ProjectedLineLayer;
+    tracksLayer: TracksLayer;
   } {
     const layers = {
       imageSeriesLayer: this.imageSeriesLayer(imageSource),

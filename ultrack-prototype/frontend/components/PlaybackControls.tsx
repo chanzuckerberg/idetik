@@ -3,7 +3,7 @@ import { Button, InputSlider } from "@czi-sds/components";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Task } from "../lib/tasks";
 
-const playbackFPS = 16;
+const playbackFPS = 8;
 const playbackIntervalMs = 1000 / playbackFPS;
 
 type PlaybackControlsProps = {
@@ -65,7 +65,7 @@ export default function PlaybackControls(props: PlaybackControlsProps) {
         // the slider component is closed on the right, so we need to subtract 1
         max={maxTime - 1}
         disabled={!enabled}
-        valueLabelDisplay="on"
+        valueLabelDisplay={playing ? "off" : "on"}
         onChange={(_, value) => setCurTime(value as number)}
         value={curTime}
       />
