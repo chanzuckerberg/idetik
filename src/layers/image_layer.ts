@@ -1,7 +1,7 @@
 import { Layer } from "core/layer";
 import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
-import { Interval, Region } from "data/region";
+import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 
@@ -43,16 +43,17 @@ export class ImageLayer extends Layer {
     const chunk = await loader.loadChunk(region);
     const shape = chunk.shape;
     const texture = new DataTexture2D(chunk.data, shape.width, shape.height);
-    if (chunk.region.length !== 2) {
+    if (chunk.region.size !== 2) {
       throw new Error(
-        `Expected region length of 2. Instead found ${chunk.region.length}`
+        `Expected region size of 2. Instead found ${chunk.region.size}`
       );
     }
-    const origin = chunk.region.map((index) => (index.index as Interval).start);
-    const size = chunk.region.map(
-      (index) =>
-        (index.index as Interval).stop - (index.index as Interval).start
-    );
+    // This ignores the order of the dimensions specified in the input region.
+    // Instead it relies on the order defined by the source, and that the bytes
+    // are expected to be iterated in a C-like order (i.e. row-wise).
+    const indices = Array.from(chunk.region.values());
+    const origin = indices.map((index) => index.start);
+    const size = indices.map((index) => index.stop - index.start);
 
     const plane = new PlaneGeometry(
       size[1],

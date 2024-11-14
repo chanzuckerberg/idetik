@@ -9,6 +9,7 @@ import {
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
+import { Interval } from "@/data/region";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
@@ -21,11 +22,13 @@ const perspectiveCam = new PerspectiveCamera({ fov: 60, position: cameraPos });
 // Source is technically 5D (even though Z is unitary),
 // so provide indices at 3 dimensions to project to 2D.
 const source = new OmeZarrImageSource(url);
-const region = [
-  { dimension: "T", index: 150 },
-  { dimension: "C", index: 0 },
-  { dimension: "Z", index: 0 },
-];
+const region = new Map<string, Interval | number>([
+  ["T", 150],
+  ["C", 0],
+  ["Z", 0],
+  // ["Y", { start: 300, stop: 1000 }],
+  // ["X", { start: 300, stop: 1000 }],
+]);
 const layer = new ImageLayer(source, region);
 
 const axes = new AxesLayer({ length: 1920, width: 0.01 });

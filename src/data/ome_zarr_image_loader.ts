@@ -1,7 +1,7 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { Interval, Region } from "data/region";
+import { Box, Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 
@@ -72,16 +72,16 @@ export class OmeZarrImageLoader {
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
     const dataset = this.datasets_[lowestResolutionIndex];
-    const [indices, chunkRegion] = regionToIndices(region, dataset, this.axes_);
 
-    console.debug("loading dataset with indices", dataset, indices);
-
+    console.debug("loading dataset", dataset);
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
       kind: "array",
       attrs: false,
     });
-    console.debug("opened array ", array);
+    console.debug("opened array", array);
 
+    const [indices, chunkRegion] = regionToIndices(region, dataset, this.axes_);
+    console.debug("loading subarray with indices", indices);
     const subarray = await zarr.get(array, indices);
 
     if (!isDataType(subarray.data)) {
@@ -104,7 +104,7 @@ export class OmeZarrImageLoader {
     }
 
     const extent = getExtent(this.axes_, dataset, array);
-    const clampedRegion = clampRegion(chunkRegion, extent);
+    const clampedRegion = clampBox(chunkRegion, extent);
 
     const chunk = {
       data: subarray.data,
@@ -126,14 +126,14 @@ function getExtent(
   axes: Array<Axis>,
   dataset: Dataset,
   array: zarr.Array<zarr.DataType>
-): Region {
-  const extent: Region = [];
+): Box{
+  const extent: Box = new Map();
   for (const [i, axis] of axes.entries()) {
     const scale = getScale(dataset, i);
-    extent.push({
-      dimension: axis.name,
-      index: { start: 0, stop: array.shape[i] * scale },
-    });
+    extent.set(
+      axis.name,
+      { start: 0, stop: array.shape[i] * scale },
+    );
   }
   return extent;
 }
@@ -151,17 +151,16 @@ function regionToIndices(
   region: Region,
   dataset: Dataset,
   axes: Array<Axis>
-): [Array<Slice | number>, Region] {
+): [Array<Slice | number>, Box] {
   const indices: Array<Slice | number> = [];
-  const indicesRegion: Region = [];
+  const indicesRegion: Box = new Map();
   for (const [i, axis] of axes.entries()) {
     const scale = getScale(dataset, i);
-    const match = region.find((s) => s.dimension == axis.name);
     // If a match was not found use a null slice which represents
     // the complete extent of a dimension like Python's `slice(None)`.
     let index: Slice | number = zarr.slice(null);
-    if (match) {
-      const regionIndex = match.index;
+    const regionIndex = region.get(axis.name); 
+    if (regionIndex !== undefined) {
       if (typeof regionIndex === "number") {
         index = Math.round(regionIndex / scale);
       } else {
@@ -169,16 +168,10 @@ function regionToIndices(
           Math.floor(regionIndex.start / scale),
           Math.ceil(regionIndex.stop / scale)
         );
-        indicesRegion.push(match);
+        indicesRegion.set(axis.name, regionIndex);
       }
     } else {
-      indicesRegion.push({
-        dimension: axis.name,
-        index: {
-          start: -Infinity,
-          stop: Infinity,
-        },
-      });
+      indicesRegion.set(axis.name, {start: -Infinity, stop: Infinity});
     }
     indices.push(index);
   }
@@ -192,19 +185,14 @@ function transformScale(transform: Transform, index: number): number {
   return transform.scale[index];
 }
 
-function clampRegion(region: Region, bounds: Region) {
-  const clamped: Region = [];
-  for (const r of region) {
-    const match = bounds.find((b) => b.dimension == r.dimension);
-    if (match === undefined) continue;
-    const rIndex = r.index as Interval;
-    const bIndex = match.index as Interval;
-    const start = Math.max(rIndex.start, bIndex.start);
-    const stop = Math.min(rIndex.stop, bIndex.stop);
-    clamped.push({
-      dimension: match.dimension,
-      index: { start: start, stop: stop },
-    });
+function clampBox(region: Box, bounds: Box): Box {
+  const clamped: Box = new Map(); 
+  for (const [name, index] of region) {
+    const bound = bounds.get(name);
+    if (bound === undefined) continue;
+    const start = Math.max(index.start, bound.start);
+    const stop = Math.min(index.stop, bound.stop);
+    clamped.set(name, {start, stop});
   }
   return clamped;
 }

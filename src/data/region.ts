@@ -4,13 +4,8 @@ export type Interval = {
   stop: number;
 };
 
-// An index for a specific dimension or axis in a region.
-// TODO: add a unit for the index value(s).
-// https://github.com/chanzuckerberg/imaging-active-learning/issues/36
-export type DimensionalIndex = {
-  dimension: string;
-  index: Interval | number;
-};
+// A region of some labelled space that can be used for indexing.
+export type Region = Map<string, Interval | number>;
 
-// A region of some dimensional space.
-export type Region = Array<DimensionalIndex>;
+// An axis-aligned bounding box in some labelled space.
+export type Box = Map<string, Interval>;

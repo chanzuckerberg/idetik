@@ -1,4 +1,4 @@
-import { Region } from "data/region";
+import { Box, Region } from "data/region";
 import { TextureUnpackRowAlignment } from "objects/textures/texture";
 
 // One 2D chunk of n-dimensional image data.
@@ -11,7 +11,7 @@ export type ImageChunk = {
     height: number;
     channels: number;
   };
-  region: Region;
+  region: Box;
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
 };
