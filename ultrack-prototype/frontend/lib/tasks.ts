@@ -220,17 +220,6 @@ export class Task {
     this.tracksLayer_ = layers.tracksLayer;
     return layers;
   }
-
-  public camera(paddingFactor: number = 1.0) {
-    const { xMin, xMax, yMin, yMax } = this.tracksLayer().extent;
-    const padding = paddingFactor * Math.max(xMax - xMin, yMax - yMin);
-    return {
-      xMin: xMin - padding,
-      xMax: xMax + padding,
-      yMin: yMin - padding,
-      yMax: yMax + padding,
-    };
-  }
 }
 
 // https://colorbrewer2.org/?type=qualitative&scheme=Set1&n=6

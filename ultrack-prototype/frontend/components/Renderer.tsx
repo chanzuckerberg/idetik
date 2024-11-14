@@ -71,9 +71,9 @@ export default function Renderer(props: RendererProps) {
         layerManager.layers.length = 0;
         layerManager.add(tracksLayer);
         layerManager.add(imageSeriesLayer);
-        const { xMin, xMax, yMin, yMax } = task.camera(2.0);
-        camera.setFrame(xMin, xMax, yMax, yMin);
-        camera.update();
+        const extent = tracksLayer.extent;
+        camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
+        camera.zoom = 0.25;
         controls.panTarget = camera.position;
       }
     };
