@@ -8,6 +8,7 @@ import {
   TracksLayer,
   WebGLRenderer,
 } from "@";
+import { PanZoomControls } from "@/objects/cameras/controls";
 
 // payload roughly equivalent to task 0 from
 // https://public.czbiohub.org/royerlab/ultrack/multi-color/mock_data.json
@@ -84,6 +85,9 @@ const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
 const camera = new OrthographicCamera(left, right, top, bottom);
 camera.zoom = 0.5;
 camera.transform.translate([0, 0, 1]);
+
+const controls = new PanZoomControls(camera, camera.position);
+renderer.setControls(controls);
 
 const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
