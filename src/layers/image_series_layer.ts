@@ -69,10 +69,11 @@ export class ImageSeriesLayer extends Layer {
       // Instead it relies on the order defined by the source, and that the bytes
       // are expected to be iterated in a C-like order (i.e. row-wise).
       const indices = Array.from(chunk.region.values());
+      console.debug("indices", indices);
       const origin = indices.map((index) => index.start);
       const size = indices.map((index) => index.stop - index.start);
 
-      const plane = new PlaneGeometry(size[1], size[0], 1, 1, origin[1], origin[0]);
+      const plane = new PlaneGeometry(size[2], size[1], 1, 1, origin[2], origin[1]);
       this.addObject(new Mesh(plane, this.texture_));
     } else {
       this.texture_.data = chunk.data;
@@ -110,11 +111,11 @@ export class ImageSeriesLayer extends Layer {
   private initializeTexture(chunk: ImageChunk) {
     this.texture_ = new Texture2DArray(
       chunk.data,
+      chunk.shape[2],
       chunk.shape[1],
-      chunk.shape[0],
     );
 
-    this.texture_.unpackRowLength = chunk.stride[0];
+    this.texture_.unpackRowLength = chunk.stride[1];
     this.texture_.unpackAlignment = chunk.rowAlignmentBytes;
     this.texture_.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {
