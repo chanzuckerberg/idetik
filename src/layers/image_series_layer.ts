@@ -73,7 +73,13 @@ export class ImageSeriesLayer extends Layer {
       const origin = indices.map((index) => index.start);
       const size = indices.map((index) => index.stop - index.start);
 
-      const plane = new PlaneGeometry(size[2], size[1], 1, 1, origin[2], origin[1]);
+      const xIndex = indices.length - 1;
+      const yIndex = indices.length - 2;
+      const plane = new PlaneGeometry(
+        size[xIndex], size[yIndex],
+        1, 1,
+        origin[xIndex], origin[yIndex],
+      );
       this.addObject(new Mesh(plane, this.texture_));
     } else {
       this.texture_.data = chunk.data;
@@ -109,13 +115,15 @@ export class ImageSeriesLayer extends Layer {
   }
 
   private initializeTexture(chunk: ImageChunk) {
+    const xIndex = chunk.shape.length - 1;
+    const yIndex = chunk.shape.length - 2;
     this.texture_ = new Texture2DArray(
       chunk.data,
-      chunk.shape[2],
-      chunk.shape[1],
+      chunk.shape[xIndex],
+      chunk.shape[yIndex],
     );
 
-    this.texture_.unpackRowLength = chunk.stride[1];
+    this.texture_.unpackRowLength = chunk.stride[yIndex];
     this.texture_.unpackAlignment = chunk.rowAlignmentBytes;
     this.texture_.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {
