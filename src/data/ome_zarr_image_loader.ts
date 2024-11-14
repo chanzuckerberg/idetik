@@ -90,12 +90,6 @@ export class OmeZarrImageLoader {
       );
     }
 
-    if (subarray.shape.length !== 2 && subarray.shape.length !== 3) {
-      throw new Error(
-        `Expected to receive a 2D or 3D subarray. Instead chunk has shape ${subarray.shape}`
-      );
-    }
-
     const rowAlignment = subarray.data.BYTES_PER_ELEMENT;
     if (!isTextureUnpackRowAlignment(rowAlignment)) {
       throw new Error(
@@ -108,13 +102,9 @@ export class OmeZarrImageLoader {
 
     const chunk = {
       data: subarray.data,
-      shape: {
-        width: subarray.shape[subarray.shape.length - 1],
-        height: subarray.shape[subarray.shape.length - 2],
-        channels: subarray.shape.length === 3 ? subarray.shape[0] : 1,
-      },
+      shape: subarray.shape,
+      stride: subarray.stride,
       region: clampedRegion,
-      rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
     };
     console.debug("loaded chunk ", chunk);
@@ -126,14 +116,11 @@ function getExtent(
   axes: Array<Axis>,
   dataset: Dataset,
   array: zarr.Array<zarr.DataType>
-): Box{
+): Box {
   const extent: Box = new Map();
   for (const [i, axis] of axes.entries()) {
     const scale = getScale(dataset, i);
-    extent.set(
-      axis.name,
-      { start: 0, stop: array.shape[i] * scale },
-    );
+    extent.set(axis.name, { start: 0, stop: array.shape[i] * scale });
   }
   return extent;
 }
@@ -159,7 +146,7 @@ function regionToIndices(
     // If a match was not found use a null slice which represents
     // the complete extent of a dimension like Python's `slice(None)`.
     let index: Slice | number = zarr.slice(null);
-    const regionIndex = region.get(axis.name); 
+    const regionIndex = region.get(axis.name);
     if (regionIndex !== undefined) {
       if (typeof regionIndex === "number") {
         index = Math.round(regionIndex / scale);
@@ -171,7 +158,7 @@ function regionToIndices(
         indicesRegion.set(axis.name, regionIndex);
       }
     } else {
-      indicesRegion.set(axis.name, {start: -Infinity, stop: Infinity});
+      indicesRegion.set(axis.name, { start: -Infinity, stop: Infinity });
     }
     indices.push(index);
   }
@@ -186,13 +173,13 @@ function transformScale(transform: Transform, index: number): number {
 }
 
 function clampBox(region: Box, bounds: Box): Box {
-  const clamped: Box = new Map(); 
+  const clamped: Box = new Map();
   for (const [name, index] of region) {
     const bound = bounds.get(name);
     if (bound === undefined) continue;
     const start = Math.max(index.start, bound.start);
     const stop = Math.min(index.stop, bound.stop);
-    clamped.set(name, {start, stop});
+    clamped.set(name, { start, stop });
   }
   return clamped;
 }

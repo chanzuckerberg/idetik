@@ -6,13 +6,9 @@ import { TextureUnpackRowAlignment } from "objects/textures/texture";
 // https://github.com/chanzuckerberg/imaging-active-learning/issues/34
 export type ImageChunk = {
   data: Uint8Array | Uint16Array;
-  shape: {
-    width: number;
-    height: number;
-    channels: number;
-  };
+  shape: number[];
+  stride: number[];
   region: Box;
-  rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
 };
 

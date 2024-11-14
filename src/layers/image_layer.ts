@@ -42,12 +42,12 @@ export class ImageLayer extends Layer {
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
     const shape = chunk.shape;
-    const texture = new DataTexture2D(chunk.data, shape.width, shape.height);
-    if (chunk.region.size !== 2) {
+    if (shape.length !== 2) {
       throw new Error(
-        `Expected region size of 2. Instead found ${chunk.region.size}`
+        `Expected region size of 2. Instead found ${shape.length}`
       );
     }
+
     // This ignores the order of the dimensions specified in the input region.
     // Instead it relies on the order defined by the source, and that the bytes
     // are expected to be iterated in a C-like order (i.e. row-wise).
@@ -64,12 +64,12 @@ export class ImageLayer extends Layer {
       origin[0]
     );
 
+    const texture = new DataTexture2D(chunk.data, shape[1], shape[0]);
     texture.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {
       texture.dataType = "unsigned_short";
     }
-
-    texture.unpackRowLength = chunk.rowStride;
+    texture.unpackRowLength = chunk.stride[0];
     texture.unpackAlignment = chunk.rowAlignmentBytes;
 
     this.addObject(new Mesh(plane, texture));
