@@ -9,8 +9,8 @@ import { Texture2DArray } from "objects/textures/texture_2d_array";
 export class ImageSeriesLayer extends Layer {
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
+  private readonly timeDimension_: string;
   private readonly timeInterval_: Interval;
-  private readonly timeDimensionIndex_: number;
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
 
@@ -19,15 +19,13 @@ export class ImageSeriesLayer extends Layer {
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-    this.timeDimensionIndex_ = region.findIndex(
-      (x) => x.dimension == timeDimension
-    );
-    if (this.timeDimensionIndex_ === -1) {
+    this.timeDimension_ = timeDimension;
+    const timeIndex = this.region_.get(timeDimension);
+    if (timeIndex === undefined) {
       throw new Error(
         `Could not find dimension ${timeDimension} in ${JSON.stringify(region)}`
       );
     }
-    const timeIndex = this.region_[this.timeDimensionIndex_].index;
     if (typeof timeIndex === "number") {
       throw new Error(
         `Time index is a number (${timeIndex}). It should be an interval.`
@@ -66,8 +64,15 @@ export class ImageSeriesLayer extends Layer {
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
       this.initializeTexture(chunk);
-      const shape = chunk.shape;
-      const plane = new PlaneGeometry(shape.width, shape.height, 1, 1);
+
+      // This ignores the order of the dimensions specified in the input region.
+      // Instead it relies on the order defined by the source, and that the bytes
+      // are expected to be iterated in a C-like order (i.e. row-wise).
+      const indices = Array.from(chunk.region.values());
+      const origin = indices.map((index) => index.start);
+      const size = indices.map((index) => index.stop - index.start);
+
+      const plane = new PlaneGeometry(size[1], size[0], 1, 1, origin[1], origin[0]);
       this.addObject(new Mesh(plane, this.texture_));
     } else {
       this.texture_.data = chunk.data;
@@ -90,7 +95,7 @@ export class ImageSeriesLayer extends Layer {
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/75
     for (let t = start; t < stop; ++t) {
       const region = structuredClone(this.region_);
-      region[this.timeDimensionIndex_].index = t;
+      region.set(this.timeDimension_, t);
       loadPromises.push(
         loader
           .loadChunk(region)
@@ -105,11 +110,11 @@ export class ImageSeriesLayer extends Layer {
   private initializeTexture(chunk: ImageChunk) {
     this.texture_ = new Texture2DArray(
       chunk.data,
-      chunk.shape.width,
-      chunk.shape.height
+      chunk.shape[1],
+      chunk.shape[0],
     );
 
-    this.texture_.unpackRowLength = chunk.rowStride;
+    this.texture_.unpackRowLength = chunk.stride[0];
     this.texture_.unpackAlignment = chunk.rowAlignmentBytes;
     this.texture_.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {

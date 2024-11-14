@@ -26,8 +26,6 @@ const region = new Map<string, Interval | number>([
   ["T", 150],
   ["C", 0],
   ["Z", 0],
-  // ["Y", { start: 300, stop: 1000 }],
-  // ["X", { start: 300, stop: 1000 }],
 ]);
 const layer = new ImageLayer(source, region);
 

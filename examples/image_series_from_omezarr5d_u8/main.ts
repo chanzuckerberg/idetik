@@ -6,6 +6,7 @@ import {
   WebGLRenderer,
   OmeZarrImageSource,
 } from "@";
+import { Interval } from "@/data/region";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
@@ -18,11 +19,11 @@ const camera = new OrthographicCamera(0, 1920, 0, 1440);
 const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 100, stop: 120 };
 const channels = { start: 0, stop: 3 };
-const region = [
-  { dimension: "T", index: timeInterval },
-  { dimension: "C", index: channels },
-  { dimension: "Z", index: 0 },
-];
+const region = new Map<string, Interval | number>([
+  [ "T", timeInterval ],
+  [ "C", channels ],
+  [ "Z", 0 ],
+]);
 const layer = new ImageSeriesLayer(source, region, "T");
 layerManager.add(layer);
 
