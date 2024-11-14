@@ -1,11 +1,6 @@
 import { vec2, vec3 } from "gl-matrix";
 
-import {
-  ImageSeriesLayer,
-  OmeZarrImageSource,
-  OrthographicCamera,
-  TracksLayer,
-} from "@";
+import { ImageSeriesLayer, OmeZarrImageSource, TracksLayer } from "@";
 
 type Track = {
   trackId: number;
@@ -224,17 +219,6 @@ export class Task {
     };
     this.tracksLayer_ = layers.tracksLayer;
     return layers;
-  }
-
-  public camera(paddingFactor: number = 1.0): OrthographicCamera {
-    const { xMin, xMax, yMin, yMax } = this.tracksLayer().extent;
-    const padding = paddingFactor * Math.max(xMax - xMin, yMax - yMin);
-    return new OrthographicCamera(
-      xMin - padding,
-      xMax + padding,
-      yMin - padding,
-      yMax + padding
-    );
   }
 }
 
