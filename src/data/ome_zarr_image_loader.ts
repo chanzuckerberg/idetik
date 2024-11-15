@@ -110,6 +110,114 @@ export class OmeZarrImageLoader {
     console.debug("loaded chunk ", chunk);
     return chunk;
   }
+
+  async loadChunks(region: Region): Promise<ImageChunk[]> {
+    // TODO: use the input to determine what level to load.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
+    const lowestResolutionIndex = this.datasets_.length - 1;
+    const dataset = this.datasets_[lowestResolutionIndex];
+
+    console.debug("loading dataset", dataset);
+    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+      kind: "array",
+      attrs: false,
+    });
+    console.debug("opened array", array, array.shape, array.chunks);
+
+    const [indices, _chunkRegion] = regionToIndices(
+      region,
+      dataset,
+      this.axes_
+    );
+    const extent = getExtent(this.axes_, dataset, array);
+
+    const chunkShape = array.chunks;
+    // The number of elements is the number of dimensions in the array.
+    // Each sub-element is a slice that is clamped to a chunk.
+    const chunkedIndices: Array<Array<Slice | number>> = [];
+    for (let i = 0; i < chunkShape.length; ++i) {
+      const index = indices[i];
+      if (typeof index === "number") {
+        chunkedIndices.push([index]);
+        continue;
+      }
+      if (index.start === null) {
+        index.start = 0;
+      }
+      if (index.stop === null) {
+        index.stop = array.shape[i];
+      }
+      const chunkIndices: Slice[] = [];
+      let j = index.start;
+      if (j % chunkShape[i] !== 0) {
+        const k = chunkShape[i] * Math.ceil(index.start / chunkShape[i]);
+        chunkIndices.push(zarr.slice(index.start, k));
+        j = k;
+      }
+      while (j < index.stop) {
+        const k = Math.min(j + chunkShape[i], index.stop);
+        chunkIndices.push(zarr.slice(j, k));
+        j = k;
+      }
+      chunkedIndices.push(chunkIndices);
+    }
+    console.debug("chunkedIndices", chunkedIndices);
+
+    // The number of elements is the number of chunks we will fetch.
+    // Each sub-element is an index that can be used as an index for zarr.get.
+    const allChunkIndices = cartesianProduct(...chunkedIndices);
+    console.debug("allChunkIndices", allChunkIndices);
+    const chunks: ImageChunk[] = [];
+    for (const chunkIndices of allChunkIndices) {
+      console.debug("loading subarray with indices", chunkIndices);
+      const subarray = await zarr.get(array, chunkIndices);
+      console.debug("loaded subarray", subarray);
+
+      if (!isDataType(subarray.data)) {
+        throw new Error(
+          `Subarray has an unsupported data type ${subarray.data.constructor.name}. Supported data types are ${dataTypeNames}.`
+        );
+      }
+
+      const rowAlignment = subarray.data.BYTES_PER_ELEMENT;
+      if (!isTextureUnpackRowAlignment(rowAlignment)) {
+        throw new Error(
+          "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
+        );
+      }
+
+      const cr: Box = new Map();
+      for (let i = 0; i < this.axes_.length; ++i) {
+        const index = chunkIndices[i];
+        if (typeof index === "number") continue;
+        if (index.start === null || index.stop === null) {
+          cr.set(this.axes_[i].name, {
+            start: -Infinity,
+            stop: Infinity,
+          });
+          continue;
+        }
+        const scale = getScale(dataset, i);
+        cr.set(this.axes_[i].name, {
+          start: index.start * scale,
+          stop: index.stop * scale,
+        });
+      }
+      const clampedRegion = clampBox(cr, extent);
+
+      const chunk = {
+        data: subarray.data,
+        shape: subarray.shape,
+        stride: subarray.stride,
+        region: clampedRegion,
+        rowAlignmentBytes: rowAlignment,
+      };
+      console.debug("loaded chunk ", chunk);
+
+      chunks.push(chunk);
+    }
+    return chunks;
+  }
 }
 
 function getExtent(
@@ -131,6 +239,21 @@ function getScale(dataset: Dataset, index: number): number {
   return dataset.coordinateTransformations
     .map((transform) => transformScale(transform, index))
     .reduce((totalScale, scale) => scale * totalScale, 1);
+}
+
+function cartesianProduct<T>(...arrays: T[][]): T[][] {
+  return arrays.reduce<T[][]>(
+    (acc, currArray) => {
+      const result: T[][] = [];
+      acc.forEach((a) => {
+        currArray.forEach((b) => {
+          result.push([...a, b]);
+        });
+      });
+      return result;
+    },
+    [[]]
+  );
 }
 
 // Converts a region to indices within an OME-Zarr image array.

@@ -16,6 +16,8 @@ export { TracksLayer } from "layers/tracks_layer";
 
 export { ImageLayer } from "layers/image_layer";
 
+export { TiledImageLayer } from "layers/tiled_image_layer";
+
 export { ImageSeriesLayer } from "layers/image_series_layer";
 
 export { OmeZarrImageSource } from "data/ome_zarr_image_source";

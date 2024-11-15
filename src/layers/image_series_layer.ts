@@ -76,9 +76,12 @@ export class ImageSeriesLayer extends Layer {
       const xIndex = indices.length - 1;
       const yIndex = indices.length - 2;
       const plane = new PlaneGeometry(
-        size[xIndex], size[yIndex],
-        1, 1,
-        origin[xIndex], origin[yIndex],
+        size[xIndex],
+        size[yIndex],
+        1,
+        1,
+        origin[xIndex],
+        origin[yIndex]
       );
       this.addObject(new Mesh(plane, this.texture_));
     } else {
@@ -120,7 +123,7 @@ export class ImageSeriesLayer extends Layer {
     this.texture_ = new Texture2DArray(
       chunk.data,
       chunk.shape[xIndex],
-      chunk.shape[yIndex],
+      chunk.shape[yIndex]
     );
 
     this.texture_.unpackRowLength = chunk.stride[yIndex];
