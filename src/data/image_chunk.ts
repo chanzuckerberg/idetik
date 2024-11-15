@@ -18,5 +18,5 @@ export type ImageChunkSource = {
 
 export type ImageChunkLoader = {
   loadChunk(input: Region): Promise<ImageChunk>;
-  loadChunks(input: Region): Promise<ImageChunk[]>;
+  loadChunks(input: Region): AsyncGenerator<ImageChunk>;
 };

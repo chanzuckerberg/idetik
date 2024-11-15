@@ -111,7 +111,7 @@ export class OmeZarrImageLoader {
     return chunk;
   }
 
-  async loadChunks(region: Region): Promise<ImageChunk[]> {
+  async * loadChunks(region: Region): AsyncGenerator<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
@@ -167,7 +167,6 @@ export class OmeZarrImageLoader {
     // Each sub-element is an index that can be used as an index for zarr.get.
     const allChunkIndices = cartesianProduct(...chunkedIndices);
     console.debug("allChunkIndices", allChunkIndices);
-    const chunks: ImageChunk[] = [];
     for (const chunkIndices of allChunkIndices) {
       console.debug("loading subarray with indices", chunkIndices);
       const subarray = await zarr.get(array, chunkIndices);
@@ -214,9 +213,8 @@ export class OmeZarrImageLoader {
       };
       console.debug("loaded chunk ", chunk);
 
-      chunks.push(chunk);
+      yield chunk;
     }
-    return chunks;
   }
 }
 

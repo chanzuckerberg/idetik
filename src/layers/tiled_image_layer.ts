@@ -41,7 +41,7 @@ export class TiledImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunks = await loader.loadChunks(region);
-    for (const chunk of chunks) {
+    for await (const chunk of chunks) {
       const shape = chunk.shape;
       if (shape.length !== 2) {
         throw new Error(
