@@ -40,8 +40,7 @@ export class TiledImageLayer extends Layer {
     }
     this.setState("loading");
     const loader = await this.source_.open();
-    const chunks = await loader.loadChunks(region);
-    for await (const chunk of chunks) {
+    for await (const chunk of loader.loadChunks(region)) {
       const shape = chunk.shape;
       if (shape.length !== 2) {
         throw new Error(
@@ -55,6 +54,11 @@ export class TiledImageLayer extends Layer {
       const origin = indices.map((index) => index.start);
       const size = indices.map((index) => index.stop - index.start);
 
+      // Instead of using the origin and size of the chunk, we should probably
+      // return a chunk with a region in some integer valued data space along
+      // with a transform that can be used to transform the geometry. That way
+      // updating sub-regions of a texture (in other implementations) should be
+      // much easier.
       const plane = new PlaneGeometry(
         size[1],
         size[0],

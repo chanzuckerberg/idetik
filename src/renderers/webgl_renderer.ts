@@ -40,6 +40,9 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
     this.resize(this.canvas.width, this.canvas.height);
+
+    const maxTextureSize = this.gl_.getParameter(this.gl_.MAX_TEXTURE_SIZE)
+    console.log(`WebGL MAX_TEXTURE_SIZE ${maxTextureSize}`);
   }
 
   protected renderObject(object: RenderableObject) {
