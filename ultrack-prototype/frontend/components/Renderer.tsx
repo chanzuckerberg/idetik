@@ -9,6 +9,7 @@ import {
   WebGLRenderer,
 } from "@";
 
+// TODO: imageURL should come from the server (probably with each task)
 import { imageUrl } from "../lib/mock_data";
 import { Task } from "../lib/tasks";
 import { Box } from "@mui/material";

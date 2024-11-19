@@ -30,7 +30,7 @@ export default function App() {
 
   // TODO: we want to fetch new tasks more than just on mount
   // TODO: fetching and syncing might be better handled by `TaskList`
-  // TODO: fetch the latest answers as well, or prevent overwriting them when refreshing?
+  // TODO: fetch the latest answers as well? this would require some session ID
   useEffect(() => {
     const fetchOnMount = async () => {
       const tasks = await fetchTasks();

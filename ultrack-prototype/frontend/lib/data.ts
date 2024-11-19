@@ -3,6 +3,8 @@ import { Answer, Task } from "./tasks";
 const SERVER_URL = "http://127.0.0.1:8000";
 
 export async function fetchTasks(): Promise<Task[]> {
+  // TODO: server endpoint will change
+  // this does a real fetch from the server, but the server provides mock data (random tasks)
   const response = await fetch(`${SERVER_URL}/mock_data/task`);
   const tasks = await response.json();
   return tasks.map((task: unknown) => Task.fromJSON(task));
