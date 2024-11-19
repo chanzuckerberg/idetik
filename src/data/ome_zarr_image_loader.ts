@@ -67,6 +67,70 @@ export class OmeZarrImageLoader {
     this.datasets_ = image.datasets;
   }
 
+  async emptyData(region: Region): Promise<ImageChunk> {
+    // TODO: use the input to determine what level to load.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
+    const lowestResolutionIndex = this.datasets_.length - 1;
+    const dataset = this.datasets_[lowestResolutionIndex];
+    console.debug("loading dataset", dataset);
+    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+      kind: "array",
+      attrs: false,
+    });
+    console.debug("opened array", array);
+
+    const chunkRegion: Box = new Map();
+    const shape = [];
+    for (const [i, axis] of this.axes_.entries()) {
+      // If a match was not found use a null slice which represents
+      // the complete extent of a dimension like Python's `slice(None)`.
+      const regionIndex = region.get(axis.name);
+      if (regionIndex === undefined) {
+        chunkRegion.set(axis.name, { start: -Infinity, stop: Infinity });
+        shape.push(array.shape[i]);
+        continue;
+      }
+      if (typeof regionIndex !== "number") {
+        chunkRegion.set(axis.name, regionIndex);
+        shape.push(array.shape[i]);
+      }
+    }
+
+    const extent = getExtent(this.axes_, dataset, array);
+    const clampedRegion = clampBox(chunkRegion, extent);
+
+    const length = shape.reduce((acc, val) => acc * val, 1);
+
+    let data: Uint8Array | Uint16Array;
+    if (array.dtype === "uint8") {
+      data = new Uint8Array(length);
+    } else if (array.dtype === "uint16") {
+      data = new Uint16Array(length);
+    } else {
+      throw new Error(`Data type ${array.dtype} not supported`);
+    }
+    const stride = new Array<number>(shape.length);
+    stride.fill(1);
+    for (let i = stride.length - 2; i >=0 ; --i) {
+      stride[i] *= shape[i + 1];
+    }
+
+    const rowAlignmentBytes = data.BYTES_PER_ELEMENT;
+    if (!isTextureUnpackRowAlignment(rowAlignmentBytes)) {
+      throw new Error(
+        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
+      );
+    }
+    return {
+      data,
+      shape: shape,
+      stride,
+      region: clampedRegion,
+      indices: clampedRegion,
+      rowAlignmentBytes,
+    };
+  }
+
   async loadChunk(region: Region): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
@@ -105,6 +169,7 @@ export class OmeZarrImageLoader {
       shape: subarray.shape,
       stride: subarray.stride,
       region: clampedRegion,
+      indices: clampedRegion, // TODO: not needed, but should be populated like in loadChunks.
       rowAlignmentBytes: rowAlignment,
     };
     console.debug("loaded chunk ", chunk);
@@ -186,20 +251,30 @@ export class OmeZarrImageLoader {
       }
 
       const cr: Box = new Map();
+      const ci: Box = new Map();
       for (let i = 0; i < this.axes_.length; ++i) {
         const index = chunkIndices[i];
+        const axis = this.axes_[i].name;
         if (typeof index === "number") continue;
         if (index.start === null || index.stop === null) {
-          cr.set(this.axes_[i].name, {
+          cr.set(axis, {
             start: -Infinity,
             stop: Infinity,
+          });
+          ci.set(axis, {
+            start: 0,
+            stop: array.shape[i],
           });
           continue;
         }
         const scale = getScale(dataset, i);
-        cr.set(this.axes_[i].name, {
+        cr.set(axis, {
           start: index.start * scale,
           stop: index.stop * scale,
+        });
+        ci.set(axis, {
+          start: index.start,
+          stop: index.stop,
         });
       }
       const clampedRegion = clampBox(cr, extent);
@@ -209,6 +284,7 @@ export class OmeZarrImageLoader {
         shape: subarray.shape,
         stride: subarray.stride,
         region: clampedRegion,
+        indices: ci,
         rowAlignmentBytes: rowAlignment,
       };
       console.debug("loaded chunk ", chunk);

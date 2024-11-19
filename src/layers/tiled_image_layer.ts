@@ -5,7 +5,7 @@ import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 
-// Loads data from an image source into renderable objects.
+// Loads chunks from an image source into multiple planes/textures.
 export class TiledImageLayer extends Layer {
   private readonly source_: ImageChunkSource;
   // TODO: remove this when region is passed through to update.

@@ -3,9 +3,9 @@ import {
   WebGLRenderer,
   OmeZarrImageSource,
   OrthographicCamera,
-  TiledImageLayer,
 } from "@";
 import { Interval } from "@/data/region";
+import { SubTiledImageLayer } from "@/layers/sub_tiled_image_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 const url =
@@ -25,7 +25,7 @@ const region = new Map<string, Interval | number>([
   ["c", 0],
   ["z", 300],
 ]);
-const layer = new TiledImageLayer(source, region);
+const layer = new SubTiledImageLayer(source, region);
 layerManager.add(layer);
 
 function animate() {
