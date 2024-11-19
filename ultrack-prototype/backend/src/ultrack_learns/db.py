@@ -57,8 +57,7 @@ class TrackPoint(Base):
 class Task(Base):
     __tablename__ = "tasks"
 
-    id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(UUID, index=True, unique=True)
+    task_id = Column(UUID, primary_key=True, index=True)
     # these can be used to query track_points to get the task_data
     # this is much simpler than storing this relationship directly in the DB
     # and allows more flexibility (e.g. changing the time window)
@@ -80,8 +79,7 @@ class Task(Base):
 class Answer(Base):
     __tablename__ = "answers"
 
-    id = Column(Integer, primary_key=True, index=True)
-    answer_id = Column(UUID, index=True, unique=True)
+    answer_id = Column(UUID, primary_key=True, index=True)
     task_id = Column(UUID, ForeignKey("tasks.task_id"))
     created_at = Column(DateTime(timezone=True))
     answer = Column(String, nullable=False)

@@ -1,6 +1,6 @@
 import { Answer, Task } from "./tasks";
 
-const SERVER_URL = "http://localhost:8000";
+const SERVER_URL = "http://127.0.0.1:8000";
 
 export async function fetchTasks(): Promise<Task[]> {
   const response = await fetch(`${SERVER_URL}/mock_data/task`);

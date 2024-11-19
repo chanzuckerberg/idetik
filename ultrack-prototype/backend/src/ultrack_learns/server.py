@@ -1,8 +1,8 @@
 from typing import Annotated
 
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, Query
+from fastapi import FastAPI, APIRouter, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import inspect, select, exc
+from sqlalchemy import inspect, select
 from sqlalchemy.orm import Session
 
 from ultrack_learns.db import (
@@ -25,10 +25,11 @@ app.add_middleware(
     allow_methods=["*"],
 )
 
+# TODO: debug routes are for anything *not* used in the prototype
 debug_router = APIRouter(prefix="/debug")
 
 
-@app.get("/ping")
+@debug_router.get("/ping")
 def read_root():
     return {"Hello": "World"}
 
@@ -39,7 +40,7 @@ def list_tables(db: Session = Depends(get_session)):
     return {"tables": inspector.get_table_names()}
 
 
-@app.get("/track")
+@debug_router.get("/track")
 def get_track_for_node(
     node_id: int,
     time_window: Annotated[int | None, Query(gt=0)] = None,
@@ -49,7 +50,7 @@ def get_track_for_node(
     return track_points_around_node(db, node_id, time_window, include_children)
 
 
-@app.get("/task/{task_id}/answer")
+@debug_router.get("/task/{task_id}/answer")
 def get_task_answers(
     task_id: str,
     db: Session = Depends(get_session),
@@ -58,7 +59,6 @@ def get_task_answers(
     return [Answer(**record.__dict__) for record in db.execute(query).all()]
 
 
-# TODO: allow upsert instead of 409
 @app.post("/answer")
 def post_one_or_many_answers(
     answers: Answer | list[Answer],
@@ -69,6 +69,7 @@ def post_one_or_many_answers(
 
     new_records = []
     for answer in answers:
+        # upsert answer - answer_id is unique per-session (reload)
         existing = (
             select(AnswerRecord)
             .where(AnswerRecord.answer_id == answer.answer_id)
