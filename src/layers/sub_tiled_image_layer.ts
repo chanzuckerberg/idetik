@@ -44,7 +44,7 @@ export class SubTiledImageLayer extends Layer {
     // Get a chunk covering the entire region of interest.
     const emptyChunk = await loader.emptyData(region);
     console.debug("emptyChunk", emptyChunk);
-    
+
     // This ignores the order of the dimensions specified in the input region.
     // Instead it relies on the order defined by the source, and that the bytes
     // are expected to be iterated in a C-like order (i.e. row-wise).
@@ -69,7 +69,7 @@ export class SubTiledImageLayer extends Layer {
     const texture = new DataTexture2D(
       emptyChunk.data,
       emptyChunk.shape[1],
-      emptyChunk.shape[0],
+      emptyChunk.shape[0]
     );
     texture.dataFormat = "red_integer";
     if (emptyChunk.data instanceof Uint16Array) {
@@ -93,12 +93,12 @@ export class SubTiledImageLayer extends Layer {
       const chunkIndices = Array.from(chunk.indices.values());
       const xIndices = chunkIndices[1];
       const yIndices = chunkIndices[0];
-      for (let i = 0, y=yIndices.start; y < yIndices.stop; ++i, ++y) {
+      for (let i = 0, y = yIndices.start; y < yIndices.stop; ++i, ++y) {
         const yOffset = y * emptyChunk.stride[0];
         const chunkRowOffset = i * chunk.stride[0];
         const chunkRowData = chunk.data.subarray(
           chunkRowOffset,
-          chunkRowOffset + chunk.shape[1],
+          chunkRowOffset + chunk.shape[1]
         );
         const offset = yOffset + xIndices.start;
         emptyChunk.data.set(chunkRowData, offset);

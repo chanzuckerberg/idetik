@@ -111,7 +111,7 @@ export class OmeZarrImageLoader {
     }
     const stride = new Array<number>(shape.length);
     stride.fill(1);
-    for (let i = stride.length - 2; i >=0 ; --i) {
+    for (let i = stride.length - 2; i >= 0; --i) {
       stride[i] *= shape[i + 1];
     }
 
