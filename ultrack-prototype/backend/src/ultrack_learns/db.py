@@ -64,7 +64,7 @@ class Task(Base):
     task_type = Column(String, nullable=False)
     node_id = Column(Integer, ForeignKey("track_points.id"))
 
-    def get_task_data(self, db: Session, time_window: int = 10) -> TaskData:
+    def get_task_data(self, db: Session, time_window: int = 16) -> TaskData:
         return TaskData(
             node_id=self.node_id,
             tracks_data=track_points_around_node(
