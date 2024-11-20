@@ -13,7 +13,7 @@ type TaskListProps = {
 export default function TaskList(props: TaskListProps) {
   const { tasks, taskIndex, setTaskIndex } = props;
   const numReviewed = tasks.reduce(
-    (num, t) => num + (t.answer === "Unanswered" ? 0 : 1),
+    (num, t) => num + (t.answer.value === "Unanswered" ? 0 : 1),
     0
   );
 
@@ -55,8 +55,10 @@ export default function TaskList(props: TaskListProps) {
           <TaskItem
             key={t.taskId}
             index={index}
-            answer={t.answer}
+            answer={t.answer.value}
+            syncStatus={t.answer.synced}
             active={taskIndex === index}
+            taskType={t.taskType}
             setTaskIndex={setTaskIndex}
           />
         ))}

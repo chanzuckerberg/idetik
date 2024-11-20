@@ -73,7 +73,7 @@ function taskDataFromJSON(taskDataJSON: unknown): TaskData {
 }
 
 const TASK_TYPES = ["appearance", "disappearance", "division"] as const;
-type TaskType = (typeof TASK_TYPES)[number];
+export type TaskType = (typeof TASK_TYPES)[number];
 
 function isValidTaskType(taskType: unknown): taskType is TaskType {
   return (
@@ -81,22 +81,45 @@ function isValidTaskType(taskType: unknown): taskType is TaskType {
   );
 }
 
-export type Answer = "Unanswered" | "Yes" | "No" | "Uncertain";
+export type AnswerType = "Unanswered" | "Yes" | "No" | "Uncertain";
+export type SyncStatus = "synced" | "not_synced" | "pending" | "error";
+
+export type Answer = {
+  answerId: string;
+  taskId: string;
+  value: AnswerType;
+  synced: SyncStatus;
+};
+
+const defaultAnswer = (taskId: string) => {
+  return {
+    answerId: window.crypto.randomUUID(),
+    taskId: taskId,
+    value: "Unanswered" as AnswerType,
+    synced: "synced" as SyncStatus,
+  };
+};
 
 // TODO: create a function to validate tasks as they come from the server
 export class Task {
   taskId: string;
   taskType: TaskType;
   taskData: TaskData;
-  answer: Answer = "Unanswered";
+  answer: Answer;
 
   private timeInterval_: { start: number; stop: number } | null = null;
   private tracksLayer_: TracksLayer | null = null;
 
-  private constructor(taskId: string, taskType: TaskType, taskData: TaskData) {
+  private constructor(
+    taskId: string,
+    taskType: TaskType,
+    taskData: TaskData,
+    answer: Answer = defaultAnswer(taskId)
+  ) {
     this.taskId = taskId;
     this.taskType = taskType;
     this.taskData = taskData;
+    this.answer = answer;
   }
 
   static fromJSON(json: unknown): Task {
@@ -126,16 +149,21 @@ export class Task {
   }
 
   public clone(): Task {
-    return new Task(this.taskId, this.taskType, {
-      nodeId: this.taskData.nodeId,
-      tracksData: this.taskData.tracksData.map((track) => ({
-        trackId: track.trackId,
-        time: [...track.time],
-        position: track.position.map((pos) => [
-          ...pos,
-        ]) as typeof track.position,
-      })),
-    });
+    return new Task(
+      this.taskId,
+      this.taskType,
+      {
+        nodeId: this.taskData.nodeId,
+        tracksData: this.taskData.tracksData.map((track) => ({
+          trackId: track.trackId,
+          time: [...track.time],
+          position: track.position.map((pos) => [
+            ...pos,
+          ]) as typeof track.position,
+        })),
+      },
+      { ...this.answer }
+    );
   }
 
   public get question(): string {

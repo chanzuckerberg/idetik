@@ -38,6 +38,17 @@ You can run it for development purposes by passing the `prototype` mode to vite:
 npm run dev -- --mode prototype
 ```
 
+The prototype will try to connect to a backend server running on <http://localhost:8000>. You can
+mock this by setting `VITE_MOCK_ULTRACK=true` in your environment. This can be set in a
+`ultrack-prototype/frontent/.env` file, or when running the dev server:
+
+```shell
+VITE_MOCK_ULTRACK=true npm run dev -- --mode prototype
+```
+
+(Note: this is likely to change in the future)
+
+
 ### Backend server
 
 The backend server for the prototype is in the `ultrack-prototype/backend` directory. This is a
