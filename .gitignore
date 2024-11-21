@@ -30,3 +30,7 @@ test/__screenshots__
 # ignore Python venv in the backend
 # this is ignored by default, but putting it here allows prettier to also ignore it
 ultrack-prototype/backend/.venv
+
+# slurm job output files
+*.out
+*.err
