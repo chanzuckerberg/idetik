@@ -78,8 +78,8 @@ const imageSeriesLayer = new ImageSeriesLayer(source, region, "T");
 const renderer = new WebGLRenderer("#canvas");
 
 const layerManager = new LayerManager();
-layerManager.add(lineLayer);
 layerManager.add(imageSeriesLayer);
+layerManager.add(lineLayer);
 
 const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
 const camera = new OrthographicCamera(left, right, top, bottom);
