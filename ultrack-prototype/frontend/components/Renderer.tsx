@@ -70,8 +70,8 @@ export default function Renderer(props: RendererProps) {
         setPlaybackEnabled(true);
         // TODO: update the data on the layers instead of creating new ones
         layerManager.layers.length = 0;
-        layerManager.add(tracksLayer);
         layerManager.add(imageSeriesLayer);
+        layerManager.add(tracksLayer);
         const extent = tracksLayer.extent;
         camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
         camera.zoom = 0.25;
