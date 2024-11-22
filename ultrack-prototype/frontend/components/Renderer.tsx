@@ -3,14 +3,12 @@ import {
   ImageSeriesLayer,
   LayerManager,
   LayerState,
-  OmeZarrImageSource,
   OrthographicCamera,
   TracksLayer,
   WebGLRenderer,
 } from "@";
 
 // TODO: imageURL should come from the server (probably with each task)
-import { imageUrl } from "../lib/mock_data";
 import { Task } from "../lib/tasks";
 import { Box } from "@mui/material";
 import { LoadingIndicator } from "@czi-sds/components";
@@ -19,7 +17,6 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 const canvasId = "canvas";
 
 // TODO: consider useRef for these objects
-const imageSource = new OmeZarrImageSource(imageUrl);
 const camera = new OrthographicCamera(0, 1920, 0, 1440);
 const controls = new PanZoomControls(camera, camera.position);
 const layerManager = new LayerManager();
@@ -61,7 +58,7 @@ export default function Renderer(props: RendererProps) {
     if (!task) {
       return;
     }
-    const { tracksLayer, imageSeriesLayer } = task.layers(imageSource);
+    const { tracksLayer, imageSeriesLayer } = task.layers();
     imageSeriesLayer.update();
     setImageSeriesLayer(imageSeriesLayer);
     setTracksLayer(tracksLayer);

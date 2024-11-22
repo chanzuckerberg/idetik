@@ -202,14 +202,14 @@ export class Task {
     return this.timeInterval.start;
   }
 
-  imageSeriesLayer(
-    source: OmeZarrImageSource,
-    preLoad = true
-  ): ImageSeriesLayer {
+  imageSeriesLayer(preLoad = true): ImageSeriesLayer {
     const region = [
       { dimension: "T", index: this.timeInterval },
       { dimension: "Z", index: 0 },
     ];
+    const source = new OmeZarrImageSource(
+      "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+    );
     const layer = new ImageSeriesLayer(source, region, "T");
     if (preLoad) {
       layer.update();
@@ -237,12 +237,12 @@ export class Task {
     return this.tracksLayer_;
   }
 
-  public layers(imageSource: OmeZarrImageSource): {
+  public layers(): {
     imageSeriesLayer: ImageSeriesLayer;
     tracksLayer: TracksLayer;
   } {
     const layers = {
-      imageSeriesLayer: this.imageSeriesLayer(imageSource),
+      imageSeriesLayer: this.imageSeriesLayer(),
       tracksLayer: this.tracksLayer(),
     };
     this.tracksLayer_ = layers.tracksLayer;
