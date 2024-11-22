@@ -50,7 +50,8 @@ options:
 ```
 
 Then mv `mock_data.json` to `../data/mock_data.json`.
-If `ultrack_tmp.db` already exists and you want to update it (which is likely), you will need to remove it before running the command above.
+
+If the default `ultrack_tmp.db` file already exists and you want to update it with the same mock data, you need to remove it before running the command above.
 
 Otherwise, mock data is available via the development server at `http://localhost:8000/mock-data`.
 Mock data endpoints are:
