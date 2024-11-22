@@ -6,8 +6,12 @@
 
 set -ueo pipefail
 
+# XDG_RUNTIME_DIR is used by some tools like uv and just
+# this could be different on the job runner, which causes issues
 unset XDG_RUNTIME_DIR
 
+# REPO_ROOT is more reliable than BASH_SOURCE or SLURM_SUBMIT_DIR
+# it works if `sbatch` is called from anywhere within the repository
 REPO_ROOT=$(git rev-parse --show-toplevel)
 
 if command -v uv &> /dev/null; then
@@ -17,8 +21,7 @@ else
     curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 
-
-if [-s "NVM_DIR/nvm.sh" ]; then
+if [ -s "NVM_DIR/nvm.sh" ]; then
     echo "nvm already installed..."
 else
     echo "installing nvm..."
