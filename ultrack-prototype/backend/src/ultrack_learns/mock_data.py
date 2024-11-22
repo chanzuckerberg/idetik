@@ -8,7 +8,7 @@ from fastapi import FastAPI, APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import aliased, Session
 
-from ultrack_learns.models import Task, TaskData, TaskType
+from ultrack_learns.models import ImageData, Task, TaskData, TaskType
 from ultrack_learns.db import (
     get_session,
     session_context,
@@ -19,6 +19,7 @@ from ultrack_learns.db import (
 )
 
 SAMPLE_DATA_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color/tracks.csv"
+SAMPLE_IMAGE_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
 
 
 @asynccontextmanager
@@ -159,6 +160,7 @@ def all_tasks(
                     time_window=time_window,
                     include_children=task_type == TaskType.DIVISION,
                 ),
+                image_data=ImageData(url=SAMPLE_IMAGE_URL)
             )
             for root_node in task_roots
         ]

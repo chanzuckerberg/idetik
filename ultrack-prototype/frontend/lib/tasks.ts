@@ -47,9 +47,28 @@ function trackFromJSON(trackJSON: unknown): Track {
   return { trackId: track_id, time, position };
 }
 
+type ImageData = {
+  url: string;
+};
+
+function imageFromJSON(imageJSON: unknown): ImageData {
+  if (typeof imageJSON !== "object" || imageJSON === null) {
+    throw new Error("Invalid input: expected a JSON object");
+  }
+
+  const { url } = imageJSON as Record<string, unknown>;
+
+  if (typeof url !== "string") {
+    throw new Error("Invalid url, expected a string");
+  }
+
+  return { url };
+}
+
 type TaskData = {
   nodeId: number;
   tracksData: Track[];
+  imageData: ImageData;
 };
 
 function taskDataFromJSON(taskDataJSON: unknown): TaskData {
@@ -57,7 +76,10 @@ function taskDataFromJSON(taskDataJSON: unknown): TaskData {
     throw new Error("Invalid input: expected a JSON object");
   }
 
-  const { node_id, tracks_data } = taskDataJSON as Record<string, unknown>;
+  const { node_id, tracks_data, image_data } = taskDataJSON as Record<
+    string,
+    unknown
+  >;
 
   if (typeof node_id !== "number") {
     throw new Error("Invalid nodeId, expected a number");
@@ -68,8 +90,9 @@ function taskDataFromJSON(taskDataJSON: unknown): TaskData {
   }
 
   const tracksData = tracks_data.map(trackFromJSON);
+  const imageData = imageFromJSON(image_data);
 
-  return { nodeId: node_id, tracksData };
+  return { nodeId: node_id, tracksData, imageData };
 }
 
 const TASK_TYPES = ["appearance", "disappearance", "division"] as const;
@@ -161,6 +184,7 @@ export class Task {
             ...pos,
           ]) as typeof track.position,
         })),
+        imageData: this.taskData.imageData,
       },
       { ...this.answer }
     );
@@ -207,9 +231,7 @@ export class Task {
       { dimension: "T", index: this.timeInterval },
       { dimension: "Z", index: 0 },
     ];
-    const source = new OmeZarrImageSource(
-      "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
-    );
+    const source = new OmeZarrImageSource(this.taskData.imageData.url);
     const layer = new ImageSeriesLayer(source, region, "T");
     if (preLoad) {
       layer.update();

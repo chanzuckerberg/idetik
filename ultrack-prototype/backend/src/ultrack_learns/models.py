@@ -22,9 +22,14 @@ class TrackData(BaseModel):
     position: Path2D | Path3D
 
 
+class ImageData(BaseModel):
+    url: str = "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+
+
 class TaskData(BaseModel):
     node_id: int
     tracks_data: list[TrackData]
+    image_data: ImageData
 
 
 class Task(BaseModel):
