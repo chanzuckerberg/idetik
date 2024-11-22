@@ -20,6 +20,8 @@ from ultrack_learns.db import (
 
 SAMPLE_DATA_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color/tracks.csv"
 SAMPLE_IMAGE_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+SAMPLE_IMAGE_TIME_DIMENSION = "T"
+SAMPLE_IMAGE_SLICE_INDICES = {"Z": 0}
 
 
 @asynccontextmanager
@@ -160,7 +162,11 @@ def all_tasks(
                     time_window=time_window,
                     include_children=task_type == TaskType.DIVISION,
                 ),
-                image_data=ImageData(url=SAMPLE_IMAGE_URL)
+                image_data=ImageData(
+                    url=SAMPLE_IMAGE_URL,
+                    time_dimension=SAMPLE_IMAGE_TIME_DIMENSION,
+                    slice_indices=SAMPLE_IMAGE_SLICE_INDICES,
+                )
             )
             for root_node in task_roots
         ]

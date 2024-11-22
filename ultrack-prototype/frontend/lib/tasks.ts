@@ -1,6 +1,7 @@
 import { vec2, vec3 } from "gl-matrix";
 
 import { ImageSeriesLayer, OmeZarrImageSource, TracksLayer } from "@";
+import { Region } from "@/data/region";
 
 type Track = {
   trackId: number;
@@ -49,6 +50,8 @@ function trackFromJSON(trackJSON: unknown): Track {
 
 type ImageData = {
   url: string;
+  timeDimension: string;
+  sliceIndices: Map<string, number>;
 };
 
 function imageFromJSON(imageJSON: unknown): ImageData {
@@ -56,13 +59,38 @@ function imageFromJSON(imageJSON: unknown): ImageData {
     throw new Error("Invalid input: expected a JSON object");
   }
 
-  const { url } = imageJSON as Record<string, unknown>;
+  const { url, time_dimension, slice_indices } = imageJSON as Record<
+    string,
+    unknown
+  >;
 
   if (typeof url !== "string") {
-    throw new Error("Invalid url, expected a string");
+    throw new Error(`Invalid url (${url}), expected a string`);
   }
 
-  return { url };
+  if (typeof time_dimension !== "string") {
+    throw new Error(
+      `Invalid time_dimension (${time_dimension}), expected a string`
+    );
+  }
+
+  if (!(slice_indices instanceof Object)) {
+    throw new Error(
+      `Invalid slice_indices (${slice_indices}), expected an Object`
+    );
+  }
+  const sliceIndices = new Map<string, number>();
+  for (const [d, i] of Object.entries(slice_indices)) {
+    if (typeof d !== "string") {
+      throw new Error(`Invalid slice_indices key (${d}), expected a string`);
+    }
+    if (typeof i !== "number") {
+      throw new Error(`Invalid slice_indices value (${i}), expected a number`);
+    }
+    sliceIndices.set(d, i);
+  }
+
+  return { url, timeDimension: time_dimension, sliceIndices };
 }
 
 type TaskData = {
@@ -90,6 +118,7 @@ function taskDataFromJSON(taskDataJSON: unknown): TaskData {
   }
 
   const tracksData = tracks_data.map(trackFromJSON);
+
   const imageData = imageFromJSON(image_data);
 
   return { nodeId: node_id, tracksData, imageData };
@@ -227,12 +256,15 @@ export class Task {
   }
 
   imageSeriesLayer(preLoad = true): ImageSeriesLayer {
-    const region = [
-      { dimension: "T", index: this.timeInterval },
-      { dimension: "Z", index: 0 },
+    const imageData = this.taskData.imageData;
+    const region: Region = [
+      { dimension: imageData.timeDimension, index: this.timeInterval },
     ];
-    const source = new OmeZarrImageSource(this.taskData.imageData.url);
-    const layer = new ImageSeriesLayer(source, region, "T");
+    for (const [d, i] of imageData.sliceIndices.entries()) {
+      region.push({ dimension: d, index: i });
+    }
+    const source = new OmeZarrImageSource(imageData.url);
+    const layer = new ImageSeriesLayer(source, region, imageData.timeDimension);
     if (preLoad) {
       layer.update();
     }

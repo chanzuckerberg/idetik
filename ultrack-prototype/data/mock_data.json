@@ -50,7 +50,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   },
@@ -105,7 +109,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   },
@@ -160,7 +168,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   },
@@ -215,7 +227,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   },
@@ -270,7 +286,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   },
@@ -325,7 +345,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   },
@@ -380,7 +404,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   },
@@ -433,7 +461,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   },
@@ -488,7 +520,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   },
@@ -543,7 +579,11 @@
         }
       ],
       "image_data": {
-        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+        "url": "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/",
+        "time_dimension": "T",
+        "slice_indices": {
+          "Z": 0
+        }
       }
     }
   }
