@@ -53,7 +53,7 @@ VITE_MOCK_ULTRACK=true npm run dev -- --mode prototype
 
 The backend server for the prototype is in the `ultrack-prototype/backend` directory. This is a
 Python FastAPI server that serves the data and provides an API for the frontend to interact with.
-See the README in that directory for more information on installing and running the server.
+See `ultrack-prototype/backend/README.md` for more information on installing and running the server.
 
 ### Running on Bruno
 
@@ -70,7 +70,7 @@ provided script in `ultrack-prototype/run-full-stack.slurm`:
 Submitted batch job 1234567  # job ID will be unique
 ❯ squeue --user $USER
 JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
-17117490       cpu ultrack- ashley.a  R      28:23      1 cpu-c-1
+1234567       cpu ultrack- your.name  R      28:23      1 cpu-c-1
 ```
 
 Take the node ID from the output of `squeue` (`cpu-c-1` in this case) and open
