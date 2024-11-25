@@ -21,7 +21,12 @@ else
     curl -LsSf https://astral.sh/uv/install.sh | sh
 fi
 
-if [ -s "NVM_DIR/nvm.sh" ]; then
+# DEFAULT_NVM_DIR determined the same way the nvm installer does it
+# https://github.com/nvm-sh/nvm?tab=readme-ov-file#install--update-script
+DEFAULT_NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+export NVM_DIR=${NVM_DIR:-$DEFAULT_NVM_DIR}
+
+if [ -s "$NVM_DIR/nvm.sh" ]; then
     echo "nvm already installed..."
 else
     echo "installing nvm..."
