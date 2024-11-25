@@ -86,9 +86,9 @@ directly with the backend from your computer.
 
 Now you should be able to access the prototype application on
 `http://localhost:5173`. Likewise the backend server is accessible on
-`http://localhost:8000` as if you were running it locally. Other uses can
+`http://localhost:8000` as if you were running it locally. Other users can
 access the same running instance by just opening the tunneling SSH session.
 
-`run-full-stack.slurm` is also just a bash script, so you can also use it to
+`run-full-stack.slurm` is just a bash script, so you can also use it to
 run both front- and back-end servers locally.
 
