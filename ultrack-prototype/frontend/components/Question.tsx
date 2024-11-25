@@ -1,8 +1,18 @@
 import { Button } from "@czi-sds/components";
 import { Box, Typography } from "@mui/material";
 import { AnswerType, Task } from "../lib/tasks";
+import { useEffect } from "react";
 
-const answers: AnswerType[] = ["Yes", "No", "Uncertain"];
+type Answer = {
+  type: AnswerType;
+  shortcut: string;
+};
+
+const answers: Answer[] = [
+  { type: "Yes", shortcut: "1" },
+  { type: "No", shortcut: "2" },
+  { type: "Uncertain", shortcut: "3" },
+];
 
 export type QuestionProps = {
   disabled: boolean;
@@ -12,6 +22,21 @@ export type QuestionProps = {
 
 export default function Question(props: QuestionProps) {
   const { disabled, task, setTaskAnswer } = props;
+
+  useEffect(() => {
+    const selectAnswer = (event: KeyboardEvent) => {
+      const answer = answers.find(
+        (answer: Answer) => answer.shortcut === event.key
+      );
+      if (answer !== undefined) {
+        setTaskAnswer(answer.type);
+      }
+    };
+    document.addEventListener("keydown", selectAnswer);
+    return () => {
+      document.removeEventListener("keydown", selectAnswer);
+    };
+  }, [setTaskAnswer]);
 
   return (
     <Box
@@ -33,13 +58,15 @@ export default function Question(props: QuestionProps) {
       >
         {answers.map((answer) => (
           <Button
-            key={answer}
-            sdsType={task?.answer.value === answer ? "primary" : "secondary"}
+            key={answer.type}
+            sdsType={
+              task?.answer.value === answer.type ? "primary" : "secondary"
+            }
             sdsStyle="square"
-            onClick={() => setTaskAnswer(answer)}
+            onClick={() => setTaskAnswer(answer.type)}
             disabled={disabled}
           >
-            {answer}
+            {answer.type} ({answer.shortcut})
           </Button>
         ))}
       </Box>
