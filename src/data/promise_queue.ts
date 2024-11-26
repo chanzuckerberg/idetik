@@ -1,17 +1,10 @@
-type PromiseQueueOptions = {
-  numConcurrent?: number;
-  idleMs?: number;
-};
-
 export class PromiseQueue<T> {
+  private readonly numConcurrent_: number;
   private pendingTasks_: Array<() => Promise<T>> = [];
-  private numConcurrent_: number;
-  private idleMs_: number;
+  private runningTasks_: Array<Promise<T>> = [];
 
-  constructor(options: PromiseQueueOptions = {}) {
-    const { numConcurrent = 1, idleMs = 100 } = options;
+  constructor(numConcurrent: number = 16) {
     this.numConcurrent_ = numConcurrent;
-    this.idleMs_ = idleMs;
   }
 
   add(fn: () => Promise<T>): void {
@@ -21,17 +14,21 @@ export class PromiseQueue<T> {
   async onIdle(): Promise<T[]> {
     const results: T[] = [];
     while (this.pendingTasks_.length > 0) {
-      if (this.numConcurrent_ <= 0) {
-        await new Promise((resolve) => setTimeout(resolve, this.idleMs_));
+      if (this.runningTasks_.length >= this.numConcurrent_) {
+        await Promise.race(this.runningTasks_);
         continue;
       }
       const task = this.pendingTasks_.shift();
       if (task === undefined) continue;
-      this.numConcurrent_--;
-      const result = await task();
-      this.numConcurrent_++;
-      results.push(result);
+      const promise = task();
+      this.runningTasks_.push(promise);
+      promise.then((result) => {
+        results.push(result);
+        const index = this.runningTasks_.indexOf(promise);
+        this.runningTasks_.splice(index, 1);
+      });
     }
+    await Promise.all(this.runningTasks_);
     return results;
   }
 }
