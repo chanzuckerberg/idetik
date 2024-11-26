@@ -1,8 +1,21 @@
 import { Button } from "@czi-sds/components";
 import { Box, Typography } from "@mui/material";
 import { AnswerType, Task } from "../lib/tasks";
+import { useEffect } from "react";
 
-const answers: AnswerType[] = ["Yes", "No", "Uncertain"];
+type AnswerOption = {
+  type: AnswerType;
+  shortcut: string;
+};
+
+// Shortcuts "1", "2", and "3" are used to be ergonomic on most
+// keyboard layouts and to be consistent with Ultrack's napari plugin:
+// https://github.com/royerlab/ultrack/blob/ff3bf242e395bde3236153317802b5aff8dbb6a6/ultrack/validation/link_validation.py#L159
+const answers: AnswerOption[] = [
+  { type: "Yes", shortcut: "1" },
+  { type: "No", shortcut: "2" },
+  { type: "Uncertain", shortcut: "3" },
+];
 
 export type QuestionProps = {
   disabled: boolean;
@@ -12,6 +25,22 @@ export type QuestionProps = {
 
 export default function Question(props: QuestionProps) {
   const { disabled, task, setTaskAnswer } = props;
+
+  useEffect(() => {
+    const selectAnswer = (event: KeyboardEvent) => {
+      if (disabled) return;
+      const answer = answers.find(
+        (answer: AnswerOption) => answer.shortcut === event.key
+      );
+      if (answer !== undefined) {
+        setTaskAnswer(answer.type);
+      }
+    };
+    document.addEventListener("keydown", selectAnswer);
+    return () => {
+      document.removeEventListener("keydown", selectAnswer);
+    };
+  }, [disabled, setTaskAnswer]);
 
   return (
     <Box
@@ -33,13 +62,15 @@ export default function Question(props: QuestionProps) {
       >
         {answers.map((answer) => (
           <Button
-            key={answer}
-            sdsType={task?.answer.value === answer ? "primary" : "secondary"}
+            key={answer.type}
+            sdsType={
+              task?.answer.value === answer.type ? "primary" : "secondary"
+            }
             sdsStyle="square"
-            onClick={() => setTaskAnswer(answer)}
+            onClick={() => setTaskAnswer(answer.type)}
             disabled={disabled}
           >
-            {answer}
+            {answer.type} ({answer.shortcut})
           </Button>
         ))}
       </Box>
