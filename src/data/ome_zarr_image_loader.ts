@@ -4,6 +4,7 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
+import { PromiseQueue } from "data/promise_queue";
 
 type IdentityTransform = {
   type: "identity";
@@ -50,6 +51,8 @@ export class OmeZarrImageLoader {
   root_: zarr.Group<zarr.FetchStore>;
   axes_: Array<Axis>;
   datasets_: Array<Dataset>;
+  arrays_: Map<Dataset, zarr.Array<zarr.DataType>> = new Map();
+  promiseQueue_: PromiseQueue<void> = new PromiseQueue();
 
   constructor(root: zarr.Group<zarr.FetchStore>) {
     this.root_ = root;
@@ -67,21 +70,35 @@ export class OmeZarrImageLoader {
     this.datasets_ = image.datasets;
   }
 
+  async openArray(dataset: Dataset) {
+    return await navigator.locks.request(
+      "OmeZarrImageLoader::openArray",
+      async (_lock) => {
+        const cached = this.arrays_.get(dataset);
+        if (cached !== undefined) return cached;
+        const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+          kind: "array",
+          attrs: false,
+        });
+        console.debug("opened array ", array);
+        this.arrays_.set(dataset, array);
+        return array;
+      }
+    );
+  }
+
   async loadChunk(region: Region): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
     const dataset = this.datasets_[lowestResolutionIndex];
+    const array = await this.openArray(dataset);
+
     const indices = regionToIndices(region, dataset, this.axes_);
     console.debug("loading dataset with indices", dataset, indices);
 
-    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
-      kind: "array",
-      attrs: false,
-    });
-    console.debug("opened array ", array);
-
-    const subarray = await zarr.get(array, indices);
+    const options = { create_queue: () => this.promiseQueue_ };
+    const subarray = await zarr.get(array, indices, options);
 
     if (!isDataType(subarray.data)) {
       throw new Error(

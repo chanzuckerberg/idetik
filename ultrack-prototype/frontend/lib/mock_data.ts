@@ -3,7 +3,7 @@
 import { Answer, Task } from "./tasks";
 
 export const imageUrl =
-  "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
+  "https://public.czbiohub.org/royerlab/ultrack/multi-color/normalized.zarr/";
 
 // TODO: so far these are all division tasks
 const tasks = [
