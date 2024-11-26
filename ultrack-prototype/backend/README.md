@@ -49,7 +49,7 @@ options:
 
 ```
 
-Otherwise, mock data is avaialable via the development server at `http://localhost:8000/mock-data`.
+Otherwise, mock data is available via the development server at `http://localhost:8000/mock_data`.
 Mock data endpoints are:
 * `/task` - GET all tasks. This route accepts query parameters `rng_seed` and `num_tasks` to control
   how many tasks are returned and the seed used to generate them.
