@@ -28,6 +28,7 @@ export default function Question(props: QuestionProps) {
 
   useEffect(() => {
     const selectAnswer = (event: KeyboardEvent) => {
+      if (disabled) return;
       const answer = answers.find(
         (answer: AnswerOption) => answer.shortcut === event.key
       );
@@ -39,7 +40,7 @@ export default function Question(props: QuestionProps) {
     return () => {
       document.removeEventListener("keydown", selectAnswer);
     };
-  }, [setTaskAnswer]);
+  }, [disabled, setTaskAnswer]);
 
   return (
     <Box
