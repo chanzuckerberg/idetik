@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 import { AnswerType, Task } from "../lib/tasks";
 import { useEffect } from "react";
 
-type Answer = {
+type AnswerOption = {
   type: AnswerType;
   shortcut: string;
 };
@@ -11,7 +11,7 @@ type Answer = {
 // Shortcuts "1", "2", and "3" are used to be ergonomic on most
 // keyboard layouts and to be consistent with Ultrack's napari plugin:
 // https://github.com/royerlab/ultrack/blob/ff3bf242e395bde3236153317802b5aff8dbb6a6/ultrack/validation/link_validation.py#L159
-const answers: Answer[] = [
+const answers: AnswerOption[] = [
   { type: "Yes", shortcut: "1" },
   { type: "No", shortcut: "2" },
   { type: "Uncertain", shortcut: "3" },
@@ -29,7 +29,7 @@ export default function Question(props: QuestionProps) {
   useEffect(() => {
     const selectAnswer = (event: KeyboardEvent) => {
       const answer = answers.find(
-        (answer: Answer) => answer.shortcut === event.key
+        (answer: AnswerOption) => answer.shortcut === event.key
       );
       if (answer !== undefined) {
         setTaskAnswer(answer.type);
