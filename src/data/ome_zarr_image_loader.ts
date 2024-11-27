@@ -88,7 +88,7 @@ export class OmeZarrImageLoader {
 
   async loadChunk(
     region: Region,
-    executor: TaskExecutor<void> = new TaskExecutor()
+    executor?: TaskExecutor<void>,
   ): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
@@ -99,7 +99,10 @@ export class OmeZarrImageLoader {
     const indices = regionToIndices(region, dataset, this.axes_);
     console.debug("loading dataset with indices", dataset, indices);
 
-    const options = { create_queue: () => new TaskQueue(executor) };
+    let options = {};
+    if (executor !== undefined) {
+      options = { create_queue: () => new TaskQueue(executor) };
+    }
     const subarray = await zarr.get(array, indices, options);
 
     if (!isDataType(subarray.data)) {
