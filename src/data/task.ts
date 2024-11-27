@@ -32,12 +32,10 @@ export class TaskQueue<T> {
   }
 
   async onIdle(): Promise<T[]> {
-    const tasks: Array<Promise<T>> = [];
-    for (const pendingTask of this.pendingTasks_) {
-      const task = pendingTask();
-      await this.executor_.submit(task);
-      tasks.push(task);
-    }
-    return await Promise.all(tasks);
+    return await Promise.all(
+      this.pendingTasks_.map(async (pendingTask) => {
+        return await this.executor_.submit(pendingTask());
+      })
+    );
   }
 }
