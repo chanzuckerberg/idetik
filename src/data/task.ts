@@ -30,7 +30,7 @@ export class TaskExecutor<T> {
   private readonly runningTasks_: Array<Promise<T>> = [];
   private readonly pendingTasks_: Array<Task<T>> = [];
 
-  constructor(maxConcurrentTasks: number = 4) {
+  constructor(maxConcurrentTasks: number) {
     if (maxConcurrentTasks <= 0) {
       throw Error(
         `maxConcurrentTasks (${maxConcurrentTasks}) must be positive`

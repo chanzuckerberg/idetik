@@ -14,7 +14,7 @@ export class ImageSeriesLayer extends Layer {
   private readonly timeDimensionIndex_: number;
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
-  private executor_: TaskExecutor<void> = new TaskExecutor();
+  private executor_: TaskExecutor<void> = new TaskExecutor(16);
 
   constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
     super();
