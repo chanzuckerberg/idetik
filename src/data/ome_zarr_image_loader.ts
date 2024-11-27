@@ -88,7 +88,7 @@ export class OmeZarrImageLoader {
 
   async loadChunk(
     region: Region,
-    executor?: TaskExecutor<void>,
+    executor?: TaskExecutor<void>
   ): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
