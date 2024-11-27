@@ -1,4 +1,5 @@
 import { Region } from "data/region";
+import { TaskExecutor } from "data/task";
 import { TextureUnpackRowAlignment } from "objects/textures/texture";
 
 // One 2D chunk of n-dimensional image data.
@@ -20,5 +21,5 @@ export type ImageChunkSource = {
 };
 
 export type ImageChunkLoader = {
-  loadChunk(input: Region): Promise<ImageChunk>;
+  loadChunk(input: Region, executor?: TaskExecutor<void>): Promise<ImageChunk>;
 };

@@ -52,7 +52,6 @@ export class OmeZarrImageLoader {
   axes_: Array<Axis>;
   datasets_: Array<Dataset>;
   arrays_: Map<Dataset, zarr.Array<zarr.DataType>> = new Map();
-  executor_: TaskExecutor<void> = new TaskExecutor();
 
   constructor(root: zarr.Group<zarr.FetchStore>) {
     this.root_ = root;
@@ -87,7 +86,10 @@ export class OmeZarrImageLoader {
     );
   }
 
-  async loadChunk(region: Region): Promise<ImageChunk> {
+  async loadChunk(
+    region: Region,
+    executor: TaskExecutor<void> = new TaskExecutor()
+  ): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
@@ -97,7 +99,7 @@ export class OmeZarrImageLoader {
     const indices = regionToIndices(region, dataset, this.axes_);
     console.debug("loading dataset with indices", dataset, indices);
 
-    const options = { create_queue: () => new TaskQueue(this.executor_) };
+    const options = { create_queue: () => new TaskQueue(executor) };
     const subarray = await zarr.get(array, indices, options);
 
     if (!isDataType(subarray.data)) {

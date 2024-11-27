@@ -14,6 +14,8 @@ export abstract class Layer {
 
   public abstract update(): void;
 
+  public close() {}
+
   public get objects() {
     return this.objects_;
   }
