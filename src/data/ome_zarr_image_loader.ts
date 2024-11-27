@@ -4,7 +4,7 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
-import { PromiseQueue } from "data/promise_queue";
+import { TaskExecutor, TaskQueue } from "data/task";
 
 type IdentityTransform = {
   type: "identity";
@@ -52,7 +52,7 @@ export class OmeZarrImageLoader {
   axes_: Array<Axis>;
   datasets_: Array<Dataset>;
   arrays_: Map<Dataset, zarr.Array<zarr.DataType>> = new Map();
-  promiseQueue_: PromiseQueue<void> = new PromiseQueue();
+  executor_: TaskExecutor<void> = new TaskExecutor();
 
   constructor(root: zarr.Group<zarr.FetchStore>) {
     this.root_ = root;
@@ -70,7 +70,7 @@ export class OmeZarrImageLoader {
     this.datasets_ = image.datasets;
   }
 
-  async openArray(dataset: Dataset) {
+  private async openArray(dataset: Dataset) {
     return await navigator.locks.request(
       "OmeZarrImageLoader::openArray",
       async (_lock) => {
@@ -97,7 +97,7 @@ export class OmeZarrImageLoader {
     const indices = regionToIndices(region, dataset, this.axes_);
     console.debug("loading dataset with indices", dataset, indices);
 
-    const options = { create_queue: () => this.promiseQueue_ };
+    const options = { create_queue: () => new TaskQueue(this.executor_) };
     const subarray = await zarr.get(array, indices, options);
 
     if (!isDataType(subarray.data)) {
