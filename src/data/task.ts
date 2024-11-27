@@ -27,8 +27,8 @@ export class TaskQueue<T> {
     this.executor_ = executor;
   }
 
-  add(fn: () => Promise<T>): void {
-    this.pendingTasks_.push(fn);
+  add(pendingTask: () => Promise<T>): void {
+    this.pendingTasks_.push(pendingTask);
   }
 
   async onIdle(): Promise<T[]> {
