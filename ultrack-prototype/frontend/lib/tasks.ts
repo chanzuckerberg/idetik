@@ -299,7 +299,6 @@ export class Task {
       imageSeriesLayer: this.imageSeriesLayer(),
       tracksLayer: this.tracksLayer(),
     };
-    this.tracksLayer_ = layers.tracksLayer;
     return layers;
   }
 }
