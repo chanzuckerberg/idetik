@@ -10,6 +10,7 @@ from sqlalchemy.orm import aliased, Session
 
 from ultrack_learns.models import ImageData, Task, TaskData, TaskType
 from ultrack_learns.db import (
+    Image,
     get_session,
     session_context,
     set_up_db,
@@ -18,10 +19,15 @@ from ultrack_learns.db import (
     Task as TaskRecord,
 )
 
-SAMPLE_DATA_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color/tracks.csv"
-SAMPLE_IMAGE_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
-SAMPLE_IMAGE_TIME_DIMENSION = "T"
-SAMPLE_IMAGE_SLICE_INDICES = {"Z": 0}
+SAMPLE_DATA_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color"
+SAMPLE_TRACKS_URL = f"{SAMPLE_DATA_URL}/tracks.csv"
+seed(54)
+SAMPLE_IMAGE = Image(
+    image_id=UUID(int=getrandbits(128), version=4),
+    url=f"{SAMPLE_DATA_URL}/image.zarr/",
+    time_dimension="T",
+    slice_indices={"Z": 0},
+)
 
 
 @asynccontextmanager
@@ -41,10 +47,13 @@ def seed_mock_data(db: Session):
         print(f"DB file: '{db.bind.url.database}'")
         return
 
-    print(f"Downloading sample data from {SAMPLE_DATA_URL}")
-    df = pd.read_csv(SAMPLE_DATA_URL)
+    print(f"Inserting sample image data into the database")
+    db.add(SAMPLE_IMAGE)
 
-    print("Inserting data into the database")
+    print(f"Downloading sample tracks data from {SAMPLE_TRACKS_URL}")
+    df = pd.read_csv(SAMPLE_TRACKS_URL)
+
+    print("Inserting track data into the database")
     for row in df.itertuples():
         parent_id = row.parent_id if row.parent_id != -1 else None
         parent_track_id = row.parent_track_id if row.parent_track_id != -1 else None
@@ -149,6 +158,15 @@ def all_tasks(
     seed(rng_seed)
     tasks = []
     task_types = Counter(choices(list(TaskType), k=num_tasks))
+    # There is only one image, but exercise the database by fetching it
+    # by its ID as a crude test to check it has actually been stored.
+    image = db.get(Image, SAMPLE_IMAGE.image_id)
+    image_data=ImageData(
+        image_id=image.image_id,
+        url=image.url,
+        time_dimension=image.time_dimension,
+        slice_indices=image.slice_indices,
+    )
     # TODO: the client does not yet support different task types
     task_types = {TaskType.DIVISION: num_tasks}
     for task_type, count in task_types.items():
@@ -162,11 +180,7 @@ def all_tasks(
                     time_window=time_window,
                     include_children=task_type == TaskType.DIVISION,
                 ),
-                image_data=ImageData(
-                    url=SAMPLE_IMAGE_URL,
-                    time_dimension=SAMPLE_IMAGE_TIME_DIMENSION,
-                    slice_indices=SAMPLE_IMAGE_SLICE_INDICES,
-                )
+                image_data=image_data,
             )
             for root_node in task_roots
         ]

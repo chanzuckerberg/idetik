@@ -23,6 +23,7 @@ class TrackData(BaseModel):
 
 
 class ImageData(BaseModel):
+    image_id: UUID
     url: str
     time_dimension: str
     slice_indices: dict[str, int]
