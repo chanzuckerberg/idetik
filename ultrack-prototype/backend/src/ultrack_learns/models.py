@@ -23,7 +23,7 @@ class TrackData(BaseModel):
 
 
 class ImageData(BaseModel):
-    url: str = "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/"
+    url: str
     time_dimension: str
     slice_indices: dict[str, int]
 
