@@ -54,7 +54,7 @@ type ImageData = {
   sliceIndices: Map<string, number>;
 };
 
-function imageFromJSON(imageJSON: unknown): ImageData {
+function imageDataFromJSON(imageJSON: unknown): ImageData {
   if (typeof imageJSON !== "object" || imageJSON === null) {
     throw new Error("Invalid input: expected a JSON object");
   }
@@ -119,7 +119,7 @@ function taskDataFromJSON(taskDataJSON: unknown): TaskData {
 
   const tracksData = tracks_data.map(trackFromJSON);
 
-  const imageData = imageFromJSON(image_data);
+  const imageData = imageDataFromJSON(image_data);
 
   return { nodeId: node_id, tracksData, imageData };
 }
