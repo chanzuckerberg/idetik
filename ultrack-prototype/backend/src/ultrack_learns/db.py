@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from ultrack_learns.models import TaskData, TaskType, TrackData
 
 from sqlalchemy import (
+    JSON,
     create_engine,
     select,
     Column,
@@ -63,17 +64,7 @@ class Task(Base):
     # and allows more flexibility (e.g. changing the time window)
     task_type = Column(String, nullable=False)
     node_id = Column(Integer, ForeignKey("track_points.id"))
-
-    def get_task_data(self, db: Session, time_window: int = 16) -> TaskData:
-        return TaskData(
-            node_id=self.node_id,
-            tracks_data=track_points_around_node(
-                db,
-                self.node_id,
-                time_window=time_window,
-                include_children=self.task_type == TaskType.DIVISION,
-            ),
-        )
+    image_id = Column(UUID, ForeignKey("images.image_id"))
 
 
 class Answer(Base):
@@ -83,6 +74,15 @@ class Answer(Base):
     task_id = Column(UUID, ForeignKey("tasks.task_id"))
     created_at = Column(DateTime(timezone=True))
     answer = Column(String, nullable=False)
+
+
+class Image(Base):
+    __tablename__ = "images"
+
+    image_id = Column(UUID, primary_key=True, index=True)
+    url = Column(String, nullable=False)
+    time_dimension = Column(String, nullable=False)
+    slice_indices = Column(JSON, nullable=False)
 
 
 def track_points_around_node(

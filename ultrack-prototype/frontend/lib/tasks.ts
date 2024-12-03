@@ -1,6 +1,7 @@
 import { vec2, vec3 } from "gl-matrix";
 
 import { ImageSeriesLayer, OmeZarrImageSource, TracksLayer } from "@";
+import { Region } from "@/data/region";
 
 type Track = {
   trackId: number;
@@ -47,9 +48,55 @@ function trackFromJSON(trackJSON: unknown): Track {
   return { trackId: track_id, time, position };
 }
 
+type ImageData = {
+  url: string;
+  timeDimension: string;
+  sliceIndices: Map<string, number>;
+};
+
+function imageDataFromJSON(imageJSON: unknown): ImageData {
+  if (typeof imageJSON !== "object" || imageJSON === null) {
+    throw new Error("Invalid input: expected a JSON object");
+  }
+
+  const { url, time_dimension, slice_indices } = imageJSON as Record<
+    string,
+    unknown
+  >;
+
+  if (typeof url !== "string") {
+    throw new Error(`Invalid url (${url}), expected a string`);
+  }
+
+  if (typeof time_dimension !== "string") {
+    throw new Error(
+      `Invalid time_dimension (${time_dimension}), expected a string`
+    );
+  }
+
+  if (!(slice_indices instanceof Object)) {
+    throw new Error(
+      `Invalid slice_indices (${slice_indices}), expected an Object`
+    );
+  }
+  const sliceIndices = new Map<string, number>();
+  for (const [d, i] of Object.entries(slice_indices)) {
+    if (typeof d !== "string") {
+      throw new Error(`Invalid slice_indices key (${d}), expected a string`);
+    }
+    if (typeof i !== "number") {
+      throw new Error(`Invalid slice_indices value (${i}), expected a number`);
+    }
+    sliceIndices.set(d, i);
+  }
+
+  return { url, timeDimension: time_dimension, sliceIndices };
+}
+
 type TaskData = {
   nodeId: number;
   tracksData: Track[];
+  imageData: ImageData;
 };
 
 function taskDataFromJSON(taskDataJSON: unknown): TaskData {
@@ -57,7 +104,10 @@ function taskDataFromJSON(taskDataJSON: unknown): TaskData {
     throw new Error("Invalid input: expected a JSON object");
   }
 
-  const { node_id, tracks_data } = taskDataJSON as Record<string, unknown>;
+  const { node_id, tracks_data, image_data } = taskDataJSON as Record<
+    string,
+    unknown
+  >;
 
   if (typeof node_id !== "number") {
     throw new Error("Invalid nodeId, expected a number");
@@ -69,7 +119,9 @@ function taskDataFromJSON(taskDataJSON: unknown): TaskData {
 
   const tracksData = tracks_data.map(trackFromJSON);
 
-  return { nodeId: node_id, tracksData };
+  const imageData = imageDataFromJSON(image_data);
+
+  return { nodeId: node_id, tracksData, imageData };
 }
 
 const TASK_TYPES = ["appearance", "disappearance", "division"] as const;
@@ -161,6 +213,7 @@ export class Task {
             ...pos,
           ]) as typeof track.position,
         })),
+        imageData: this.taskData.imageData,
       },
       { ...this.answer }
     );
@@ -202,15 +255,16 @@ export class Task {
     return this.timeInterval.start;
   }
 
-  imageSeriesLayer(
-    source: OmeZarrImageSource,
-    preLoad = true
-  ): ImageSeriesLayer {
-    const region = [
-      { dimension: "T", index: this.timeInterval },
-      { dimension: "Z", index: 0 },
+  imageSeriesLayer(preLoad = true): ImageSeriesLayer {
+    const imageData = this.taskData.imageData;
+    const region: Region = [
+      { dimension: imageData.timeDimension, index: this.timeInterval },
     ];
-    const layer = new ImageSeriesLayer(source, region, "T");
+    for (const [d, i] of imageData.sliceIndices.entries()) {
+      region.push({ dimension: d, index: i });
+    }
+    const source = new OmeZarrImageSource(imageData.url);
+    const layer = new ImageSeriesLayer(source, region, imageData.timeDimension);
     if (preLoad) {
       layer.update();
     }
@@ -237,15 +291,14 @@ export class Task {
     return this.tracksLayer_;
   }
 
-  public layers(imageSource: OmeZarrImageSource): {
+  public layers(): {
     imageSeriesLayer: ImageSeriesLayer;
     tracksLayer: TracksLayer;
   } {
     const layers = {
-      imageSeriesLayer: this.imageSeriesLayer(imageSource),
+      imageSeriesLayer: this.imageSeriesLayer(),
       tracksLayer: this.tracksLayer(),
     };
-    this.tracksLayer_ = layers.tracksLayer;
     return layers;
   }
 }
