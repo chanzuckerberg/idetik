@@ -161,6 +161,7 @@ export class Task {
 
   private timeInterval_: { start: number; stop: number } | null = null;
   private tracksLayer_: TracksLayer | null = null;
+  private imageSeriesLayer_: ImageSeriesLayer | null = null;
 
   private constructor(
     taskId: string,
@@ -201,7 +202,7 @@ export class Task {
   }
 
   public clone(): Task {
-    return new Task(
+    const task = new Task(
       this.taskId,
       this.taskType,
       {
@@ -217,6 +218,10 @@ export class Task {
       },
       { ...this.answer }
     );
+    task.timeInterval_ = this.timeInterval_;
+    task.tracksLayer_ = this.tracksLayer_;
+    task.imageSeriesLayer_ = this.imageSeriesLayer_;
+    return task;
   }
 
   public get question(): string {
@@ -256,19 +261,25 @@ export class Task {
   }
 
   imageSeriesLayer(preLoad = true): ImageSeriesLayer {
-    const imageData = this.taskData.imageData;
-    const region: Region = [
-      { dimension: imageData.timeDimension, index: this.timeInterval },
-    ];
-    for (const [d, i] of imageData.sliceIndices.entries()) {
-      region.push({ dimension: d, index: i });
+    if (this.imageSeriesLayer_ === null) {
+      const imageData = this.taskData.imageData;
+      const region: Region = [
+        { dimension: imageData.timeDimension, index: this.timeInterval },
+      ];
+      for (const [d, i] of imageData.sliceIndices.entries()) {
+        region.push({ dimension: d, index: i });
+      }
+      const source = new OmeZarrImageSource(imageData.url);
+      this.imageSeriesLayer_ = new ImageSeriesLayer(
+        source,
+        region,
+        imageData.timeDimension
+      );
+      if (preLoad) {
+        this.imageSeriesLayer_.update();
+      }
     }
-    const source = new OmeZarrImageSource(imageData.url);
-    const layer = new ImageSeriesLayer(source, region, imageData.timeDimension);
-    if (preLoad) {
-      layer.update();
-    }
-    return layer;
+    return this.imageSeriesLayer_;
   }
 
   tracksLayer(): TracksLayer {
