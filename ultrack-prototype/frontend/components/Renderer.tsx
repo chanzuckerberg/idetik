@@ -74,7 +74,7 @@ export default function Renderer(props: RendererProps) {
       camera.zoom = 0.25;
       controls.panTarget = camera.position;
     };
-    if (imageSeriesLayer.state == "ready") {
+    if (imageSeriesLayer.state === "ready") {
       onReady();
     }
     const onStateChange = (newState: LayerState) => {
