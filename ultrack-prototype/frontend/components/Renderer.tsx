@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import {
   ImageSeriesLayer,
   LayerManager,
@@ -20,7 +20,6 @@ const canvasId = "canvas";
 const camera = new OrthographicCamera(0, 1920, 0, 1440);
 const controls = new PanZoomControls(camera, camera.position);
 const layerManager = new LayerManager();
-let lastTaskId = "";
 
 type RendererProps = {
   curTime: number;
@@ -34,6 +33,7 @@ export default function Renderer(props: RendererProps) {
   const [imageSeriesLayer, setImageSeriesLayer] =
     useState<ImageSeriesLayer | null>(null);
   const [tracksLayer, setTracksLayer] = useState<TracksLayer | null>(null);
+  const lastTaskId = useRef("");
 
   useEffect(() => {
     console.debug("Renderer::useEffect::curTime: ", curTime);
@@ -55,10 +55,10 @@ export default function Renderer(props: RendererProps) {
 
   useEffect(() => {
     console.debug("Renderer::useEffect::task: ", task);
-    if (task?.taskId === lastTaskId) return;
+    if (task?.taskId === lastTaskId.current) return;
     setPlaybackEnabled(false);
     if (!task) return;
-    lastTaskId = task.taskId;
+    lastTaskId.current = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
     imageSeriesLayer.update();
     setImageSeriesLayer(imageSeriesLayer);
