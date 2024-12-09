@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import {
   ImageSeriesLayer,
   LayerManager,
@@ -33,6 +33,7 @@ export default function Renderer(props: RendererProps) {
   const [imageSeriesLayer, setImageSeriesLayer] =
     useState<ImageSeriesLayer | null>(null);
   const [tracksLayer, setTracksLayer] = useState<TracksLayer | null>(null);
+  const lastTaskId = useRef("");
 
   useEffect(() => {
     console.debug("Renderer::useEffect::curTime: ", curTime);
@@ -54,10 +55,10 @@ export default function Renderer(props: RendererProps) {
 
   useEffect(() => {
     console.debug("Renderer::useEffect::task: ", task);
+    if (task?.taskId === lastTaskId.current) return;
     setPlaybackEnabled(false);
-    if (!task) {
-      return;
-    }
+    if (!task) return;
+    lastTaskId.current = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
     imageSeriesLayer.update();
     setImageSeriesLayer(imageSeriesLayer);
@@ -73,7 +74,7 @@ export default function Renderer(props: RendererProps) {
       camera.zoom = 0.25;
       controls.panTarget = camera.position;
     };
-    if (imageSeriesLayer.state == "ready") {
+    if (imageSeriesLayer.state === "ready") {
       onReady();
     }
     const onStateChange = (newState: LayerState) => {
