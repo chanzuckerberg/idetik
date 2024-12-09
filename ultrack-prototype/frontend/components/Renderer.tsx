@@ -20,6 +20,7 @@ const canvasId = "canvas";
 const camera = new OrthographicCamera(0, 1920, 0, 1440);
 const controls = new PanZoomControls(camera, camera.position);
 const layerManager = new LayerManager();
+let lastTaskId = "";
 
 type RendererProps = {
   curTime: number;
@@ -53,26 +54,32 @@ export default function Renderer(props: RendererProps) {
   }, [curTime, imageSeriesLayer, tracksLayer]);
 
   useEffect(() => {
-    console.debug("Renderer::useEffect::task: ", task);
+    console.debug("Renderer::useEffect::task: ", lastTaskId, task);
+    if (task?.taskId === lastTaskId) return;
     setPlaybackEnabled(false);
-    if (!task) {
-      return;
-    }
+    if (!task) return;
+    lastTaskId = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
     imageSeriesLayer.update();
     setImageSeriesLayer(imageSeriesLayer);
     setTracksLayer(tracksLayer);
+    const onReady = () => {
+      setPlaybackEnabled(true);
+      // TODO: update the data on the layers instead of creating new ones
+      layerManager.layers.length = 0;
+      layerManager.add(imageSeriesLayer);
+      layerManager.add(tracksLayer);
+      const extent = tracksLayer.extent;
+      camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
+      camera.zoom = 0.25;
+      controls.panTarget = camera.position;
+    };
+    if (imageSeriesLayer.state == "ready") {
+      onReady();
+    }
     const onStateChange = (newState: LayerState) => {
       if (newState === "ready") {
-        setPlaybackEnabled(true);
-        // TODO: update the data on the layers instead of creating new ones
-        layerManager.layers.length = 0;
-        layerManager.add(imageSeriesLayer);
-        layerManager.add(tracksLayer);
-        const extent = tracksLayer.extent;
-        camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
-        camera.zoom = 0.25;
-        controls.panTarget = camera.position;
+        onReady();
       }
     };
     imageSeriesLayer.addStateChangeCallback(onStateChange);
