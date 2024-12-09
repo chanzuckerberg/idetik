@@ -54,7 +54,7 @@ export default function Renderer(props: RendererProps) {
   }, [curTime, imageSeriesLayer, tracksLayer]);
 
   useEffect(() => {
-    console.debug("Renderer::useEffect::task: ", lastTaskId, task);
+    console.debug("Renderer::useEffect::task: ", task);
     if (task?.taskId === lastTaskId) return;
     setPlaybackEnabled(false);
     if (!task) return;
