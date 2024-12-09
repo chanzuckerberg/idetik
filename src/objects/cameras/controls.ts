@@ -51,15 +51,15 @@ export class PanZoomControls implements CameraControls {
   }
 
   private wheel(event: WheelEvent, clientToWorld: ClientToWorld): void {
-    const clientPos = vec2.fromValues(event.clientX, event.clientY);
-    const preZoomPos = clientToWorld(clientPos, this.clipDepth);
+    const eventPos = vec2.fromValues(event.offsetX, event.offsetY);
+    const preZoomPos = clientToWorld(eventPos, this.clipDepth);
     if (event.deltaY < 0) {
       this.camera_.zoom *= 1.05;
     } else {
       this.camera_.zoom /= 1.05;
     }
     // pan to zoom in on the mouse position
-    const postZoomPos = clientToWorld(clientPos, this.clipDepth);
+    const postZoomPos = clientToWorld(eventPos, this.clipDepth);
     const deltaWorld = vec3.sub(vec3.create(), preZoomPos, postZoomPos);
     this.pan(deltaWorld);
   }
