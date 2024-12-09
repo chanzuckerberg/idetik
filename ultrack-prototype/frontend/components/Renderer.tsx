@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import {
   ImageSeriesLayer,
   LayerManager,
@@ -33,6 +33,7 @@ export default function Renderer(props: RendererProps) {
   const [imageSeriesLayer, setImageSeriesLayer] =
     useState<ImageSeriesLayer | null>(null);
   const [tracksLayer, setTracksLayer] = useState<TracksLayer | null>(null);
+  const lastTaskId = useRef("");
 
   useEffect(() => {
     console.debug("Renderer::useEffect::curTime: ", curTime);
@@ -54,25 +55,31 @@ export default function Renderer(props: RendererProps) {
 
   useEffect(() => {
     console.debug("Renderer::useEffect::task: ", task);
+    if (task?.taskId === lastTaskId.current) return;
     setPlaybackEnabled(false);
-    if (!task) {
-      return;
-    }
+    if (!task) return;
+    lastTaskId.current = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
     imageSeriesLayer.update();
     setImageSeriesLayer(imageSeriesLayer);
     setTracksLayer(tracksLayer);
+    const onReady = () => {
+      setPlaybackEnabled(true);
+      // TODO: update the data on the layers instead of creating new ones
+      layerManager.layers.length = 0;
+      layerManager.add(imageSeriesLayer);
+      layerManager.add(tracksLayer);
+      const extent = tracksLayer.extent;
+      camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
+      camera.zoom = 0.25;
+      controls.panTarget = camera.position;
+    };
+    if (imageSeriesLayer.state === "ready") {
+      onReady();
+    }
     const onStateChange = (newState: LayerState) => {
       if (newState === "ready") {
-        setPlaybackEnabled(true);
-        // TODO: update the data on the layers instead of creating new ones
-        layerManager.layers.length = 0;
-        layerManager.add(imageSeriesLayer);
-        layerManager.add(tracksLayer);
-        const extent = tracksLayer.extent;
-        camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
-        camera.zoom = 0.25;
-        controls.panTarget = camera.position;
+        onReady();
       }
     };
     imageSeriesLayer.addStateChangeCallback(onStateChange);
