@@ -116,9 +116,10 @@ export abstract class Renderer {
 
   public clientToClip(position: vec2, depth: number = 0): vec3 {
     const [x, y] = position;
+    const rect = this.canvas.getBoundingClientRect();
     return vec3.fromValues(
-      (2 * x) / this.canvas.clientWidth - 1,
-      (2 * y) / this.canvas.clientHeight - 1,
+      (2 * (x - rect.x)) / this.canvas.clientWidth - 1,
+      (2 * (y - rect.y)) / this.canvas.clientHeight - 1,
       depth
     );
   }
