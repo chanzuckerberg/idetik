@@ -12,7 +12,7 @@ import {
 import { Task } from "../lib/tasks";
 import { Box } from "@mui/material";
 import { LoadingIndicator } from "@czi-sds/components";
-import { PanZoomControls } from "@/objects/cameras/controls";
+import { NullControls, PanZoomControls } from "@/objects/cameras/controls";
 
 const canvasId = "canvas";
 
@@ -100,6 +100,7 @@ export default function Renderer(props: RendererProps) {
     animate();
     return () => {
       // TODO: cleanup by disposing objects owned by the renderer and camera.
+      renderer.setControls(new NullControls());
       if (lastRequestId > 0) {
         console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);
