@@ -94,7 +94,6 @@ export default function Renderer(props: RendererProps) {
     const renderer = new WebGLRenderer(`#${canvasId}`);
     renderer.setControls(controls);
     function animate() {
-      if (renderer === null) return;
       renderer.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
     }
