@@ -21,15 +21,17 @@ const camera = new OrthographicCamera(0, 1920, 0, 1440);
 const controls = new PanZoomControls(camera, camera.position);
 const layerManager = new LayerManager();
 
-type RendererProps = {
+export default function Renderer({
+  curTime,
+  playbackEnabled,
+  setPlaybackEnabled,
+  task,
+}: {
   curTime: number;
   playbackEnabled: boolean;
   setPlaybackEnabled: Dispatch<SetStateAction<boolean>>;
   task: Task | null;
-};
-
-export default function Renderer(props: RendererProps) {
-  const { curTime, playbackEnabled, setPlaybackEnabled, task } = props;
+}) {
   const [imageSeriesLayer, setImageSeriesLayer] =
     useState<ImageSeriesLayer | null>(null);
   const [tracksLayer, setTracksLayer] = useState<TracksLayer | null>(null);
