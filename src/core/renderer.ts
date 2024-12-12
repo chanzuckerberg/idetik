@@ -6,7 +6,7 @@ import { PerspectiveCamera } from "objects/cameras/perspective_camera";
 import { OrthographicCamera } from "objects/cameras/orthographic_camera";
 import { CameraControls, NullControls } from "objects/cameras/controls";
 
-type Color = readonly [number, number, number, number];
+type Color = [number, number, number, number];
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
