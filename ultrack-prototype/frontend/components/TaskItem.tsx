@@ -2,15 +2,6 @@ import { Button, Icon } from "@czi-sds/components";
 import { Dispatch, SetStateAction } from "react";
 import { AnswerType, SyncStatus, TaskType } from "../lib/tasks";
 
-export type TaskItemProps = {
-  index: number;
-  answer: AnswerType;
-  syncStatus: SyncStatus;
-  active: boolean;
-  taskType: TaskType;
-  setTaskIndex: Dispatch<SetStateAction<number>>;
-};
-
 function sdsIcon(answer: AnswerType) {
   switch (answer) {
     case "Yes":
@@ -36,8 +27,21 @@ function sdsIconColor(synced: SyncStatus) {
   }
 }
 
-export default function TaskItem(props: TaskItemProps) {
-  const { index, answer, syncStatus, active, taskType, setTaskIndex } = props;
+export default function TaskItem({
+  index,
+  answer,
+  syncStatus,
+  active,
+  taskType,
+  setTaskIndex,
+}: {
+  index: number;
+  answer: AnswerType;
+  syncStatus: SyncStatus;
+  active: boolean;
+  taskType: TaskType;
+  setTaskIndex: Dispatch<SetStateAction<number>>;
+}) {
   return (
     <Button
       endIcon={

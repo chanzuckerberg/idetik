@@ -4,14 +4,15 @@ import { Button } from "@czi-sds/components";
 import { useEffect, Dispatch, SetStateAction } from "react";
 import { Task } from "../lib/tasks";
 
-type TaskListProps = {
+export default function TaskList({
+  tasks,
+  taskIndex,
+  setTaskIndex,
+}: {
   tasks: Task[];
   taskIndex: number;
   setTaskIndex: Dispatch<SetStateAction<number>>;
-};
-
-export default function TaskList(props: TaskListProps) {
-  const { tasks, taskIndex, setTaskIndex } = props;
+}) {
   const numReviewed = tasks.reduce(
     (num, t) => num + (t.answer.value === "Unanswered" ? 0 : 1),
     0
