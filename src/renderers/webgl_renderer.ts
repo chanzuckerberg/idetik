@@ -96,7 +96,7 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected clear() {
-    this.gl.clearColor(1, 1, 1, 1);
+    this.gl.clearColor(...this.backgroundColor);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.depthFunc(this.gl.LEQUAL);

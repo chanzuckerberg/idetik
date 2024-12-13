@@ -49,7 +49,10 @@ options:
 
 ```
 
-Otherwise, mock data is available via the development server at `http://localhost:8000/mock_data`.
+Then mv `mock_data.json` to `../data/mock_data.json`.
+
+If the default `ultrack_tmp.db` file already exists and you want to update it with the same mock data, you need to remove it before running the command above.
+
 Mock data endpoints are:
 * `/task` - GET all tasks. This route accepts query parameters `rng_seed` and `num_tasks` to control
   how many tasks are returned and the seed used to generate them.

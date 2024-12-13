@@ -17,15 +17,15 @@ const answers: AnswerOption[] = [
   { type: "Uncertain", shortcut: "3" },
 ];
 
-export type QuestionProps = {
+export default function Question({
+  disabled,
+  task,
+  setTaskAnswer,
+}: {
   disabled: boolean;
   task: Task | null;
   setTaskAnswer: (answer: AnswerType) => void;
-};
-
-export default function Question(props: QuestionProps) {
-  const { disabled, task, setTaskAnswer } = props;
-
+}) {
   useEffect(() => {
     const selectAnswer = (event: KeyboardEvent) => {
       if (disabled) return;

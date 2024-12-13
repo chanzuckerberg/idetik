@@ -6,15 +6,17 @@ import { Task } from "../lib/tasks";
 const playbackFPS = 8;
 const playbackIntervalMs = 1000 / playbackFPS;
 
-type PlaybackControlsProps = {
+export default function PlaybackControls({
+  curTime,
+  enabled,
+  setCurTime,
+  task,
+}: {
   curTime: number;
   enabled: boolean;
   setCurTime: Dispatch<SetStateAction<number>>;
   task: Task | null;
-};
-
-export default function PlaybackControls(props: PlaybackControlsProps) {
-  const { curTime, enabled, setCurTime, task } = props;
+}) {
   const [playing, setPlaying] = useState(false);
 
   const minTime = task?.minTime ?? 0;

@@ -22,9 +22,17 @@ class TrackData(BaseModel):
     position: Path2D | Path3D
 
 
+class ImageData(BaseModel):
+    image_id: UUID
+    url: str
+    time_dimension: str
+    slice_indices: dict[str, int]
+
+
 class TaskData(BaseModel):
     node_id: int
     tracks_data: list[TrackData]
+    image_data: ImageData
 
 
 class Task(BaseModel):
