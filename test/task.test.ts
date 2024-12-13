@@ -2,6 +2,8 @@ import { TaskExecutor } from "@/data/task";
 import { expect, test } from "vitest";
 
 test("TaskExecutor::TasksExecuteInOrder", async () => {
+  // TODO: the executor does not guarantee anything about
+  // execution order, and this does not test that either.
   const executor = new TaskExecutor(2);
   let blocked = true;
   const promises = [];
