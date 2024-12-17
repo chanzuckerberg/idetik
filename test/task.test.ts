@@ -38,6 +38,7 @@ test("TaskExecutor::ClearCancelsPendingTasks", async () => {
     return 1;
   });
 
+  expect(executor.numRunning).toEqual(1);
   executor.clear();
 
   blocked = false;
@@ -45,4 +46,14 @@ test("TaskExecutor::ClearCancelsPendingTasks", async () => {
   const result1 = await promise1;
   expect(result0).toEqual(0);
   expect(result1).toBeUndefined();
+  expect(executor.numRunning).toEqual(0);
+});
+
+test("TaskExecutor::TaskErrors", async () => {
+  const executor = new TaskExecutor(1);
+  const promise = executor.submit(async () => {
+    throw new Error("test");
+  });
+  await expect(promise).rejects.toThrow("test");
+  expect(executor.numRunning).toEqual(0);
 });

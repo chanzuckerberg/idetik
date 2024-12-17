@@ -53,10 +53,11 @@ export class TaskExecutor<T> {
     const promise = t.run();
     this.runningTasks_.push(promise);
     this.pendingTasks_.shift();
-    const result = await promise;
-    const index = this.runningTasks_.indexOf(promise);
-    this.runningTasks_.splice(index, 1);
-    return result;
+    promise.finally(() => {
+      const index = this.runningTasks_.indexOf(promise);
+      this.runningTasks_.splice(index, 1);
+    });
+    return await promise;
   }
 
   private shouldRunNext(task: Task<T>) {
@@ -69,6 +70,10 @@ export class TaskExecutor<T> {
   clear() {
     console.debug(`Cancelling ${this.pendingTasks_.length} tasks.`);
     this.pendingTasks_.forEach((task) => task.cancel());
+  }
+
+  get numRunning() {
+    return this.runningTasks_.length;
   }
 }
 
