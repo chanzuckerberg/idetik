@@ -2,6 +2,7 @@ class Task<T> {
   private readonly task_;
   private readonly id_;
   private cancelled_ = false;
+  private promise_: Promise<T> | null = null;
 
   constructor(task: () => Promise<T>) {
     this.task_ = task;
@@ -9,7 +10,12 @@ class Task<T> {
   }
 
   async run(): Promise<T> {
-    return this.task_();
+    this.promise_ = this.task_();
+    return this.promise_;
+  }
+
+  get promise() {
+    return this.promise_;
   }
 
   get id() {
@@ -27,7 +33,7 @@ class Task<T> {
 
 export class TaskExecutor<T> {
   private readonly maxConcurrentTasks_: number;
-  private readonly runningTasks_: Array<Promise<T>> = [];
+  private readonly runningTasks_: Array<Task<T>> = [];
   private readonly pendingTasks_: Array<Task<T>> = [];
 
   constructor(maxConcurrentTasks: number) {
@@ -39,24 +45,31 @@ export class TaskExecutor<T> {
     this.maxConcurrentTasks_ = maxConcurrentTasks;
   }
 
-  async submit(task: () => Promise<T>): Promise<T | void> {
+  async submit(task: () => Promise<T>): Promise<T> {
     const t = new Task(task);
     this.pendingTasks_.push(t);
     while (!t.cancelled && !this.shouldRunNext(t)) {
-      await Promise.race(this.runningTasks_);
+      const running = this.runningTasks_
+        .map((task) => task.promise)
+        .filter((promise) => promise !== null);
+      await Promise.race(running);
     }
     if (t.cancelled) {
-      const index = this.pendingTasks_.indexOf(t);
-      this.pendingTasks_.splice(index, 1);
-      return;
+      remove(this.pendingTasks_, t);
+      throw "cancelled";
     }
-    const promise = t.run();
-    this.runningTasks_.push(promise);
     this.pendingTasks_.shift();
-    promise.finally(() => {
-      const index = this.runningTasks_.indexOf(promise);
-      this.runningTasks_.splice(index, 1);
-    });
+    this.runningTasks_.push(t);
+    // TODO: understand why vitest reports an unhandled error unless
+    // we explicitly use the catch callback to rethrow.
+    const promise = t
+      .run()
+      .catch((error) => {
+        throw error;
+      })
+      .finally(() => {
+        remove(this.runningTasks_, t);
+      });
     return await promise;
   }
 
@@ -75,6 +88,11 @@ export class TaskExecutor<T> {
   get numRunning() {
     return this.runningTasks_.length;
   }
+}
+
+function remove<T>(a: Array<T>, o: T) {
+  const index = a.indexOf(o);
+  a.splice(index, 1);
 }
 
 export class TaskQueue<T> {
