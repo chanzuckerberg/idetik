@@ -4,7 +4,7 @@ import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Interval, Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { TaskExecutor } from "@/data/task";
+import { CancellationError, TaskExecutor } from "@/data/task";
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -103,7 +103,12 @@ export class ImageSeriesLayer extends Layer {
           .then((chunk) => (this.dataChunks_[t - start] = chunk))
       );
     }
-    await Promise.all(loadPromises);
+    await Promise.all(loadPromises).catch((error) => {
+      if (error instanceof CancellationError) {
+        console.debug("Loading canceled.");
+        return;
+      }
+    });
 
     this.setState("ready");
   }

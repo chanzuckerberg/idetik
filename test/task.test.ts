@@ -80,7 +80,7 @@ test("cancel one pending task", async () => {
   executor.cancelPending();
   blocked = false;
   await expect(promise0).resolves.toEqual(0);
-  await expect(promise1).rejects.toThrow("Task was canceled");
+  await expect(promise1).rejects.toThrow("canceled");
   expect(executor.numRunning).toEqual(0);
   expect(executor.numPending).toEqual(0);
 });

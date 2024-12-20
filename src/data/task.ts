@@ -1,3 +1,13 @@
+export class CancellationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CancellationError";
+    // Manually adjust the prototype to handle sub-classing Error
+    // https://github.com/microsoft/TypeScript/wiki/FAQ#why-doesnt-extending-built-ins-like-error-array-and-map-work
+    Object.setPrototypeOf(this, CancellationError.prototype);
+  }
+}
+
 class Cancelable<T> {
   task_: () => Promise<T>;
   resolve_: (value: T | PromiseLike<T>) => void;
@@ -23,7 +33,7 @@ class Cancelable<T> {
 
   async run() {
     if (this.canceled_) {
-      this.reject_(new Error("Task was canceled"));
+      this.reject_(new CancellationError("Task canceled"));
     }
     try {
       const result = await this.task_();
