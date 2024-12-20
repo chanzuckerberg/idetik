@@ -1,5 +1,5 @@
 import { Region } from "data/region";
-import { TaskExecutor } from "data/task";
+import { TaskQueue as TaskExecutor } from "data/task";
 import { TextureUnpackRowAlignment } from "objects/textures/texture";
 
 // One 2D chunk of n-dimensional image data.

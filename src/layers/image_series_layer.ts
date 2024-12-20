@@ -77,7 +77,7 @@ export class ImageSeriesLayer extends Layer {
   }
 
   public close() {
-    this.executor_.clear();
+    this.executor_.cancelPending();
   }
 
   private async load() {

@@ -4,7 +4,7 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
-import { TaskExecutor, TaskQueue } from "data/task";
+import { TaskExecutor } from "data/task";
 
 type IdentityTransform = {
   type: "identity";
@@ -43,6 +43,23 @@ type DataType = InstanceType<(typeof dataTypes)[number]>;
 
 function isDataType(value: unknown): value is DataType {
   return dataTypes.some((DataType) => value instanceof DataType);
+}
+
+export class TaskQueue<T> {
+  private tasks_: Array<() => Promise<T>> = [];
+  private executor_: TaskExecutor<T>;
+
+  constructor(executor: TaskExecutor<T>) {
+    this.executor_ = executor;
+  }
+
+  add(task: () => Promise<T>): void {
+    this.tasks_.push(task);
+  }
+
+  onIdle(): Promise<Array<T>> {
+    return Promise.all(this.tasks_.map((task) => this.executor_.submit(task)));
+  }
 }
 
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:

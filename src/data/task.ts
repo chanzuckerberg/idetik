@@ -1,40 +1,46 @@
-class Task<T> {
-  private readonly task_;
-  private readonly id_;
-  private cancelled_ = false;
-  private promise_: Promise<T> | null = null;
+class Cancelable<T> {
+  task_: () => Promise<T>;
+  resolve_: (value: T | PromiseLike<T>) => void;
+  reject_: (reason?: unknown) => void;
+  finally_: () => void;
+  canceled_: boolean = false;
 
-  constructor(task: () => Promise<T>) {
+  constructor(
+    task: () => Promise<T>,
+    resolve: (value: T | PromiseLike<T>) => void,
+    reject: (reason?: unknown) => void,
+    finally_: () => void
+  ) {
     this.task_ = task;
-    this.id_ = window.crypto.randomUUID();
-  }
-
-  async run(): Promise<T> {
-    this.promise_ = this.task_();
-    return this.promise_;
-  }
-
-  get promise() {
-    return this.promise_;
-  }
-
-  get id() {
-    return this.id_;
-  }
-
-  get cancelled() {
-    return this.cancelled_;
+    this.resolve_ = resolve;
+    this.reject_ = reject;
+    this.finally_ = finally_;
   }
 
   cancel() {
-    this.cancelled_ = true;
+    this.canceled_ = true;
+  }
+
+  async run() {
+    if (this.canceled_) {
+      this.reject_(new Error("Task was canceled"));
+    }
+    try {
+      const result = await this.task_();
+      this.resolve_(result);
+    } catch (error) {
+      this.reject_(error);
+    } finally {
+      this.finally_();
+    }
   }
 }
 
+// Executes a limited number of tasks concurrently.
 export class TaskExecutor<T> {
   private readonly maxConcurrentTasks_: number;
-  private readonly runningTasks_: Array<Task<T>> = [];
-  private readonly pendingTasks_: Array<Task<T>> = [];
+  private readonly pendingTasks_: Array<Cancelable<T>> = [];
+  private numRunning_ = 0;
 
   constructor(maxConcurrentTasks: number) {
     if (maxConcurrentTasks <= 0) {
@@ -46,70 +52,36 @@ export class TaskExecutor<T> {
   }
 
   async submit(task: () => Promise<T>): Promise<T> {
-    const t = new Task(task);
-    this.pendingTasks_.push(t);
-    while (!t.cancelled && !this.shouldRunNext(t)) {
-      const running = this.runningTasks_
-        .map((task) => task.promise)
-        .filter((promise) => promise !== null);
-      await Promise.race(running);
-    }
-    if (t.cancelled) {
-      remove(this.pendingTasks_, t);
-      throw "cancelled";
-    }
-    this.pendingTasks_.shift();
-    this.runningTasks_.push(t);
-    // TODO: understand why vitest reports an unhandled error unless
-    // we explicitly use the catch callback to rethrow.
-    const promise = t
-      .run()
-      .catch((error) => {
-        throw error;
-      })
-      .finally(() => {
-        remove(this.runningTasks_, t);
+    return new Promise((resolve, reject) => {
+      const pending = new Cancelable(task, resolve, reject, () => {
+        this.numRunning_--;
+        this.maybeRunNextTask();
       });
-    return await promise;
+      this.pendingTasks_.push(pending);
+      this.maybeRunNextTask();
+    });
   }
 
-  private shouldRunNext(task: Task<T>) {
-    return (
-      this.pendingTasks_[0] === task &&
-      this.runningTasks_.length < this.maxConcurrentTasks_
-    );
+  private maybeRunNextTask(): void {
+    if (this.numRunning_ >= this.maxConcurrentTasks_) return;
+    const pending = this.pendingTasks_.shift();
+    if (pending === undefined) return;
+    this.numRunning_++;
+    pending.run();
   }
 
-  clear() {
+  cancelPending() {
     console.debug(`Cancelling ${this.pendingTasks_.length} tasks.`);
-    this.pendingTasks_.forEach((task) => task.cancel());
+    for (const task of this.pendingTasks_) {
+      task.cancel();
+    }
   }
 
   get numRunning() {
-    return this.runningTasks_.length;
-  }
-}
-
-function remove<T>(a: Array<T>, o: T) {
-  const index = a.indexOf(o);
-  a.splice(index, 1);
-}
-
-export class TaskQueue<T> {
-  private tasks_: Array<() => Promise<T>> = [];
-  private executor_: TaskExecutor<T>;
-
-  constructor(executor: TaskExecutor<T>) {
-    this.executor_ = executor;
+    return this.numRunning_;
   }
 
-  add(task: () => Promise<T>): void {
-    this.tasks_.push(task);
-  }
-
-  async onIdle(): Promise<Array<T | void>> {
-    return await Promise.all(
-      this.tasks_.map((task) => this.executor_.submit(task))
-    );
+  get numPending() {
+    return this.pendingTasks_.length;
   }
 }
