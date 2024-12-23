@@ -4,6 +4,7 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
+import { PromiseScheduler } from "./promise_scheduler";
 
 type IdentityTransform = {
   type: "identity";
@@ -44,6 +45,25 @@ function isDataType(value: unknown): value is DataType {
   return dataTypes.some((DataType) => value instanceof DataType);
 }
 
+// Implements the interface required for getting array chunks in zarrita:
+// https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
+export class PromiseQueue<T> {
+  private promises_: Array<() => Promise<T>> = [];
+  private scheduler_: PromiseScheduler;
+
+  constructor(scheduler: PromiseScheduler) {
+    this.scheduler_ = scheduler;
+  }
+
+  add(promise: () => Promise<T>): void {
+    this.promises_.push(promise);
+  }
+
+  onIdle(): Promise<Array<T>> {
+    return Promise.all(this.promises_.map((p) => this.scheduler_.submit(p)));
+  }
+}
+
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
@@ -67,7 +87,10 @@ export class OmeZarrImageLoader {
     this.datasets_ = image.datasets;
   }
 
-  async loadChunk(region: Region): Promise<ImageChunk> {
+  async loadChunk(
+    region: Region,
+    scheduler?: PromiseScheduler
+  ): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
@@ -81,7 +104,14 @@ export class OmeZarrImageLoader {
     });
     console.debug("opened array ", array);
 
-    const subarray = await zarr.get(array, indices);
+    let options = {};
+    if (scheduler !== undefined) {
+      options = {
+        create_queue: () => new PromiseQueue(scheduler),
+        opts: { signal: scheduler.abortSignal },
+      };
+    }
+    const subarray = await zarr.get(array, indices, options);
 
     if (!isDataType(subarray.data)) {
       throw new Error(

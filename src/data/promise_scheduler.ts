@@ -1,5 +1,5 @@
 // Executes a limited number of promises concurrently.
-export class PromiseScheduler<T> {
+export class PromiseScheduler {
   private readonly maxConcurrent_: number;
   private readonly pending_: Array<() => Promise<void>> = [];
   private readonly abortController_ = new AbortController();
@@ -12,7 +12,7 @@ export class PromiseScheduler<T> {
     this.maxConcurrent_ = maxConcurrent;
   }
 
-  async submit(task: () => Promise<T>): Promise<T> {
+  async submit<T>(task: () => Promise<T>): Promise<T> {
     this.abortController_.signal.throwIfAborted();
     return new Promise((resolve, reject) => {
       const promise = async () => {
