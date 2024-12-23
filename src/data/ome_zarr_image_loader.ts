@@ -118,7 +118,10 @@ export class OmeZarrImageLoader {
 
     let options = {};
     if (executor !== undefined) {
-      options = { create_queue: () => new TaskQueue(executor) };
+      options = {
+        create_queue: () => new TaskQueue(executor),
+        opts: { signal: executor.abortSignal },
+      };
     }
     const subarray = await zarr.get(array, indices, options);
 

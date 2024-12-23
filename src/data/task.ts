@@ -51,6 +51,7 @@ export class TaskExecutor<T> {
   private readonly maxConcurrentTasks_: number;
   private readonly pendingTasks_: Array<Cancelable<T>> = [];
   private numRunning_ = 0;
+  private abortController_ = new AbortController();
 
   constructor(maxConcurrentTasks: number) {
     if (maxConcurrentTasks <= 0) {
@@ -85,6 +86,12 @@ export class TaskExecutor<T> {
     for (const task of this.pendingTasks_) {
       task.cancel();
     }
+    this.abortController_.abort();
+    this.abortController_ = new AbortController();
+  }
+
+  get abortSignal() {
+    return this.abortController_.signal;
   }
 
   get numRunning() {
