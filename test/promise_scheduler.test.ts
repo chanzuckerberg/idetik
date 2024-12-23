@@ -93,7 +93,7 @@ test("submit one promise after shutdown", async () => {
   expect(executor.numRunning).toEqual(0);
 });
 
-test("submit promise that throws", async () => {
+test("submit one promise that throws", async () => {
   const executor = new PromiseScheduler(1);
   let blocked = true;
   const promise = executor.submit(async () => {
