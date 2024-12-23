@@ -1,3 +1,13 @@
+export class AbortError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AbortError";
+    // Manually adjust the prototype to handle sub-classing Error
+    // https://github.com/microsoft/TypeScript/wiki/FAQ#why-doesnt-extending-built-ins-like-error-array-and-map-work
+    Object.setPrototypeOf(this, AbortError.prototype);
+  }
+}
+
 // Executes a limited number of promises concurrently.
 export class PromiseScheduler {
   private readonly maxConcurrent_: number;
@@ -46,7 +56,7 @@ export class PromiseScheduler {
 
   shutdown() {
     console.debug(`Cancelling ${this.pending_.length} tasks.`);
-    this.abortController_.abort("shutdown");
+    this.abortController_.abort(new AbortError("shutdown"));
   }
 
   get numRunning() {

@@ -4,7 +4,7 @@ import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Interval, Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { PromiseScheduler } from "@/data/promise_scheduler";
+import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -76,6 +76,10 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
+  public close(): void {
+    this.scheduler_.shutdown();
+  }
+
   private async load() {
     if (this.state !== "initialized") {
       throw new Error(`Trying to open chunk loader more than once.`);
@@ -99,7 +103,12 @@ export class ImageSeriesLayer extends Layer {
           .then((chunk) => (this.dataChunks_[t - start] = chunk))
       );
     }
-    await Promise.all(loadPromises);
+    await Promise.all(loadPromises).catch((error) => {
+      if (error instanceof AbortError) {
+        console.debug("Loading aborted.");
+        return;
+      }
+    });
 
     this.setState("ready");
   }

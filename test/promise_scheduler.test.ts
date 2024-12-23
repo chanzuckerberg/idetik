@@ -1,4 +1,4 @@
-import { PromiseScheduler } from "@/data/promise_scheduler";
+import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
 import { expect, test } from "vitest";
 
 test("submit one promise", async () => {
@@ -80,7 +80,7 @@ test("cancel one pending promise", async () => {
   executor.shutdown();
   blocked = false;
   await expect(promise0).resolves.toEqual(0);
-  await expect(promise1).rejects.toThrow("shutdown");
+  await expect(promise1).rejects.toThrow(new AbortError("shutdown"));
   expect(executor.numRunning).toEqual(0);
   expect(executor.numPending).toEqual(0);
 });
@@ -88,7 +88,9 @@ test("cancel one pending promise", async () => {
 test("submit one promise after shutdown", async () => {
   const executor = new PromiseScheduler(1);
   executor.shutdown();
-  expect(executor.submit(async () => 1)).rejects.toThrow("shutdown");
+  expect(executor.submit(async () => 1)).rejects.toThrow(
+    new AbortError("shutdown")
+  );
   expect(executor.numPending).toEqual(0);
   expect(executor.numRunning).toEqual(0);
 });
