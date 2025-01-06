@@ -10,13 +10,20 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi[standard]",
+    "scikit-learn>=1.6.0",
     "sqlalchemy>=2.0.35",
+    "ultrack>=0.6.2",
+    "xgboost>=2.1.3",
 ]
 
 [project.scripts]
 write-mock-data-json = "ultrack_learns.mock_data:write_mock_data_json"
 
 [tool.uv]
+prerelease = "allow"  # required by ultrack
 dev-dependencies = [
     "pandas>=2.2.3",
 ]
+
+[tool.uv.sources]
+ultrack = { git = "https://github.com/royerlab/ultrack" }
