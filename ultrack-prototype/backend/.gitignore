@@ -165,3 +165,7 @@ cython_debug/
 # SQLite database files
 *.sqlite3
 *.db
+# pixi environments
+.pixi
+*.egg-info
+pixi.lock

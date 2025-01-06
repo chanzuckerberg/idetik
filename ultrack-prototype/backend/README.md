@@ -5,18 +5,18 @@ and POST answers.
 
 ## Installation
 
-This project is meant to be managed with `uv`. To install `uv`, run the following command (or see
-the [uv repository](https://github.com/astral-sh/uv?tab=readme-ov-file#installation)).
+This project is meant to be managed with `pixi`. To install `pixi`, run the following command (or see
+the [pixi repository](https://github.com/prefix-dev/pixi/?tab=readme-ov-file#installation)).
 
 ```bash
 # On macOS and Linux.
-$ curl -LsSf https://astral.sh/uv/install.sh | sh
+$ curl -fsSL https://pixi.sh/install.sh | bash
 
 # On Windows.
-$ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+$ powershell -c "iwr -useb https://pixi.sh/install.ps1 | iex"
 ```
 
-`uv` will create a virtual environment and install the dependencies when you first run a command in
+`pixi` will create a virtual environment and install the dependencies when you first run a command in
 the project.
 
 ## Usage
@@ -26,7 +26,7 @@ the project.
 To run the development server, run the following command.
 
 ```bash
-$ uv run fastapi dev src/ultrack_learns/server.py
+$ pixi run -e dev fastapi dev src/ultrack_learns/server.py
 ```
 
 Documentation for the API can be found at `http://localhost:8000/docs`.
@@ -36,17 +36,16 @@ Documentation for the API can be found at `http://localhost:8000/docs`.
 Data are downloaded from a hard-coded URL and stored in a SQLite database on startup. You can set
 `ULTRACK_DB_URL` to set the path to the database file. The default is `ultrack_tmp.db`.
 
-To generate static mock data (`mock_data.json`), run the `write-mock-data-json` command with `uv`.
+To generate static mock data (`mock_data.json`), run the `write-mock-data-json` command with `pixi`.
 
 ```bash
-$ uv run write-mock-data-json --help
+$ pixi run -e dev write-mock-data-json --help
 usage: write-mock-data-json [-h] [--seed SEED] [--num_tasks NUM_TASKS]
 
 options:
   -h, --help            show this help message and exit
   --seed SEED
   --num_tasks NUM_TASKS
-
 ```
 
 Then mv `mock_data.json` to `../data/mock_data.json`.
