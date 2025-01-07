@@ -47,10 +47,13 @@ void main() {
     // direction is + or -; which way to project the vertex away from the path
     // path_proportion is the distance along the path, from 0 to 1
     float d = sign(direction);
-    float t = clamp(path_proportion - TaperOffset, -0.5, 0.5);
-    float angle = PI * t;
-    float taper = pow(cos(angle), TaperPower);
-
+    float taper = 1.0;
+    if (TaperPower > 0.0) {
+      // glsl `pow(x, y)` is undefined if x < 0 or x = 0 and y <= 0
+      float t = clamp(path_proportion - TaperOffset, -0.5, 0.5);
+      float angle = PI * t;
+      taper = pow(cos(angle), TaperPower);
+    }
     vec2 normal = normalize(vec2(-diff.y, diff.x));
 
     vec4 offset = vec4(
