@@ -24,7 +24,7 @@ const imageUrl = plateUrl + "/" + wellPath + "/" + imagePath;
 
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(0, 1920, 0, 1440, 0, 10000);
+const camera = new OrthographicCamera(0, 1920, 0, 1440);
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
 const source = new OmeZarrImageSource(imageUrl);
