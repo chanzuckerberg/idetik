@@ -70,7 +70,7 @@ export class OmeZarrImageLoader {
   async loadChunk(region: Region): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
-    const lowestResolutionIndex = 1;//this.datasets_.length - 1;
+    const lowestResolutionIndex = 1; //this.datasets_.length - 1;
     const dataset = this.datasets_[lowestResolutionIndex];
     const indices = regionToIndices(region, dataset, this.axes_);
     console.debug("loading dataset with indices", dataset, indices);
@@ -116,7 +116,6 @@ export class OmeZarrImageLoader {
     return chunk;
   }
 }
-
 
 // Converts a region to indices within an OME-Zarr image array.
 function regionToIndices(

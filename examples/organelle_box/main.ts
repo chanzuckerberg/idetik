@@ -6,10 +6,14 @@ import {
   OmeZarrImageSource,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { loadOmeZarrPlate, loadOmeZarrWell } from "@/data/ome_zarr_hcs_metadata_loader";
+import {
+  loadOmeZarrPlate,
+  loadOmeZarrWell,
+} from "@/data/ome_zarr_hcs_metadata_loader";
 
 // From https://zenodo.org/records/11262587
-const plateUrl = "http://127.0.0.1:8081/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
+const plateUrl =
+  "http://127.0.0.1:8081/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
 const wellPath = plate.plate.wells[0].path;
