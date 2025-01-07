@@ -63,7 +63,10 @@ export default function Renderer({
     lastTaskId.current = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
     imageSeriesLayer.update();
-    setImageSeriesLayer(imageSeriesLayer);
+    setImageSeriesLayer((prevLayer) => {
+      if (prevLayer !== null) prevLayer.close();
+      return imageSeriesLayer;
+    });
     setTracksLayer(tracksLayer);
     const onReady = () => {
       setPlaybackEnabled(true);

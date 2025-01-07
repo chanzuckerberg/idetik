@@ -4,6 +4,7 @@ import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Interval, Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -13,6 +14,7 @@ export class ImageSeriesLayer extends Layer {
   private readonly timeDimensionIndex_: number;
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
+  private scheduler_: PromiseScheduler = new PromiseScheduler(16);
 
   constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
     super();
@@ -74,6 +76,10 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
+  public close(): void {
+    this.scheduler_.shutdown();
+  }
+
   private async load() {
     if (this.state !== "initialized") {
       throw new Error(`Trying to open chunk loader more than once.`);
@@ -93,11 +99,16 @@ export class ImageSeriesLayer extends Layer {
       region[this.timeDimensionIndex_].index = t;
       loadPromises.push(
         loader
-          .loadChunk(region)
+          .loadChunk(region, this.scheduler_)
           .then((chunk) => (this.dataChunks_[t - start] = chunk))
       );
     }
-    await Promise.all(loadPromises);
+    await Promise.all(loadPromises).catch((error) => {
+      if (error instanceof AbortError) {
+        console.debug("Loading aborted.");
+        return;
+      }
+    });
 
     this.setState("ready");
   }
