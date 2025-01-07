@@ -117,8 +117,6 @@ export class OmeZarrImageLoader {
   }
 }
 
-// Loads chunks from a HCS zarr image implementing OME-NGFF v0.4:
-// https://ngff.openmicroscopy.org/0.4/#hcs-layout
 
 // Converts a region to indices within an OME-Zarr image array.
 function regionToIndices(
