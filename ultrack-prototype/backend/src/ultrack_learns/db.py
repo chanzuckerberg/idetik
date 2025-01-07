@@ -133,4 +133,5 @@ def track_points_around_node(
 
 
 def set_up_db():
+    Base.metadata.drop_all(engine)  # FIXME: for now, drop all tables on startup
     Base.metadata.create_all(bind=engine)

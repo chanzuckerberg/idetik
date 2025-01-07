@@ -13,8 +13,10 @@ from ultrack_learns.db import (
 from ultrack_learns.models import Answer
 
 # TODO: control mock mode with env var
-from ultrack_learns.mock_data import mock_lifespan as lifespan
-from ultrack_learns.mock_data import mock_router
+from ultrack_learns.sample_data import mock_lifespan as lifespan
+from ultrack_learns.sample_data import mock_router
+# from ultrack_learns.mock_data import mock_lifespan as lifespan
+# from ultrack_learns.mock_data import mock_router
 
 app = FastAPI(lifespan=lifespan)
 
