@@ -28,7 +28,7 @@ wellPaths.forEach((path) => {
 
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(0, 1920, 0, 1440);
+const camera = new OrthographicCamera(0, 5120, 0, 2160);
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
 const region = [
