@@ -212,6 +212,8 @@ export class WebGLTextures {
         return this.gl_.UNSIGNED_BYTE;
       case "unsigned_short":
         return this.gl_.UNSIGNED_SHORT;
+      case "float":
+        return this.gl_.FLOAT;
     }
   }
 
@@ -223,6 +225,8 @@ export class WebGLTextures {
         return this.gl_.RGBA;
       case "red_integer":
         return this.gl_.RED_INTEGER;
+      case "red":
+        return this.gl_.RED;
     }
   }
 
@@ -238,7 +242,10 @@ export class WebGLTextures {
       return this.gl_.R8UI;
     } else if (format === "red_integer" && type === "unsigned_short") {
       return this.gl_.R16UI;
+    } else if (format === "red" && type === "float") {
+      return this.gl_.R32F;
     }
+
     throw Error(
       `Unsupported data format and type combination ${format}/${type}`
     );

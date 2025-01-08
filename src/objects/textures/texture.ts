@@ -4,9 +4,9 @@ export type TextureFilter = "nearest" | "linear";
 
 export type TextureWrapMode = "repeat" | "clamp_to_edge";
 
-export type TextureDataFormat = "rgb" | "rgba" | "red_integer";
+export type TextureDataFormat = "rgb" | "rgba" | "red_integer" | "red";
 
-export type TextureDataType = "unsigned_byte" | "unsigned_short";
+export type TextureDataType = "unsigned_byte" | "unsigned_short" | "float";
 
 export type TextureUnpackRowAlignment = 1 | 2 | 4 | 8;
 

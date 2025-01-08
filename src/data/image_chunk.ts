@@ -5,7 +5,7 @@ import { TextureUnpackRowAlignment } from "objects/textures/texture";
 // TODO: include the region of this chunk.
 // https://github.com/chanzuckerberg/imaging-active-learning/issues/34
 export type ImageChunk = {
-  data: Uint8Array | Uint16Array;
+  data: Uint8Array | Uint16Array | Float32Array;
   shape: {
     width: number;
     height: number;
