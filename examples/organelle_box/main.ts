@@ -11,9 +11,7 @@ import {
   loadOmeZarrWell,
 } from "@/data/ome_zarr_hcs_metadata_loader";
 
-// From https://zenodo.org/records/11262587
-const plateUrl =
-  "http://127.0.0.1:8081/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
+const plateUrl = "http://127.0.0.1:8081/2024_11_07_A549_SEC61_ZIKV_DENV.zarr";
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
 
@@ -32,8 +30,9 @@ const camera = new OrthographicCamera(0, 5120, 0, 2160);
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
 const region = [
-  { dimension: "c", index: 0 },
-  { dimension: "z", index: 0 },
+  { dimension: "T", index: 0 },
+  { dimension: "C", index: 0 },
+  { dimension: "Z", index: 0 },
 ];
 
 const imageSelector = document.querySelector("#image") as HTMLSelectElement;
