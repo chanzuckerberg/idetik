@@ -15,13 +15,13 @@ export type ImageChunk = {
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
   scale: {
-    x: number,
-    y: number,
-  },
+    x: number;
+    y: number;
+  };
   offset: {
-    x: number,
-    y: number,
-  },
+    x: number;
+    y: number;
+  };
 };
 
 export type ImageChunkSource = {
