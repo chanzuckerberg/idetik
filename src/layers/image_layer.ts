@@ -4,7 +4,6 @@ import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
-// import { vec3 } from "gl-matrix";
 
 // Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
@@ -44,14 +43,9 @@ export class ImageLayer extends Layer {
     const chunk = await loader.loadChunk(region);
     const shape = chunk.shape;
     const texture = new DataTexture2D(chunk.data, shape.width, shape.height);
-    const size = [shape.width, shape.height];
-    console.debug("chunk.scale", chunk.scale);
-    console.debug("chunk.offset", chunk.offset);
-    size[0] = chunk.scale[1] * shape.width;
-    size[1] = chunk.scale[0] * shape.height;
     const plane = new PlaneGeometry(
-      size[0],
-      size[1],
+      chunk.scale[1] * shape.width,
+      chunk.scale[0] * shape.height,
       1,
       1,
       chunk.offset[1],
@@ -66,13 +60,7 @@ export class ImageLayer extends Layer {
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
 
-    const mesh = new Mesh(plane, texture);
-    // if (chunk.scale !== undefined) {
-    //   console.debug(mesh.transform.translation);
-    //   mesh.transform.scale(vec3.fromValues(...chunk.scale, 1));
-    // }
-
-    this.addObject(mesh);
+    this.addObject(new Mesh(plane, texture));
     this.setState("ready");
   }
 }
