@@ -159,8 +159,8 @@ export class OmeZarrImageLoader {
       },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
-      scale: scales,
-      offset: offsets,
+      scale: {x: scales[1], y: scales[0]},
+      offset: {x: offsets[1], y: offsets[0]},
     };
     console.debug("loaded chunk ", chunk);
     return chunk;

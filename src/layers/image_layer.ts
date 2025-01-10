@@ -44,12 +44,12 @@ export class ImageLayer extends Layer {
     const shape = chunk.shape;
     const texture = new DataTexture2D(chunk.data, shape.width, shape.height);
     const plane = new PlaneGeometry(
-      chunk.scale[1] * shape.width,
-      chunk.scale[0] * shape.height,
+      chunk.scale.x * shape.width,
+      chunk.scale.y * shape.height,
       1,
       1,
-      chunk.offset[1],
-      chunk.offset[0]
+      chunk.offset.x,
+      chunk.offset.y
     );
 
     texture.dataFormat = "red_integer";
