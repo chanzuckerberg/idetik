@@ -14,6 +14,8 @@ export type ImageChunk = {
   };
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
+  scale: [number, number];
+  offset: [number, number];
 };
 
 export type ImageChunkSource = {

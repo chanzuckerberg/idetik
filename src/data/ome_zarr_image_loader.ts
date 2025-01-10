@@ -132,6 +132,24 @@ export class OmeZarrImageLoader {
       );
     }
 
+    const scales: [number, number] = [1, 1];
+    const offsets: [number, number] = [0, 0];
+    for (let i = 0, j = 0; i < indices.length; ++i) {
+      const index = indices[i];
+      if (typeof index === "number") continue;
+      if (index.start === null || index.stop === null) continue;
+      const scale = dataset.coordinateTransformations
+        .map((transform) => transformScale(transform, i))
+        .reduce((totalScale, scale) => scale * totalScale, 1);
+      const translate = dataset.coordinateTransformations
+        .map((transform) => transformTranslation(transform, i))
+        .reduce((totalTranslate, translate) => translate + totalTranslate, 0);
+      const offset = translate + index.start * scale;
+      offsets[j] = offset;
+      scales[j] = scale;
+      j++;
+    }
+
     const chunk = {
       data: subarray.data,
       shape: {
@@ -141,6 +159,8 @@ export class OmeZarrImageLoader {
       },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
+      scale: scales,
+      offset: offsets,
     };
     console.debug("loaded chunk ", chunk);
     return chunk;
@@ -185,4 +205,11 @@ function transformScale(transform: Transform, index: number): number {
   if (transform.type !== "scale") return 1;
   if (!(transform.scale instanceof Array)) return 1;
   return transform.scale[index];
+}
+
+// Returns a translation from a transform at some axis index or 0 if a translation cannot be found.
+function transformTranslation(transform: Transform, index: number): number {
+  if (transform.type !== "translation") return 0;
+  if (!(transform.translation instanceof Array)) return 0;
+  return transform.translation[index];
 }
