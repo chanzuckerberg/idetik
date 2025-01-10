@@ -42,10 +42,10 @@ export class ImageLayer extends Layer {
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
     const shape = chunk.shape;
-    const texture = new DataTexture2D(chunk.data, shape.width, shape.height);
+    const texture = new DataTexture2D(chunk.data, shape.x, shape.y);
     const plane = new PlaneGeometry(
-      chunk.scale.x * shape.width,
-      chunk.scale.y * shape.height,
+      chunk.scale.x * shape.x,
+      chunk.scale.y * shape.y,
       1,
       1,
       chunk.offset.x,

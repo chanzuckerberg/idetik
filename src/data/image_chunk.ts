@@ -8,9 +8,9 @@ import { PromiseScheduler } from "./promise_scheduler";
 export type ImageChunk = {
   data: Uint8Array | Uint16Array;
   shape: {
-    width: number;
-    height: number;
-    channels: number;
+    x: number;
+    y: number;
+    c: number;
   };
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;

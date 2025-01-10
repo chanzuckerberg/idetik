@@ -69,7 +69,7 @@ export class ImageSeriesLayer extends Layer {
     if (this.texture_ === null) {
       this.initializeTexture(chunk);
       const shape = chunk.shape;
-      const plane = new PlaneGeometry(shape.width, shape.height, 1, 1);
+      const plane = new PlaneGeometry(shape.x, shape.y, 1, 1);
       this.addObject(new Mesh(plane, this.texture_));
     } else {
       this.texture_.data = chunk.data;
@@ -116,8 +116,8 @@ export class ImageSeriesLayer extends Layer {
   private initializeTexture(chunk: ImageChunk) {
     this.texture_ = new Texture2DArray(
       chunk.data,
-      chunk.shape.width,
-      chunk.shape.height
+      chunk.shape.x,
+      chunk.shape.y
     );
 
     this.texture_.unpackRowLength = chunk.rowStride;

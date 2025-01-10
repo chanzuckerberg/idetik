@@ -145,9 +145,9 @@ export class OmeZarrImageLoader {
     const chunk = {
       data: subarray.data,
       shape: {
-        width: subarray.shape[subarray.shape.length - 1],
-        height: subarray.shape[subarray.shape.length - 2],
-        channels: subarray.shape.length === 3 ? subarray.shape[0] : 1,
+        x: subarray.shape[subarray.shape.length - 1],
+        y: subarray.shape[subarray.shape.length - 2],
+        c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
