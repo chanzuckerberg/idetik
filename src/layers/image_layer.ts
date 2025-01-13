@@ -43,14 +43,7 @@ export class ImageLayer extends Layer {
     const chunk = await loader.loadChunk(region);
     const shape = chunk.shape;
     const texture = new DataTexture2D(chunk.data, shape.x, shape.y);
-    const plane = new PlaneGeometry(
-      chunk.scale.x * shape.x,
-      chunk.scale.y * shape.y,
-      1,
-      1,
-      chunk.offset.x,
-      chunk.offset.y
-    );
+    const plane = new PlaneGeometry(shape.x, shape.y, 1, 1);
 
     texture.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {
@@ -60,7 +53,10 @@ export class ImageLayer extends Layer {
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
 
-    this.addObject(new Mesh(plane, texture));
+    const mesh = new Mesh(plane, texture);
+    mesh.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
+    mesh.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
+    this.addObject(mesh);
     this.setState("ready");
   }
 }

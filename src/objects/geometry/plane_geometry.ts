@@ -5,9 +5,7 @@ export class PlaneGeometry extends Geometry {
     width: number,
     height: number,
     widthSegments: number,
-    heightSegments: number,
-    offsetX: number = 0,
-    offsetY: number = 0
+    heightSegments: number
   ) {
     super();
     const vertex: number[] = [];
@@ -21,9 +19,9 @@ export class PlaneGeometry extends Geometry {
     const segmentH = height / gridY;
 
     for (let iy = 0; iy < gridY1; ++iy) {
-      const y = offsetY + iy * segmentH;
+      const y = iy * segmentH;
       for (let ix = 0; ix < gridX1; ++ix) {
-        const x = offsetX + ix * segmentW;
+        const x = ix * segmentW;
         const u = ix / gridX;
         const v = iy / gridY;
 
