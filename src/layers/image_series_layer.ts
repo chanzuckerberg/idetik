@@ -1,10 +1,9 @@
 import { Layer } from "core/layer";
-import { Mesh } from "objects/renderable/mesh";
-import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Interval, Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
+import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -67,10 +66,9 @@ export class ImageSeriesLayer extends Layer {
     }
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
-      this.initializeTexture(chunk);
-      const shape = chunk.shape;
-      const plane = new PlaneGeometry(shape.x, shape.y, 1, 1);
-      this.addObject(new Mesh(plane, this.texture_));
+      this.texture_ = makeImageTextureArray(chunk);
+      const mesh = makeImageMesh(chunk, this.texture_);
+      this.addObject(mesh);
     } else {
       this.texture_.data = chunk.data;
     }
@@ -109,22 +107,6 @@ export class ImageSeriesLayer extends Layer {
         return;
       }
     });
-
     this.setState("ready");
-  }
-
-  private initializeTexture(chunk: ImageChunk) {
-    this.texture_ = new Texture2DArray(
-      chunk.data,
-      chunk.shape.x,
-      chunk.shape.y
-    );
-
-    this.texture_.unpackRowLength = chunk.rowStride;
-    this.texture_.unpackAlignment = chunk.rowAlignmentBytes;
-    this.texture_.dataFormat = "red_integer";
-    if (chunk.data instanceof Uint16Array) {
-      this.texture_.dataType = "unsigned_short";
-    }
   }
 }
