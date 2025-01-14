@@ -47,8 +47,8 @@ export class WebGLRenderer extends Renderer {
 
     const modelView = mat4.multiply(
       mat4.create(),
-      object.transform.matrix,
-      this.activeCamera.transform.inverse
+      this.activeCamera.transform.inverse,
+      object.transform.matrix
     );
     program.setUniform("ModelView", modelView);
     const projection = mat4.multiply(

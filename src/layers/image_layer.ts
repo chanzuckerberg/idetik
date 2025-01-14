@@ -1,9 +1,7 @@
 import { Layer } from "core/layer";
-import { Mesh } from "objects/renderable/mesh";
-import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
-import { DataTexture2D } from "objects/textures/data_texture_2d";
+import { makeImageMesh, makeImageTexture } from "layers/image_utils";
 
 // Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
@@ -41,19 +39,9 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
-    const shape = chunk.shape;
-    const texture = new DataTexture2D(chunk.data, shape.width, shape.height);
-    const plane = new PlaneGeometry(shape.width, shape.height, 1, 1);
-
-    texture.dataFormat = "red_integer";
-    if (chunk.data instanceof Uint16Array) {
-      texture.dataType = "unsigned_short";
-    }
-
-    texture.unpackRowLength = chunk.rowStride;
-    texture.unpackAlignment = chunk.rowAlignmentBytes;
-
-    this.addObject(new Mesh(plane, texture));
+    const texture = makeImageTexture(chunk);
+    const mesh = makeImageMesh(chunk, texture);
+    this.addObject(mesh);
     this.setState("ready");
   }
 }

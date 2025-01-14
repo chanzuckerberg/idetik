@@ -6,10 +6,6 @@ import { ImageChunk } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-type IdentityTransform = {
-  type: "identity";
-};
-
 type TranslationTransform = {
   type: "translation";
   translation: Array<number>;
@@ -20,11 +16,11 @@ type ScaleTransform = {
   scale: Array<number>;
 };
 
-type Transform = IdentityTransform | TranslationTransform | ScaleTransform;
-
 type Dataset = {
   path: string;
-  coordinateTransformations: Array<Transform>;
+  coordinateTransformations:
+    | [ScaleTransform]
+    | [ScaleTransform, TranslationTransform];
 };
 
 type Axis = {
@@ -95,7 +91,13 @@ export class OmeZarrImageLoader {
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
     const dataset = this.datasets_[lowestResolutionIndex];
-    const indices = regionToIndices(region, dataset, this.axes_);
+    const scale = dataset.coordinateTransformations[0].scale;
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(this.axes_.length).fill(0);
+
+    const indices = regionToIndices(region, this.axes_, scale, translation);
     console.debug("loading dataset with indices", dataset, indices);
 
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
@@ -132,15 +134,25 @@ export class OmeZarrImageLoader {
       );
     }
 
+    const calculateOffset = (i: number) => {
+      const index = indices[i];
+      if (typeof index === "number" || index.start === null) return 0;
+      return index.start * scale[i] + translation[i];
+    };
+    const xOffset = calculateOffset(indices.length - 1);
+    const yOffset = calculateOffset(indices.length - 2);
+
     const chunk = {
       data: subarray.data,
       shape: {
-        width: subarray.shape[subarray.shape.length - 1],
-        height: subarray.shape[subarray.shape.length - 2],
-        channels: subarray.shape.length === 3 ? subarray.shape[0] : 1,
+        x: subarray.shape[subarray.shape.length - 1],
+        y: subarray.shape[subarray.shape.length - 2],
+        c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
+      scale: { x: scale[indices.length - 1], y: scale[indices.length - 2] },
+      offset: { x: xOffset, y: yOffset },
     };
     console.debug("loaded chunk ", chunk);
     return chunk;
@@ -150,8 +162,9 @@ export class OmeZarrImageLoader {
 // Converts a region to indices within an OME-Zarr image array.
 function regionToIndices(
   region: Region,
-  dataset: Dataset,
-  axes: Array<Axis>
+  axes: Array<Axis>,
+  scale: number[],
+  translation: number[]
 ): Array<Slice | number> {
   const indices: Array<Slice | number> = [];
   for (const [i, axis] of axes.entries()) {
@@ -160,29 +173,17 @@ function regionToIndices(
     // the complete extent of a dimension like Python's `slice(None)`.
     let index: Slice | number = zarr.slice(null);
     if (match) {
-      // TODO: handle more than just scale list to transform input region.
-      // https://github.com/chanzuckerberg/imaging-active-learning/issues/38
-      const scale = dataset.coordinateTransformations
-        .map((transform) => transformScale(transform, i))
-        .reduce((totalScale, scale) => scale * totalScale, 1);
       const regionIndex = match.index;
       if (typeof regionIndex === "number") {
-        index = Math.round(regionIndex / scale);
+        index = Math.round(translation[i] + regionIndex / scale[i]);
       } else {
         index = zarr.slice(
-          Math.floor(regionIndex.start / scale),
-          Math.ceil(regionIndex.stop / scale)
+          Math.floor(translation[i] + regionIndex.start / scale[i]),
+          Math.ceil(translation[i] + regionIndex.stop / scale[i])
         );
       }
     }
     indices.push(index);
   }
   return indices;
-}
-
-// Returns a scale from a transform at some axis index or 1 if a scale cannot be found.
-function transformScale(transform: Transform, index: number): number {
-  if (transform.type !== "scale") return 1;
-  if (!(transform.scale instanceof Array)) return 1;
-  return transform.scale[index];
 }
