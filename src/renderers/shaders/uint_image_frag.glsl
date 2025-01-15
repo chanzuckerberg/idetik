@@ -14,7 +14,8 @@ void main() {
     // TODO: normalization of the value should be controlled by variable
     // parameters (e.g. contrast limits).
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/32
-    vec2 texCoords = TexCoords * scaleRST.xy + offsetRST.xy;
+    // vec2 texCoords = TexCoords * scaleRST.xy + offsetRST.xy;
+    vec2 texCoords = (TexCoords - offsetRST.xy) * scaleRST.xy;
     float value = float(texture(texture0, texCoords).r) / 256.0;
     fragColor = vec4(value, value, value, 1);
 }

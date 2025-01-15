@@ -9,9 +9,9 @@ export type ImageChunk = {
   data: Uint8Array | Uint16Array;
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
-} & ImageChunkSize;
+} & ImageChunkAttributes;
 
-export type ImageChunkSize = {
+export type ImageChunkAttributes = {
   shape: {
     x: number;
     y: number;
@@ -25,6 +25,10 @@ export type ImageChunkSize = {
     x: number;
     y: number;
   };
+  name: {
+    x: string;
+    y: string;
+  };
 };
 
 export type ImageChunkSource = {
@@ -33,10 +37,10 @@ export type ImageChunkSource = {
 
 export type ImageChunkLoader = {
   // get shape of the texture in world coordinates
-  getShape(
+  getChunkAttributes(
     input: Region,
     scaleIndex?: number
-  ): Promise<{ axis: string; length: number }[]>;
+  ): Promise<ImageChunkAttributes>;
   loadChunk(
     input: Region,
     scheduler?: PromiseScheduler,

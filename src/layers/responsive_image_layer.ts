@@ -43,60 +43,38 @@ export class ResponsiveImageLayer extends Layer {
     }
   }
 
-  private async getXYDimensionNames(): Promise<{
-    xName: string;
-    yName: string;
-  }> {
-    const loader = await this.source_.open();
-    const shape = await loader.getShape(this.region_);
-    // y (height) is the first non-unit axis
-    // x (width) is the second non-unit axis
-    const yIndex = shape.findIndex((axis) => axis.length > 1);
-    const yName = shape[yIndex].axis;
-    const xIndex = shape.findIndex(
-      (axis, i) => i !== yIndex && axis.length > 1
-    );
-    const xName = shape[xIndex].axis;
-    return { xName, yName };
-  }
-
   private async getCameraRegion(): Promise<Region> {
     const loader = await this.source_.open();
-    const shape = await loader.getShape(this.region_, 0);
+    const { shape, name } = await loader.getChunkAttributes(this.region_, 0);
+    console.debug("got shape", shape, name);
 
     const cameraRegion = [...this.region_];
     const { left, right, bottom, top } = this.camera_.viewportFrame;
-    const { xName, yName } = await this.getXYDimensionNames();
-
-    const yShape = shape.find((axis) => axis.axis === yName);
-    if (!yShape) {
-      throw new Error(`Axis ${yName} not found in shape ${shape}`);
-    }
     const yStart = Math.max(top, 0);
-    const yStop = Math.min(bottom, yShape.length);
+    const yStop = Math.min(bottom, shape.y);
 
     const yInterval = { start: yStart, stop: yStop };
 
-    const xShape = shape.find((axis) => axis.axis === xName);
-    if (!xShape) {
-      throw new Error(`Axis ${xName} not found in shape ${shape}`);
-    }
     const xStart = Math.max(left, 0);
-    const xStop = Math.min(right, xShape.length);
+    const xStop = Math.min(right, shape.x);
     const xInterval = { start: xStart, stop: xStop };
 
-    const yIndex = this.region_.findIndex((index) => index.dimension === yName);
+    const yIndex = this.region_.findIndex(
+      (index) => index.dimension === name.y
+    );
     if (yIndex != -1) {
       cameraRegion[yIndex].index = yInterval;
     } else {
-      cameraRegion.push({ dimension: yName, index: yInterval });
+      cameraRegion.push({ dimension: name.y, index: yInterval });
     }
 
-    const xIndex = this.region_.findIndex((index) => index.dimension === xName);
+    const xIndex = this.region_.findIndex(
+      (index) => index.dimension === name.x
+    );
     if (xIndex != -1) {
       cameraRegion[xIndex].index = xInterval;
     } else {
-      cameraRegion.push({ dimension: xName, index: xInterval });
+      cameraRegion.push({ dimension: name.x, index: xInterval });
     }
 
     return cameraRegion;
@@ -109,24 +87,26 @@ export class ResponsiveImageLayer extends Layer {
     }
     this.setState("loading");
     const loader = await this.source_.open();
-    const shape = await loader.getShape(region);
-    const { xName, yName } = await this.getXYDimensionNames();
-    const xIndex = shape.findIndex((axis) => axis.axis === xName);
-    const yIndex = shape.findIndex((axis) => axis.axis === yName);
-    console.debug("got shape", shape);
-    const plane = new PlaneGeometry(
-      shape[xIndex].length,
-      shape[yIndex].length,
-      1,
-      1
-    );
+    const { shape } = await loader.getChunkAttributes(region, 0);
+    const plane = new PlaneGeometry(shape.x, shape.y, 1, 1);
 
     const cameraRegion = await this.getCameraRegion();
-    console.debug("loading chunk with region", cameraRegion);
     const chunk = await loader.loadChunk(cameraRegion, undefined, 0);
-    console.debug("got chunk", chunk);
     const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);
-    texture.scaleRST = vec3.fromValues(1.0, 1.0, 1.0);
+
+    texture.scaleRST = vec3.fromValues(
+      shape.x / chunk.shape.x,
+      shape.y / chunk.shape.y,
+      1.0
+    );
+    texture.offsetRST = vec3.fromValues(
+      chunk.offset.x / shape.x,
+      chunk.offset.y / shape.y,
+      0.0
+    );
+    // easier to see unloaded regions for debugging
+    texture.wrapS = "clamp_to_edge";
+    texture.wrapT = "clamp_to_edge";
 
     texture.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {

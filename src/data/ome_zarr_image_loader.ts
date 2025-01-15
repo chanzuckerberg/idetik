@@ -2,7 +2,7 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "data/region";
-import { ImageChunk } from "data/image_chunk";
+import { ImageChunk, ImageChunkAttributes } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
@@ -87,32 +87,74 @@ export class OmeZarrImageLoader {
     return this.datasets_.length - 1;
   }
 
-  public async getShape(
+  public async getChunkAttributes(
     input: Region,
     scaleIndex?: number
-  ): Promise<{ axis: string; length: number }[]> {
+  ): Promise<ImageChunkAttributes> {
     const dataset = this.datasets_[scaleIndex ?? this.lowestResolutionIndex];
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
       kind: "array",
       attrs: false,
     });
-    const scale = dataset.coordinateTransformations[0].scale;
-    const translation =
+    const datasetScale = dataset.coordinateTransformations[0].scale;
+    const datasetTranslation =
       dataset.coordinateTransformations.length === 2
         ? dataset.coordinateTransformations[1].translation
         : new Array(this.axes_.length).fill(0);
-    const indices = regionToIndices(input, this.axes_, scale, translation);
+    const indices = regionToIndices(
+      input,
+      this.axes_,
+      datasetScale,
+      datasetTranslation
+    );
     console.debug("getting shape with indices", indices);
 
-    return indices.map((index, i) => {
-      if (typeof index === "number") {
-        return { axis: this.axes_[i].name, length: 1 };
-      }
-      index = index as Slice;
-      const start = index.start ?? 0;
-      const stop = index.stop ?? array.shape[i];
-      return { axis: this.axes_[i].name, length: stop - start };
-    });
+    // TODO: is this always the order?
+    const xIndex = indices.length - 1;
+    const yIndex = indices.length - 2;
+
+    const xSlice = indices[xIndex] as Slice;
+    const xStart = xSlice.start ?? 0;
+    const xStop = xSlice.stop ?? array.shape[xIndex];
+
+    const ySlice = indices[yIndex] as Slice;
+    const yStart = ySlice.start ?? 0;
+    const yStop = ySlice.stop ?? array.shape[yIndex];
+
+    const shape = {
+      x: xStop - xStart,
+      y: yStop - yStart,
+      c: 1, // TODO: add support for channels
+    };
+
+    const scale = {
+      x: datasetScale[xIndex],
+      y: datasetScale[yIndex],
+    };
+
+    const offset = {
+      x: datasetTranslation[xIndex],
+      y: datasetTranslation[yIndex],
+    };
+
+    const name = {
+      x: this.axes_[xIndex].name,
+      y: this.axes_[yIndex].name,
+    };
+
+    // next axis (if any) is c (channels)
+
+    // return indices.map((index, i) => {
+    //   if (typeof index === "number") {
+    //     return { axis: this.axes_[i].name, length: 1 };
+    //   }
+    //   index = index as Slice;
+    //   const start = index.start ?? 0;
+    //   const stop = index.stop ?? array.shape[i];
+    //   return { axis: this.axes_[i].name, length: stop - start };
+    // });
+    //
+    return { shape, scale, offset, name };
   }
 
   async loadChunk(
@@ -191,6 +233,10 @@ export class OmeZarrImageLoader {
       rowAlignmentBytes: rowAlignment,
       scale: { x: scale[indices.length - 1], y: scale[indices.length - 2] },
       offset: { x: xOffset, y: yOffset },
+      name: {
+        x: this.axes_[indices.length - 1].name,
+        y: this.axes_[indices.length - 2].name,
+      },
     };
     console.debug("loaded chunk ", chunk);
     return chunk;

@@ -22,10 +22,10 @@ const source = new OmeZarrImageSource(url);
 const region = [
   { dimension: "T", index: 32 },
   { dimension: "C", index: 0 },
-  { dimension: "Z", index: 0 },
+  { dimension: "Z", index: 640 },
 ];
 const layer = new ResponsiveImageLayer(source, region, camera);
-const axes = new AxesLayer({ length: 1920, width: 0.01 });
+const axes = new AxesLayer({ length: 2048, width: 0.01 });
 layerManager.add(layer);
 layerManager.add(axes);
 
