@@ -16,7 +16,11 @@ export class ResponsiveImageLayer extends Layer {
   private readonly region_: Region;
   private readonly camera_: OrthographicCamera;
 
-  constructor(source: ImageChunkSource, region: Region, camera: OrthographicCamera) {
+  constructor(
+    source: ImageChunkSource,
+    region: Region,
+    camera: OrthographicCamera
+  ) {
     super();
     this.setState("initialized");
     this.source_ = source;
@@ -39,14 +43,19 @@ export class ResponsiveImageLayer extends Layer {
     }
   }
 
-  private async getXYDimensionNames(): Promise<{ xName: string, yName: string }> {
+  private async getXYDimensionNames(): Promise<{
+    xName: string;
+    yName: string;
+  }> {
     const loader = await this.source_.open();
     const shape = await loader.getShape(this.region_);
     // y (height) is the first non-unit axis
     // x (width) is the second non-unit axis
     const yIndex = shape.findIndex((axis) => axis.length > 1);
     const yName = shape[yIndex].axis;
-    const xIndex = shape.findIndex((axis, i) => i !== yIndex && axis.length > 1);
+    const xIndex = shape.findIndex(
+      (axis, i) => i !== yIndex && axis.length > 1
+    );
     const xName = shape[xIndex].axis;
     return { xName, yName };
   }
@@ -105,7 +114,12 @@ export class ResponsiveImageLayer extends Layer {
     const xIndex = shape.findIndex((axis) => axis.axis === xName);
     const yIndex = shape.findIndex((axis) => axis.axis === yName);
     console.debug("got shape", shape);
-    const plane = new PlaneGeometry(shape[xIndex].length, shape[yIndex].length, 1, 1);
+    const plane = new PlaneGeometry(
+      shape[xIndex].length,
+      shape[yIndex].length,
+      1,
+      1
+    );
 
     const cameraRegion = await this.getCameraRegion();
     console.debug("loading chunk with region", cameraRegion);
@@ -113,7 +127,6 @@ export class ResponsiveImageLayer extends Layer {
     console.debug("got chunk", chunk);
     const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);
     texture.scaleRST = vec3.fromValues(1.0, 1.0, 1.0);
-
 
     texture.dataFormat = "red_integer";
     if (chunk.data instanceof Uint16Array) {

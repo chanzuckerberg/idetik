@@ -8,7 +8,8 @@ export class OrthographicCamera extends Camera {
 
   constructor(
     left: number,
-    right: number, top: number,
+    right: number,
+    top: number,
     bottom: number,
     near = 0,
     far = 100.0
@@ -63,7 +64,12 @@ export class OrthographicCamera extends Camera {
     );
   }
 
-  public get viewportFrame(): { left: number; right: number; bottom: number; top: number } {
+  public get viewportFrame(): {
+    left: number;
+    right: number;
+    bottom: number;
+    top: number;
+  } {
     // The following code ensures that the orthographic projection matrix
     // is updated so that the aspect ratio of renderable objects is respected
     // (e.g. image pixels are isotropic) by padding the camera frame to form

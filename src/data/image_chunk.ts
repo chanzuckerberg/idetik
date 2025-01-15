@@ -33,6 +33,13 @@ export type ImageChunkSource = {
 
 export type ImageChunkLoader = {
   // get shape of the texture in world coordinates
-  getShape(input: Region, scaleIndex?: number): Promise<{axis: string, length: number}[]>;
-  loadChunk(input: Region, scheduler?: PromiseScheduler, scaleIndex?: number): Promise<ImageChunk>;
+  getShape(
+    input: Region,
+    scaleIndex?: number
+  ): Promise<{ axis: string; length: number }[]>;
+  loadChunk(
+    input: Region,
+    scheduler?: PromiseScheduler,
+    scaleIndex?: number
+  ): Promise<ImageChunk>;
 };

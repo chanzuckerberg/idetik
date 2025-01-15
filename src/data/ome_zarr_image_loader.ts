@@ -87,7 +87,10 @@ export class OmeZarrImageLoader {
     return this.datasets_.length - 1;
   }
 
-  public async getShape(input: Region, scaleIndex?: number): Promise<{axis: string, length: number}[]> {
+  public async getShape(
+    input: Region,
+    scaleIndex?: number
+  ): Promise<{ axis: string; length: number }[]> {
     const dataset = this.datasets_[scaleIndex ?? this.lowestResolutionIndex];
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
       kind: "array",
@@ -119,7 +122,12 @@ export class OmeZarrImageLoader {
   ): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
-    console.log("loading chunk with region", region, "and scale index", scaleIndex);
+    console.log(
+      "loading chunk with region",
+      region,
+      "and scale index",
+      scaleIndex
+    );
     const dataset = this.datasets_[scaleIndex ?? this.lowestResolutionIndex];
     const scale = dataset.coordinateTransformations[0].scale;
     const translation =
