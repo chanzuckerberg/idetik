@@ -7,13 +7,16 @@ import { PromiseScheduler } from "./promise_scheduler";
 // https://github.com/chanzuckerberg/imaging-active-learning/issues/34
 export type ImageChunk = {
   data: Uint8Array | Uint16Array;
+  rowStride: number;
+  rowAlignmentBytes: TextureUnpackRowAlignment;
+} & ImageChunkSize;
+
+export type ImageChunkSize = {
   shape: {
     x: number;
     y: number;
     c: number;
   };
-  rowStride: number;
-  rowAlignmentBytes: TextureUnpackRowAlignment;
   scale: {
     x: number;
     y: number;
@@ -29,5 +32,7 @@ export type ImageChunkSource = {
 };
 
 export type ImageChunkLoader = {
-  loadChunk(input: Region, scheduler?: PromiseScheduler): Promise<ImageChunk>;
+  // get shape of the texture in world coordinates
+  getShape(input: Region, scaleIndex?: number): Promise<{axis: string, length: number}[]>;
+  loadChunk(input: Region, scheduler?: PromiseScheduler, scaleIndex?: number): Promise<ImageChunk>;
 };

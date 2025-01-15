@@ -8,8 +8,7 @@ export class OrthographicCamera extends Camera {
 
   constructor(
     left: number,
-    right: number,
-    top: number,
+    right: number, top: number,
     bottom: number,
     near = 0,
     far = 100.0
@@ -49,6 +48,22 @@ export class OrthographicCamera extends Camera {
   }
 
   protected updateProjectionMatrix() {
+    const { left, right, bottom, top } = this.viewportFrame;
+    const viewportHalfWidth = 0.5 * (right - left);
+    const viewportHalfHeight = 0.5 * (bottom - top);
+    // Center the camera frame in the padded viewport frame.
+    mat4.ortho(
+      this.projectionMatrix_,
+      -viewportHalfWidth,
+      viewportHalfWidth,
+      -viewportHalfHeight,
+      viewportHalfHeight,
+      this.near_,
+      this.far_
+    );
+  }
+
+  public get viewportFrame(): { left: number; right: number; bottom: number; top: number } {
     // The following code ensures that the orthographic projection matrix
     // is updated so that the aspect ratio of renderable objects is respected
     // (e.g. image pixels are isotropic) by padding the camera frame to form
@@ -66,15 +81,12 @@ export class OrthographicCamera extends Camera {
     } else {
       viewportHalfHeight *= frameAspectRatio / this.viewportAspectRatio_;
     }
-    // Center the camera frame in the padded viewport frame.
-    mat4.ortho(
-      this.projectionMatrix_,
-      -viewportHalfWidth,
-      viewportHalfWidth,
-      -viewportHalfHeight,
-      viewportHalfHeight,
-      this.near_,
-      this.far_
-    );
+    const center = this.transform.translation;
+    return {
+      left: center[0] - viewportHalfWidth,
+      right: center[0] + viewportHalfWidth,
+      bottom: center[1] + viewportHalfHeight,
+      top: center[1] - viewportHalfHeight,
+    };
   }
 }

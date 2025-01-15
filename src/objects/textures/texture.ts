@@ -1,4 +1,5 @@
 import { Node } from "core/node";
+import { vec3 } from "gl-matrix";
 
 export type TextureFilter = "nearest" | "linear";
 
@@ -28,6 +29,9 @@ export abstract class Texture extends Node {
   public wrapS: TextureWrapMode = "repeat";
   public wrapT: TextureWrapMode = "repeat";
   public needsUpdate = true;
+
+  public offsetRST = vec3.fromValues(0, 0, 0);
+  public scaleRST = vec3.fromValues(1, 1, 1);
 
   public abstract get width(): number;
   public abstract get height(): number;

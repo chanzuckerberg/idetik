@@ -83,21 +83,51 @@ export class OmeZarrImageLoader {
     this.datasets_ = image.datasets;
   }
 
-  async loadChunk(
-    region: Region,
-    scheduler?: PromiseScheduler
-  ): Promise<ImageChunk> {
-    // TODO: use the input to determine what level to load.
-    // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
-    const lowestResolutionIndex = this.datasets_.length - 1;
-    const dataset = this.datasets_[lowestResolutionIndex];
+  get lowestResolutionIndex(): number {
+    return this.datasets_.length - 1;
+  }
+
+  public async getShape(input: Region, scaleIndex?: number): Promise<{axis: string, length: number}[]> {
+    const dataset = this.datasets_[scaleIndex ?? this.lowestResolutionIndex];
+    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+      kind: "array",
+      attrs: false,
+    });
     const scale = dataset.coordinateTransformations[0].scale;
     const translation =
       dataset.coordinateTransformations.length === 2
         ? dataset.coordinateTransformations[1].translation
         : new Array(this.axes_.length).fill(0);
+    const indices = regionToIndices(input, this.axes_, scale, translation);
+    console.debug("getting shape with indices", indices);
 
+    return indices.map((index, i) => {
+      if (typeof index === "number") {
+        return { axis: this.axes_[i].name, length: 1 };
+      }
+      index = index as Slice;
+      const start = index.start ?? 0;
+      const stop = index.stop ?? array.shape[i];
+      return { axis: this.axes_[i].name, length: stop - start };
+    });
+  }
+
+  async loadChunk(
+    region: Region,
+    scheduler?: PromiseScheduler,
+    scaleIndex?: number
+  ): Promise<ImageChunk> {
+    // TODO: use the input to determine what level to load.
+    // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
+    console.log("loading chunk with region", region, "and scale index", scaleIndex);
+    const dataset = this.datasets_[scaleIndex ?? this.lowestResolutionIndex];
+    const scale = dataset.coordinateTransformations[0].scale;
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(this.axes_.length).fill(0);
     const indices = regionToIndices(region, this.axes_, scale, translation);
+
     console.debug("loading dataset with indices", dataset, indices);
 
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
