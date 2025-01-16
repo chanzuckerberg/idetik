@@ -11,7 +11,7 @@ import {
   loadOmeZarrWell,
 } from "@/data/ome_zarr_hcs_metadata_loader";
 
-const plateUrl = "http://127.0.0.1:8081/2024_11_07_A549_SEC61_ZIKV_DENV.zarr";
+const plateUrl = "http://localhost:8080/2024_11_07_A549_SEC61_ZIKV_DENV.zarr";
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
 
