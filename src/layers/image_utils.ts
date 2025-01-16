@@ -26,7 +26,7 @@ function updateImageTexture(texture: Texture, chunk: ImageChunk) {
     texture.dataFormat = "red";
   }
 
- texture.unpackRowLength = chunk.rowStride;
+  texture.unpackRowLength = chunk.rowStride;
   texture.unpackAlignment = chunk.rowAlignmentBytes;
   return texture;
 }
