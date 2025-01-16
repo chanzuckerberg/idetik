@@ -24,7 +24,7 @@ SAMPLE_TRACKS_URL = f"{SAMPLE_DATA_URL}/tracks.csv"
 seed(54)
 SAMPLE_IMAGE = Image(
     image_id=UUID(int=getrandbits(128), version=4),
-    url=f"{SAMPLE_DATA_URL}/image.zarr/",
+    url=f"{SAMPLE_DATA_URL}/normalized.zarr/",
     time_dimension="T",
     slice_indices={"Z": 0},
 )
