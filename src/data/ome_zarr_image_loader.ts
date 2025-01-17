@@ -113,9 +113,16 @@ export class OmeZarrImageLoader {
     );
     console.debug("getting shape with indices", indices);
 
+    const xIndex = indices.findLastIndex((index) => typeof index !== "number");
+    const yIndex = indices.findLastIndex(
+      (index, i) => typeof index !== "number" && i !== xIndex
+    );
+    const cIndex = indices.findLastIndex(
+      (index, i) => typeof index !== "number" && i !== xIndex && i !== yIndex
+    );
     // TODO: is this always the order?
-    const xIndex = indices.length - 1;
-    const yIndex = indices.length - 2;
+    // const xIndex = indices.length - 1;
+    // const yIndex = indices.length - 2;
 
     const xSlice = indices[xIndex] as Slice;
     const xStart = xSlice.start ?? 0;
@@ -125,10 +132,18 @@ export class OmeZarrImageLoader {
     const yStart = ySlice.start ?? 0;
     const yStop = ySlice.stop ?? array.shape[yIndex];
 
+    let cShape = 1;
+    if (cIndex != -1) {
+      const cSlice = indices[cIndex] as Slice;
+      const cStart = cSlice.start ?? 0;
+      const cStop = cSlice.stop ?? array.shape[cIndex];
+      cShape = cStop - cStart;
+    }
+
     const shape = {
       x: xStop - xStart,
       y: yStop - yStart,
-      c: 1, // TODO: add support for channels
+      c: cShape,
     };
 
     const scale = {

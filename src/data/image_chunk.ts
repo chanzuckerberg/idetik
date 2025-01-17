@@ -36,6 +36,7 @@ export type ImageChunkSource = {
 };
 
 export type ImageChunkLoader = {
+  numScales: number;
   getChunkAttributes(
     input: Region,
     scaleIndex?: number
