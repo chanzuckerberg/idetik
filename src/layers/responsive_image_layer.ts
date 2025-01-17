@@ -3,10 +3,11 @@ import { vec3 } from "gl-matrix";
 import { Layer } from "core/layer";
 import { Mesh } from "objects/renderable/mesh";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
-import { Region } from "data/region";
+import { Interval, Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { OrthographicCamera } from "objects/cameras/orthographic_camera";
+import { Renderer } from "core/renderer";
 
 // Loads data from an image source into renderable objects.
 export class ResponsiveImageLayer extends Layer {
@@ -15,20 +16,29 @@ export class ResponsiveImageLayer extends Layer {
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
   private readonly camera_: OrthographicCamera;
+  private readonly renderer_: Renderer;
+
+  private mesh_: Mesh | null = null;
 
   constructor(
     source: ImageChunkSource,
     region: Region,
-    camera: OrthographicCamera
+    camera: OrthographicCamera,
+    renderer: Renderer
   ) {
     super();
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
     this.camera_ = camera;
+    this.renderer_ = renderer;
   }
 
-  public update(): void {
+  public update(force: boolean = false): void {
+    if (force) {
+      this.load(this.region_);
+      return;
+    }
     switch (this.state) {
       case "initialized":
         this.load(this.region_);
@@ -81,22 +91,46 @@ export class ResponsiveImageLayer extends Layer {
   }
 
   private async load(region: Region) {
-    this.clearObjects();
-    if (this.state !== "initialized") {
-      throw new Error(`Trying to load chunks more than once.`);
+    // if (this.state !== "initialized") {
+    //   throw new Error(`Trying to load chunks more than once.`);
+    // }
+    if (!this.mesh_) {
+      this.setState("loading");
     }
-    this.setState("loading");
     const loader = await this.source_.open();
     const { shape } = await loader.getChunkAttributes(region, 0);
     const plane = new PlaneGeometry(shape.x, shape.y, 1, 1);
 
     const cameraRegion = await this.getCameraRegion();
-    const chunk = await loader.loadChunk(cameraRegion, undefined, 0);
+    const cameraYInterval = cameraRegion[cameraRegion.length - 2]
+      .index as Interval;
+    const cameraYLength = cameraYInterval.stop - cameraYInterval.start;
+    const cameraXInterval = cameraRegion[cameraRegion.length - 1]
+      .index as Interval;
+    const cameraXLength = cameraXInterval.stop - cameraXInterval.start;
+
+    const { left, right, bottom, top } = this.camera_.viewportFrame;
+    const screenWidth = (this.renderer_.width * cameraXLength) / (right - left);
+    const screenHeight =
+      (this.renderer_.height * cameraYLength) / (bottom - top);
+
+    let scaleToFetch = loader.numScales - 1;
+    for (let i = scaleToFetch; i >= 0; i--) {
+      const { shape } = await loader.getChunkAttributes(cameraRegion, i);
+      scaleToFetch = i;
+      if (shape.x > screenWidth && shape.y > screenHeight) {
+        break;
+      }
+    }
+    console.log("SCALE TO FETCH", scaleToFetch);
+    const chunk = await loader.loadChunk(cameraRegion, undefined, scaleToFetch);
+    console.log("LOADED CHUNK", chunk);
+
     const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);
 
     texture.scaleRST = vec3.fromValues(
-      shape.x / chunk.shape.x,
-      shape.y / chunk.shape.y,
+      shape.x / chunk.shape.x / chunk.scale.x,
+      shape.y / chunk.shape.y / chunk.scale.y,
       1.0
     );
     texture.offsetRST = vec3.fromValues(
@@ -116,12 +150,19 @@ export class ResponsiveImageLayer extends Layer {
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
 
-    this.addObject(new Mesh(plane, texture));
+    if (!this.mesh_) {
+      this.mesh_ = new Mesh(plane, texture);
+      this.addObject(this.mesh_);
+    } else {
+      console.log("UPDATING TEXTURE");
+      this.mesh_.textures.pop();
+      this.mesh_.textures.push(texture);
+    }
+
     this.setState("ready");
   }
 
   public onCameraFrameChange() {
-    this.setState("initialized");
-    this.update();
+    this.update(true);
   }
 }

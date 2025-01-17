@@ -87,6 +87,10 @@ export class OmeZarrImageLoader {
     return this.datasets_.length - 1;
   }
 
+  public get numScales(): number {
+    return this.datasets_.length;
+  }
+
   public async getChunkAttributes(
     input: Region,
     scaleIndex?: number

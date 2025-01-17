@@ -36,7 +36,6 @@ export type ImageChunkSource = {
 };
 
 export type ImageChunkLoader = {
-  // get shape of the texture in world coordinates
   getChunkAttributes(
     input: Region,
     scaleIndex?: number
