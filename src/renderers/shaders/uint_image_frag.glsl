@@ -18,4 +18,9 @@ void main() {
     vec2 texCoords = (TexCoords - offsetRST.xy) * scaleRST.xy;
     float value = float(texture(texture0, texCoords).r) / 256.0;
     fragColor = vec4(value, value, value, 1);
+    if (texCoords.x < 0.0 || texCoords.x > 1.0 || texCoords.y < 0.0 || texCoords.y > 1.0) {
+        fragColor = vec4(0.25, 0.0, 0.25, 1.0);
+    } else {
+        fragColor = vec4(value, value, value, 1.0);
+    }
 }
