@@ -79,8 +79,9 @@ export class WebGLRenderer extends Renderer {
       // We temporarily assume this array holds a single texture. We'll need to
       // modify this logic to support multiple textures in the future.
       this.textures_.bind(object.textures[0]);
-      program.setUniform("offsetRST", object.textures[0].offsetRST);
-      program.setUniform("scaleRST", object.textures[0].scaleRST);
+      // TODO: shaders do not all support partial/multiscale textures
+      program.setUniform("offsetST", object.textures[0].offsetST);
+      program.setUniform("scaleST", object.textures[0].scaleST);
     }
 
     // TODO: Move 'type' property to RenderableObject

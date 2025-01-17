@@ -1,4 +1,4 @@
-import { vec3 } from "gl-matrix";
+import { vec2 } from "gl-matrix";
 
 import { Layer } from "core/layer";
 import { Mesh } from "objects/renderable/mesh";
@@ -99,6 +99,7 @@ export class ResponsiveImageLayer extends Layer {
     }
     const loader = await this.source_.open();
     const { shape } = await loader.getChunkAttributes(region, 0);
+    // TODO: account for scale here as well
     const plane = new PlaneGeometry(shape.x, shape.y, 1, 1);
 
     const cameraRegion = await this.getCameraRegion();
@@ -128,15 +129,14 @@ export class ResponsiveImageLayer extends Layer {
 
     const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);
 
-    texture.scaleRST = vec3.fromValues(
+    // TODO: account for plane scale here as well
+    texture.scaleST = vec2.fromValues(
       shape.x / chunk.shape.x / chunk.scale.x,
-      shape.y / chunk.shape.y / chunk.scale.y,
-      1.0
+      shape.y / chunk.shape.y / chunk.scale.y
     );
-    texture.offsetRST = vec3.fromValues(
+    texture.offsetST = vec2.fromValues(
       chunk.offset.x / shape.x,
-      chunk.offset.y / shape.y,
-      0.0
+      chunk.offset.y / shape.y
     );
     // easier to see unloaded regions for debugging
     texture.wrapS = "clamp_to_edge";
