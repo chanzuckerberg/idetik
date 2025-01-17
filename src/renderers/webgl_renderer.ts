@@ -5,6 +5,7 @@ import { WebGLShaderProgram } from "./webgl_shader_program";
 import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { ProjectedLine } from "objects/renderable/projected_line";
 
 import { mat4 } from "gl-matrix";
@@ -79,9 +80,12 @@ export class WebGLRenderer extends Renderer {
       // We temporarily assume this array holds a single texture. We'll need to
       // modify this logic to support multiple textures in the future.
       this.textures_.bind(object.textures[0]);
-      // TODO: shaders do not all support partial/multiscale textures
-      program.setUniform("offsetST", object.textures[0].offsetST);
-      program.setUniform("scaleST", object.textures[0].scaleST);
+      if (object.textures[0].type === "DataTexture2D") {
+        // TODO: ideally don't branch on texture type here!
+        const texture = object.textures[0] as DataTexture2D;
+        program.setUniform("offsetST", texture.offsetST);
+        program.setUniform("scaleST", texture.scaleST);
+      }
     }
 
     // TODO: Move 'type' property to RenderableObject
