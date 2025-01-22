@@ -15,7 +15,7 @@ const renderer = new WebGLRenderer("#canvas");
 const camera = new OrthographicCamera(0, pixelScale * 1264, 0, pixelScale * 1264);
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
-const region = [{ dimension: "z", index: pixelScale * 0.5 * 370}];
+const region = [{ dimension: "z", index: pixelScale * 120}];
 
 const source = new OmeZarrImageSource(url);
 const layer = new ImageLayer(source, region);
