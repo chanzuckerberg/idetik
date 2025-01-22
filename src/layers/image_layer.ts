@@ -2,6 +2,7 @@ import { Layer } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { makeImageMesh, makeImageTexture } from "layers/image_utils";
+import { Mesh } from "objects/renderable/mesh";
 
 // Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
@@ -9,7 +10,8 @@ export class ImageLayer extends Layer {
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
-  private readonly contrastLimits_?: [number, number];
+  private contrastLimits_?: [number, number];
+  private mesh_: Mesh | undefined;
 
   constructor(
     source: ImageChunkSource,
@@ -38,6 +40,14 @@ export class ImageLayer extends Layer {
     }
   }
 
+  public setContrastLimits(contrastLimits: [number, number]): void {
+    console.debug("ImageLayer::setContrastLimits", contrastLimits);
+    this.contrastLimits_ = contrastLimits;
+    if (this.mesh_ !== undefined) {
+      this.mesh_.contrastLimits = contrastLimits;
+    }
+  } 
+
   private async load(region: Region) {
     if (this.state !== "initialized") {
       throw new Error(`Trying to load chunks more than once.`);
@@ -46,8 +56,8 @@ export class ImageLayer extends Layer {
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
     const texture = makeImageTexture(chunk);
-    const mesh = makeImageMesh(chunk, texture, this.contrastLimits_);
-    this.addObject(mesh);
+    this.mesh_ = makeImageMesh(chunk, texture, this.contrastLimits_);
+    this.addObject(this.mesh_);
     this.setState("ready");
   }
 }

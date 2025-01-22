@@ -33,6 +33,10 @@ export class Mesh extends RenderableObject {
     return this.contrastLimits_;
   }
 
+  public set contrastLimits(contrastLimits: [number, number]) {
+    this.contrastLimits_ = contrastLimits;
+  }
+
   public get type() {
     return "Mesh";
   }

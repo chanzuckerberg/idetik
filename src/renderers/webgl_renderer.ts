@@ -75,7 +75,7 @@ export class WebGLRenderer extends Renderer {
       }
       case "Mesh": {
         // TODO: is this a case for a dedicated image object?
-        if (programName === "uintImage") {
+        if (programName === "uintImage" || programName === "floatImage") {
           const mesh = object as Mesh;
           program.setUniform("ContrastLimits", mesh.contrastLimits);
         }
