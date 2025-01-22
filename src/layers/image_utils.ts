@@ -1,6 +1,6 @@
-import { DataTexture2D } from "@/objects/textures/data_texture_2d";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { Texture } from "objects/textures/texture";
-import { Texture2DArray } from "@/objects/textures/texture_2d_array";
+import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { ImageChunk } from "data/image_chunk";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Mesh } from "objects/renderable/mesh";
@@ -18,13 +18,16 @@ export function makeImageTextureArray(chunk: ImageChunk) {
 }
 
 function updateImageTexture(texture: Texture, chunk: ImageChunk) {
-  texture.dataFormat = "red_integer";
-  if (chunk.data instanceof Uint16Array) {
+  texture.dataFormat = "scalar";
+  if (chunk.data instanceof Uint8Array) {
+    texture.dataType = "unsigned_byte";
+  } else if (chunk.data instanceof Uint16Array) {
     texture.dataType = "unsigned_short";
+  } else if (chunk.data instanceof Float32Array) {
+    texture.dataType = "float";
   }
   texture.unpackRowLength = chunk.rowStride;
   texture.unpackAlignment = chunk.rowAlignmentBytes;
-  return texture;
 }
 
 export function makeImageMesh(chunk: ImageChunk, texture: Texture) {
