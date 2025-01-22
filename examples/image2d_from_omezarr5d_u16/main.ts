@@ -30,11 +30,7 @@ const region = [
   { dimension: "y", index: { start: top, stop: bottom } },
   { dimension: "x", index: { start: left, stop: right } },
 ];
-const contrastLimits = {
-  low: 0,
-  high: 255,
-};
-const layer = new ImageLayer(source, region, contrastLimits);
+const layer = new ImageLayer(source, region, [0, 255]);
 const axes = new AxesLayer({ length: 2000, width: 0.01 });
 layerManager.add(layer);
 layerManager.add(axes);

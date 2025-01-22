@@ -3,29 +3,18 @@ import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { makeImageMesh, makeImageTexture } from "layers/image_utils";
 
-type ContrastLimits = {
-  low: number;
-  high: number;
-};
-
-// TODO: should default values be type dependent?
-const defaultContrastLimits = {
-  low: 0,
-  high: 255,
-};
-
 // Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
   private readonly source_: ImageChunkSource;
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
-  private readonly contrastLimits_: ContrastLimits;
+  private readonly contrastLimits_?: [number, number];
 
   constructor(
     source: ImageChunkSource,
     region: Region,
-    contrastLimits: ContrastLimits = defaultContrastLimits
+    contrastLimits?: [number, number]
   ) {
     super();
     this.setState("initialized");
@@ -57,11 +46,7 @@ export class ImageLayer extends Layer {
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
     const texture = makeImageTexture(chunk);
-    const contrastLimits: [number, number] = [
-      this.contrastLimits_.low,
-      this.contrastLimits_.high,
-    ];
-    const mesh = makeImageMesh(chunk, texture, contrastLimits);
+    const mesh = makeImageMesh(chunk, texture, this.contrastLimits_);
     this.addObject(mesh);
     this.setState("ready");
   }
