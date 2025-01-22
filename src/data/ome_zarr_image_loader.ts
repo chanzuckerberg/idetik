@@ -33,7 +33,7 @@ type Multiscale = {
   datasets: Array<Dataset>;
 };
 
-const dataTypes = [Uint8Array, Uint16Array] as const;
+const dataTypes = [Uint8Array, Uint16Array, Float32Array] as const;
 const dataTypeNames = dataTypes.map((DataType) => DataType.name);
 type DataType = InstanceType<(typeof dataTypes)[number]>;
 
