@@ -36,4 +36,14 @@ export abstract class Texture extends Node {
   public get type() {
     return "Texture";
   }
+
+  public pixelValueRange(): [number, number] {
+    switch (this.dataType) {
+      case "unsigned_byte":
+        return [0, 255];
+      case "unsigned_short":
+        return [0, 65535];
+    }
+    return [0, 1];
+  }
 }

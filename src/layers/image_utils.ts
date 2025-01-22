@@ -30,7 +30,7 @@ function updateImageTexture(texture: Texture, chunk: ImageChunk) {
 export function makeImageMesh(
   chunk: ImageChunk,
   texture: Texture,
-  contrastLimits: [number, number]
+  contrastLimits?: [number, number]
 ) {
   const plane = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
   const mesh = new Mesh(plane, texture, contrastLimits);

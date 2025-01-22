@@ -8,7 +8,7 @@ export class Mesh extends RenderableObject {
   constructor(
     geometry: Geometry | null,
     texture: Texture | null = null,
-    contrastLimits: [number, number] = [0, 255]
+    contrastLimits?: [number, number],
   ) {
     super();
 
@@ -20,7 +20,13 @@ export class Mesh extends RenderableObject {
       this.addTexture(texture);
     }
 
-    this.contrastLimits_ = contrastLimits;
+    if (contrastLimits !== undefined) {
+      this.contrastLimits_ = contrastLimits;
+    } else if (texture !== null) {
+      this.contrastLimits_ = texture.pixelValueRange();
+    } else {
+      this.contrastLimits_ = [0, 255];
+    }
   }
 
   public get contrastLimits() {
