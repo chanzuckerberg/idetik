@@ -76,13 +76,13 @@ export class WebGLTextures {
     gl.texParameteri(
       this.getGLTextureType(texture),
       gl.TEXTURE_MIN_FILTER,
-      this.getGLFilter(texture.minFilter, texture.dataFormat)
+      this.getGLFilter(texture.minFilter, texture.dataFormat, texture.dataType)
     );
 
     gl.texParameteri(
       this.getGLTextureType(texture),
       gl.TEXTURE_MAG_FILTER,
-      this.getGLFilter(texture.maxFilter, texture.dataFormat)
+      this.getGLFilter(texture.maxFilter, texture.dataFormat, texture.dataType)
     );
 
     gl.texParameteri(
@@ -142,7 +142,7 @@ export class WebGLTextures {
         offset.y,
         texture.width,
         texture.height,
-        this.getGLFormat(texture.dataFormat),
+        this.getGLFormat(texture.dataFormat, texture.dataType),
         this.getGLType(texture.dataType),
         // This function has multiple overloads. We are temporarily casting it to
         // ArrayBufferView to ensure the correct overload is called. Once we
@@ -160,7 +160,7 @@ export class WebGLTextures {
         texture.width,
         texture.height,
         texture.depth,
-        this.getGLFormat(texture.dataFormat),
+        this.getGLFormat(texture.dataFormat, texture.dataType),
         this.getGLType(texture.dataType),
         texture.data as ArrayBufferView
       );
@@ -181,8 +181,12 @@ export class WebGLTextures {
     }
   }
 
-  private getGLFilter(filter: TextureFilter, format: TextureDataFormat) {
-    if (format == "red_integer" && filter != "nearest") {
+  private getGLFilter(
+    filter: TextureFilter,
+    format: TextureDataFormat,
+    type: TextureDataType
+  ) {
+    if (format == "scalar" && type != "float" && filter != "nearest") {
       console.warn(
         "Integer values are not filterable. Using gl.NEAREST instead."
       );
@@ -217,15 +221,14 @@ export class WebGLTextures {
     }
   }
 
-  private getGLFormat(type: TextureDataFormat) {
-    switch (type) {
+  private getGLFormat(format: TextureDataFormat, type: TextureDataType) {
+    switch (format) {
       case "rgb":
         return this.gl_.RGB;
       case "rgba":
         return this.gl_.RGBA;
-      case "red":
-        return this.gl_.RED;
-      case "red_integer":
+      case "scalar":
+        if (type === "float") return this.gl_.RED;
         return this.gl_.RED_INTEGER;
     }
   }
@@ -238,11 +241,11 @@ export class WebGLTextures {
       return this.gl_.RGBA8;
     } else if (format === "rgb" && type === "unsigned_byte") {
       return this.gl_.RGB8;
-    } else if (format === "red_integer" && type === "unsigned_byte") {
+    } else if (format === "scalar" && type === "unsigned_byte") {
       return this.gl_.R8UI;
-    } else if (format === "red_integer" && type === "unsigned_short") {
+    } else if (format === "scalar" && type === "unsigned_short") {
       return this.gl_.R16UI;
-    } else if (format === "red" && type === "float") {
+    } else if (format === "scalar" && type === "float") {
       return this.gl_.R32F;
     }
     throw Error(

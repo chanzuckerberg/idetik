@@ -4,7 +4,7 @@ export type TextureFilter = "nearest" | "linear";
 
 export type TextureWrapMode = "repeat" | "clamp_to_edge";
 
-export type TextureDataFormat = "rgb" | "rgba" | "red" | "red_integer";
+export type TextureDataFormat = "scalar" | "rgb" | "rgba";
 
 export type TextureDataType = "unsigned_byte" | "unsigned_short" | "float";
 
