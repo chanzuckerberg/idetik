@@ -8,7 +8,7 @@ export class Mesh extends RenderableObject {
   constructor(
     geometry: Geometry | null,
     texture: Texture | null = null,
-    contrastLimits?: [number, number],
+    contrastLimits?: [number, number]
   ) {
     super();
 
