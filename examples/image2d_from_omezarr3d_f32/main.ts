@@ -10,7 +10,6 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 const sliderMin = document.getElementById("slider-min") as HTMLInputElement;
 const sliderMax = document.getElementById("slider-max") as HTMLInputElement;
 
-
 const url =
   "https://files.cryoetdataportal.cziscience.com/10444/24apr23a_Position_12/Reconstructions/VoxelSpacing4.990/Tomograms/100/24apr23a_Position_12.zarr";
 const pixelScale = 4.99;
@@ -27,7 +26,10 @@ renderer.setControls(controls);
 const region = [{ dimension: "z", index: pixelScale * 120 }];
 
 const source = new OmeZarrImageSource(url);
-const layer = new ImageLayer(source, region, [sliderMin.valueAsNumber, sliderMax.valueAsNumber]);
+const layer = new ImageLayer(source, region, [
+  sliderMin.valueAsNumber,
+  sliderMax.valueAsNumber,
+]);
 layerManager.add(layer);
 
 sliderMin.addEventListener("input", (event) => {

@@ -46,7 +46,7 @@ export class ImageLayer extends Layer {
     if (this.mesh_ !== undefined) {
       this.mesh_.contrastLimits = contrastLimits;
     }
-  } 
+  }
 
   private async load(region: Region) {
     if (this.state !== "initialized") {
