@@ -26,3 +26,11 @@ test/__screenshots__
 *.njsproj
 *.sln
 *.sw?
+
+# pixi environments file
+.pixi
+
+# slurm job output files
+*.out
+*.err
+

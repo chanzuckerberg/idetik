@@ -14,13 +14,16 @@ const _dirname = dirname(fileURLToPath(import.meta.url));
 
 const plugins = [tsconfigPaths(), eslint(), glsl(), react()];
 
+const MODES = ['development', 'prototype', 'production', 'test'];
+
 function modeToRoot(mode) {
   if (mode === 'development') {
     return 'examples';
   } else if (mode === 'prototype') {
     return 'ultrack-prototype/frontend';
+  } else if (!MODES.includes(mode)){
+    console.error(`Unrecognized mode ${mode}`);
   }
-  console.error(`Unrecognized mode ${mode}`);
   return undefined;
 }
 

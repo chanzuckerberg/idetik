@@ -1,38 +1,103 @@
-import { useEffect } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import {
-  ImageLayer,
+  ImageSeriesLayer,
   LayerManager,
-  OmeZarrImageSource,
-  PerspectiveCamera,
+  LayerState,
+  OrthographicCamera,
+  TracksLayer,
   WebGLRenderer,
 } from "@";
+
+// TODO: imageURL should come from the server (probably with each task)
+import { Task } from "../lib/tasks";
 import { Box } from "@mui/material";
+import { LoadingIndicator } from "@czi-sds/components";
+import { NullControls, PanZoomControls } from "@/objects/cameras/controls";
 
 const canvasId = "canvas";
 
-// Source is 5D, so provide indices at 3 dimensions to project to 2D.
-const url =
-  "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
-const source = new OmeZarrImageSource(url);
-const region = [
-  // TODO: when the region is state associated with the renderer or
-  // layer manager, and we have a reference to that, then sync it
-  // with React state that captures the time-point.
-  { dimension: "t", index: 400 },
-  { dimension: "c", index: 0 },
-  { dimension: "z", index: 300 },
-];
-const layer = new ImageLayer(source, region);
+// TODO: consider useRef for these objects
+const camera = new OrthographicCamera(0, 1920, 0, 1440);
+const controls = new PanZoomControls(camera, camera.position);
 const layerManager = new LayerManager();
-layerManager.add(layer);
 
-export default function Renderer() {
+export default function Renderer({
+  curTime,
+  playbackEnabled,
+  setPlaybackEnabled,
+  task,
+}: {
+  curTime: number;
+  playbackEnabled: boolean;
+  setPlaybackEnabled: Dispatch<SetStateAction<boolean>>;
+  task: Task | null;
+}) {
+  const [imageSeriesLayer, setImageSeriesLayer] =
+    useState<ImageSeriesLayer | null>(null);
+  const [tracksLayer, setTracksLayer] = useState<TracksLayer | null>(null);
+  const lastTaskId = useRef("");
+
+  useEffect(() => {
+    console.debug("Renderer::useEffect::curTime: ", curTime);
+    if (imageSeriesLayer === null || tracksLayer === null) return;
+    if (imageSeriesLayer.state === "ready") {
+      imageSeriesLayer.setTimeIndex(curTime);
+      tracksLayer.setTimeIndex(curTime);
+      return;
+    }
+    const onStateChange = (newState: LayerState) => {
+      if (newState === "ready") {
+        imageSeriesLayer.setTimeIndex(curTime);
+        tracksLayer.setTimeIndex(curTime);
+      }
+    };
+    imageSeriesLayer.addStateChangeCallback(onStateChange);
+    return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
+  }, [curTime, imageSeriesLayer, tracksLayer]);
+
+  useEffect(() => {
+    console.debug("Renderer::useEffect::task: ", task);
+    if (task?.taskId === lastTaskId.current) return;
+    setPlaybackEnabled(false);
+    if (!task) return;
+    lastTaskId.current = task.taskId;
+    const { tracksLayer, imageSeriesLayer } = task.layers();
+    imageSeriesLayer.update();
+    setImageSeriesLayer((prevLayer) => {
+      if (prevLayer !== null) prevLayer.close();
+      return imageSeriesLayer;
+    });
+    setTracksLayer(tracksLayer);
+    const onReady = () => {
+      setPlaybackEnabled(true);
+      // TODO: update the data on the layers instead of creating new ones
+      layerManager.layers.length = 0;
+      layerManager.add(imageSeriesLayer);
+      layerManager.add(tracksLayer);
+      const extent = tracksLayer.extent;
+      camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
+      camera.zoom = 0.25;
+      controls.panTarget = camera.position;
+    };
+    if (imageSeriesLayer.state === "ready") {
+      onReady();
+    }
+    const onStateChange = (newState: LayerState) => {
+      if (newState === "ready") {
+        onReady();
+      }
+    };
+    imageSeriesLayer.addStateChangeCallback(onStateChange);
+    return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
+  }, [task, setPlaybackEnabled]);
+
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
   useEffect(() => {
+    console.debug("Renderer::mount");
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
-    const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
+    renderer.setControls(controls);
     function animate() {
       renderer.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
@@ -40,8 +105,9 @@ export default function Renderer() {
     animate();
     return () => {
       // TODO: cleanup by disposing objects owned by the renderer and camera.
+      renderer.setControls(new NullControls());
       if (lastRequestId > 0) {
-        console.log(`Cancelling animation frame ${lastRequestId}`);
+        console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);
       }
     };
@@ -50,14 +116,19 @@ export default function Renderer() {
   return (
     <Box
       sx={{
+        flex: 1,
+        minHeight: 0,
         display: "flex",
         flexDirection: "column",
-        flexGrow: 1,
-        width: "100%",
-        height: "100%",
+        alignItems: "center",
       }}
     >
-      <canvas id={canvasId} />
+      <canvas id={canvasId} style={{ width: "100%", height: "100%" }} />
+      {!playbackEnabled && (
+        <Box sx={{ margin: "-3em" }}>
+          <LoadingIndicator sdsStyle="tag" />
+        </Box>
+      )}
     </Box>
   );
 }

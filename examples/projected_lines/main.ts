@@ -6,8 +6,6 @@ import {
 } from "@";
 
 const layersManager = new LayerManager();
-const layer = new ProjectedLineLayer();
-layersManager.add(layer);
 
 const helixA = generateHelix({
   radius: 1.0,
@@ -16,8 +14,6 @@ const helixA = generateHelix({
   pitch: 1.5,
   phase: 0.0,
 });
-layer.addLine({ path: helixA, color: [1.0, 0.7, 0.0], width: 0.1 });
-
 const helixB = generateHelix({
   radius: 1.0,
   turns: 3.0,
@@ -25,10 +21,18 @@ const helixB = generateHelix({
   pitch: 1.5,
   phase: 90.0,
 });
-layer.addLine({ path: helixB, color: [0.0, 0.7, 0.0], width: 0.2 });
+const layer = new ProjectedLineLayer([
+  { path: helixA, color: [1.0, 0.7, 0.0], width: 0.01 },
+  { path: helixB, color: [0.0, 0.7, 0.0], width: 0.02 },
+]);
+
+layersManager.add(layer);
 
 const renderer = new WebGLRenderer("#canvas");
-const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
+const camera = new PerspectiveCamera({
+  fov: 60,
+  aspectRatio: renderer.width / renderer.height,
+});
 
 animate();
 

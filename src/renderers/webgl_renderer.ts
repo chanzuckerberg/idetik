@@ -10,6 +10,18 @@ import { Mesh } from "objects/renderable/mesh";
 
 import { mat4 } from "gl-matrix";
 
+// The library's coordinate system is left-handed.
+// With the default camera, the standard basis vectors should
+// look as follows.
+// (1, 0, 0) points to the right of the screen
+// (0, 1, 0) points to the bottom of the screen
+// (0, 0, 1) points out of the screen
+// WebGL's coordinate system is right-handed where the vectors
+// point in the same directions except that
+// (0, 1, 0) points to the top of the screen
+// Therefore, this transform makes the appropriate flip in y.
+const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
+
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
@@ -28,7 +40,7 @@ export class WebGLRenderer extends Renderer {
     this.shaders_ = new Map<Shader, WebGLShaderProgram>();
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
-    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+    this.resize(this.canvas.width, this.canvas.height);
   }
 
   protected renderObject(object: RenderableObject) {
@@ -37,12 +49,16 @@ export class WebGLRenderer extends Renderer {
 
     const modelView = mat4.multiply(
       mat4.create(),
-      object.transform.matrix,
-      this.activeCamera.transform.matrix
+      this.activeCamera.transform.inverse,
+      object.transform.matrix
     );
-
-    program.setUniform("Projection", this.activeCamera.projectionMatrix);
     program.setUniform("ModelView", modelView);
+    const projection = mat4.multiply(
+      mat4.create(),
+      axisDirection,
+      this.activeCamera.projectionMatrix
+    );
+    program.setUniform("Projection", projection);
 
     switch (object.type) {
       case "ProjectedLine": {
@@ -53,6 +69,8 @@ export class WebGLRenderer extends Renderer {
         const line = object as ProjectedLine;
         program.setUniform("LineColor", line.color);
         program.setUniform("LineWidth", line.width);
+        program.setUniform("TaperOffset", line.taperOffset);
+        program.setUniform("TaperPower", line.taperPower);
         break;
       }
       case "Mesh": {
@@ -88,9 +106,10 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected clear() {
-    this.gl.clearColor(0, 0, 0, 1.0);
+    this.gl.clearColor(...this.backgroundColor);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.depthFunc(this.gl.LEQUAL);
   }
 
   // This is a temporary computed property. In the future, we want to assign the
@@ -98,9 +117,11 @@ export class WebGLRenderer extends Renderer {
   // refactor textures first (consolidating the two programs below.)
   private getProgramName(object: RenderableObject) {
     if (object.type === "ProjectedLine") return "projectedLine";
-    return object.textures.length && object.textures[0].type === "DataTexture2D"
-      ? "uintImage"
-      : "mesh";
+    if (object.textures.length > 0) {
+      if (object.textures[0].type === "DataTexture2D") return "uintImage";
+      if (object.textures[0].type === "Texture2DArray") return "uintImageArray";
+    }
+    return "mesh";
   }
 
   private getShaderProgram(type: Shader) {

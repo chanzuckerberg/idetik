@@ -1,32 +1,56 @@
 import { Box } from "@mui/material";
 import { Button, InputSlider } from "@czi-sds/components";
-import { useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { Task } from "../lib/tasks";
 
-const playbackFPS = 16;
+const playbackFPS = 8;
 const playbackIntervalMs = 1000 / playbackFPS;
-// Use an arbitrary number of times just to exercise playback.
-const numTimes = 100;
 
-export default function PlaybackControls() {
-  const [curTime, setCurTime] = useState(0);
+export default function PlaybackControls({
+  curTime,
+  enabled,
+  setCurTime,
+  task,
+}: {
+  curTime: number;
+  enabled: boolean;
+  setCurTime: Dispatch<SetStateAction<number>>;
+  task: Task | null;
+}) {
   const [playing, setPlaying] = useState(false);
 
+  const minTime = task?.minTime ?? 0;
+  const maxTime = task?.maxTime ?? 0;
+
   useEffect(() => {
-    console.debug("PlaybackControls::useEffect::playing: ", playing);
-    if (playing) {
-      const interval = setInterval(
-        () => setCurTime((prevCurTime) => (prevCurTime + 1) % numTimes),
-        playbackIntervalMs
-      );
-      return () => clearInterval(interval);
+    if (!playing || !enabled) {
+      return;
     }
-  }, [playing]);
+
+    const interval = setInterval(() => {
+      setCurTime((prevTime) => {
+        const nextTime = prevTime + 1;
+        if (nextTime >= maxTime) {
+          return minTime;
+        }
+        return nextTime;
+      });
+    }, playbackIntervalMs);
+
+    return () => clearInterval(interval);
+  }, [enabled, maxTime, minTime, playing, setCurTime]);
+
+  useEffect(() => {
+    setCurTime(task?.minTime ?? 0);
+  }, [task, setCurTime]);
 
   return (
     <Box
       sx={{
         display: "flex",
+        flex: 0,
         flexDirection: "row",
+        alignItems: "center",
         gap: "1em",
       }}
     >
@@ -35,16 +59,17 @@ export default function PlaybackControls() {
         sdsSize="large"
         sdsType="primary"
         sdsStyle="icon"
+        disabled={!enabled}
         onClick={() => setPlaying(!playing)}
       />
-
       <InputSlider
-        min={0}
-        max={numTimes - 1}
-        valueLabelDisplay="on"
+        min={minTime}
+        // the slider component is closed on the right, so we need to subtract 1
+        max={maxTime - 1}
+        disabled={!enabled}
+        valueLabelDisplay={playing ? "off" : "on"}
         onChange={(_, value) => setCurTime(value as number)}
         value={curTime}
-        sx={{ alignSelf: "flex-end" }}
       />
     </Box>
   );

@@ -8,16 +8,20 @@ export class SingleMeshLayer extends Layer {
 
   constructor() {
     super();
-    this.state_ = "loading";
-    const plane = new PlaneGeometry(600, 600, 1, 1);
-    const mesh = new Mesh(plane, this.texture_);
-
-    this.addObject(mesh);
+    this.setState("loading");
   }
 
   public update(): void {
-    if (this.texture_.loaded) {
-      this.state_ = "ready";
+    if (this.texture_.loaded && this.state !== "ready") {
+      const plane = new PlaneGeometry(
+        this.texture_.width,
+        this.texture_.height,
+        1,
+        1
+      );
+      const mesh = new Mesh(plane, this.texture_);
+      this.addObject(mesh);
+      this.setState("ready");
     }
   }
 }

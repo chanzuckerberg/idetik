@@ -1,16 +1,24 @@
 import {
   LayerManager,
-  PerspectiveCamera,
   ImageLayer,
   WebGLRenderer,
   OmeZarrImageSource,
+  OrthographicCamera,
 } from "@";
+import { AxesLayer } from "@/layers/axes_layer";
+import { PanZoomControls } from "@/objects/cameras/controls";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new PerspectiveCamera(60, renderer.width / renderer.height);
+const left = 150;
+const right = 950;
+const top = 100;
+const bottom = 900;
+const camera = new OrthographicCamera(left, right, top, bottom);
+const controls = new PanZoomControls(camera, camera.position);
+renderer.setControls(controls);
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
 // Also specify a subregion in x and y to exercise that part of the API.
@@ -19,15 +27,17 @@ const region = [
   { dimension: "t", index: 400 },
   { dimension: "c", index: 0 },
   { dimension: "z", index: 300 },
-  { dimension: "y", index: { start: 100, stop: 900 } },
-  { dimension: "x", index: { start: 150, stop: 950 } },
+  { dimension: "y", index: { start: top, stop: bottom } },
+  { dimension: "x", index: { start: left, stop: right } },
 ];
 const contrastLimits = {
   low: 0,
   high: 255,
 };
 const layer = new ImageLayer(source, region, contrastLimits);
+const axes = new AxesLayer({ length: 2000, width: 0.01 });
 layerManager.add(layer);
+layerManager.add(axes);
 
 function animate() {
   renderer.render(layerManager, camera);

@@ -11,8 +11,6 @@ export class PlaneGeometry extends Geometry {
     const vertex: number[] = [];
     const index: number[] = [];
 
-    const halfWidth = width / 2;
-    const halfHeight = height / 2;
     const gridX = widthSegments;
     const gridY = heightSegments;
     const gridX1 = gridX + 1;
@@ -21,15 +19,13 @@ export class PlaneGeometry extends Geometry {
     const segmentH = height / gridY;
 
     for (let iy = 0; iy < gridY1; ++iy) {
-      const y = iy * segmentH - halfHeight;
+      const y = iy * segmentH;
       for (let ix = 0; ix < gridX1; ++ix) {
-        const x = ix * segmentW - halfWidth;
+        const x = ix * segmentW;
         const u = ix / gridX;
-        const v = 1 - iy / gridY;
+        const v = iy / gridY;
 
-        // 'z = -5' is temporary until we add a transform to renderable objects
-        // which will allow us to control the camera position
-        const position = [x, -y, -5];
+        const position = [x, y, 0];
         const normals = [0, 0, 1];
         const uvs = [u, v];
 

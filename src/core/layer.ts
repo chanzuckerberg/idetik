@@ -1,10 +1,16 @@
 import { RenderableObject } from "./renderable_object";
 
-type LayerState = "initialized" | "loading" | "ready";
+export type LayerState = "initialized" | "loading" | "ready";
+
+type StateChangeCallback = (
+  newState: LayerState,
+  prevState?: LayerState
+) => void;
 
 export abstract class Layer {
   private objects_: RenderableObject[] = [];
-  protected state_: LayerState = "initialized";
+  private state_: LayerState = "initialized";
+  private callbacks_: StateChangeCallback[] = [];
 
   public abstract update(): void;
 
@@ -16,7 +22,30 @@ export abstract class Layer {
     return this.state_;
   }
 
+  public addStateChangeCallback(callback: StateChangeCallback) {
+    this.callbacks_.push(callback);
+  }
+
+  public removeStateChangeCallback(callback: StateChangeCallback) {
+    const index = this.callbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.callbacks_.splice(index, 1);
+  }
+
+  protected setState(newState: LayerState) {
+    const prevState = this.state_;
+    this.state_ = newState;
+    console.log(`${this.constructor.name} state change: ${newState}`);
+    this.callbacks_.forEach((callback) => callback(newState, prevState));
+  }
+
   protected addObject(object: RenderableObject) {
     this.objects_.push(object);
+  }
+
+  protected clearObjects() {
+    this.objects_ = [];
   }
 }

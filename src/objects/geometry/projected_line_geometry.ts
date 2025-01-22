@@ -1,6 +1,8 @@
+import { vec3 } from "gl-matrix";
+
 import { Geometry } from "core/geometry";
 
-export class ProjectedLineGoemetry extends Geometry {
+export class ProjectedLineGeometry extends Geometry {
   // this creates the geometry for a screen-space projected line
   // each point on the input path is split into two vertices
   // these are pushed in opposite directions in screen-space to create width
@@ -8,7 +10,7 @@ export class ProjectedLineGoemetry extends Geometry {
   // See:
   //  https://mattdesl.svbtle.com/drawing-lines-is-hard#screenspace-projected-lines_2
   //  https://github.com/spite/THREE.MeshLine
-  constructor(path: [number, number, number][]) {
+  constructor(path: vec3[]) {
     super();
     this.vertexData_ = this.createVertices(path);
     this.indexData_ = this.createIndex(path.length);
@@ -32,12 +34,21 @@ export class ProjectedLineGoemetry extends Geometry {
       itemSize: 1,
       offset: 9 * Float32Array.BYTES_PER_ELEMENT,
     });
+    this.addAttribute({
+      type: "path_proportion",
+      itemSize: 1,
+      offset: 10 * Float32Array.BYTES_PER_ELEMENT,
+    });
   }
 
-  private createVertices(path: [number, number, number][]): Float32Array {
-    const vertices = new Float32Array(2 * path.length * (3 + 3 + 3 + 1));
+  private createVertices(path: vec3[]): Float32Array {
+    const vertices = new Float32Array(2 * path.length * (3 + 3 + 3 + 1 + 1));
 
     let c = 0;
+    let path_proportion = 0.0;
+    const total_distance = path.reduce((acc, curr, i) => {
+      return acc + vec3.distance(curr, path[i + 1] ?? curr);
+    }, 0.0);
     for (const i of [...Array(path.length).keys()]) {
       for (const direction of [-1.0, 1.0]) {
         const current = path[i];
@@ -45,18 +56,21 @@ export class ProjectedLineGoemetry extends Geometry {
         vertices[c++] = current[1];
         vertices[c++] = current[2];
 
-        const previous = path[i - 1] || path[i];
+        const previous = path[i - 1] ?? path[i];
         vertices[c++] = previous[0];
         vertices[c++] = previous[1];
         vertices[c++] = previous[2];
 
-        const next = path[i + 1] || path[i];
+        const next = path[i + 1] ?? path[i];
         vertices[c++] = next[0];
         vertices[c++] = next[1];
         vertices[c++] = next[2];
 
         vertices[c++] = direction;
+        vertices[c++] = path_proportion;
       }
+      path_proportion +=
+        vec3.distance(path[i], path[i + 1] ?? path[i]) / total_distance;
     }
 
     return vertices;
