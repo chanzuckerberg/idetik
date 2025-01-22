@@ -21,6 +21,9 @@ function updateImageTexture(texture: Texture, chunk: ImageChunk) {
   texture.dataFormat = "red_integer";
   if (chunk.data instanceof Uint16Array) {
     texture.dataType = "unsigned_short";
+  } else if (chunk.data instanceof Float32Array) {
+    texture.dataType = "float";
+    texture.dataFormat = "red";
   }
   texture.unpackRowLength = chunk.rowStride;
   texture.unpackAlignment = chunk.rowAlignmentBytes;
