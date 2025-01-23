@@ -9,9 +9,9 @@ import uintImageArrayFragmentShader from "./uint_image_array_frag.glsl";
 export type Shader =
   | "projectedLine"
   | "mesh"
-  | "floatImage"
   | "uintImage"
-  | "uintImageArray";
+  | "uintImageArray"
+  | "floatImage";
 
 export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
   {

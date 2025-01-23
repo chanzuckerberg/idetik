@@ -109,8 +109,8 @@ export class WebGLRenderer extends Renderer {
     if (object.type === "ProjectedLine") return "projectedLine";
     if (object.textures.length > 0) {
       if (object.textures[0].type === "DataTexture2D") {
-        if (object.textures[0].dataFormat == "red_integer") return "uintImage";
-        return "floatImage";
+        if (object.textures[0].dataType == "float") return "floatImage";
+        return "uintImage";
       }
       if (object.textures[0].type === "Texture2DArray") return "uintImageArray";
     }
