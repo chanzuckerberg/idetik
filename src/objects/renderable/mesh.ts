@@ -20,21 +20,40 @@ export class Mesh extends RenderableObject {
       this.addTexture(texture);
     }
 
-    if (contrastLimits !== undefined) {
-      this.contrastLimits_ = contrastLimits;
-    } else if (texture !== null) {
-      this.contrastLimits_ = texture.pixelValueRange();
-    } else {
-      this.contrastLimits_ = [0, 255];
-    }
+    this.contrastLimits_ = this.validateContrastLimits(contrastLimits);
   }
 
   public get contrastLimits() {
     return this.contrastLimits_;
   }
 
-  public set contrastLimits(contrastLimits: [number, number]) {
-    this.contrastLimits_ = contrastLimits;
+  public setContrastLimits(contrastLimits?: [number, number]) {
+    this.contrastLimits_ = this.validateContrastLimits(contrastLimits);
+  }
+
+  private validateContrastLimits(
+    contrastLimits: [number, number] | undefined
+  ): [number, number] {
+    if (contrastLimits !== undefined) {
+      if (contrastLimits[1] <= contrastLimits[0]) {
+        throw new Error(
+          `Contrast limits must be strictly increasing: ${contrastLimits}.`
+        );
+      }
+      return contrastLimits;
+    }
+    const texture = this.textures[0];
+    if (!texture) return [0, 1];
+    if (texture.dataFormat === "rgb" || texture.dataFormat === "rgba")
+      return [0, 1];
+    switch (texture.dataType) {
+      case "unsigned_byte":
+        return [0, 255];
+      case "unsigned_short":
+        return [0, 65535];
+      case "float":
+        return [0, 1];
+    }
   }
 
   public get type() {

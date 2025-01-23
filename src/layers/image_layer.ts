@@ -42,10 +42,14 @@ export class ImageLayer extends Layer {
     }
   }
 
-  public setContrastLimits(contrastLimits: [number, number]): void {
+  public get contrastLimits(): [number, number] | undefined {
+    return this.contrastLimits_;
+  }
+
+  public setContrastLimits(contrastLimits?: [number, number]): void {
     this.contrastLimits_ = contrastLimits;
     if (this.mesh_ !== undefined) {
-      this.mesh_.contrastLimits = contrastLimits;
+      this.mesh_.setContrastLimits(contrastLimits);
     }
   }
 
