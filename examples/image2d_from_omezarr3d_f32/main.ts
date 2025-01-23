@@ -8,7 +8,9 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 const sliderMin = document.getElementById("slider-min") as HTMLInputElement;
+const labelMin = document.getElementById("label-min") as HTMLLabelElement;
 const sliderMax = document.getElementById("slider-max") as HTMLInputElement;
+const labelMax = document.getElementById("label-max") as HTMLLabelElement;
 
 const url =
   "https://files.cryoetdataportal.cziscience.com/10444/24apr23a_Position_12/Reconstructions/VoxelSpacing4.990/Tomograms/100/24apr23a_Position_12.zarr";
@@ -32,26 +34,33 @@ const layer = new ImageLayer({
 });
 layerManager.add(layer);
 
-sliderMin.addEventListener("input", (event) => {
-  const minValue = (event.target as HTMLInputElement).valueAsNumber;
-  console.debug("sliderMin: ", minValue);
+const onMinChange = () => {
+  const minValue = sliderMin.valueAsNumber;
   const maxValue = sliderMax.valueAsNumber;
   if (minValue >= maxValue) {
     sliderMin.value = (maxValue - Number(sliderMin.step)).toString();
   } else {
+    labelMin.innerText = `Min: ${minValue.toString()}`;
     layer.setContrastLimits([minValue, maxValue]);
   }
-});
-sliderMax.addEventListener("input", (event) => {
-  const maxValue = (event.target as HTMLInputElement).valueAsNumber;
-  console.debug("sliderMax: ", maxValue);
+};
+
+const onMaxChange = () => {
+  const maxValue = sliderMax.valueAsNumber;
   const minValue = sliderMin.valueAsNumber;
   if (maxValue <= minValue) {
     sliderMax.value = (minValue + Number(sliderMax.step)).toString();
   } else {
+    labelMax.innerText = `Max: ${maxValue.toString()}`;
     layer.setContrastLimits([minValue, maxValue]);
   }
-});
+};
+
+sliderMin.addEventListener("input", onMinChange);
+sliderMax.addEventListener("input", onMaxChange);
+
+onMinChange();
+onMaxChange();
 
 function animate() {
   renderer.render(layerManager, camera);

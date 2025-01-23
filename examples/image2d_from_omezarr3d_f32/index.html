@@ -19,28 +19,38 @@
         height: 100%;
         min-height: 0;
       }
+      #controls-div {
+        display: flex;
+        flex-direction: column;
+        width: 50%;
+        align-self: center;
+        margin-top: 2em;
+        margin-bottom: 2em;
+      }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
-    <label for="slider-min">Min</label>
-    <input
-      type="range"
-      id="slider-min"
-      min="-1e-5"
-      max="1e-5"
-      step="1e-6"
-      value="-1e-5"
-    />
-    <label for="slider-max">Max</label>
-    <input
-      type="range"
-      id="slider-max"
-      min="-1e-5"
-      max="1e-5"
-      step="1e-6"
-      value="1e-5"
-    />
+    <div id="controls-div">
+      <label for="slider-min" id="label-min">Min</label>
+      <input
+        type="range"
+        id="slider-min"
+        min="-1e-5"
+        max="1e-5"
+        step="1e-6"
+        value="-1e-5"
+      />
+      <label for="slider-max" id="label-max">Max</label>
+      <input
+        type="range"
+        id="slider-max"
+        min="-1e-5"
+        max="1e-5"
+        step="1e-6"
+        value="1e-5"
+      />
+    </div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
