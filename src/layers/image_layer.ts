@@ -46,7 +46,7 @@ export class ImageLayer extends Layer {
     return this.contrastLimits_;
   }
 
-  public setContrastLimits(contrastLimits?: [number, number]): void {
+  public setContrastLimits(contrastLimits: [number, number] | undefined): void {
     this.contrastLimits_ = contrastLimits;
     if (this.mesh_ !== undefined) {
       this.mesh_.setContrastLimits(contrastLimits);

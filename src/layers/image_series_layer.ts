@@ -4,6 +4,14 @@ import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
 import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
+import { Mesh } from "objects/renderable/mesh";
+
+type ImageSeriesLayerProps = {
+  source: ImageChunkSource;
+  region: Region;
+  timeDimension: string;
+  contrastLimits?: [number, number];
+};
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -14,8 +22,15 @@ export class ImageSeriesLayer extends Layer {
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private scheduler_: PromiseScheduler = new PromiseScheduler(16);
+  private mesh_?: Mesh;
+  private contrastLimits_?: [number, number];
 
-  constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
+  constructor({
+    source,
+    region,
+    timeDimension,
+    contrastLimits,
+  }: ImageSeriesLayerProps) {
     super();
     this.setState("initialized");
     this.source_ = source;
@@ -35,6 +50,18 @@ export class ImageSeriesLayer extends Layer {
       );
     }
     this.timeInterval_ = timeIndex;
+    this.contrastLimits_ = contrastLimits;
+  }
+
+  public get contrastLimits(): [number, number] | undefined {
+    return this.contrastLimits_;
+  }
+
+  public setContrastLimits(contrastLimits: [number, number] | undefined): void {
+    this.contrastLimits_ = contrastLimits;
+    if (this.mesh_ !== undefined) {
+      this.mesh_.setContrastLimits(contrastLimits);
+    }
   }
 
   public update(): void {
@@ -67,8 +94,8 @@ export class ImageSeriesLayer extends Layer {
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
       this.texture_ = makeImageTextureArray(chunk);
-      const mesh = makeImageMesh(chunk, this.texture_);
-      this.addObject(mesh);
+      this.mesh_ = makeImageMesh(chunk, this.texture_, this.contrastLimits_);
+      this.addObject(this.mesh_);
     } else {
       this.texture_.data = chunk.data;
     }

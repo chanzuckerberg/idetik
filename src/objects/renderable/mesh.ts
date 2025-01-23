@@ -27,7 +27,7 @@ export class Mesh extends RenderableObject {
     return this.contrastLimits_;
   }
 
-  public setContrastLimits(contrastLimits?: [number, number]) {
+  public setContrastLimits(contrastLimits: [number, number] | undefined) {
     this.contrastLimits_ = this.validateContrastLimits(contrastLimits);
   }
 
