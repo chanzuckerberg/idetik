@@ -4,6 +4,12 @@ import { ImageChunkSource } from "data/image_chunk";
 import { makeImageMesh, makeImageTexture } from "layers/image_utils";
 import { Mesh } from "objects/renderable/mesh";
 
+type ImageLayerProps = {
+  source: ImageChunkSource;
+  region: Region;
+  contrastLimits?: [number, number];
+};
+
 // Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
   private readonly source_: ImageChunkSource;
@@ -11,13 +17,9 @@ export class ImageLayer extends Layer {
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
   private contrastLimits_?: [number, number];
-  private mesh_: Mesh | undefined;
+  private mesh_?: Mesh;
 
-  constructor(
-    source: ImageChunkSource,
-    region: Region,
-    contrastLimits?: [number, number]
-  ) {
+  constructor({ source, region, contrastLimits }: ImageLayerProps) {
     super();
     this.setState("initialized");
     this.source_ = source;

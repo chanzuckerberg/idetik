@@ -44,8 +44,7 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected renderObject(object: RenderableObject) {
-    const programName = this.getProgramName(object);
-    const program = this.getShaderProgram(programName).use();
+    const program = this.getShaderProgram(this.getProgramName(object)).use();
 
     const modelView = mat4.multiply(
       mat4.create(),
