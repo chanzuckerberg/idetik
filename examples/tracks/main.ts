@@ -73,7 +73,11 @@ const region = [
   { dimension: "Z", index: 0 },
 ];
 
-const imageSeriesLayer = new ImageSeriesLayer(source, region, "T");
+const imageSeriesLayer = new ImageSeriesLayer({
+  source,
+  region,
+  timeDimension: "T",
+});
 
 const renderer = new WebGLRenderer("#canvas");
 
