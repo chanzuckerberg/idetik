@@ -41,7 +41,6 @@ export class ImageLayer extends Layer {
   }
 
   public setContrastLimits(contrastLimits: [number, number]): void {
-    console.debug("ImageLayer::setContrastLimits", contrastLimits);
     this.contrastLimits_ = contrastLimits;
     if (this.mesh_ !== undefined) {
       this.mesh_.contrastLimits = contrastLimits;
