@@ -23,10 +23,6 @@ export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
       vertex: meshVertexShader,
       fragment: meshFragmentShader,
     },
-    floatImage: {
-      vertex: meshVertexShader,
-      fragment: floatImageFragmentShader,
-    },
     uintImage: {
       vertex: meshVertexShader,
       fragment: uintImageFragmentShader,
@@ -34,5 +30,9 @@ export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
     uintImageArray: {
       vertex: meshVertexShader,
       fragment: uintImageArrayFragmentShader,
+    },
+    floatImage: {
+      vertex: meshVertexShader,
+      fragment: floatImageFragmentShader,
     },
   };

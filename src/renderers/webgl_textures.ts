@@ -248,7 +248,6 @@ export class WebGLTextures {
     } else if (format === "scalar" && type === "float") {
       return this.gl_.R32F;
     }
-
     throw Error(
       `Unsupported data format and type combination ${format}/${type}`
     );
