@@ -21,7 +21,7 @@ function modeToRoot(mode) {
     return 'examples';
   } else if (mode === 'prototype') {
     return 'ultrack-prototype/frontend';
-  } else if (!MODES.includes(mode)){
+  } else if (!MODES.includes(mode)) {
     console.error(`Unrecognized mode ${mode}`);
   }
   return undefined;
@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins,
     root: modeToRoot(mode),
+    assetsInclude: [path.resolve(_dirname, "src/data/zarr/0.4/schemas/*.schema")],
     publicDir: path.resolve(_dirname, 'public'),
     build: {
       outDir: 'dist',
