@@ -44,7 +44,7 @@ export type CoordinateTransformations = [
         translation: [number, number, ...number[]];
         [k: string]: unknown;
       }
-  )[]
+  )[],
 ];
 /**
  * @minItems 2
@@ -75,45 +75,7 @@ export type Axes =
             type?: string;
             [k: string]: unknown;
           }
-      )
-    ]
-  | [
-      (
-        | {
-            name: string;
-            type: "channel" | "time" | "space";
-            [k: string]: unknown;
-          }
-        | {
-            name: string;
-            type?: string;
-            [k: string]: unknown;
-          }
       ),
-      (
-        | {
-            name: string;
-            type: "channel" | "time" | "space";
-            [k: string]: unknown;
-          }
-        | {
-            name: string;
-            type?: string;
-            [k: string]: unknown;
-          }
-      ),
-      (
-        | {
-            name: string;
-            type: "channel" | "time" | "space";
-            [k: string]: unknown;
-          }
-        | {
-            name: string;
-            type?: string;
-            [k: string]: unknown;
-          }
-      )
     ]
   | [
       (
@@ -152,18 +114,6 @@ export type Axes =
             [k: string]: unknown;
           }
       ),
-      (
-        | {
-            name: string;
-            type: "channel" | "time" | "space";
-            [k: string]: unknown;
-          }
-        | {
-            name: string;
-            type?: string;
-            [k: string]: unknown;
-          }
-      )
     ]
   | [
       (
@@ -214,6 +164,8 @@ export type Axes =
             [k: string]: unknown;
           }
       ),
+    ]
+  | [
       (
         | {
             name: string;
@@ -225,7 +177,55 @@ export type Axes =
             type?: string;
             [k: string]: unknown;
           }
-      )
+      ),
+      (
+        | {
+            name: string;
+            type: "channel" | "time" | "space";
+            [k: string]: unknown;
+          }
+        | {
+            name: string;
+            type?: string;
+            [k: string]: unknown;
+          }
+      ),
+      (
+        | {
+            name: string;
+            type: "channel" | "time" | "space";
+            [k: string]: unknown;
+          }
+        | {
+            name: string;
+            type?: string;
+            [k: string]: unknown;
+          }
+      ),
+      (
+        | {
+            name: string;
+            type: "channel" | "time" | "space";
+            [k: string]: unknown;
+          }
+        | {
+            name: string;
+            type?: string;
+            [k: string]: unknown;
+          }
+      ),
+      (
+        | {
+            name: string;
+            type: "channel" | "time" | "space";
+            [k: string]: unknown;
+          }
+        | {
+            name: string;
+            type?: string;
+            [k: string]: unknown;
+          }
+      ),
     ];
 
 /**
@@ -253,7 +253,7 @@ export interface NGFFImage {
           path: string;
           coordinateTransformations: CoordinateTransformations;
           [k: string]: unknown;
-        }[]
+        }[],
       ];
       version?: "0.4";
       axes: Axes;
@@ -275,13 +275,13 @@ export interface NGFFImage {
           path: string;
           coordinateTransformations: CoordinateTransformations;
           [k: string]: unknown;
-        }[]
+        }[],
       ];
       version?: "0.4";
       axes: Axes;
       coordinateTransformations?: CoordinateTransformations;
       [k: string]: unknown;
-    }[]
+    }[],
   ];
   omero?: {
     channels: {

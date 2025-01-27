@@ -37,7 +37,7 @@ export interface OMENGFFWellSchema {
          */
         path: string;
         [k: string]: unknown;
-      }[]
+      }[],
     ];
     /**
      * The version of the specification

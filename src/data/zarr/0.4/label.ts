@@ -43,7 +43,7 @@ export interface OMENGFFLabelledImageSchema {
          */
         rgba?: [number, number, number, number];
         [k: string]: unknown;
-      }[]
+      }[],
     ];
     /**
      * The properties for this label image
@@ -64,7 +64,7 @@ export interface OMENGFFLabelledImageSchema {
          */
         "label-value": number;
         [k: string]: unknown;
-      }[]
+      }[],
     ];
     /**
      * The source of this label image

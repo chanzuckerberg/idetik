@@ -71,7 +71,7 @@ export interface OMENGFFPlateSchema {
          */
         name: string;
         [k: string]: unknown;
-      }[]
+      }[],
     ];
     /**
      * The rows of the plate
@@ -92,7 +92,7 @@ export interface OMENGFFPlateSchema {
          */
         name: string;
         [k: string]: unknown;
-      }[]
+      }[],
     ];
     /**
      * The wells of the plate
@@ -129,7 +129,7 @@ export interface OMENGFFPlateSchema {
          */
         columnIndex: number;
         [k: string]: unknown;
-      }[]
+      }[],
     ];
     [k: string]: unknown;
   };
