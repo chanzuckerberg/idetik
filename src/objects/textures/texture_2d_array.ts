@@ -56,12 +56,7 @@ export class Texture2DArray extends Texture {
         `Number of channels (${channels.length}) must match the depth of the texture (${this.depth_}).`
       );
     }
-    this.channels_ = channels.map((channel) =>
-      validateTextureChannel(this, channel)
-    );
-    for (let i = 0; i < channels.length; i++) {
-      this.channels_[i] = validateTextureChannel(this, channels[i]);
-    }
+    this.channels_ = channels.map((c) => validateTextureChannel(this, c));
   }
 
   public get channels(): TextureChannel[] {
