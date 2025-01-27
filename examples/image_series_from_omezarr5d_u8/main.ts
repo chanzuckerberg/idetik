@@ -23,7 +23,17 @@ const region = [
   { dimension: "C", index: channels },
   { dimension: "Z", index: 0 },
 ];
-const layer = new ImageSeriesLayer({ source, region, timeDimension: "T" });
+const channelProps = [
+  { contrastLimits: [0, 255] as [number, number] },
+  { contrastLimits: [0, 255] as [number, number] },
+  { contrastLimits: [0, 255] as [number, number] },
+];
+const layer = new ImageSeriesLayer({
+  source,
+  region,
+  timeDimension: "T",
+  channelProps,
+});
 layerManager.add(layer);
 
 const slider = document.querySelector<HTMLInputElement>("#slider");

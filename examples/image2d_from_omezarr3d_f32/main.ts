@@ -27,11 +27,7 @@ const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
 const region = [{ dimension: "z", index: pixelScale * 120 }];
 const source = new OmeZarrImageSource(url);
-const layer = new ImageLayer({
-  source,
-  region,
-  contrastLimits: [sliderMin.valueAsNumber, sliderMax.valueAsNumber],
-});
+const layer = new ImageLayer({ source, region });
 layerManager.add(layer);
 
 const onMinChange = () => {
@@ -41,7 +37,7 @@ const onMinChange = () => {
     sliderMin.value = (maxValue - Number(sliderMin.step)).toString();
   } else {
     labelMin.innerText = `Min: ${minValue.toString()}`;
-    layer.setContrastLimits([minValue, maxValue]);
+    layer.setChannelProps({ contrastLimits: [minValue, maxValue] });
   }
 };
 
@@ -52,7 +48,7 @@ const onMaxChange = () => {
     sliderMax.value = (minValue + Number(sliderMax.step)).toString();
   } else {
     labelMax.innerText = `Max: ${maxValue.toString()}`;
-    layer.setContrastLimits([minValue, maxValue]);
+    layer.setChannelProps({ contrastLimits: [minValue, maxValue] });
   }
 };
 

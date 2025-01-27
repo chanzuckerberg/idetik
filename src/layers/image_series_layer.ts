@@ -4,13 +4,13 @@ import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
 import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
-import { Mesh } from "objects/renderable/mesh";
+import { TextureChannelProps } from "objects/textures/texture_channel";
 
 type ImageSeriesLayerProps = {
   source: ImageChunkSource;
   region: Region;
   timeDimension: string;
-  contrastLimits?: [number, number];
+  channelProps?: TextureChannelProps[];
 };
 
 // Loads 2D+t image data from an image source into renderable objects.
@@ -22,14 +22,13 @@ export class ImageSeriesLayer extends Layer {
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private scheduler_: PromiseScheduler = new PromiseScheduler(16);
-  private mesh_?: Mesh;
-  private contrastLimits_?: [number, number];
+  private channelProps_?: TextureChannelProps[];
 
   constructor({
     source,
     region,
     timeDimension,
-    contrastLimits,
+    channelProps,
   }: ImageSeriesLayerProps) {
     super();
     this.setState("initialized");
@@ -50,17 +49,17 @@ export class ImageSeriesLayer extends Layer {
       );
     }
     this.timeInterval_ = timeIndex;
-    this.contrastLimits_ = contrastLimits;
+    this.channelProps_ = channelProps;
   }
 
-  public get contrastLimits(): [number, number] | undefined {
-    return this.contrastLimits_;
+  public get channelProps(): TextureChannelProps[] | undefined {
+    return this.channelProps_;
   }
 
-  public setContrastLimits(contrastLimits: [number, number] | undefined): void {
-    this.contrastLimits_ = contrastLimits;
-    if (this.mesh_ !== undefined) {
-      this.mesh_.setContrastLimits(contrastLimits);
+  public setChannelProps(channelProps: TextureChannelProps[]): void {
+    this.channelProps_ = channelProps;
+    if (this.texture_ !== null) {
+      this.texture_.channels = channelProps;
     }
   }
 
@@ -93,9 +92,9 @@ export class ImageSeriesLayer extends Layer {
     }
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
-      this.texture_ = makeImageTextureArray(chunk);
-      this.mesh_ = makeImageMesh(chunk, this.texture_, this.contrastLimits_);
-      this.addObject(this.mesh_);
+      this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
+      const mesh = makeImageMesh(chunk, this.texture_);
+      this.addObject(mesh);
     } else {
       this.texture_.data = chunk.data;
     }

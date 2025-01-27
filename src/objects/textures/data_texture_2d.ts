@@ -1,15 +1,22 @@
 import { Texture } from "objects/textures/texture";
+import {
+  TextureChannel,
+  TextureChannelProps,
+  validateTextureChannel,
+} from "objects/textures/texture_channel";
 
 export class DataTexture2D extends Texture {
   private data_: ArrayBufferView;
   private readonly width_: number;
   private readonly height_: number;
+  private channel_: TextureChannel;
 
   constructor(data: ArrayBufferView, width: number, height: number) {
     super();
     this.data_ = data;
     this.width_ = width;
     this.height_ = height;
+    this.channel_ = validateTextureChannel(this, {});
   }
 
   public set data(data: ArrayBufferView) {
@@ -31,5 +38,13 @@ export class DataTexture2D extends Texture {
 
   public get height() {
     return this.height_;
+  }
+
+  public set channel(channel: TextureChannelProps) {
+    this.channel_ = validateTextureChannel(this, channel);
+  }
+
+  public get channel(): TextureChannel {
+    return this.channel_;
   }
 }

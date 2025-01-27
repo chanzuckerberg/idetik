@@ -26,7 +26,8 @@ const region = [
   { dimension: "C", index: 0 },
   { dimension: "Z", index: 0 },
 ];
-const layer = new ImageLayer({ source, region, contrastLimits: [0, 128] });
+const channelProps = { contrastLimits: [0, 128] as [number, number] };
+const layer = new ImageLayer({ source, region, channelProps });
 const axes = new AxesLayer({ length: 1920, width: 0.01 });
 layerManager.add(layer);
 layerManager.add(axes);

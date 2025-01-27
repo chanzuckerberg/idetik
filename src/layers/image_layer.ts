@@ -1,13 +1,14 @@
 import { Layer } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { makeImageMesh, makeImageTexture } from "layers/image_utils";
-import { Mesh } from "objects/renderable/mesh";
+import { TextureChannelProps } from "objects/textures/texture_channel";
 
 type ImageLayerProps = {
   source: ImageChunkSource;
   region: Region;
-  contrastLimits?: [number, number];
+  channelProps?: TextureChannelProps;
 };
 
 // Loads data from an image source into renderable objects.
@@ -16,15 +17,15 @@ export class ImageLayer extends Layer {
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
-  private contrastLimits_?: [number, number];
-  private mesh_?: Mesh;
+  private channelProps_?: TextureChannelProps;
+  private texture_?: DataTexture2D;
 
-  constructor({ source, region, contrastLimits }: ImageLayerProps) {
+  constructor({ source, region, channelProps }: ImageLayerProps) {
     super();
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-    this.contrastLimits_ = contrastLimits;
+    this.channelProps_ = channelProps;
   }
 
   public update(): void {
@@ -42,14 +43,14 @@ export class ImageLayer extends Layer {
     }
   }
 
-  public get contrastLimits(): [number, number] | undefined {
-    return this.contrastLimits_;
+  public get channelProps(): TextureChannelProps | undefined {
+    return this.channelProps_;
   }
 
-  public setContrastLimits(contrastLimits: [number, number] | undefined): void {
-    this.contrastLimits_ = contrastLimits;
-    if (this.mesh_ !== undefined) {
-      this.mesh_.setContrastLimits(contrastLimits);
+  public setChannelProps(channelProps: TextureChannelProps): void {
+    this.channelProps_ = channelProps;
+    if (this.texture_ !== undefined) {
+      this.texture_.channel = channelProps;
     }
   }
 
@@ -60,9 +61,9 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
-    const texture = makeImageTexture(chunk);
-    this.mesh_ = makeImageMesh(chunk, texture, this.contrastLimits_);
-    this.addObject(this.mesh_);
+    this.texture_ = makeImageTexture(chunk, this.channelProps_);
+    const mesh = makeImageMesh(chunk, this.texture_);
+    this.addObject(mesh);
     this.setState("ready");
   }
 }

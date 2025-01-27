@@ -1,4 +1,4 @@
-import { mat4, vec2, vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 
 type ShaderMap = {
   [type: number]: {
@@ -44,7 +44,7 @@ export class WebGLShaderProgram {
         this.gl_.uniform1f(location, value as number);
         break;
       case this.gl_.FLOAT_VEC2:
-        this.gl_.uniform2fv(location, value as vec2);
+        this.gl_.uniform2fv(location, value as Iterable<GLfloat>);
         break;
       case this.gl_.FLOAT_VEC3:
         this.gl_.uniform3fv(location, value as vec3);
@@ -80,6 +80,7 @@ export class WebGLShaderProgram {
 
         const location = this.gl_.getUniformLocation(this.program_, info.name);
         if (location) {
+          console.debug("Uniform found:", info.name, info.type, location);
           this.uniformInfo_.set(info.name, [location, info]);
         }
       }

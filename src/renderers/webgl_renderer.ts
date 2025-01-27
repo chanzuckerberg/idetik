@@ -6,9 +6,10 @@ import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 import { ProjectedLine } from "objects/renderable/projected_line";
-import { Mesh } from "objects/renderable/mesh";
 
 import { mat4 } from "gl-matrix";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
+import { Texture2DArray } from "objects/textures/texture_2d_array";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -72,11 +73,6 @@ export class WebGLRenderer extends Renderer {
         program.setUniform("TaperPower", line.taperPower);
         break;
       }
-      case "Mesh": {
-        const mesh = object as Mesh;
-        program.setUniform("ContrastLimits", mesh.contrastLimits);
-        break;
-      }
     }
 
     this.bindings_.bind(object);
@@ -84,7 +80,28 @@ export class WebGLRenderer extends Renderer {
     if (object.textures.length) {
       // We temporarily assume this array holds a single texture. We'll need to
       // modify this logic to support multiple textures in the future.
-      this.textures_.bind(object.textures[0]);
+      const texture = object.textures[0];
+      this.textures_.bind(texture);
+
+      switch (texture.type) {
+        case "DataTexture2D": {
+          const dataTexture = texture as DataTexture2D;
+          program.setUniform(
+            "ContrastLimits",
+            dataTexture.channel.contrastLimits
+          );
+          break;
+        }
+        case "Texture2DArray": {
+          const texture2DArray = texture as Texture2DArray;
+          const flatContrastLimits = new Array<number>();
+          for (const channel of texture2DArray.channels) {
+            flatContrastLimits.push(...channel.contrastLimits);
+          }
+          program.setUniform("ContrastLimits[0]", flatContrastLimits);
+          break;
+        }
+      }
     }
 
     // TODO: Move 'type' property to RenderableObject
