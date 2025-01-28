@@ -86,19 +86,24 @@ export class WebGLRenderer extends Renderer {
       switch (texture.type) {
         case "DataTexture2D": {
           const dataTexture = texture as DataTexture2D;
-          program.setUniform(
-            "ContrastLimits",
-            dataTexture.channel.contrastLimits
-          );
+          const contrastLimits = dataTexture.channel.contrastLimits;
+          const valueOffset = -contrastLimits[0];
+          const valueScale = 1 / (contrastLimits[1] - contrastLimits[0]);
+          program.setUniform("ValueOffset", valueOffset);
+          program.setUniform("ValueScale", valueScale);
           break;
         }
         case "Texture2DArray": {
           const texture2DArray = texture as Texture2DArray;
-          const flatContrastLimits = new Array<number>();
+          const valueOffset = new Array<number>();
+          const valueScale = new Array<number>();
           for (const channel of texture2DArray.channels) {
-            flatContrastLimits.push(...channel.contrastLimits);
+            const contrastLimits = channel.contrastLimits;
+            valueOffset.push(-contrastLimits[0]);
+            valueScale.push(1 / (contrastLimits[1] - contrastLimits[0]));
           }
-          program.setUniform("ContrastLimits[0]", flatContrastLimits);
+          program.setUniform("ValueOffset[0]", valueOffset);
+          program.setUniform("ValueScale[0]", valueScale);
           break;
         }
       }
