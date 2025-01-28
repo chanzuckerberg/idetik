@@ -83,6 +83,12 @@ export class WebGLRenderer extends Renderer {
       const texture = object.textures[0];
       this.textures_.bind(texture);
 
+      // This should probably be moved to the switch case above on the
+      // renderable object type, but is a little awkward there because a
+      // Mesh may not have a texture. Similarly, the channel info used here
+      // may be better stored in a renderable object than a texture.
+      // Both these facts may motivate defining an Image renderable object
+      // that has exactly one texture.
       switch (texture.type) {
         case "DataTexture2D": {
           const dataTexture = texture as DataTexture2D;
