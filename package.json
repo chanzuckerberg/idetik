@@ -14,7 +14,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "ajv": "^8.17.1",
     "gl-matrix": "^3.4.3",
     "zarrita": "^0.4.0-next.16"
   },
