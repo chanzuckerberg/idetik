@@ -11,7 +11,8 @@ export function makeImageTexture(
   channel?: TextureChannelProps
 ) {
   const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);
-  updateImageTexture(texture, chunk);
+  texture.unpackRowLength = chunk.rowStride;
+  texture.unpackAlignment = chunk.rowAlignmentBytes;
   if (channel) {
     texture.channel = channel;
   }
@@ -23,24 +24,12 @@ export function makeImageTextureArray(
   channelProps?: TextureChannelProps[]
 ) {
   const texture = new Texture2DArray(chunk.data, chunk.shape.x, chunk.shape.y);
-  updateImageTexture(texture, chunk);
+  texture.unpackRowLength = chunk.rowStride;
+  texture.unpackAlignment = chunk.rowAlignmentBytes;
   if (channelProps) {
     texture.channels = channelProps;
   }
   return texture;
-}
-
-function updateImageTexture(texture: Texture, chunk: ImageChunk) {
-  texture.dataFormat = "scalar";
-  if (chunk.data instanceof Uint8Array) {
-    texture.dataType = "unsigned_byte";
-  } else if (chunk.data instanceof Uint16Array) {
-    texture.dataType = "unsigned_short";
-  } else if (chunk.data instanceof Float32Array) {
-    texture.dataType = "float";
-  }
-  texture.unpackRowLength = chunk.rowStride;
-  texture.unpackAlignment = chunk.rowAlignmentBytes;
 }
 
 export function makeImageMesh(chunk: ImageChunk, texture: Texture) {

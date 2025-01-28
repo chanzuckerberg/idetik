@@ -11,7 +11,7 @@ export type TextureChannel = {
 export function validateTextureChannel(
   texture: Texture,
   { contrastLimits }: TextureChannelProps
-) {
+): TextureChannel {
   return {
     contrastLimits: validateContrastLimits(texture, contrastLimits),
   };
@@ -29,9 +29,9 @@ function validateContrastLimits(
     }
     return contrastLimits;
   }
-  if (!texture) return [0, 1];
-  if (texture.dataFormat === "rgb" || texture.dataFormat === "rgba")
+  if (texture.dataFormat === "rgb" || texture.dataFormat === "rgba") {
     return [0, 1];
+  }
   switch (texture.dataType) {
     case "unsigned_byte":
       return [0, 255];

@@ -1,4 +1,4 @@
-import { Texture } from "objects/textures/texture";
+import { Texture, bufferToDataType } from "objects/textures/texture";
 import {
   TextureChannel,
   TextureChannelProps,
@@ -16,6 +16,8 @@ export class DataTexture2D extends Texture {
     this.data_ = data;
     this.width_ = width;
     this.height_ = height;
+    this.dataFormat = "scalar";
+    this.dataType = bufferToDataType(data);
     this.channel_ = validateTextureChannel(this, {});
   }
 

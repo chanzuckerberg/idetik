@@ -23,10 +23,12 @@ const region = [
   { dimension: "C", index: channels },
   { dimension: "Z", index: 0 },
 ];
+// Raise the contrast limits for the blue channel because there is
+// a lot of low signal.
 const channelProps = [
   { contrastLimits: [0, 255] as [number, number] },
   { contrastLimits: [0, 255] as [number, number] },
-  { contrastLimits: [0, 255] as [number, number] },
+  { contrastLimits: [128, 255] as [number, number] },
 ];
 const layer = new ImageSeriesLayer({
   source,
