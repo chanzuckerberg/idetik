@@ -3,7 +3,7 @@ import {
   Channel,
   ChannelProps,
   validateChannel,
-} from "@/objects/textures/channel";
+} from "objects/textures/channel";
 
 export class Texture2DArray extends Texture {
   private data_: ArrayBufferView;
