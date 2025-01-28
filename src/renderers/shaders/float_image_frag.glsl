@@ -10,8 +10,8 @@ uniform vec2 ContrastLimits;
 in vec2 TexCoords;
 
 void main() {
-    float pixel = texture(texture0, TexCoords).r;
+    float texel = texture(texture0, TexCoords).r;
     float range = ContrastLimits.y - ContrastLimits.x;
-    float value = (pixel - ContrastLimits.x) / range;
+    float value = (texel - ContrastLimits.x) / range;
     fragColor = vec4(value, value, value, 1);
 }
