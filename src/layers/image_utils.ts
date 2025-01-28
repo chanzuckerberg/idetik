@@ -4,12 +4,9 @@ import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { ImageChunk } from "data/image_chunk";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Mesh } from "objects/renderable/mesh";
-import { TextureChannelProps } from "objects/textures/texture_channel";
+import { ChannelProps } from "@/objects/textures/channel";
 
-export function makeImageTexture(
-  chunk: ImageChunk,
-  channel?: TextureChannelProps
-) {
+export function makeImageTexture(chunk: ImageChunk, channel?: ChannelProps) {
   const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);
   texture.unpackRowLength = chunk.rowStride;
   texture.unpackAlignment = chunk.rowAlignmentBytes;
@@ -21,7 +18,7 @@ export function makeImageTexture(
 
 export function makeImageTextureArray(
   chunk: ImageChunk,
-  channelProps?: TextureChannelProps[]
+  channelProps?: ChannelProps[]
 ) {
   const texture = new Texture2DArray(chunk.data, chunk.shape.x, chunk.shape.y);
   texture.unpackRowLength = chunk.rowStride;

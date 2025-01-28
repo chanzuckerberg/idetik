@@ -4,13 +4,13 @@ import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
 import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
-import { TextureChannelProps } from "objects/textures/texture_channel";
+import { ChannelProps } from "@/objects/textures/channel";
 
 type ImageSeriesLayerProps = {
   source: ImageChunkSource;
   region: Region;
   timeDimension: string;
-  channelProps?: TextureChannelProps[];
+  channelProps?: ChannelProps[];
 };
 
 // Loads 2D+t image data from an image source into renderable objects.
@@ -22,7 +22,7 @@ export class ImageSeriesLayer extends Layer {
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private scheduler_: PromiseScheduler = new PromiseScheduler(16);
-  private channelProps_?: TextureChannelProps[];
+  private channelProps_?: ChannelProps[];
 
   constructor({
     source,
@@ -52,11 +52,11 @@ export class ImageSeriesLayer extends Layer {
     this.channelProps_ = channelProps;
   }
 
-  public get channelProps(): TextureChannelProps[] | undefined {
+  public get channelProps(): ChannelProps[] | undefined {
     return this.channelProps_;
   }
 
-  public setChannelProps(channelProps: TextureChannelProps[]): void {
+  public setChannelProps(channelProps: ChannelProps[]): void {
     this.channelProps_ = channelProps;
     if (this.texture_ !== null) {
       this.texture_.channels = channelProps;

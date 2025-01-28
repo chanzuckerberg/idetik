@@ -3,12 +3,12 @@ import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { makeImageMesh, makeImageTexture } from "layers/image_utils";
-import { TextureChannelProps } from "objects/textures/texture_channel";
+import { ChannelProps } from "@/objects/textures/channel";
 
 type ImageLayerProps = {
   source: ImageChunkSource;
   region: Region;
-  channelProps?: TextureChannelProps;
+  channelProps?: ChannelProps;
 };
 
 // Loads data from an image source into renderable objects.
@@ -17,7 +17,7 @@ export class ImageLayer extends Layer {
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
-  private channelProps_?: TextureChannelProps;
+  private channelProps_?: ChannelProps;
   private texture_?: DataTexture2D;
 
   constructor({ source, region, channelProps }: ImageLayerProps) {
@@ -43,11 +43,11 @@ export class ImageLayer extends Layer {
     }
   }
 
-  public get channelProps(): TextureChannelProps | undefined {
+  public get channelProps(): ChannelProps | undefined {
     return this.channelProps_;
   }
 
-  public setChannelProps(channelProps: TextureChannelProps): void {
+  public setChannelProps(channelProps: ChannelProps): void {
     this.channelProps_ = channelProps;
     if (this.texture_ !== undefined) {
       this.texture_.channel = channelProps;

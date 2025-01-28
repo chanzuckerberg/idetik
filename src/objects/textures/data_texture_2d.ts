@@ -1,15 +1,15 @@
 import { Texture, bufferToDataType } from "objects/textures/texture";
 import {
-  TextureChannel,
-  TextureChannelProps,
-  validateTextureChannel,
-} from "objects/textures/texture_channel";
+  Channel,
+  ChannelProps,
+  validateChannel,
+} from "@/objects/textures/channel";
 
 export class DataTexture2D extends Texture {
   private data_: ArrayBufferView;
   private readonly width_: number;
   private readonly height_: number;
-  private channel_: TextureChannel;
+  private channel_: Channel;
 
   constructor(data: ArrayBufferView, width: number, height: number) {
     super();
@@ -18,7 +18,7 @@ export class DataTexture2D extends Texture {
     this.height_ = height;
     this.dataFormat = "scalar";
     this.dataType = bufferToDataType(data);
-    this.channel_ = validateTextureChannel(this, {});
+    this.channel_ = validateChannel(this, {});
   }
 
   public set data(data: ArrayBufferView) {
@@ -42,11 +42,11 @@ export class DataTexture2D extends Texture {
     return this.height_;
   }
 
-  public set channel(channel: TextureChannelProps) {
-    this.channel_ = validateTextureChannel(this, channel);
+  public set channel(channel: ChannelProps) {
+    this.channel_ = validateChannel(this, channel);
   }
 
-  public get channel(): TextureChannel {
+  public get channel(): Channel {
     return this.channel_;
   }
 }

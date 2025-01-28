@@ -1,16 +1,16 @@
 import { bufferToDataType, Texture } from "objects/textures/texture";
 import {
-  TextureChannel,
-  TextureChannelProps,
-  validateTextureChannel,
-} from "objects/textures/texture_channel";
+  Channel,
+  ChannelProps,
+  validateChannel,
+} from "@/objects/textures/channel";
 
 export class Texture2DArray extends Texture {
   private data_: ArrayBufferView;
   private readonly width_: number;
   private readonly height_: number;
   private readonly depth_: number;
-  private channels_: TextureChannel[];
+  private channels_: Channel[];
 
   constructor(data: ArrayBufferView, width: number, height: number) {
     super();
@@ -24,7 +24,7 @@ export class Texture2DArray extends Texture {
     this.dataType = bufferToDataType(data);
     this.channels_ = [];
     for (let i = 0; i < this.depth_; i++) {
-      this.channels_.push(validateTextureChannel(this, {}));
+      this.channels_.push(validateChannel(this, {}));
     }
   }
 
@@ -53,16 +53,16 @@ export class Texture2DArray extends Texture {
     return this.depth_;
   }
 
-  public set channels(channels: TextureChannelProps[]) {
+  public set channels(channels: ChannelProps[]) {
     if (channels.length !== this.depth_) {
       throw new Error(
         `Number of channels (${channels.length}) must match the depth of the texture (${this.depth_}).`
       );
     }
-    this.channels_ = channels.map((c) => validateTextureChannel(this, c));
+    this.channels_ = channels.map((c) => validateChannel(this, c));
   }
 
-  public get channels(): TextureChannel[] {
+  public get channels(): Channel[] {
     return this.channels_;
   }
 }
