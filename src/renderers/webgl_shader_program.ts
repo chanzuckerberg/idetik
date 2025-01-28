@@ -80,7 +80,6 @@ export class WebGLShaderProgram {
 
         const location = this.gl_.getUniformLocation(this.program_, info.name);
         if (location) {
-          console.debug("Uniform found:", info.name, info.type, location);
           this.uniformInfo_.set(info.name, [location, info]);
         }
       }

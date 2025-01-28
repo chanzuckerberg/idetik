@@ -5,6 +5,7 @@ precision mediump float;
 layout (location = 0) out vec4 fragColor;
 
 uniform sampler2D texture0;
+
 in vec2 TexCoords;
 
 void main() {

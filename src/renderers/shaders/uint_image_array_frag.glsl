@@ -5,7 +5,7 @@ precision mediump float;
 layout (location = 0) out vec4 fragColor;
 
 uniform mediump usampler2DArray texture0;
-uniform vec2[3] ContrastLimits;
+uniform vec2 ContrastLimits[3];
 
 in vec2 TexCoords;
 

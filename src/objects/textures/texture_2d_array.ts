@@ -60,7 +60,6 @@ export class Texture2DArray extends Texture {
       );
     }
     this.channels_ = channels.map((c) => validateTextureChannel(this, c));
-    console.debug("Texture2DArray::set::channels", this.channels_);
   }
 
   public get channels(): TextureChannel[] {

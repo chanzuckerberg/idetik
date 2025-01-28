@@ -26,6 +26,7 @@ const camera = new OrthographicCamera(
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
 const region = [{ dimension: "z", index: pixelScale * 120 }];
+
 const source = new OmeZarrImageSource(url);
 const layer = new ImageLayer({ source, region });
 layerManager.add(layer);

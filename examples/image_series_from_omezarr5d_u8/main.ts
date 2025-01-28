@@ -24,7 +24,7 @@ const region = [
   { dimension: "Z", index: 0 },
 ];
 // Raise the contrast limits for the blue channel because there is
-// a lot of low signal.
+// a lot of low signal that washes everything else out.
 const channelProps = [
   { contrastLimits: [0, 255] as [number, number] },
   { contrastLimits: [0, 255] as [number, number] },
