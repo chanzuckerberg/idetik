@@ -3,7 +3,7 @@ import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { makeImageMesh, makeImageTexture } from "layers/image_utils";
-import { ChannelProps } from "@/objects/textures/channel";
+import { ChannelProps } from "objects/textures/channel";
 
 type ImageLayerProps = {
   source: ImageChunkSource;
