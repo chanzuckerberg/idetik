@@ -12,8 +12,9 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 const url = "http://127.0.0.1:8000/default/";
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(-128, 128, -128, 128);
-const panZoomControls = new PanZoomControls(camera);
+const camera = new OrthographicCamera(0, 2048, 0, 2048);
+camera.zoom = 0.5;
+const panZoomControls = new PanZoomControls(camera, camera.position);
 renderer.setControls(panZoomControls);
 
 // Source is technically 5D (even though Z is unitary),
@@ -34,6 +35,18 @@ document.addEventListener("keydown", (event) => {
   if (event.key === " ") {
     layer.onCameraFrameChange();
   }
+  if (event.key === "=") {
+    const z = region[2].index;
+    region[2].index = Math.min(1280, z + 10);
+    layer.update(true);
+  }
+  if (event.key === "-") {
+    const z = region[2].index;
+    region[2].index = Math.max(0, z - 10);
+    layer.update(true);
+  }
+  console.log(region[2].index);
+  console.log(camera.zoom);
 });
 
 function animate() {
