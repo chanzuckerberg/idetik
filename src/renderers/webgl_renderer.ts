@@ -102,17 +102,20 @@ export class WebGLRenderer extends Renderer {
         }
         case "Texture2DArray": {
           const texture2DArray = texture as Texture2DArray;
+          const visible = new Array<boolean>();
+          const color = new Array<number>();
           const valueOffset = new Array<number>();
           const valueScale = new Array<number>();
-          const color = new Array<number>();
           for (const channel of texture2DArray.channels) {
             const contrastLimits = channel.contrastLimits;
+            visible.push(channel.visible);
+            color.push(...channel.color);
             valueOffset.push(-contrastLimits[0]);
             valueScale.push(1 / (contrastLimits[1] - contrastLimits[0]));
-            color.push(...channel.color);
           }
           // TODO: we should be careful of uninitialized values here, though it appears they
           // are zero-initialized in the shaders.
+          program.setUniform("Visible[0]", visible);
           program.setUniform("Color[0]", color);
           program.setUniform("ValueOffset[0]", valueOffset);
           program.setUniform("ValueScale[0]", valueScale);
