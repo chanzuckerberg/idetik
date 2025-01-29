@@ -268,6 +268,11 @@ export class Task {
       source,
       region,
       timeDimension: imageData.timeDimension,
+      channelProps: [
+        { color: [1, 0, 0] as [number, number, number] },
+        { color: [0, 1, 0] as [number, number, number] },
+        { color: [0, 0, 1] as [number, number, number] },
+      ],
     });
     if (preLoad) {
       layer.update();

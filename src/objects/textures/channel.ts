@@ -1,18 +1,26 @@
 import { Texture } from "objects/textures/texture";
 
+type RgbColor = [number, number, number];
+
 export type ChannelProps = {
+  color?: RgbColor;
   contrastLimits?: [number, number];
 };
 
 export type Channel = {
+  color: RgbColor;
   contrastLimits: [number, number];
 };
 
 export function validateChannel(
   texture: Texture,
-  { contrastLimits }: ChannelProps
+  { color, contrastLimits }: ChannelProps
 ): Channel {
+  if (color === undefined) {
+    color = [1, 1, 1];
+  }
   return {
+    color,
     contrastLimits: validateContrastLimits(contrastLimits, texture),
   };
 }

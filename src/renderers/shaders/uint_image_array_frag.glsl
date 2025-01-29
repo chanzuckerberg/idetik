@@ -5,17 +5,18 @@ precision mediump float;
 layout (location = 0) out vec4 fragColor;
 
 uniform mediump usampler2DArray texture0;
+uniform vec3 Color[3];
 uniform float ValueOffset[3];
 uniform float ValueScale[3];
 
 in vec2 TexCoords;
 
 void main() {
-    fragColor = vec4(0, 0, 0, 1);
+    vec3 rgbColor = vec3(0, 0, 0);
     for (int i = 0; i < 3; i++) {
         float texel = float(texture(texture0, vec3(TexCoords, i)).r);
-        vec4 color = vec4(0, 0, 0, 1);
-        color[i] = (texel + ValueOffset[i]) * ValueScale[i];
-        fragColor += color;
+        float value = (texel + ValueOffset[i]) * ValueScale[i];
+        rgbColor += value * Color[i].rgb;
     }
+    fragColor = vec4(rgbColor.rgb, 1);
 }
