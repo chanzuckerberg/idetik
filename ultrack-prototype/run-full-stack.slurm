@@ -45,7 +45,7 @@ function cleanup {
 
 trap cleanup SIGTERM SIGINT
 
-npm run dev -- --mode prototype &
+npm run dev -- --mode ultrack &
 FE_PID=$!
 
 uv --directory "$REPO_ROOT/ultrack-prototype/backend" run fastapi dev src/ultrack_learns/server.py &

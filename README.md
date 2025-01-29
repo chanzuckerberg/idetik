@@ -27,15 +27,27 @@ A layer-based library for interactive visualization of large datasets.
 4. See [package.json](package.json) for other commands available.
 
 
+## OrganelleBox prototype
+
+The `organellebox-prototype` directory contains a prototype for a declarative viewer component.
+
+You can run it for development purposes by passing the `organellebox` mode to vite:
+
+```shell
+npm run dev -- --mode organellebox
+```
+
+(Note: this is likely to change in the future)
+
 ## Ultrack active learning prototype
 
 The `ultrack-prototype` directory contains our first driving example of an active learning application.
 It is a prototype for internal demos and testing, but not for production or public distribution.
 
-You can run it for development purposes by passing the `prototype` mode to vite:
+You can run it for development purposes by passing the `ultrack` mode to vite:
 
 ```shell
-npm run dev -- --mode prototype
+npm run dev -- --mode ultrack
 ```
 
 The prototype will try to connect to a backend server running on <http://localhost:8000>. You can
@@ -43,7 +55,7 @@ mock this by setting `VITE_MOCK_ULTRACK=true` in your environment. This can be s
 `ultrack-prototype/frontent/.env` file, or when running the dev server:
 
 ```shell
-VITE_MOCK_ULTRACK=true npm run dev -- --mode prototype
+VITE_MOCK_ULTRACK=true npm run dev -- --mode ultrack
 ```
 
 (Note: this is likely to change in the future)
