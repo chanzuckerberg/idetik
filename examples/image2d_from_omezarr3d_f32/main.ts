@@ -26,6 +26,7 @@ const camera = new OrthographicCamera(
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
 const region = [{ dimension: "z", index: pixelScale * 120 }];
+const color: [number, number, number] = [1, 0, 0];
 
 const source = new OmeZarrImageSource(url);
 const layer = new ImageLayer({ source, region });
@@ -38,7 +39,7 @@ const onMinChange = () => {
     sliderMin.value = (maxValue - Number(sliderMin.step)).toString();
   } else {
     labelMin.innerText = `Min: ${minValue.toString()}`;
-    layer.setChannelProps({ contrastLimits: [minValue, maxValue] });
+    layer.setChannelProps({ color, contrastLimits: [minValue, maxValue] });
   }
 };
 
@@ -49,7 +50,7 @@ const onMaxChange = () => {
     sliderMax.value = (minValue + Number(sliderMax.step)).toString();
   } else {
     labelMax.innerText = `Max: ${maxValue.toString()}`;
-    layer.setChannelProps({ contrastLimits: [minValue, maxValue] });
+    layer.setChannelProps({ color, contrastLimits: [minValue, maxValue] });
   }
 };
 
