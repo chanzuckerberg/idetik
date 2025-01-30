@@ -6,7 +6,7 @@ export async function loadOmeZarrPlate(url: string): Promise<Plate> {
   const store = new zarr.FetchStore(url);
   const group = await zarr.open.v2(store, { kind: "group" });
   // Will throw validation exceptions that we can catch if we want.
-  return Plate.parse(group.attrs) as Plate;
+  return Plate.parse(group.attrs);
 }
 
 export async function loadOmeZarrWell(
@@ -17,5 +17,5 @@ export async function loadOmeZarrWell(
   const root = await zarr.open.v2(store, { kind: "group" });
 
   // Will throw validation exceptions that we can catch if we want.
-  return Well.parse(root.attrs) as Well;
+  return Well.parse(root.attrs);
 }
