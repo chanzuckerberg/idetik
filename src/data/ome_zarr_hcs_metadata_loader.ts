@@ -1,6 +1,6 @@
 import * as zarr from "zarrita";
-import { Plate } from "data/zarr/0.4/plate";
-import { Well } from "data/zarr/0.4/well";
+import { Plate } from "data/ome_ngff/0.4/plate";
+import { Well } from "data/ome_ngff/0.4/well";
 
 export async function loadOmeZarrPlate(url: string): Promise<Plate> {
   const store = new zarr.FetchStore(url);
