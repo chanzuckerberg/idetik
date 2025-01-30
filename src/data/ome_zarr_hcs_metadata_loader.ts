@@ -23,12 +23,10 @@ export async function loadOmeZarrPlate(
 ): Promise<OMENGFFPlateSchema> {
   const store = new zarr.FetchStore(url);
   const group = await zarr.open.v2(store, { kind: "group" });
-  if (validate_plate(group.attrs)) {
-    console.log("Plate Data Validation successful!");
-  } else {
-    console.log("Plate Data Validation failed!");
+  if (!validate_plate(group.attrs)) {
+    throw new Error(`Plate validation failed: ${validate_plate.errors}`);
   }
-  return group.attrs as OMENGFFPlateSchema;
+  return group.attrs;
 }
 
 export async function loadOmeZarrWell(
@@ -36,12 +34,9 @@ export async function loadOmeZarrWell(
   path: string
 ): Promise<OMENGFFWellSchema> {
   const store = new zarr.FetchStore(url + "/" + path);
-  const root = await zarr.open.v2(store, { kind: "group" });
-  if (validate_well(root.attrs)) {
-    console.log("Well Data Validation successful!");
-  } else {
-    console.log("Well Data Validation failed!");
+  const group = await zarr.open.v2(store, { kind: "group" });
+  if (!validate_well(group.attrs)) {
+    throw new Error(`Well validation failed: ${validate_well.errors}`);
   }
-
-  return root.attrs as OMENGFFWellSchema;
+  return group.attrs;
 }

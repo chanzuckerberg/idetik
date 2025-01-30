@@ -12,10 +12,12 @@ import {
 } from "@/data/ome_zarr_hcs_metadata_loader";
 
 const plateUrl =
-  "http://localhost:8081/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
+  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
 const plate = await loadOmeZarrPlate(plateUrl);
-console.debug("plate", plate);
 
+if (plate.plate === undefined) {
+  throw new Error(`No plate found: ${plate}`);
+}
 const wellPaths = plate.plate.wells.map((well) => well.path);
 const wellSelector = document.querySelector("#well") as HTMLSelectElement;
 wellPaths.forEach((path) => {
@@ -53,6 +55,9 @@ const onWellChange = async () => {
   const path = wellSelector.value;
   const well = await loadOmeZarrWell(plateUrl, path);
   console.debug("well", well);
+  if (well.well === undefined) {
+    throw new Error(`No well found: ${well}`);
+  }
   const imagePaths = well.well.images.map((image) => image.path);
   imageSelector.innerHTML = "";
   imagePaths.forEach((path) => {
