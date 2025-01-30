@@ -16,9 +16,9 @@ const plateUrl =
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
 
-const wellPaths = plate.plate.wells.map((well) => well.path);
+const wellPaths = plate.plate?.wells.map((well) => well.path);
 const wellSelector = document.querySelector("#well") as HTMLSelectElement;
-wellPaths.forEach((path) => {
+wellPaths?.forEach((path) => {
   const option = document.createElement("option");
   option.value = path;
   option.text = path;
@@ -53,9 +53,9 @@ const onWellChange = async () => {
   const path = wellSelector.value;
   const well = await loadOmeZarrWell(plateUrl, path);
   console.debug("well", well);
-  const imagePaths = well.well.images.map((image) => image.path);
+  const imagePaths = well.well?.images.map((image) => image.path);
   imageSelector.innerHTML = "";
-  imagePaths.forEach((path) => {
+  imagePaths?.forEach((path) => {
     const option = document.createElement("option");
     option.value = path;
     option.text = path;
