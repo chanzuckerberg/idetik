@@ -7,6 +7,6 @@ Regenerating these files looks something like this:
 ```
 npm install -g json-schema-to-typescript
 git clone git@github.com:ome/ngff.git /tmp/ngff
-cp /tmp/ngff/0.4/schemas/*.schema ./schemas
-for i in `ls ./schemas/*.schema | grep -v strict | xargs basename | cut -d '.' -f 1`; do json2ts schemas/$i.schema > $i.ts; done
+# ZSH only:
+for i in $(ls /tmp/ngff/0.4/schemas/*.schema | grep -v strict | xargs basename | cut -d '.' -f 1); do json-schema-to-zod -i /tmp/ngff/0.4/schemas/$i.schema -o $i.ts --name ${(C)i} --withJsdocs --type ${(C)i}; done
 ```

@@ -14,9 +14,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "ajv": "^8.17.1",
     "gl-matrix": "^3.4.3",
-    "zarrita": "^0.4.0-next.16"
+    "zarrita": "^0.4.0-next.16",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@czi-sds/components": "^21.2.0",
@@ -36,7 +36,6 @@
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/browser": "^2.0.5",
     "@vitest/coverage-istanbul": "^2.0.5",
-    "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.12",
     "globals": "^15.9.0",
