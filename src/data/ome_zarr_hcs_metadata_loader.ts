@@ -15,7 +15,6 @@ export async function loadOmeZarrWell(
 ): Promise<Well> {
   const store = new zarr.FetchStore(url + "/" + path);
   const root = await zarr.open.v2(store, { kind: "group" });
-
   // Will throw validation exceptions that we can catch if we want.
   return Well.parse(root.attrs);
 }
