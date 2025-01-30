@@ -19,7 +19,6 @@ const plateUrl =
   "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
-
 if (plate.plate === undefined) {
   throw new Error(`No plate found: ${plate}`);
 }
