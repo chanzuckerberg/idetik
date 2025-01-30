@@ -11,8 +11,12 @@ import {
   loadOmeZarrWell,
 } from "@/data/ome_zarr_hcs_metadata_loader";
 
+// The following data comes from Zenodo: https://zenodo.org/records/11262587
+// First download and unpack it. Then host the containing directory locally
+// with something like:
+// http-server --cors -p 8080
 const plateUrl =
-  "http://localhost:8081/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
+  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
 
