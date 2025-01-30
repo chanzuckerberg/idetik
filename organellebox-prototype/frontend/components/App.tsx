@@ -3,7 +3,6 @@ import Renderer from "./Renderer";
 // import { useEffect, useState } from "react";
 
 export default function App() {
-
   return (
     <Box
       sx={{

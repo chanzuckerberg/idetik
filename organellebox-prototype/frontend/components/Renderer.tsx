@@ -40,7 +40,6 @@ const region = [
 const layer = new ImageLayer(source, region);
 layerManager.add(layer);
 
-
 export default function Renderer() {
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
@@ -62,7 +61,5 @@ export default function Renderer() {
     };
   }, []);
 
-  return (
-    <canvas id={canvasId} style={{ width: "100%", height: "100%" }} />
-  );
+  return <canvas id={canvasId} style={{ width: "100%", height: "100%" }} />;
 }
