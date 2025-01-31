@@ -16,6 +16,17 @@ export function isTextureUnpackRowAlignment(
   return value === 1 || value === 2 || value === 4 || value === 8;
 }
 
+export function bufferToDataType(buffer: ArrayBufferView) {
+  if (buffer instanceof Uint8Array) {
+    return "unsigned_byte";
+  } else if (buffer instanceof Uint16Array) {
+    return "unsigned_short";
+  } else if (buffer instanceof Float32Array) {
+    return "float";
+  }
+  throw new Error("Unsupported buffer type.");
+}
+
 export abstract class Texture extends Node {
   public dataFormat: TextureDataFormat = "rgba";
   public dataType: TextureDataType = "unsigned_byte";

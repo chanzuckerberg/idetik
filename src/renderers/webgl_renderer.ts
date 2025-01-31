@@ -8,6 +8,8 @@ import { WebGLTextures } from "./webgl_textures";
 import { ProjectedLine } from "objects/renderable/projected_line";
 
 import { mat4 } from "gl-matrix";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
+import { Texture2DArray } from "objects/textures/texture_2d_array";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -78,7 +80,46 @@ export class WebGLRenderer extends Renderer {
     if (object.textures.length) {
       // We temporarily assume this array holds a single texture. We'll need to
       // modify this logic to support multiple textures in the future.
-      this.textures_.bind(object.textures[0]);
+      const texture = object.textures[0];
+      this.textures_.bind(texture);
+
+      // This should probably be moved to the switch case above on the
+      // renderable object type, but is a little awkward there because a
+      // Mesh may not have a texture. Similarly, the channel info used here
+      // may be better stored in a renderable object than a texture.
+      // Both these facts may motivate defining an Image renderable object
+      // that has exactly one texture.
+      switch (texture.type) {
+        case "DataTexture2D": {
+          const dataTexture = texture as DataTexture2D;
+          const contrastLimits = dataTexture.channel.contrastLimits;
+          const valueOffset = -contrastLimits[0];
+          const valueScale = 1 / (contrastLimits[1] - contrastLimits[0]);
+          program.setUniform("Color", dataTexture.channel.color);
+          program.setUniform("ValueOffset", valueOffset);
+          program.setUniform("ValueScale", valueScale);
+          break;
+        }
+        case "Texture2DArray": {
+          const texture2DArray = texture as Texture2DArray;
+          const visible = new Array<boolean>();
+          const color = new Array<number>();
+          const valueOffset = new Array<number>();
+          const valueScale = new Array<number>();
+          for (const channel of texture2DArray.channels) {
+            const contrastLimits = channel.contrastLimits;
+            visible.push(channel.visible);
+            color.push(...channel.color);
+            valueOffset.push(-contrastLimits[0]);
+            valueScale.push(1 / (contrastLimits[1] - contrastLimits[0]));
+          }
+          program.setUniform("Visible[0]", visible);
+          program.setUniform("Color[0]", color);
+          program.setUniform("ValueOffset[0]", valueOffset);
+          program.setUniform("ValueScale[0]", valueScale);
+          break;
+        }
+      }
     }
 
     // TODO: Move 'type' property to RenderableObject

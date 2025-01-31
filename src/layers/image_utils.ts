@@ -4,30 +4,29 @@ import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { ImageChunk } from "data/image_chunk";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Mesh } from "objects/renderable/mesh";
+import { ChannelProps } from "objects/textures/channel";
 
-export function makeImageTexture(chunk: ImageChunk) {
+export function makeImageTexture(chunk: ImageChunk, channel?: ChannelProps) {
   const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);
-  updateImageTexture(texture, chunk);
-  return texture;
-}
-
-export function makeImageTextureArray(chunk: ImageChunk) {
-  const texture = new Texture2DArray(chunk.data, chunk.shape.x, chunk.shape.y);
-  updateImageTexture(texture, chunk);
-  return texture;
-}
-
-function updateImageTexture(texture: Texture, chunk: ImageChunk) {
-  texture.dataFormat = "scalar";
-  if (chunk.data instanceof Uint8Array) {
-    texture.dataType = "unsigned_byte";
-  } else if (chunk.data instanceof Uint16Array) {
-    texture.dataType = "unsigned_short";
-  } else if (chunk.data instanceof Float32Array) {
-    texture.dataType = "float";
-  }
   texture.unpackRowLength = chunk.rowStride;
   texture.unpackAlignment = chunk.rowAlignmentBytes;
+  if (channel) {
+    texture.channel = channel;
+  }
+  return texture;
+}
+
+export function makeImageTextureArray(
+  chunk: ImageChunk,
+  channelProps?: ChannelProps[]
+) {
+  const texture = new Texture2DArray(chunk.data, chunk.shape.x, chunk.shape.y);
+  texture.unpackRowLength = chunk.rowStride;
+  texture.unpackAlignment = chunk.rowAlignmentBytes;
+  if (channelProps) {
+    texture.channels = channelProps;
+  }
+  return texture;
 }
 
 export function makeImageMesh(chunk: ImageChunk, texture: Texture) {
