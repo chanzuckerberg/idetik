@@ -21,7 +21,7 @@ function modeToRoot(mode) {
     return 'examples';
   } else if (mode === 'prototype') {
     return 'ultrack-prototype/frontend';
-  } else if (!MODES.includes(mode)){
+  } else if (!MODES.includes(mode)) {
     console.error(`Unrecognized mode ${mode}`);
   }
   return undefined;
