@@ -12,6 +12,7 @@ export default function App() {
   const [plateUrl, _] = useState(
     "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr"
   );
+  // TODO: empty and disabled initially.
   const [wells, setWells] = useState(["B/03", "B/05"]);
   const [well, setWell] = useState("B/03");
   const [images, setImages] = useState(["0"]);
@@ -21,19 +22,18 @@ export default function App() {
     const fetchPlate = async () => {
       const plate = await loadOmeZarrPlate(plateUrl);
       console.debug("plate", plate);
-      if (plate.plate === undefined) {
-        throw new Error(`No plate found: ${plate}`);
+      const wellPaths = plate.plate?.wells.map((well) => well.path);
+      if (wellPaths === undefined || wellPaths.length === 0) {
+        throw new Error(`No wells found: ${wellPaths}`);
       }
-      const wellPaths = plate.plate.wells.map((well) => well.path);
       setWells(wellPaths);
       setWell(wellPaths[0]);
 
       const well = await loadOmeZarrWell(plateUrl, wellPaths[0]);
-      console.debug("well", well);
-      if (well.well === undefined) {
-        throw new Error(`No well found: ${well}`);
+      const imagePaths = well.well?.images.map((image) => image.path);
+      if (imagePaths === undefined || imagePaths.length === 0) {
+        throw new Error(`No images found: ${imagePaths}`);
       }
-      const imagePaths = well.well.images.map((image) => image.path);
       setImages(imagePaths);
       setImage(imagePaths[0]);
     };
