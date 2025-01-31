@@ -49,7 +49,11 @@ const onImageChange = async () => {
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl);
-  const layer = new ImageLayer(source, region);
+  const layer = new ImageLayer({
+    source,
+    region,
+    channelProps: { contrastLimits: [110, 800] as [number, number] },
+  });
   layerManager.add(layer);
 };
 
