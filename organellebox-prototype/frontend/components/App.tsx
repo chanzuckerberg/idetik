@@ -76,9 +76,7 @@ export default function App() {
           gap: "1em",
         }}
       >
-        <Renderer
-          imageUrl={`http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/${well}/${image}`}
-        />
+        <Renderer imageUrl={`${plateUrl}/${well}/${image}`} />
       </Box>
     </Box>
   );
