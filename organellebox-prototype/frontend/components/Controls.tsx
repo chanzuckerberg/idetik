@@ -1,6 +1,7 @@
-import { Dropdown } from "@czi-sds/components";
 import { Box } from "@mui/material";
 import { Dispatch, SetStateAction } from "react";
+import ImageSelector from "./ImageSelector";
+import Channel, { ChannelProps } from "./Channel";
 
 type ControlsProps = {
   images: string[];
@@ -9,6 +10,8 @@ type ControlsProps = {
   wells: string[];
   well: string;
   setWell: Dispatch<SetStateAction<string>>;
+  channels: ChannelProps[];
+  setChannels: Dispatch<SetStateAction<ChannelProps[]>>;
 };
 
 export default function Controls({
@@ -18,33 +21,33 @@ export default function Controls({
   wells,
   well,
   setWell,
+  channels,
+  setChannels,
 }: ControlsProps) {
-  const wellOptions = wells.map((w) => ({ name: w }));
-  const imageOptions = images.map((i) => ({ name: i }));
   return (
-    <Box>
-      <Dropdown
-        title="Well"
-        label={`Well: ${well}`}
-        options={wellOptions}
-        multiple={false}
-        onChange={(_, value) => {
-          if (value === null) return;
-          if (typeof value === "object") value = value.name;
-          setWell(value);
-        }}
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "1em",
+        width: 200,
+      }}
+    >
+      <ImageSelector
+        images={images}
+        image={image}
+        setImage={setImage}
+        wells={wells}
+        well={well}
+        setWell={setWell}
       />
-      <Dropdown
-        title="Image"
-        label={`Image: ${image}`}
-        options={imageOptions}
-        multiple={false}
-        onChange={(_, value) => {
-          if (value === null) return;
-          if (typeof value === "object") value = value.name;
-          setImage(value);
-        }}
-      />
+      {channels.map((channel, i) => (
+        <Channel
+          key={i}
+          {...channel}
+          onChange={(c) => setChannels(channels.with(i, c))}
+        />
+      ))}
     </Box>
   );
 }

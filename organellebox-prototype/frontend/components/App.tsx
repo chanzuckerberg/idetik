@@ -9,7 +9,7 @@ import {
 } from "@/data/ome_zarr_hcs_metadata_loader";
 
 export default function App() {
-  const [plateUrl, _] = useState(
+  const [plateUrl, _setPlateUrl] = useState(
     "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr"
   );
   // TODO: empty and disabled initially.
@@ -17,6 +17,42 @@ export default function App() {
   const [well, setWell] = useState("B/03");
   const [images, setImages] = useState(["0"]);
   const [image, setImage] = useState("0");
+
+  const [channels, setChannels] = useState([
+    {
+      name: "Red",
+      visible: true,
+      contrastLimits: {
+        min: 0,
+        start: 64,
+        stop: 192,
+        max: 255,
+        step: 1,
+      },
+    },
+    {
+      name: "Blue",
+      visible: false,
+      contrastLimits: {
+        min: 0,
+        start: 32,
+        stop: 224,
+        max: 255,
+        step: 1,
+      },
+    },
+    {
+      name: "Green",
+      visible: true,
+      contrastLimits: {
+        min: 0,
+        start: 32,
+        stop: 224,
+        max: 255,
+        step: 1,
+      },
+    },
+  ]);
 
   useEffect(() => {
     const fetchPlate = async () => {
@@ -64,6 +100,8 @@ export default function App() {
           wells={wells}
           well={well}
           setWell={setWell}
+          channels={channels}
+          setChannels={setChannels}
         />
       </Box>
       <Box
