@@ -18,6 +18,7 @@ export default function App() {
   const [images, setImages] = useState(["0"]);
   const [image, setImage] = useState("0");
 
+  // TODO: read these from OME-Zarr omero metadata.
   const [channels, setChannels] = useState([
     {
       name: "Red",
@@ -114,7 +115,15 @@ export default function App() {
           gap: "1em",
         }}
       >
-        <Renderer imageUrl={`${plateUrl}/${well}/${image}`} />
+        <Renderer
+          imageUrl={`${plateUrl}/${well}/${image}`}
+          channels={channels.map((c) => {
+            return {
+              visible: c.visible,
+              contrastLimits: [c.contrastLimits.start, c.contrastLimits.stop],
+            };
+          })}
+        />
       </Box>
     </Box>
   );

@@ -9,6 +9,8 @@ type ContrastLimits = {
   step: number;
 };
 
+// TODO: name clash with library's channel props.
+// These should probably just be equivalent.
 export type ChannelProps = {
   name: string;
   visible: boolean;

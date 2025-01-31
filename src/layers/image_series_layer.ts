@@ -119,6 +119,7 @@ export class ImageSeriesLayer extends Layer {
     // whole region in and map back the chunks appropriately.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/75
     for (let t = start; t < stop; ++t) {
+      console.debug("Loading chunk for time index", t);
       const region = structuredClone(this.region_);
       region[this.timeDimensionIndex_].index = t;
       loadPromises.push(
@@ -132,6 +133,7 @@ export class ImageSeriesLayer extends Layer {
         console.debug("Loading aborted.");
         return;
       }
+      throw error;
     });
     this.setState("ready");
   }
