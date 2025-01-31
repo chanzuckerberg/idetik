@@ -1,7 +1,9 @@
 import { z } from "zod";
 
+/**JSON from OME-NGFF .zattrs*/
 export const Image = z
   .object({
+    /**The multiscale datasets for this image*/
     multiscales: z
       .array(
         z.object({
