@@ -20,7 +20,7 @@ const layerManager = new LayerManager();
 
 // TODO: use props to pass in most of this config
 const plateUrl =
-  "http://localhost:8000/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
+  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
 const plate = await loadOmeZarrPlate(plateUrl);
 const wellPaths = plate.plate?.wells.map((well) => well.path);
 if (!wellPaths) {
