@@ -33,7 +33,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins,
     root: modeToRoot(mode),
-    assetsInclude: [path.resolve(_dirname, "src/data/zarr/0.4/schemas/*.schema")],
     publicDir: path.resolve(_dirname, 'public'),
     build: {
       outDir: 'dist',
