@@ -48,6 +48,21 @@ export class OmeZarrImageLoader {
 
   constructor(root: zarr.Group<zarr.FetchStore>) {
     this.root_ = root;
+    const attrs = this.root_.attrs;
+    // TODO: silly fix for removing top-level identity transform,
+    // which is not allowed by spec but may have been written by
+    // some writers.
+    // https://github.com/ome/ngff/pull/152
+    if (
+      "multiscales" in attrs &&
+      Array.isArray(attrs.multiscales) &&
+      "coordinateTransformations" in attrs.multiscales[0] &&
+      Array.isArray(attrs.multiscales[0].coordinateTransformations) &&
+      "type" in attrs.multiscales[0].coordinateTransformations[0] &&
+      attrs.multiscales[0].coordinateTransformations[0].type === "identity"
+    ) {
+      delete attrs.multiscales[0].coordinateTransformations;
+    }
     this.metadata_ = OmeNgffImage.parse(this.root_.attrs);
     if (this.metadata_.multiscales.length !== 1) {
       throw new Error(
