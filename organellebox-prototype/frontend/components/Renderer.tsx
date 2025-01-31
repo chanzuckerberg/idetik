@@ -15,7 +15,7 @@ import {
 const canvasId = "canvas";
 
 // TODO: useRef for some of these objects
-const camera = new OrthographicCamera(0, 1920, 0, 1440);
+const camera = new OrthographicCamera(0, 840, 0, 360);
 const layerManager = new LayerManager();
 
 // TODO: use props to pass in most of this config
@@ -37,7 +37,7 @@ const region = [
   { dimension: "c", index: 0 },
   { dimension: "z", index: 0 },
 ];
-const layer = new ImageLayer(source, region);
+const layer = new ImageLayer({source, region, channelProps: { contrastLimits: [110, 800] as [number, number]} });
 layerManager.add(layer);
 
 export default function Renderer() {
