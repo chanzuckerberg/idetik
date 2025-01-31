@@ -7,40 +7,17 @@ import {
   WebGLRenderer,
 } from "@";
 
-import {
-  loadOmeZarrPlate,
-  loadOmeZarrWell,
-} from "@/data/ome_zarr_hcs_metadata_loader";
-
 const canvasId = "canvas";
 
 // TODO: useRef for some of these objects
 const camera = new OrthographicCamera(0, 840, 0, 360);
 const layerManager = new LayerManager();
 
-// TODO: use props to pass in most of this config
-const plateUrl =
-  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
-const plate = await loadOmeZarrPlate(plateUrl);
-const wellPaths = plate.plate?.wells.map((well) => well.path);
-if (!wellPaths) {
-  throw new Error("No wells found in plate");
-}
-const well = await loadOmeZarrWell(plateUrl, wellPaths[0]);
-const imagePaths = well.well?.images.map((image) => image.path);
-if (!imagePaths) {
-  throw new Error("No images found in well");
-}
-const imageUrl = plateUrl + "/" + wellPaths[0] + "/" + imagePaths[0];
-const source = new OmeZarrImageSource(imageUrl);
-const region = [
-  { dimension: "c", index: 0 },
-  { dimension: "z", index: 0 },
-];
-const layer = new ImageLayer({source, region, channelProps: { contrastLimits: [110, 800] as [number, number]} });
-layerManager.add(layer);
+type RendererProps = {
+  imageUrl: string;
+};
 
-export default function Renderer() {
+export default function Renderer({ imageUrl }: RendererProps) {
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
   useEffect(() => {
@@ -60,6 +37,23 @@ export default function Renderer() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    console.debug("useEffect::imageUrl", imageUrl);
+    layerManager.layers.length = 0;
+
+    const source = new OmeZarrImageSource(imageUrl);
+    const region = [
+      { dimension: "c", index: 0 },
+      { dimension: "z", index: 0 },
+    ];
+    const layer = new ImageLayer({
+      source,
+      region,
+      channelProps: { contrastLimits: [110, 800] as [number, number] },
+    });
+    layerManager.add(layer);
+  }, [imageUrl]);
 
   return <canvas id={canvasId} style={{ width: "100%", height: "100%" }} />;
 }

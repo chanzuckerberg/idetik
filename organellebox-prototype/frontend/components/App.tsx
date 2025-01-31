@@ -1,8 +1,45 @@
 import { Box } from "@mui/system";
 import Renderer from "./Renderer";
-// import { useEffect, useState } from "react";
+import Controls from "./Controls";
+import { useEffect, useState } from "react";
+
+import {
+  loadOmeZarrPlate,
+  loadOmeZarrWell,
+} from "@/data/ome_zarr_hcs_metadata_loader";
 
 export default function App() {
+  const [plateUrl, _] = useState(
+    "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr"
+  );
+  const [wells, setWells] = useState(["B/03", "B/05"]);
+  const [well, setWell] = useState("B/03");
+  const [images, setImages] = useState(["0"]);
+  const [image, setImage] = useState("0");
+
+  useEffect(() => {
+    const fetchPlate = async () => {
+      const plate = await loadOmeZarrPlate(plateUrl);
+      console.debug("plate", plate);
+      if (plate.plate === undefined) {
+        throw new Error(`No plate found: ${plate}`);
+      }
+      const wellPaths = plate.plate.wells.map((well) => well.path);
+      setWells(wellPaths);
+      setWell(wellPaths[0]);
+
+      const well = await loadOmeZarrWell(plateUrl, wellPaths[0]);
+      console.debug("well", well);
+      if (well.well === undefined) {
+        throw new Error(`No well found: ${well}`);
+      }
+      const imagePaths = well.well.images.map((image) => image.path);
+      setImages(imagePaths);
+      setImage(imagePaths[0]);
+    };
+    fetchPlate();
+  }, [plateUrl]);
+
   return (
     <Box
       sx={{
@@ -16,6 +53,21 @@ export default function App() {
     >
       <Box
         sx={{
+          display: "flex",
+          flex: 0,
+        }}
+      >
+        <Controls
+          images={images}
+          image={image}
+          setImage={setImage}
+          wells={wells}
+          well={well}
+          setWell={setWell}
+        />
+      </Box>
+      <Box
+        sx={{
           width: "100%",
           height: "100%",
           display: "flex",
@@ -24,7 +76,9 @@ export default function App() {
           gap: "1em",
         }}
       >
-        <Renderer />
+        <Renderer
+          imageUrl={`http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/${well}/${image}`}
+        />
       </Box>
     </Box>
   );
