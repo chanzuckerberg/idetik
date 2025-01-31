@@ -6,11 +6,13 @@ import {
   OrthographicCamera,
   WebGLRenderer,
 } from "@";
+import { NullControls, PanZoomControls } from "@/objects/cameras/controls";
 
 const canvasId = "canvas";
 
 // TODO: useRef for some of these objects
 const camera = new OrthographicCamera(0, 840, 0, 360);
+const controls = new PanZoomControls(camera, camera.position);
 const layerManager = new LayerManager();
 
 type RendererProps = {
@@ -24,6 +26,7 @@ export default function Renderer({ imageUrl }: RendererProps) {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
     const renderer = new WebGLRenderer(`#${canvasId}`);
+    renderer.setControls(controls);
     function animate() {
       renderer.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
@@ -31,6 +34,7 @@ export default function Renderer({ imageUrl }: RendererProps) {
     animate();
     return () => {
       // TODO: cleanup by disposing objects owned by the renderer and camera.
+      renderer.setControls(new NullControls());
       if (lastRequestId > 0) {
         console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);
