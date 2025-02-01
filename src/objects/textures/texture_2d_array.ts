@@ -1,4 +1,8 @@
-import { bufferToDataType, Texture } from "objects/textures/texture";
+import {
+  bufferBytesPerPixel,
+  bufferToDataType,
+  Texture,
+} from "objects/textures/texture";
 import {
   Channel,
   ChannelProps,
@@ -16,12 +20,14 @@ export class Texture2DArray extends Texture {
     super();
 
     this.data_ = data;
+    this.dataFormat = "scalar";
+    this.dataType = bufferToDataType(data);
     this.width_ = width;
     this.height_ = height;
     // We currently assume that each slice's size is equal to the image's area
-    this.depth_ = data.byteLength / (width * height);
-    this.dataFormat = "scalar";
-    this.dataType = bufferToDataType(data);
+    this.depth_ =
+      data.byteLength / (width * height * bufferBytesPerPixel(data));
+    console.debug("depth: ", this.depth_);
     this.channels_ = [];
     for (let i = 0; i < this.depth_; i++) {
       this.channels_.push(validateChannel(this, {}));

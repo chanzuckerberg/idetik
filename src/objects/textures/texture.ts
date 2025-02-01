@@ -27,6 +27,17 @@ export function bufferToDataType(buffer: ArrayBufferView) {
   throw new Error("Unsupported buffer type.");
 }
 
+export function bufferBytesPerPixel(buffer: ArrayBufferView) {
+  if (buffer instanceof Uint8Array) {
+    return 1;
+  } else if (buffer instanceof Uint16Array) {
+    return 2;
+  } else if (buffer instanceof Float32Array) {
+    return 4;
+  }
+  throw new Error("Unsupported buffer type.");
+}
+
 export abstract class Texture extends Node {
   public dataFormat: TextureDataFormat = "rgba";
   public dataType: TextureDataType = "unsigned_byte";
