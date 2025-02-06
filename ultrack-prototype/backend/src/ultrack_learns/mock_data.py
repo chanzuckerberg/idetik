@@ -23,8 +23,9 @@ from ultrack_learns.models import ImageData, Task, TaskData, TaskType
 SAMPLE_DATA_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color"
 SAMPLE_TRACKS_URL = f"{SAMPLE_DATA_URL}/tracks.csv"
 seed(54)
+SAMPLE_IMAGE_ID = UUID(int=getrandbits(128), version=4)
 SAMPLE_IMAGE = Image(
-    image_id=UUID(int=getrandbits(128), version=4),
+    image_id=SAMPLE_IMAGE_ID,
     url=f"{SAMPLE_DATA_URL}/normalized.zarr/",
     time_dimension="T",
     slice_indices={"Z": 0},
@@ -50,7 +51,7 @@ def seed_mock_data(db: Session):
 
     # Check if image exists before adding
     existing_image = db.query(Image).filter(
-        Image.image_id == SAMPLE_IMAGE.image_id
+        Image.image_id == SAMPLE_IMAGE_ID
     ).first()
     if not existing_image:
         print("Inserting sample image data into the database")
@@ -164,20 +165,26 @@ mock_router = APIRouter(prefix="/mock_data")
 
 
 @lru_cache(maxsize=100)  # Cache last 100 unique parameter combinations
-def generate_tasks(rng_seed: int, num_tasks: int, time_window: int) -> list[Task]:
+def generate_tasks(rng_seed: int, num_tasks: int, time_window: int, db: Session) -> list[Task]:
     """Generate tasks with caching based on input parameters"""
     seed(rng_seed)
     tasks = []
     task_types = Counter(choices(list(TaskType), k=num_tasks))
 
-    with session_context() as db:
-        image = db.get(Image, SAMPLE_IMAGE.image_id)
-        image_data = ImageData(
-            image_id=image.image_id,
-            url=image.url,
-            time_dimension=image.time_dimension,
-            slice_indices=image.slice_indices,
-        )
+    # Query by ID and create if not found
+    image = db.query(Image).filter(Image.image_id == SAMPLE_IMAGE_ID).first()
+    if not image:
+        # Add the sample image if it doesn't exist
+        image = SAMPLE_IMAGE
+        db.add(image)
+        db.commit()
+
+    image_data = ImageData(
+        image_id=image.image_id,
+        url=image.url,
+        time_dimension=image.time_dimension,
+        slice_indices=image.slice_indices,
+    )
 
     # TODO: the client does not yet support different task types
     task_types = {TaskType.DIVISION: num_tasks}
@@ -207,25 +214,25 @@ def generate_tasks(rng_seed: int, num_tasks: int, time_window: int) -> list[Task
             ]
         )
 
-        for task in tasks:
-            existing_task = db.query(TaskRecord).filter(
-                TaskRecord.task_id == task.task_id
-            ).first()
-            if not existing_task:
-                db.add(
-                    TaskRecord(
-                        task_id=task.task_id,
-                        task_type=task.task_type,
-                        node_id=task.task_data.node_id,
-                        image_id=SAMPLE_IMAGE.image_id,
-                    )
+    for task in tasks:
+        existing_task = db.query(TaskRecord).filter(
+            TaskRecord.task_id == task.task_id
+        ).first()
+        if not existing_task:
+            db.add(
+                TaskRecord(
+                    task_id=task.task_id,
+                    task_type=task.task_type,
+                    node_id=task.task_data.node_id,
+                    image_id=SAMPLE_IMAGE_ID,
                 )
-        try:
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            print("Error committing tasks to the database")
-            print(e)
+            )
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print("Error committing tasks to the database")
+        print(e)
 
     return tasks
 
@@ -238,7 +245,7 @@ def all_tasks(
     db: Session = Depends(get_session),
 ) -> list[Task]:
     """Get tasks, using cached results if available"""
-    return generate_tasks(rng_seed, num_tasks, time_window)
+    return generate_tasks(rng_seed, num_tasks, time_window, db)
 
 
 @mock_router.get("/task/{task_id}")
