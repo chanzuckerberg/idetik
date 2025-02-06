@@ -164,78 +164,80 @@ sampling_functions = {
 mock_router = APIRouter(prefix="/mock_data")
 
 
-@lru_cache(maxsize=100)  # Cache last 100 unique parameter combinations
-def generate_tasks(rng_seed: int, num_tasks: int, time_window: int, db: Session) -> list[Task]:
+@lru_cache(maxsize=100)
+def generate_tasks(rng_seed: int, num_tasks: int, time_window: int) -> list[Task]:
     """Generate tasks with caching based on input parameters"""
     seed(rng_seed)
     tasks = []
     task_types = Counter(choices(list(TaskType), k=num_tasks))
 
-    # Query by ID and create if not found
-    image = db.query(Image).filter(Image.image_id == SAMPLE_IMAGE_ID).first()
-    if not image:
-        # Add the sample image if it doesn't exist
-        image = SAMPLE_IMAGE
-        db.add(image)
-        db.commit()
+    with session_context() as db:
+        # Query by ID and create if not found
+        image = db.query(Image).filter(Image.image_id == SAMPLE_IMAGE_ID).first()
+        if not image:
+            # Add the sample image if it doesn't exist
+            image = SAMPLE_IMAGE
+            db.add(image)
+            db.commit()
 
-    image_data = ImageData(
-        image_id=image.image_id,
-        url=image.url,
-        time_dimension=image.time_dimension,
-        slice_indices=image.slice_indices,
-    )
-
-    # TODO: the client does not yet support different task types
-    task_types = {TaskType.DIVISION: num_tasks}
-    for task_type, count in task_types.items():
-        task_roots = sampling_functions[task_type](db, count)
-        task_data = [
-            TaskData(
-                node_id=root_node.id,
-                tracks_data=track_points_around_node(
-                    db,
-                    root_node.id,
-                    time_window=time_window,
-                    include_children=task_type == TaskType.DIVISION,
-                ),
-                image_data=image_data,
-            )
-            for root_node in task_roots
-        ]
-        tasks.extend(
-            [
-                Task(
-                    task_id=UUID(int=getrandbits(128), version=4),
-                    task_type=task_type,
-                    task_data=data,
-                )
-                for data in task_data
-            ]
+        image_data = ImageData(
+            image_id=image.image_id,
+            url=image.url,
+            time_dimension=image.time_dimension,
+            slice_indices=image.slice_indices,
         )
 
-    for task in tasks:
-        existing_task = db.query(TaskRecord).filter(
-            TaskRecord.task_id == task.task_id
-        ).first()
-        if not existing_task:
-            db.add(
-                TaskRecord(
-                    task_id=task.task_id,
-                    task_type=task.task_type,
-                    node_id=task.task_data.node_id,
-                    image_id=SAMPLE_IMAGE_ID,
+        # TODO: the client does not yet support different task types
+        task_types = {TaskType.DIVISION: num_tasks}
+        for task_type, count in task_types.items():
+            task_roots = sampling_functions[task_type](db, count)
+            task_data = [
+                TaskData(
+                    node_id=root_node.id,
+                    tracks_data=track_points_around_node(
+                        db,
+                        root_node.id,
+                        time_window=time_window,
+                        include_children=task_type == TaskType.DIVISION,
+                    ),
+                    image_data=image_data,
                 )
+                for root_node in task_roots
+            ]
+            tasks.extend(
+                [
+                    Task(
+                        task_id=UUID(int=getrandbits(128), version=4),
+                        task_type=task_type,
+                        task_data=data,
+                    )
+                    for data in task_data
+                ]
             )
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        print("Error committing tasks to the database")
-        print(e)
+
+    # Store tasks in database
+    with session_context() as db:
+        for task in tasks:
+            existing_task = db.query(TaskRecord).filter(
+                TaskRecord.task_id == task.task_id
+            ).first()
+            if not existing_task:
+                db.add(
+                    TaskRecord(
+                        task_id=task.task_id,
+                        task_type=task.task_type,
+                        node_id=task.task_data.node_id,
+                        image_id=SAMPLE_IMAGE_ID,
+                    )
+                )
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print("Error committing tasks to the database")
+            print(e)
 
     return tasks
-
 
 @mock_router.get("/task")
 def all_tasks(
@@ -245,7 +247,7 @@ def all_tasks(
     db: Session = Depends(get_session),
 ) -> list[Task]:
     """Get tasks, using cached results if available"""
-    return generate_tasks(rng_seed, num_tasks, time_window, db)
+    return generate_tasks(rng_seed, num_tasks, time_window)
 
 
 @mock_router.get("/task/{task_id}")
