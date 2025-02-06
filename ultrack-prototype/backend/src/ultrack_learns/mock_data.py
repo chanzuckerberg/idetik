@@ -4,20 +4,20 @@ from random import choices, getrandbits, sample, seed
 from uuid import UUID
 
 import pandas as pd
-from fastapi import FastAPI, APIRouter, Depends
+from fastapi import APIRouter, Depends, FastAPI
 from sqlalchemy import func, select
-from sqlalchemy.orm import aliased, Session
+from sqlalchemy.orm import Session, aliased
 
-from ultrack_learns.models import ImageData, Task, TaskData, TaskType
 from ultrack_learns.db import (
     Image,
+    TrackPoint,
     get_session,
     session_context,
     set_up_db,
     track_points_around_node,
-    TrackPoint,
-    Task as TaskRecord,
 )
+from ultrack_learns.db import Task as TaskRecord
+from ultrack_learns.models import ImageData, Task, TaskData, TaskType
 
 SAMPLE_DATA_URL = "https://public.czbiohub.org/royerlab/ultrack/multi-color"
 SAMPLE_TRACKS_URL = f"{SAMPLE_DATA_URL}/tracks.csv"
@@ -47,7 +47,7 @@ def seed_mock_data(db: Session):
         print(f"DB file: '{db.bind.url.database}'")
         return
 
-    print(f"Inserting sample image data into the database")
+    print("Inserting sample image data into the database")
     db.add(SAMPLE_IMAGE)
 
     print(f"Downloading sample tracks data from {SAMPLE_TRACKS_URL}")
@@ -155,6 +155,7 @@ def all_tasks(
     key = (rng_seed, num_tasks, time_window)
     if key in CACHE:
         return CACHE[key]
+
     seed(rng_seed)
     tasks = []
     task_types = Counter(choices(list(TaskType), k=num_tasks))
@@ -195,14 +196,20 @@ def all_tasks(
             ]
         )
 
+    # Check if tasks already exist before inserting
     for task in tasks:
-        db.add(
-            TaskRecord(
-                task_id=task.task_id,
-                task_type=task.task_type,
-                node_id=task.task_data.node_id,
+        existing_task = db.query(TaskRecord).filter(
+            TaskRecord.task_id == task.task_id
+        ).first()
+        if not existing_task:
+            db.add(
+                TaskRecord(
+                    task_id=task.task_id,
+                    task_type=task.task_type,
+                    node_id=task.task_data.node_id,
+                    image_id=SAMPLE_IMAGE.image_id,  # Add the image_id
+                )
             )
-        )
     try:
         db.commit()
     except Exception as e:
@@ -227,8 +234,9 @@ def task(
 
 def write_mock_data_json():
     import argparse
-    from pydantic.json import pydantic_encoder
     import json
+
+    from pydantic.json import pydantic_encoder
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=42)
