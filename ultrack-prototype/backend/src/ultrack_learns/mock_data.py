@@ -1,5 +1,6 @@
 from collections import Counter
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from random import choices, getrandbits, sample, seed
 from uuid import UUID
 
@@ -47,31 +48,52 @@ def seed_mock_data(db: Session):
         print(f"DB file: '{db.bind.url.database}'")
         return
 
-    print("Inserting sample image data into the database")
-    db.add(SAMPLE_IMAGE)
+    # Check if image exists before adding
+    existing_image = db.query(Image).filter(
+        Image.image_id == SAMPLE_IMAGE.image_id
+    ).first()
+    if not existing_image:
+        print("Inserting sample image data into the database")
+        db.add(SAMPLE_IMAGE)
 
     print(f"Downloading sample tracks data from {SAMPLE_TRACKS_URL}")
     df = pd.read_csv(SAMPLE_TRACKS_URL)
 
     print("Inserting track data into the database")
+    points_added = 0
     for row in df.itertuples():
-        parent_id = row.parent_id if row.parent_id != -1 else None
-        parent_track_id = row.parent_track_id if row.parent_track_id != -1 else None
-        z = row.z if "z" in df.columns else None
-        db.add(
-            TrackPoint(
-                id=row.id,
-                parent_id=parent_id,
-                track_id=row.track_id,
-                parent_track_id=parent_track_id,
-                t=row.t,
-                z=z,
-                y=row.y,
-                x=row.x,
+        # Check if this track point already exists
+        existing_point = db.query(TrackPoint).filter(
+            TrackPoint.id == row.id
+        ).first()
+
+        if not existing_point:
+            parent_id = row.parent_id if row.parent_id != -1 else None
+            parent_track_id = row.parent_track_id if row.parent_track_id != -1 else None
+            z = row.z if "z" in df.columns else None
+            db.add(
+                TrackPoint(
+                    id=row.id,
+                    parent_id=parent_id,
+                    track_id=row.track_id,
+                    parent_track_id=parent_track_id,
+                    t=row.t,
+                    z=z,
+                    y=row.y,
+                    x=row.x,
+                )
             )
-        )
+            points_added += 1
+
+            # Commit in batches to avoid memory issues with large datasets
+            if points_added % 1000 == 0:
+                db.commit()
+                print(f"Inserted {points_added} points so far...")
+
+    # Final commit for any remaining points
     db.commit()
-    print(f"Inserted {db.query(TrackPoint).count()} rows")
+    print(f"Inserted {points_added} new track points")
+    print(f"Total track points in database: {db.query(TrackPoint).count()}")
 
 
 def _get_appearances(db: Session, n_samples: int):
@@ -141,33 +163,22 @@ sampling_functions = {
 mock_router = APIRouter(prefix="/mock_data")
 
 
-# TODO: use a more sophisticated cache
-CACHE = {}
-
-
-@mock_router.get("/task")
-def all_tasks(
-    rng_seed: int = 42,
-    num_tasks: int = 10,
-    time_window: int = 16,
-    db: Session = Depends(get_session),
-) -> list[Task]:
-    key = (rng_seed, num_tasks, time_window)
-    if key in CACHE:
-        return CACHE[key]
-
+@lru_cache(maxsize=100)  # Cache last 100 unique parameter combinations
+def generate_tasks(rng_seed: int, num_tasks: int, time_window: int) -> list[Task]:
+    """Generate tasks with caching based on input parameters"""
     seed(rng_seed)
     tasks = []
     task_types = Counter(choices(list(TaskType), k=num_tasks))
-    # There is only one image, but exercise the database by fetching it
-    # by its ID as a crude test to check it has actually been stored.
-    image = db.get(Image, SAMPLE_IMAGE.image_id)
-    image_data=ImageData(
-        image_id=image.image_id,
-        url=image.url,
-        time_dimension=image.time_dimension,
-        slice_indices=image.slice_indices,
-    )
+
+    with session_context() as db:
+        image = db.get(Image, SAMPLE_IMAGE.image_id)
+        image_data = ImageData(
+            image_id=image.image_id,
+            url=image.url,
+            time_dimension=image.time_dimension,
+            slice_indices=image.slice_indices,
+        )
+
     # TODO: the client does not yet support different task types
     task_types = {TaskType.DIVISION: num_tasks}
     for task_type, count in task_types.items():
@@ -196,29 +207,38 @@ def all_tasks(
             ]
         )
 
-    # Check if tasks already exist before inserting
-    for task in tasks:
-        existing_task = db.query(TaskRecord).filter(
-            TaskRecord.task_id == task.task_id
-        ).first()
-        if not existing_task:
-            db.add(
-                TaskRecord(
-                    task_id=task.task_id,
-                    task_type=task.task_type,
-                    node_id=task.task_data.node_id,
-                    image_id=SAMPLE_IMAGE.image_id,  # Add the image_id
+        for task in tasks:
+            existing_task = db.query(TaskRecord).filter(
+                TaskRecord.task_id == task.task_id
+            ).first()
+            if not existing_task:
+                db.add(
+                    TaskRecord(
+                        task_id=task.task_id,
+                        task_type=task.task_type,
+                        node_id=task.task_data.node_id,
+                        image_id=SAMPLE_IMAGE.image_id,
+                    )
                 )
-            )
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        print("Error committing tasks to the database")
-        print(e)
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print("Error committing tasks to the database")
+            print(e)
 
-    CACHE[key] = tasks
     return tasks
+
+
+@mock_router.get("/task")
+def all_tasks(
+    rng_seed: int = 42,
+    num_tasks: int = 10,
+    time_window: int = 16,
+    db: Session = Depends(get_session),
+) -> list[Task]:
+    """Get tasks, using cached results if available"""
+    return generate_tasks(rng_seed, num_tasks, time_window)
 
 
 @mock_router.get("/task/{task_id}")
