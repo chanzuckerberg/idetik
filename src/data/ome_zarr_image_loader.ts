@@ -4,10 +4,7 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "data/region";
 import { ImageChunk } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
-
-type IdentityTransform = {
-  type: "identity";
-};
+import { PromiseScheduler } from "./promise_scheduler";
 
 type TranslationTransform = {
   type: "translation";
@@ -19,11 +16,11 @@ type ScaleTransform = {
   scale: Array<number>;
 };
 
-type Transform = IdentityTransform | TranslationTransform | ScaleTransform;
-
 type Dataset = {
   path: string;
-  coordinateTransformations: Array<Transform>;
+  coordinateTransformations:
+    | [ScaleTransform]
+    | [ScaleTransform, TranslationTransform];
 };
 
 type Axis = {
@@ -36,12 +33,31 @@ type Multiscale = {
   datasets: Array<Dataset>;
 };
 
-const dataTypes = [Uint8Array, Uint16Array] as const;
+const dataTypes = [Uint8Array, Uint16Array, Float32Array] as const;
 const dataTypeNames = dataTypes.map((DataType) => DataType.name);
 type DataType = InstanceType<(typeof dataTypes)[number]>;
 
 function isDataType(value: unknown): value is DataType {
   return dataTypes.some((DataType) => value instanceof DataType);
+}
+
+// Implements the interface required for getting array chunks in zarrita:
+// https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
+export class PromiseQueue<T> {
+  private promises_: Array<() => Promise<T>> = [];
+  private scheduler_: PromiseScheduler;
+
+  constructor(scheduler: PromiseScheduler) {
+    this.scheduler_ = scheduler;
+  }
+
+  add(promise: () => Promise<T>): void {
+    this.promises_.push(promise);
+  }
+
+  onIdle(): Promise<Array<T>> {
+    return Promise.all(this.promises_.map((p) => this.scheduler_.submit(p)));
+  }
 }
 
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
@@ -67,12 +83,21 @@ export class OmeZarrImageLoader {
     this.datasets_ = image.datasets;
   }
 
-  async loadChunk(region: Region): Promise<ImageChunk> {
+  async loadChunk(
+    region: Region,
+    scheduler?: PromiseScheduler
+  ): Promise<ImageChunk> {
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const lowestResolutionIndex = this.datasets_.length - 1;
     const dataset = this.datasets_[lowestResolutionIndex];
-    const indices = regionToIndices(region, dataset, this.axes_);
+    const scale = dataset.coordinateTransformations[0].scale;
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(this.axes_.length).fill(0);
+
+    const indices = regionToIndices(region, this.axes_, scale, translation);
     console.debug("loading dataset with indices", dataset, indices);
 
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
@@ -81,7 +106,14 @@ export class OmeZarrImageLoader {
     });
     console.debug("opened array ", array);
 
-    const subarray = await zarr.get(array, indices);
+    let options = {};
+    if (scheduler !== undefined) {
+      options = {
+        create_queue: () => new PromiseQueue(scheduler),
+        opts: { signal: scheduler.abortSignal },
+      };
+    }
+    const subarray = await zarr.get(array, indices, options);
 
     if (!isDataType(subarray.data)) {
       throw new Error(
@@ -102,15 +134,25 @@ export class OmeZarrImageLoader {
       );
     }
 
+    const calculateOffset = (i: number) => {
+      const index = indices[i];
+      if (typeof index === "number" || index.start === null) return 0;
+      return index.start * scale[i] + translation[i];
+    };
+    const xOffset = calculateOffset(indices.length - 1);
+    const yOffset = calculateOffset(indices.length - 2);
+
     const chunk = {
       data: subarray.data,
       shape: {
-        width: subarray.shape[subarray.shape.length - 1],
-        height: subarray.shape[subarray.shape.length - 2],
-        channels: subarray.shape.length === 3 ? subarray.shape[0] : 1,
+        x: subarray.shape[subarray.shape.length - 1],
+        y: subarray.shape[subarray.shape.length - 2],
+        c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
+      scale: { x: scale[indices.length - 1], y: scale[indices.length - 2] },
+      offset: { x: xOffset, y: yOffset },
     };
     console.debug("loaded chunk ", chunk);
     return chunk;
@@ -120,8 +162,9 @@ export class OmeZarrImageLoader {
 // Converts a region to indices within an OME-Zarr image array.
 function regionToIndices(
   region: Region,
-  dataset: Dataset,
-  axes: Array<Axis>
+  axes: Array<Axis>,
+  scale: number[],
+  translation: number[]
 ): Array<Slice | number> {
   const indices: Array<Slice | number> = [];
   for (const [i, axis] of axes.entries()) {
@@ -130,29 +173,17 @@ function regionToIndices(
     // the complete extent of a dimension like Python's `slice(None)`.
     let index: Slice | number = zarr.slice(null);
     if (match) {
-      // TODO: handle more than just scale list to transform input region.
-      // https://github.com/chanzuckerberg/imaging-active-learning/issues/38
-      const scale = dataset.coordinateTransformations
-        .map((transform) => transformScale(transform, i))
-        .reduce((totalScale, scale) => scale * totalScale, 1);
       const regionIndex = match.index;
       if (typeof regionIndex === "number") {
-        index = Math.round(regionIndex / scale);
+        index = Math.round(translation[i] + regionIndex / scale[i]);
       } else {
         index = zarr.slice(
-          Math.floor(regionIndex.start / scale),
-          Math.ceil(regionIndex.stop / scale)
+          Math.floor(translation[i] + regionIndex.start / scale[i]),
+          Math.ceil(translation[i] + regionIndex.stop / scale[i])
         );
       }
     }
     indices.push(index);
   }
   return indices;
-}
-
-// Returns a scale from a transform at some axis index or 1 if a scale cannot be found.
-function transformScale(transform: Transform, index: number): number {
-  if (transform.type !== "scale") return 1;
-  if (!(transform.scale instanceof Array)) return 1;
-  return transform.scale[index];
 }

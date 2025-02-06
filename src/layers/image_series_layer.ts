@@ -1,9 +1,9 @@
 import { Layer } from "core/layer";
-import { Mesh } from "objects/renderable/mesh";
-import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Interval, Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
+import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -13,6 +13,7 @@ export class ImageSeriesLayer extends Layer {
   private readonly timeDimensionIndex_: number;
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
+  private scheduler_: PromiseScheduler = new PromiseScheduler(16);
 
   constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
     super();
@@ -65,13 +66,16 @@ export class ImageSeriesLayer extends Layer {
     }
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
-      this.initializeTexture(chunk);
-      const shape = chunk.shape;
-      const plane = new PlaneGeometry(shape.width, shape.height, 1, 1);
-      this.addObject(new Mesh(plane, this.texture_));
+      this.texture_ = makeImageTextureArray(chunk);
+      const mesh = makeImageMesh(chunk, this.texture_);
+      this.addObject(mesh);
     } else {
       this.texture_.data = chunk.data;
     }
+  }
+
+  public close(): void {
+    this.scheduler_.shutdown();
   }
 
   private async load() {
@@ -93,27 +97,16 @@ export class ImageSeriesLayer extends Layer {
       region[this.timeDimensionIndex_].index = t;
       loadPromises.push(
         loader
-          .loadChunk(region)
+          .loadChunk(region, this.scheduler_)
           .then((chunk) => (this.dataChunks_[t - start] = chunk))
       );
     }
-    await Promise.all(loadPromises);
-
+    await Promise.all(loadPromises).catch((error) => {
+      if (error instanceof AbortError) {
+        console.debug("Loading aborted.");
+        return;
+      }
+    });
     this.setState("ready");
-  }
-
-  private initializeTexture(chunk: ImageChunk) {
-    this.texture_ = new Texture2DArray(
-      chunk.data,
-      chunk.shape.width,
-      chunk.shape.height
-    );
-
-    this.texture_.unpackRowLength = chunk.rowStride;
-    this.texture_.unpackAlignment = chunk.rowAlignmentBytes;
-    this.texture_.dataFormat = "red_integer";
-    if (chunk.data instanceof Uint16Array) {
-      this.texture_.dataType = "unsigned_short";
-    }
   }
 }
