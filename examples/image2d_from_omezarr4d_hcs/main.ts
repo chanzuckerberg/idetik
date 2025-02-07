@@ -37,7 +37,7 @@ const camera = new OrthographicCamera(0, 840, 0, 360);
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
 const region = [
-  { dimension: "c", index: 0 },
+  { dimension: "c", index: { start: 0, stop: 3 } },
   { dimension: "z", index: 0 },
 ];
 

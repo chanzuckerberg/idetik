@@ -13,7 +13,7 @@ export class Texture2DArray extends Texture {
     this.width_ = width;
     this.height_ = height;
     // We currently assume that each slice's size is equal to the image's area
-    this.depth_ = data.byteLength / (width * height);
+    this.depth_ = data.byteLength / (width * height) / this.bytesPerElement;
   }
 
   public get type() {
@@ -39,5 +39,22 @@ export class Texture2DArray extends Texture {
 
   public get depth() {
     return this.depth_;
+  }
+
+  private get bytesPerElement(): number {
+    switch (this.data_.constructor.name) {
+      case "Uint8Array":
+      case "Int8Array":
+        return 1;
+      case "Uint16Array":
+      case "Int16Array":
+        return 2;
+      case "Uint32Array":
+      case "Int32Array":
+      case "Float32Array":
+        return 4;
+      default:
+        return 1;
+    }
   }
 }
