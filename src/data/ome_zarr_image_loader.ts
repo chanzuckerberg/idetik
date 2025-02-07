@@ -6,12 +6,8 @@ import { ImageChunk } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-type Axis = {
-  name: string;
-  type?: string;
-};
-
 import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
+type Axis = OmeNgffImage["multiscales"][number]["axes"][number];
 
 const dataTypes = [Uint8Array, Uint16Array, Float32Array] as const;
 const dataTypeNames = dataTypes.map((DataType) => DataType.name);
@@ -82,7 +78,7 @@ export class OmeZarrImageLoader {
     const dataset = image.datasets[lowestResolutionIndex];
     const scale = dataset.coordinateTransformations[0].scale;
     // TODO: fix zod to generate this type information.
-    const axes = image.axes as Array<Axis>;
+    const axes = image.axes;
     const translation =
       dataset.coordinateTransformations.length === 2
         ? dataset.coordinateTransformations[1].translation
