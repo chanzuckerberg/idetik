@@ -13,6 +13,36 @@ const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
 const camera = new OrthographicCamera(0, 1920, 0, 1440);
 
+// Track channel states
+const channelStates = {
+  r: true,
+  g: true,
+  b: true
+};
+
+// Add event listeners for channel toggles
+const channelR = document.getElementById('channel-r') as HTMLInputElement;
+const channelG = document.getElementById('channel-g') as HTMLInputElement;
+const channelB = document.getElementById('channel-b') as HTMLInputElement;
+
+function updateChannels() {
+  console.debug('Updating channel states');
+  console.debug('channelR.checked', channelR.checked);
+  console.debug('channelG.checked', channelG.checked);
+  console.debug('channelB.checked', channelB.checked);
+  channelStates.r = channelR.checked;
+  channelStates.g = channelG.checked;
+  channelStates.b = channelB.checked;
+
+  console.debug('Channel states updated:', channelStates);
+  // We'll need to update the layer/material here
+  // layer.setChannelStates([channelStates.r, channelStates.g, channelStates.b]);
+}
+
+channelR.addEventListener('change', updateChannels);
+channelG.addEventListener('change', updateChannels);
+channelB.addEventListener('change', updateChannels);
+
 // Source is 5D, so provide an interval in T and C (all three channels)
 // and scalar indices in Z (first of only depth) to get a 2D image series.
 const source = new OmeZarrImageSource(url);

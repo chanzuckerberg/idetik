@@ -98,13 +98,13 @@ export class OmeZarrImageLoader {
         : new Array(this.axes_.length).fill(0);
 
     const indices = regionToIndices(region, this.axes_, scale, translation);
-    console.debug("loading dataset with indices", dataset, indices);
+    // console.debug("loading dataset with indices", dataset, indices);
 
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
       kind: "array",
       attrs: false,
     });
-    console.debug("opened array ", array);
+    // console.debug("opened array ", array);
 
     let options = {};
     if (scheduler !== undefined) {
