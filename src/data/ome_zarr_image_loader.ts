@@ -19,8 +19,8 @@ type ScaleTransform = {
 type Dataset = {
   path: string;
   coordinateTransformations:
-    | [ScaleTransform]
-    | [ScaleTransform, TranslationTransform];
+  | [ScaleTransform]
+  | [ScaleTransform, TranslationTransform];
 };
 
 type Axis = {
@@ -154,7 +154,7 @@ export class OmeZarrImageLoader {
       scale: { x: scale[indices.length - 1], y: scale[indices.length - 2] },
       offset: { x: xOffset, y: yOffset },
     };
-    console.debug("loaded chunk ", chunk);
+    // console.debug("loaded chunk ", chunk);
     return chunk;
   }
 }
