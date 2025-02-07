@@ -21,9 +21,11 @@ export class Mesh extends RenderableObject {
   }
 
   private setProgramName() {
-    // TODO: much of this can be consolidated when we have modular shaders
+    // TODO: this can be consolidated when we have modular shaders
     const texture = this.textures[0];
-    if (!texture || texture.type == "Texture2D") {
+    if (!texture) {
+      throw new Error("un-textured mesh not implemented");
+    } else if (texture.type == "Texture2D") {
       this.programName = "mesh";
     } else if (texture.type == "DataTexture2D") {
       this.programName =
@@ -31,7 +33,6 @@ export class Mesh extends RenderableObject {
     } else if (texture.type == "Texture2DArray") {
       if (texture.dataType == "float") {
         throw new Error("floatImageArray not implemented");
-        // this.programName = "floatImageArray";
       } else {
         this.programName = "uintImageArray";
       }
