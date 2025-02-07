@@ -48,14 +48,12 @@ export class OmeZarrImageLoader {
     // TODO: silly fix for removing top-level identity transform,
     // which is not allowed by spec but may have been written by
     // some writers.
+    // This may need to be done for top-level `coordinateTransformations` as well.
     // https://github.com/ome/ngff/pull/152
     if (
-      "multiscales" in attrs &&
-      Array.isArray(attrs.multiscales) &&
-      "coordinateTransformations" in attrs.multiscales[0] &&
-      Array.isArray(attrs.multiscales[0].coordinateTransformations) &&
-      "type" in attrs.multiscales[0].coordinateTransformations[0] &&
-      attrs.multiscales[0].coordinateTransformations[0].type === "identity"
+      Array.isArray(attrs?.multiscales) &&
+      Array.isArray(attrs.multiscales[0]?.coordinateTransformations) &&
+      attrs.multiscales[0].coordinateTransformations[0]?.type === "identity"
     ) {
       delete attrs.multiscales[0].coordinateTransformations;
     }
