@@ -19,10 +19,12 @@ export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
       vertex: projectedLineVertexShader,
       fragment: projectedLineFragmentShader,
     },
+    // TODO: a mesh shader without a texture
     mesh: {
       vertex: meshVertexShader,
       fragment: meshFragmentShader,
     },
+    // TODO: consolidate image shaders
     uintImage: {
       vertex: meshVertexShader,
       fragment: uintImageFragmentShader,

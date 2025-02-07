@@ -29,6 +29,7 @@ export class ProjectedLine extends RenderableObject {
     this.width_ = width;
     this.taperOffset_ = taperOffset ?? this.taperOffset_;
     this.taperPower_ = taperPower ?? this.taperPower_;
+    this.programName = "projectedLine";
   }
 
   public get type() {
