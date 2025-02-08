@@ -8,6 +8,7 @@ import { WebGLTextures } from "./webgl_textures";
 import { ProjectedLine } from "objects/renderable/projected_line";
 
 import { mat4 } from "gl-matrix";
+import { ShaderMaterial } from "objects/materials/shader_material";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -75,10 +76,11 @@ export class WebGLRenderer extends Renderer {
 
     this.bindings_.bind(object);
 
-    if (object.textures.length) {
-      // We temporarily assume this array holds a single texture. We'll need to
-      // modify this logic to support multiple textures in the future.
-      this.textures_.bind(object.textures[0]);
+    // Check for material first, then textures
+    if (object.material && object.material instanceof ShaderMaterial) {
+      this.textures_.bind(object.material, program.glProgram);
+    } else if (object.textures.length) {
+      this.textures_.bind(object.textures[0], program.glProgram);
     }
 
     // TODO: Move 'type' property to RenderableObject

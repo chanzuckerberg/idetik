@@ -4,6 +4,14 @@ import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
 import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
+import { Mesh } from "objects/renderable/mesh";
+import { ShaderMaterial } from "objects/materials/shader_material";
+import { shaderCode } from "renderers/shaders";
+
+// Add interface for channel state
+interface ChannelState {
+  enabled: boolean;
+}
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -14,6 +22,12 @@ export class ImageSeriesLayer extends Layer {
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private scheduler_: PromiseScheduler = new PromiseScheduler(16);
+  // Add channel states property with default values
+  private channelStates_: ChannelState[] = [
+    { enabled: true },
+    { enabled: true },
+    { enabled: true }
+  ];
 
   constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
     super();
@@ -67,7 +81,35 @@ export class ImageSeriesLayer extends Layer {
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
       this.texture_ = makeImageTextureArray(chunk);
-      const mesh = makeImageMesh(chunk, this.texture_);
+
+      // Use shader material only if we need channel control
+      let mesh;
+      if (this.channelStates_) {  // If we have channel states defined
+        console.debug('Creating shader material with:', {
+          texture: this.texture_,
+          channelStates: this.getChannelStates(),
+          vertexShader: shaderCode.mesh.vertex,
+          fragmentShader: shaderCode.uintImageArray.fragment
+        });
+
+        const material = new ShaderMaterial({
+          vertexShader: shaderCode.mesh.vertex,
+          fragmentShader: shaderCode.uintImageArray.fragment,
+          uniforms: {
+            texture0: { value: this.texture_ },
+            channelEnabled: { value: this.getChannelStates() }
+          }
+        });
+
+        console.debug('Created material:', material);
+        mesh = makeImageMesh(chunk, material);
+        console.debug('Created mesh with material:', mesh);
+      } else {
+        // Use simple texture rendering if no channel control needed
+        mesh = makeImageMesh(chunk, this.texture_);
+        console.debug('Created mesh with texture:', mesh);
+      }
+
       this.addObject(mesh);
     } else {
       this.texture_.data = chunk.data;
@@ -108,5 +150,23 @@ export class ImageSeriesLayer extends Layer {
       }
     });
     this.setState("ready");
+  }
+
+  // Add getter/setter for channel states
+  public setChannelStates(states: boolean[]) {
+    this.channelStates_ = states.map(enabled => ({ enabled }));
+    console.debug('Channel states set to:', this.channelStates_);
+
+    // If we have a mesh, update its material uniforms
+    if (this.objects.length > 0) {
+      const mesh = this.objects[0] as Mesh;
+      const material = mesh.material as ShaderMaterial;
+      material.uniforms.channelEnabled.value = states;
+    }
+  }
+
+  public getChannelStates(): boolean[] {
+    console.debug('Getting channel states:', this.channelStates_);
+    return this.channelStates_.map(state => state.enabled);
   }
 }

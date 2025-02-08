@@ -4,6 +4,7 @@ import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { ImageChunk } from "data/image_chunk";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Mesh } from "objects/renderable/mesh";
+import { Material } from "objects/materials/material";
 
 export function makeImageTexture(chunk: ImageChunk) {
   const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);
@@ -30,9 +31,14 @@ function updateImageTexture(texture: Texture, chunk: ImageChunk) {
   texture.unpackAlignment = chunk.rowAlignmentBytes;
 }
 
-export function makeImageMesh(chunk: ImageChunk, texture: Texture) {
+export function makeImageMesh(
+  chunk: ImageChunk,
+  textureOrMaterial: Texture | Material
+) {
   const plane = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-  const mesh = new Mesh(plane, texture);
+
+  // Create mesh - it will handle either texture or material internally
+  const mesh = new Mesh(plane, textureOrMaterial);
   mesh.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
   mesh.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
   return mesh;

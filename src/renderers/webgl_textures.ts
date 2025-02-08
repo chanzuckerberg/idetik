@@ -9,6 +9,7 @@ import {
 import { Texture2D } from "objects/textures/texture_2d";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { ShaderMaterial } from "objects/materials/shader_material";
 
 export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
@@ -19,7 +20,42 @@ export class WebGLTextures {
     this.gl_ = gl;
   }
 
-  public bind(texture: Texture) {
+  public bind(
+    textureOrMaterial: Texture | ShaderMaterial,
+    program: WebGLProgram | null = null
+  ) {
+    if (textureOrMaterial instanceof ShaderMaterial) {
+      // If it's a ShaderMaterial:
+      const texture = textureOrMaterial.uniforms.texture0.value as Texture;
+      this.bindTexture(texture);
+
+      // Only try to set uniforms if we have a program
+      if (program) {
+        // Get the uniform location using the provided program
+        const channelLocation = this.gl_.getUniformLocation(
+          program,
+          'channelEnabled'
+        );
+
+        // Convert from ShaderMaterial's uniform value to boolean array
+        const channelStates = textureOrMaterial.uniforms.channelEnabled.value as boolean[];
+
+        // Convert booleans to integers (0 or 1) in a format WebGL understands
+        const channelValues = new Int32Array(
+          channelStates.map(v => v ? 1 : 0)
+        );
+
+        if (channelLocation) { // Make sure we found the uniform
+          // Set the array of channel states in the shader
+          this.gl_.uniform1iv(channelLocation, channelValues);
+        }
+      }
+    } else {
+      this.bindTexture(textureOrMaterial);
+    }
+  }
+
+  private bindTexture(texture: Texture) {
     if (this.alreadyActive(texture.uuid) && !texture.needsUpdate) return;
 
     let textureId = this.textures_.get(texture.uuid) || null;

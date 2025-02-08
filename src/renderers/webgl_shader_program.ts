@@ -52,6 +52,14 @@ export class WebGLShaderProgram {
       case this.gl_.FLOAT_MAT4:
         this.gl_.uniformMatrix4fv(location, false, value as mat4);
         break;
+      case this.gl_.BOOL:
+        this.gl_.uniform1i(location, value as boolean ? 1 : 0);
+        break;
+      case this.gl_.BOOL_VEC2:
+      case this.gl_.BOOL_VEC3:
+      case this.gl_.BOOL_VEC4:
+        // Handle boolean arrays if needed
+        break;
       default: {
         const exhaustiveCheck: never = type;
         throw new Error(`Unhandled uniform type: ${exhaustiveCheck}`);
@@ -142,6 +150,10 @@ export class WebGLShaderProgram {
     }
     this.shaders_ = {};
   }
+
+  public get glProgram(): WebGLProgram {
+    return this.program_;
+  }
 }
 
 const SAMPLER_TYPES: ReadonlySet<GLenum> = new Set<GLenum>([
@@ -170,6 +182,10 @@ const SUPPORTED_UNIFORM_TYPES_ = [
   WebGL2RenderingContext.FLOAT_VEC2,
   WebGL2RenderingContext.FLOAT_VEC3,
   WebGL2RenderingContext.FLOAT_MAT4,
+  WebGL2RenderingContext.BOOL,
+  WebGL2RenderingContext.BOOL_VEC2,
+  WebGL2RenderingContext.BOOL_VEC3,
+  WebGL2RenderingContext.BOOL_VEC4
 ] as const;
 type SupportedUniformType = (typeof SUPPORTED_UNIFORM_TYPES_)[GLenum];
 const SUPPORTED_UNIFORM_TYPES: ReadonlySet<GLenum> = new Set<GLenum>(

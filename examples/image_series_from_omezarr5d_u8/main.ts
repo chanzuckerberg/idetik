@@ -35,8 +35,7 @@ function updateChannels() {
   channelStates.b = channelB.checked;
 
   console.debug('Channel states updated:', channelStates);
-  // We'll need to update the layer/material here
-  // layer.setChannelStates([channelStates.r, channelStates.g, channelStates.b]);
+  layer.setChannelStates([channelStates.r, channelStates.g, channelStates.b]);
 }
 
 channelR.addEventListener('change', updateChannels);
@@ -63,6 +62,10 @@ slider.max = (timeInterval.stop - 1).toString();
 
 layer.addStateChangeCallback((newState: LayerState) => {
   if (newState === "ready") {
+    // Set initial channel states
+    layer.setChannelStates([channelStates.r, channelStates.g, channelStates.b]);
+
+    // Set up time slider
     slider.addEventListener("input", (event) => {
       const value = (event.target as HTMLInputElement).valueAsNumber;
       layer.setTimeIndex(value);
