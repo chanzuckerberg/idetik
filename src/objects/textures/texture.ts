@@ -10,6 +10,8 @@ export type TextureDataType = "unsigned_byte" | "unsigned_short" | "float";
 
 export type TextureUnpackRowAlignment = 1 | 2 | 4 | 8;
 
+export type DataTextureTypedArray = Uint8Array | Uint16Array | Float32Array;
+
 export function isTextureUnpackRowAlignment(
   value: number
 ): value is TextureUnpackRowAlignment {

@@ -1,18 +1,18 @@
-import { Texture } from "objects/textures/texture";
+import { DataTextureTypedArray, Texture } from "objects/textures/texture";
 
 export class DataTexture2D extends Texture {
-  private data_: ArrayBufferView;
+  private data_: DataTextureTypedArray;
   private readonly width_: number;
   private readonly height_: number;
 
-  constructor(data: ArrayBufferView, width: number, height: number) {
+  constructor(data: DataTextureTypedArray, width: number, height: number) {
     super();
     this.data_ = data;
     this.width_ = width;
     this.height_ = height;
   }
 
-  public set data(data: ArrayBufferView) {
+  public set data(data: DataTextureTypedArray) {
     this.data_ = data;
     this.needsUpdate = true;
   }

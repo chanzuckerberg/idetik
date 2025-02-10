@@ -2,7 +2,7 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "data/region";
-import { ImageChunk } from "data/image_chunk";
+import { ImageChunk, isImageChunkData } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
@@ -32,14 +32,6 @@ type Multiscale = {
   axes: Array<Axis>;
   datasets: Array<Dataset>;
 };
-
-const dataTypes = [Uint8Array, Uint16Array, Float32Array] as const;
-const dataTypeNames = dataTypes.map((DataType) => DataType.name);
-type DataType = InstanceType<(typeof dataTypes)[number]>;
-
-function isDataType(value: unknown): value is DataType {
-  return dataTypes.some((DataType) => value instanceof DataType);
-}
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -115,9 +107,9 @@ export class OmeZarrImageLoader {
     }
     const subarray = await zarr.get(array, indices, options);
 
-    if (!isDataType(subarray.data)) {
+    if (!isImageChunkData(subarray.data)) {
       throw new Error(
-        `Subarray has an unsupported data type ${subarray.data.constructor.name}. Supported data types are ${dataTypeNames}.`
+        `Subarray has an unsupported data type ${subarray.data.constructor.name}`
       );
     }
 
