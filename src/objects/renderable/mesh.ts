@@ -13,11 +13,15 @@ export class Mesh extends RenderableObject {
     if (texture) {
       this.addTexture(texture);
     }
-    this.setProgramName();
   }
 
   public get type() {
     return "Mesh";
+  }
+
+  public addTexture(texture: Texture) {
+    super.addTexture(texture);
+    this.setProgramName();
   }
 
   private setProgramName() {
