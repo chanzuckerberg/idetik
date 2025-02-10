@@ -37,7 +37,7 @@ export abstract class Layer {
   protected setState(newState: LayerState) {
     const prevState = this.state_;
     this.state_ = newState;
-    console.log(`${this.constructor.name} state change: ${newState}`);
+    console.debug(`${this.constructor.name} state change: ${newState}`);
     this.callbacks_.forEach((callback) => callback(newState, prevState));
   }
 
