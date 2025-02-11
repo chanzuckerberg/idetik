@@ -53,10 +53,10 @@ const onImageChange = async () => {
     source,
     region,
     channelProps: [
-      // contrast limits manually looked up in the zarr omero metadata
-      { contrastLimits: [110, 800] },
-      { contrastLimits: [110, 250] },
-      { contrastLimits: [110, 800] },
+      // color and contrast limits manually looked up in the zarr omero metadata
+      { color: [0, 1, 1], contrastLimits: [110, 800] },
+      { color: [1, 0, 1], contrastLimits: [110, 250] },
+      { color: [1, 1, 0], contrastLimits: [110, 800] },
     ],
   });
   layerManager.add(layer);

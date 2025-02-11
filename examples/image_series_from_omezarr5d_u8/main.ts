@@ -24,9 +24,21 @@ const region = [
 // Raise the contrast limits for the blue channel because there is
 // a lot of low signal that washes everything else out.
 const channelProps = [
-  { contrastLimits: [0, 255] as [number, number] },
-  { contrastLimits: [0, 255] as [number, number] },
-  { contrastLimits: [128, 255] as [number, number] },
+  {
+    visible: false,
+    color: [1, 0, 0] as [number, number, number],
+    contrastLimits: [0, 255] as [number, number],
+  },
+  {
+    visible: true,
+    color: [0, 1, 0] as [number, number, number],
+    contrastLimits: [0, 255] as [number, number],
+  },
+  {
+    visible: true,
+    color: [0, 0, 1] as [number, number, number],
+    contrastLimits: [128, 255] as [number, number],
+  },
 ];
 const layer = new ImageSeriesLayer({
   source,

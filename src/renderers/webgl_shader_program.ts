@@ -40,11 +40,15 @@ export class WebGLShaderProgram {
 
     const type = info.type as SupportedUniformType;
     switch (type) {
+      // There is no dedicated uniform1b in WebGL, but passing through
+      // as a float or signed integer works, so fallthrough to float
+      // for simplicity.
+      case this.gl_.BOOL:
       case this.gl_.FLOAT:
         if (typeof value === "number") {
           this.gl_.uniform1f(location, value as number);
         } else {
-          this.gl_.uniform1fv(location, value as Iterable<GLfloat>);
+          this.gl_.uniform1fv(location, value as Iterable<number>);
         }
         break;
       case this.gl_.FLOAT_VEC2:
@@ -85,6 +89,7 @@ export class WebGLShaderProgram {
         const location = this.gl_.getUniformLocation(this.program_, info.name);
         if (location) {
           this.uniformInfo_.set(info.name, [location, info]);
+          console.debug("Uniform found:", info.name, info.type, info.size);
         }
       }
     }
@@ -170,6 +175,7 @@ const SAMPLER_TYPES: ReadonlySet<GLenum> = new Set<GLenum>([
 
 // using an array and converting to a set allows us to also create a type here
 const SUPPORTED_UNIFORM_TYPES_ = [
+  WebGL2RenderingContext.BOOL,
   WebGL2RenderingContext.FLOAT,
   WebGL2RenderingContext.FLOAT_VEC2,
   WebGL2RenderingContext.FLOAT_VEC3,
