@@ -1,7 +1,7 @@
 import { Layer } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
-import { makeImageMesh, makeImageTexture } from "layers/image_utils";
+import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
 
 // Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
@@ -39,7 +39,7 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
-    const texture = makeImageTexture(chunk);
+    const texture = makeImageTextureArray(chunk);
     const mesh = makeImageMesh(chunk, texture);
     this.addObject(mesh);
     this.setState("ready");

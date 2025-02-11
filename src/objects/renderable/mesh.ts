@@ -35,11 +35,8 @@ export class Mesh extends RenderableObject {
       this.programName =
         texture.dataType == "float" ? "floatImage" : "uintImage";
     } else if (texture.type == "Texture2DArray") {
-      if (texture.dataType == "float") {
-        throw new Error("floatImageArray not implemented");
-      } else {
-        this.programName = "uintImageArray";
-      }
+      this.programName =
+        texture.dataType == "float" ? "floatImageArray" : "uintImageArray";
     }
   }
 }
