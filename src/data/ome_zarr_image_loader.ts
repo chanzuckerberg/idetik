@@ -6,32 +6,8 @@ import { ImageChunk, isImageChunkData } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-type TranslationTransform = {
-  type: "translation";
-  translation: Array<number>;
-};
-
-type ScaleTransform = {
-  type: "scale";
-  scale: Array<number>;
-};
-
-type Dataset = {
-  path: string;
-  coordinateTransformations:
-    | [ScaleTransform]
-    | [ScaleTransform, TranslationTransform];
-};
-
-type Axis = {
-  name: string;
-  type?: string;
-};
-
-type Multiscale = {
-  axes: Array<Axis>;
-  datasets: Array<Dataset>;
-};
+import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
+type Axis = OmeNgffImage["multiscales"][number]["axes"][number];
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -56,40 +32,49 @@ export class PromiseQueue<T> {
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
   root_: zarr.Group<zarr.FetchStore>;
-  axes_: Array<Axis>;
-  datasets_: Array<Dataset>;
+  metadata_: OmeNgffImage;
 
   constructor(root: zarr.Group<zarr.FetchStore>) {
     this.root_ = root;
-    if (!("multiscales" in this.root_.attrs)) {
-      throw new Error(`multiscales property not found in root ${root}`);
+    const attrs = this.root_.attrs;
+    // TODO: silly fix for removing top-level identity transform,
+    // which is not allowed by spec but may have been written by
+    // some writers.
+    // This may need to be done for top-level `coordinateTransformations` as well.
+    // https://github.com/ome/ngff/pull/152
+    if (
+      Array.isArray(attrs?.multiscales) &&
+      Array.isArray(attrs.multiscales[0]?.coordinateTransformations) &&
+      attrs.multiscales[0].coordinateTransformations[0]?.type === "identity"
+    ) {
+      delete attrs.multiscales[0].coordinateTransformations;
     }
-    const multiscales = this.root_.attrs.multiscales as Array<Multiscale>;
-    if (multiscales.length !== 1) {
+    this.metadata_ = OmeNgffImage.parse(this.root_.attrs);
+    if (this.metadata_.multiscales.length !== 1) {
       throw new Error(
-        `Can only handle one multiscale image. Found ${multiscales.length}`
+        `Can only handle one multiscale image. Found ${this.metadata_.multiscales.length}`
       );
     }
-    const image = multiscales[0];
-    this.axes_ = image.axes;
-    this.datasets_ = image.datasets;
   }
 
   async loadChunk(
     region: Region,
     scheduler?: PromiseScheduler
   ): Promise<ImageChunk> {
+    const image = this.metadata_.multiscales[0];
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
-    const lowestResolutionIndex = this.datasets_.length - 1;
-    const dataset = this.datasets_[lowestResolutionIndex];
+    const lowestResolutionIndex = image.datasets.length - 1;
+    const dataset = image.datasets[lowestResolutionIndex];
     const scale = dataset.coordinateTransformations[0].scale;
+    // TODO: fix zod to generate this type information.
+    const axes = image.axes;
     const translation =
       dataset.coordinateTransformations.length === 2
         ? dataset.coordinateTransformations[1].translation
-        : new Array(this.axes_.length).fill(0);
+        : new Array(axes.length).fill(0);
 
-    const indices = regionToIndices(region, this.axes_, scale, translation);
+    const indices = regionToIndices(region, axes, scale, translation);
     console.debug("loading dataset with indices", dataset, indices);
 
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {

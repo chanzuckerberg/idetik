@@ -7,5 +7,5 @@ Regenerating these files looks something like this:
 ```
 git clone git@github.com:ome/ngff.git /tmp/ngff
 # ZSH only:
-for i in $(ls /tmp/ngff/0.4/schemas/*.schema | grep -v strict | xargs basename | cut -d '.' -f 1); do json-schema-to-zod -i /tmp/ngff/0.4/schemas/$i.schema -o $i.ts --name ${(C)i} --withJsdocs --type ${(C)i}; done
+for i in $(ls /tmp/ngff/0.4/schemas/*.schema | grep -v strict | xargs basename | cut -d '.' -f 1); do json-refs resolve /tmp/ngff/0.4/schemas/$i.schema | json-schema-to-zod -o $i.ts --name ${(C)i} --withJsdocs --type ${(C)i}; done
 ```
