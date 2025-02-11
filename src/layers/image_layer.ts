@@ -50,7 +50,6 @@ export class ImageLayer extends Layer {
   public setChannelProps(channelProps: ChannelProps[]): void {
     this.channelProps_ = channelProps;
     if (this.texture_ !== undefined) {
-      console.log("setting channel props", channelProps);
       this.texture_.channels = channelProps;
     }
   }
@@ -62,10 +61,8 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
-    const texture = makeImageTextureArray(chunk, this.channelProps_);
-    this.texture_ = texture;
-    console.log("texture", texture);
-    const mesh = makeImageMesh(chunk, texture);
+    this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
+    const mesh = makeImageMesh(chunk, this.texture_);
     this.addObject(mesh);
     this.setState("ready");
   }
