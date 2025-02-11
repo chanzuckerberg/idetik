@@ -264,7 +264,11 @@ export class Task {
       region.push({ dimension: d, index: i });
     }
     const source = new OmeZarrImageSource(imageData.url);
-    const layer = new ImageSeriesLayer(source, region, imageData.timeDimension);
+    const layer = new ImageSeriesLayer({
+      source,
+      region,
+      timeDimension: imageData.timeDimension,
+    });
     if (preLoad) {
       layer.update();
     }

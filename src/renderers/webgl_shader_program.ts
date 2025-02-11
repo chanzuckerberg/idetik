@@ -41,7 +41,11 @@ export class WebGLShaderProgram {
     const type = info.type as SupportedUniformType;
     switch (type) {
       case this.gl_.FLOAT:
-        this.gl_.uniform1f(location, value as number);
+        if (typeof value === "number") {
+          this.gl_.uniform1f(location, value as number);
+        } else {
+          this.gl_.uniform1fv(location, value as Iterable<GLfloat>);
+        }
         break;
       case this.gl_.FLOAT_VEC2:
         this.gl_.uniform2fv(location, value as vec2);

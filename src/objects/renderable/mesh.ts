@@ -38,5 +38,6 @@ export class Mesh extends RenderableObject {
       this.programName =
         texture.dataType == "float" ? "floatImageArray" : "uintImageArray";
     }
+    console.debug("Program name for Mesh:", this.programName, texture);
   }
 }

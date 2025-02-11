@@ -69,11 +69,21 @@ const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 28, stop: 39 };
 const region = [
   { dimension: "T", index: timeInterval },
-  { dimension: "C", index: { start: 0, stop: 3 } },
   { dimension: "Z", index: 0 },
 ];
-
-const imageSeriesLayer = new ImageSeriesLayer(source, region, "T");
+// Raise the contrast limits for the blue channel because there is
+// a lot of low signal that washes everything else out.
+const channelProps = [
+  { contrastLimits: [0, 255] as [number, number] },
+  { contrastLimits: [0, 255] as [number, number] },
+  { contrastLimits: [128, 255] as [number, number] },
+];
+const imageSeriesLayer = new ImageSeriesLayer({
+  source,
+  region,
+  timeDimension: "T",
+  channelProps,
+});
 
 const renderer = new WebGLRenderer("#canvas");
 

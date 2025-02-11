@@ -5,13 +5,17 @@ precision mediump float;
 layout (location = 0) out vec4 fragColor;
 
 uniform mediump sampler2DArray texture0;
+uniform float ValueOffset[3];
+uniform float ValueScale[3];
 
 in vec2 TexCoords;
 
 void main() {
-    float red = texture(texture0, vec3(TexCoords, 0)).r;
-    float green = texture(texture0, vec3(TexCoords, 1)).r;
-    float blue = texture(texture0, vec3(TexCoords, 2)).r;
-
-    fragColor = vec4(red, green, blue, 1);
+    fragColor = vec4(0, 0, 0, 1);
+    for (int i = 0; i < 3; i++) {
+        float texel = texture(texture0, vec3(TexCoords, i)).r;
+        vec4 color = vec4(0, 0, 0, 1);
+        color[i] = (texel + ValueOffset[i]) * ValueScale[i];
+        fragColor += color;
+    }
 }

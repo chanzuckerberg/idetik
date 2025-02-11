@@ -2,8 +2,16 @@ import { Layer } from "core/layer";
 import { Interval, Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { AbortError, PromiseScheduler } from "@/data/promise_scheduler";
+import { AbortError, PromiseScheduler } from "data/promise_scheduler";
 import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
+import { ChannelProps } from "objects/textures/channel";
+
+type ImageSeriesLayerProps = {
+  source: ImageChunkSource;
+  region: Region;
+  timeDimension: string;
+  channelProps?: ChannelProps[];
+};
 
 // Loads 2D+t image data from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -14,8 +22,14 @@ export class ImageSeriesLayer extends Layer {
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private scheduler_: PromiseScheduler = new PromiseScheduler(16);
+  private channelProps_?: ChannelProps[];
 
-  constructor(source: ImageChunkSource, region: Region, timeDimension: string) {
+  constructor({
+    source,
+    region,
+    timeDimension,
+    channelProps,
+  }: ImageSeriesLayerProps) {
     super();
     this.setState("initialized");
     this.source_ = source;
@@ -35,6 +49,18 @@ export class ImageSeriesLayer extends Layer {
       );
     }
     this.timeInterval_ = timeIndex;
+    this.channelProps_ = channelProps;
+  }
+
+  public get channelProps(): ChannelProps[] | undefined {
+    return this.channelProps_;
+  }
+
+  public setChannelProps(channelProps: ChannelProps[]): void {
+    this.channelProps_ = channelProps;
+    if (this.texture_ !== null) {
+      this.texture_.channels = channelProps;
+    }
   }
 
   public update(): void {
@@ -66,7 +92,7 @@ export class ImageSeriesLayer extends Layer {
     }
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
-      this.texture_ = makeImageTextureArray(chunk);
+      this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
       const mesh = makeImageMesh(chunk, this.texture_);
       this.addObject(mesh);
     } else {

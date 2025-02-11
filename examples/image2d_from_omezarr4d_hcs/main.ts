@@ -49,7 +49,16 @@ const onImageChange = async () => {
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl);
-  const layer = new ImageLayer(source, region);
+  const layer = new ImageLayer({
+    source,
+    region,
+    channelProps: [
+      // contrast limits manually looked up in the zarr omero metadata
+      { contrastLimits: [110, 800] },
+      { contrastLimits: [110, 250] },
+      { contrastLimits: [110, 800] },
+    ],
+  });
   layerManager.add(layer);
 };
 
