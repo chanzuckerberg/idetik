@@ -30,7 +30,7 @@ const region = [
   { dimension: "y", index: { start: top, stop: bottom } },
   { dimension: "x", index: { start: left, stop: right } },
 ];
-const channelProps = { contrastLimits: [0, 255] as [number, number] };
+const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
 const layer = new ImageLayer({ source, region, channelProps });
 const axes = new AxesLayer({ length: 2000, width: 0.01 });
 layerManager.add(layer);

@@ -10,13 +10,17 @@ export type TextureDataType = "unsigned_byte" | "unsigned_short" | "float";
 
 export type TextureUnpackRowAlignment = 1 | 2 | 4 | 8;
 
+export type DataTextureTypedArray = Uint8Array | Uint16Array | Float32Array;
+
 export function isTextureUnpackRowAlignment(
   value: number
 ): value is TextureUnpackRowAlignment {
   return value === 1 || value === 2 || value === 4 || value === 8;
 }
 
-export function bufferToDataType(buffer: ArrayBufferView) {
+export function bufferToDataType(
+  buffer: DataTextureTypedArray
+): TextureDataType {
   if (buffer instanceof Uint8Array) {
     return "unsigned_byte";
   } else if (buffer instanceof Uint16Array) {

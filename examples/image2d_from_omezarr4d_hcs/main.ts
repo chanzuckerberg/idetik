@@ -37,7 +37,7 @@ const camera = new OrthographicCamera(0, 840, 0, 360);
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
 const region = [
-  { dimension: "c", index: 0 },
+  { dimension: "c", index: { start: 0, stop: 3 } },
   { dimension: "z", index: 0 },
 ];
 
@@ -52,7 +52,12 @@ const onImageChange = async () => {
   const layer = new ImageLayer({
     source,
     region,
-    channelProps: { contrastLimits: [110, 800] as [number, number] },
+    channelProps: [
+      // contrast limits manually looked up in the zarr omero metadata
+      { contrastLimits: [110, 800] },
+      { contrastLimits: [110, 250] },
+      { contrastLimits: [110, 800] },
+    ],
   });
   layerManager.add(layer);
 };

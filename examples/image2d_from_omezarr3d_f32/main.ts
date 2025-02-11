@@ -38,7 +38,7 @@ const onMinChange = () => {
     sliderMin.value = (maxValue - Number(sliderMin.step)).toString();
   } else {
     labelMin.innerText = `Min: ${minValue.toString()}`;
-    layer.setChannelProps({ contrastLimits: [minValue, maxValue] });
+    layer.setChannelProps([{ contrastLimits: [minValue, maxValue] }]);
   }
 };
 
@@ -49,7 +49,7 @@ const onMaxChange = () => {
     sliderMax.value = (minValue + Number(sliderMax.step)).toString();
   } else {
     labelMax.innerText = `Max: ${maxValue.toString()}`;
-    layer.setChannelProps({ contrastLimits: [minValue, maxValue] });
+    layer.setChannelProps([{ contrastLimits: [minValue, maxValue] }]);
   }
 };
 

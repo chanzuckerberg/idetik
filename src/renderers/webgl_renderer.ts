@@ -45,7 +45,7 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected renderObject(object: RenderableObject) {
-    const program = this.getShaderProgram(this.getProgramName(object)).use();
+    const program = this.getShaderProgram(object.programName).use();
 
     const modelView = mat4.multiply(
       mat4.create(),
@@ -108,6 +108,8 @@ export class WebGLRenderer extends Renderer {
             valueOffset.push(-contrastLimits[0]);
             valueScale.push(1 / (contrastLimits[1] - contrastLimits[0]));
           }
+          // TODO: we should be careful of uninitialized values here, though it appears they
+          // are zero-initialized in the shaders.
           program.setUniform("ValueOffset[0]", valueOffset);
           program.setUniform("ValueScale[0]", valueScale);
           break;
@@ -134,21 +136,6 @@ export class WebGLRenderer extends Renderer {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.depthFunc(this.gl.LEQUAL);
-  }
-
-  // This is a temporary computed property. In the future, we want to assign the
-  // program name to the class derived from the renderable object but we need to
-  // refactor textures first (consolidating the two programs below.)
-  private getProgramName(object: RenderableObject) {
-    if (object.type === "ProjectedLine") return "projectedLine";
-    if (object.textures.length > 0) {
-      if (object.textures[0].type === "DataTexture2D") {
-        if (object.textures[0].dataType == "float") return "floatImage";
-        return "uintImage";
-      }
-      if (object.textures[0].type === "Texture2DArray") return "uintImageArray";
-    }
-    return "mesh";
   }
 
   private getShaderProgram(type: Shader) {

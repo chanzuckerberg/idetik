@@ -3,10 +3,13 @@ import { Geometry } from "core/geometry";
 import { Texture } from "objects/textures/texture";
 import { AffineTransform } from "core/transforms";
 
+import { Shader } from "renderers/shaders";
+
 export abstract class RenderableObject extends Node {
   private geometry_ = new Geometry();
   private textures_: Texture[] = [];
   private transform_ = new AffineTransform();
+  private programName_: Shader | null = null;
 
   public addTexture(texture: Texture) {
     this.textures_.push(texture);
@@ -26,5 +29,16 @@ export abstract class RenderableObject extends Node {
 
   public set geometry(geometry: Geometry) {
     this.geometry_ = geometry;
+  }
+
+  public get programName(): Shader {
+    if (this.programName_ === null) {
+      throw new Error("Program name not set");
+    }
+    return this.programName_;
+  }
+
+  protected set programName(programName: Shader) {
+    this.programName_ = programName;
   }
 }

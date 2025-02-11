@@ -1,14 +1,14 @@
 import { Layer } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
-import { DataTexture2D } from "objects/textures/data_texture_2d";
-import { makeImageMesh, makeImageTexture } from "layers/image_utils";
+import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
 
 type ImageLayerProps = {
   source: ImageChunkSource;
   region: Region;
-  channelProps?: ChannelProps;
+  channelProps?: ChannelProps[];
 };
 
 // Loads data from an image source into renderable objects.
@@ -17,8 +17,8 @@ export class ImageLayer extends Layer {
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
-  private channelProps_?: ChannelProps;
-  private texture_?: DataTexture2D;
+  private channelProps_?: ChannelProps[];
+  private texture_?: Texture2DArray;
 
   constructor({ source, region, channelProps }: ImageLayerProps) {
     super();
@@ -43,14 +43,15 @@ export class ImageLayer extends Layer {
     }
   }
 
-  public get channelProps(): ChannelProps | undefined {
+  public get channelProps(): ChannelProps[] | undefined {
     return this.channelProps_;
   }
 
-  public setChannelProps(channelProps: ChannelProps): void {
+  public setChannelProps(channelProps: ChannelProps[]): void {
     this.channelProps_ = channelProps;
     if (this.texture_ !== undefined) {
-      this.texture_.channel = channelProps;
+      console.log("setting channel props", channelProps);
+      this.texture_.channels = channelProps;
     }
   }
 
@@ -61,8 +62,10 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
-    this.texture_ = makeImageTexture(chunk, this.channelProps_);
-    const mesh = makeImageMesh(chunk, this.texture_);
+    const texture = makeImageTextureArray(chunk, this.channelProps_);
+    this.texture_ = texture;
+    console.log("texture", texture);
+    const mesh = makeImageMesh(chunk, texture);
     this.addObject(mesh);
     this.setState("ready");
   }
