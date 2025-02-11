@@ -17,13 +17,13 @@ export class DataTexture2D extends Texture {
 
   constructor(data: DataTextureTypedArray, width: number, height: number) {
     super();
+    this.dataFormat = "scalar";
+    this.dataType = bufferToDataType(data);
+
     this.data_ = data;
     this.width_ = width;
     this.height_ = height;
     this.channel_ = validateChannel(this, {});
-
-    this.dataFormat = "scalar";
-    this.dataType = bufferToDataType(data);
   }
 
   public set data(data: DataTextureTypedArray) {

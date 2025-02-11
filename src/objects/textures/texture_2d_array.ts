@@ -18,6 +18,8 @@ export class Texture2DArray extends Texture {
 
   constructor(data: DataTextureTypedArray, width: number, height: number) {
     super();
+    this.dataFormat = "scalar";
+    this.dataType = bufferToDataType(data);
 
     this.data_ = data;
     this.width_ = width;
@@ -28,9 +30,6 @@ export class Texture2DArray extends Texture {
     for (let i = 0; i < this.depth_; i++) {
       this.channels_.push(validateChannel(this, {}));
     }
-
-    this.dataFormat = "scalar";
-    this.dataType = bufferToDataType(data);
   }
 
   public get type() {
