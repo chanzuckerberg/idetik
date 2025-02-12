@@ -10,6 +10,7 @@ import { ProjectedLine } from "objects/renderable/projected_line";
 import { mat4 } from "gl-matrix";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { MAX_CHANNELS } from "../constants";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -107,8 +108,7 @@ export class WebGLRenderer extends Renderer {
           const valueOffset = new Array<number>();
           const valueScale = new Array<number>();
 
-          // Fill arrays up to MAX_CHANNELS
-          const MAX_CHANNELS = 16;
+          // Fill arrays up to MAX_CHANNELS then pad with default values
           for (let i = 0; i < MAX_CHANNELS; i++) {
             if (i < texture2DArray.channels.length) {
               const channel = texture2DArray.channels[i];
