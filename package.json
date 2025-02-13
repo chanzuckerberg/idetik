@@ -1,34 +1,15 @@
 {
-  "name": "viz",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/ultrack-prototype"
+  ],
   "scripts": {
-    "dev": "vite",
-    "compile": "tsc",
-    "build": "tsc && vite build",
-    "test": "vitest",
-    "test-with-coverage": "vitest run --coverage",
-    "format": "prettier --write './**/*.{ts,tsx,html,json}'",
-    "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
-    "lint": "eslint ."
-  },
-  "dependencies": {
-    "gl-matrix": "^3.4.3",
-    "zarrita": "^0.4.0-next.16",
-    "zod": "^3.24.1"
+    "build": "npm run build --workspace=@idetik/core",
+    "examples": "npm run dev --workspace=@idetik/core",
+    "ultrack": "npm run dev --workspace=ultrack-prototype"
   },
   "devDependencies": {
-    "@czi-sds/components": "^21.2.0",
-    "@emotion/css": "^11.13.0",
-    "@emotion/react": "^11.13.3",
-    "@emotion/styled": "^11.13.0",
-    "@eslint/js": "^9.9.0",
-    "@mui/base": "^5.0.0-beta.58",
-    "@mui/icons-material": "^5.16.7",
-    "@mui/lab": "^5.0.0-alpha.173",
-    "@mui/material": "^5.16.7",
-    "@types/react-dom": "^18.3.0",
     "@types/webgl2": "^0.0.11",
     "@typescript-eslint/eslint-plugin": "^8.1.0",
     "@typescript-eslint/parser": "^8.1.0",
@@ -36,15 +17,12 @@
     "@vitest/browser": "^2.1.9",
     "@vitest/coverage-istanbul": "^2.1.9",
     "eslint": "^9.9.0",
-    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
-    "eslint-plugin-react-refresh": "^0.4.12",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.9.0",
-    "husky": "^9.1.4",
     "jsdom": "^24.1.1",
     "playwright": "^1.46.1",
     "prettier": "^3.3.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.1.0",
     "vite": "^5.4.14",
@@ -52,10 +30,5 @@
     "vite-plugin-glsl": "^1.3.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^2.1.9"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run format"
-    }
   }
 }

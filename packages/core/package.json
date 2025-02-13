@@ -1,0 +1,37 @@
+{
+  "name": "@idetik/core",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "compile": "tsc",
+    "build": "vite build && tsc --project tsconfig.build.json",
+    "test": "vitest",
+    "test-with-coverage": "vitest run --coverage",
+    "format": "prettier --write './**/*.{ts,tsx,html,json}'",
+    "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.3",
+    "zarrita": "^0.4.0-next.16",
+    "zod": "^3.24.1"
+  },
+  "description": "A layer-based visualization abstraction",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "author": "",
+  "license": "ISC"
+}
