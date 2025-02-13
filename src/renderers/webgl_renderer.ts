@@ -125,8 +125,6 @@ export class WebGLRenderer extends Renderer {
               valueScale.push(1);
             }
           }
-          // TODO: we should be careful of uninitialized values here, though it appears they
-          // are zero-initialized in the shaders.
 
           program.setUniform("Visible[0]", visible);
           program.setUniform("Color[0]", color);
