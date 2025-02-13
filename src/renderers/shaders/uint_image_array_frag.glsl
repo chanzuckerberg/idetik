@@ -9,12 +9,13 @@ uniform bool Visible[3];
 uniform vec3 Color[3];
 uniform float ValueOffset[3];
 uniform float ValueScale[3];
+#define MAX_CHANNELS 32
 
 in vec2 TexCoords;
 
 void main() {
     vec3 rgbColor = vec3(0, 0, 0);
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < MAX_CHANNELS; i++) {
         if (!Visible[i]) continue;
         float texel = float(texture(texture0, vec3(TexCoords, i)).r);
         float value = (texel + ValueOffset[i]) * ValueScale[i];

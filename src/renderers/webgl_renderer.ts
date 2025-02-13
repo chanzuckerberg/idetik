@@ -8,6 +8,9 @@ import { WebGLTextures } from "./webgl_textures";
 import { ProjectedLine } from "objects/renderable/projected_line";
 
 import { mat4 } from "gl-matrix";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
+import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { MAX_CHANNELS } from "core/constants";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
