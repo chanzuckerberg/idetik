@@ -3,8 +3,16 @@ import { Geometry } from "core/geometry";
 import { Texture } from "objects/textures/texture";
 import { MAX_CHANNELS } from "../../constants";
 import { ChannelProps } from "../textures/channel";
+import { DataTexture2D } from "../textures/data_texture_2d";
 
-type UniformValues = {
+
+type SingleUniformValues = {
+  "Color": [number, number, number];
+  "ValueOffset": number;
+  "ValueScale": number;
+};
+
+type ArrayUniformValues = {
   "Visible[0]": boolean[];
   "Color[0]": number[];
   "ValueOffset[0]": number[];
@@ -60,37 +68,49 @@ export class ImageRenderable extends RenderableObject {
     this.channels_[channelIndex][property] = value;
   }
 
-  public override getUniforms(): UniformValues {
-    const visible: boolean[] = [];
-    const color: number[] = [];
-    const valueOffset: number[] = [];
-    const valueScale: number[] = [];
-
-    // Fill arrays up to MAX_CHANNELS
-    for (let i = 0; i < MAX_CHANNELS; i++) {
-      if (i < this.channels_.length) {
-        const channel = this.channels_[i];
-        visible.push(channel.visible);
-        color.push(...channel.color);
-        valueOffset.push(-channel.contrastLimits[0]);
-        valueScale.push(
-          1 / (channel.contrastLimits[1] - channel.contrastLimits[0])
-        );
-      } else {
-        // Pad with defaults
-        visible.push(false);
-        color.push(0, 0, 0);
-        valueOffset.push(0);
-        valueScale.push(1);
-      }
+  public override getUniforms(): SingleUniformValues | ArrayUniformValues {
+    const texture = this.textures[0];
+    if (!texture) {
+      throw new Error("No texture set");
     }
 
-    return {
-      "Visible[0]": visible,
-      "Color[0]": color,
-      "ValueOffset[0]": valueOffset,
-      "ValueScale[0]": valueScale,
-    };
+    if (texture.type === "DataTexture2D") {
+      const dataTexture = texture as DataTexture2D;
+      const { color, contrastLimits } = dataTexture.channel;
+      return {
+        "Color": color,
+        "ValueOffset": -contrastLimits[0],
+        "ValueScale": 1 / (contrastLimits[1] - contrastLimits[0]),
+      };
+    } else {
+      // Texture2DArray case
+      const visible: boolean[] = [];
+      const color: number[] = [];
+      const valueOffset: number[] = [];
+      const valueScale: number[] = [];
+
+      for (let i = 0; i < MAX_CHANNELS; i++) {
+        if (i < this.channels_.length) {
+          const channel = this.channels_[i];
+          visible.push(channel.visible);
+          color.push(...channel.color);
+          valueOffset.push(-channel.contrastLimits[0]);
+          valueScale.push(1 / (channel.contrastLimits[1] - channel.contrastLimits[0]));
+        } else {
+          visible.push(false);
+          color.push(0, 0, 0);
+          valueOffset.push(0);
+          valueScale.push(1);
+        }
+      }
+
+      return {
+        "Visible[0]": visible,
+        "Color[0]": color,
+        "ValueOffset[0]": valueOffset,
+        "ValueScale[0]": valueScale,
+      };
+    }
   }
 
   private setProgramName() {
