@@ -1,9 +1,9 @@
 import { RenderableObject } from "core/renderable_object";
 import { Geometry } from "core/geometry";
 import { Texture } from "objects/textures/texture";
-import { MAX_CHANNELS } from "../../constants";
-import { ChannelProps } from "../textures/channel";
-import { DataTexture2D } from "../textures/data_texture_2d";
+import { MAX_CHANNELS } from "core/constants";
+import { ChannelProps } from "objects/textures/channel";
+import { DataTexture2D } from "objects/textures/data_texture_2d";
 
 type SingleUniformValues = {
   Color: [number, number, number];
@@ -39,12 +39,22 @@ export class ImageRenderable extends RenderableObject {
     if (channels.length > MAX_CHANNELS) {
       throw new Error(`Maximum number of channels is ${MAX_CHANNELS}`);
     }
-    // Convert to Required<ChannelProps> with defaults
-    this.channels_ = channels.map((channel) => ({
-      visible: channel.visible ?? false,
-      color: channel.color ?? [1, 1, 1],
-      contrastLimits: channel.contrastLimits ?? [0, 255],
-    }));
+
+    this.channels_ = Array.from({ length: MAX_CHANNELS }, (_, i) => {
+      if (i < channels.length) {
+        const channel = channels[i];
+        return {
+          visible: channel.visible ?? false,
+          color: channel.color ?? [1, 1, 1],
+          contrastLimits: channel.contrastLimits ?? [0, 255],
+        };
+      }
+      return {
+        visible: false,  // Hidden
+        color: [0, 0, 0],  // Black
+        contrastLimits: [0, 1],  // No contrast adjustment
+      };
+    });
   }
 
   public get type() {
@@ -88,22 +98,13 @@ export class ImageRenderable extends RenderableObject {
       const valueOffset: number[] = [];
       const valueScale: number[] = [];
 
-      for (let i = 0; i < MAX_CHANNELS; i++) {
-        if (i < this.channels_.length) {
-          const channel = this.channels_[i];
-          visible.push(channel.visible);
-          color.push(...channel.color);
-          valueOffset.push(-channel.contrastLimits[0]);
-          valueScale.push(
-            1 / (channel.contrastLimits[1] - channel.contrastLimits[0])
-          );
-        } else {
-          visible.push(false);
-          color.push(0, 0, 0);
-          valueOffset.push(0);
-          valueScale.push(1);
-        }
-      }
+      // All channels (including defaults) are already in this.channels_
+      this.channels_.forEach(channel => {
+        visible.push(channel.visible);
+        color.push(...channel.color);
+        valueOffset.push(-channel.contrastLimits[0]);
+        valueScale.push(1 / (channel.contrastLimits[1] - channel.contrastLimits[0]));
+      });
 
       return {
         "Visible[0]": visible,
