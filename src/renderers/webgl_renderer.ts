@@ -8,9 +8,7 @@ import { WebGLTextures } from "./webgl_textures";
 import { ProjectedLine } from "objects/renderable/projected_line";
 
 import { mat4 } from "gl-matrix";
-import { DataTexture2D } from "objects/textures/data_texture_2d";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { MAX_CHANNELS } from "../constants";
+
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -48,6 +46,7 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(object.programName).use();
 
+    // Set common uniforms
     const modelView = mat4.multiply(
       mat4.create(),
       this.activeCamera.transform.inverse,
@@ -61,13 +60,11 @@ export class WebGLRenderer extends Renderer {
     );
     program.setUniform("Projection", projection);
 
+    // Handle special cases that need renderer info
     switch (object.type) {
       case "ProjectedLine": {
-        program.setUniform("Resolution", [
-          this.canvas.width,
-          this.canvas.height,
-        ]);
         const line = object as ProjectedLine;
+        program.setUniform("Resolution", [this.canvas.width, this.canvas.height]);
         program.setUniform("LineColor", line.color);
         program.setUniform("LineWidth", line.width);
         program.setUniform("TaperOffset", line.taperOffset);
@@ -78,66 +75,21 @@ export class WebGLRenderer extends Renderer {
 
     this.bindings_.bind(object);
 
+    // Bind texture if present
     if (object.textures.length) {
       // We temporarily assume this array holds a single texture. We'll need to
       // modify this logic to support multiple textures in the future.
       const texture = object.textures[0];
       this.textures_.bind(texture);
-
-      // This should probably be moved to the switch case above on the
-      // renderable object type, but is a little awkward there because a
-      // Mesh may not have a texture. Similarly, the channel info used here
-      // may be better stored in a renderable object than a texture.
-      // Both these facts may motivate defining an Image renderable object
-      // that has exactly one texture.
-      switch (texture.type) {
-        case "DataTexture2D": {
-          const dataTexture = texture as DataTexture2D;
-          const contrastLimits = dataTexture.channel.contrastLimits;
-          const valueOffset = -contrastLimits[0];
-          const valueScale = 1 / (contrastLimits[1] - contrastLimits[0]);
-          program.setUniform("Color", dataTexture.channel.color);
-          program.setUniform("ValueOffset", valueOffset);
-          program.setUniform("ValueScale", valueScale);
-          break;
-        }
-        case "Texture2DArray": {
-          const texture2DArray = texture as Texture2DArray;
-          const visible = new Array<boolean>();
-          const color = new Array<number>();
-          const valueOffset = new Array<number>();
-          const valueScale = new Array<number>();
-
-          // Fill arrays up to MAX_CHANNELS then pad with default values
-          for (let i = 0; i < MAX_CHANNELS; i++) {
-            if (i < texture2DArray.channels.length) {
-              const channel = texture2DArray.channels[i];
-              const contrastLimits = channel.contrastLimits;
-              visible.push(channel.visible);
-              color.push(...channel.color);
-              valueOffset.push(-contrastLimits[0]);
-              valueScale.push(1 / (contrastLimits[1] - contrastLimits[0]));
-            } else {
-              // Pad remaining slots with default values
-              visible.push(false);
-              color.push(0, 0, 0);
-              valueOffset.push(0);
-              valueScale.push(1);
-            }
-          }
-          // TODO: we should be careful of uninitialized values here, though it appears they
-          // are zero-initialized in the shaders.
-
-          program.setUniform("Visible[0]", visible);
-          program.setUniform("Color[0]", color);
-          program.setUniform("ValueOffset[0]", valueOffset);
-          program.setUniform("ValueScale[0]", valueScale);
-          break;
-        }
-      }
     }
 
-    // TODO: Move 'type' property to RenderableObject
+    // Get uniforms from the renderable object
+    const uniforms = object.getUniforms();
+    for (const [name, value] of Object.entries(uniforms)) {
+      program.setUniform(name, value);
+    }
+
+    // Draw the object
     const type = this.gl.TRIANGLES;
     const index = object.geometry.indexData;
     if (index.length) {

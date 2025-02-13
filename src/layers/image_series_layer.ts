@@ -3,7 +3,7 @@ import { Interval, Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "data/promise_scheduler";
-import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
+import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
 
 type ImageSeriesLayerProps = {
@@ -93,8 +93,8 @@ export class ImageSeriesLayer extends Layer {
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
       this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
-      const mesh = makeImageMesh(chunk, this.texture_);
-      this.addObject(mesh);
+      const imageRenderable = makeImageRenderable(chunk, this.texture_, this.channelProps_);
+      this.addObject(imageRenderable);
     } else {
       this.texture_.data = chunk.data;
     }
