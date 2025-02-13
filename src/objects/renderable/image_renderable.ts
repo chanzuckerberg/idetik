@@ -50,9 +50,9 @@ export class ImageRenderable extends RenderableObject {
         };
       }
       return {
-        visible: false,  // Hidden
-        color: [0, 0, 0],  // Black
-        contrastLimits: [0, 1],  // No contrast adjustment
+        visible: false, // Hidden
+        color: [0, 0, 0], // Black
+        contrastLimits: [0, 1], // No contrast adjustment
       };
     });
   }
@@ -99,11 +99,13 @@ export class ImageRenderable extends RenderableObject {
       const valueScale: number[] = [];
 
       // All channels (including defaults) are already in this.channels_
-      this.channels_.forEach(channel => {
+      this.channels_.forEach((channel) => {
         visible.push(channel.visible);
         color.push(...channel.color);
         valueOffset.push(-channel.contrastLimits[0]);
-        valueScale.push(1 / (channel.contrastLimits[1] - channel.contrastLimits[0]));
+        valueScale.push(
+          1 / (channel.contrastLimits[1] - channel.contrastLimits[0])
+        );
       });
 
       return {
