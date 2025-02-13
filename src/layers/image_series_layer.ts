@@ -93,7 +93,11 @@ export class ImageSeriesLayer extends Layer {
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
       this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
-      const imageRenderable = makeImageRenderable(chunk, this.texture_, this.channelProps_);
+      const imageRenderable = makeImageRenderable(
+        chunk,
+        this.texture_,
+        this.channelProps_
+      );
       this.addObject(imageRenderable);
     } else {
       this.texture_.data = chunk.data;

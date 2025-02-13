@@ -38,7 +38,7 @@ export function makeImageRenderable(
   const imageRenderable = new ImageRenderable(
     geometry,
     texture,
-    channelProps?.map(props => ({
+    channelProps?.map((props) => ({
       visible: props.visible ?? false,
       color: props.color,
       contrastLimits: props.contrastLimits,

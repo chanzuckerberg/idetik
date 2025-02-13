@@ -47,6 +47,6 @@ export abstract class RenderableObject extends Node {
    * @returns Object containing uniform name-value pairs
    */
   public getUniforms(): Record<string, unknown> {
-    return {};  // Default implementation returns no uniforms
+    return {}; // Default implementation returns no uniforms
   }
 }

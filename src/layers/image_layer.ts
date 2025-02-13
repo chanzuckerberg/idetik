@@ -62,7 +62,11 @@ export class ImageLayer extends Layer {
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
     this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
-    const imageRenderable = makeImageRenderable(chunk, this.texture_, this.channelProps_);
+    const imageRenderable = makeImageRenderable(
+      chunk,
+      this.texture_,
+      this.channelProps_
+    );
     this.addObject(imageRenderable);
     this.setState("ready");
   }

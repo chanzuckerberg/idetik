@@ -9,7 +9,6 @@ import { ProjectedLine } from "objects/renderable/projected_line";
 
 import { mat4 } from "gl-matrix";
 
-
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
 // look as follows.
@@ -64,7 +63,10 @@ export class WebGLRenderer extends Renderer {
     switch (object.type) {
       case "ProjectedLine": {
         const line = object as ProjectedLine;
-        program.setUniform("Resolution", [this.canvas.width, this.canvas.height]);
+        program.setUniform("Resolution", [
+          this.canvas.width,
+          this.canvas.height,
+        ]);
         program.setUniform("LineColor", line.color);
         program.setUniform("LineWidth", line.width);
         program.setUniform("TaperOffset", line.taperOffset);
