@@ -89,7 +89,7 @@ export class WebGLRenderer extends Renderer {
       program.setUniform(name, value);
     }
 
-    // Draw the object
+    // TODO: Move 'type' property to RenderableObject
     const type = this.gl.TRIANGLES;
     const index = object.geometry.indexData;
     if (index.length) {
