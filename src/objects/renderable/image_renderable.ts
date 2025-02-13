@@ -5,11 +5,10 @@ import { MAX_CHANNELS } from "../../constants";
 import { ChannelProps } from "../textures/channel";
 import { DataTexture2D } from "../textures/data_texture_2d";
 
-
 type SingleUniformValues = {
-  "Color": [number, number, number];
-  "ValueOffset": number;
-  "ValueScale": number;
+  Color: [number, number, number];
+  ValueOffset: number;
+  ValueScale: number;
 };
 
 type ArrayUniformValues = {
@@ -78,9 +77,9 @@ export class ImageRenderable extends RenderableObject {
       const dataTexture = texture as DataTexture2D;
       const { color, contrastLimits } = dataTexture.channel;
       return {
-        "Color": color,
-        "ValueOffset": -contrastLimits[0],
-        "ValueScale": 1 / (contrastLimits[1] - contrastLimits[0]),
+        Color: color,
+        ValueOffset: -contrastLimits[0],
+        ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
       };
     } else {
       // Texture2DArray case
@@ -95,7 +94,9 @@ export class ImageRenderable extends RenderableObject {
           visible.push(channel.visible);
           color.push(...channel.color);
           valueOffset.push(-channel.contrastLimits[0]);
-          valueScale.push(1 / (channel.contrastLimits[1] - channel.contrastLimits[0]));
+          valueScale.push(
+            1 / (channel.contrastLimits[1] - channel.contrastLimits[0])
+          );
         } else {
           visible.push(false);
           color.push(0, 0, 0);
