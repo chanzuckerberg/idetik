@@ -21,7 +21,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.9.0",
     "jsdom": "^24.1.1",
-    "playwright": "^1.46.1",
+    "playwright": "1.46.0",
     "prettier": "^3.3.2",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.1.0",
