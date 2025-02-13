@@ -10,6 +10,7 @@ import { ProjectedLine } from "objects/renderable/projected_line";
 import { mat4 } from "gl-matrix";
 import { DataTexture2D } from "objects/textures/data_texture_2d";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { MAX_CHANNELS } from "core/constants";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -106,15 +107,25 @@ export class WebGLRenderer extends Renderer {
           const color = new Array<number>();
           const valueOffset = new Array<number>();
           const valueScale = new Array<number>();
-          for (const channel of texture2DArray.channels) {
-            const contrastLimits = channel.contrastLimits;
-            visible.push(channel.visible);
-            color.push(...channel.color);
-            valueOffset.push(-contrastLimits[0]);
-            valueScale.push(1 / (contrastLimits[1] - contrastLimits[0]));
+
+          // Fill arrays up to MAX_CHANNELS then pad with default values
+          for (let i = 0; i < MAX_CHANNELS; i++) {
+            if (i < texture2DArray.channels.length) {
+              const channel = texture2DArray.channels[i];
+              const contrastLimits = channel.contrastLimits;
+              visible.push(channel.visible);
+              color.push(...channel.color);
+              valueOffset.push(-contrastLimits[0]);
+              valueScale.push(1 / (contrastLimits[1] - contrastLimits[0]));
+            } else {
+              // Pad remaining slots with default values
+              visible.push(false);
+              color.push(0, 0, 0);
+              valueOffset.push(0);
+              valueScale.push(1);
+            }
           }
-          // TODO: we should be careful of uninitialized values here, though it appears they
-          // are zero-initialized in the shaders.
+
           program.setUniform("Visible[0]", visible);
           program.setUniform("Color[0]", color);
           program.setUniform("ValueOffset[0]", valueOffset);

@@ -81,7 +81,6 @@ export class OmeZarrImageLoader {
       kind: "array",
       attrs: false,
     });
-    console.debug("opened array ", array);
 
     let options = {};
     if (scheduler !== undefined) {
