@@ -75,7 +75,6 @@ export class WebGLRenderer extends Renderer {
 
     this.bindings_.bind(object);
 
-    // Bind texture if present
     if (object.textures.length) {
       // We temporarily assume this array holds a single texture. We'll need to
       // modify this logic to support multiple textures in the future.
