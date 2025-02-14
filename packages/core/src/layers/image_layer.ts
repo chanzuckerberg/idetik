@@ -2,7 +2,7 @@ import { Layer } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { makeImageMesh, makeImageTextureArray } from "layers/image_utils";
+import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
 
 type ImageLayerProps = {
@@ -62,8 +62,12 @@ export class ImageLayer extends Layer {
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
     this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
-    const mesh = makeImageMesh(chunk, this.texture_);
-    this.addObject(mesh);
+    const imageRenderable = makeImageRenderable(
+      chunk,
+      this.texture_,
+      this.channelProps_
+    );
+    this.addObject(imageRenderable);
     this.setState("ready");
   }
 }

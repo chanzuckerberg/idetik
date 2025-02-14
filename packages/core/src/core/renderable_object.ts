@@ -41,4 +41,12 @@ export abstract class RenderableObject extends Node {
   protected set programName(programName: Shader) {
     this.programName_ = programName;
   }
+
+  /**
+   * Get uniforms for shader program. Override in derived classes that need custom uniforms.
+   * @returns Object containing uniform name-value pairs
+   */
+  public getUniforms(): Record<string, unknown> {
+    return {}; // Default implementation returns no uniforms
+  }
 }
