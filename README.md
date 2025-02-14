@@ -8,15 +8,20 @@ A layer-based library for interactive visualization of large datasets.
 
    `npm install`
 
-   Re-run this command any time the dependencies listed in [package.json](package.json) change, such as after checking out a different revision or pulling changes.
+   Re-run this command any time the dependencies listed in [package.json](package.json) change, such
+   as after checking out a different revision or pulling changes.
 
-2. To run a local server for development purposes:
+2. To run a local server for development purposes (from the repo root):
 
-   `npm run dev`
+   `npm run examples`
 
    This will start a server on <http://localhost:5173>.
 
-3. To run the unit test suite on Chrome:
+   You can also run this from the core workspace with:
+
+   `npm run dev`
+
+3. To run the unit test suite on Chrome, from the core workspace run:
 
    `npm test` or `npm run coverage` to generate a coverage report.
 
@@ -29,21 +34,21 @@ A layer-based library for interactive visualization of large datasets.
 
 ## Ultrack active learning prototype
 
-The `ultrack-prototype` directory contains our first driving example of an active learning application.
+The `ultrack-prototype` workspace contains our first driving example of an active learning application.
 It is a prototype for internal demos and testing, but not for production or public distribution.
 
-You can run it for development purposes by passing the `prototype` mode to vite:
+You can run it for development purposes by passing using `ultrack` script from the repo root:
 
 ```shell
-npm run dev -- --mode prototype
+npm run ultrack
 ```
 
 The prototype will try to connect to a backend server running on <http://localhost:8000>. You can
 mock this by setting `VITE_MOCK_ULTRACK=true` in your environment. This can be set in a
-`ultrack-prototype/frontent/.env` file, or when running the dev server:
+`ultrack-prototype/frontend/.env` file, or when running the dev server:
 
 ```shell
-VITE_MOCK_ULTRACK=true npm run dev -- --mode prototype
+VITE_MOCK_ULTRACK=true npm run ultrack
 ```
 
 (Note: this is likely to change in the future)

@@ -55,7 +55,6 @@ export class PromiseScheduler {
   }
 
   shutdown() {
-    console.debug(`Cancelling ${this.pending_.length} tasks.`);
     this.abortController_.abort(new AbortError("shutdown"));
   }
 

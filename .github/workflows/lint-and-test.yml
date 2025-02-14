@@ -29,12 +29,12 @@ jobs:
           npx playwright install chromium
 
       - name: Compile TypeScript
-        run: npm run compile
+        run: npm run compile --workspace=@idetik/core
 
       - name: Lint
         run: |
-          npm run lint
-          npm run format-check
+          npm run lint --workspace=@idetik/core
+          npm run format-check --workspace=@idetik/core
 
       - name: Run tests with coverage
-        run: npm run test-with-coverage
+        run: npm run test-with-coverage --workspace=@idetik/core
