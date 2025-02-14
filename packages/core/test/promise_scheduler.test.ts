@@ -88,7 +88,7 @@ test("cancel one pending promise", async () => {
 test("submit one promise after shutdown", async () => {
   const executor = new PromiseScheduler(1);
   executor.shutdown();
-  expect(executor.submit(async () => 1)).rejects.toThrow(
+  await expect(executor.submit(async () => 1)).rejects.toThrow(
     new AbortError("shutdown")
   );
   expect(executor.numPending).toEqual(0);

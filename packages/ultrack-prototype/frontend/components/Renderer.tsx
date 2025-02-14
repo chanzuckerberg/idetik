@@ -6,13 +6,14 @@ import {
   OrthographicCamera,
   TracksLayer,
   WebGLRenderer,
-} from "@";
+  NullControls,
+  PanZoomControls,
+} from "@idetik/core";
 
 // TODO: imageURL should come from the server (probably with each task)
 import { Task } from "../lib/tasks";
 import { Box } from "@mui/material";
 import { LoadingIndicator } from "@czi-sds/components";
-import { NullControls, PanZoomControls } from "@/objects/cameras/controls";
 
 const canvasId = "canvas";
 

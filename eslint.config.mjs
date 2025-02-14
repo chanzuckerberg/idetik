@@ -39,5 +39,5 @@ export default [
       { allowConstantExport: true },
     ],
   }},
-  {ignores: ["node_modules", "dist", "coverage"]},
+  {ignores: ["node_modules", "coverage", "**/dist"]},
 ];
