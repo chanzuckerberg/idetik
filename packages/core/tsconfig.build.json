@@ -7,7 +7,6 @@
     "noEmit": false,
     "declaration": true,
     "declarationMap": true,
-    "outDir": "dist",
     "emitDeclarationOnly": true
   },
   "exclude": ["test", "examples"]

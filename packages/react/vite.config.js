@@ -2,7 +2,6 @@
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import eslint from 'vite-plugin-eslint';
-import glsl from 'vite-plugin-glsl';
 import path from 'path';
 import react from "@vitejs/plugin-react";
 
@@ -12,32 +11,19 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 const _dirname = dirname(fileURLToPath(import.meta.url));
 
-const plugins = [tsconfigPaths(), eslint(), glsl(), react()];
+const plugins = [tsconfigPaths(), eslint(), react()];
 
-const MODES = ['development', 'production', 'test'];
 
-function modeToRoot(mode) {
-  if (mode === 'development') {
-    return 'examples';
-  } else if (!MODES.includes(mode)) {
-    console.error(`Unrecognized mode ${mode}`);
-  }
-  return undefined;
-}
-
-export default defineConfig(({ mode }) => {
+export default defineConfig(() => {
   return {
     plugins,
-    root: modeToRoot(mode),
+    root: '.',
     publicDir: path.resolve(_dirname, 'public'),
     build: {
       outDir: 'dist',
-      // TODO: set these by build mode or something
-      sourcemap: true,
-      minify: false,
       lib: {
         entry: path.resolve(_dirname, 'src/index.ts'),
-        name: 'idetik-core',
+        name: 'idetik-react',
         fileName: "index",
       }
     },
@@ -50,21 +36,7 @@ export default defineConfig(({ mode }) => {
       watch: {
         include: [
           path.resolve(_dirname, 'src/**'),
-          path.resolve(_dirname, 'examples/**'),
         ],
-      },
-    },
-    test: {
-      environment: "jsdom",
-      browser: {
-        enabled: true,
-        provider: "playwright",
-        name: "chromium", // browser name is required
-        headless: true,
-      },
-      coverage: {
-        provider: "istanbul",
-        include: ["src/**"],
       },
     },
   }
