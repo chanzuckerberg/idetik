@@ -10,10 +10,8 @@ import {
   loadOmeZarrWell,
 } from "@idetik/core";
 
+// TODO: needs to be unique so we can have more than one on the page
 const canvasId = "canvas";
-
-const err: number = "wat";
-console.log(err);
 
 // TODO: useRef for some of these objects
 const camera = new OrthographicCamera(0, 825, 0, 500);
@@ -41,16 +39,18 @@ const region = [
   { dimension: "c", index: { start: 0, stop: 3 } },
   { dimension: "z", index: 0 },
 ];
+
+// colors and limits come from the OME-Zarr metadata
+// http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0/.zattrs
+// ...but they look bad? especially the third channel is very bright and yellow
 const channelProps = [
-  { color: [1, 0, 1], contrastLimits: [100, 500] },
-  { color: [0, 1, 1], contrastLimits: [100, 500] },
-  { color: [1, 1, 0], contrastLimits: [100, 500] },
+  { color: [0, 1, 1], contrastLimits: [0, 800] },
+  { color: [1, 0, 1], contrastLimits: [0, 250] },
+  { color: [1, 1, 0], contrastLimits: [0, 800], visible: false },
 ];
-console.log(source);
-console.log(region);
-console.log(channelProps);
 // TODO: why does TypeScript allow the wrong args here?
-const layer = new ImageLayer(123);
+// const layer = new ImageLayer(123);
+const layer = new ImageLayer({ source, region, channelProps });
 layerManager.add(layer);
 
 export default function Renderer() {
