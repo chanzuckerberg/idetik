@@ -5,7 +5,6 @@ import { WebGLShaderProgram } from "./webgl_shader_program";
 import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
-import { ProjectedLine } from "objects/renderable/projected_line";
 
 import { mat4 } from "gl-matrix";
 
@@ -45,50 +44,44 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(object: RenderableObject) {
     const program = this.getShaderProgram(object.programName).use();
 
-    // Set common uniforms
     const modelView = mat4.multiply(
       mat4.create(),
       this.activeCamera.transform.inverse,
       object.transform.matrix
     );
-    program.setUniform("ModelView", modelView);
     const projection = mat4.multiply(
       mat4.create(),
       axisDirection,
       this.activeCamera.projectionMatrix
     );
-    program.setUniform("Projection", projection);
+    const resolution = [this.canvas.width, this.canvas.height];
 
-    // Handle special cases that need renderer info
-    switch (object.type) {
-      case "ProjectedLine": {
-        const line = object as ProjectedLine;
-        program.setUniform("Resolution", [
-          this.canvas.width,
-          this.canvas.height,
-        ]);
-        program.setUniform("LineColor", line.color);
-        program.setUniform("LineWidth", line.width);
-        program.setUniform("TaperOffset", line.taperOffset);
-        program.setUniform("TaperPower", line.taperPower);
-        break;
+    const objectUniforms = object.getUniforms();
+    for (const uniformName of program.uniformNames) {
+      switch (uniformName) {
+        // Set common uniforms with renderer data
+        case "ModelView":
+          program.setUniform(uniformName, modelView);
+          break;
+        case "Projection":
+          program.setUniform(uniformName, projection);
+          break;
+        case "Resolution":
+          program.setUniform(uniformName, resolution);
+          break;
+        default:
+          // Get uniforms from the renderable object
+          if (uniformName in objectUniforms) {
+            program.setUniform(uniformName, objectUniforms[uniformName]);
+          }
       }
     }
 
     this.bindings_.bind(object);
 
-    if (object.textures.length) {
-      // We temporarily assume this array holds a single texture. We'll need to
-      // modify this logic to support multiple textures in the future.
-      const texture = object.textures[0];
+    object.textures.forEach((texture) => {
       this.textures_.bind(texture);
-    }
-
-    // Get uniforms from the renderable object
-    const uniforms = object.getUniforms();
-    for (const [name, value] of Object.entries(uniforms)) {
-      program.setUniform(name, value);
-    }
+    });
 
     // TODO: Move 'type' property to RenderableObject
     const type = this.gl.TRIANGLES;

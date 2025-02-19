@@ -35,15 +35,7 @@ export function makeImageRenderable(
   channelProps?: ChannelProps[]
 ): ImageRenderable {
   const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-  const imageRenderable = new ImageRenderable(
-    geometry,
-    texture,
-    channelProps?.map((props) => ({
-      visible: props.visible ?? false,
-      color: props.color,
-      contrastLimits: props.contrastLimits,
-    })) || []
-  );
+  const imageRenderable = new ImageRenderable(geometry, texture, channelProps);
   imageRenderable.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
   imageRenderable.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
   return imageRenderable;

@@ -151,6 +151,10 @@ export class WebGLShaderProgram {
     }
     this.shaders_ = {};
   }
+
+  public get uniformNames(): string[] {
+    return Array.from(this.uniformInfo_.keys());
+  }
 }
 
 const SAMPLER_TYPES: ReadonlySet<GLenum> = new Set<GLenum>([

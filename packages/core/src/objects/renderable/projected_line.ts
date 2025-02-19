@@ -67,4 +67,13 @@ export class ProjectedLine extends RenderableObject {
   public set taperPower(value: number) {
     this.taperPower_ = value;
   }
+
+  public override getUniforms() {
+    return {
+      LineColor: this.color,
+      LineWidth: this.width,
+      TaperOffset: this.taperOffset,
+      TaperPower: this.taperPower,
+    };
+  }
 }
