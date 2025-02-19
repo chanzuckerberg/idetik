@@ -4,6 +4,7 @@ import { ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
+import { ImageRenderable } from "objects/renderable/image_renderable";
 
 type ImageLayerProps = {
   source: ImageChunkSource;
@@ -60,7 +61,7 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
-    this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
+    this.texture_ = makeImageTextureArray(chunk);
     this.renderable_ = makeImageRenderable(
       chunk,
       this.texture_,
