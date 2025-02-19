@@ -44,8 +44,8 @@ const region = [
 // http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0/.zattrs
 // ...but they look bad? especially the third channel is very bright and yellow
 const channelProps = [
-  { color: [0, 1, 1], contrastLimits: [0, 800] },
-  { color: [1, 0, 1], contrastLimits: [0, 250] },
+  { color: [0, 1, 1], contrastLimits: [0, 800], visible: true  },
+  { color: [1, 0, 1], contrastLimits: [0, 250], visible: true  },
   { color: [1, 1, 0], contrastLimits: [0, 800], visible: false },
 ];
 // TODO: why does TypeScript allow the wrong args here?
