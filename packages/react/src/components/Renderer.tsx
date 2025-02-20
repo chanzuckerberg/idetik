@@ -6,8 +6,8 @@ import {
   OrthographicCamera,
   PanZoomControls,
   WebGLRenderer,
-  loadOmeZarrPlate,
-  loadOmeZarrWell,
+  //loadOmeZarrPlate,
+  //loadOmeZarrWell,
 } from "@idetik/core";
 
 // TODO: needs to be unique so we can have more than one on the page
@@ -20,19 +20,20 @@ const layerManager = new LayerManager();
 // TODO: use props to pass in most of this config
 const plateUrl =
   "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
-const plate = await loadOmeZarrPlate(plateUrl);
-//@ts-expect-error TODO: export more types?
-const wellPaths = plate.plate?.wells.map((well) => well.path);
-if (!wellPaths) {
-  throw new Error("No wells found in plate");
-}
-const well = await loadOmeZarrWell(plateUrl, wellPaths[0]);
-//@ts-expect-error TODO: export more types?
-const imagePaths = well.well?.images.map((image) => image.path);
-if (!imagePaths) {
-  throw new Error("No images found in well");
-}
-const imageUrl = plateUrl + "/" + wellPaths[0] + "/" + imagePaths[0];
+// const plate = await loadOmeZarrPlate(plateUrl);
+// //@ts-expect-error TODO: export more types?
+// const wellPaths = plate.plate?.wells.map((well) => well.path);
+// if (!wellPaths) {
+//   throw new Error("No wells found in plate");
+// }
+// const well = await loadOmeZarrWell(plateUrl, wellPaths[0]);
+// //@ts-expect-error TODO: export more types?
+// const imagePaths = well.well?.images.map((image) => image.path);
+// if (!imagePaths) {
+//   throw new Error("No images found in well");
+// }
+// const imageUrl = plateUrl + "/" + wellPaths[0] + "/" + imagePaths[0];
+const imageUrl = plateUrl + "/B/03/0";
 console.debug(`Loading image from ${imageUrl}`);
 const source = new OmeZarrImageSource(imageUrl);
 const region = [
