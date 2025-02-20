@@ -4,7 +4,8 @@ import { Texture } from "objects/textures/texture";
 import {
   Channel,
   ChannelProps,
-  validateChannelProps,
+  validateChannel,
+  validateChannels,
 } from "objects/textures/channel";
 
 type SingleUniformValues = {
@@ -38,7 +39,7 @@ export class ImageRenderable extends RenderableObject {
       this.addTexture(texture);
     }
 
-    this.channels_ = validateChannelProps(texture, channels);
+    this.channels_ = validateChannels(texture, channels);
   }
 
   public get type() {
@@ -51,7 +52,7 @@ export class ImageRenderable extends RenderableObject {
   }
 
   public setChannelProps(channels: ChannelProps[]): void {
-    this.channels_ = validateChannelProps(this.textures[0], channels);
+    this.channels_ = validateChannels(this.textures[0], channels);
   }
 
   // TODO: validate the properties when setting this way?
@@ -73,7 +74,8 @@ export class ImageRenderable extends RenderableObject {
     }
 
     if (texture.type === "DataTexture2D") {
-      const { color, contrastLimits } = this.channels_[0];
+      const { color, contrastLimits } =
+        this.channels_[0] ?? validateChannel(texture, {});
       return {
         Color: color,
         ValueOffset: -contrastLimits[0],
