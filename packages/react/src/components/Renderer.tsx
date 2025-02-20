@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   ImageLayer,
   OmeZarrImageSource,
@@ -55,16 +55,20 @@ const layer = new ImageLayer({ source, region, channelProps });
 layerManager.add(layer);
 
 export default function Renderer() {
+  const renderer = useRef<WebGLRenderer | null>(null);
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
   useEffect(() => {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
-    const renderer = new WebGLRenderer(`#${canvasId}`);
-    const controls = new PanZoomControls(camera, camera.position);
-    renderer.setControls(controls);
+    if (renderer.current === null) {
+      renderer.current = new WebGLRenderer(`#${canvasId}`);
+      const controls = new PanZoomControls(camera, camera.position);
+      renderer.current.setControls(controls);
+    }
+    console.debug("Renderer::mount: setting controls");
     function animate() {
-      renderer.render(layerManager, camera);
+      renderer.current?.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
     }
     animate();
