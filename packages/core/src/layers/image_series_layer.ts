@@ -5,6 +5,7 @@ import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "data/promise_scheduler";
 import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
+import { ImageRenderable } from "objects/renderable/image_renderable";
 
 type ImageSeriesLayerProps = {
   source: ImageChunkSource;
@@ -23,6 +24,7 @@ export class ImageSeriesLayer extends Layer {
   private dataChunks_: ImageChunk[] = [];
   private scheduler_: PromiseScheduler = new PromiseScheduler(16);
   private channelProps_?: ChannelProps[];
+  private renderable_?: ImageRenderable;
 
   constructor({
     source,
@@ -58,9 +60,7 @@ export class ImageSeriesLayer extends Layer {
 
   public setChannelProps(channelProps: ChannelProps[]): void {
     this.channelProps_ = channelProps;
-    if (this.texture_ !== null) {
-      this.texture_.channels = channelProps;
-    }
+    this.renderable_?.setChannelProps(channelProps);
   }
 
   public update(): void {
@@ -92,13 +92,13 @@ export class ImageSeriesLayer extends Layer {
     }
     const chunk = this.dataChunks_[chunkIndex];
     if (this.texture_ === null) {
-      this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
-      const imageRenderable = makeImageRenderable(
+      this.texture_ = makeImageTextureArray(chunk);
+      this.renderable_ = makeImageRenderable(
         chunk,
         this.texture_,
         this.channelProps_
       );
-      this.addObject(imageRenderable);
+      this.addObject(this.renderable_);
     } else {
       this.texture_.data = chunk.data;
     }

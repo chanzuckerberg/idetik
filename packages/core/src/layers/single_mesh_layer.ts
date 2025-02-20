@@ -1,5 +1,5 @@
 import { Layer } from "core/layer";
-import { Mesh } from "objects/renderable/mesh";
+import { ImageRenderable } from "objects/renderable/image_renderable";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { Texture2D } from "objects/textures/texture_2d";
 
@@ -19,7 +19,7 @@ export class SingleMeshLayer extends Layer {
         1,
         1
       );
-      const mesh = new Mesh(plane, this.texture_);
+      const mesh = new ImageRenderable(plane, this.texture_);
       this.addObject(mesh);
       this.setState("ready");
     }

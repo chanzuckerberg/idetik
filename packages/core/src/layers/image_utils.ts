@@ -6,26 +6,17 @@ import { PlaneGeometry } from "objects/geometry/plane_geometry";
 import { ChannelProps } from "objects/textures/channel";
 import { ImageRenderable } from "objects/renderable/image_renderable";
 
-export function makeImageTexture(chunk: ImageChunk, channel?: ChannelProps) {
+export function makeImageTexture(chunk: ImageChunk) {
   const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);
   texture.unpackRowLength = chunk.rowStride;
   texture.unpackAlignment = chunk.rowAlignmentBytes;
-  if (channel) {
-    texture.channel = channel;
-  }
   return texture;
 }
 
-export function makeImageTextureArray(
-  chunk: ImageChunk,
-  channelProps?: ChannelProps[]
-) {
+export function makeImageTextureArray(chunk: ImageChunk) {
   const texture = new Texture2DArray(chunk.data, chunk.shape.x, chunk.shape.y);
   texture.unpackRowLength = chunk.rowStride;
   texture.unpackAlignment = chunk.rowAlignmentBytes;
-  if (channelProps) {
-    texture.channels = channelProps;
-  }
   return texture;
 }
 
@@ -35,15 +26,7 @@ export function makeImageRenderable(
   channelProps?: ChannelProps[]
 ): ImageRenderable {
   const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-  const imageRenderable = new ImageRenderable(
-    geometry,
-    texture,
-    channelProps?.map((props) => ({
-      visible: props.visible ?? false,
-      color: props.color,
-      contrastLimits: props.contrastLimits,
-    })) || []
-  );
+  const imageRenderable = new ImageRenderable(geometry, texture, channelProps);
   imageRenderable.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
   imageRenderable.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
   return imageRenderable;

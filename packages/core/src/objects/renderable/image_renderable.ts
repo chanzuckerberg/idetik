@@ -1,9 +1,12 @@
 import { RenderableObject } from "core/renderable_object";
 import { Geometry } from "core/geometry";
 import { Texture } from "objects/textures/texture";
-import { MAX_CHANNELS } from "core/constants";
-import { ChannelProps } from "objects/textures/channel";
-import { DataTexture2D } from "objects/textures/data_texture_2d";
+import {
+  Channel,
+  ChannelProps,
+  validateChannel,
+  validateChannels,
+} from "objects/textures/channel";
 
 type SingleUniformValues = {
   Color: [number, number, number];
@@ -19,7 +22,7 @@ type ArrayUniformValues = {
 };
 
 export class ImageRenderable extends RenderableObject {
-  private channels_: Required<ChannelProps>[];
+  private channels_: Required<Channel>[];
 
   constructor(
     geometry: Geometry | null,
@@ -36,25 +39,7 @@ export class ImageRenderable extends RenderableObject {
       this.addTexture(texture);
     }
 
-    if (channels.length > MAX_CHANNELS) {
-      throw new Error(`Maximum number of channels is ${MAX_CHANNELS}`);
-    }
-
-    this.channels_ = Array.from({ length: MAX_CHANNELS }, (_, i) => {
-      if (i < channels.length) {
-        const channel = channels[i];
-        return {
-          visible: channel.visible ?? false,
-          color: channel.color ?? [1, 1, 1],
-          contrastLimits: channel.contrastLimits ?? [0, 255],
-        };
-      }
-      return {
-        visible: false, // Hidden
-        color: [0, 0, 0], // Black
-        contrastLimits: [0, 1], // No contrast adjustment
-      };
-    });
+    this.channels_ = validateChannels(texture, channels);
   }
 
   public get type() {
@@ -66,6 +51,11 @@ export class ImageRenderable extends RenderableObject {
     this.setProgramName();
   }
 
+  public setChannelProps(channels: ChannelProps[]): void {
+    this.channels_ = validateChannels(this.textures[0], channels);
+  }
+
+  // TODO: validate the properties when setting this way?
   public setChannelProperty<K extends keyof ChannelProps>(
     channelIndex: number,
     property: K,
@@ -84,8 +74,8 @@ export class ImageRenderable extends RenderableObject {
     }
 
     if (texture.type === "DataTexture2D") {
-      const dataTexture = texture as DataTexture2D;
-      const { color, contrastLimits } = dataTexture.channel;
+      const { color, contrastLimits } =
+        this.channels_[0] ?? validateChannel(texture, {});
       return {
         Color: color,
         ValueOffset: -contrastLimits[0],
@@ -121,6 +111,8 @@ export class ImageRenderable extends RenderableObject {
     const texture = this.textures[0];
     if (!texture) {
       throw new Error("un-textured image not implemented");
+    } else if (texture.type == "Texture2D") {
+      this.programName = "mesh";
     } else if (texture.type == "DataTexture2D") {
       this.programName =
         texture.dataType == "float" ? "floatImage" : "uintImage";

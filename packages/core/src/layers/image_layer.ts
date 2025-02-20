@@ -4,6 +4,7 @@ import { ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
+import { ImageRenderable } from "objects/renderable/image_renderable";
 
 type ImageLayerProps = {
   source: ImageChunkSource;
@@ -19,6 +20,7 @@ export class ImageLayer extends Layer {
   private readonly region_: Region;
   private channelProps_?: ChannelProps[];
   private texture_?: Texture2DArray;
+  private renderable_?: ImageRenderable;
 
   constructor({ source, region, channelProps }: ImageLayerProps) {
     super();
@@ -49,9 +51,7 @@ export class ImageLayer extends Layer {
 
   public setChannelProps(channelProps: ChannelProps[]): void {
     this.channelProps_ = channelProps;
-    if (this.texture_ !== undefined) {
-      this.texture_.channels = channelProps;
-    }
+    this.renderable_?.setChannelProps(channelProps);
   }
 
   private async load(region: Region) {
@@ -61,13 +61,13 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
-    this.texture_ = makeImageTextureArray(chunk, this.channelProps_);
-    const imageRenderable = makeImageRenderable(
+    this.texture_ = makeImageTextureArray(chunk);
+    this.renderable_ = makeImageRenderable(
       chunk,
       this.texture_,
       this.channelProps_
     );
-    this.addObject(imageRenderable);
+    this.addObject(this.renderable_);
     this.setState("ready");
   }
 }
