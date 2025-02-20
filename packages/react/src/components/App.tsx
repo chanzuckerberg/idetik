@@ -1,8 +1,12 @@
 import { Box } from "@mui/system";
 import Renderer from "./Renderer";
-// import { useEffect, useState } from "react";
+import { ChannelControlsList } from "./controls/ChannelControlsList";
+import { useState } from "react";
+import { ImageLayer } from "@idetik/core";
 
 export default function App() {
+  const [imageLayer, setImageLayer] = useState<ImageLayer | null>(null);
+
   return (
     <Box
       sx={{
@@ -24,7 +28,10 @@ export default function App() {
           gap: "1em",
         }}
       >
-        <Renderer />
+        <Renderer onLayerReady={setImageLayer} />
+      </Box>
+      <Box sx={{ width: 300 }}>
+        {imageLayer && <ChannelControlsList layer={imageLayer} />}
       </Box>
     </Box>
   );
