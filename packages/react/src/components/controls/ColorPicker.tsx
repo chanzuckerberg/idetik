@@ -6,7 +6,6 @@ interface ColorPickerProps {
 }
 
 export function ColorPicker({ color, onChange }: ColorPickerProps) {
-  console.log("ColorPicker render", { color });
   // Convert RGB [0-1] values to hex string
   const rgbToHex = (rgb: [number, number, number]) => {
     const toHex = (n: number) => {

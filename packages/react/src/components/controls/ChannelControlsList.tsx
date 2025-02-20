@@ -27,7 +27,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
 
     // For visibility updates, explicitly toggle the current value
     if ('visible' in updates) {
-      const currentVisible = channelProps[index].visible ?? false;
+      const currentVisible = channelProps[index].visible
       updatedChannelProps[index] = {
         ...channelProps[index],
         visible: !currentVisible
