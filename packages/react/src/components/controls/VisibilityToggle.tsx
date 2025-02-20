@@ -9,7 +9,6 @@ interface VisibilityToggleProps {
 export function VisibilityToggle({ visible, onChange }: VisibilityToggleProps) {
   return (
     <IconButton onClick={() => {
-      console.log("VisibilityToggle click, toggling from:", visible, "to:", !visible);
       onChange(!visible);
     }}>
       {visible ? <Visibility /> : <VisibilityOff />}

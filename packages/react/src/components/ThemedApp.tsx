@@ -8,7 +8,6 @@ import App from "./App";
 
 // Create a wrapper component to handle theme and useMediaQuery
 export default function ThemedApp() {
-  console.debug("ThemedApp");
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const theme = prefersDarkMode ? Theme("dark") : Theme("light");
   return (

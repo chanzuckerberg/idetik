@@ -53,14 +53,13 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
         <AccordionDetails>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {channelProps.map((props: ChannelProps, index: number) => {
-              const isVisible = props.visible;
               return (
                 <ChannelControl
                   key={index}
                   channelIndex={index}
                   color={props.color}
                   contrastLimits={props.contrastLimits}
-                  visible={isVisible}
+                  visible={props.visible}
                   onVisibilityChange={(visible) => updateChannel(index, { visible })}
                   onColorChange={(color) => updateChannel(index, { color })}
                   onContrastChange={(contrastLimits) => updateChannel(index, { contrastLimits })}

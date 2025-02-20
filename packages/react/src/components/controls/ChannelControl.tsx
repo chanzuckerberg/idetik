@@ -14,7 +14,6 @@ interface ChannelControlProps {
 }
 
 export function ChannelControl({
-//   channelIndex,
   color,
   contrastLimits,
   visible,

@@ -50,10 +50,8 @@ export class ImageLayer extends Layer {
   }
 
   public setChannelProps(channelProps: ChannelProps[]): void {
-    console.log("ImageLayer.setChannelProps called with:", channelProps);
     this.channelProps_ = channelProps;
     this.renderable_?.setChannelProps(channelProps);
-    this.update();
   }
 
   private async load(region: Region) {
