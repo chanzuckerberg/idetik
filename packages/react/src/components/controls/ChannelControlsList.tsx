@@ -1,9 +1,7 @@
-import { Box, Paper, Typography, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Accordion, AccordionHeader, AccordionDetails } from "@czi-sds/components";
 import { ChannelControl } from "./ChannelControl";
 import { ImageLayer, ChannelProps } from "@idetik/core";
 import { useState, useEffect } from 'react';
-
 
 interface ChannelControlsListProps {
   layer: ImageLayer;
@@ -45,30 +43,35 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   };
 
   return (
-    <Paper sx={{ margin: 2 }}>
-      <Accordion defaultExpanded>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Channel Controls</Typography>
-        </AccordionSummary>
+    <div>
+      <Accordion defaultExpanded id="channel-controls">
+        <div className="flex w-full">
+          <AccordionHeader>
+            <div className="flex items-center">
+              <span className="m-sds-xl px-sds-xs py-sds-s">
+                Channel Controls
+              </span>
+            </div>
+          </AccordionHeader>
+        </div>
+
         <AccordionDetails>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {channelProps.map((props: ChannelProps, index: number) => {
-              return (
-                <ChannelControl
-                  key={index}
-                  channelIndex={index}
-                  color={props.color}
-                  contrastLimits={props.contrastLimits}
-                  visible={props.visible}
-                  onVisibilityChange={(visible) => updateChannel(index, { visible })}
-                  onColorChange={(color) => updateChannel(index, { color })}
-                  onContrastChange={(contrastLimits) => updateChannel(index, { contrastLimits })}
-                />
-              );
-            })}
-          </Box>
+          <div className="flex flex-col gap-sds-m p-sds-l">
+            {channelProps.map((props: ChannelProps, index: number) => (
+              <ChannelControl
+                key={index}
+                channelIndex={index}
+                color={props.color}
+                contrastLimits={props.contrastLimits}
+                visible={props.visible}
+                onVisibilityChange={(visible) => updateChannel(index, { visible })}
+                onColorChange={(color) => updateChannel(index, { color })}
+                onContrastChange={(contrastLimits) => updateChannel(index, { contrastLimits })}
+              />
+            ))}
+          </div>
         </AccordionDetails>
       </Accordion>
-    </Paper>
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-import { Box } from "@mui/material";
 import { VisibilityToggle } from "./VisibilityToggle";
 import { ColorPicker } from "./ColorPicker";
 import { ContrastSlider } from "./ContrastSlider";
@@ -22,10 +21,10 @@ export function ChannelControl({
   onColorChange,
 }: ChannelControlProps) {
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 2, padding: 1 }}>
+    <div className="flex items-center gap-2 bg-blue-500 p-4 rounded-lg border-4 border-red-500">
       <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
       <ColorPicker color={color} onChange={onColorChange} />
       <ContrastSlider value={contrastLimits} onChange={onContrastChange} />
-    </Box>
+    </div>
   );
 }

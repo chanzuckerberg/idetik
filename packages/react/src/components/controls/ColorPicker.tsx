@@ -1,5 +1,3 @@
-import { Box } from "@mui/material";
-
 interface ColorPickerProps {
   color: [number, number, number];
   onChange: (color: [number, number, number]) => void;
@@ -27,13 +25,13 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
   };
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center" }}>
+    <div className="flex items-center gap-2 bg-sds-gray-50 rounded p-2">
       <input
         type="color"
         value={rgbToHex(color)}
         onChange={(e) => onChange(hexToRgb(e.target.value))}
-        style={{ width: 40, height: 40 }}
+        className="w-8 h-8 rounded cursor-pointer hover:ring-2 hover:ring-sds-gray-200"
       />
-    </Box>
+    </div>
   );
 }

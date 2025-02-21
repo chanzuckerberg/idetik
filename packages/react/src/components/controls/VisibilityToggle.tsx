@@ -1,5 +1,4 @@
-import { IconButton } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { Button, Icon } from "@czi-sds/components";
 
 interface VisibilityToggleProps {
   visible: boolean;
@@ -8,10 +7,12 @@ interface VisibilityToggleProps {
 
 export function VisibilityToggle({ visible, onChange }: VisibilityToggleProps) {
   return (
-    <IconButton onClick={() => {
-      onChange(!visible);
-    }}>
-      {visible ? <Visibility /> : <VisibilityOff />}
-    </IconButton>
+    <Button
+      onClick={() => onChange(!visible)}
+      sdsStyle="minimal"
+      sdsType="secondary"
+    >
+      {visible ? <Icon sdsIcon="EyeOpen" sdsSize="s" /> : <Icon sdsIcon="EyeClosed" sdsSize="s" />}
+    </Button>
   );
 }
