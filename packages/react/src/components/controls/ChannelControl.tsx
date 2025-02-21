@@ -21,10 +21,14 @@ export function ChannelControl({
   onColorChange,
 }: ChannelControlProps) {
   return (
-    <div className="test-style m-8 p-8 bg-purple-500">
-      <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
-      <ColorPicker color={color} onChange={onColorChange} />
-      <ContrastSlider value={contrastLimits} onChange={onContrastChange} />
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
+        <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
+        <ColorPicker color={color} onChange={onColorChange} />
+      </div>
+      <div className="flex-1 ml-[15px] w-[80%]">
+        <ContrastSlider value={contrastLimits} onChange={onContrastChange} />
+      </div>
     </div>
   );
 }

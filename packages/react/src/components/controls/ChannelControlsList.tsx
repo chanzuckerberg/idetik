@@ -48,7 +48,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
         <div className="flex w-full">
           <AccordionHeader>
             <div className="flex items-center">
-              <span className="m-sds-xl px-sds-xs py-sds-s">
+              <span className="font-sds-body">
                 Channel Controls
               </span>
             </div>
@@ -56,7 +56,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
         </div>
 
         <AccordionDetails>
-          <div className="flex flex-col gap-sds-m p-sds-l">
+          <div className="flex flex-col gap-sds-m">
             {channelProps.map((props: ChannelProps, index: number) => (
               <ChannelControl
                 key={index}
