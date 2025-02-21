@@ -1,12 +1,11 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-/** @type {import('tailwindcss').Config} */
+// tailwind.config.js
 
 const sds = require("@czi-sds/components/dist/tailwind.json");
 
 module.exports = {
-    mode: "jit",
-    content: ["./src/**/*.{tsx,scss}"],
-    theme: {
-      extend: sds,
-    },
-  };
+  mode: "jit",
+  content: ["./src/**/*.{tsx,scss}"],
+  theme: {
+    extend: sds,
+  },
+};
