@@ -6,8 +6,6 @@ import {
   OrthographicCamera,
   PanZoomControls,
   WebGLRenderer,
-  //loadOmeZarrPlate,
-  //loadOmeZarrWell,
 } from "@idetik/core";
 
 // TODO: needs to be unique so we can have more than one on the page
@@ -20,19 +18,6 @@ const layerManager = new LayerManager();
 // TODO: use props to pass in most of this config
 const plateUrl =
   "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
-// const plate = await loadOmeZarrPlate(plateUrl);
-// //@ts-expect-error TODO: export more types?
-// const wellPaths = plate.plate?.wells.map((well) => well.path);
-// if (!wellPaths) {
-//   throw new Error("No wells found in plate");
-// }
-// const well = await loadOmeZarrWell(plateUrl, wellPaths[0]);
-// //@ts-expect-error TODO: export more types?
-// const imagePaths = well.well?.images.map((image) => image.path);
-// if (!imagePaths) {
-//   throw new Error("No images found in well");
-// }
-// const imageUrl = plateUrl + "/" + wellPaths[0] + "/" + imagePaths[0];
 const imageUrl = plateUrl + "/B/03/0";
 console.debug(`Loading image from ${imageUrl}`);
 const source = new OmeZarrImageSource(imageUrl);
@@ -43,14 +28,13 @@ const region = [
 
 // colors and limits come from the OME-Zarr metadata
 // http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0/.zattrs
-// ...but they look bad? especially the third channel is very bright and yellow
 const channelProps = [
-  { color: [0, 1, 1], contrastLimits: [0, 800] },
-  { color: [1, 0, 1], contrastLimits: [0, 250] },
-  { color: [1, 1, 0], contrastLimits: [0, 800], visible: false },
+  { color: [0, 1, 1], contrastLimits: [110, 800] },
+  { color: [1, 0, 1], contrastLimits: [110, 250] },
+  { color: [1, 1, 0], contrastLimits: [110, 800] },
 ];
-// TODO: why does TypeScript allow the wrong args here?
-// const layer = new ImageLayer(123);
+// TODO: typescript is not checking the types of the arguments to the constructor
+// see https://github.com/chanzuckerberg/imaging-active-learning/issues/174
 const layer = new ImageLayer({ source, region, channelProps });
 layerManager.add(layer);
 
