@@ -5,11 +5,12 @@ precision mediump float;
 layout (location = 0) out vec4 fragColor;
 
 uniform mediump usampler2DArray texture0;
-uniform bool Visible[3];
-uniform vec3 Color[3];
-uniform float ValueOffset[3];
-uniform float ValueScale[3];
+// Define a maximum number of channels
 #define MAX_CHANNELS 32
+uniform bool Visible[MAX_CHANNELS];
+uniform vec3 Color[MAX_CHANNELS];
+uniform float ValueOffset[MAX_CHANNELS];
+uniform float ValueScale[MAX_CHANNELS];
 
 in vec2 TexCoords;
 
