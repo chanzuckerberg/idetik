@@ -34,6 +34,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(_dirname, 'src'),
+      '@czi-sds/components': path.resolve(__dirname, '../../node_modules/@czi-sds/components'),
     },
   },
   server: {

@@ -1,4 +1,5 @@
 import { Accordion, AccordionHeader, AccordionDetails } from "@czi-sds/components";
+import classNames from 'classnames';
 import { ChannelControl } from "./ChannelControl";
 import { ImageLayer, ChannelProps } from "@idetik/core";
 import { useState, useEffect } from 'react';
@@ -6,6 +7,8 @@ import { useState, useEffect } from 'react';
 interface ChannelControlsListProps {
   layer: ImageLayer;
 }
+
+const cns = classNames;
 
 export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   // Keep a local copy of channelProps to trigger re-renders
@@ -45,10 +48,14 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   return (
     <div>
       <Accordion defaultExpanded id="channel-controls">
-        <div className="flex w-full">
+        <div className={cns('flex w-full')}>
           <AccordionHeader>
-            <div className="flex items-center">
-              <span className="font-sds-body">
+            <div className={cns('flex items-center')}>
+              <span className={cns(
+                'font-sds-body',
+                'text-light-sds-color-primitive-gray-900',
+                'dark:text-dark-sds-color-primitive-gray-900'
+              )}>
                 Channel Controls
               </span>
             </div>
@@ -56,7 +63,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
         </div>
 
         <AccordionDetails>
-          <div className="flex flex-col gap-sds-m">
+          <div className={cns('flex flex-col gap-sds-m')}>
             {channelProps.map((props: ChannelProps, index: number) => (
               <ChannelControl
                 key={index}
