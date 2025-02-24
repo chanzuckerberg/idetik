@@ -18,6 +18,8 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
     setChannelProps(layer.channelProps ?? []);
   }, [layer]);
 
+  console.log("channelProps: ", channelProps);
+
   const updateChannel = (index: number, updates: Partial<{
     visible: boolean;
     color: [number, number, number];
@@ -25,28 +27,10 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   }>) => {
     const updatedChannelProps = [...channelProps];
 
-    /**
-     * Special handling for visibility toggle:
-     * We need to explicitly check and flip the current visibility state because:
-     * 1. React's state batching can cause stale state when updating
-     * 2. Unlike color/contrast which receive new values, visibility needs to toggle existing state
-     * 3. Without explicit toggle, the state would get stuck after first update
-     *    because React wouldn't detect a state change
-     */
-    if ('visible' in updates) {
-      const currentVisible = channelProps[index].visible
-      updatedChannelProps[index] = {
-        ...channelProps[index],
-        visible: !currentVisible  // Explicitly flip the current value
-      };
-    } else {
-      // For other updates (color, contrast), we can directly use the new values
-      // since they don't depend on previous state
-      updatedChannelProps[index] = {
-        ...channelProps[index],
-        ...updates
-      };
-    }
+    updatedChannelProps[index] = {
+      ...channelProps[index],
+      ...updates
+    };
 
     // Update both the layer and local state to keep them in sync
     layer.setChannelProps(updatedChannelProps);

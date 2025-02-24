@@ -17,7 +17,7 @@ const layerManager = new LayerManager();
 
 // TODO: use props to pass in most of this config
 const plateUrl =
-  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
+  "http://localhost:8080/";
 const imageUrl = plateUrl + "/B/03/0";
 console.debug(`Loading image from ${imageUrl}`);
 const source = new OmeZarrImageSource(imageUrl);
@@ -55,7 +55,7 @@ export default function Renderer({ onLayerReady }: RendererProps) {
       renderer.current = new WebGLRenderer(`#${canvasId}`);
       const controls = new PanZoomControls(camera, camera.position);
       renderer.current.setControls(controls);
-      
+
       // Notify parent about the layer
       onLayerReady?.(layer);
     }
