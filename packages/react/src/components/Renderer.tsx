@@ -2,33 +2,35 @@ import { useEffect, useRef } from "react";
 import {
   LayerManager,
   OrthographicCamera,
+  CameraControls,
   PanZoomControls,
   NullControls,
   WebGLRenderer,
 } from "@idetik/core";
 
-type Controls = PanZoomControls | NullControls;
+type ControlType = "panzoom" | "none";
 
 export default function Renderer({
   layerManager,
   camera,
-  enableControls = true,
+  cameraControls = "panzoom",
   canvasId = "renderer",
 }: {
   layerManager: LayerManager,
   camera: OrthographicCamera,
-  // TODO: in the future this could be an enum for control type or something
-  enableControls: boolean,
+  cameraControls: ControlType,
   canvasId?: string,  // allows for multiple renderers on the page
 }) {
-  console.log("Renderer::", layerManager, camera, enableControls, canvasId);
   const renderer = useRef<WebGLRenderer | null>(null);
-  const controls = useRef<Controls>(() => new NullControls());
+  const controls = useRef<CameraControls>(() => new NullControls());
 
-  if (enableControls) {
-    controls.current = new PanZoomControls(camera, camera.position);
-  } else if (!enableControls && controls.current !== null) {
-    controls.current = new NullControls();
+  switch (cameraControls) {
+    case "panzoom":
+      controls.current = new PanZoomControls(camera, camera.position);
+      break;
+    case "none":
+      controls.current = new NullControls();
+      break;
   }
   renderer.current?.setControls(controls.current);
 
@@ -47,7 +49,6 @@ export default function Renderer({
       lastRequestId = requestAnimationFrame(animate);
     }
     animate();
-
     return () => {
       if (lastRequestId > 0) {
         console.debug(`Cancelling animation frame ${lastRequestId}`);

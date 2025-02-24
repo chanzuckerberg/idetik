@@ -31,5 +31,6 @@ export type { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
 export { WebGLRenderer } from "renderers/webgl_renderer";
 
 export { NullControls, PanZoomControls } from "objects/cameras/controls";
+export type { CameraControls } from "objects/cameras/controls";
 
 export type { ChannelProps } from "objects/textures/channel";

@@ -42,12 +42,10 @@ export default function OmeZarrImageViewer({
       const layer = new ImageLayer({ source, region, channelProps });
       layer.addStateChangeCallback(() => {
         if (layer.state === "ready") {
-          console.log("ImageLayer is ready", layer.extent);
           camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
-          camera.updateProjectionMatrix();
+          camera.update();
         }
       });
-
       setImageLayer(layer);
     };
     getLayer();
@@ -55,7 +53,7 @@ export default function OmeZarrImageViewer({
 
   useEffect(() => {
     if (imageLayer) {
-      // TODO: do we really want to clear any old layers?
+      // TODO: do we really want to clear the layer list? we only have one layer anyway...
       // TODO: dispose objects owned by old layers
       layerManager.layers.length = 0;
       layerManager.add(imageLayer);
@@ -66,7 +64,7 @@ export default function OmeZarrImageViewer({
     <Renderer
       layerManager={layerManager}
       camera={camera}
-      enableControls={true}
+      cameraControls="panzoom"
     />
   );
 }
