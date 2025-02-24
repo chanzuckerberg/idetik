@@ -15,6 +15,7 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "outDir": "dist",
 
     /* Linting */
     "strict": true,
