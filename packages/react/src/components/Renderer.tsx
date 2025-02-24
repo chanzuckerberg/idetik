@@ -16,7 +16,8 @@ const camera = new OrthographicCamera(0, 825, 0, 500);
 const layerManager = new LayerManager();
 
 // TODO: use props to pass in most of this config
-const plateUrl = "http://localhost:8080/";
+const plateUrl =
+  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
 const imageUrl = plateUrl + "/B/03/0";
 console.debug(`Loading image from ${imageUrl}`);
 const source = new OmeZarrImageSource(imageUrl);
