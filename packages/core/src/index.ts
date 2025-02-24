@@ -30,3 +30,5 @@ export type { Region } from "data/region";
 export { WebGLRenderer } from "renderers/webgl_renderer";
 
 export { NullControls, PanZoomControls } from "objects/cameras/controls";
+
+export type { ChannelProps } from "objects/textures/channel";

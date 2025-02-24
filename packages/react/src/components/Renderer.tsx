@@ -38,32 +38,40 @@ const channelProps = [
 const layer = new ImageLayer({ source, region, channelProps });
 layerManager.add(layer);
 
-export default function Renderer() {
+interface RendererProps {
+  onLayerReady?: (layer: ImageLayer) => void;
+}
+
+export default function Renderer({ onLayerReady }: RendererProps) {
   const renderer = useRef<WebGLRenderer | null>(null);
-  // Use the mount-effect so that the renderer can find the corresponding
-  // element by its ID.
+
   useEffect(() => {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
+
+    // Initialize renderer if not already done
     if (renderer.current === null) {
       renderer.current = new WebGLRenderer(`#${canvasId}`);
       const controls = new PanZoomControls(camera, camera.position);
       renderer.current.setControls(controls);
+
+      // Notify parent about the layer
+      onLayerReady?.(layer);
     }
-    console.debug("Renderer::mount: setting controls");
+
     function animate() {
       renderer.current?.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
     }
     animate();
+
     return () => {
-      // TODO: cleanup by disposing objects owned by the renderer and camera.
       if (lastRequestId > 0) {
         console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);
       }
     };
-  }, []);
+  }, [onLayerReady]);
 
   return <canvas id={canvasId} style={{ width: "100%", height: "100%" }} />;
 }
