@@ -1,0 +1,12 @@
+// This configuration is used to generate type definitions (.d.ts files) for the library.
+// It is used by the `tsc` command to generate the type definitions in the `dist` folder.
+// It has to run *after* the vite build, because otherwise the files just get removed.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true
+  },
+}

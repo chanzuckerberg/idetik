@@ -25,6 +25,7 @@ export {
   loadOmeZarrPlate,
   loadOmeZarrWell,
 } from "data/ome_zarr_hcs_metadata_loader";
+export type { Region } from "data/region";
 
 export { WebGLRenderer } from "renderers/webgl_renderer";
 

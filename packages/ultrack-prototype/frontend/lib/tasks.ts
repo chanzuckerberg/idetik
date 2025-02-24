@@ -1,7 +1,6 @@
 import { vec2, vec3 } from "gl-matrix";
 
-import { ImageSeriesLayer, OmeZarrImageSource, TracksLayer } from "@idetik/core";
-import { Region } from "@idetik/core/data/region";
+import { ImageSeriesLayer, OmeZarrImageSource, Region, TracksLayer } from "@idetik/core";
 
 type Track = {
   trackId: number;

@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
         entry: path.resolve(_dirname, 'src/index.ts'),
         name: 'idetik-core',
         fileName: "index",
-      }
+      },
     },
     resolve: {
       alias: {

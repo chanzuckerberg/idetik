@@ -47,7 +47,6 @@ export default function TaskItem({
       endIcon={
         <Icon
           sdsIcon={sdsIcon(answer)}
-          sdsType="static"
           sdsSize="s"
           color={sdsIconColor(syncStatus)}
         />

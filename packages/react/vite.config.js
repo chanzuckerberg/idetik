@@ -21,11 +21,23 @@ export default defineConfig(() => {
     publicDir: path.resolve(_dirname, 'public'),
     build: {
       outDir: 'dist',
+      // TODO: set these by build mode or something
+      sourcemap: true,
+      minify: false,
       lib: {
         entry: path.resolve(_dirname, 'src/index.ts'),
         name: 'idetik-react',
         fileName: "index",
-      }
+      },
+      rollupOptions: {
+        external: ['react', 'react-dom'],
+        output: {
+          globals: {
+            'react': 'React',
+            'react-dom': 'ReactDOM',
+          },
+        },
+      },
     },
     resolve: {
       alias: {

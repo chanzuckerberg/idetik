@@ -6,7 +6,7 @@ import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
 import { ImageRenderable } from "objects/renderable/image_renderable";
 
-type ImageLayerProps = {
+export type ImageLayerProps = {
   source: ImageChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
