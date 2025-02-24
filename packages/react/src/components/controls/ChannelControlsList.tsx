@@ -1,9 +1,15 @@
-import { Box, Paper, Typography, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
+import {
+  Box,
+  Paper,
+  Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+} from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { ChannelControl } from "./ChannelControl";
 import { ImageLayer, ChannelProps } from "@idetik/core";
-import { useState, useEffect } from 'react';
-
+import { useState, useEffect } from "react";
 
 interface ChannelControlsListProps {
   layer: ImageLayer;
@@ -18,18 +24,19 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
     setChannelProps(layer.channelProps ?? []);
   }, [layer]);
 
-  console.log("channelProps: ", channelProps);
-
-  const updateChannel = (index: number, updates: Partial<{
-    visible: boolean;
-    color: [number, number, number];
-    contrastLimits: [number, number];
-  }>) => {
+  const updateChannel = (
+    index: number,
+    updates: Partial<{
+      visible: boolean;
+      color: [number, number, number];
+      contrastLimits: [number, number];
+    }>
+  ) => {
     const updatedChannelProps = [...channelProps];
 
     updatedChannelProps[index] = {
       ...channelProps[index],
-      ...updates
+      ...updates,
     };
 
     // Update both the layer and local state to keep them in sync
@@ -53,9 +60,13 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
                   color={props.color}
                   contrastLimits={props.contrastLimits}
                   visible={props.visible === undefined ? true : props.visible}
-                  onVisibilityChange={(visible) => updateChannel(index, { visible })}
+                  onVisibilityChange={(visible) =>
+                    updateChannel(index, { visible })
+                  }
                   onColorChange={(color) => updateChannel(index, { color })}
-                  onContrastChange={(contrastLimits) => updateChannel(index, { contrastLimits })}
+                  onContrastChange={(contrastLimits) =>
+                    updateChannel(index, { contrastLimits })
+                  }
                 />
               );
             })}

@@ -16,8 +16,7 @@ const camera = new OrthographicCamera(0, 825, 0, 500);
 const layerManager = new LayerManager();
 
 // TODO: use props to pass in most of this config
-const plateUrl =
-  "http://localhost:8080/";
+const plateUrl = "http://localhost:8080/";
 const imageUrl = plateUrl + "/B/03/0";
 console.debug(`Loading image from ${imageUrl}`);
 const source = new OmeZarrImageSource(imageUrl);
@@ -37,7 +36,6 @@ const channelProps = [
 // see https://github.com/chanzuckerberg/imaging-active-learning/issues/174
 const layer = new ImageLayer({ source, region, channelProps });
 layerManager.add(layer);
-
 
 interface RendererProps {
   onLayerReady?: (layer: ImageLayer) => void;

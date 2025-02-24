@@ -8,9 +8,11 @@ interface VisibilityToggleProps {
 
 export function VisibilityToggle({ visible, onChange }: VisibilityToggleProps) {
   return (
-    <IconButton onClick={() => {
-      onChange(!visible);
-    }}>
+    <IconButton
+      onClick={() => {
+        onChange(!visible);
+      }}
+    >
       {visible ? <Visibility /> : <VisibilityOff />}
     </IconButton>
   );

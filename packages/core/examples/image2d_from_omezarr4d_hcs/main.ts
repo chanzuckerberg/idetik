@@ -15,11 +15,10 @@ import {
 // First download and unpack it. Then host the containing directory locally
 // with something like:
 // http-server --cors -p 8080
-// const plateUrl =
-//   "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
-const plateUrl = "http://localhost:8080";
+const plateUrl =
+  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
 const plate = await loadOmeZarrPlate(plateUrl);
-console.debug("plate was loaded", plate);
+console.debug("plate", plate);
 if (plate.plate === undefined) {
   throw new Error(`No plate found: ${plate}`);
 }
