@@ -5,7 +5,6 @@ const plateUrl =
   "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
 const imageUrl = plateUrl + "/B/03/0";
 const region = [
-  { dimension: "c", index: { start: 0, stop: 3 } },
   { dimension: "z", index: 0 },
 ];
 

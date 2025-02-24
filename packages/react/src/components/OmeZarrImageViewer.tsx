@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Box } from "@mui/system";
+import CircularProgress from '@mui/material/CircularProgress';
 import {
   ImageLayer,
   LayerManager,
@@ -19,9 +21,10 @@ export default function OmeZarrImageViewer({
   region: Region;
 }) {
   const [layerManager, _setLayerManager] = useState<LayerManager>(new LayerManager());
-  const [camera, _setCamera] = useState<OrthographicCamera>(new OrthographicCamera(0, 832, 0, 351));
+  const [camera, _setCamera] = useState<OrthographicCamera>(new OrthographicCamera(0, 128, 0, 128));
   const [imageLayer, setImageLayer] = useState<ImageLayer | null>(null);
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const source = new OmeZarrImageSource(sourceUrl);
@@ -29,10 +32,13 @@ export default function OmeZarrImageViewer({
   }, [sourceUrl]);
 
   useEffect(() => {
+    setLoading(true);
     const getLayer = async () => {
       if (!source) return;
       const loader = await source?.open();
       // TODO: should getting channel properties from the source go in the library?
+      // TODO: may need to accept channel properties to be possibly overridden here
+      // (i.e. for initial visibility, custom colors)
       const channelProps = loader?.metadata.omero?.channels.map((channel: OmeroChannel) => {
         return {
           color: hexToRgb(channel.color),
@@ -42,6 +48,7 @@ export default function OmeZarrImageViewer({
       const layer = new ImageLayer({ source, region, channelProps });
       layer.addStateChangeCallback(() => {
         if (layer.state === "ready") {
+          setLoading(false);
           camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
           camera.update();
         }
@@ -49,7 +56,7 @@ export default function OmeZarrImageViewer({
       setImageLayer(layer);
     };
     getLayer();
-  }, [source, region, camera]);
+  }, [source, region, camera, setLoading]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -59,13 +66,32 @@ export default function OmeZarrImageViewer({
       layerManager.add(imageLayer);
     }
   }, [imageLayer, layerManager]);
+  console.log("loading", loading);
 
   return (
-    <Renderer
-      layerManager={layerManager}
-      camera={camera}
-      cameraControls="panzoom"
-    />
+    <Box
+      sx={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+        gap: "1em",
+        border: "1px solid black",
+      }}
+    >
+      <Renderer
+        layerManager={layerManager}
+        camera={camera}
+        cameraControls="panzoom"
+      />
+      {
+        loading &&
+        <Box sx={{ position: "absolute", top: "50%", left: "50%" }}>
+          <CircularProgress />
+        </Box>
+      }
+    </Box>
   );
 }
 
