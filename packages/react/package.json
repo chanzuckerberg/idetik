@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "compile": "tsc",
-    "build": "npm run build:css && tsc && vite build",
+    "build": "vite build && tsc --project tsconfig.build.json",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
     "lint": "eslint .",
@@ -29,6 +29,18 @@
     "react-dom": "^18.3.1"
   },
   "description": "idetik react components",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.cjs"
+    },
+    "./dist/*.js.map": "./dist/*.js.map",
+    "./dist/*.d.ts.map": "./dist/*.d.ts.map"
+  },
+  "files": [
+    "dist"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {

@@ -19,28 +19,22 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
     setChannelProps(layer.channelProps ?? []);
   }, [layer]);
 
-  const updateChannel = (index: number, updates: Partial<{
-    visible: boolean;
-    color: [number, number, number];
-    contrastLimits: [number, number];
-  }>) => {
+  const updateChannel = (
+    index: number,
+    updates: Partial<{
+      visible: boolean;
+      color: [number, number, number];
+      contrastLimits: [number, number];
+    }>
+  ) => {
     const updatedChannelProps = [...channelProps];
 
-    // For visibility updates, explicitly toggle the current value
-    if ('visible' in updates) {
-      const currentVisible = channelProps[index].visible
-      updatedChannelProps[index] = {
-        ...channelProps[index],
-        visible: !currentVisible
-      };
-    } else {
-      updatedChannelProps[index] = {
-        ...channelProps[index],
-        ...updates
-      };
-    }
+    updatedChannelProps[index] = {
+      ...channelProps[index],
+      ...updates,
+    };
 
-    // Update both the layer and local state
+    // Update both the layer and local state to keep them in sync
     layer.setChannelProps(updatedChannelProps);
     setChannelProps(updatedChannelProps);
   };
