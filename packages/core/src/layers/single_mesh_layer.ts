@@ -1,7 +1,7 @@
-import { Layer } from "core/layer";
-import { ImageRenderable } from "objects/renderable/image_renderable";
-import { PlaneGeometry } from "objects/geometry/plane_geometry";
-import { Texture2D } from "objects/textures/texture_2d";
+import { Layer } from "../core/layer";
+import { ImageRenderable } from "../objects/renderable/image_renderable";
+import { PlaneGeometry } from "../objects/geometry/plane_geometry";
+import { Texture2D } from "../objects/textures/texture_2d";
 
 export class SingleMeshLayer extends Layer {
   private texture_ = new Texture2D("/texture_test.png");

@@ -1,6 +1,6 @@
-import { Layer } from "core/layer";
-import { ProjectedLineGeometry } from "objects/geometry/projected_line_geometry";
-import { ProjectedLine } from "objects/renderable/projected_line";
+import { Layer } from "../core/layer";
+import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
+import { ProjectedLine } from "../objects/renderable/projected_line";
 
 export class AxesLayer extends Layer {
   constructor(params: { length: number; width: number }) {

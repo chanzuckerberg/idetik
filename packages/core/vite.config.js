@@ -36,9 +36,14 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
       minify: false,
       lib: {
-        entry: path.resolve(_dirname, 'src/index.ts'),
+        entry: {
+          "index": path.resolve(_dirname, 'src/index.ts'),
+          "data/ome_ngff/0.4/index": path.resolve(_dirname, 'src/data/ome_ngff/0.4/index.ts'),
+        },
         name: 'idetik-core',
-        fileName: "index",
+        filename: (format, entry) => {
+          return `${entry.name}.${format}.js`;
+        }
       },
     },
     resolve: {

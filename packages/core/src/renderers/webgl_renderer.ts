@@ -1,5 +1,5 @@
-import { Renderer } from "core/renderer";
-import { RenderableObject } from "core/renderable_object";
+import { Renderer } from "../core/renderer";
+import { RenderableObject } from "../core/renderable_object";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
 import { Shader, shaderCode } from "./shaders";

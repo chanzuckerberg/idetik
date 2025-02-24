@@ -1,11 +1,11 @@
-import { Layer } from "core/layer";
-import { Interval, Region } from "data/region";
-import { ImageChunk, ImageChunkSource } from "data/image_chunk";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { AbortError, PromiseScheduler } from "data/promise_scheduler";
-import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
-import { ChannelProps } from "objects/textures/channel";
-import { ImageRenderable } from "objects/renderable/image_renderable";
+import { Layer } from "../core/layer";
+import { Interval, Region } from "../data/region";
+import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
+import { Texture2DArray } from "../objects/textures/texture_2d_array";
+import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
+import { makeImageTextureArray, makeImageRenderable } from "./image_utils";
+import { ChannelProps } from "../objects/textures/channel";
+import { ImageRenderable } from "../objects/renderable/image_renderable";
 
 type ImageSeriesLayerProps = {
   source: ImageChunkSource;

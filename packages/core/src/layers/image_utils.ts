@@ -1,10 +1,10 @@
-import { DataTexture2D } from "objects/textures/data_texture_2d";
-import { Texture } from "objects/textures/texture";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { ImageChunk } from "data/image_chunk";
-import { PlaneGeometry } from "objects/geometry/plane_geometry";
-import { ChannelProps } from "objects/textures/channel";
-import { ImageRenderable } from "objects/renderable/image_renderable";
+import { DataTexture2D } from "../objects/textures/data_texture_2d";
+import { Texture } from "../objects/textures/texture";
+import { Texture2DArray } from "../objects/textures/texture_2d_array";
+import { ImageChunk } from "../data/image_chunk";
+import { PlaneGeometry } from "../objects/geometry/plane_geometry";
+import { ChannelProps } from "../objects/textures/channel";
+import { ImageRenderable } from "../objects/renderable/image_renderable";
 
 export function makeImageTexture(chunk: ImageChunk) {
   const texture = new DataTexture2D(chunk.data, chunk.shape.x, chunk.shape.y);

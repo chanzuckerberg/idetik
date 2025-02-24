@@ -25,14 +25,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.umd.cjs"
     },
-    "./*": {
-      "types": "./dist/*/index.d.ts"
-    },
-    "./**/*": {
-      "types": "./dist/**/*.d.ts"
-    },
-    "./dist/*.js.map": "./dist/*.js.map",
-    "./dist/*.d.ts.map": "./dist/*.d.ts.map"
+    "./data/ome_ngff/v0.4": {
+      "import": "./dist/data/ome_ngff/0.4/index.js",
+      "require": "./dist/data/ome_ngff/0.4/index.cjs",
+      "types": "./dist/types/data/ome_ngff/0.4/index.d.ts"
+    }
   },
   "files": [
     "dist"

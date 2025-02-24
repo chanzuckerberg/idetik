@@ -1,5 +1,5 @@
-import { Region } from "data/region";
-import { TextureUnpackRowAlignment } from "objects/textures/texture";
+import { Region } from "../data/region";
+import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
 const imageChunkDataTypes = [Uint8Array, Uint16Array, Float32Array] as const;

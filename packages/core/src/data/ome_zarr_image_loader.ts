@@ -1,12 +1,12 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { Region } from "data/region";
-import { ImageChunk, isImageChunkData } from "data/image_chunk";
-import { isTextureUnpackRowAlignment } from "objects/textures/texture";
+import { Region } from "../data/region";
+import { ImageChunk, isImageChunkData } from "../data/image_chunk";
+import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
+import { Image as OmeNgffImage } from "../data/ome_ngff/0.4/image";
 type Axis = OmeNgffImage["multiscales"][number]["axes"][number];
 
 // Implements the interface required for getting array chunks in zarrita:

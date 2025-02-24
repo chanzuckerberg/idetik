@@ -1,8 +1,4 @@
-import {
-  DataTextureTypedArray,
-  Texture,
-  bufferToDataType,
-} from "objects/textures/texture";
+import { DataTextureTypedArray, Texture, bufferToDataType } from "./texture";
 
 export class DataTexture2D extends Texture {
   private data_: DataTextureTypedArray;

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import {
+  ChannelProps,
   ImageLayer,
   OmeZarrImageSource,
   LayerManager,
@@ -7,6 +8,9 @@ import {
   PanZoomControls,
   WebGLRenderer,
 } from "@idetik/core";
+
+import { Image as NgffImage } from "@idetik/core/data/ome_ngff/v0.4";
+console.log(NgffImage);
 
 // TODO: needs to be unique so we can have more than one on the page
 const canvasId = "canvas";
@@ -32,7 +36,7 @@ const channelProps = [
   { color: [0, 1, 1], contrastLimits: [110, 800] },
   { color: [1, 0, 1], contrastLimits: [110, 250] },
   { color: [1, 1, 0], contrastLimits: [110, 800] },
-];
+] as ChannelProps[];
 // TODO: typescript is not checking the types of the arguments to the constructor
 // see https://github.com/chanzuckerberg/imaging-active-learning/issues/174
 const layer = new ImageLayer({ source, region, channelProps });
