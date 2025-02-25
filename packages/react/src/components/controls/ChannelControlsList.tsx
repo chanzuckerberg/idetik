@@ -64,7 +64,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
                 channelIndex={index}
                 color={props.color}
                 contrastLimits={props.contrastLimits}
-                visible={props.visible}
+                visible={props.visible === undefined ? true : props.visible}
                 onVisibilityChange={(visible) => updateChannel(index, { visible })}
                 onColorChange={(color) => updateChannel(index, { color })}
                 onContrastChange={(contrastLimits) => updateChannel(index, { contrastLimits })}

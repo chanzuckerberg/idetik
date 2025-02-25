@@ -49,7 +49,7 @@ export function validateChannels(
   if (channelProps.length > MAX_CHANNELS) {
     throw new Error(`Maximum number of channels is ${MAX_CHANNELS}`);
   }
-
+  console.debug("validateChannels", texture, channelProps);
   if (texture?.type === "Texture2DArray") {
     const depth = (texture as Texture2DArray).depth;
     if (channelProps.length !== depth) {
@@ -61,6 +61,7 @@ export function validateChannels(
 
   return channelProps.map((props) => validateChannel(texture, props));
 }
+
 
 function contrastLimitsFromTexture(texture: Texture): [number, number] {
   if (texture.dataFormat === "rgb" || texture.dataFormat === "rgba") {

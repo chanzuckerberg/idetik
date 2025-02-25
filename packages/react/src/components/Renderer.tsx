@@ -6,6 +6,7 @@ import {
   OrthographicCamera,
   PanZoomControls,
   WebGLRenderer,
+  LayerState,
 } from "@idetik/core";
 
 // TODO: needs to be unique so we can have more than one on the page
@@ -55,8 +56,15 @@ export default function Renderer({ onLayerReady }: RendererProps) {
       const controls = new PanZoomControls(camera, camera.position);
       renderer.current.setControls(controls);
 
-      // Notify parent about the layer
-      onLayerReady?.(layer);
+      // onLayerReady?.(layer);
+      layer.addStateChangeCallback((state: LayerState) => {
+        console.debug("Renderer::state changed to:", state);
+        if (state === "ready") {
+          console.debug("Renderer::layer is ready");
+          console.log("layer.channelProps", layer.channelProps);
+          onLayerReady?.(layer);
+        }
+      });
     }
 
     function animate() {
