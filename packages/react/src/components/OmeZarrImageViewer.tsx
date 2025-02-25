@@ -9,7 +9,11 @@ import {
   OrthographicCamera,
   Region,
 } from "@idetik/core";
+
 import Renderer from "./Renderer";
+import { ChannelControlsList } from "./controls/ChannelControlsList";
+import { hexToRgb } from "../lib/color";
+
 
 type OmeroChannel = OmeNgffImage["omero"]["channels"][number];
 
@@ -56,7 +60,7 @@ export default function OmeZarrImageViewer({
       setImageLayer(layer);
     };
     getLayer();
-  }, [source, region, camera, setLoading]);
+  }, [source, region, camera]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -66,7 +70,8 @@ export default function OmeZarrImageViewer({
       layerManager.add(imageLayer);
     }
   }, [imageLayer, layerManager]);
-  console.log("loading", loading);
+
+  console.log("OmeZarrImageViewer::render", loading);
 
   return (
     <Box
@@ -87,21 +92,16 @@ export default function OmeZarrImageViewer({
       />
       {
         loading &&
-        <Box sx={{ position: "absolute", top: "50%", left: "50%" }}>
+        <Box sx={{ position: "fixed", top: "50%", left: "50%" }}>
           <CircularProgress />
+        </Box>
+      }
+      {
+        imageLayer &&
+        <Box sx={{ position: "fixed", top: "3em", left: "3em", width: "25em" }}>
+          <ChannelControlsList layer={imageLayer} />
         </Box>
       }
     </Box>
   );
 }
-
-// TODO: taken from Phoenix's code, should be consolidated
-const hexToRgb = (hex: string): [number, number, number] => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return [0, 0, 0];
-  return [
-    parseInt(result[1], 16) / 255,
-    parseInt(result[2], 16) / 255,
-    parseInt(result[3], 16) / 255,
-  ];
-};
