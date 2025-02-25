@@ -3,8 +3,8 @@ import { mat4 } from "gl-matrix";
 
 export class OrthographicCamera extends Camera {
   // width_ and height_ should always be defined by constructor (see setFrame)
-  private width_: number | undefined;
-  private height_: number | undefined;
+  private width_: number = 128;
+  private height_: number = 128;
   private viewportAspectRatio_: number = 1;
 
   constructor(
@@ -40,11 +40,6 @@ export class OrthographicCamera extends Camera {
   }
 
   protected updateProjectionMatrix() {
-    if (!this.width_ || !this.height_) {
-      throw new Error(
-        "OrthographicCamera frame must be defined before updating projection matrix"
-      );
-    }
     // The following code ensures that the orthographic projection matrix
     // is updated so that the aspect ratio of renderable objects is respected
     // (e.g. image pixels are isotropic) by padding the camera frame to form

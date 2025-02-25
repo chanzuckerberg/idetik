@@ -4,26 +4,26 @@ import CircularProgress from '@mui/material/CircularProgress';
 import {
   ImageLayer,
   LayerManager,
-  OmeNgffImage,
+  OmeroChannel,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
+  loadOmeroChannels,
 } from "@idetik/core";
 
 import Renderer from "./Renderer";
 import { ChannelControlsList } from "./controls/ChannelControlsList";
-import { hexToRgb } from "../lib/color";
+import { hexToRgb } from "lib/color";
 
-
-type OmeroChannel = OmeNgffImage["omero"]["channels"][number];
+interface OmeZarrImageViewerProps {
+  sourceUrl: string;
+  region: Region;
+}
 
 export default function OmeZarrImageViewer({
   sourceUrl,
   region,
-}: {
-  sourceUrl: string;
-  region: Region;
-}) {
+}: OmeZarrImageViewerProps) {
   const [layerManager, _setLayerManager] = useState<LayerManager>(new LayerManager());
   const [camera, _setCamera] = useState<OrthographicCamera>(new OrthographicCamera(0, 128, 0, 128));
   const [imageLayer, setImageLayer] = useState<ImageLayer | null>(null);
@@ -39,16 +39,16 @@ export default function OmeZarrImageViewer({
     setLoading(true);
     const getLayer = async () => {
       if (!source) return;
-      const loader = await source?.open();
-      // TODO: should getting channel properties from the source go in the library?
       // TODO: may need to accept channel properties to be possibly overridden here
       // (i.e. for initial visibility, custom colors)
-      const channelProps = loader?.metadata.omero?.channels.map((channel: OmeroChannel) => {
+      const omeroChannels = await loadOmeroChannels(sourceUrl);
+      const channelProps = omeroChannels.map((channel: OmeroChannel) => {
         return {
           color: hexToRgb(channel.color),
           contrastLimits: [channel.window.start, channel.window.end],
+          // TODO: also get channel label and contrast range here
         };
-      }) ?? [];
+      });
       const layer = new ImageLayer({ source, region, channelProps });
       layer.addStateChangeCallback(() => {
         if (layer.state === "ready") {
@@ -60,12 +60,10 @@ export default function OmeZarrImageViewer({
       setImageLayer(layer);
     };
     getLayer();
-  }, [source, region, camera]);
+  }, [source, sourceUrl, region, camera]);
 
   useEffect(() => {
     if (imageLayer) {
-      // TODO: do we really want to clear the layer list? we only have one layer anyway...
-      // TODO: dispose objects owned by old layers
       layerManager.layers.length = 0;
       layerManager.add(imageLayer);
     }

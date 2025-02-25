@@ -10,17 +10,19 @@ import {
 
 type ControlType = "panzoom" | "none";
 
+interface RendererProps {
+  layerManager: LayerManager;
+  camera: OrthographicCamera;
+  cameraControls?: ControlType;
+  canvasId?: string;
+}
+
 export default function Renderer({
   layerManager,
   camera,
   cameraControls = "panzoom",
   canvasId = "renderer",
-}: {
-  layerManager: LayerManager,
-  camera: OrthographicCamera,
-  cameraControls: ControlType,
-  canvasId?: string,  // allows for multiple renderers on the page
-}) {
+}: RendererProps) {
   const renderer = useRef<WebGLRenderer | null>(null);
   const controls = useRef<CameraControls>(() => new NullControls());
 

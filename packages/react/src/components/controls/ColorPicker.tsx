@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { hexToRgb } from "../../lib/color";
+import { hexToRgb } from "lib/color";
 
 interface ColorPickerProps {
   color: [number, number, number];
