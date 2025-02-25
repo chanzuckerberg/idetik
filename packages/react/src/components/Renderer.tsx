@@ -45,7 +45,7 @@ export default function Renderer({
       renderer.current.setControls(controls.current);
     }
     function animate() {
-      renderer.current.render(layerManager, camera);
+      renderer.current?.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
     }
     animate();

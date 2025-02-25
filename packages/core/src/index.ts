@@ -26,7 +26,9 @@ export {
   loadOmeZarrWell,
 } from "data/ome_zarr_hcs_metadata_loader";
 export type { Region } from "data/region";
-export type { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
+export type {Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
+export type { Plate as OmeNgffPlate } from "data/ome_ngff/0.4/plate";
+export type { Well as OmeNgffWell } from "data/ome_ngff/0.4/well";
 
 export { WebGLRenderer } from "renderers/webgl_renderer";
 

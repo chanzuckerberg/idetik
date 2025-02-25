@@ -21,6 +21,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
 
   // Sync local state with layer's channelProps
   useEffect(() => {
+    console.log(layer.channelProps);
     setChannelProps(layer.channelProps ?? []);
   }, [layer]);
 
@@ -53,6 +54,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
         <AccordionDetails>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {channelProps.map((props: ChannelProps, index: number) => {
+              console.log("ChannelControlsList::render", props);
               return (
                 <ChannelControl
                   key={index}

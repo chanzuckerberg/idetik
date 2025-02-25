@@ -71,18 +71,16 @@ export default function OmeZarrImageViewer({
     }
   }, [imageLayer, layerManager]);
 
-  console.log("OmeZarrImageViewer::render", loading);
-
   return (
     <Box
       sx={{
-        width: "100%",
-        height: "100%",
+        minHeight: 0,
         display: "flex",
         flexDirection: "column",
         flex: 1,
         gap: "1em",
         border: "1px solid black",
+        position: "relative",
       }}
     >
       <Renderer
@@ -92,13 +90,13 @@ export default function OmeZarrImageViewer({
       />
       {
         loading &&
-        <Box sx={{ position: "fixed", top: "50%", left: "50%" }}>
+        <Box sx={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}>
           <CircularProgress />
         </Box>
       }
       {
         imageLayer &&
-        <Box sx={{ position: "fixed", top: "3em", left: "3em", width: "25em" }}>
+        <Box sx={{ position: "absolute", top: "1em", left: "1em", width: "25em" }}>
           <ChannelControlsList layer={imageLayer} />
         </Box>
       }
