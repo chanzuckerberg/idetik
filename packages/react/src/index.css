@@ -1,0 +1,7 @@
+/* Import SDS styles */
+@import '@czi-sds/components/dist/variables.css';
+
+/* Tailwind directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

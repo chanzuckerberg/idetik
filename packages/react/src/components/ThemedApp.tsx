@@ -1,7 +1,7 @@
 import { ThemeProvider as EmotionThemeProvider } from "@emotion/react";
 import { StyledEngineProvider, ThemeProvider } from "@mui/material/styles";
 import { Theme } from "@czi-sds/components";
-import CssBaseline from "@mui/material/CssBaseline";
+// import CssBaseline from "@mui/material/CssBaseline";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
 import App from "./App";
@@ -14,7 +14,7 @@ export default function ThemedApp() {
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme}>
         <EmotionThemeProvider theme={theme}>
-          <CssBaseline />
+          {/* <CssBaseline /> */}
           <App />
         </EmotionThemeProvider>
       </ThemeProvider>
