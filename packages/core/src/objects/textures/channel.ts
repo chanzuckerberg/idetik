@@ -90,23 +90,3 @@ function validateContrastLimits(
   }
   return contrastLimits;
 }
-
-export function validateChannelProps(
-  texture: Texture | null,
-  channelProps: ChannelProps[]
-): Channel[] {
-  if (channelProps.length > MAX_CHANNELS) {
-    throw new Error(`Maximum number of channels is ${MAX_CHANNELS}`);
-  }
-
-  if (texture?.type === "Texture2DArray") {
-    const depth = (texture as Texture2DArray).depth;
-    if (channelProps.length !== depth) {
-      throw new Error(
-        `Number of channels must match depth of texture: ${depth}.`
-      );
-    }
-  }
-
-  return channelProps.map((props) => validateChannel(texture, props));
-}
