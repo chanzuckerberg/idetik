@@ -38,9 +38,6 @@
     "./dist/*.js.map": "./dist/*.js.map",
     "./dist/*.d.ts.map": "./dist/*.d.ts.map"
   },
-  "files": [
-    "dist"
-  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
