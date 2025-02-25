@@ -10,7 +10,8 @@
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
     "lint": "eslint .",
-    "build:css": "mkdir -p dist && cp node_modules/@czi-sds/components/dist/variables.css dist/ && npx tailwindcss -i ./src/index.css -o ./dist/index.css --minify"
+    "build:tailwind": "tailwindcss -i ./src/index.css -o ./dist/index.css --minify",
+    "build:css": "mkdir -p dist && npm run build:tailwind"
   },
   "dependencies": {
     "@czi-sds/components": "^22.1.2",
