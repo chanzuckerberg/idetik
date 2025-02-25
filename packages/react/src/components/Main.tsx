@@ -13,9 +13,6 @@ const root = createRoot(domNode);
 root.render(
   <React.StrictMode>
     <div className={cns(
-      'flex min-h-dvh flex-col bg-light-sds-color-primitive-gray-50',
-      'text-light-sds-color-primitive-gray-900 dark:bg-dark-sds-color-primitive-gray-50',
-      'dark:text-dark-sds-color-primitive-gray-900',
       'font-sds-body',
       'min-w-[1024px]'
     )}>

@@ -56,12 +56,8 @@ export default function Renderer({ onLayerReady }: RendererProps) {
       const controls = new PanZoomControls(camera, camera.position);
       renderer.current.setControls(controls);
 
-      // onLayerReady?.(layer);
       layer.addStateChangeCallback((state: LayerState) => {
-        console.debug("Renderer::state changed to:", state);
         if (state === "ready") {
-          console.debug("Renderer::layer is ready");
-          console.log("layer.channelProps", layer.channelProps);
           onLayerReady?.(layer);
         }
       });

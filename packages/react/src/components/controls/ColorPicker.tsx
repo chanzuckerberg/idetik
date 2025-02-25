@@ -25,12 +25,12 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
   };
 
   return (
-    <div className="flex items-center gap-2 bg-sds-gray-50 rounded p-2">
+    <div className="flex items-center gap-2 rounded p-2">
       <input
         type="color"
         value={rgbToHex(color)}
         onChange={(e) => onChange(hexToRgb(e.target.value))}
-        className="w-8 h-8 rounded cursor-pointer hover:ring-2 hover:ring-sds-gray-200"
+        className="w-8 h-8 rounded cursor-pointer"
       />
     </div>
   );

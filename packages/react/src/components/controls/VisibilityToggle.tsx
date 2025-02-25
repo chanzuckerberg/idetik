@@ -11,6 +11,8 @@ export function VisibilityToggle({ visible, onChange }: VisibilityToggleProps) {
       onClick={() => onChange(!visible)}
       sdsStyle="minimal"
       sdsType="secondary"
+      className="hover:bg-transparent"
+      disableRipple
     >
       {visible ? <Icon sdsIcon="EyeOpen" sdsSize="s" /> : <Icon sdsIcon="EyeClosed" sdsSize="s" />}
     </Button>

@@ -46,9 +46,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
           <AccordionHeader>
             <div className={cns('flex items-center')}>
               <span className={cns(
-                'font-sds-body',
-                'text-light-sds-color-primitive-gray-900',
-                'dark:text-dark-sds-color-primitive-gray-900'
+                'sds-color-primitive-green-200',
               )}>
                 Channel Controls
               </span>
