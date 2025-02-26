@@ -38,26 +38,12 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
     setChannelProps(updatedChannelProps);
   };
 
-  const theme = Math.random() > 0.5 ? "dark" : "light";
-
   return (
     <div className="sds-color-primitive-blue-400 p-4">
       <Accordion defaultExpanded id="channel-controls">
-        <div className={cns("flex w-full")}>
-          <AccordionHeader>
-            <div className={cns('flex items-center')}>
-              <span style={{backgroundColor: "var(--sds-color-primitive-green-400)"}}>
-                Channel Controls
-              </span>
-              <span className={`text-${theme}-sds-color-primitive-green-400`}>
-                Channel Controls
-              </span>
-            </div>
-          </AccordionHeader>
-        </div>
-
+        <AccordionHeader>Channel Controls</AccordionHeader>
         <AccordionDetails>
-          <div className={cns("flex flex-col gap-sds-m")}>
+          <div className={cns('flex flex-col gap-sds-xs')}>
             {channelProps.map((props: ChannelProps, index: number) => (
               <ChannelControl
                 key={index}

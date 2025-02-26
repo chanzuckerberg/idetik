@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run build:tailwind -- --watch & vite",
     "compile": "tsc",
     "build": "vite build && tsc --project tsconfig.build.json",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
