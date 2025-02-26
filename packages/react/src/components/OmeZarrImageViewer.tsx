@@ -97,8 +97,7 @@ export default function OmeZarrImageViewer({
       }
       {
         imageLayer &&
-        // TOOD: tailwind width (`w-96`) does not work for some reason
-        <div className={cns('fixed', 'top-12', 'left-12')} style={{ width: "25em" }} >
+        <div className={cns('fixed', 'top-12', 'left-12', 'w-[25em]')}>
           <ChannelControlsList layer={imageLayer} />
         </div>
       }
