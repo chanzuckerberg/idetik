@@ -27,7 +27,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
       visible: boolean;
       color: [number, number, number];
       contrastLimits: [number, number];
-    }>,
+    }>
   ) => {
     const updatedChannelProps = [...channelProps];
 

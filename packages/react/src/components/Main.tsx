@@ -13,5 +13,5 @@ root.render(
     <div className={cns("font-sds-body", "min-w-[1024px]")}>
       <ThemedApp />
     </div>
-  </React.StrictMode>,
+  </React.StrictMode>
 );

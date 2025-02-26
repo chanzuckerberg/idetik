@@ -15,7 +15,7 @@ export default function App() {
           "flex",
           "flex-col",
           "flex-1",
-          "gap-4",
+          "gap-4"
         )}
       >
         <OmeZarrImageViewer sourceUrl={imageUrl} region={region} />
