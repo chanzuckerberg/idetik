@@ -43,7 +43,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
       <Accordion defaultExpanded id="channel-controls">
         <AccordionHeader>Channel Controls</AccordionHeader>
         <AccordionDetails>
-          <div className={cns('flex flex-col gap-sds-xs')}>
+          <div className={cns("flex flex-col gap-sds-xs")}>
             {channelProps.map((props: ChannelProps, index: number) => (
               <ChannelControl
                 key={index}

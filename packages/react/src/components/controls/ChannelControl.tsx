@@ -22,8 +22,8 @@ export function ChannelControl({
 }: ChannelControlProps) {
   return (
     <div className="flex items-center">
-        <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
-        <ColorPicker color={color} onChange={onColorChange} />
+      <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
+      <ColorPicker color={color} onChange={onColorChange} />
       <div className="flex-1 ml-[15px]">
         <ContrastSlider value={contrastLimits} onChange={onContrastChange} />
       </div>
