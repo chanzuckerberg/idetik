@@ -69,8 +69,6 @@ export default function OmeZarrImageViewer({
     }
   }, [imageLayer, layerManager]);
 
-  console.log("OmeZarrImageViewer::render", loading);
-
   return (
     <Box
       sx={{
