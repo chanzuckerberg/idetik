@@ -1,3 +1,6 @@
+import { hexToRgb } from "lib/color";
+
+
 interface ColorPickerProps {
   color: [number, number, number];
   onChange: (color: [number, number, number]) => void;
@@ -11,17 +14,6 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
       return hex.length === 1 ? "0" + hex : hex;
     };
     return `#${toHex(rgb[0])}${toHex(rgb[1])}${toHex(rgb[2])}`;
-  };
-
-  // Convert hex string to RGB [0-1] values
-  const hexToRgb = (hex: string): [number, number, number] => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    if (!result) return [0, 0, 0];
-    return [
-      parseInt(result[1], 16) / 255,
-      parseInt(result[2], 16) / 255,
-      parseInt(result[3], 16) / 255,
-    ];
   };
 
   return (

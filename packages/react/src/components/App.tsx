@@ -1,11 +1,14 @@
 import { Box } from "@mui/system";
-import Renderer from "./Renderer";
-import { ChannelControlsList } from "./controls/ChannelControlsList";
-import { useState } from "react";
-import { ImageLayer } from "@idetik/core";
+import OmeZarrImageViewer from "./OmeZarrImageViewer";
+
+const plateUrl =
+  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
+const imageUrl = plateUrl + "/B/03/0";
+const region = [
+  { dimension: "z", index: 0 },
+];
 
 export default function App() {
-  const [imageLayer, setImageLayer] = useState<ImageLayer | null>(null);
 
   return (
     <Box
@@ -26,12 +29,13 @@ export default function App() {
           flexDirection: "column",
           flex: 1,
           gap: "1em",
+          border: "1px solid black",
         }}
       >
-        <Renderer onLayerReady={setImageLayer} />
-      </Box>
-      <Box sx={{ width: 300 }}>
-        {imageLayer && <ChannelControlsList layer={imageLayer} />}
+        <OmeZarrImageViewer
+          sourceUrl={imageUrl}
+          region={region}
+        />
       </Box>
     </Box>
   );

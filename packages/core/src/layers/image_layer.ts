@@ -19,8 +19,10 @@ export class ImageLayer extends Layer {
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
   private channelProps_?: ChannelProps[];
+  // TODO: we don't need this texture_ field anymore
   private texture_?: Texture2DArray;
   private renderable_?: ImageRenderable;
+  private extent_?: { x: number; y: number };
 
   constructor({ source, region, channelProps }: ImageLayerProps) {
     super();
@@ -61,6 +63,10 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const chunk = await loader.loadChunk(region);
+    this.extent_ = {
+      x: chunk.shape.x * chunk.scale.x,
+      y: chunk.shape.y * chunk.scale.y,
+    };
     this.texture_ = makeImageTextureArray(chunk);
     this.renderable_ = makeImageRenderable(
       chunk,
@@ -69,5 +75,11 @@ export class ImageLayer extends Layer {
     );
     this.addObject(this.renderable_);
     this.setState("ready");
+  }
+
+  // TODO: we probably want something like this, but it should be unified across layers
+  // see TracksLayer for another example
+  public get extent(): { x: number; y: number } | undefined {
+    return this.extent_;
   }
 }

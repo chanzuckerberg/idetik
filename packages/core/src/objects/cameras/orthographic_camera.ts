@@ -2,8 +2,9 @@ import { Camera } from "./camera";
 import { mat4 } from "gl-matrix";
 
 export class OrthographicCamera extends Camera {
-  private width_: number;
-  private height_: number;
+  // width_ and height_ should always be defined by constructor (see setFrame)
+  private width_: number = 128;
+  private height_: number = 128;
   private viewportAspectRatio_: number = 1;
 
   constructor(
@@ -15,19 +16,9 @@ export class OrthographicCamera extends Camera {
     far = 100.0
   ) {
     super();
-
-    // this keeps the camera frame centered at the origin
-    // use camera.pan or set its *position* (this.transform) to move the center
-    this.width_ = Math.abs(right - left);
-    this.height_ = Math.abs(top - bottom);
-    const centerX = 0.5 * (left + right);
-    const centerY = 0.5 * (bottom + top);
-    this.transform.setTranslation([centerX, centerY, 0]);
-    this.setFrame(left, right, bottom, top);
-
     this.near_ = near;
     this.far_ = far;
-
+    this.setFrame(left, right, bottom, top);
     this.updateProjectionMatrix();
   }
 
