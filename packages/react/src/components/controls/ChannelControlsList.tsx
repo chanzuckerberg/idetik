@@ -1,19 +1,14 @@
-import {
-  Box,
-  Paper,
-  Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-} from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Accordion, AccordionHeader, AccordionDetails } from "@czi-sds/components";
+import classNames from 'classnames';
 import { ChannelControl } from "./ChannelControl";
 import { ImageLayer, ChannelProps } from "@idetik/core";
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 interface ChannelControlsListProps {
   layer: ImageLayer;
 }
+
+const cns = classNames;
 
 export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   // Keep a local copy of channelProps to trigger re-renders
@@ -45,34 +40,37 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   };
 
   return (
-    <Paper sx={{ margin: 2 }}>
-      <Accordion defaultExpanded>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Channel Controls</Typography>
-        </AccordionSummary>
+    <div>
+      <Accordion defaultExpanded id="channel-controls">
+        <div className={cns('flex w-full')}>
+          <AccordionHeader>
+            <div className={cns('flex items-center')}>
+              <span className={cns(
+                'sds-color-primitive-green-200',
+              )}>
+                Channel Controls
+              </span>
+            </div>
+          </AccordionHeader>
+        </div>
+
         <AccordionDetails>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {channelProps.map((props: ChannelProps, index: number) => {
-              return (
-                <ChannelControl
-                  key={index}
-                  channelIndex={index}
-                  color={props.color}
-                  contrastLimits={props.contrastLimits}
-                  visible={props.visible === undefined ? true : props.visible}
-                  onVisibilityChange={(visible) =>
-                    updateChannel(index, { visible })
-                  }
-                  onColorChange={(color) => updateChannel(index, { color })}
-                  onContrastChange={(contrastLimits) =>
-                    updateChannel(index, { contrastLimits })
-                  }
-                />
-              );
-            })}
-          </Box>
+          <div className={cns('flex flex-col gap-sds-m')}>
+            {channelProps.map((props: ChannelProps, index: number) => (
+              <ChannelControl
+                key={index}
+                channelIndex={index}
+                color={props.color}
+                contrastLimits={props.contrastLimits}
+                visible={props.visible === undefined ? true : props.visible}
+                onVisibilityChange={(visible) => updateChannel(index, { visible })}
+                onColorChange={(color) => updateChannel(index, { color })}
+                onContrastChange={(contrastLimits) => updateChannel(index, { contrastLimits })}
+              />
+            ))}
+          </div>
         </AccordionDetails>
       </Accordion>
-    </Paper>
+    </div>
   );
 }

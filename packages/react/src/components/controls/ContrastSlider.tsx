@@ -1,4 +1,4 @@
-import { Box, Slider } from "@mui/material";
+import { InputSlider } from "@czi-sds/components";
 
 interface ContrastSliderProps {
   value: [number, number];
@@ -12,14 +12,16 @@ export function ContrastSlider({ value, onChange }: ContrastSliderProps) {
   };
 
   return (
-    <Box sx={{ flex: 1 }}>
-      <Slider
+    <div className="flex-1">
+      <InputSlider
         value={value}
         onChange={handleChange}
-        valueLabelDisplay="auto"
         min={0}
         max={1000}
+        step={100}
+        marks
+        valueLabelDisplay="auto"
       />
-    </Box>
+    </div>
   );
 }

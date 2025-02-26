@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Box } from "@mui/system";
+import cns from "classnames";
 import CircularProgress from '@mui/material/CircularProgress';
 import {
   ImageLayer,
@@ -70,16 +70,19 @@ export default function OmeZarrImageViewer({
   }, [imageLayer, layerManager]);
 
   return (
-    <Box
-      sx={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        flex: 1,
-        gap: "1em",
-        border: "1px solid black",
-      }}
+    <div
+      className={cns(
+        'w-full',
+        'h-full',
+        'flex',
+        'flex-col',
+        'flex-1',
+        'gap-4',
+        'border',
+        'border-solid',
+        'border-black',
+        'min-h-0'
+      )}
     >
       <Renderer
         layerManager={layerManager}
@@ -88,16 +91,16 @@ export default function OmeZarrImageViewer({
       />
       {
         loading &&
-        <Box sx={{ position: "fixed", top: "50%", left: "50%" }}>
+        <div className={cns('fixed', 'top-1/2', 'left-1/2')}>
           <CircularProgress />
-        </Box>
+        </div>
       }
       {
         imageLayer &&
-        <Box sx={{ position: "fixed", top: "3em", left: "3em", width: "25em" }}>
+        <div className={cns('fixed', 'top-12', 'left-12', 'w-[25em]')}>
           <ChannelControlsList layer={imageLayer} />
-        </Box>
+        </div>
       }
-    </Box>
+    </div>
   );
 }
