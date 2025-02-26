@@ -6,7 +6,6 @@ import {
   PanZoomControls,
   NullControls,
   WebGLRenderer,
-  LayerState,
 } from "@idetik/core";
 
 type ControlType = "panzoom" | "none";

@@ -1,4 +1,4 @@
-import { Box } from "@mui/system";
+import cns from "classnames";
 import OmeZarrImageViewer from "./OmeZarrImageViewer";
 
 const plateUrl =
@@ -11,32 +11,34 @@ const region = [
 export default function App() {
 
   return (
-    <Box
-      sx={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "row",
-        gap: "1em",
-        boxSizing: "border-box",
-        padding: "1em",
-      }}
+    <div
+      className={cns(
+        'h-screen',
+        'flex',
+        'flex-row',
+        'gap-4',
+        'box-border',
+        'p-4'
+      )}
     >
-      <Box
-        sx={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          flex: 1,
-          gap: "1em",
-          border: "1px solid black",
-        }}
+      <div
+        className={cns(
+          'w-full',
+          'h-full',
+          'flex',
+          'flex-col',
+          'flex-1',
+          'gap-4',
+          'border',
+          'border-solid',
+          'border-black'
+        )}
       >
         <OmeZarrImageViewer
           sourceUrl={imageUrl}
           region={region}
         />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
