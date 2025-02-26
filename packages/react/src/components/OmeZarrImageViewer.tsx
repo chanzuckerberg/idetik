@@ -25,10 +25,10 @@ export default function OmeZarrImageViewer({
   region,
 }: OmeZarrImageViewerProps) {
   const [layerManager, _setLayerManager] = useState<LayerManager>(
-    new LayerManager()
+    new LayerManager(),
   );
   const [camera, _setCamera] = useState<OrthographicCamera>(
-    new OrthographicCamera(0, 128, 0, 128)
+    new OrthographicCamera(0, 128, 0, 128),
   );
   const [imageLayer, setImageLayer] = useState<ImageLayer | null>(null);
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
@@ -85,7 +85,7 @@ export default function OmeZarrImageViewer({
         "border",
         "border-solid",
         "border-black",
-        "min-h-0"
+        "min-h-0",
       )}
     >
       <Renderer

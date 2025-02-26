@@ -27,7 +27,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
       visible: boolean;
       color: [number, number, number];
       contrastLimits: [number, number];
-    }>
+    }>,
   ) => {
     const updatedChannelProps = [...channelProps];
 
@@ -42,7 +42,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   };
 
   return (
-    <div>
+    <div className="sds-color-primitive-blue-400 p-4">
       <Accordion defaultExpanded id="channel-controls">
         <div className={cns("flex w-full")}>
           <AccordionHeader>
