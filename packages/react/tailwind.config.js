@@ -1,6 +1,6 @@
-const sds = require("@czi-sds/components/dist/tailwind.json");
+import sds from "@czi-sds/components/dist/tailwind.json" assert { type: "json" };
 
-module.exports = {
+export default {
   mode: "jit",
   content: ["./src/**/*.{tsx,scss}"],
   theme: {

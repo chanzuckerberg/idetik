@@ -14,7 +14,11 @@ export function VisibilityToggle({ visible, onChange }: VisibilityToggleProps) {
       className="hover:bg-transparent"
       disableRipple
     >
-      {visible ? <Icon sdsIcon="EyeOpen" sdsSize="s" /> : <Icon sdsIcon="EyeClosed" sdsSize="s" />}
+      {visible ? (
+        <Icon sdsIcon="EyeOpen" sdsSize="s" />
+      ) : (
+        <Icon sdsIcon="EyeClosed" sdsSize="s" />
+      )}
     </Button>
   );
 }
