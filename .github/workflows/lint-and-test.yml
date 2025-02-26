@@ -35,6 +35,8 @@ jobs:
         run: |
           npm run lint --workspace=@idetik/core
           npm run format-check --workspace=@idetik/core
+          npm run lint --workspace=@idetik/react
+          npm run format-check --workspace=@idetik/react
 
       - name: Run tests with coverage
         run: npm run test-with-coverage --workspace=@idetik/core

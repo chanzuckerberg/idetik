@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import cns from "classnames";
-import CircularProgress from '@mui/material/CircularProgress';
+import CircularProgress from "@mui/material/CircularProgress";
 import {
   ImageLayer,
   LayerManager,
@@ -24,8 +24,12 @@ export default function OmeZarrImageViewer({
   sourceUrl,
   region,
 }: OmeZarrImageViewerProps) {
-  const [layerManager, _setLayerManager] = useState<LayerManager>(new LayerManager());
-  const [camera, _setCamera] = useState<OrthographicCamera>(new OrthographicCamera(0, 128, 0, 128));
+  const [layerManager, _setLayerManager] = useState<LayerManager>(
+    new LayerManager()
+  );
+  const [camera, _setCamera] = useState<OrthographicCamera>(
+    new OrthographicCamera(0, 128, 0, 128)
+  );
   const [imageLayer, setImageLayer] = useState<ImageLayer | null>(null);
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,16 +76,16 @@ export default function OmeZarrImageViewer({
   return (
     <div
       className={cns(
-        'w-full',
-        'h-full',
-        'flex',
-        'flex-col',
-        'flex-1',
-        'gap-4',
-        'border',
-        'border-solid',
-        'border-black',
-        'min-h-0'
+        "w-full",
+        "h-full",
+        "flex",
+        "flex-col",
+        "flex-1",
+        "gap-4",
+        "border",
+        "border-solid",
+        "border-black",
+        "min-h-0"
       )}
     >
       <Renderer
@@ -89,18 +93,16 @@ export default function OmeZarrImageViewer({
         camera={camera}
         cameraControls="panzoom"
       />
-      {
-        loading &&
-        <div className={cns('fixed', 'top-1/2', 'left-1/2')}>
+      {loading && (
+        <div className={cns("fixed", "top-1/2", "left-1/2")}>
           <CircularProgress />
         </div>
-      }
-      {
-        imageLayer &&
-        <div className={cns('fixed', 'top-12', 'left-12', 'w-[25em]')}>
+      )}
+      {imageLayer && (
+        <div className={cns("fixed", "top-12", "left-12", "w-[25em]")}>
           <ChannelControlsList layer={imageLayer} />
         </div>
-      }
+      )}
     </div>
   );
 }

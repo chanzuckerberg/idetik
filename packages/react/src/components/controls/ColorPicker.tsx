@@ -1,6 +1,5 @@
 import { hexToRgb } from "lib/color";
 
-
 interface ColorPickerProps {
   color: [number, number, number];
   onChange: (color: [number, number, number]) => void;
