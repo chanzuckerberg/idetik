@@ -133,6 +133,10 @@ export class OmeZarrImageLoader {
     console.debug("loaded chunk ", chunk);
     return chunk;
   }
+
+  public get metadata(): OmeNgffImage {
+    return this.metadata_;
+  }
 }
 
 // Converts a region to indices within an OME-Zarr image array.

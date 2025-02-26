@@ -24,11 +24,18 @@ export { OmeZarrImageSource } from "data/ome_zarr_image_source";
 export {
   loadOmeZarrPlate,
   loadOmeZarrWell,
+  loadOmeroChannels,
+} from "data/ome_zarr_hcs_metadata_loader";
+export type {
+  OmeroMetadata,
+  OmeroChannel,
 } from "data/ome_zarr_hcs_metadata_loader";
 export type { Region } from "data/region";
+export type { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
 
 export { WebGLRenderer } from "renderers/webgl_renderer";
 
 export { NullControls, PanZoomControls } from "objects/cameras/controls";
+export type { CameraControls } from "objects/cameras/controls";
 
 export type { ChannelProps } from "objects/textures/channel";

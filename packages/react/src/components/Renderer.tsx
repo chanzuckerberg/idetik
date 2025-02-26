@@ -1,77 +1,63 @@
 import { useEffect, useRef } from "react";
 import {
-  ImageLayer,
-  OmeZarrImageSource,
   LayerManager,
   OrthographicCamera,
+  CameraControls,
   PanZoomControls,
+  NullControls,
   WebGLRenderer,
 } from "@idetik/core";
 
-// TODO: needs to be unique so we can have more than one on the page
-const canvasId = "canvas";
-
-// TODO: useRef for some of these objects
-const camera = new OrthographicCamera(0, 825, 0, 500);
-const layerManager = new LayerManager();
-
-// TODO: use props to pass in most of this config
-const plateUrl =
-  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
-const imageUrl = plateUrl + "/B/03/0";
-console.debug(`Loading image from ${imageUrl}`);
-const source = new OmeZarrImageSource(imageUrl);
-const region = [
-  { dimension: "c", index: { start: 0, stop: 3 } },
-  { dimension: "z", index: 0 },
-];
-
-// colors and limits come from the OME-Zarr metadata
-// http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr/B/03/0/.zattrs
-const channelProps = [
-  { color: [0, 1, 1], contrastLimits: [110, 800] },
-  { color: [1, 0, 1], contrastLimits: [110, 250] },
-  { color: [1, 1, 0], contrastLimits: [110, 800] },
-];
-// TODO: typescript is not checking the types of the arguments to the constructor
-// see https://github.com/chanzuckerberg/imaging-active-learning/issues/174
-const layer = new ImageLayer({ source, region, channelProps });
-layerManager.add(layer);
+type ControlType = "panzoom" | "none";
 
 interface RendererProps {
-  onLayerReady?: (layer: ImageLayer) => void;
+  layerManager: LayerManager;
+  camera: OrthographicCamera;
+  cameraControls?: ControlType;
+  canvasId?: string;
 }
 
-export default function Renderer({ onLayerReady }: RendererProps) {
+export default function Renderer({
+  layerManager,
+  camera,
+  cameraControls = "panzoom",
+  canvasId = "renderer",
+}: RendererProps) {
   const renderer = useRef<WebGLRenderer | null>(null);
+  const controls = useRef<CameraControls>(() => new NullControls());
 
+  switch (cameraControls) {
+    case "panzoom":
+      controls.current = new PanZoomControls(camera, camera.position);
+      break;
+    case "none":
+      controls.current = new NullControls();
+      break;
+  }
+  renderer.current?.setControls(controls.current);
+
+  // Use the mount-effect so that the renderer can find the corresponding
+  // element by its ID.
   useEffect(() => {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
-
-    // Initialize renderer if not already done
-    if (renderer.current === null) {
+    if (!renderer.current) {
       renderer.current = new WebGLRenderer(`#${canvasId}`);
-      const controls = new PanZoomControls(camera, camera.position);
-      renderer.current.setControls(controls);
-
-      // Notify parent about the layer
-      onLayerReady?.(layer);
+      console.debug(`Created WebGLRenderer for ${canvasId}`, renderer.current);
+      renderer.current.setControls(controls.current);
     }
-
     function animate() {
-      renderer.current?.render(layerManager, camera);
+      renderer.current.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
     }
     animate();
-
     return () => {
       if (lastRequestId > 0) {
         console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);
       }
     };
-  }, [onLayerReady]);
+  }, [canvasId, camera, layerManager]);
 
   return <canvas id={canvasId} style={{ width: "100%", height: "100%" }} />;
 }
