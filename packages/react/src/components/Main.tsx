@@ -1,7 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import cns from "classnames";
-import "/src/index.css";
 
 import ThemedApp from "./ThemedApp.tsx";
 

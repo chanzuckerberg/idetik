@@ -21,7 +21,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
         type="color"
         value={rgbToHex(color)}
         onChange={(e) => onChange(hexToRgb(e.target.value))}
-        className="w-8 h-8 rounded cursor-pointer"
+        className="w-8 h-8 rounded cursor-pointer p-0 border-none outline-none"
       />
     </div>
   );
