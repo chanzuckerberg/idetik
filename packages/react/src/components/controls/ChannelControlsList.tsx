@@ -39,7 +39,7 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   };
 
   return (
-    <div className="sds-color-primitive-blue-400 p-4">
+    <div className="sds-color-primitive-blue-400 p-1">
       <Accordion defaultExpanded id="channel-controls">
         <AccordionHeader>Channel Controls</AccordionHeader>
         <AccordionDetails>
