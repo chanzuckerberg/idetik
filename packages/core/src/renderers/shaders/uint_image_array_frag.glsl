@@ -20,6 +20,7 @@ void main() {
         if (!Visible[i]) continue;
         float texel = float(texture(texture0, vec3(TexCoords, i)).r);
         float value = (texel + ValueOffset[i]) * ValueScale[i];
+        value = clamp(value, 0.0, 1.0);
         rgbColor += value * Color[i].rgb;
     }
     fragColor = vec4(rgbColor.rgb, 1);
