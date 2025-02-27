@@ -49,6 +49,7 @@ export default defineConfig(() => {
       watch: {
         include: [
           path.resolve(_dirname, 'src/**'),
+          path.resolve(_dirname, 'dist/index.css'),
         ],
       },
     },

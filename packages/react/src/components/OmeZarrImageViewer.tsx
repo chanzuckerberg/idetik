@@ -85,7 +85,8 @@ export default function OmeZarrImageViewer({
         "border",
         "border-solid",
         "border-black",
-        "min-h-0"
+        "min-h-0",
+        "relative"
       )}
     >
       <Renderer
@@ -94,12 +95,12 @@ export default function OmeZarrImageViewer({
         cameraControls="panzoom"
       />
       {loading && (
-        <div className={cns("fixed", "top-1/2", "left-1/2")}>
+        <div className={cns("absolute", "top-1/2", "left-1/2")}>
           <CircularProgress />
         </div>
       )}
       {imageLayer && (
-        <div className={cns("fixed", "top-12", "left-12", "w-[25em]")}>
+        <div className={cns("absolute", "top-4", "left-4", "w-[25em]")}>
           <ChannelControlsList layer={imageLayer} />
         </div>
       )}

@@ -1,4 +1,4 @@
-import { hexToRgb } from "lib/color";
+import { rgbToHex, hexToRgb } from "lib/color";
 
 interface ColorPickerProps {
   color: [number, number, number];
@@ -6,22 +6,19 @@ interface ColorPickerProps {
 }
 
 export function ColorPicker({ color, onChange }: ColorPickerProps) {
-  // Convert RGB [0-1] values to hex string
-  const rgbToHex = (rgb: [number, number, number]) => {
-    const toHex = (n: number) => {
-      const hex = Math.round(n * 255).toString(16);
-      return hex.length === 1 ? "0" + hex : hex;
-    };
-    return `#${toHex(rgb[0])}${toHex(rgb[1])}${toHex(rgb[2])}`;
-  };
-
   return (
-    <div className="flex items-center gap-2 rounded p-2">
+    // outer div is what is shown, because it's harder to style the input element
+    <div
+      className="w-6 h-6 rounded relative border hover:border-2"
+      style={{
+        backgroundColor: rgbToHex(color),
+      }}
+    >
       <input
         type="color"
         value={rgbToHex(color)}
         onChange={(e) => onChange(hexToRgb(e.target.value))}
-        className="w-8 h-8 rounded cursor-pointer"
+        className="opacity-0 top-0 left-0 h-[100%] w-[100%] absolute cursor-pointer"
       />
     </div>
   );

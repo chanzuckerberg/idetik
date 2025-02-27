@@ -10,6 +10,7 @@ import App from "./App";
 export default function ThemedApp() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const theme = prefersDarkMode ? Theme("dark") : Theme("light");
+
   return (
     <StyledEngineProvider injectFirst>
       <ThemeProvider theme={theme}>

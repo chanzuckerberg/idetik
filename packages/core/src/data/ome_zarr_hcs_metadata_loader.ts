@@ -26,6 +26,16 @@ export type OmeroChannel = OmeroMetadata["channels"][number];
 export async function loadOmeroChannels(url: string): Promise<OmeroChannel[]> {
   const store = new zarr.FetchStore(url);
   const group = await zarr.open.v2(store, { kind: "group" });
+  // TODO: silly fix for removing top-level identity transform
+  // (same as ome_zarr_image_loader.ts)
+  const attrs = group.attrs;
+  if (
+    Array.isArray(attrs?.multiscales) &&
+    Array.isArray(attrs.multiscales[0]?.coordinateTransformations) &&
+    attrs.multiscales[0].coordinateTransformations[0]?.type === "identity"
+  ) {
+    delete attrs.multiscales[0].coordinateTransformations;
+  }
   const metadata = Image.parse(group.attrs);
   return metadata.omero?.channels ?? [];
 }

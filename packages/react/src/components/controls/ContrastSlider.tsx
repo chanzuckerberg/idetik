@@ -12,16 +12,13 @@ export function ContrastSlider({ value, onChange }: ContrastSliderProps) {
   };
 
   return (
-    <div className="flex-1">
-      <InputSlider
-        value={value}
-        onChange={handleChange}
-        min={0}
-        max={1000}
-        step={100}
-        marks
-        valueLabelDisplay="auto"
-      />
-    </div>
+    <InputSlider
+      value={value}
+      onChange={handleChange}
+      min={0}
+      max={1000}
+      valueLabelDisplay="auto"
+      className="w-full"
+    />
   );
 }

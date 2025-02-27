@@ -1,9 +1,9 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import cns from "classnames";
-import "/src/index.css";
 
 import ThemedApp from "./ThemedApp.tsx";
+import "../index.css";
 
 const domNode = document.getElementById("app")!;
 const root = createRoot(domNode);

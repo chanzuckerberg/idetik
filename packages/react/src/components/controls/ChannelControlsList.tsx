@@ -1,8 +1,5 @@
-import {
-  Accordion,
-  AccordionHeader,
-  AccordionDetails,
-} from "@czi-sds/components";
+import { Accordion } from "@mui/material";
+import { AccordionHeader, AccordionDetails } from "@czi-sds/components";
 import cns from "classnames";
 import { ChannelControl } from "./ChannelControl";
 import { ImageLayer, ChannelProps } from "@idetik/core";
@@ -42,20 +39,11 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   };
 
   return (
-    <div className="sds-color-primitive-blue-400 p-4">
+    <div className="sds-color-primitive-blue-400 p-1">
       <Accordion defaultExpanded id="channel-controls">
-        <div className={cns("flex w-full")}>
-          <AccordionHeader>
-            <div className={cns("flex items-center")}>
-              <span className={cns("sds-color-primitive-green-200")}>
-                Channel Controls
-              </span>
-            </div>
-          </AccordionHeader>
-        </div>
-
+        <AccordionHeader>Channel Controls</AccordionHeader>
         <AccordionDetails>
-          <div className={cns("flex flex-col gap-sds-m")}>
+          <div className={cns("flex flex-col gap-sds-xs")}>
             {channelProps.map((props: ChannelProps, index: number) => (
               <ChannelControl
                 key={index}
