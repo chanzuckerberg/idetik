@@ -2,10 +2,12 @@ import { VisibilityToggle } from "./VisibilityToggle";
 import { ColorPicker } from "./ColorPicker";
 import { ContrastSlider } from "./ContrastSlider";
 
-interface ChannelControlProps {
+export interface ChannelControlProps {
   channelIndex: number;
+  label: string;
   color: [number, number, number];
   contrastLimits: [number, number];
+  contrastRange: [number, number];
   visible: boolean;
   onVisibilityChange: (visible: boolean) => void;
   onContrastChange: (limits: [number, number]) => void;
@@ -13,8 +15,10 @@ interface ChannelControlProps {
 }
 
 export function ChannelControl({
+  label,
   color,
   contrastLimits,
+  contrastRange,
   visible,
   onVisibilityChange,
   onContrastChange,
@@ -25,8 +29,14 @@ export function ChannelControl({
       <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
       <ColorPicker color={color} onChange={onColorChange} />
       <div className="flex-1 ml-1 mr-1 flex items-center">
-        <ContrastSlider value={contrastLimits} onChange={onContrastChange} />
+        <ContrastSlider
+          min={contrastRange[0]}
+          max={contrastRange[1]}
+          value={contrastLimits}
+          onChange={onContrastChange}
+        />
       </div>
+      <div>{label}</div>
     </div>
   );
 }
