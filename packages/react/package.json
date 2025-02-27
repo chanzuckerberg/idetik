@@ -10,7 +10,7 @@
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
     "lint": "eslint .",
-    "build:tailwind": "tailwindcss -i ./src/index.css -o ./dist/index.css --minify",
+    "build:tailwind": "npx @tailwindcss/cli -i ./src/index.css -o ./dist/index.css --minify",
     "build:css": "mkdir -p dist && npm run build:tailwind"
   },
   "dependencies": {
