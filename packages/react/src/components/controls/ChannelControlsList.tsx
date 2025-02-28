@@ -56,8 +56,6 @@ export function ChannelControlsList({
     setChannelProps(updatedChannelProps);
   };
 
-  console.log("ChannelControlsList::render", controlProps);
-
   return (
     <div className="p-1">
       <Accordion defaultExpanded id="channel-controls">
