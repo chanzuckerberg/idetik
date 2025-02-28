@@ -22,7 +22,7 @@ export function ChannelControlsList({
     const initialLayerChannelProps = layer.channelProps ?? [];
 
     const updatedChannelProps = initialLayerChannelProps.map(
-      (layerChannel, index) => ({
+      (layerChannel: ChannelProps, index: number) => ({
         visible:
           controlProps?.[index]?.visible ?? layerChannel?.visible ?? true,
         color: controlProps?.[index]?.color ?? layerChannel?.color,
@@ -31,7 +31,7 @@ export function ChannelControlsList({
       })
     );
 
-    setChannelProps(layer.channelProps ?? []);
+    setChannelProps(updatedChannelProps);
   }, [layer, controlProps]);
 
   const updateChannel = (
