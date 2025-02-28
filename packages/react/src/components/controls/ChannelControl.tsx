@@ -24,10 +24,12 @@ export function ChannelControl({
   onContrastChange,
   onColorChange,
 }: ChannelControlProps) {
+  // remove prefix (number + hyphen) from label if present
+  label = label.replace(/^\d+-/, "");
   return (
-    <div className="grid grid-cols-auto gap-2 items-center">
-      <div className="text-left">{label}</div>
-      <div className="flex items-center gap-2">
+    <div className="grid grid-cols-subgrid col-start-1 col-end-5 gap-2 items-center">
+      <div className="text-right text-xs">{label}</div>
+      <div className="col-span-3 flex items-center gap-2">
         <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
         <ColorPicker color={color} onChange={onColorChange} />
         <div className="flex-1 ml-1 mr-1 flex items-center">

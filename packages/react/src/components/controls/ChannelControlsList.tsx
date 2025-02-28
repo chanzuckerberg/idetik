@@ -63,7 +63,7 @@ export function ChannelControlsList({
       <Accordion defaultExpanded id="channel-controls">
         <AccordionHeader>Channel Controls</AccordionHeader>
         <AccordionDetails>
-          <div className={cns("grid grid-rows-auto gap-sds-xs")}>
+          <div className={cns("grid grid-cols-4 grid-rows-auto gap-sds-xs")}>
             {channelProps.map((props: ChannelProps, index: number) => (
               <ChannelControl
                 key={index}
