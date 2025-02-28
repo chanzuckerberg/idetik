@@ -25,18 +25,20 @@ export function ChannelControl({
   onColorChange,
 }: ChannelControlProps) {
   return (
-    <div className="flex items-center gap-2">
-      <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
-      <ColorPicker color={color} onChange={onColorChange} />
-      <div className="flex-1 ml-1 mr-1 flex items-center">
-        <ContrastSlider
-          min={contrastRange[0]}
-          max={contrastRange[1]}
-          value={contrastLimits}
-          onChange={onContrastChange}
-        />
+    <div className="grid grid-cols-auto gap-2 items-center">
+      <div className="text-left">{label}</div>
+      <div className="flex items-center gap-2">
+        <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
+        <ColorPicker color={color} onChange={onColorChange} />
+        <div className="flex-1 ml-1 mr-1 flex items-center">
+          <ContrastSlider
+            min={contrastRange[0]}
+            max={contrastRange[1]}
+            value={contrastLimits}
+            onChange={onContrastChange}
+          />
+        </div>
       </div>
-      <div>{label}</div>
     </div>
   );
 }

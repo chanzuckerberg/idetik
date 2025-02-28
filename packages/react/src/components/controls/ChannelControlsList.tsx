@@ -59,11 +59,11 @@ export function ChannelControlsList({
   console.log("ChannelControlsList::render", controlProps);
 
   return (
-    <div className="sds-color-primitive-blue-400 p-1">
+    <div className="p-1">
       <Accordion defaultExpanded id="channel-controls">
         <AccordionHeader>Channel Controls</AccordionHeader>
         <AccordionDetails>
-          <div className={cns("flex flex-col gap-sds-xs")}>
+          <div className={cns("grid grid-rows-auto gap-sds-xs")}>
             {channelProps.map((props: ChannelProps, index: number) => (
               <ChannelControl
                 key={index}
