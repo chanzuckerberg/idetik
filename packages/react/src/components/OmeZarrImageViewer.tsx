@@ -118,7 +118,7 @@ const omeroToChannelProps = (omeroChannels: OmeroChannel[]): ChannelProps[] => {
       contrastLimits: [channel.window.min, channel.window.max],
     };
   });
-}
+};
 
 const omeroToControlProps = (
   omeroChannels: OmeroChannel[]
@@ -131,4 +131,4 @@ const omeroToControlProps = (
       contrastRange: [0.5 * channel.window.start, 1.1 * channel.window.end],
     };
   });
-}
+};
