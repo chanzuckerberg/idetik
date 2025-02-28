@@ -32,9 +32,10 @@ export class PromiseQueue<T> {
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
   root_: zarr.Group<zarr.FetchStore>;
+  scaleIndex_: number;
   metadata_: OmeNgffImage;
 
-  constructor(root: zarr.Group<zarr.FetchStore>) {
+  constructor(root: zarr.Group<zarr.FetchStore>, scaleIndex?: number) {
     this.root_ = root;
     const attrs = this.root_.attrs;
     // TODO: silly fix for removing top-level identity transform,
@@ -55,6 +56,17 @@ export class OmeZarrImageLoader {
         `Can only handle one multiscale image. Found ${this.metadata_.multiscales.length}`
       );
     }
+
+    const numScales = this.metadata_.multiscales[0].datasets.length;
+    if (scaleIndex === undefined) {
+      // default to the lowest resolution
+      this.scaleIndex_ = numScales - 1;
+    } else if (scaleIndex < 0) {
+      // allow reverse indexing with negative numbers
+      this.scaleIndex_ = Math.max(0, numScales + scaleIndex);
+    } else {
+      this.scaleIndex_ = Math.min(numScales - 1, scaleIndex);
+    }
   }
 
   async loadChunk(
@@ -64,8 +76,7 @@ export class OmeZarrImageLoader {
     const image = this.metadata_.multiscales[0];
     // TODO: use the input to determine what level to load.
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
-    const lowestResolutionIndex = image.datasets.length - 1;
-    const dataset = image.datasets[lowestResolutionIndex];
+    const dataset = image.datasets[this.scaleIndex_];
     const scale = dataset.coordinateTransformations[0].scale;
     // TODO: fix zod to generate this type information.
     const axes = image.axes;
