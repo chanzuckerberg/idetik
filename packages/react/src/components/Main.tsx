@@ -10,7 +10,7 @@ const root = createRoot(domNode);
 
 root.render(
   <React.StrictMode>
-    <div className={cns("font-sds-body", "min-w-[1024px]")}>
+    <div className={cns("font-sds-body")}>
       <ThemedApp />
     </div>
   </React.StrictMode>

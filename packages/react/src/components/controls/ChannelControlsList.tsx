@@ -1,22 +1,38 @@
 import { Accordion } from "@mui/material";
 import { AccordionHeader, AccordionDetails } from "@czi-sds/components";
 import cns from "classnames";
-import { ChannelControl } from "./ChannelControl";
+import { ChannelControl, ChannelControlProps } from "./ChannelControl";
 import { ImageLayer, ChannelProps } from "@idetik/core";
 import { useState, useEffect } from "react";
 
 interface ChannelControlsListProps {
   layer: ImageLayer;
+  controlProps: Partial<ChannelControlProps>[];
 }
 
-export function ChannelControlsList({ layer }: ChannelControlsListProps) {
+export function ChannelControlsList({
+  layer,
+  controlProps,
+}: ChannelControlsListProps) {
   // Keep a local copy of channelProps to trigger re-renders
   const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
 
   // Sync local state with layer's channelProps
   useEffect(() => {
-    setChannelProps(layer.channelProps ?? []);
-  }, [layer]);
+    const initialLayerChannelProps = layer.channelProps ?? [];
+
+    const updatedChannelProps = initialLayerChannelProps.map(
+      (layerChannel: ChannelProps, index: number) => ({
+        visible:
+          controlProps?.[index]?.visible ?? layerChannel?.visible ?? true,
+        color: controlProps?.[index]?.color ?? layerChannel?.color,
+        contrastLimits:
+          controlProps?.[index]?.contrastLimits ?? layerChannel?.contrastLimits,
+      })
+    );
+
+    setChannelProps(updatedChannelProps);
+  }, [layer, controlProps]);
 
   const updateChannel = (
     index: number,
@@ -39,17 +55,21 @@ export function ChannelControlsList({ layer }: ChannelControlsListProps) {
   };
 
   return (
-    <div className="sds-color-primitive-blue-400 p-1">
+    <div className="p-1">
       <Accordion defaultExpanded id="channel-controls">
         <AccordionHeader>Channel Controls</AccordionHeader>
         <AccordionDetails>
-          <div className={cns("flex flex-col gap-sds-xs")}>
+          <div className={cns("grid grid-cols-4 grid-rows-auto gap-sds-xs")}>
             {channelProps.map((props: ChannelProps, index: number) => (
               <ChannelControl
                 key={index}
                 channelIndex={index}
+                label={controlProps[index]?.label ?? `Channel ${index}`}
                 color={props.color}
                 contrastLimits={props.contrastLimits}
+                contrastRange={
+                  controlProps[index]?.contrastRange ?? props.contrastLimits
+                }
                 visible={props.visible === undefined ? true : props.visible}
                 onVisibilityChange={(visible) =>
                   updateChannel(index, { visible })

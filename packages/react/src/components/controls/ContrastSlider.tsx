@@ -2,10 +2,17 @@ import { InputSlider } from "@czi-sds/components";
 
 interface ContrastSliderProps {
   value: [number, number];
+  min: number;
+  max: number;
   onChange: (limits: [number, number]) => void;
 }
 
-export function ContrastSlider({ value, onChange }: ContrastSliderProps) {
+export function ContrastSlider({
+  min,
+  max,
+  value,
+  onChange,
+}: ContrastSliderProps) {
   const handleChange = (_event: Event, newValue: number | number[]) => {
     const limits = newValue as number[];
     onChange([limits[0], limits[1]]);
@@ -15,8 +22,8 @@ export function ContrastSlider({ value, onChange }: ContrastSliderProps) {
     <InputSlider
       value={value}
       onChange={handleChange}
-      min={0}
-      max={1000}
+      min={min}
+      max={max}
       valueLabelDisplay="auto"
       className="w-full"
     />
