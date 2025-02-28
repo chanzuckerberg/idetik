@@ -59,6 +59,10 @@ export class OmeZarrImageLoader {
 
     const numScales = this.metadata_.multiscales[0].datasets.length;
     if (scaleIndex === undefined) {
+      // TODO: when undefined use the input to determine what level to load.
+      // That is, dynamically select the scale based on the size of the chunk
+      // to be loaded and how big it will be on screen.
+      // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
       // default to the lowest resolution
       this.scaleIndex_ = numScales - 1;
     } else if (scaleIndex < 0) {
@@ -74,8 +78,6 @@ export class OmeZarrImageLoader {
     scheduler?: PromiseScheduler
   ): Promise<ImageChunk> {
     const image = this.metadata_.multiscales[0];
-    // TODO: use the input to determine what level to load.
-    // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
     const dataset = image.datasets[this.scaleIndex_];
     const scale = dataset.coordinateTransformations[0].scale;
     // TODO: fix zod to generate this type information.
