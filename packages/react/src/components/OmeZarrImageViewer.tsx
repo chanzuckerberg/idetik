@@ -53,13 +53,6 @@ export default function OmeZarrImageViewer({
       const omeroChannels = await loadOmeroChannels(sourceUrl);
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
-      // const channelProps = omeroChannels.map((channel: OmeroChannel) => {
-      //   return {
-      //     color: hexToRgb(channel.color),
-      //     contrastLimits: [channel.window.start, channel.window.end],
-      //     // TODO: also get channel label and contrast range here
-      //   };
-      // });
       const layer = new ImageLayer({ source, region, channelProps });
       layer.addStateChangeCallback(() => {
         if (layer.state === "ready") {
@@ -117,7 +110,7 @@ export default function OmeZarrImageViewer({
 
 // TODO: the limits/range from the omero channels should possibly be reversed
 // (start/end for limits, min/max for range) but the organelle box data works better this way
-function omeroToChannelProps(omeroChannels: OmeroChannel[]): ChannelProps[] {
+const omeroToChannelProps = (omeroChannels: OmeroChannel[]): ChannelProps[] => {
   return omeroChannels.map((channel: OmeroChannel) => {
     return {
       visible: channel.active,
@@ -127,12 +120,14 @@ function omeroToChannelProps(omeroChannels: OmeroChannel[]): ChannelProps[] {
   });
 }
 
-function omeroToControlProps(
+const omeroToControlProps = (
   omeroChannels: OmeroChannel[]
-): Partial<ChannelControlProps>[] {
+): Partial<ChannelControlProps>[] => {
   return omeroChannels.map((channel: OmeroChannel) => {
+    // remove prefix (number + hyphen) from label if present (seen in organelle box data)
+    const label = channel.label.replace(/^\d+-/, "");
     return {
-      label: channel.label,
+      label,
       contrastRange: [0.5 * channel.window.start, 1.1 * channel.window.end],
     };
   });

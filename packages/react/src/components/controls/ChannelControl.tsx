@@ -24,8 +24,6 @@ export function ChannelControl({
   onContrastChange,
   onColorChange,
 }: ChannelControlProps) {
-  // remove prefix (number + hyphen) from label if present
-  label = label.replace(/^\d+-/, "");
   return (
     <div className="grid grid-cols-subgrid col-start-1 col-end-5 gap-2 items-center">
       <div className="text-right text-xs">{label}</div>
