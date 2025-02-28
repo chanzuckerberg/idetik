@@ -10,7 +10,7 @@ import {
 
 type ControlType = "panzoom" | "none";
 
-interface RendererProps {
+export interface RendererProps {
   layerManager: LayerManager;
   camera: OrthographicCamera;
   cameraControls?: ControlType;

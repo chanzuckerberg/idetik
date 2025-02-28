@@ -17,7 +17,7 @@ import { ChannelControlsList } from "./controls/ChannelControlsList";
 import { ChannelControlProps } from "./controls/ChannelControl";
 import { hexToRgb } from "lib/color";
 
-interface OmeZarrImageViewerProps {
+export interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   scale?: number;
