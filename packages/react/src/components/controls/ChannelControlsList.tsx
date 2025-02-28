@@ -19,20 +19,14 @@ export function ChannelControlsList({
 
   // Sync local state with layer's channelProps
   useEffect(() => {
-    const initialLayerChannelProps = layer.channelProps ?? [];
-    initialLayerChannelProps.map(
-      (layerChannel: ChannelProps, index: number) => {
-        const c = controlProps[index] ?? {};
-        const visible = c.visible ?? layerChannel.visible ?? true;
-        const color = c.color ?? layerChannel.color;
-        const contrastLimits = c.contrastLimits ?? layerChannel.contrastLimits;
-        return {
-          visible,
-          color,
-          contrastLimits,
-        };
-      }
-    );
+const initialLayerChannelProps = layer.channelProps ?? [];
+
+const updatedChannelProps = initialLayerChannelProps.map((layerChannel, index) => ({
+  visible: controlProps?.[index]?.visible ?? layerChannel?.visible ?? true,
+  color: controlProps?.[index]?.color ?? layerChannel?.color,
+  contrastLimits: controlProps?.[index]?.contrastLimits ?? layerChannel?.contrastLimits,
+}));
+
     setChannelProps(layer.channelProps ?? []);
   }, [layer, controlProps]);
 
