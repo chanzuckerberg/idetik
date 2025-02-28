@@ -10,24 +10,29 @@ interface ChannelControlsListProps {
   controlProps: Partial<ChannelControlProps>[];
 }
 
-export function ChannelControlsList({ layer, controlProps }: ChannelControlsListProps) {
+export function ChannelControlsList({
+  layer,
+  controlProps,
+}: ChannelControlsListProps) {
   // Keep a local copy of channelProps to trigger re-renders
   const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
 
   // Sync local state with layer's channelProps
   useEffect(() => {
     const initialLayerChannelProps = layer.channelProps ?? [];
-    initialLayerChannelProps.map((layerChannel: ChannelProps, index: number) => {
-      const c = controlProps[index] ?? {};
-      const visible = c.visible ?? layerChannel.visible ?? true;
-      const color = c.color ?? layerChannel.color;
-      const contrastLimits = c.contrastLimits ?? layerChannel.contrastLimits;
-      return {
-        visible,
-        color,
-        contrastLimits,
-      };
-    });
+    initialLayerChannelProps.map(
+      (layerChannel: ChannelProps, index: number) => {
+        const c = controlProps[index] ?? {};
+        const visible = c.visible ?? layerChannel.visible ?? true;
+        const color = c.color ?? layerChannel.color;
+        const contrastLimits = c.contrastLimits ?? layerChannel.contrastLimits;
+        return {
+          visible,
+          color,
+          contrastLimits,
+        };
+      }
+    );
     setChannelProps(layer.channelProps ?? []);
   }, [layer, controlProps]);
 
@@ -66,7 +71,9 @@ export function ChannelControlsList({ layer, controlProps }: ChannelControlsList
                 label={controlProps[index]?.label ?? `Channel ${index}`}
                 color={props.color}
                 contrastLimits={props.contrastLimits}
-                contrastRange={controlProps[index]?.contrastRange ?? props.contrastLimits}
+                contrastRange={
+                  controlProps[index]?.contrastRange ?? props.contrastLimits
+                }
                 visible={props.visible === undefined ? true : props.visible}
                 onVisibilityChange={(visible) =>
                   updateChannel(index, { visible })

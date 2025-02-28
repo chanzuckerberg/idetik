@@ -35,7 +35,9 @@ export default function OmeZarrImageViewer({
   const [imageLayer, setImageLayer] = useState<ImageLayer | null>(null);
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [loading, setLoading] = useState(true);
-  const [controlProps, setControlProps] = useState<Partial<ChannelControlProps>[]>([]);
+  const [controlProps, setControlProps] = useState<
+    Partial<ChannelControlProps>[]
+  >([]);
 
   useEffect(() => {
     const source = new OmeZarrImageSource(sourceUrl);
@@ -123,9 +125,11 @@ function omeroToChannelProps(omeroChannels: OmeroChannel[]): ChannelProps[] {
       contrastLimits: [channel.window.min, channel.window.max],
     };
   });
-};
+}
 
-function omeroToControlProps(omeroChannels: OmeroChannel[]): Partial<ChannelControlProps>[] {
+function omeroToControlProps(
+  omeroChannels: OmeroChannel[]
+): Partial<ChannelControlProps>[] {
   return omeroChannels.map((channel: OmeroChannel) => {
     return {
       label: channel.label,

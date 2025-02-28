@@ -7,7 +7,12 @@ interface ContrastSliderProps {
   onChange: (limits: [number, number]) => void;
 }
 
-export function ContrastSlider({ min, max, value, onChange }: ContrastSliderProps) {
+export function ContrastSlider({
+  min,
+  max,
+  value,
+  onChange,
+}: ContrastSliderProps) {
   const handleChange = (_event: Event, newValue: number | number[]) => {
     const limits = newValue as number[];
     onChange([limits[0], limits[1]]);
