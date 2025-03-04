@@ -51,6 +51,7 @@ export class PanZoomControls implements CameraControls {
   }
 
   private wheel(event: WheelEvent, clientToWorld: ClientToWorld): void {
+    event.preventDefault();
     const clientPos = vec2.fromValues(event.clientX, event.clientY);
     const preZoomPos = clientToWorld(clientPos, this.clipDepth);
     if (event.deltaY < 0) {

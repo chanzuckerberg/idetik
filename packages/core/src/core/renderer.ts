@@ -69,7 +69,7 @@ export abstract class Renderer {
       clientToClip
     );
     this.controlCallbacks_.forEach(([event, listener]) => {
-      this.canvas.addEventListener(event, listener);
+      this.canvas.addEventListener(event, listener, { passive: false });
     });
   }
 
