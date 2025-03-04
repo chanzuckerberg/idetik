@@ -12,7 +12,7 @@ import {
   ChannelProps,
 } from "@idetik/core";
 
-import Renderer from "./Renderer";
+import { Renderer } from "./Renderer";
 import { ChannelControlsList } from "./controls/ChannelControlsList";
 import { ChannelControlProps } from "./controls/ChannelControl";
 import { hexToRgb } from "lib/color";
@@ -23,7 +23,7 @@ export interface OmeZarrImageViewerProps {
   scale?: number;
 }
 
-export default function OmeZarrImageViewer({
+export function OmeZarrImageViewer({
   sourceUrl,
   region,
   scale,

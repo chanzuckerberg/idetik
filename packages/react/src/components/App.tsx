@@ -1,5 +1,5 @@
 import cns from "classnames";
-import OmeZarrImageViewer from "./OmeZarrImageViewer";
+import { OmeZarrImageViewer } from "./OmeZarrImageViewer";
 
 const plateUrl =
   "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";

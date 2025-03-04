@@ -17,7 +17,7 @@ export interface RendererProps {
   canvasId?: string;
 }
 
-export default function Renderer({
+export function Renderer({
   layerManager,
   camera,
   cameraControls = "panzoom",
