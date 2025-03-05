@@ -41,25 +41,25 @@ jobs:
       - name: Run tests with coverage
         run: npm run test-with-coverage --workspace=@idetik/core
 
-    build:
-      needs: lint-and-test
-      runs-on: ubuntu-latest
+  build:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
 
-      steps:
-        - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-        - uses: actions/setup-node@v4
-          with:
-            node-version: 20
-            cache: 'npm'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
 
-        - uses: actions/cache@v4
-          with:
-            path: node_modules
-            key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
 
-        - name: Install dependencies
-          run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-        - name: Build
-          run: npm run build:all
+      - name: Build
+        run: npm run build:all
