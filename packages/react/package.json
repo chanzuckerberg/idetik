@@ -6,11 +6,11 @@
   "scripts": {
     "dev": "vite",
     "compile": "tsc",
-    "build": "vite build && tsc --project tsconfig.build.json && npm run build:css",
+    "build": "vite build && tsc && rollup -c rollup.config.js",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
     "lint": "eslint .",
-    "build:tailwind": "tailwindcss -i ./src/index.css -o ./dist/index.css --minify",
+    "build:tailwind": "npx @tailwindcss/cli -i ./src/index.css -o ./dist/index.css --minify",
     "build:css": "mkdir -p dist && npm run build:tailwind"
   },
   "dependencies": {
@@ -29,15 +29,23 @@
     "react-dom": "^18.3.1"
   },
   "description": "idetik react components",
+  "main": "./dist/index.umd.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.umd.cjs"
     },
+    "./index.css": "./dist/index.css",
     "./dist/*.js.map": "./dist/*.js.map",
+    "./dist/*.cjs.map": "./dist/*.cjs.map",
     "./dist/*.d.ts.map": "./dist/*.d.ts.map"
   },
+  "files": [
+    "dist"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -49,13 +57,6 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^4.0.9"
   },
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "style": "dist/index.css",
-  "files": [
-    "dist",
-    "src/index.css"
-  ],
   "peerDependencies": {
     "@czi-sds/components": "^22.1.2",
     "react": "^18.3.1",

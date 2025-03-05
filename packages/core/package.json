@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "compile": "tsc",
-    "build": "vite build && tsc --project tsconfig.build.json",
+    "build": "vite build && tsc && rollup -c rollup.config.js",
     "test": "vitest",
     "test-with-coverage": "vitest run --coverage",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
@@ -19,19 +19,17 @@
     "zod": "^3.24.1"
   },
   "description": "A layer-based visualization abstraction",
+  "main": "./dist/index.umd.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.umd.cjs"
     },
-    "./*": {
-      "types": "./dist/*/index.d.ts"
-    },
-    "./**/*": {
-      "types": "./dist/**/*.d.ts"
-    },
     "./dist/*.js.map": "./dist/*.js.map",
+    "./dist/*.cjs.map": "./dist/*.cjs.map",
     "./dist/*.d.ts.map": "./dist/*.d.ts.map"
   },
   "files": [

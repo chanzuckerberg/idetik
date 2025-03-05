@@ -5,17 +5,13 @@ import { Texture2DArray } from "./texture_2d_array";
 
 type RgbColor = [number, number, number];
 
-export type ChannelProps = {
-  visible?: boolean;
-  color?: RgbColor;
-  contrastLimits?: [number, number];
-};
-
 export type Channel = {
   visible: boolean;
   color: RgbColor;
   contrastLimits: [number, number];
 };
+
+export type ChannelProps = Partial<Channel>;
 
 export function validateChannel(
   texture: Texture | null,

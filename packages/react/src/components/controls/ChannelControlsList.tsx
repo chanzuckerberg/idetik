@@ -60,16 +60,28 @@ export function ChannelControlsList({
         <AccordionHeader>Channel Controls</AccordionHeader>
         <AccordionDetails>
           <div className={cns("grid grid-cols-4 grid-rows-auto gap-sds-xs")}>
-            {channelProps.map((props: ChannelProps, index: number) => (
-              <ChannelControl
+            {channelProps.map((props: ChannelProps, index: number) => {
+              // TODO: can possibly clean this up with better types
+              // error on undefined values - we're setting defaults
+              // and merging objects in too many places
+              if (props.color === undefined) {
+                throw new Error(`Color not defined for channel ${index}`);
+              }
+              if (props.contrastLimits === undefined) {
+                throw new Error(`Contrast limits not defined for channel ${index}`);
+              }
+              const contrastRange = (controlProps[index]?.contrastRange ?? props.contrastLimits)!;
+              if (contrastRange === undefined) {
+                throw new Error(`Contrast range not defined for channel ${index}`);
+              }
+
+              return <ChannelControl
                 key={index}
                 channelIndex={index}
                 label={controlProps[index]?.label ?? `Channel ${index}`}
                 color={props.color}
                 contrastLimits={props.contrastLimits}
-                contrastRange={
-                  controlProps[index]?.contrastRange ?? props.contrastLimits
-                }
+                contrastRange={contrastRange}
                 visible={props.visible === undefined ? true : props.visible}
                 onVisibilityChange={(visible) =>
                   updateChannel(index, { visible })
@@ -79,7 +91,7 @@ export function ChannelControlsList({
                   updateChannel(index, { contrastLimits })
                 }
               />
-            ))}
+            })}
           </div>
         </AccordionDetails>
       </Accordion>

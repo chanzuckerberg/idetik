@@ -57,8 +57,10 @@ export default function OmeZarrImageViewer({
       layer.addStateChangeCallback(() => {
         if (layer.state === "ready") {
           setLoading(false);
-          camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
-          camera.update();
+          if (layer.extent !== undefined) {
+            camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
+            camera.update();
+          }
         }
       });
       setImageLayer(layer);
@@ -123,9 +125,9 @@ const omeroToChannelProps = (omeroChannels: OmeroChannel[]): ChannelProps[] => {
 const omeroToControlProps = (
   omeroChannels: OmeroChannel[]
 ): Partial<ChannelControlProps>[] => {
-  return omeroChannels.map((channel: OmeroChannel) => {
+  return omeroChannels.map((channel: OmeroChannel, index: number) => {
     // remove prefix (number + hyphen) from label if present (seen in organelle box data)
-    const label = channel.label.replace(/^\d+-/, "");
+    const label = (channel.label ?? `Ch${index}`).replace(/^\d+-/, "");
     return {
       label,
       contrastRange: [0.5 * channel.window.start, 1.1 * channel.window.end],
