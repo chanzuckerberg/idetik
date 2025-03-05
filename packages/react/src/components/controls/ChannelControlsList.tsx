@@ -68,29 +68,36 @@ export function ChannelControlsList({
                 throw new Error(`Color not defined for channel ${index}`);
               }
               if (props.contrastLimits === undefined) {
-                throw new Error(`Contrast limits not defined for channel ${index}`);
+                throw new Error(
+                  `Contrast limits not defined for channel ${index}`
+                );
               }
-              const contrastRange = (controlProps[index]?.contrastRange ?? props.contrastLimits)!;
+              const contrastRange = (controlProps[index]?.contrastRange ??
+                props.contrastLimits)!;
               if (contrastRange === undefined) {
-                throw new Error(`Contrast range not defined for channel ${index}`);
+                throw new Error(
+                  `Contrast range not defined for channel ${index}`
+                );
               }
 
-              return <ChannelControl
-                key={index}
-                channelIndex={index}
-                label={controlProps[index]?.label ?? `Channel ${index}`}
-                color={props.color}
-                contrastLimits={props.contrastLimits}
-                contrastRange={contrastRange}
-                visible={props.visible === undefined ? true : props.visible}
-                onVisibilityChange={(visible) =>
-                  updateChannel(index, { visible })
-                }
-                onColorChange={(color) => updateChannel(index, { color })}
-                onContrastChange={(contrastLimits) =>
-                  updateChannel(index, { contrastLimits })
-                }
-              />
+              return (
+                <ChannelControl
+                  key={index}
+                  channelIndex={index}
+                  label={controlProps[index]?.label ?? `Channel ${index}`}
+                  color={props.color}
+                  contrastLimits={props.contrastLimits}
+                  contrastRange={contrastRange}
+                  visible={props.visible === undefined ? true : props.visible}
+                  onVisibilityChange={(visible) =>
+                    updateChannel(index, { visible })
+                  }
+                  onColorChange={(color) => updateChannel(index, { color })}
+                  onContrastChange={(contrastLimits) =>
+                    updateChannel(index, { contrastLimits })
+                  }
+                />
+              );
             })}
           </div>
         </AccordionDetails>
