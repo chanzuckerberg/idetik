@@ -97,12 +97,20 @@ export function OmeZarrImageViewer({
         cameraControls="panzoom"
       />
       {loading && (
-        <div className={cns("absolute", "top-1/2", "left-1/2")}>
-          <CircularProgress />
+        <div
+          className={cns(
+            "absolute",
+            "inset-0",
+            "flex",
+            "items-center",
+            "justify-center"
+          )}
+        >
+          <CircularProgress sx={{ color: "white" }} />
         </div>
       )}
       {imageLayer && (
-        <div className={cns("absolute", "top-4", "left-4", "w-[25em]")}>
+        <div className={cns("absolute top-0 left-0 w-full md:w-[400px]")}>
           <ChannelControlsList layer={imageLayer} controlProps={controlProps} />
         </div>
       )}

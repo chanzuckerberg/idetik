@@ -55,11 +55,28 @@ export function ChannelControlsList({
   };
 
   return (
-    <div className="p-1">
-      <Accordion defaultExpanded id="channel-controls">
-        <AccordionHeader>Channel Controls</AccordionHeader>
+    <div className="text-white z-[999] bg-black/20 backdrop-blur-md transition-[left] duration-300 ease-in-out flex [&_.MuiAccordion-root]:!bg-transparent [&_.MuiAccordionDetails-root]:!pb-[4px]">
+      <Accordion
+        defaultExpanded
+        id="channel-controls"
+        className="flex-grow"
+        square
+        elevation={0}
+      >
+        <div
+          className={cns(
+            "flex w-full [&_.MuiAccordionSummary-expandIconWrapper_svg]:!text-white [&_.MuiAccordionSummary-expandIconWrapper_svg]:!fill-white [&_.MuiAccordionSummary-root]:!flex-grow [&_.Mui-expanded]:!min-h-0"
+          )}
+        >
+          <AccordionHeader>
+            <div className={cns("flex items-center")}>
+              <span className={cns("text-white")}>Channel Controls</span>
+            </div>
+          </AccordionHeader>
+        </div>
+
         <AccordionDetails>
-          <div className={cns("grid grid-cols-4 grid-rows-auto gap-sds-xs")}>
+          <div className={cns("flex flex-col")}>
             {channelProps.map((props: ChannelProps, index: number) => (
               <ChannelControl
                 key={index}

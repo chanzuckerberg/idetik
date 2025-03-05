@@ -1,4 +1,5 @@
 import { InputSlider } from "@czi-sds/components";
+import cns from "classnames";
 
 interface ContrastSliderProps {
   value: [number, number];
@@ -19,13 +20,24 @@ export function ContrastSlider({
   };
 
   return (
-    <InputSlider
-      value={value}
-      onChange={handleChange}
-      min={min}
-      max={max}
-      valueLabelDisplay="auto"
-      className="w-full"
-    />
+    <div className="flex justify-center">
+      <InputSlider
+        value={value}
+        onChange={handleChange}
+        min={min}
+        max={max}
+        valueLabelDisplay="auto"
+        className={cns(
+          // Hardcode dark mode colors to force dark mode
+          // look, no matter what the theme is
+          "[&_.MuiSlider-rail]:!bg-[#494949]",
+          "[&_.MuiSlider-track]:!bg-[#0D7CB5]",
+          "[&_.MuiSlider-mark]:!bg-[#696969]",
+          "[&_.MuiSlider-thumb]:after:!bg-[#101010]",
+          "[&_.MuiSlider-valueLabel]:!bg-[#065B86]",
+          "[&_.MuiSlider-valueLabelLabel]:!text-white"
+        )}
+      />
+    </div>
   );
 }
