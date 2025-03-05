@@ -2,7 +2,7 @@
 import dts from 'rollup-plugin-dts';
 
 export default {
-  input: 'dist/types/src/index.d.ts', // Adjust the path to where your TypeScript emits .d.ts files
+  input: 'dist/types/src/index.d.ts',
   output: {
     file: 'dist/index.d.ts',
     format: 'es',
