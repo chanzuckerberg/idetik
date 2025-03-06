@@ -48,6 +48,7 @@ export class ImageLayer extends Layer {
   }
 
   public get channelProps(): ChannelProps[] | undefined {
+    // TODO: should this return Channel[] instead of ChannelProps[]?
     return this.channelProps_;
   }
 
