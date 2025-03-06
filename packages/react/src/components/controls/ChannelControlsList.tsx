@@ -58,7 +58,26 @@ export function ChannelControlsList({
   };
 
   return (
-    <div className="z-[999] bg-[var(--sds-color-semantic-base-background-primary)] opacity-70 backdrop-blur-md transition-[left] duration-300 ease-in-out flex [&_.MuiAccordion-root]:!bg-transparent [&_.MuiAccordionDetails-root]:!pb-[4px]">
+    <div className={cns(
+      "z-[999]",
+      "backdrop-blur-md",
+      "transition-[left]",
+      "duration-300",
+      "ease-in-out",
+      "flex",
+      "[&_.MuiAccordion-root]:!bg-transparent",
+      "[&_.MuiAccordionDetails-root]:!pb-[4px]",
+      "relative",
+      "before:absolute",
+      "before:left-0",
+      "before:top-0",
+      "before:w-full",
+      "before:h-full",
+      "before:bg-[--sds-color-semantic-base-background-primary]",
+      "before:opacity-50",
+      "before:content-['']",
+    )}
+    >
       <Accordion
         id="channel-controls"
         className="flex-grow"
@@ -67,11 +86,14 @@ export function ChannelControlsList({
       >
         <div
           className={cns(
-            "flex w-full [&_.MuiAccordionSummary-root]:!flex-grow [&_.Mui-expanded]:!min-h-0"
+            "flex",
+            "w-full",
+            "[&_.MuiAccordionSummary-root]:!flex-grow",
+            "[&_.Mui-expanded]:!min-h-0",
           )}
         >
           <AccordionHeader>
-            <div className={cns("flex items-center")}>
+            <div className={cns("flex", "items-center")}>
               Channel Controls
             </div>
           </AccordionHeader>

@@ -45,6 +45,8 @@ export default defineConfig(() => {
           'react/jsx-runtime',
           'react-dom',
           'react-dom/client',
+          '@czi-sds/components',
+          '@mui/material',
         ],
         output: {
           globals: {
