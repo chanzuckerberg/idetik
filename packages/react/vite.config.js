@@ -3,8 +3,9 @@ import { defineConfig } from 'vite';
 import eslint from 'vite-plugin-eslint';
 import path from 'path';
 import react from "@vitejs/plugin-react";
-import tailwindcss from '@tailwindcss/vite'
 import typescript from '@rollup/plugin-typescript';
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
 
 // __dirname is not available in ES6 modules
 // https://github.com/vitejs/vite/issues/6946#issuecomment-1041506056
@@ -21,7 +22,6 @@ const plugins = [
   }),
   eslint(),
   react(),
-  tailwindcss(),
 ];
 
 export default defineConfig(() => {
@@ -38,7 +38,6 @@ export default defineConfig(() => {
         entry: path.resolve(_dirname, 'src/index.ts'),
         name: 'idetik-react',
         fileName: "index",
-        cssFileName: 'index.css',
       },
       rollupOptions: {
         external: [
@@ -54,8 +53,15 @@ export default defineConfig(() => {
             'react/jsx-runtime': 'React.jsxRuntime',
             'react-dom/client': 'ReactDOM.client',
           },
-          assetFileNames: 'index.[ext]',
         },
+      },
+    },
+    css: {
+      postcss: {
+        plugins: [
+          tailwindcss,
+          autoprefixer,
+        ],
       },
     },
     resolve: {

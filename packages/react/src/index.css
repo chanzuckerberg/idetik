@@ -1,7 +1,0 @@
-@import 'tailwindcss';
-
-/* Import SDS styles */
-@import '@czi-sds/components/dist/variables.css';
-
-/* legacy configuration - SDS styles extend the theme via js config */
-@config "../tailwind.config.js";

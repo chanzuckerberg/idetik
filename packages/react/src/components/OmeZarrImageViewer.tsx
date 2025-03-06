@@ -102,7 +102,7 @@ export default function OmeZarrImageViewer({
         </div>
       )}
       {imageLayer && (
-        <div className={cns("absolute", "top-4", "left-4", "w-[25em]")}>
+        <div className={cns("absolute", "top-0", "left-0", "w-[25em]")}>
           <ChannelControlsList layer={imageLayer} controlProps={controlProps} />
         </div>
       )}
@@ -112,12 +112,14 @@ export default function OmeZarrImageViewer({
 
 // TODO: the limits/range from the omero channels should possibly be reversed
 // (start/end for limits, min/max for range) but the organelle box data works better this way
+// TODO: provide a way to get our own limits automatically from the data instead of the metadata
 const omeroToChannelProps = (omeroChannels: OmeroChannel[]): ChannelProps[] => {
   return omeroChannels.map((channel: OmeroChannel) => {
+    const { start, end, min, max } = channel.window;
     return {
       visible: channel.active,
       color: hexToRgb(channel.color),
-      contrastLimits: [channel.window.min, channel.window.max],
+      contrastLimits: [Math.max(start, min), Math.min(end, max)],
     };
   });
 };

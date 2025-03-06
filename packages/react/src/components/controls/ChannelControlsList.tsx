@@ -31,6 +31,9 @@ export function ChannelControlsList({
       })
     );
 
+    // Update both the layer and local state to keep them in sync
+    // TODO: use a dispatcher?
+    layer.setChannelProps(updatedChannelProps);
     setChannelProps(updatedChannelProps);
   }, [layer, controlProps]);
 
@@ -55,9 +58,26 @@ export function ChannelControlsList({
   };
 
   return (
-    <div className="p-1">
-      <Accordion defaultExpanded id="channel-controls">
-        <AccordionHeader>Channel Controls</AccordionHeader>
+    <div className="z-[999] bg-[var(--sds-color-semantic-base-background-primary)] opacity-70 backdrop-blur-md transition-[left] duration-300 ease-in-out flex [&_.MuiAccordion-root]:!bg-transparent [&_.MuiAccordionDetails-root]:!pb-[4px]">
+      <Accordion
+        id="channel-controls"
+        className="flex-grow"
+        square
+        elevation={0}
+      >
+        <div
+          className={cns(
+            "flex w-full [&_.MuiAccordionSummary-root]:!flex-grow [&_.Mui-expanded]:!min-h-0"
+          )}
+        >
+          <AccordionHeader>
+            <div className={cns("flex items-center")}>
+              Channel Controls
+            </div>
+          </AccordionHeader>
+        </div>
+
+
         <AccordionDetails>
           <div className={cns("grid grid-cols-4 grid-rows-auto gap-sds-xs")}>
             {channelProps.map((props: ChannelProps, index: number) => {

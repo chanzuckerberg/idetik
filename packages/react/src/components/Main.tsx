@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import cns from "classnames";
 
 import ThemedApp from "./ThemedApp.tsx";
-import "../index.css";
+import "../input.css";
 
 const domNode = document.getElementById("app")!;
 const root = createRoot(domNode);
