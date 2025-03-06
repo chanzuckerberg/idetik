@@ -58,25 +58,26 @@ export function ChannelControlsList({
   };
 
   return (
-    <div className={cns(
-      "z-[999]",
-      "backdrop-blur-md",
-      "transition-[left]",
-      "duration-300",
-      "ease-in-out",
-      "flex",
-      "[&_.MuiAccordion-root]:!bg-transparent",
-      "[&_.MuiAccordionDetails-root]:!pb-[4px]",
-      "relative",
-      "before:absolute",
-      "before:left-0",
-      "before:top-0",
-      "before:w-full",
-      "before:h-full",
-      "before:bg-[--sds-color-semantic-base-background-primary]",
-      "before:opacity-50",
-      "before:content-['']",
-    )}
+    <div
+      className={cns(
+        "z-[999]",
+        "backdrop-blur-md",
+        "transition-[left]",
+        "duration-300",
+        "ease-in-out",
+        "flex",
+        "[&_.MuiAccordion-root]:!bg-transparent",
+        "[&_.MuiAccordionDetails-root]:!pb-[4px]",
+        "relative",
+        "before:absolute",
+        "before:left-0",
+        "before:top-0",
+        "before:w-full",
+        "before:h-full",
+        "before:bg-[--sds-color-semantic-base-background-primary]",
+        "before:opacity-50",
+        "before:content-['']"
+      )}
     >
       <Accordion
         id="channel-controls"
@@ -89,16 +90,13 @@ export function ChannelControlsList({
             "flex",
             "w-full",
             "[&_.MuiAccordionSummary-root]:!flex-grow",
-            "[&_.Mui-expanded]:!min-h-0",
+            "[&_.Mui-expanded]:!min-h-0"
           )}
         >
           <AccordionHeader>
-            <div className={cns("flex", "items-center")}>
-              Channel Controls
-            </div>
+            <div className={cns("flex", "items-center")}>Channel Controls</div>
           </AccordionHeader>
         </div>
-
 
         <AccordionDetails>
           <div className={cns("grid grid-cols-4 grid-rows-auto gap-sds-xs")}>
