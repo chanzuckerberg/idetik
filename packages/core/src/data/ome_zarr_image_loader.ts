@@ -76,7 +76,10 @@ export class OmeZarrImageLoader {
   }
 
   // Static factory method to create and initialize a loader
-  public static async create(root: zarr.Group<zarr.FetchStore>, scaleIndex?: number): Promise<OmeZarrImageLoader> {
+  public static async create(
+    root: zarr.Group<zarr.FetchStore>,
+    scaleIndex?: number
+  ): Promise<OmeZarrImageLoader> {
     const loader = new OmeZarrImageLoader(root, scaleIndex);
     await loader.initializeCache();
     return loader;
@@ -85,7 +88,7 @@ export class OmeZarrImageLoader {
   // Explicitly initialize the cached array (should be called before loadChunk)
   public async initializeCache(): Promise<void> {
     if (this.cachedZarrArray_ !== null) {
-      console.debug('Cache already initialized');
+      console.debug("Cache already initialized");
       return;
     }
 
@@ -100,11 +103,15 @@ export class OmeZarrImageLoader {
 
     // Wrap the array with our caching layer
     this.cachedZarrArray_ = createCachedArray(array);
-    console.debug(`Cache initialized with array shape: ${this.cachedZarrArray_.shape}`);
+    console.debug(
+      `Cache initialized with array shape: ${this.cachedZarrArray_.shape}`
+    );
   }
 
   // Get the cached array, initializing it if needed
-  private async getCachedArray(datasetPath: string): Promise<ReturnType<typeof createCachedArray>> {
+  private async getCachedArray(
+    datasetPath: string
+  ): Promise<ReturnType<typeof createCachedArray>> {
     if (!this.cachedZarrArray_) {
       console.debug(`Cache not initialized, creating array for ${datasetPath}`);
       const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
@@ -135,7 +142,9 @@ export class OmeZarrImageLoader {
 
     // Get our cached array (will create one if not initialized)
     if (!this.cachedZarrArray_) {
-      console.debug("WARNING: Cache not explicitly initialized. Call initializeCache() first for better performance.");
+      console.debug(
+        "WARNING: Cache not explicitly initialized. Call initializeCache() first for better performance."
+      );
     }
     const cachedArray = await this.getCachedArray(dataset.path);
 
@@ -169,9 +178,10 @@ export class OmeZarrImageLoader {
 
     const axes = image.axes;
     const scale = dataset.coordinateTransformations[0].scale;
-    const translation = dataset.coordinateTransformations.length === 2
-      ? dataset.coordinateTransformations[1].translation
-      : new Array(axes.length).fill(0);
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(axes.length).fill(0);
 
     const calculateOffset = (i: number) => {
       const index = indices[i];
@@ -209,9 +219,10 @@ export class OmeZarrImageLoader {
     const axes = this.metadata_.multiscales[0].axes;
     const dataset = this.metadata_.multiscales[0].datasets[datasetIndex];
     const scale = dataset.coordinateTransformations[0].scale;
-    const translation = dataset.coordinateTransformations.length === 2
-      ? dataset.coordinateTransformations[1].translation
-      : new Array(axes.length).fill(0);
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(axes.length).fill(0);
 
     const indices: Array<Slice | number> = [];
     for (const [i, axis] of axes.entries()) {

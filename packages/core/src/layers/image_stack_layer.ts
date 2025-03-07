@@ -41,9 +41,7 @@ export class ImageStackLayer extends Layer {
     this.zDimension_ = zDimension;
     this.channelProps_ = channelProps;
 
-    this.zDimensionIndex_ = region.findIndex(
-      (x) => x.dimension == zDimension
-    );
+    this.zDimensionIndex_ = region.findIndex((x) => x.dimension == zDimension);
     if (this.zDimensionIndex_ === -1) {
       throw new Error(
         `Could not find dimension ${zDimension} in ${JSON.stringify(region)}`
@@ -81,7 +79,9 @@ export class ImageStackLayer extends Layer {
       return;
     }
     if (index < 0 || index >= this.dataChunks_.length) {
-      throw new Error(`Z index ${index} is out of bounds [0, ${this.dataChunks_.length - 1}]`);
+      throw new Error(
+        `Z index ${index} is out of bounds [0, ${this.dataChunks_.length - 1}]`
+      );
     }
 
     this.currentZIndex_ = index;
@@ -122,10 +122,12 @@ export class ImageStackLayer extends Layer {
     // Get the metadata to understand the dimensions
     const metadata = loader.metadata;
     const axes = metadata.multiscales[0].axes;
-    const zAxisIndex = axes.findIndex(axis => axis.name === this.zDimension_);
+    const zAxisIndex = axes.findIndex((axis) => axis.name === this.zDimension_);
 
     if (zAxisIndex === -1) {
-      throw new Error(`Z dimension "${this.zDimension_}" not found in metadata axes`);
+      throw new Error(
+        `Z dimension "${this.zDimension_}" not found in metadata axes`
+      );
     }
 
     // Get the Z region element to determine how to load
@@ -159,13 +161,17 @@ export class ImageStackLayer extends Layer {
       const zIndices = indices[zAxisIndex];
 
       if (typeof zIndices === "number") {
-        throw new Error(`Z dimension indices should be an interval, not a number`);
+        throw new Error(
+          `Z dimension indices should be an interval, not a number`
+        );
       }
 
       // Get the start and stop indices for Z
       const zStart = zIndices.start === null ? 0 : zIndices.start;
       const zStop = zIndices.stop === null ? 1 : zIndices.stop;
-      console.debug(`Z index range: ${zStart}-${zStop} (${zStop - zStart} slices)`);
+      console.debug(
+        `Z index range: ${zStart}-${zStop} (${zStop - zStart} slices)`
+      );
 
       // Load each Z slice separately
       this.dataChunks_ = [];
@@ -181,9 +187,10 @@ export class ImageStackLayer extends Layer {
           // Get the Z coordinate by reverse-mapping the index to data space
           const dataset = metadata.multiscales[0].datasets[0];
           const scale = dataset.coordinateTransformations[0].scale;
-          const translation = dataset.coordinateTransformations.length === 2
-            ? dataset.coordinateTransformations[1].translation
-            : new Array(axes.length).fill(0);
+          const translation =
+            dataset.coordinateTransformations.length === 2
+              ? dataset.coordinateTransformations[1].translation
+              : new Array(axes.length).fill(0);
 
           // Apply the scale and translation in reverse
           const zCoord = zIndex * scale[zAxisIndex] - translation[zAxisIndex];
@@ -192,24 +199,25 @@ export class ImageStackLayer extends Layer {
 
         // Queue loading this slice
         loadPromises.push(
-          loader.loadChunk(sliceRegion, this.scheduler_)
-            .then(chunk => {
-              // Store the chunk at the correct index
-              const arrayIndex = zIndex - zStart;
-              this.dataChunks_[arrayIndex] = chunk;
-              console.debug(`Loaded Z slice ${zIndex} (array index ${arrayIndex})`);
+          loader.loadChunk(sliceRegion, this.scheduler_).then((chunk) => {
+            // Store the chunk at the correct index
+            const arrayIndex = zIndex - zStart;
+            this.dataChunks_[arrayIndex] = chunk;
+            console.debug(
+              `Loaded Z slice ${zIndex} (array index ${arrayIndex})`
+            );
 
-              // If this is the first chunk to load, we can mark the layer as ready
-              // This allows for progressive loading
-              if (this.state !== "ready" && arrayIndex === 0) {
-                this.extent_ = {
-                  x: chunk.shape.x * chunk.scale.x,
-                  y: chunk.shape.y * chunk.scale.y,
-                };
-                this.setState("ready");
-                this.setZIndex(0);
-              }
-            })
+            // If this is the first chunk to load, we can mark the layer as ready
+            // This allows for progressive loading
+            if (this.state !== "ready" && arrayIndex === 0) {
+              this.extent_ = {
+                x: chunk.shape.x * chunk.scale.x,
+                y: chunk.shape.y * chunk.scale.y,
+              };
+              this.setState("ready");
+              this.setZIndex(0);
+            }
+          })
         );
       }
 
@@ -224,7 +232,6 @@ export class ImageStackLayer extends Layer {
       });
 
       console.debug(`Loaded all ${this.dataChunks_.length} Z slices`);
-
     } catch (error) {
       if (error instanceof AbortError) {
         console.debug("Loading aborted.");
@@ -234,7 +241,6 @@ export class ImageStackLayer extends Layer {
       throw error;
     }
   }
-
 
   public get extent(): { x: number; y: number } | undefined {
     return this.extent_;

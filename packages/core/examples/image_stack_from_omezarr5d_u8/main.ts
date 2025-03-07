@@ -13,7 +13,12 @@ const url =
 const pixelScale = 4.99;
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(0, pixelScale * 1264, 0, pixelScale * 1264);
+const camera = new OrthographicCamera(
+  0,
+  pixelScale * 1264,
+  0,
+  pixelScale * 1264
+);
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
 
@@ -21,9 +26,7 @@ renderer.setControls(controls);
 // to get a Z-stack.
 const source = new OmeZarrImageSource(url);
 const zInterval = { start: 0, stop: 1000 };
-const region = [
-  { dimension: "z", index: zInterval },
-];
+const region = [{ dimension: "z", index: zInterval }];
 
 // Initial contrast limits for grayscale electron microscopy data
 const initialMinValue = -0.00001;
@@ -86,15 +89,15 @@ maxValueEl.textContent = initialMaxValue.toString();
 minSlider.addEventListener("input", (event) => {
   const minValue = (event.target as HTMLInputElement).valueAsNumber;
   const maxValue = maxSlider.valueAsNumber;
-  
+
   // Ensure min doesn't exceed max
   if (minValue >= maxValue) {
     minSlider.value = (maxValue - 0.01).toString();
     return;
   }
-  
+
   minValueEl.textContent = minValue.toFixed(2);
-  
+
   // Update channel properties
   layer.setChannelProps([
     {
@@ -108,15 +111,15 @@ minSlider.addEventListener("input", (event) => {
 maxSlider.addEventListener("input", (event) => {
   const maxValue = (event.target as HTMLInputElement).valueAsNumber;
   const minValue = minSlider.valueAsNumber;
-  
+
   // Ensure max doesn't go below min
   if (maxValue <= minValue) {
     maxSlider.value = (minValue + 0.01).toString();
     return;
   }
-  
+
   maxValueEl.textContent = maxValue.toFixed(2);
-  
+
   // Update channel properties
   layer.setChannelProps([
     {
