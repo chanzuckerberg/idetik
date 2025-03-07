@@ -20,13 +20,11 @@ import { hexToRgb } from "lib/color";
 interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
-  scale?: number;
 }
 
 export default function OmeZarrImageViewer({
   sourceUrl,
   region,
-  scale,
 }: OmeZarrImageViewerProps) {
   const [layerManager, _setLayerManager] = useState<LayerManager>(
     new LayerManager()
@@ -42,9 +40,9 @@ export default function OmeZarrImageViewer({
   >([]);
 
   useEffect(() => {
-    const source = new OmeZarrImageSource(sourceUrl, scale);
+    const source = new OmeZarrImageSource(sourceUrl);
     setSource(source);
-  }, [sourceUrl, scale]);
+  }, [sourceUrl]);
 
   useEffect(() => {
     setLoading(true);

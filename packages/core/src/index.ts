@@ -20,6 +20,8 @@ export { ImageLayer } from "layers/image_layer";
 
 export { ImageSeriesLayer } from "layers/image_series_layer";
 
+export { ImageStackLayer } from "layers/image_stack_layer";
+
 export { OmeZarrImageSource } from "data/ome_zarr_image_source";
 export {
   loadOmeZarrPlate,

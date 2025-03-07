@@ -8,7 +8,8 @@ const plateUrl =
 const imageUrl = plateUrl + "/GOLGA2/Live/000000";
 const region = [
   { dimension: "T", index: 0 },
-  { dimension: "Z", index: 0 },
+  { dimension: "Z", index: 10.4 },
+  // { dimension: "Z", index: { start: 0, stop: 11 } },
   // { dimension: "z", index: 0 },
 ];
 
@@ -25,7 +26,10 @@ export default function App() {
           "gap-4"
         )}
       >
-        <OmeZarrImageViewer sourceUrl={imageUrl} region={region} />
+        <OmeZarrImageViewer
+          sourceUrl={imageUrl}
+          region={region}
+        />
       </div>
     </div>
   );
