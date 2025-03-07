@@ -5,7 +5,7 @@ import { Region } from "data/region";
 import { ImageChunk, isImageChunkData } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
-import { CachedZarrArray } from "./zarr_utils";
+import { CachedZarrArray } from "./zarr_chunk_cache";
 
 import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
 
