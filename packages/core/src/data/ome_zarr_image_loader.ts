@@ -106,21 +106,15 @@ export class OmeZarrImageLoader {
   }
 
   // Get the cached array, initializing it if needed
-  private async getCachedArray(datasetPath: string): Promise<CachedZarrArray> {
+  private async getCachedArray(): Promise<CachedZarrArray> {
     if (!this.cachedZarrArray_) {
-      console.debug(`Cache not initialized, creating array for ${datasetPath}`);
-      const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
-        kind: "array",
-        attrs: false,
-      });
-
-      // Wrap the array with our caching layer - only used if initializeCache wasn't called
-      this.cachedZarrArray_ = new CachedZarrArray(array);
-      console.debug(`Created cached array as fallback`);
+      await this.initializeCache();
     } else {
       console.debug(`Using existing cached array`);
     }
-
+    if (!this.cachedZarrArray_) {
+      throw new Error("Failed to initialize cache");
+    }
     return this.cachedZarrArray_;
   }
 
@@ -129,7 +123,6 @@ export class OmeZarrImageLoader {
     scheduler?: PromiseScheduler
   ): Promise<ImageChunk> {
     console.debug("loading chunk with region", region, this.scaleIndex_);
-    console.log("METADATA", this.metadata_);
     const image = this.metadata_.multiscales[0];
     const dataset = image.datasets[this.scaleIndex_];
     const indices = this.regionToIndices(region, this.scaleIndex_);
@@ -141,7 +134,7 @@ export class OmeZarrImageLoader {
         "WARNING: Cache not explicitly initialized. Call initializeCache() first for better performance."
       );
     }
-    const cachedArray = await this.getCachedArray(dataset.path);
+    const cachedArray = await this.getCachedArray();
 
     let options = {};
     if (scheduler !== undefined) {
