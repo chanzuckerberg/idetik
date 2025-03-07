@@ -5,7 +5,7 @@ import { Region } from "data/region";
 import { ImageChunk, isImageChunkData } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
-import { createCachedArray } from "./zarr_utils";
+import { CachedZarrArray } from "./zarr_utils";
 
 import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
 
@@ -35,7 +35,7 @@ export class OmeZarrImageLoader {
   scaleIndex_: number;
   metadata_: OmeNgffImage;
   // Single CachedZarrArray instance for the entire loader
-  private cachedZarrArray_: ReturnType<typeof createCachedArray> | null = null;
+  private cachedZarrArray_: CachedZarrArray | null = null;
 
   constructor(root: zarr.Group<zarr.FetchStore>, scaleIndex?: number) {
     this.root_ = root;
@@ -102,16 +102,13 @@ export class OmeZarrImageLoader {
     });
 
     // Wrap the array with our caching layer
-    this.cachedZarrArray_ = createCachedArray(array);
-    console.debug(
-      `Cache initialized with array shape: ${this.cachedZarrArray_.shape}`
-    );
+    this.cachedZarrArray_ = new CachedZarrArray(array);
   }
 
   // Get the cached array, initializing it if needed
   private async getCachedArray(
     datasetPath: string
-  ): Promise<ReturnType<typeof createCachedArray>> {
+  ): Promise<CachedZarrArray> {
     if (!this.cachedZarrArray_) {
       console.debug(`Cache not initialized, creating array for ${datasetPath}`);
       const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
@@ -120,7 +117,7 @@ export class OmeZarrImageLoader {
       });
 
       // Wrap the array with our caching layer - only used if initializeCache wasn't called
-      this.cachedZarrArray_ = createCachedArray(array);
+      this.cachedZarrArray_ = new CachedZarrArray(array);
       console.debug(`Created cached array as fallback`);
     } else {
       console.debug(`Using existing cached array`);

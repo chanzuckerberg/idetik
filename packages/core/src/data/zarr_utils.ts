@@ -9,26 +9,19 @@ type ChunkOptions = {
 
 type ChunkData = {
   data:
-    | ArrayBuffer
-    | SharedArrayBuffer
     | Uint8Array
-    | Int8Array
     | Uint16Array
-    | Int16Array
-    | Uint32Array
-    | Int32Array
     | Float32Array
-    | Float64Array;
   shape: readonly number[];
   [key: string]: unknown;
 };
 
 // A wrapper for zarr.Array that caches chunks to avoid redundant fetches and decompression
 export class CachedZarrArray {
-  private array_: zarr.Array<zarr.FetchStore>;
+  private array_: zarr.Array<zarr.DataType, zarr.FetchStore>;
   private chunkCache_: Map<string, Promise<ChunkData>> = new Map();
 
-  constructor(array: zarr.Array<zarr.FetchStore>) {
+  constructor(array: zarr.Array<zarr.DataType, zarr.FetchStore>) {
     this.array_ = array;
     console.debug(`Created CachedZarrArray for path ${array.path}`);
   }
@@ -133,11 +126,4 @@ export class CachedZarrArray {
   public clearCache(): void {
     this.chunkCache_.clear();
   }
-}
-
-// Factory function to create a cached array
-export function createCachedArray(
-  array: zarr.Array<zarr.FetchStore>
-): CachedZarrArray {
-  return new CachedZarrArray(array);
 }
