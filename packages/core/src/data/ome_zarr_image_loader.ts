@@ -106,9 +106,7 @@ export class OmeZarrImageLoader {
   }
 
   // Get the cached array, initializing it if needed
-  private async getCachedArray(
-    datasetPath: string
-  ): Promise<CachedZarrArray> {
+  private async getCachedArray(datasetPath: string): Promise<CachedZarrArray> {
     if (!this.cachedZarrArray_) {
       console.debug(`Cache not initialized, creating array for ${datasetPath}`);
       const array = await zarr.open.v2(this.root_.resolve(datasetPath), {

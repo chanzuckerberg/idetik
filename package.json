@@ -9,6 +9,7 @@
     "build": "npm run build --workspace=@idetik/core",
     "build:all": "npm run build --workspaces",
     "examples": "npm run dev --workspace=@idetik/core",
+    "format:all": "npm run format --workspaces",
     "ultrack": "npm run dev --workspace=ultrack-prototype"
   },
   "devDependencies": {

@@ -2,15 +2,12 @@ import * as zarr from "zarrita";
 import { GetOptions, Slice } from "@zarrita/indexing";
 
 type ChunkData = {
-  data:
-    | Uint8Array
-    | Uint16Array
-    | Float32Array
+  data: Uint8Array | Uint16Array | Float32Array;
   shape: readonly number[];
   stride: readonly number[];
   [key: string]: unknown;
 };
-type ChunkOptions = Parameters<zarr.FetchStore["get"]>[1]
+type ChunkOptions = Parameters<zarr.FetchStore["get"]>[1];
 
 // A wrapper for zarr.Array that caches chunks to avoid redundant fetches and decompression
 export class CachedZarrArray {

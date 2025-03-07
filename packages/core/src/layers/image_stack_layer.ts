@@ -1,6 +1,7 @@
 import { Layer } from "core/layer";
 import { Region } from "data/region";
-import { ImageChunk, ImageChunkSource } from "data/image_chunk";
+import { ImageChunk } from "data/image_chunk";
+import { OmeZarrImageSource } from "data/ome_zarr_image_source";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "data/promise_scheduler";
 import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
@@ -8,7 +9,7 @@ import { ChannelProps } from "objects/textures/channel";
 import { ImageRenderable } from "objects/renderable/image_renderable";
 
 type ImageStackLayerProps = {
-  source: ImageChunkSource;
+  source: OmeZarrImageSource;
   region: Region;
   zDimension: string;
   channelProps?: ChannelProps[];
@@ -16,7 +17,7 @@ type ImageStackLayerProps = {
 
 // Loads 2D+z image data (Z-stack) from an image source into renderable objects.
 export class ImageStackLayer extends Layer {
-  private readonly source_: ImageChunkSource;
+  private readonly source_: OmeZarrImageSource;
   private readonly region_: Region;
   private readonly zDimension_: string;
   private readonly zDimensionIndex_: number;
