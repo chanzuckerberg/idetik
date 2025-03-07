@@ -25,7 +25,6 @@ export class ImageSeriesLayer extends Layer {
   private scheduler_: PromiseScheduler = new PromiseScheduler(16);
   private channelProps_?: ChannelProps[];
   private renderable_?: ImageRenderable;
-  private extent_?: { x: number; y: number };
 
   constructor({
     source,
@@ -37,9 +36,6 @@ export class ImageSeriesLayer extends Layer {
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-
-    // TODO: should be able to specify a missing region element as the time dimension to span the
-    // whole range
     this.timeDimensionIndex_ = region.findIndex(
       (x) => x.dimension == timeDimension
     );
@@ -118,8 +114,6 @@ export class ImageSeriesLayer extends Layer {
     }
     this.setState("loading");
     const loader = await this.source_.open();
-    console.log("LOADER", loader);
-    // TODO: mark "ready" when at least one chunk is loaded, or perhaps add a different layer
     // Wait to load the whole region over all time points.
     this.dataChunks_ = [];
     const loadPromises = [];
@@ -135,9 +129,6 @@ export class ImageSeriesLayer extends Layer {
         loader
           .loadChunk(region, this.scheduler_)
           .then((chunk) => (this.dataChunks_[t - start] = chunk))
-          .then(() => {
-            console.debug(`Loaded chunk ${t}`);
-          })
       );
     }
     await Promise.all(loadPromises).catch((error) => {
@@ -146,17 +137,6 @@ export class ImageSeriesLayer extends Layer {
         return;
       }
     });
-    const chunk = this.dataChunks_[0];
-    this.extent_ = {
-      x: chunk.shape.x * chunk.scale.x,
-      y: chunk.shape.y * chunk.scale.y,
-    };
     this.setState("ready");
-  }
-  //
-  // TODO: we probably want something like this, but it should be unified across layers
-  // see TracksLayer for another example
-  public get extent(): { x: number; y: number } | undefined {
-    return this.extent_;
   }
 }
