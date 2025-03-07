@@ -1,11 +1,5 @@
 import * as zarr from "zarrita";
-import { Slice } from "@zarrita/indexing";
-
-// Define types for options and return values to avoid 'any'
-type ChunkOptions = {
-  signal?: AbortSignal;
-  [key: string]: unknown;
-};
+import { GetOptions, Slice } from "@zarrita/indexing";
 
 type ChunkData = {
   data:
@@ -13,8 +7,10 @@ type ChunkData = {
     | Uint16Array
     | Float32Array
   shape: readonly number[];
+  stride: readonly number[];
   [key: string]: unknown;
 };
+type ChunkOptions = Parameters<zarr.FetchStore["get"]>[1]
 
 // A wrapper for zarr.Array that caches chunks to avoid redundant fetches and decompression
 export class CachedZarrArray {
@@ -27,17 +23,13 @@ export class CachedZarrArray {
   }
 
   // Get access to the underlying array
-  get underlyingArray(): zarr.Array<zarr.FetchStore> {
+  get underlyingArray(): zarr.Array<zarr.DataType, zarr.FetchStore> {
     return this.array_;
   }
 
   // Forward properties from the underlying array
   get shape(): readonly number[] {
     return this.array_.shape;
-  }
-
-  get chunkShape(): readonly number[] {
-    return this.array_.chunkShape;
   }
 
   get dtype(): zarr.DataType {
@@ -96,7 +88,7 @@ export class CachedZarrArray {
   // Drop-in replacement for zarr.get - public method
   public async get(
     selection: Array<Slice | number>,
-    options: ChunkOptions = {}
+    options?: GetOptions<ChunkOptions>
   ): Promise<ChunkData> {
     // Create a proper proxy of the original array
     // Capture the getChunk method bound to this instance
@@ -106,7 +98,7 @@ export class CachedZarrArray {
       get(target, prop) {
         if (prop === "getChunk") {
           // Return our cached version of getChunk
-          return (chunkIndices: number[], chunkOptions: ChunkOptions = {}) => {
+          return (chunkIndices: number[], chunkOptions?: ChunkOptions) => {
             return getChunkMethod(chunkIndices, {
               ...options,
               ...chunkOptions,
