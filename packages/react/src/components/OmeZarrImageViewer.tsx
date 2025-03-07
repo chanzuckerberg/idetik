@@ -3,6 +3,7 @@ import cns from "classnames";
 import CircularProgress from "@mui/material/CircularProgress";
 import {
   ImageLayer,
+  ImageSeriesLayer,
   LayerManager,
   OmeroChannel,
   OmeZarrImageSource,
@@ -15,18 +16,21 @@ import {
 import Renderer from "./Renderer";
 import { ChannelControlsList } from "./controls/ChannelControlsList";
 import { ChannelControlProps } from "./controls/ChannelControl";
+import { ZControl } from "./controls/ZControl";
 import { hexToRgb } from "lib/color";
 
 interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   scale?: number;
+  zDimension?: string;
 }
 
 export default function OmeZarrImageViewer({
   sourceUrl,
   region,
   scale,
+  zDimension,
 }: OmeZarrImageViewerProps) {
   const [layerManager, _setLayerManager] = useState<LayerManager>(
     new LayerManager()
@@ -34,12 +38,15 @@ export default function OmeZarrImageViewer({
   const [camera, _setCamera] = useState<OrthographicCamera>(
     new OrthographicCamera(0, 128, 0, 128)
   );
-  const [imageLayer, setImageLayer] = useState<ImageLayer | null>(null);
+  const [imageLayer, setImageLayer] = useState<
+    ImageLayer | ImageSeriesLayer | null
+  >(null);
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [loading, setLoading] = useState(true);
   const [controlProps, setControlProps] = useState<
     Partial<ChannelControlProps>[]
   >([]);
+  const [zRange, setZRange] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
     const source = new OmeZarrImageSource(sourceUrl, scale);
@@ -55,7 +62,18 @@ export default function OmeZarrImageViewer({
       const omeroChannels = await loadOmeroChannels(sourceUrl);
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
-      const layer = new ImageLayer({ source, region, channelProps });
+      let layer;
+      if (zDimension === undefined) {
+        layer = new ImageLayer({ source, region, channelProps });
+      } else {
+        layer = new ImageSeriesLayer({
+          source,
+          region,
+          seriesDimensionName: zDimension,
+          channelProps,
+        });
+        layer.preloadSeries({ initialIndex: 0 });
+      }
       layer.addStateChangeCallback(() => {
         if (layer.state === "ready") {
           setLoading(false);
@@ -68,7 +86,7 @@ export default function OmeZarrImageViewer({
       setImageLayer(layer);
     };
     getLayer();
-  }, [source, sourceUrl, region, camera]);
+  }, [source, sourceUrl, region, camera, zDimension]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -76,6 +94,20 @@ export default function OmeZarrImageViewer({
       layerManager.add(imageLayer);
     }
   }, [imageLayer, layerManager]);
+
+  useEffect(() => {
+    if (zDimension !== undefined && source !== null) {
+      const setZRangeFromData = async () => {
+        const loader = await source.open();
+        const attributes = await loader.loadAttributes();
+        const zAxisIndex = attributes.dimensions.findIndex(
+          (dim) => dim === zDimension
+        );
+        setZRange([0, attributes.shape[zAxisIndex] - 1]);
+      };
+      setZRangeFromData();
+    }
+  }, [source, zDimension]);
 
   return (
     <div
@@ -104,8 +136,26 @@ export default function OmeZarrImageViewer({
         </div>
       )}
       {imageLayer && (
-        <div className={cns("absolute", "top-0", "left-0", "w-[25em]")}>
+        <div className={cns("absolute", "top-0", "left-0", "w-1/2")}>
           <ChannelControlsList layer={imageLayer} controlProps={controlProps} />
+        </div>
+      )}
+      {zDimension && (
+        <div
+          className={cns(
+            "absolute",
+            "bottom-0",
+            "right-3",
+            "w-1/2",
+            "px-5",
+            "py-3"
+          )}
+        >
+          <ZControl
+            zRange={zRange}
+            onChange={(v) => (imageLayer as ImageSeriesLayer).setIndex(v)}
+            disabled={loading}
+          />
         </div>
       )}
     </div>

@@ -45,6 +45,13 @@ export type ImageChunkSource = {
   open(): Promise<ImageChunkLoader>;
 };
 
+export type LoaderAttributes = {
+  dimensions: string[];
+  shape: readonly number[];
+  scale: readonly number[];
+};
+
 export type ImageChunkLoader = {
   loadChunk(input: Region, scheduler?: PromiseScheduler): Promise<ImageChunk>;
+  loadAttributes(): Promise<LoaderAttributes>;
 };

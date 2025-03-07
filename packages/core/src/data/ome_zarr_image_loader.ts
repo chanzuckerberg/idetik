@@ -2,12 +2,15 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "data/region";
-import { ImageChunk, isImageChunkData } from "data/image_chunk";
+import {
+  ImageChunk,
+  isImageChunkData,
+  LoaderAttributes,
+} from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
 import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
-type Axis = OmeNgffImage["multiscales"][number]["axes"][number];
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -77,24 +80,16 @@ export class OmeZarrImageLoader {
     region: Region,
     scheduler?: PromiseScheduler
   ): Promise<ImageChunk> {
+    console.debug("loading chunk with region", region, this.scaleIndex_);
     const image = this.metadata_.multiscales[0];
     const dataset = image.datasets[this.scaleIndex_];
-    const scale = dataset.coordinateTransformations[0].scale;
-    // TODO: fix zod to generate this type information.
-    const axes = image.axes;
-    const translation =
-      dataset.coordinateTransformations.length === 2
-        ? dataset.coordinateTransformations[1].translation
-        : new Array(axes.length).fill(0);
-
-    const indices = regionToIndices(region, axes, scale, translation);
+    const indices = this.regionToIndices(region, this.scaleIndex_);
     console.debug("loading dataset with indices", dataset, indices);
 
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
       kind: "array",
       attrs: false,
     });
-
     let options = {};
     if (scheduler !== undefined) {
       options = {
@@ -106,7 +101,7 @@ export class OmeZarrImageLoader {
 
     if (!isImageChunkData(subarray.data)) {
       throw new Error(
-        `Subarray has an unsupported data type ${subarray.data.constructor.name}`
+        `Subarray has an unsupported data type, data=${subarray.data.constructor.name}`
       );
     }
 
@@ -122,6 +117,13 @@ export class OmeZarrImageLoader {
         "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
       );
     }
+
+    const axes = image.axes;
+    const scale = dataset.coordinateTransformations[0].scale;
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(axes.length).fill(0);
 
     const calculateOffset = (i: number) => {
       const index = indices[i];
@@ -147,37 +149,58 @@ export class OmeZarrImageLoader {
     return chunk;
   }
 
-  public get metadata(): OmeNgffImage {
-    return this.metadata_;
-  }
-}
+  public async loadAttributes(): Promise<LoaderAttributes> {
+    const image = this.metadata_.multiscales[0];
+    const dimensions = image.axes.map((axis) => axis.name);
+    const dataset = image.datasets[this.scaleIndex_];
+    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+      kind: "array",
+      attrs: false,
+    });
+    const shape = array.shape;
+    const scale = dataset.coordinateTransformations[0].scale;
 
-// Converts a region to indices within an OME-Zarr image array.
-function regionToIndices(
-  region: Region,
-  axes: Array<Axis>,
-  scale: number[],
-  translation: number[]
-): Array<Slice | number> {
-  const indices: Array<Slice | number> = [];
-  for (const [i, axis] of axes.entries()) {
-    const match = region.find((s) => s.dimension == axis.name);
-    // If a match was not found use a null slice which represents
-    // the complete extent of a dimension like Python's `slice(None)`.
-    let index: Slice | number = zarr.slice(null);
-    if (match) {
+    return {
+      dimensions,
+      shape,
+      scale,
+    };
+  }
+
+  // Converts a region to indices within an OME-Zarr image array.
+  regionToIndices(
+    region: Region,
+    datasetIndex: number = 0
+  ): Array<Slice | number> {
+    const axes = this.metadata_.multiscales[0].axes;
+    const dataset = this.metadata_.multiscales[0].datasets[datasetIndex];
+    const scale = dataset.coordinateTransformations[0].scale;
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(axes.length).fill(0);
+
+    const indices: Array<Slice | number> = [];
+    for (const [i, axis] of axes.entries()) {
+      const match = region.find((s) => s.dimension == axis.name);
+      if (match === undefined) {
+        throw new Error(`Region does not contain a slice for ${axis.name}`);
+      }
+      let index: Slice | number;
       const regionIndex = match.index;
-      if (regionIndex.type === "point") {
+      if (regionIndex.type === "full") {
+        // null slice is the complete extent of a dimension like Python's `slice(None)`.
+        index = zarr.slice(null);
+      } else if (regionIndex.type === "point") {
         index = Math.round(translation[i] + regionIndex.value / scale[i]);
-      } else if (regionIndex.type === "interval") {
+      } else {
         index = zarr.slice(
           Math.floor(translation[i] + regionIndex.start / scale[i]),
           Math.ceil(translation[i] + regionIndex.stop / scale[i])
         );
       }
-      // "full" slices the whole dimension, nothing to do
+      indices.push(index);
     }
-    indices.push(index);
+    return indices;
   }
-  return indices;
 }

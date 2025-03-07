@@ -1,7 +1,6 @@
 import {
   ImageSeriesLayer,
   LayerManager,
-  LayerState,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
@@ -20,6 +19,7 @@ const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 100, stop: 120 };
 const region: Region = [
   { dimension: "T", index: { type: "interval", ...timeInterval } },
+  { dimension: "C", index: { type: "full" } },
   { dimension: "Z", index: { type: "point", value: 0 } },
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },
@@ -46,24 +46,22 @@ const channelProps = [
 const layer = new ImageSeriesLayer({
   source,
   region,
-  timeDimension: "T",
+  seriesDimensionName: "T",
   channelProps,
 });
 layerManager.add(layer);
 
 const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
-slider.min = timeInterval.start.toString();
-slider.max = (timeInterval.stop - 1).toString();
+slider.min = `${timeInterval.start}`;
+slider.max = `${timeInterval.stop - 1}`;
 
-layer.addStateChangeCallback((newState: LayerState) => {
-  if (newState === "ready") {
-    slider.addEventListener("input", (event) => {
-      const value = (event.target as HTMLInputElement).valueAsNumber;
-      layer.setTimeIndex(value);
-    });
-    layer.setTimeIndex(slider.valueAsNumber);
-  }
+slider.addEventListener("input", (event) => {
+  const value = (event.target as HTMLInputElement).valueAsNumber;
+  layer.setIndex(value - timeInterval.start);
+});
+layer.preloadSeries({
+  initialIndex: slider.valueAsNumber - timeInterval.start,
 });
 
 function animate() {

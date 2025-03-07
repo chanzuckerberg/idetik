@@ -27,7 +27,12 @@ export default function App() {
           "gap-4"
         )}
       >
-        <OmeZarrImageViewer sourceUrl={imageUrl} region={region} />
+        <OmeZarrImageViewer
+          sourceUrl={imageUrl}
+          region={region}
+          scale={-2}
+          zDimension="Z"
+        />
       </div>
     </div>
   );

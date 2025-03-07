@@ -3,10 +3,10 @@ import {
   ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
+  PanZoomControls,
   Region,
   WebGLRenderer,
 } from "@";
-import { PanZoomControls } from "@/objects/cameras/controls";
 
 const sliderMin = document.getElementById("slider-min") as HTMLInputElement;
 const labelMin = document.getElementById("label-min") as HTMLLabelElement;
