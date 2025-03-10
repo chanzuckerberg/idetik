@@ -2,31 +2,24 @@ import {
   LayerManager,
   LayerState,
   ImageStackLayer,
-  OrthographicCamera,
-  WebGLRenderer,
   OmeZarrImageSource,
+  OrthographicCamera,
+  Region,
+  WebGLRenderer,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 const url =
   "https://files.cryoetdataportal.cziscience.com/10444/24apr23a_Position_12/Reconstructions/VoxelSpacing4.990/Tomograms/100/24apr23a_Position_12.zarr";
-const pixelScale = 4.99;
 const layerManager = new LayerManager();
 const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(
-  0,
-  pixelScale * 1264,
-  0,
-  pixelScale * 1264
-);
-const controls = new PanZoomControls(camera, camera.position);
-renderer.setControls(controls);
+const camera = new OrthographicCamera(0, 128, 0, 128);
 
 // Source is 3D with axes (z, y, x), so we provide an interval in z
-// to get a Z-stack.
 const source = new OmeZarrImageSource(url);
-const zInterval = { start: 0, stop: 1000 };
-const region = [{ dimension: "z", index: zInterval }];
+const region: Region = [
+  // empty Z dimension interval will load the entire Z stack
+];
 
 // Initial contrast limits for grayscale electron microscopy data
 const initialMinValue = -0.00001;
@@ -69,7 +62,7 @@ if (!maxValueEl) throw new Error("Max value element not found.");
 
 // Initialize sliders
 zSlider.min = "0";
-zSlider.max = (300).toString();
+zSlider.max = (100).toString();
 zSlider.value = "0";
 
 minSlider.min = "-0.00005";
@@ -132,10 +125,6 @@ maxSlider.addEventListener("input", (event) => {
 
 layer.addStateChangeCallback((newState: LayerState) => {
   if (newState === "ready") {
-    // Update Z total display
-    const zSize = layer.getZSize();
-    zTotalEl.textContent = (zSize - 1).toString();
-
     // Set up slider event handler
     zSlider.addEventListener("input", (event) => {
       const value = (event.target as HTMLInputElement).valueAsNumber;
@@ -147,9 +136,11 @@ layer.addStateChangeCallback((newState: LayerState) => {
       }
     });
 
-    // Display the first Z slice
-    layer.setZIndex(0);
-    zIndexEl.textContent = "0";
+    if (layer.extent !== undefined) {
+      camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
+      renderer.setControls(new PanZoomControls(camera, camera.position));
+      camera.update();
+    }
   }
 });
 

@@ -2,7 +2,11 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "data/region";
-import { ImageChunk, isImageChunkData } from "data/image_chunk";
+import {
+  ImageChunk,
+  isImageChunkData,
+  LoaderAttributes,
+} from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 import { CachedZarrArray } from "./zarr_chunk_cache";
@@ -101,21 +105,12 @@ export class OmeZarrImageLoader {
       attrs: false,
     });
 
-    // Wrap the array with our caching layer
+    // TODO: cache should support multiple datasets (scales)
     this.cachedZarrArray_ = new CachedZarrArray(array);
   }
 
-  // Get the cached array, initializing it if needed
-  private async getCachedArray(): Promise<CachedZarrArray> {
-    if (!this.cachedZarrArray_) {
-      await this.initializeCache();
-    } else {
-      console.debug(`Using existing cached array`);
-    }
-    if (!this.cachedZarrArray_) {
-      throw new Error("Failed to initialize cache");
-    }
-    return this.cachedZarrArray_;
+  public clearCache(): void {
+    this.cachedZarrArray_?.clearCache();
   }
 
   async loadChunk(
@@ -134,7 +129,6 @@ export class OmeZarrImageLoader {
         "WARNING: Cache not explicitly initialized. Call initializeCache() first for better performance."
       );
     }
-    const cachedArray = await this.getCachedArray();
 
     let options = {};
     if (scheduler !== undefined) {
@@ -143,7 +137,17 @@ export class OmeZarrImageLoader {
         opts: { signal: scheduler.abortSignal },
       };
     }
-    const subarray = await cachedArray.get(indices, options);
+
+    let subarray;
+    if (this.cachedZarrArray_ === null) {
+      const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+        kind: "array",
+        attrs: false,
+      });
+      subarray = await zarr.get(array, indices, options);
+    } else {
+      subarray = await this.cachedZarrArray_.get(indices, options);
+    }
 
     if (!isImageChunkData(subarray.data)) {
       throw new Error(
@@ -195,12 +199,31 @@ export class OmeZarrImageLoader {
     return chunk;
   }
 
-  public get metadata(): OmeNgffImage {
-    return this.metadata_;
+  public async loadAttributes(): Promise<LoaderAttributes> {
+    const image = this.metadata_.multiscales[0];
+    console.log("loading attributes for image", image);
+    const dimensions = image.axes.map((axis) => axis.name);
+    const shapeAndScale = await Promise.all(
+      image.datasets.map(async (_, index) => {
+        const dataset = image.datasets[index];
+        const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+          kind: "array",
+          attrs: false,
+        });
+        return [array.shape, dataset.coordinateTransformations[0].scale];
+      })
+    );
+    const shape = shapeAndScale.map((s) => s[0]);
+    const scale = shapeAndScale.map((s) => s[1]);
+    return {
+      dimensions,
+      shape,
+      scale,
+    };
   }
 
   // Converts a region to indices within an OME-Zarr image array.
-  public regionToIndices(
+  regionToIndices(
     region: Region,
     datasetIndex: number = 0
   ): Array<Slice | number> {
