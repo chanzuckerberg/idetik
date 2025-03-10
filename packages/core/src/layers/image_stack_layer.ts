@@ -75,7 +75,10 @@ export class ImageStackLayer extends Layer {
         `Z index ${index} is out of bounds [0, ${this.dataChunks_.length - 1}]`
       );
     }
+    this.setZIndex_(index);
+  }
 
+  private setZIndex_(index: number) {
     const chunk = this.dataChunks_[index];
 
     if (this.texture_ === null) {
@@ -153,8 +156,8 @@ export class ImageStackLayer extends Layer {
               x: chunk.shape.x * chunk.scale.x,
               y: chunk.shape.y * chunk.scale.y,
             };
+            this.setZIndex_(arrayIndex);
             this.setState("ready");
-            this.setZIndex(arrayIndex);
           }
         })
       );
