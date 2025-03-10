@@ -2,11 +2,11 @@ import { Accordion } from "@mui/material";
 import { AccordionHeader, AccordionDetails } from "@czi-sds/components";
 import cns from "classnames";
 import { ChannelControl, ChannelControlProps } from "./ChannelControl";
-import { ImageLayer, ImageSeriesLayer, ChannelProps } from "@idetik/core";
+import { ImageLayer, ImageStackLayer, ChannelProps } from "@idetik/core";
 import { useState, useEffect } from "react";
 
 interface ChannelControlsListProps {
-  layer: ImageLayer | ImageSeriesLayer;
+  layer: ImageLayer | ImageStackLayer;
   controlProps: Partial<ChannelControlProps>[];
 }
 

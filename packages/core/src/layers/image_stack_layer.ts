@@ -138,16 +138,17 @@ export class ImageStackLayer extends Layer {
       (dimIndex) => dimIndex.dimension !== this.zDimension_
     );
     sliceRegion.push({ dimension: this.zDimension_, index: zStart });
+    const numSlices = Math.round((zStop - zStart) / zScale);
     // Load each Z slice separately
-    for (let zLoc = zStart; zLoc < zStop; zLoc += zScale) {
+    for (let slice = 0; slice < numSlices; slice++) {
+      const zLoc = zStart + slice * zScale;
       sliceRegion[sliceRegion.length - 1].index = zLoc;
       // Queue loading this slice
       loadPromises.push(
         loader.loadChunk(sliceRegion, this.scheduler_).then((chunk) => {
           // Store the chunk at the correct index
-          const arrayIndex = Math.floor((zLoc - zStart) / zScale);
-          this.dataChunks_[arrayIndex] = chunk;
-          console.debug(`Loaded Z slice ${zLoc} (array index ${arrayIndex})`);
+          this.dataChunks_[slice] = chunk;
+          console.debug(`Loaded Z slice ${zLoc} (array index ${slice})`);
 
           // If this is the first slice to load, we mark the layer as ready
           // and set the z index to the loaded slice
@@ -156,7 +157,7 @@ export class ImageStackLayer extends Layer {
               x: chunk.shape.x * chunk.scale.x,
               y: chunk.shape.y * chunk.scale.y,
             };
-            this.setZIndex_(arrayIndex);
+            this.setZIndex_(slice);
             this.setState("ready");
           }
         })
