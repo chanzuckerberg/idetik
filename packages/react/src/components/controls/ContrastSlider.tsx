@@ -18,12 +18,18 @@ export function ContrastSlider({
     onChange([limits[0], limits[1]]);
   };
 
+  let step = (max - min) / 512.0;
+  if (Number.isInteger(value[0]) && Number.isInteger(value[1])) {
+    step = Math.floor(step);
+  }
+
   return (
     <InputSlider
       value={value}
       onChange={handleChange}
       min={min}
       max={max}
+      step={step}
       valueLabelDisplay="auto"
       className="w-full"
     />
