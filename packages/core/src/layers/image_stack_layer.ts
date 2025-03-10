@@ -66,6 +66,7 @@ export class ImageStackLayer extends Layer {
 
   public setZIndex(index: number) {
     if (this.state !== "ready") {
+      // TODO: error instead?
       console.warn(`Trying to set Z index before ready: ${this.state}`);
       return;
     }
@@ -75,7 +76,6 @@ export class ImageStackLayer extends Layer {
       );
     }
 
-    this.currentZIndex_ = index;
     const chunk = this.dataChunks_[index];
 
     if (this.texture_ === null) {
