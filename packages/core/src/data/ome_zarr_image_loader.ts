@@ -203,18 +203,14 @@ export class OmeZarrImageLoader {
     const image = this.metadata_.multiscales[0];
     console.log("loading attributes for image", image);
     const dimensions = image.axes.map((axis) => axis.name);
-    const shapeAndScale = await Promise.all(
-      image.datasets.map(async (_, index) => {
-        const dataset = image.datasets[index];
-        const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
-          kind: "array",
-          attrs: false,
-        });
-        return [array.shape, dataset.coordinateTransformations[0].scale];
-      })
-    );
-    const shape = shapeAndScale.map((s) => s[0]);
-    const scale = shapeAndScale.map((s) => s[1]);
+    const dataset = image.datasets[this.scaleIndex_];
+    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+      kind: "array",
+      attrs: false,
+    });
+    const shape = array.shape;
+    const scale = dataset.coordinateTransformations[0].scale;
+
     return {
       dimensions,
       shape,

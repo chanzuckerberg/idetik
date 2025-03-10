@@ -111,10 +111,8 @@ export class ImageStackLayer extends Layer {
         `Z dimension "${this.zDimension_}" not found in loader dimensions: ${attributes.dimensions}`
       );
     }
-    // TODO: z-stack only loading at coarsest resolution, should be configurable or progressive
-    const lowestResolutionIndex = attributes.shape.length - 1;
-    const zScale = attributes.scale[lowestResolutionIndex][zAxisIndex];
-    const zMax = attributes.shape[lowestResolutionIndex][zAxisIndex] * zScale;
+    const zScale = attributes.scale[zAxisIndex];
+    const zMax = attributes.shape[zAxisIndex] * zScale;
 
     const zRegion = this.region_.find(
       (dimIndex) => dimIndex.dimension === this.zDimension_

@@ -17,6 +17,12 @@ const camera = new OrthographicCamera(0, 128, 0, 128);
 
 // Source is 3D with axes (z, y, x), so we provide an interval in z
 const source = new OmeZarrImageSource(url);
+const loader = await source.open();
+const attributes = await loader.loadAttributes();
+const zDimName = "z";
+const zAxisIndex = attributes.dimensions.findIndex((dim) => dim === zDimName);
+const zMin = 0;
+const zMax = attributes.shape[zAxisIndex];
 const region: Region = [
   // empty Z dimension interval will load the entire Z stack
 ];
@@ -37,7 +43,7 @@ const channelProps = [
 const layer = new ImageStackLayer({
   source,
   region,
-  zDimension: "z",
+  zDimension: zDimName,
   channelProps,
 });
 layerManager.add(layer);
@@ -61,9 +67,10 @@ if (!minValueEl) throw new Error("Min value element not found.");
 if (!maxValueEl) throw new Error("Max value element not found.");
 
 // Initialize sliders
-zSlider.min = "0";
-zSlider.max = (100).toString();
+zSlider.min = zMin.toString();
+zSlider.max = zMax.toString();
 zSlider.value = "0";
+zTotalEl.textContent = (zMax - zMin - 1).toString();
 
 minSlider.min = "-0.00005";
 minSlider.max = "0";
