@@ -135,7 +135,7 @@ export default function OmeZarrImageViewer({
         </div>
       )}
       {imageLayer && (
-        <div className={cns("absolute", "top-0", "left-0", "w-full")}>
+        <div className={cns("absolute", "top-0", "left-0", "w-1/2")}>
           <ChannelControlsList layer={imageLayer} controlProps={controlProps} />
         </div>
       )}
