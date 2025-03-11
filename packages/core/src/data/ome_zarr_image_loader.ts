@@ -9,7 +9,6 @@ import {
 } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
-import { CachedZarrArray } from "./zarr_chunk_cache";
 
 import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
 
@@ -38,8 +37,6 @@ export class OmeZarrImageLoader {
   root_: zarr.Group<zarr.FetchStore>;
   scaleIndex_: number;
   metadata_: OmeNgffImage;
-  // Single CachedZarrArray instance for the entire loader
-  private cachedZarrArray_: CachedZarrArray | null = null;
 
   constructor(root: zarr.Group<zarr.FetchStore>, scaleIndex?: number) {
     this.root_ = root;
@@ -79,40 +76,6 @@ export class OmeZarrImageLoader {
     }
   }
 
-  // Static factory method to create and initialize a loader
-  public static async create(
-    root: zarr.Group<zarr.FetchStore>,
-    scaleIndex?: number
-  ): Promise<OmeZarrImageLoader> {
-    const loader = new OmeZarrImageLoader(root, scaleIndex);
-    await loader.initializeCache();
-    return loader;
-  }
-
-  // Explicitly initialize the cached array (should be called before loadChunk)
-  public async initializeCache(): Promise<void> {
-    if (this.cachedZarrArray_ !== null) {
-      console.debug("Cache already initialized");
-      return;
-    }
-
-    const image = this.metadata_.multiscales[0];
-    const dataset = image.datasets[this.scaleIndex_];
-    console.debug(`Initializing cache for dataset: ${dataset.path}`);
-
-    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
-      kind: "array",
-      attrs: false,
-    });
-
-    // TODO: cache should support multiple datasets (scales)
-    this.cachedZarrArray_ = new CachedZarrArray(array);
-  }
-
-  public clearCache(): void {
-    this.cachedZarrArray_?.clearCache();
-  }
-
   async loadChunk(
     region: Region,
     scheduler?: PromiseScheduler
@@ -123,13 +86,10 @@ export class OmeZarrImageLoader {
     const indices = this.regionToIndices(region, this.scaleIndex_);
     console.debug("loading dataset with indices", dataset, indices);
 
-    // Get our cached array (will create one if not initialized)
-    if (!this.cachedZarrArray_) {
-      console.debug(
-        "WARNING: Cache not explicitly initialized. Call initializeCache() first for better performance."
-      );
-    }
-
+    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+      kind: "array",
+      attrs: false,
+    });
     let options = {};
     if (scheduler !== undefined) {
       options = {
@@ -137,17 +97,7 @@ export class OmeZarrImageLoader {
         opts: { signal: scheduler.abortSignal },
       };
     }
-
-    let subarray;
-    if (this.cachedZarrArray_ === null) {
-      const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
-        kind: "array",
-        attrs: false,
-      });
-      subarray = await zarr.get(array, indices, options);
-    } else {
-      subarray = await this.cachedZarrArray_.get(indices, options);
-    }
+    const subarray = await zarr.get(array, indices, options);
 
     if (!isImageChunkData(subarray.data)) {
       throw new Error(

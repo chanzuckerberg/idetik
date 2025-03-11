@@ -16,7 +16,7 @@ const renderer = new WebGLRenderer("#canvas");
 const camera = new OrthographicCamera(0, 128, 0, 128);
 
 // Source is 3D with axes (z, y, x), so we provide an interval in z
-const source = new OmeZarrImageSource(url, 1);
+const source = new OmeZarrImageSource(url, -1);
 const loader = await source.open();
 const attributes = await loader.loadAttributes();
 const zDimName = "z";
