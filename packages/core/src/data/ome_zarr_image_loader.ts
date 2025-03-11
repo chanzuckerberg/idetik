@@ -5,9 +5,9 @@ import { Region } from "data/region";
 import { ImageChunk, isImageChunkData } from "data/image_chunk";
 import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
+import { CachedZarrArray } from "./zarr_chunk_cache";
 
 import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
-type Axis = OmeNgffImage["multiscales"][number]["axes"][number];
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -34,6 +34,8 @@ export class OmeZarrImageLoader {
   root_: zarr.Group<zarr.FetchStore>;
   scaleIndex_: number;
   metadata_: OmeNgffImage;
+  // Single CachedZarrArray instance for the entire loader
+  private cachedZarrArray_: CachedZarrArray | null = null;
 
   constructor(root: zarr.Group<zarr.FetchStore>, scaleIndex?: number) {
     this.root_ = root;
@@ -73,27 +75,56 @@ export class OmeZarrImageLoader {
     }
   }
 
-  async loadChunk(
-    region: Region,
-    scheduler?: PromiseScheduler
-  ): Promise<ImageChunk> {
+  // Static factory method to create and initialize a loader
+  public static async create(
+    root: zarr.Group<zarr.FetchStore>,
+    scaleIndex?: number
+  ): Promise<OmeZarrImageLoader> {
+    const loader = new OmeZarrImageLoader(root, scaleIndex);
+    await loader.initializeCache();
+    return loader;
+  }
+
+  // Explicitly initialize the cached array (should be called before loadChunk)
+  public async initializeCache(): Promise<void> {
+    if (this.cachedZarrArray_ !== null) {
+      console.debug("Cache already initialized");
+      return;
+    }
+
     const image = this.metadata_.multiscales[0];
     const dataset = image.datasets[this.scaleIndex_];
-    const scale = dataset.coordinateTransformations[0].scale;
-    // TODO: fix zod to generate this type information.
-    const axes = image.axes;
-    const translation =
-      dataset.coordinateTransformations.length === 2
-        ? dataset.coordinateTransformations[1].translation
-        : new Array(axes.length).fill(0);
-
-    const indices = regionToIndices(region, axes, scale, translation);
-    console.debug("loading dataset with indices", dataset, indices);
+    console.debug(`Initializing cache for dataset: ${dataset.path}`);
 
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
       kind: "array",
       attrs: false,
     });
+
+    // TODO: cache should support multiple datasets (scales)
+    this.cachedZarrArray_ = new CachedZarrArray(array);
+  }
+
+  public clearCache(): void {
+    this.cachedZarrArray_?.clearCache();
+  }
+
+  async loadChunk(
+    region: Region,
+    scheduler?: PromiseScheduler
+  ): Promise<ImageChunk> {
+    console.debug("loading chunk with region", region, this.scaleIndex_);
+    const image = this.metadata_.multiscales[0];
+    const dataset = image.datasets[this.scaleIndex_];
+    const indices = this.regionToIndices(region, this.scaleIndex_);
+    console.debug("loading dataset with indices", dataset, indices);
+
+    // Get our cached array (will create one if not initialized)
+    if (!this.cachedZarrArray_) {
+      console.debug(
+        "WARNING: Cache not explicitly initialized. Call initializeCache() first for better performance."
+      );
+    }
 
     let options = {};
     if (scheduler !== undefined) {
@@ -102,11 +133,21 @@ export class OmeZarrImageLoader {
         opts: { signal: scheduler.abortSignal },
       };
     }
-    const subarray = await zarr.get(array, indices, options);
+
+    let subarray;
+    if (this.cachedZarrArray_ === null) {
+      const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+        kind: "array",
+        attrs: false,
+      });
+      subarray = await zarr.get(array, indices, options);
+    } else {
+      subarray = await this.cachedZarrArray_.get(indices, options);
+    }
 
     if (!isImageChunkData(subarray.data)) {
       throw new Error(
-        `Subarray has an unsupported data type ${subarray.data.constructor.name}`
+        `Subarray has an unsupported data type, data=${subarray.data}`
       );
     }
 
@@ -122,6 +163,13 @@ export class OmeZarrImageLoader {
         "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
       );
     }
+
+    const axes = image.axes;
+    const scale = dataset.coordinateTransformations[0].scale;
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(axes.length).fill(0);
 
     const calculateOffset = (i: number) => {
       const index = indices[i];
@@ -147,36 +195,38 @@ export class OmeZarrImageLoader {
     return chunk;
   }
 
-  public get metadata(): OmeNgffImage {
-    return this.metadata_;
-  }
-}
+  // Converts a region to indices within an OME-Zarr image array.
+  private regionToIndices(
+    region: Region,
+    datasetIndex: number = 0
+  ): Array<Slice | number> {
+    const axes = this.metadata_.multiscales[0].axes;
+    const dataset = this.metadata_.multiscales[0].datasets[datasetIndex];
+    const scale = dataset.coordinateTransformations[0].scale;
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(axes.length).fill(0);
 
-// Converts a region to indices within an OME-Zarr image array.
-function regionToIndices(
-  region: Region,
-  axes: Array<Axis>,
-  scale: number[],
-  translation: number[]
-): Array<Slice | number> {
-  const indices: Array<Slice | number> = [];
-  for (const [i, axis] of axes.entries()) {
-    const match = region.find((s) => s.dimension == axis.name);
-    // If a match was not found use a null slice which represents
-    // the complete extent of a dimension like Python's `slice(None)`.
-    let index: Slice | number = zarr.slice(null);
-    if (match) {
-      const regionIndex = match.index;
-      if (typeof regionIndex === "number") {
-        index = Math.round(translation[i] + regionIndex / scale[i]);
-      } else {
-        index = zarr.slice(
-          Math.floor(translation[i] + regionIndex.start / scale[i]),
-          Math.ceil(translation[i] + regionIndex.stop / scale[i])
-        );
+    const indices: Array<Slice | number> = [];
+    for (const [i, axis] of axes.entries()) {
+      const match = region.find((s) => s.dimension == axis.name);
+      // If a match was not found use a null slice which represents
+      // the complete extent of a dimension like Python's `slice(None)`.
+      let index: Slice | number = zarr.slice(null);
+      if (match) {
+        const regionIndex = match.index;
+        if (typeof regionIndex === "number") {
+          index = Math.round(translation[i] + regionIndex / scale[i]);
+        } else {
+          index = zarr.slice(
+            Math.floor(translation[i] + regionIndex.start / scale[i]),
+            Math.ceil(translation[i] + regionIndex.stop / scale[i])
+          );
+        }
       }
+      indices.push(index);
     }
-    indices.push(index);
+    return indices;
   }
-  return indices;
 }
