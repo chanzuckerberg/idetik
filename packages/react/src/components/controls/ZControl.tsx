@@ -2,12 +2,11 @@ import cns from "classnames";
 import { InputSlider } from "@czi-sds/components";
 
 interface ZControlProps {
-  zRange: [number, number];
   onChange: (zIndex: number) => void;
   disabled: boolean;
 }
 
-export function ZControl({ zRange, onChange, disabled }: ZControlProps) {
+export function ZControl({ onChange, disabled }: ZControlProps) {
   return (
     <div
       className={cns(
@@ -24,9 +23,9 @@ export function ZControl({ zRange, onChange, disabled }: ZControlProps) {
       )}
     >
       <InputSlider
-        min={zRange[0]}
-        max={zRange[1]}
-        step={1}
+        min={0}
+        max={1}
+        step={0.01}
         onChange={(_, value: number | number[]) => {
           if (typeof value === "number") {
             onChange(value);

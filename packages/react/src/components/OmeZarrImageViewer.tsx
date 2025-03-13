@@ -47,20 +47,20 @@ export default function OmeZarrImageViewer({
     Partial<ChannelControlProps>[]
   >([]);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
-  const [zIndex, setZIndex] = useState<number>(0);
-  const [scaleValue, setScaleValue] = useState<number>(scale ?? -1);
+  const [zFrac, setZFrac] = useState<number>(0);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   useEffect(() => {
-    const newSource = new OmeZarrImageSource(sourceUrl, scaleValue);
+    const newSource = new OmeZarrImageSource(sourceUrl, scale);
     setSource(newSource);
-  }, [sourceUrl, scaleValue]);
+    setFirstLoad(true);
+  }, [sourceUrl, scale, region, zDimension]);
 
   useEffect(() => {
     setLoading(true);
     const getLayer = async () => {
       if (!source) return;
-      // TODO: may need to accept channel properties to be possibly overridden here
-      // (i.e. for initial visibility, custom colors)
+      // TODO: don't reset when updating scale
       const omeroChannels = await loadOmeroChannels(sourceUrl);
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
@@ -80,12 +80,6 @@ export default function OmeZarrImageViewer({
           zDimension,
           channelProps,
         });
-        layer.addStateChangeCallback(() => {
-          if (layer.state === "loading" && layer.extent !== undefined) {
-            camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
-            camera.update();
-          }
-        });
       }
       const setZRangeFromSource = async () => {
         const loader = await source.open();
@@ -95,17 +89,23 @@ export default function OmeZarrImageViewer({
         );
         setZRange([0, attributes.shape[zAxisIndex] - 1]);
       };
-      if (scaleValue !== 0) {
+
+      if (firstLoad) {
         layer.addStateChangeCallback(() => {
-          if (layer.state === "loading") {
+          if (layer.state === "loading" && layer.extent !== undefined) {
+            camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
+            camera.update();
             setZRangeFromSource();
             setImageLayer(layer);
           }
           if (layer.state === "ready") {
-            setLoading(false);
-            setScaleValue(0);
+            // when the low-res is done loading, update the source to fetch the high-res
+            const newSource = new OmeZarrImageSource(sourceUrl, 0);
+            setFirstLoad(false);
+            setSource(newSource);
           }
         });
+        // start loading the low-res data
         layer.update();
       } else {
         layer.addStateChangeCallback(() => {
@@ -115,14 +115,14 @@ export default function OmeZarrImageViewer({
             setImageLayer(layer);
           }
         });
+        // start loading the high-res data
         layer.update();
       }
     };
     getLayer();
-  }, [scaleValue, source, sourceUrl, region, camera, zDimension]);
+  }, [firstLoad, source, sourceUrl, region, camera, zDimension]);
 
   useEffect(() => {
-    console.log("imageLayer", imageLayer);
     if (imageLayer) {
       layerManager.layers.length = 0;
       layerManager.add(imageLayer);
@@ -130,10 +130,11 @@ export default function OmeZarrImageViewer({
   }, [imageLayer, layerManager]);
 
   useEffect(() => {
+    const zIndex = Math.round(zRange[0] + zFrac * (zRange[1] - zRange[0]));
     if (zDimension && imageLayer && imageLayer.state === "ready") {
       (imageLayer as ImageStackLayer).setZIndex(zIndex);
     }
-  }, [zIndex, zDimension, imageLayer]);
+  }, [zFrac, zRange, zDimension, imageLayer]);
 
   return (
     <div
@@ -177,11 +178,7 @@ export default function OmeZarrImageViewer({
             "py-3"
           )}
         >
-          <ZControl
-            zRange={zRange}
-            onChange={setZIndex}
-            disabled={loading}
-          />
+          <ZControl onChange={setZFrac} disabled={imageLayer === null} />
         </div>
       )}
     </div>
@@ -208,9 +205,13 @@ const omeroToControlProps = (
   return omeroChannels.map((channel: OmeroChannel, index: number) => {
     // remove prefix (number + hyphen) from label if present (seen in organelle box data)
     const label = (channel.label ?? `Ch${index}`).replace(/^\d+-/, "");
+    const { start, end, min, max } = channel.window;
     return {
       label,
-      contrastRange: [0.5 * channel.window.start, 1.1 * channel.window.end],
+      color: hexToRgb(channel.color),
+      contrastLimits: [Math.max(start, min), Math.min(end, max)],
+      contrastRange: [0.5 * start, 1.1 * end],
+      visible: channel.active,
     };
   });
 };

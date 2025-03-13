@@ -41,7 +41,7 @@ export abstract class Renderer {
     }
     layerManager.layers.forEach((layer) => {
       layer.update();
-      if (layer.state === "ready") {
+      if (layer.state === "ready" || layer.state === "loading") {
         layer.objects.forEach((obj) => {
           this.renderObject(obj);
         });

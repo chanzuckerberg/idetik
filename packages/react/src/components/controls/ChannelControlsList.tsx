@@ -19,6 +19,10 @@ export function ChannelControlsList({
 
   // Sync local state with layer's channelProps
   useEffect(() => {
+    if (channelProps.length !== 0) {
+      layer.setChannelProps(channelProps);
+      return;
+    }
     const initialLayerChannelProps = layer.channelProps ?? [];
 
     const updatedChannelProps = initialLayerChannelProps.map(
@@ -35,7 +39,7 @@ export function ChannelControlsList({
     // TODO: use a dispatcher?
     layer.setChannelProps(updatedChannelProps);
     setChannelProps(updatedChannelProps);
-  }, [layer, controlProps]);
+  }, [layer, controlProps, channelProps]);
 
   const updateChannel = (
     index: number,

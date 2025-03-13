@@ -151,7 +151,7 @@ export class OmeZarrImageLoader {
 
   public async loadAttributes(): Promise<LoaderAttributes> {
     const image = this.metadata_.multiscales[0];
-    console.log("loading attributes for image", image);
+    console.debug("loading attributes for image", image);
     const dimensions = image.axes.map((axis) => axis.name);
     const dataset = image.datasets[this.scaleIndex_];
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {

@@ -65,7 +65,7 @@ export class ImageStackLayer extends Layer {
   }
 
   public setZIndex(index: number) {
-    if (this.state !== "ready") {
+    if (this.state === "initialized") {
       // TODO: error instead?
       console.warn(`Trying to set Z index before ready: ${this.state}`);
       return;
@@ -102,7 +102,6 @@ export class ImageStackLayer extends Layer {
     if (this.state !== "initialized") {
       throw new Error(`Trying to open chunk loader more than once.`);
     }
-    this.setState("loading");
     const loader = await this.source_.open();
 
     const attributes = await loader.loadAttributes();
@@ -152,13 +151,13 @@ export class ImageStackLayer extends Layer {
 
           // If this is the first slice to load, we mark the layer as ready
           // and set the z index to the loaded slice
-          if (this.state !== "ready") {
+          if (this.state === "initialized") {
             this.extent_ = {
               x: chunk.shape.x * chunk.scale.x,
               y: chunk.shape.y * chunk.scale.y,
             };
             this.setZIndex_(slice);
-            this.setState("ready");
+            this.setState("loading");
           }
         })
       );
@@ -173,7 +172,7 @@ export class ImageStackLayer extends Layer {
       console.error("Error loading Z stack", error);
       throw error;
     });
-
+    this.setState("ready");
     console.debug(`Loaded all ${this.dataChunks_.length} Z slices`);
   }
 
