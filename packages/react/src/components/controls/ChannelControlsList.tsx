@@ -8,18 +8,21 @@ import { useState, useEffect } from "react";
 interface ChannelControlsListProps {
   layer: ImageLayer | ImageStackLayer;
   controlProps: Partial<ChannelControlProps>[];
+  reset: boolean;
 }
 
 export function ChannelControlsList({
   layer,
   controlProps,
+  reset,
 }: ChannelControlsListProps) {
   // Keep a local copy of channelProps to trigger re-renders
   const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
 
   // Sync local state with layer's channelProps
   useEffect(() => {
-    if (channelProps.length !== 0) {
+    // preserve existing channel props if still compatible
+    if (!reset && channelProps.length === layer.channelProps?.length) {
       layer.setChannelProps(channelProps);
       return;
     }
@@ -39,7 +42,7 @@ export function ChannelControlsList({
     // TODO: use a dispatcher?
     layer.setChannelProps(updatedChannelProps);
     setChannelProps(updatedChannelProps);
-  }, [layer, controlProps, channelProps]);
+  }, [layer, controlProps, channelProps, reset]);
 
   const updateChannel = (
     index: number,

@@ -48,12 +48,12 @@ export default function OmeZarrImageViewer({
   >([]);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zFrac, setZFrac] = useState<number>(0);
-  const [firstLoad, setFirstLoad] = useState(true);
+  const [firstLoad, setFirstLoad] = useState(scale !== 0);
 
   useEffect(() => {
     const newSource = new OmeZarrImageSource(sourceUrl, scale);
     setSource(newSource);
-    setFirstLoad(true);
+    setFirstLoad(scale !== 0);
   }, [sourceUrl, scale, region, zDimension]);
 
   useEffect(() => {
@@ -164,7 +164,11 @@ export default function OmeZarrImageViewer({
       )}
       {imageLayer && (
         <div className={cns("absolute", "top-0", "left-0", "w-1/2")}>
-          <ChannelControlsList layer={imageLayer} controlProps={controlProps} />
+          <ChannelControlsList
+            layer={imageLayer}
+            controlProps={controlProps}
+            reset={firstLoad}
+          />
         </div>
       )}
       {zDimension && (
