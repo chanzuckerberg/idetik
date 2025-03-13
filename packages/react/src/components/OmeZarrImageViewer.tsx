@@ -47,11 +47,13 @@ export default function OmeZarrImageViewer({
     Partial<ChannelControlProps>[]
   >([]);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
+  const [zIndex, setZIndex] = useState<number>(0);
+  const [scaleValue, setScaleValue] = useState<number>(scale ?? -1);
 
   useEffect(() => {
-    const source = new OmeZarrImageSource(sourceUrl, scale);
-    setSource(source);
-  }, [sourceUrl, scale]);
+    const newSource = new OmeZarrImageSource(sourceUrl, scaleValue);
+    setSource(newSource);
+  }, [sourceUrl, scaleValue]);
 
   useEffect(() => {
     setLoading(true);
@@ -62,9 +64,15 @@ export default function OmeZarrImageViewer({
       const omeroChannels = await loadOmeroChannels(sourceUrl);
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
-      let layer;
+      let layer: ImageLayer | ImageStackLayer;
       if (zDimension === undefined) {
         layer = new ImageLayer({ source, region, channelProps });
+        layer.addStateChangeCallback(() => {
+          if (layer.state === "ready" && layer.extent !== undefined) {
+            camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
+            camera.update();
+          }
+        });
       } else {
         layer = new ImageStackLayer({
           source,
@@ -72,31 +80,14 @@ export default function OmeZarrImageViewer({
           zDimension,
           channelProps,
         });
-      }
-      layer.addStateChangeCallback(() => {
-        if (layer.state === "ready") {
-          setLoading(false);
-          if (layer.extent !== undefined) {
+        layer.addStateChangeCallback(() => {
+          if (layer.state === "loading" && layer.extent !== undefined) {
             camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
             camera.update();
           }
-        }
-      });
-      setImageLayer(layer);
-    };
-    getLayer();
-  }, [source, sourceUrl, region, camera, zDimension]);
-
-  useEffect(() => {
-    if (imageLayer) {
-      layerManager.layers.length = 0;
-      layerManager.add(imageLayer);
-    }
-  }, [imageLayer, layerManager]);
-
-  useEffect(() => {
-    if (zDimension !== undefined && source !== null) {
-      const setZRangeFromData = async () => {
+        });
+      }
+      const setZRangeFromSource = async () => {
         const loader = await source.open();
         const attributes = await loader.loadAttributes();
         const zAxisIndex = attributes.dimensions.findIndex(
@@ -104,9 +95,45 @@ export default function OmeZarrImageViewer({
         );
         setZRange([0, attributes.shape[zAxisIndex] - 1]);
       };
-      setZRangeFromData();
+      if (scaleValue !== 0) {
+        layer.addStateChangeCallback(() => {
+          if (layer.state === "loading") {
+            setZRangeFromSource();
+            setImageLayer(layer);
+          }
+          if (layer.state === "ready") {
+            setLoading(false);
+            setScaleValue(0);
+          }
+        });
+        layer.update();
+      } else {
+        layer.addStateChangeCallback(() => {
+          if (layer.state === "ready") {
+            setLoading(false);
+            setZRangeFromSource();
+            setImageLayer(layer);
+          }
+        });
+        layer.update();
+      }
+    };
+    getLayer();
+  }, [scaleValue, source, sourceUrl, region, camera, zDimension]);
+
+  useEffect(() => {
+    console.log("imageLayer", imageLayer);
+    if (imageLayer) {
+      layerManager.layers.length = 0;
+      layerManager.add(imageLayer);
     }
-  }, [source, zDimension]);
+  }, [imageLayer, layerManager]);
+
+  useEffect(() => {
+    if (zDimension && imageLayer && imageLayer.state === "ready") {
+      (imageLayer as ImageStackLayer).setZIndex(zIndex);
+    }
+  }, [zIndex, zDimension, imageLayer]);
 
   return (
     <div
@@ -152,7 +179,7 @@ export default function OmeZarrImageViewer({
         >
           <ZControl
             zRange={zRange}
-            onChange={(v) => (imageLayer as ImageStackLayer).setZIndex(v)}
+            onChange={setZIndex}
             disabled={loading}
           />
         </div>
