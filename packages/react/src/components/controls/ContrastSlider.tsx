@@ -20,7 +20,7 @@ export function ContrastSlider({
 
   let step = (max - min) / 512.0;
   if (Number.isInteger(value[0]) && Number.isInteger(value[1])) {
-    step = Math.floor(step);
+    step = Math.max(1, Math.floor(step));
   }
 
   return (

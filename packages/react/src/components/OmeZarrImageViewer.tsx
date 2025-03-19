@@ -48,12 +48,12 @@ export default function OmeZarrImageViewer({
   >([]);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zFrac, setZFrac] = useState<number>(0);
-  const [firstLoad, setFirstLoad] = useState(scale !== 0);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   useEffect(() => {
     const newSource = new OmeZarrImageSource(sourceUrl, scale);
     setSource(newSource);
-    setFirstLoad(scale !== 0);
+    setFirstLoad(true);
   }, [sourceUrl, scale, region, zDimension]);
 
   useEffect(() => {
@@ -98,7 +98,7 @@ export default function OmeZarrImageViewer({
             setZRangeFromSource();
             setImageLayer(layer);
           }
-          if (layer.state === "ready") {
+          if (layer.state === "ready" && scale !== 0) {
             // when the low-res is done loading, update the source to fetch the high-res
             const newSource = new OmeZarrImageSource(sourceUrl, 0);
             setFirstLoad(false);
@@ -120,7 +120,7 @@ export default function OmeZarrImageViewer({
       }
     };
     getLayer();
-  }, [firstLoad, source, sourceUrl, region, camera, zDimension]);
+  }, [firstLoad, scale, source, sourceUrl, region, camera, zDimension]);
 
   useEffect(() => {
     if (imageLayer) {
