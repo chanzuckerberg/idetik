@@ -19,12 +19,17 @@ export function ChannelControlsList({
   // Keep a local copy of channelProps to trigger re-renders
   const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
 
-  if (reset && channelProps !== layer.channelProps) {
+  if (reset && channelProps.length !== layer.channelProps?.length) {
     setChannelProps(layer.channelProps ?? []);
+  } else {
+    layer.setChannelProps(channelProps);
   }
 
   // Sync local state with layer's channelProps
   useEffect(() => {
+    if (!reset) {
+      return;
+    }
     const initialLayerChannelProps = layer.channelProps ?? [];
 
     const updatedChannelProps = initialLayerChannelProps.map(
@@ -41,7 +46,7 @@ export function ChannelControlsList({
     // TODO: use a dispatcher?
     layer.setChannelProps(updatedChannelProps);
     setChannelProps(updatedChannelProps);
-  }, [layer, controlProps]);
+  }, [controlProps, layer, reset]);
 
   const updateChannel = (
     index: number,
@@ -66,7 +71,6 @@ export function ChannelControlsList({
   return (
     <div
       className={cns(
-        "z-[999]",
         "backdrop-blur-md",
         "transition-[left]",
         "duration-300",

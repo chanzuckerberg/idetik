@@ -41,38 +41,39 @@ export default function OmeZarrImageViewer({
   const [imageLayer, setImageLayer] = useState<
     ImageLayer | ImageStackLayer | null
   >(null);
-  const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [loading, setLoading] = useState(true);
   const [controlProps, setControlProps] = useState<
     Partial<ChannelControlProps>[]
   >([]);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
-  const [zFrac, setZFrac] = useState<number>(0);
+  const [zFrac, setZFrac] = useState<number>(0.5);
   const [firstLoad, setFirstLoad] = useState(true);
 
   useEffect(() => {
-    const newSource = new OmeZarrImageSource(sourceUrl, scale);
-    setSource(newSource);
     setFirstLoad(true);
   }, [sourceUrl, scale, region, zDimension]);
 
   useEffect(() => {
     setLoading(true);
+    let layer: ImageLayer | ImageStackLayer;
+    const callbacks: (() => void)[] = [];
     const getLayer = async () => {
-      if (!source) return;
+      const scaleToLoad = firstLoad ? scale : 0;
+      const source = new OmeZarrImageSource(sourceUrl, scaleToLoad);
       // TODO: don't reset when updating scale
       const omeroChannels = await loadOmeroChannels(sourceUrl);
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
-      let layer: ImageLayer | ImageStackLayer;
       if (zDimension === undefined) {
         layer = new ImageLayer({ source, region, channelProps });
-        layer.addStateChangeCallback(() => {
+        const cameraCallback = () => {
           if (layer.state === "ready" && layer.extent !== undefined) {
             camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
             camera.update();
           }
-        });
+        };
+        layer.addStateChangeCallback(cameraCallback);
+        callbacks.push(cameraCallback);
       } else {
         layer = new ImageStackLayer({
           source,
@@ -91,7 +92,7 @@ export default function OmeZarrImageViewer({
       };
 
       if (firstLoad) {
-        layer.addStateChangeCallback(() => {
+        const loadingCallback = () => {
           if (layer.state === "loading" && layer.extent !== undefined) {
             camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
             camera.update();
@@ -100,27 +101,35 @@ export default function OmeZarrImageViewer({
           }
           if (layer.state === "ready" && scale !== 0) {
             // when the low-res is done loading, update the source to fetch the high-res
-            const newSource = new OmeZarrImageSource(sourceUrl, 0);
             setFirstLoad(false);
-            setSource(newSource);
           }
-        });
+        };
+        layer.addStateChangeCallback(loadingCallback);
+        callbacks.push(loadingCallback);
         // start loading the low-res data
         layer.update();
       } else {
-        layer.addStateChangeCallback(() => {
+        const readyCallback = () => {
           if (layer.state === "ready") {
             setLoading(false);
             setZRangeFromSource();
             setImageLayer(layer);
           }
-        });
+        };
+        layer.addStateChangeCallback(readyCallback);
+        callbacks.push(readyCallback);
         // start loading the high-res data
         layer.update();
       }
     };
     getLayer();
-  }, [firstLoad, scale, source, sourceUrl, region, camera, zDimension]);
+    // TODO: cleanup - remove callbacks
+    return () => {
+      callbacks.forEach((callback) =>
+        layer.removeStateChangeCallback(callback)
+      );
+    };
+  }, [firstLoad, scale, sourceUrl, region, camera, zDimension]);
 
   useEffect(() => {
     if (imageLayer) {
