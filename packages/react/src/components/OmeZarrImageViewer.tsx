@@ -12,9 +12,9 @@ import {
   ChannelProps,
 } from "@idetik/core";
 
-import Renderer from "./Renderer";
-import { ChannelControlsList } from "./controls/ChannelControlsList";
-import { ChannelControlProps } from "./controls/ChannelControl";
+import { Renderer } from "components/Renderer";
+import { ChannelControlsList } from "components/controls/ChannelControlsList";
+import { ChannelControlProps } from "components/controls/ChannelControl";
 import { hexToRgb } from "lib/color";
 
 interface OmeZarrImageViewerProps {

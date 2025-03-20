@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import Renderer from "./Renderer";
+import { Renderer } from "@idetik/react";
 import PlaybackControls from "./PlaybackControls";
 import { useEffect, useState } from "react";
 import TaskList from "./TaskList";
