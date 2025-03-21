@@ -2,11 +2,9 @@ import cns from "classnames";
 import { OmeZarrImageViewer } from "components/viewers/OmeZarrImageViewer";
 
 const plateUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
-// "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
-// "http://localhost:8000";
-
-// const imageUrl = plateUrl + "/B/03/0";
 const imageUrl = plateUrl + "/GOLGA2/Live/000000";
+// const plateUrl = "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
+// const imageUrl = plateUrl + "/B/03/0";
 const region = [
   { dimension: "T", index: 0 },
   { dimension: "Z", index: 0 },
