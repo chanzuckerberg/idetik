@@ -10,8 +10,6 @@ export { LayerManager } from "core/layer_manager";
 
 export { AxesLayer } from "layers/axes_layer";
 
-export { SingleMeshLayer } from "layers/single_mesh_layer";
-
 export { ProjectedLineLayer } from "layers/projected_line_layer";
 
 export { TracksLayer } from "layers/tracks_layer";
