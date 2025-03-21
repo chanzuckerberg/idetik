@@ -1,6 +1,6 @@
 import { OmeroChannel, ChannelProps } from "@idetik/core";
-import type { ChannelControlProps } from "components/controls/ChannelControl";
-import { hexToRgb } from "lib/color";
+import type { ChannelControlProps } from "./components/ChannelControlsList/components/ChannelControl";
+import { hexToRgb } from "../../../lib/color";
 
 // TODO: the limits/range from the omero channels should possibly be reversed
 // (start/end for limits, min/max for range) but the organelle box data works better this way

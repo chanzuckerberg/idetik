@@ -10,13 +10,10 @@ import {
   loadOmeroChannels,
 } from "@idetik/core";
 
-import { Renderer } from "components/viewers/OmeZarrImageViewer/components/Renderer";
-import { ChannelControlsList } from "components/viewers/OmeZarrImageViewer/components/ChannelControlsList";
-import { ChannelControlProps } from "components/viewers/OmeZarrImageViewer/components/ChannelControlsList/components/ChannelControl";
-import {
-  omeroToChannelProps,
-  omeroToControlProps,
-} from "components/viewers/OmeZarrImageViewer/utils";
+import { Renderer } from "./components/Renderer";
+import { ChannelControlsList } from "./components/ChannelControlsList";
+import { ChannelControlProps } from "./components/ChannelControlsList/components/ChannelControl";
+import { omeroToChannelProps, omeroToControlProps } from "./utils";
 interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
