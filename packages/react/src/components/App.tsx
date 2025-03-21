@@ -1,5 +1,5 @@
 import cns from "classnames";
-import OmeZarrImageViewer from "components/OmeZarrImageViewer";
+import { OmeZarrImageViewer } from "components/viewers/OmeZarrImageViewer";
 
 const plateUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
 // "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
