@@ -62,7 +62,15 @@ const maxValueEl = document.querySelector<HTMLSpanElement>("#max-value");
 const stateEl = document.querySelector<HTMLSpanElement>("#layer-state");
 
 // Check that all elements exist
-if (!zSlider || !zIndexEl || !zTotalEl || !minSlider || !maxSlider || !minValueEl || !maxValueEl) {
+if (
+  !zSlider ||
+  !zIndexEl ||
+  !zTotalEl ||
+  !minSlider ||
+  !maxSlider ||
+  !minValueEl ||
+  !maxValueEl
+) {
   throw new Error("Could not find all necessary elements");
 }
 

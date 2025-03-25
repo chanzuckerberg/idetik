@@ -1,6 +1,10 @@
 import { Layer } from "core/layer";
 import { DimensionalIndex, Region } from "data/region";
-import { ImageChunk, ImageChunkLoader, ImageChunkSource } from "data/image_chunk";
+import {
+  ImageChunk,
+  ImageChunkLoader,
+  ImageChunkSource,
+} from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "data/promise_scheduler";
 import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
@@ -19,12 +23,12 @@ export type SeriesAttributes = {
   stop: number;
   scale: number;
   length: number;
-}
+};
 
 type LoadingToken = {
   cancelled: boolean;
   index: number;
-}
+};
 
 // Loads 2D+z image data (Z-stack) from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
@@ -90,11 +94,17 @@ export class ImageSeriesLayer extends Layer {
   }
 
   public setIndex(index: number) {
-    if (this.loadingToken_ && this.loadingToken_.index === index && !this.loadingToken_.cancelled) {
+    if (
+      this.loadingToken_ &&
+      this.loadingToken_.index === index &&
+      !this.loadingToken_.cancelled
+    ) {
       console.debug("Ignoring duplicate active load index request");
       return;
     } else if (this.loadingToken_) {
-      console.debug(`Cancelling load for index ${this.loadingToken_.index}, requested index is ${index}`);
+      console.debug(
+        `Cancelling load for index ${this.loadingToken_.index}, requested index is ${index}`
+      );
       this.loadingToken_.cancelled = true;
     }
 
@@ -168,7 +178,9 @@ export class ImageSeriesLayer extends Layer {
       `ImageSeriesLayer, loading index range: ${seriesStart}-${seriesStop} (${(seriesStop - seriesStart) / seriesDimScale - 1} slices) for dim ${this.seriesDimensionName_}`
     );
 
-    const seriesLength = Math.round((seriesStop - seriesStart) / seriesDimScale);
+    const seriesLength = Math.round(
+      (seriesStop - seriesStart) / seriesDimScale
+    );
     this.dataChunks_ = new Array(seriesLength);
 
     this.seriesAttributes_ = {
@@ -182,10 +194,18 @@ export class ImageSeriesLayer extends Layer {
   }
 
   private async loadAndSetIndex(index: number, token?: LoadingToken) {
-    if (this.state !== "loading") { this.setState("loading"); }
-    const { start: seriesStart, scale: seriesDimScale, length } = await this.loadSeriesAttributes();
+    if (this.state !== "loading") {
+      this.setState("loading");
+    }
+    const {
+      start: seriesStart,
+      scale: seriesDimScale,
+      length,
+    } = await this.loadSeriesAttributes();
     if (index < 0 || index >= length) {
-      throw new Error(`Requested index ${index} is out of bounds [0, ${length - 1}]`);
+      throw new Error(
+        `Requested index ${index} is out of bounds [0, ${length - 1}]`
+      );
     }
     const loader = await this.getLoader();
 
@@ -196,35 +216,47 @@ export class ImageSeriesLayer extends Layer {
     );
     pointRegion.push({
       dimension: this.seriesDimensionName_,
-      index: { type: "point", value: position }
+      index: { type: "point", value: position },
     });
 
-    const chunk = await loader.loadChunk(pointRegion, this.scheduler_)
+    const chunk = await loader.loadChunk(pointRegion, this.scheduler_);
 
     // Store the chunk at the correct index
     this.dataChunks_[index] = chunk;
-    console.debug(`Loaded position ${position} (array index ${index}) for dim ${this.seriesDimensionName_}`);
+    console.debug(
+      `Loaded position ${position} (array index ${index}) for dim ${this.seriesDimensionName_}`
+    );
 
     // set the data and mark the layer as ready if the token is valid
     if (token && !token.cancelled) {
-      console.debug(`Setting data for position ${position} (array index ${index}) for dim ${this.seriesDimensionName_}`);
+      console.debug(
+        `Setting data for position ${position} (array index ${index}) for dim ${this.seriesDimensionName_}`
+      );
       this.setData(chunk);
       this.loadingToken_ = null;
     } else if (token && token.cancelled) {
-      console.debug(`Not setting data for position ${position} (arry index ${index}) due to cancellation`);
+      console.debug(
+        `Not setting data for position ${position} (arry index ${index}) due to cancellation`
+      );
     } else {
-      console.debug(`Not setting data for position ${position} (arry index ${index}) due to no token`);
+      console.debug(
+        `Not setting data for position ${position} (arry index ${index}) due to no token`
+      );
     }
   }
 
   public async preloadSeries({ initialIndex = 0 }: { initialIndex: number }) {
-    console.debug(`Preloading series for dim ${this.seriesDimensionName_}, starting at index ${initialIndex}`);
+    console.debug(
+      `Preloading series for dim ${this.seriesDimensionName_}, starting at index ${initialIndex}`
+    );
     const { length } = await this.loadSeriesAttributes();
     // Load each slice separately
     const loadPromises = [];
     for (let index = 0; index < length; index++) {
       if (index === initialIndex) {
-        loadPromises.push(this.loadAndSetIndex(index, { cancelled: false, index }));
+        loadPromises.push(
+          this.loadAndSetIndex(index, { cancelled: false, index })
+        );
       } else {
         loadPromises.push(this.loadAndSetIndex(index));
       }
@@ -242,7 +274,9 @@ export class ImageSeriesLayer extends Layer {
       }
     }
     if (!results.some((result) => result.status === "rejected")) {
-      console.debug(`Loaded all ${this.dataChunks_.length} slices for dim ${this.seriesDimensionName_}`);
+      console.debug(
+        `Loaded all ${this.dataChunks_.length} slices for dim ${this.seriesDimensionName_}`
+      );
     }
   }
 

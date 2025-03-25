@@ -18,7 +18,7 @@ const camera = new OrthographicCamera(0, 1920, 0, 1440);
 const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 100, stop: 120 };
 const region: Region = [
-  { dimension: "T", index: { type: "interval", ...timeInterval} },
+  { dimension: "T", index: { type: "interval", ...timeInterval } },
   { dimension: "C", index: { type: "full" } },
   { dimension: "Z", index: { type: "point", value: 0 } },
   { dimension: "Y", index: { type: "full" } },
@@ -60,7 +60,9 @@ slider.addEventListener("input", (event) => {
   const value = (event.target as HTMLInputElement).valueAsNumber;
   layer.setIndex(value - timeInterval.start);
 });
-layer.preloadSeries({ initialIndex: slider.valueAsNumber - timeInterval.start });
+layer.preloadSeries({
+  initialIndex: slider.valueAsNumber - timeInterval.start,
+});
 
 function animate() {
   renderer.render(layerManager, camera);

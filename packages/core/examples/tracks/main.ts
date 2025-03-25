@@ -117,7 +117,9 @@ slider.min = timeInterval.start.toString();
 slider.max = (timeInterval.stop - 1).toString();
 slider.value = slider.min;
 
-imageSeriesLayer.preloadSeries({initialIndex: slider.valueAsNumber - timeInterval.start});
+imageSeriesLayer.preloadSeries({
+  initialIndex: slider.valueAsNumber - timeInterval.start,
+});
 lineLayer.setTimeIndex(slider.valueAsNumber);
 
 slider.addEventListener("input", (event) => {
