@@ -1,15 +1,16 @@
 import cns from "classnames";
+import { Region } from "@idetik/core";
 import OmeZarrImageViewer from "./OmeZarrImageViewer";
 
-const plateUrl =
-  // "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
-  "http://localhost:8000";
-// const imageUrl = plateUrl + "/B/03/0";
-const imageUrl = plateUrl + "/GOLGA2/Live/000000";
-const region = [
-  { dimension: "T", index: 0 },
-  { dimension: "Z", index: 0 },
-  // { dimension: "z", index: 0 },
+const sourceUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
+const wellPath = "GOLGA2/Live";
+const imagePath = "000002";
+const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
+const region: Region = [
+  { dimension: "T", index: { type: "point", value: 0 } },
+  { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
 ];
 
 export default function App() {
