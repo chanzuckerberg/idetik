@@ -75,12 +75,12 @@ zTotalEl.textContent = `${zMax - zMin - 1}`;
 minSlider.min = "-0.00005";
 minSlider.max = "0";
 minSlider.step = "0.000001";
-minSlider.value = `${initialMinValue}`;
+minSlider.value = `${initialMinValue.toFixed(6)}`;
 
 maxSlider.min = "0";
 maxSlider.max = "0.00005";
 maxSlider.step = "0.000001";
-maxSlider.value = `${initialMaxValue}`;
+maxSlider.value = `${initialMaxValue.toFixed(6)}`;
 
 minValueEl.textContent = `${initialMinValue}`;
 maxValueEl.textContent = `${initialMaxValue}`;
@@ -114,14 +114,15 @@ maxSlider.addEventListener("input", (event) => {
   ]);
 });
 
+// set up event handler with debouncing
+let debounce: number;
 zSlider.addEventListener("input", (event) => {
+  clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
-  try {
+  debounce = setTimeout(() => {
     layer.setIndex(value);
     zIndexEl.textContent = `${value}`;
-  } catch {
-    console.debug("Tried to set index out of bounds or before loaded");
-  }
+  }, 100);
 });
 
 layer.setIndex(zSlider.valueAsNumber);
