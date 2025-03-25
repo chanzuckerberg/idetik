@@ -150,7 +150,7 @@ layer.addStateChangeCallback((newState: LayerState) => {
 loadAllButton?.addEventListener("click", () => {
   console.log("loading all slices");
   layer.preloadSeries({ initialIndex: zSlider.valueAsNumber }).then(() => {
-    console.log("done")
+    console.log("done");
     loadAllButton.disabled = true;
   });
 });

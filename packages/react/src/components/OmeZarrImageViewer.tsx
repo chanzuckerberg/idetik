@@ -72,7 +72,7 @@ export default function OmeZarrImageViewer({
           seriesDimensionName: zDimension,
           channelProps,
         });
-        layer.preloadSeries({initialIndex: 0});
+        layer.preloadSeries({ initialIndex: 0 });
       }
       layer.addStateChangeCallback(() => {
         if (layer.state === "ready") {
