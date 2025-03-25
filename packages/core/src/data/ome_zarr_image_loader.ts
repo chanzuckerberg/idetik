@@ -101,7 +101,7 @@ export class OmeZarrImageLoader {
 
     if (!isImageChunkData(subarray.data)) {
       throw new Error(
-        `Subarray has an unsupported data type, data=${subarray.data}`
+        `Subarray has an unsupported data type, data=${subarray.data.constructor.name}`
       );
     }
 
