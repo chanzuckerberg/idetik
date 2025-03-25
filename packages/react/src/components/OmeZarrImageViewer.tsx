@@ -3,7 +3,7 @@ import cns from "classnames";
 import CircularProgress from "@mui/material/CircularProgress";
 import {
   ImageLayer,
-  ImageStackLayer,
+  ImageSeriesLayer,
   LayerManager,
   OmeroChannel,
   OmeZarrImageSource,
@@ -39,7 +39,7 @@ export default function OmeZarrImageViewer({
     new OrthographicCamera(0, 128, 0, 128)
   );
   const [imageLayer, setImageLayer] = useState<
-    ImageLayer | ImageStackLayer | null
+    ImageLayer | ImageSeriesLayer | null
   >(null);
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,12 +66,13 @@ export default function OmeZarrImageViewer({
       if (zDimension === undefined) {
         layer = new ImageLayer({ source, region, channelProps });
       } else {
-        layer = new ImageStackLayer({
+        layer = new ImageSeriesLayer({
           source,
           region,
-          zDimension,
+          seriesDimensionName: zDimension,
           channelProps,
         });
+        layer.preloadSeries({initialIndex: 0});
       }
       layer.addStateChangeCallback(() => {
         if (layer.state === "ready") {
@@ -152,7 +153,7 @@ export default function OmeZarrImageViewer({
         >
           <ZControl
             zRange={zRange}
-            onChange={(v) => (imageLayer as ImageStackLayer).setZIndex(v)}
+            onChange={(v) => (imageLayer as ImageSeriesLayer).setIndex(v)}
             disabled={loading}
           />
         </div>

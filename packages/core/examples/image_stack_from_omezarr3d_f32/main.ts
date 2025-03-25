@@ -23,7 +23,6 @@ const zDimName = "z";
 const zAxisIndex = attributes.dimensions.findIndex((dim) => dim === zDimName);
 const zMin = 0;
 const zMax = attributes.shape[zAxisIndex];
-console.log(attributes);
 const region: Region = [
   { dimension: zDimName, index: { type: "full" } },
   { dimension: "x", index: { type: "full" } },
@@ -60,6 +59,7 @@ const maxSlider = document.querySelector<HTMLInputElement>("#max-slider");
 const minValueEl = document.querySelector<HTMLSpanElement>("#min-value");
 const maxValueEl = document.querySelector<HTMLSpanElement>("#max-value");
 const stateEl = document.querySelector<HTMLSpanElement>("#layer-state");
+const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all");
 
 // Check that all elements exist
 if (
@@ -130,7 +130,7 @@ zSlider.addEventListener("input", (event) => {
   debounce = setTimeout(() => {
     layer.setIndex(value);
     zIndexEl.textContent = `${value}`;
-  }, 100);
+  }, 50);
 });
 
 layer.setIndex(zSlider.valueAsNumber);
@@ -145,6 +145,14 @@ layer.addStateChangeCallback((newState: LayerState) => {
 });
 layer.addStateChangeCallback((newState: LayerState) => {
   stateEl!.textContent = newState;
+});
+
+loadAllButton?.addEventListener("click", () => {
+  console.log("loading all slices");
+  layer.preloadSeries({ initialIndex: zSlider.valueAsNumber }).then(() => {
+    console.log("done")
+    loadAllButton.disabled = true;
+  });
 });
 
 function animate() {
