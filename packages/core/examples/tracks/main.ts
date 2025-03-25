@@ -3,11 +3,11 @@ import {
   ImageSeriesLayer,
   LayerManager,
   LayerState,
-  OrthographicCamera,
   OmeZarrImageSource,
+  OrthographicCamera,
+  Region,
   TracksLayer,
   WebGLRenderer,
-  Region,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
