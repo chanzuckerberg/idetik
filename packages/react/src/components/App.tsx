@@ -2,7 +2,8 @@ import cns from "classnames";
 import { Region } from "@idetik/core";
 import OmeZarrImageViewer from "./OmeZarrImageViewer";
 
-const sourceUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
+const sourceUrl =
+  "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
 const wellPath = "GOLGA2/Live";
 const imagePath = "000002";
 const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;

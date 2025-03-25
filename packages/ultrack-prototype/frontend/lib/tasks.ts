@@ -262,7 +262,10 @@ export class Task {
   imageSeriesLayer(preLoad = true): ImageSeriesLayer {
     const imageData = this.taskData.imageData;
     const region: Region = [
-      { dimension: imageData.timeDimension, index: { type: "interval", ...this.timeInterval } },
+      {
+        dimension: imageData.timeDimension,
+        index: { type: "interval", ...this.timeInterval },
+      },
       { dimension: "c", index: { type: "full" } },
       { dimension: "y", index: { type: "full" } },
       { dimension: "x", index: { type: "full" } },
