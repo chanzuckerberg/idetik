@@ -7,6 +7,7 @@ import {
   OmeZarrImageSource,
   TracksLayer,
   WebGLRenderer,
+  Region,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
@@ -67,9 +68,11 @@ const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 28, stop: 39 };
-const region = [
-  { dimension: "T", index: timeInterval },
-  { dimension: "Z", index: 0 },
+const region: Region = [
+  { dimension: "T", index: { type: "interval", ...timeInterval } },
+  { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
 ];
 // Raise the contrast limits for the blue channel because there is
 // a lot of low signal that washes everything else out.

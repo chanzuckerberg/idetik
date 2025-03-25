@@ -1,11 +1,12 @@
 import {
-  LayerManager,
   ImageLayer,
+  LayerManager,
   OrthographicCamera,
-  WebGLRenderer,
   OmeZarrImageSource,
+  PanZoomControls,
+  Region,
+  WebGLRenderer,
 } from "@";
-import { PanZoomControls } from "@/objects/cameras/controls";
 import {
   loadOmeZarrPlate,
   loadOmeZarrWell,
@@ -16,7 +17,9 @@ import {
 // with something like:
 // http-server --cors -p 8080
 const plateUrl =
-  "http://localhost:8080/20200812-CardiomyocyteDifferentiation14-Cycle1_mip.zarr";
+  "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/";
+const initialWellPath = "GOLGA2/Live";
+const initialImagePath = "000002";
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
 if (plate.plate === undefined) {
@@ -29,6 +32,7 @@ wellPaths.forEach((path) => {
   option.value = path;
   option.text = path;
   wellSelector.appendChild(option);
+  wellSelector.value = initialWellPath;
 });
 
 const layerManager = new LayerManager();
@@ -36,9 +40,12 @@ const renderer = new WebGLRenderer("#canvas");
 const camera = new OrthographicCamera(0, 840, 0, 360);
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
-const region = [
-  { dimension: "c", index: { start: 0, stop: 3 } },
-  { dimension: "z", index: 0 },
+const region: Region = [
+  { dimension: "T", index: { type: "point", value: 0 } },
+  { dimension: "C", index: { type: "interval", start: 0, stop: 3 } },
+  { dimension: "Z", index: { type: "point", value: 5.1 } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
 ];
 
 const imageSelector = document.querySelector("#image") as HTMLSelectElement;
@@ -60,6 +67,13 @@ const onImageChange = async () => {
     ],
   });
   layerManager.add(layer);
+  layer.addStateChangeCallback((state) => {
+    if (state === "ready" && layer.extent) {
+      camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
+      camera.update();
+      controls.panTarget = camera.position;
+    }
+  });
 };
 
 const onWellChange = async () => {
@@ -78,6 +92,7 @@ const onWellChange = async () => {
     option.value = path;
     option.text = path;
     imageSelector.appendChild(option);
+    imageSelector.value = initialImagePath;
   });
   await onImageChange();
 };

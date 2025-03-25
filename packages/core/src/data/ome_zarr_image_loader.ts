@@ -167,14 +167,15 @@ function regionToIndices(
     let index: Slice | number = zarr.slice(null);
     if (match) {
       const regionIndex = match.index;
-      if (typeof regionIndex === "number") {
-        index = Math.round(translation[i] + regionIndex / scale[i]);
-      } else {
+      if (regionIndex.type === "point") {
+        index = Math.round(translation[i] + regionIndex.value / scale[i]);
+      } else if (regionIndex.type === "interval") {
         index = zarr.slice(
           Math.floor(translation[i] + regionIndex.start / scale[i]),
           Math.ceil(translation[i] + regionIndex.stop / scale[i])
         );
       }
+      // "full" slices the whole dimension, nothing to do
     }
     indices.push(index);
   }

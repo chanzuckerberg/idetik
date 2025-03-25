@@ -45,9 +45,9 @@ export class ImageSeriesLayer extends Layer {
       );
     }
     const timeIndex = this.region_[this.timeDimensionIndex_].index;
-    if (typeof timeIndex === "number") {
+    if (timeIndex.type === "point" || timeIndex.type === "full") {
       throw new Error(
-        `Time index is a number (${timeIndex}). It should be an interval.`
+        `Time index is a number (${timeIndex}) should be an interval.`
       );
     }
     this.timeInterval_ = timeIndex;
@@ -124,7 +124,7 @@ export class ImageSeriesLayer extends Layer {
     // https://github.com/chanzuckerberg/imaging-active-learning/issues/75
     for (let t = start; t < stop; ++t) {
       const region = structuredClone(this.region_);
-      region[this.timeDimensionIndex_].index = t;
+      region[this.timeDimensionIndex_].index = { type: "point", value: t };
       loadPromises.push(
         loader
           .loadChunk(region, this.scheduler_)
