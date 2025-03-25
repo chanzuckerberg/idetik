@@ -6,7 +6,6 @@ import {
   Region,
   WebGLRenderer,
 } from "@";
-import { Interval } from "@/data/region";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
@@ -17,9 +16,9 @@ const camera = new OrthographicCamera(0, 1920, 0, 1440);
 // Source is 5D, so provide an interval in T a scalar index in Z
 // (first of only depth) to get a 2D image series.
 const source = new OmeZarrImageSource(url);
-const timeInterval: Interval = { type: "interval", start: 100, stop: 120 };
+const timeInterval = { start: 100, stop: 120 };
 const region: Region = [
-  { dimension: "T", index: timeInterval },
+  { dimension: "T", index: { type: "interval", ...timeInterval} },
   { dimension: "C", index: { type: "full" } },
   { dimension: "Z", index: { type: "point", value: 0 } },
   { dimension: "Y", index: { type: "full" } },
