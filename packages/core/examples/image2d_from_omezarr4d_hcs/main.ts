@@ -4,6 +4,7 @@ import {
   OrthographicCamera,
   WebGLRenderer,
   OmeZarrImageSource,
+  Region,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import {
@@ -36,9 +37,9 @@ const renderer = new WebGLRenderer("#canvas");
 const camera = new OrthographicCamera(0, 840, 0, 360);
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
-const region = [
-  { dimension: "c", index: { start: 0, stop: 3 } },
-  { dimension: "z", index: 0 },
+const region: Region = [
+  { dimension: "c", index: { type: "interval", start: 0, stop: 3 } },
+  { dimension: "z", index: { type: "point", value: 0 } },
 ];
 
 const imageSelector = document.querySelector("#image") as HTMLSelectElement;

@@ -151,7 +151,6 @@ export class OmeZarrImageLoader {
 
   public async loadAttributes(): Promise<LoaderAttributes> {
     const image = this.metadata_.multiscales[0];
-    console.log("loading attributes for image", image);
     const dimensions = image.axes.map((axis) => axis.name);
     const dataset = image.datasets[this.scaleIndex_];
     const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
@@ -184,19 +183,22 @@ export class OmeZarrImageLoader {
     const indices: Array<Slice | number> = [];
     for (const [i, axis] of axes.entries()) {
       const match = region.find((s) => s.dimension == axis.name);
+      if (match === undefined) {
+        throw new Error(`Region does not contain a slice for ${axis.name}`);
+      }
       // If a match was not found use a null slice which represents
       // the complete extent of a dimension like Python's `slice(None)`.
-      let index: Slice | number = zarr.slice(null);
-      if (match) {
-        const regionIndex = match.index;
-        if (typeof regionIndex === "number") {
-          index = Math.round(translation[i] + regionIndex / scale[i]);
-        } else {
-          index = zarr.slice(
-            Math.floor(translation[i] + regionIndex.start / scale[i]),
-            Math.ceil(translation[i] + regionIndex.stop / scale[i])
-          );
-        }
+      let index: Slice | number;
+      const regionIndex = match.index;
+      if (regionIndex.type === "full") {
+        index = zarr.slice(null);
+      } else if (regionIndex.type === "point") {
+        index = Math.round(translation[i] + regionIndex.value / scale[i]);
+      } else {
+        index = zarr.slice(
+          Math.floor(translation[i] + regionIndex.start / scale[i]),
+          Math.ceil(translation[i] + regionIndex.stop / scale[i])
+        );
       }
       indices.push(index);
     }

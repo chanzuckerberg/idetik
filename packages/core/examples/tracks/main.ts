@@ -2,11 +2,11 @@ import { vec3 } from "gl-matrix";
 import {
   ImageSeriesLayer,
   LayerManager,
-  LayerState,
   OrthographicCamera,
   OmeZarrImageSource,
   TracksLayer,
   WebGLRenderer,
+  Region,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
@@ -67,9 +67,12 @@ const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 28, stop: 39 };
-const region = [
-  { dimension: "T", index: timeInterval },
-  { dimension: "Z", index: 0 },
+const region: Region = [
+  { dimension: "T", index: { type: "interval", ...timeInterval } },
+  { dimension: "C", index: { type: "full" } },
+  { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
 ];
 // Raise the contrast limits for the blue channel because there is
 // a lot of low signal that washes everything else out.
@@ -90,7 +93,7 @@ const channelProps = [
 const imageSeriesLayer = new ImageSeriesLayer({
   source,
   region,
-  timeDimension: "T",
+  seriesDimensionName: "T",
   channelProps,
 });
 
@@ -112,17 +115,15 @@ const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
 slider.min = timeInterval.start.toString();
 slider.max = (timeInterval.stop - 1).toString();
+slider.value = slider.min;
 
-imageSeriesLayer.addStateChangeCallback((newState: LayerState) => {
-  if (newState === "ready") {
-    slider.addEventListener("input", (event) => {
-      const value = (event.target as HTMLInputElement).valueAsNumber;
-      imageSeriesLayer.setTimeIndex(value);
-      lineLayer.setTimeIndex(value);
-    });
-    imageSeriesLayer.setTimeIndex(slider.valueAsNumber);
-    lineLayer.setTimeIndex(slider.valueAsNumber);
-  }
+imageSeriesLayer.preloadSeries({initialIndex: slider.valueAsNumber - timeInterval.start});
+lineLayer.setTimeIndex(slider.valueAsNumber);
+
+slider.addEventListener("input", (event) => {
+  const value = (event.target as HTMLInputElement).valueAsNumber;
+  imageSeriesLayer.setPosition(value);
+  lineLayer.setTimeIndex(value);
 });
 
 animate();

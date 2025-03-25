@@ -1,11 +1,12 @@
 import {
-  LayerManager,
-  LayerState,
   ImageSeriesLayer,
-  OrthographicCamera,
-  WebGLRenderer,
+  LayerManager,
   OmeZarrImageSource,
+  OrthographicCamera,
+  Region,
+  WebGLRenderer,
 } from "@";
+import { Interval } from "@/data/region";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
@@ -16,10 +17,13 @@ const camera = new OrthographicCamera(0, 1920, 0, 1440);
 // Source is 5D, so provide an interval in T a scalar index in Z
 // (first of only depth) to get a 2D image series.
 const source = new OmeZarrImageSource(url);
-const timeInterval = { start: 100, stop: 120 };
-const region = [
+const timeInterval: Interval = { type: "interval", start: 100, stop: 120 };
+const region: Region = [
   { dimension: "T", index: timeInterval },
-  { dimension: "Z", index: 0 },
+  { dimension: "C", index: { type: "full" } },
+  { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
 ];
 // Raise the contrast limits for the blue channel because there is
 // a lot of low signal that washes everything else out.
@@ -43,25 +47,21 @@ const channelProps = [
 const layer = new ImageSeriesLayer({
   source,
   region,
-  timeDimension: "T",
+  seriesDimensionName: "T",
   channelProps,
 });
 layerManager.add(layer);
 
 const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
-slider.min = timeInterval.start.toString();
-slider.max = (timeInterval.stop - 1).toString();
+slider.min = `${timeInterval.start}`;
+slider.max = `${timeInterval.stop - 1}`;
 
-layer.addStateChangeCallback((newState: LayerState) => {
-  if (newState === "ready") {
-    slider.addEventListener("input", (event) => {
-      const value = (event.target as HTMLInputElement).valueAsNumber;
-      layer.setTimeIndex(value);
-    });
-    layer.setTimeIndex(slider.valueAsNumber);
-  }
+slider.addEventListener("input", (event) => {
+  const value = (event.target as HTMLInputElement).valueAsNumber;
+  layer.setIndex(value - timeInterval.start);
 });
+layer.preloadSeries({ initialIndex: slider.valueAsNumber - timeInterval.start });
 
 function animate() {
   renderer.render(layerManager, camera);

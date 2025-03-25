@@ -1,7 +1,7 @@
 import {
   LayerManager,
   LayerState,
-  ImageStackLayer,
+  ImageSeriesLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
@@ -23,8 +23,11 @@ const zDimName = "z";
 const zAxisIndex = attributes.dimensions.findIndex((dim) => dim === zDimName);
 const zMin = 0;
 const zMax = attributes.shape[zAxisIndex];
+console.log(attributes);
 const region: Region = [
-  // empty Z dimension interval will load the entire Z stack
+  { dimension: zDimName, index: { type: "full" } },
+  { dimension: "x", index: { type: "full" } },
+  { dimension: "y", index: { type: "full" } },
 ];
 
 // Initial contrast limits for grayscale electron microscopy data
@@ -40,10 +43,10 @@ const channelProps = [
   },
 ];
 
-const layer = new ImageStackLayer({
+const layer = new ImageSeriesLayer({
   source,
   region,
-  zDimension: zDimName,
+  seriesDimensionName: zDimName,
   channelProps,
 });
 layerManager.add(layer);
@@ -56,48 +59,37 @@ const minSlider = document.querySelector<HTMLInputElement>("#min-slider");
 const maxSlider = document.querySelector<HTMLInputElement>("#max-slider");
 const minValueEl = document.querySelector<HTMLSpanElement>("#min-value");
 const maxValueEl = document.querySelector<HTMLSpanElement>("#max-value");
+const stateEl = document.querySelector<HTMLSpanElement>("#layer-state");
 
 // Check that all elements exist
-if (!zSlider) throw new Error("Z slider not found.");
-if (!zIndexEl) throw new Error("Z index element not found.");
-if (!zTotalEl) throw new Error("Z total element not found.");
-if (!minSlider) throw new Error("Min slider not found.");
-if (!maxSlider) throw new Error("Max slider not found.");
-if (!minValueEl) throw new Error("Min value element not found.");
-if (!maxValueEl) throw new Error("Max value element not found.");
+if (!zSlider || !zIndexEl || !zTotalEl || !minSlider || !maxSlider || !minValueEl || !maxValueEl) {
+  throw new Error("Could not find all necessary elements");
+}
 
 // Initialize sliders
-zSlider.min = zMin.toString();
-zSlider.max = zMax.toString();
+zSlider.min = `${zMin}`;
+zSlider.max = `${zMax - 1}`;
 zSlider.value = "0";
-zTotalEl.textContent = (zMax - zMin - 1).toString();
+zTotalEl.textContent = `${zMax - zMin - 1}`;
 
 minSlider.min = "-0.00005";
 minSlider.max = "0";
 minSlider.step = "0.000001";
-minSlider.value = initialMinValue.toString();
+minSlider.value = `${initialMinValue}`;
 
 maxSlider.min = "0";
 maxSlider.max = "0.00005";
 maxSlider.step = "0.000001";
-maxSlider.value = initialMaxValue.toString();
+maxSlider.value = `${initialMaxValue}`;
 
-minValueEl.textContent = initialMinValue.toString();
-maxValueEl.textContent = initialMaxValue.toString();
+minValueEl.textContent = `${initialMinValue}`;
+maxValueEl.textContent = `${initialMaxValue}`;
 
 // Set up event handlers for contrast sliders
 minSlider.addEventListener("input", (event) => {
   const minValue = (event.target as HTMLInputElement).valueAsNumber;
   const maxValue = maxSlider.valueAsNumber;
-
-  // Ensure min doesn't exceed max
-  if (minValue >= maxValue) {
-    minSlider.value = (maxValue - 0.01).toString();
-    return;
-  }
-
-  minValueEl.textContent = minValue.toFixed(2);
-
+  minValueEl.textContent = minValue.toFixed(6);
   // Update channel properties
   layer.setChannelProps([
     {
@@ -111,15 +103,7 @@ minSlider.addEventListener("input", (event) => {
 maxSlider.addEventListener("input", (event) => {
   const maxValue = (event.target as HTMLInputElement).valueAsNumber;
   const minValue = minSlider.valueAsNumber;
-
-  // Ensure max doesn't go below min
-  if (maxValue <= minValue) {
-    maxSlider.value = (minValue + 0.01).toString();
-    return;
-  }
-
-  maxValueEl.textContent = maxValue.toFixed(2);
-
+  maxValueEl.textContent = maxValue.toFixed(6);
   // Update channel properties
   layer.setChannelProps([
     {
@@ -130,25 +114,28 @@ maxSlider.addEventListener("input", (event) => {
   ]);
 });
 
+zSlider.addEventListener("input", (event) => {
+  const value = (event.target as HTMLInputElement).valueAsNumber;
+  try {
+    layer.setIndex(value);
+    zIndexEl.textContent = `${value}`;
+  } catch {
+    console.debug("Tried to set index out of bounds or before loaded");
+  }
+});
+
+layer.setIndex(zSlider.valueAsNumber);
 layer.addStateChangeCallback((newState: LayerState) => {
   if (newState === "ready") {
-    // Set up slider event handler
-    zSlider.addEventListener("input", (event) => {
-      const value = (event.target as HTMLInputElement).valueAsNumber;
-      try {
-        layer.setZIndex(value);
-        zIndexEl.textContent = value.toString();
-      } catch {
-        console.debug("Tried to set Z index out of bounds");
-      }
-    });
-
     if (layer.extent !== undefined) {
       camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
       renderer.setControls(new PanZoomControls(camera, camera.position));
       camera.update();
     }
   }
+});
+layer.addStateChangeCallback((newState: LayerState) => {
+  stateEl!.textContent = newState;
 });
 
 function animate() {
