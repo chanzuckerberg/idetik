@@ -4,26 +4,23 @@ import CircularProgress from "@mui/material/CircularProgress";
 import {
   ImageLayer,
   LayerManager,
-  OmeroChannel,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
   loadOmeroChannels,
-  ChannelProps,
 } from "@idetik/core";
 
-import Renderer from "./Renderer";
-import { ChannelControlsList } from "./controls/ChannelControlsList";
-import { ChannelControlProps } from "./controls/ChannelControl";
-import { hexToRgb } from "lib/color";
-
+import { Renderer } from "./components/Renderer";
+import { ChannelControlsList } from "./components/ChannelControlsList";
+import { ChannelControlProps } from "./components/ChannelControlsList/components/ChannelControl";
+import { omeroToChannelProps, omeroToControlProps } from "./utils";
 interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   scale?: number;
 }
 
-export default function OmeZarrImageViewer({
+export function OmeZarrImageViewer({
   sourceUrl,
   region,
   scale,
@@ -111,30 +108,3 @@ export default function OmeZarrImageViewer({
     </div>
   );
 }
-
-// TODO: the limits/range from the omero channels should possibly be reversed
-// (start/end for limits, min/max for range) but the organelle box data works better this way
-// TODO: provide a way to get our own limits automatically from the data instead of the metadata
-const omeroToChannelProps = (omeroChannels: OmeroChannel[]): ChannelProps[] => {
-  return omeroChannels.map((channel: OmeroChannel) => {
-    const { start, end, min, max } = channel.window;
-    return {
-      visible: channel.active,
-      color: hexToRgb(channel.color),
-      contrastLimits: [Math.max(start, min), Math.min(end, max)],
-    };
-  });
-};
-
-const omeroToControlProps = (
-  omeroChannels: OmeroChannel[]
-): Partial<ChannelControlProps>[] => {
-  return omeroChannels.map((channel: OmeroChannel, index: number) => {
-    // remove prefix (number + hyphen) from label if present (seen in organelle box data)
-    const label = (channel.label ?? `Ch${index}`).replace(/^\d+-/, "");
-    return {
-      label,
-      contrastRange: [0.5 * channel.window.start, 1.1 * channel.window.end],
-    };
-  });
-};
