@@ -266,9 +266,9 @@ export class Task {
         dimension: imageData.timeDimension,
         index: { type: "interval", ...this.timeInterval },
       },
-      { dimension: "c", index: { type: "full" } },
-      { dimension: "y", index: { type: "full" } },
-      { dimension: "x", index: { type: "full" } },
+      { dimension: "C", index: { type: "full" } },
+      { dimension: "Y", index: { type: "full" } },
+      { dimension: "X", index: { type: "full" } },
     ];
     for (const [d, i] of imageData.sliceIndices.entries()) {
       region.push({ dimension: d, index: { type: "point", value: i } });
