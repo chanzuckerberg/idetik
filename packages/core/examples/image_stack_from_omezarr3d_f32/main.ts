@@ -141,7 +141,7 @@ const setCameraFrame = (newState: LayerState) => {
     // remove the callback to only set the camera frame once
     layer.removeStateChangeCallback(setCameraFrame);
   }
-}
+};
 layer.addStateChangeCallback(setCameraFrame);
 layer.addStateChangeCallback((newState: LayerState) => {
   stateEl!.textContent = newState;
