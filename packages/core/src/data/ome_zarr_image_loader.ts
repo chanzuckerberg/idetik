@@ -183,7 +183,7 @@ export class OmeZarrImageLoader {
     const indices: Array<Slice | number> = [];
     for (const [i, axis] of axes.entries()) {
       const match = region.find((s) => s.dimension == axis.name);
-      if (match === undefined) {
+      if (!match) {
         throw new Error(`Region does not contain a slice for ${axis.name}`);
       }
       let index: Slice | number;

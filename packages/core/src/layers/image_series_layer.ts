@@ -194,7 +194,7 @@ export class ImageSeriesLayer extends Layer {
   }
 
   private async loadAndSetIndex(index: number, token?: LoadingToken) {
-    if (this.state !== "loading") {
+    if (token && this.state !== "loading") {
       this.setState("loading");
     }
     const {
@@ -250,14 +250,12 @@ export class ImageSeriesLayer extends Layer {
       `Preloading series for dim ${this.seriesDimensionName_}, starting at index ${initialIndex}`
     );
     const { length } = await this.loadSeriesAttributes();
-    // Load each slice separately
+    // Load the initial slice first - use `setIndex` in case it's already loaded
+    this.setIndex(initialIndex);
+    // Load remaining slices concurrently, exclude the token so they don't get set
     const loadPromises = [];
     for (let index = 0; index < length; index++) {
-      if (index === initialIndex) {
-        loadPromises.push(
-          this.loadAndSetIndex(index, { cancelled: false, index })
-        );
-      } else {
+      if (index !== initialIndex) {
         loadPromises.push(this.loadAndSetIndex(index));
       }
     }

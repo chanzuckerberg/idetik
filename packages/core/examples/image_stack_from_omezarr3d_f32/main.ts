@@ -60,8 +60,7 @@ const minValueEl = document.querySelector<HTMLSpanElement>("#min-value");
 const maxValueEl = document.querySelector<HTMLSpanElement>("#max-value");
 const stateEl = document.querySelector<HTMLSpanElement>("#layer-state");
 const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all");
-
-// Check that all elements exist
+// Satisfy TypeScript
 if (
   !zSlider ||
   !zIndexEl ||
@@ -80,13 +79,13 @@ zSlider.max = `${zMax - 1}`;
 zSlider.value = "0";
 zTotalEl.textContent = `${zMax - zMin - 1}`;
 
-minSlider.min = "-0.00005";
+minSlider.min = "-0.000010";
 minSlider.max = "0";
 minSlider.step = "0.000001";
 minSlider.value = `${initialMinValue.toFixed(6)}`;
 
 maxSlider.min = "0";
-maxSlider.max = "0.00005";
+maxSlider.max = "0.00001";
 maxSlider.step = "0.000001";
 maxSlider.value = `${initialMaxValue.toFixed(6)}`;
 
@@ -130,28 +129,30 @@ zSlider.addEventListener("input", (event) => {
   debounce = setTimeout(() => {
     layer.setIndex(value);
     zIndexEl.textContent = `${value}`;
-  }, 50);
+  }, 20);
 });
 
 layer.setIndex(zSlider.valueAsNumber);
-layer.addStateChangeCallback((newState: LayerState) => {
-  if (newState === "ready") {
-    if (layer.extent !== undefined) {
-      camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
-      renderer.setControls(new PanZoomControls(camera, camera.position));
-      camera.update();
-    }
+const setCameraFrame = (newState: LayerState) => {
+  if (newState === "ready" && layer.extent !== undefined) {
+    camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
+    renderer.setControls(new PanZoomControls(camera, camera.position));
+    camera.update();
+    // remove the callback to only set the camera frame once
+    layer.removeStateChangeCallback(setCameraFrame);
   }
-});
+}
+layer.addStateChangeCallback(setCameraFrame);
 layer.addStateChangeCallback((newState: LayerState) => {
   stateEl!.textContent = newState;
 });
 
 loadAllButton?.addEventListener("click", () => {
   console.log("loading all slices");
+  loadAllButton.disabled = true;
+  loadAllButton.value = "Loading all slices...";
   layer.preloadSeries({ initialIndex: zSlider.valueAsNumber }).then(() => {
-    console.log("done");
-    loadAllButton.disabled = true;
+    loadAllButton.value = "Loaded all slices";
   });
 });
 
