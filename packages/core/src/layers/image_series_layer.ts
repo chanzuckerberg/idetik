@@ -26,7 +26,7 @@ export type SeriesAttributes = {
 };
 
 type LoadingToken = {
-  cancelled: boolean;
+  canceled: boolean;
   index: number;
 };
 
@@ -97,7 +97,7 @@ export class ImageSeriesLayer extends Layer {
     if (
       this.loadingToken_ &&
       this.loadingToken_.index === index &&
-      !this.loadingToken_.cancelled
+      !this.loadingToken_.canceled
     ) {
       console.debug("Ignoring duplicate active load index request");
       return;
@@ -105,12 +105,12 @@ export class ImageSeriesLayer extends Layer {
       console.debug(
         `Cancelling load for index ${this.loadingToken_.index}, requested index is ${index}`
       );
-      this.loadingToken_.cancelled = true;
+      this.loadingToken_.canceled = true;
     }
 
     const chunk = this.dataChunks_[index];
     if (chunk === undefined) {
-      this.loadingToken_ = { cancelled: false, index: index };
+      this.loadingToken_ = { canceled: false, index: index };
       this.loadAndSetIndex(index, this.loadingToken_);
       return;
     }
@@ -194,7 +194,8 @@ export class ImageSeriesLayer extends Layer {
   }
 
   private async loadAndSetIndex(index: number, token?: LoadingToken) {
-    if (token && this.state !== "loading") {
+    if (token && !token.canceled && this.state !== "loading") {
+      // if there is no token, we're only loading in the background
       this.setState("loading");
     }
     const {
@@ -228,13 +229,13 @@ export class ImageSeriesLayer extends Layer {
     );
 
     // set the data and mark the layer as ready if the token is valid
-    if (token && !token.cancelled) {
+    if (token && !token.canceled) {
       console.debug(
         `Setting data for position ${position} (array index ${index}) for dim ${this.seriesDimensionName_}`
       );
       this.setData(chunk);
       this.loadingToken_ = null;
-    } else if (token && token.cancelled) {
+    } else if (token && token.canceled) {
       console.debug(
         `Not setting data for position ${position} (arry index ${index}) due to cancellation`
       );
