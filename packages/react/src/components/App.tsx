@@ -1,6 +1,6 @@
 import cns from "classnames";
 import { Region } from "@idetik/core";
-import OmeZarrImageViewer from "./OmeZarrImageViewer";
+import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";

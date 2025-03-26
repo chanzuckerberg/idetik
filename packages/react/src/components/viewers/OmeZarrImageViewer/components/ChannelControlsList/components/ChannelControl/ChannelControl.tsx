@@ -1,6 +1,6 @@
-import { VisibilityToggle } from "./VisibilityToggle";
-import { ColorPicker } from "./ColorPicker";
-import { ContrastSlider } from "./ContrastSlider";
+import { VisibilityToggle } from "./components/VisibilityToggle";
+import { ColorPicker } from "./components/ColorPicker";
+import { ContrastSlider } from "./components/ContrastSlider";
 
 export interface ChannelControlProps {
   channelIndex: number;
