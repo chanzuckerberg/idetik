@@ -46,9 +46,7 @@ export class ImageSeriesLayer extends Layer {
     }
     const timeIndex = this.region_[this.timeDimensionIndex_].index;
     if (timeIndex.type === "point" || timeIndex.type === "full") {
-      throw new Error(
-        `Time index (${timeIndex}) must be an interval.`
-      );
+      throw new Error(`Time index (${timeIndex}) must be an interval.`);
     }
     this.timeInterval_ = timeIndex;
     this.channelProps_ = channelProps;
