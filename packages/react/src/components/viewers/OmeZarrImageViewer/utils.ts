@@ -8,7 +8,7 @@ import { hexToRgb } from "lib/color";
 export const omeroToChannelProps = (
   omeroChannels: OmeroChannel[]
 ): ChannelProps[] => {
-  return omeroChannels.map((channel: OmeroChannel) => {
+  return omeroChannels.map((channel) => {
     const { start, end, min, max } = channel.window;
     return {
       visible: channel.active,
@@ -21,7 +21,7 @@ export const omeroToChannelProps = (
 export const omeroToControlProps = (
   omeroChannels: OmeroChannel[]
 ): Partial<ChannelControlProps>[] => {
-  return omeroChannels.map((channel: OmeroChannel, index: number) => {
+  return omeroChannels.map((channel, index) => {
     // remove prefix (number + hyphen) from label if present (seen in organelle box data)
     const label = (channel.label ?? `Ch${index}`).replace(/^\d+-/, "");
     return {
