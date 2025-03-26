@@ -18,9 +18,10 @@ export function ContrastSlider({
     onChange([limits[0], limits[1]]);
   };
 
-  let step = (max - min) / 512.0;
+  const numSteps = 512;
+  let step = (max - min) / numSteps;
   if (Number.isInteger(value[0]) && Number.isInteger(value[1])) {
-    step = Math.floor(step);
+    step = Math.max(1.0, Math.floor(step));
   }
 
   return (

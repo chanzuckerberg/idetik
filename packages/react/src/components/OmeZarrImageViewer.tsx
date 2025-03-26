@@ -23,14 +23,14 @@ interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   scale?: number;
-  zDimension?: string;
+  seriesDimensionName?: string;
 }
 
 export default function OmeZarrImageViewer({
   sourceUrl,
   region,
   scale,
-  zDimension,
+  seriesDimensionName,
 }: OmeZarrImageViewerProps) {
   const [layerManager, _setLayerManager] = useState<LayerManager>(
     new LayerManager()
@@ -63,13 +63,13 @@ export default function OmeZarrImageViewer({
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
       let layer;
-      if (zDimension === undefined) {
+      if (seriesDimensionName === undefined) {
         layer = new ImageLayer({ source, region, channelProps });
       } else {
         layer = new ImageSeriesLayer({
           source,
           region,
-          seriesDimensionName: zDimension,
+          seriesDimensionName,
           channelProps,
         });
         layer.preloadSeries({ initialIndex: 0 });
@@ -86,7 +86,7 @@ export default function OmeZarrImageViewer({
       setImageLayer(layer);
     };
     getLayer();
-  }, [source, sourceUrl, region, camera, zDimension]);
+  }, [source, sourceUrl, region, camera, seriesDimensionName]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -96,18 +96,18 @@ export default function OmeZarrImageViewer({
   }, [imageLayer, layerManager]);
 
   useEffect(() => {
-    if (zDimension !== undefined && source !== null) {
+    if (seriesDimensionName !== undefined && source !== null) {
       const setZRangeFromData = async () => {
         const loader = await source.open();
         const attributes = await loader.loadAttributes();
         const zAxisIndex = attributes.dimensions.findIndex(
-          (dim) => dim === zDimension
+          (dim) => dim === seriesDimensionName
         );
         setZRange([0, attributes.shape[zAxisIndex] - 1]);
       };
       setZRangeFromData();
     }
-  }, [source, zDimension]);
+  }, [source, seriesDimensionName]);
 
   return (
     <div
@@ -140,7 +140,7 @@ export default function OmeZarrImageViewer({
           <ChannelControlsList layer={imageLayer} controlProps={controlProps} />
         </div>
       )}
-      {zDimension && (
+      {seriesDimensionName && (
         <div
           className={cns(
             "absolute",
