@@ -47,11 +47,13 @@ ComponentName/
 1. **Exports**
    - Use named exports instead of default exports
    - Export components through index.tsx files
+   - This keeps our API clean and makes it easier to refactor without introducing breaking changes.
+   - Also helps with tree-shaking because bundlers can statically analyze named exports and safely exclude unused code from the final bundle. Default exports, by contrast, are opaque and prevent the bundler from confidently removing unused parts.
    ```typescript
-   // Bad
+   // Avoid
    export default function MyComponent() {}
 
-   // Good
+   // Prefer
    export function MyComponent() {}
    // In index.tsx:
    export { MyComponent } from './MyComponent';
@@ -61,10 +63,10 @@ ComponentName/
    - Use arrow functions for component definitions
    - Include explicit type annotations
    ```typescript
-   // Bad
+   // Avoid
    export function MyComponent(props: Props) {}
 
-   // Good
+   // Prefer
    export const MyComponent = ({ prop1, prop2 }: MyComponentProps) => {
         return <div>...</div>;
     };
