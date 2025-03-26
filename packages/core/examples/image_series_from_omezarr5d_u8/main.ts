@@ -20,6 +20,7 @@ const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 100, stop: 120 };
 const region: Region = [
   { dimension: "T", index: { type: "interval", ...timeInterval } },
+  { dimension: "C", index: { type: "full" } },
   { dimension: "Z", index: { type: "point", value: 0 } },
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },

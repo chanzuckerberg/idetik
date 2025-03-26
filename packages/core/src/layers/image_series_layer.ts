@@ -135,6 +135,8 @@ export class ImageSeriesLayer extends Layer {
       if (error instanceof AbortError) {
         console.debug("Loading aborted.");
         return;
+      } else {
+        throw error;
       }
     });
     this.setState("ready");
