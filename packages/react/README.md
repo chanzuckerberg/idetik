@@ -8,7 +8,7 @@ React components for image viewers - wrapping idetik/core functionality
 # Install dependencies from root directory
 npm install
 
-# Build dependencies (core package)
+# Build dependencies (core package) from the root directory
 npm run build
 
 # Start development server
@@ -29,6 +29,8 @@ If you make changes to the `@idetik/core` package, you'll need to:
 This ensures your React components use the latest version of the core package.
 
 ## Component Development Guidelines
+
+Pure TypeScript code (has no react dependencies) should go in the `lib/` directory.
 
 ### File Structure
 Each component should have its own directory with the following structure:
@@ -77,14 +79,6 @@ ComponentName/
      onUpdate: (data: UpdateData) => void;
      isLoading?: boolean;
    }
-   ```
-
-4. **State Management**
-   - Use hooks for state management
-   - Keep state as local as possible
-   ```typescript
-   const [data, setData] = useState<Data | null>(null);
-   const [isLoading, setIsLoading] = useState(false);
    ```
 
 5. **Styling**
