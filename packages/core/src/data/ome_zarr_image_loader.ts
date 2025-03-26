@@ -162,21 +162,29 @@ function regionToIndices(
   const indices: Array<Slice | number> = [];
   for (const [i, axis] of axes.entries()) {
     const match = region.find((s) => s.dimension == axis.name);
-    // If a match was not found use a null slice which represents
-    // the complete extent of a dimension like Python's `slice(None)`.
-    let index: Slice | number = zarr.slice(null);
     if (match) {
       const regionIndex = match.index;
-      if (typeof regionIndex === "number") {
-        index = Math.round(translation[i] + regionIndex / scale[i]);
-      } else {
-        index = zarr.slice(
+      if (regionIndex.type === "full") {
+        // "full" slices the whole dimension, which uses a zarr.slice(null)
+        // similar to slicing a full dimension in Python with `slice(None)` or `[:]`
+        const index = zarr.slice(null);
+        indices.push(index);
+      } else if (regionIndex.type === "interval") {
+        const index = zarr.slice(
           Math.floor(translation[i] + regionIndex.start / scale[i]),
           Math.ceil(translation[i] + regionIndex.stop / scale[i])
         );
+        indices.push(index);
+      } else if (regionIndex.type === "point") {
+        const index = Math.round(translation[i] + regionIndex.value / scale[i]);
+        indices.push(index);
       }
+    } else {
+      // Require a complete region, rather than implicitly extracting absent dimensions
+      throw new Error(
+        `Region does not contain an index for dimension ${axis.name}, must provide an index for all dimensions`
+      );
     }
-    indices.push(index);
   }
   return indices;
 }

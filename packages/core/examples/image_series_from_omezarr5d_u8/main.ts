@@ -1,10 +1,11 @@
 import {
+  ImageSeriesLayer,
   LayerManager,
   LayerState,
-  ImageSeriesLayer,
-  OrthographicCamera,
-  WebGLRenderer,
   OmeZarrImageSource,
+  OrthographicCamera,
+  Region,
+  WebGLRenderer,
 } from "@";
 
 const url =
@@ -17,9 +18,12 @@ const camera = new OrthographicCamera(0, 1920, 0, 1440);
 // (first of only depth) to get a 2D image series.
 const source = new OmeZarrImageSource(url);
 const timeInterval = { start: 100, stop: 120 };
-const region = [
-  { dimension: "T", index: timeInterval },
-  { dimension: "Z", index: 0 },
+const region: Region = [
+  { dimension: "T", index: { type: "interval", ...timeInterval } },
+  { dimension: "C", index: { type: "full" } },
+  { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
 ];
 // Raise the contrast limits for the blue channel because there is
 // a lot of low signal that washes everything else out.

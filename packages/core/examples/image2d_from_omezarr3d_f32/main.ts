@@ -1,9 +1,10 @@
 import {
   LayerManager,
   ImageLayer,
-  OrthographicCamera,
-  WebGLRenderer,
   OmeZarrImageSource,
+  OrthographicCamera,
+  Region,
+  WebGLRenderer,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
@@ -25,7 +26,11 @@ const camera = new OrthographicCamera(
 );
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
-const region = [{ dimension: "z", index: pixelScale * 120 }];
+const region: Region = [
+  { dimension: "z", index: { type: "point", value: pixelScale * 120 } },
+  { dimension: "y", index: { type: "full" } },
+  { dimension: "x", index: { type: "full" } },
+];
 
 const source = new OmeZarrImageSource(url);
 const layer = new ImageLayer({ source, region });
