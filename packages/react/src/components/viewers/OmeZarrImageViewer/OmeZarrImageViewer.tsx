@@ -153,8 +153,11 @@ export function OmeZarrImageViewer({
             min={zRange[0]}
             max={zRange[1]}
             onChange={(_, slice: number | number[]) => {
-              if (imageLayer instanceof ImageSeriesLayer && typeof slice === "number") {
-                imageLayer.setIndex(slice)
+              if (
+                imageLayer instanceof ImageSeriesLayer &&
+                typeof slice === "number"
+              ) {
+                imageLayer.setIndex(slice);
               }
             }}
             disabled={loading}
