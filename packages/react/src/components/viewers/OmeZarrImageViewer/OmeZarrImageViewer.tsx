@@ -1,23 +1,21 @@
 import { useEffect, useState } from "react";
 import cns from "classnames";
 import CircularProgress from "@mui/material/CircularProgress";
+import { InputSlider } from "@czi-sds/components";
 import {
   ImageLayer,
   ImageSeriesLayer,
   LayerManager,
-  OmeroChannel,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
   loadOmeroChannels,
-  ChannelProps,
 } from "@idetik/core";
 
-import Renderer from "./Renderer";
-import { ChannelControlsList } from "./controls/ChannelControlsList";
-import { ChannelControlProps } from "./controls/ChannelControl";
-import { ZControl } from "./controls/ZControl";
-import { hexToRgb } from "lib/color";
+import { Renderer } from "./components/Renderer";
+import { ChannelControlsList } from "./components/ChannelControlsList";
+import { ChannelControlProps } from "./components/ChannelControlsList/components/ChannelControl";
+import { omeroToChannelProps, omeroToControlProps } from "./utils";
 
 interface OmeZarrImageViewerProps {
   sourceUrl: string;
@@ -26,7 +24,7 @@ interface OmeZarrImageViewerProps {
   seriesDimensionName?: string;
 }
 
-export default function OmeZarrImageViewer({
+export function OmeZarrImageViewer({
   sourceUrl,
   region,
   scale,
@@ -151,9 +149,14 @@ export default function OmeZarrImageViewer({
             "py-3"
           )}
         >
-          <ZControl
-            zRange={zRange}
-            onChange={(v) => (imageLayer as ImageSeriesLayer).setIndex(v)}
+          <InputSlider
+            min={zRange[0]}
+            max={zRange[1]}
+            onChange={(_, slice: number | number[]) => {
+              if (imageLayer instanceof ImageSeriesLayer && typeof slice === "number") {
+                imageLayer.setIndex(slice)
+              }
+            }}
             disabled={loading}
           />
         </div>
@@ -161,30 +164,3 @@ export default function OmeZarrImageViewer({
     </div>
   );
 }
-
-// TODO: the limits/range from the omero channels should possibly be reversed
-// (start/end for limits, min/max for range) but the organelle box data works better this way
-// TODO: provide a way to get our own limits automatically from the data instead of the metadata
-const omeroToChannelProps = (omeroChannels: OmeroChannel[]): ChannelProps[] => {
-  return omeroChannels.map((channel: OmeroChannel) => {
-    const { start, end, min, max } = channel.window;
-    return {
-      visible: channel.active,
-      color: hexToRgb(channel.color),
-      contrastLimits: [Math.max(start, min), Math.min(end, max)],
-    };
-  });
-};
-
-const omeroToControlProps = (
-  omeroChannels: OmeroChannel[]
-): Partial<ChannelControlProps>[] => {
-  return omeroChannels.map((channel: OmeroChannel, index: number) => {
-    // remove prefix (number + hyphen) from label if present (seen in organelle box data)
-    const label = (channel.label ?? `Ch${index}`).replace(/^\d+-/, "");
-    return {
-      label,
-      contrastRange: [0.5 * channel.window.start, 1.1 * channel.window.end],
-    };
-  });
-};

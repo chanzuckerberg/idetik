@@ -75,6 +75,7 @@ export default function Renderer({
     const onStateChange = (newState: LayerState) => {
       if (newState === "ready") {
         onReady();
+        imageSeriesLayer.removeStateChangeCallback(onStateChange);
       }
     };
     imageSeriesLayer.addStateChangeCallback(onStateChange);
