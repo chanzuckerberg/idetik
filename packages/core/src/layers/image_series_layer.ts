@@ -1,5 +1,5 @@
 import { Layer } from "core/layer";
-import { DimensionalIndex, Region } from "data/region";
+import { Full, Interval, Region } from "data/region";
 import {
   ImageChunk,
   ImageChunkLoader,
@@ -35,7 +35,7 @@ export class ImageSeriesLayer extends Layer {
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
   private readonly seriesDimensionName_: string;
-  private readonly seriesDimensionalIndex_: DimensionalIndex;
+  private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
   private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
@@ -65,7 +65,12 @@ export class ImageSeriesLayer extends Layer {
         `Series dimension '${seriesDimensionName}' not in region ${JSON.stringify(region)}`
       );
     }
-    this.seriesDimensionalIndex_ = seriesDimensionalIndex;
+    if (seriesDimensionalIndex.index.type === "point") {
+      throw new Error(
+        "Series dimension index in region must be an interval or 'full', not a point value"
+      );
+    }
+    this.seriesIndex_ = seriesDimensionalIndex.index;
     this.channelProps_ = channelProps;
   }
 
@@ -160,20 +165,10 @@ export class ImageSeriesLayer extends Layer {
     const seriesDimScale = attributes.scale[seriesIndex];
     const seriesMax = attributes.shape[seriesIndex] * seriesDimScale;
 
-    if (this.seriesDimensionalIndex_.index.type === "point") {
-      throw new Error(
-        "Series dimension index in region must be a range or 'full', not a point value"
-      );
-    }
-    let seriesStart;
-    let seriesStop;
-    if (this.seriesDimensionalIndex_.index.type === "full") {
-      seriesStart = 0;
-      seriesStop = seriesMax;
-    } else {
-      seriesStart = this.seriesDimensionalIndex_.index.start;
-      seriesStop = this.seriesDimensionalIndex_.index.stop;
-    }
+    const indexIsFull = this.seriesIndex_.type === "full";
+    const seriesStart = indexIsFull ? 0 : this.seriesIndex_.start;
+    const seriesStop = indexIsFull ? seriesMax : this.seriesIndex_.stop;
+
     console.debug(
       `ImageSeriesLayer, loading index range: ${seriesStart}-${seriesStop} (${(seriesStop - seriesStart) / seriesDimScale - 1} slices) for dim ${this.seriesDimensionName_}`
     );
@@ -198,20 +193,16 @@ export class ImageSeriesLayer extends Layer {
       // if there is no token, we're only loading in the background
       this.setState("loading");
     }
-    const {
-      start: seriesStart,
-      scale: seriesDimScale,
-      length,
-    } = await this.loadSeriesAttributes();
-    if (index < 0 || index >= length) {
+    const seriesAttributes = await this.loadSeriesAttributes();
+    if (index < 0 || index >= seriesAttributes.length) {
       throw new Error(
-        `Requested index ${index} is out of bounds [0, ${length - 1}]`
+        `Requested index ${index} is out of bounds [0, ${seriesAttributes.length - 1}]`
       );
     }
     const loader = await this.getLoader();
 
     // replace the series region with a point region for the requested index
-    const position = seriesStart + index * seriesDimScale;
+    const position = seriesAttributes.start + index * seriesAttributes.scale;
     const pointRegion = this.region_.filter(
       (dimIndex) => dimIndex.dimension !== this.seriesDimensionName_
     );

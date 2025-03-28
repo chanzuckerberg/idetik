@@ -6,6 +6,7 @@ import {
   OrthographicCamera,
   Region,
   WebGLRenderer,
+  ChannelProps,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
@@ -34,11 +35,11 @@ const initialMinValue = -0.00001;
 const initialMaxValue = 0.00001;
 
 // This dataset is grayscale electron microscopy data
-const channelProps = [
+const channelProps: ChannelProps[] = [
   {
     visible: true,
-    color: [1, 1, 1] as [number, number, number],
-    contrastLimits: [initialMinValue, initialMaxValue] as [number, number],
+    color: [1, 1, 1],
+    contrastLimits: [initialMinValue, initialMaxValue],
   },
 ];
 
@@ -134,7 +135,7 @@ layer.addStateChangeCallback((newState: LayerState) => {
   stateEl!.textContent = newState;
 });
 
-loadAllButton?.addEventListener("click", () => {
+loadAllButton.addEventListener("click", () => {
   console.log("loading all slices");
   loadAllButton.disabled = true;
   loadAllButton.value = "Loading all slices...";
