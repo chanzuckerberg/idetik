@@ -50,28 +50,15 @@ const layer = new ImageSeriesLayer({
 });
 layerManager.add(layer);
 
-// Get DOM elements
-const zSlider = document.querySelector<HTMLInputElement>("#z-slider");
-const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index");
-const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total");
-const minSlider = document.querySelector<HTMLInputElement>("#min-slider");
-const maxSlider = document.querySelector<HTMLInputElement>("#max-slider");
-const minValueEl = document.querySelector<HTMLSpanElement>("#min-value");
-const maxValueEl = document.querySelector<HTMLSpanElement>("#max-value");
-const stateEl = document.querySelector<HTMLSpanElement>("#layer-state");
-const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all");
-// Satisfy TypeScript
-if (
-  !zSlider ||
-  !zIndexEl ||
-  !zTotalEl ||
-  !minSlider ||
-  !maxSlider ||
-  !minValueEl ||
-  !maxValueEl
-) {
-  throw new Error("Could not find all necessary elements");
-}
+const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
+const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
+const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total")!;
+const minSlider = document.querySelector<HTMLInputElement>("#min-slider")!;
+const maxSlider = document.querySelector<HTMLInputElement>("#max-slider")!;
+const minValueEl = document.querySelector<HTMLSpanElement>("#min-value")!;
+const maxValueEl = document.querySelector<HTMLSpanElement>("#max-value")!;
+const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
+const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all")!;
 
 // Initialize sliders
 zSlider.min = `${zMin}`;
