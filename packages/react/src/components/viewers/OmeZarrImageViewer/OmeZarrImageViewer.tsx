@@ -70,7 +70,8 @@ export function OmeZarrImageViewer({
           seriesDimensionName,
           channelProps,
         });
-        layer.preloadSeries({ initialIndex: 0 });
+        layer.setIndex(0);
+        layer.preloadSeries();
       }
       layer.addStateChangeCallback(() => {
         if (layer.state === "ready") {

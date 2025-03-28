@@ -60,9 +60,8 @@ slider.addEventListener("input", (event) => {
   const value = (event.target as HTMLInputElement).valueAsNumber;
   layer.setIndex(value - timeInterval.start);
 });
-layer.preloadSeries({
-  initialIndex: slider.valueAsNumber - timeInterval.start,
-});
+layer.setIndex(slider.valueAsNumber - timeInterval.start);
+layer.preloadSeries();
 
 function animate() {
   renderer.render(layerManager, camera);

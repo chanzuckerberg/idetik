@@ -81,12 +81,11 @@ export class OmeZarrImageLoader {
     scheduler?: PromiseScheduler
   ): Promise<ImageChunk> {
     console.debug("loading chunk with region", region, this.scaleIndex_);
-    const image = this.metadata_.multiscales[0];
-    const dataset = image.datasets[this.scaleIndex_];
-    const indices = this.regionToIndices(region, this.scaleIndex_);
-    console.debug("loading dataset with indices", dataset, indices);
+    const { datasetPath, scale, translation } = this.getImageAttributes();
+    const indices = this.regionToIndices(region);
+    console.debug("loading dataset with indices", datasetPath, indices);
 
-    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+    const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
       kind: "array",
       attrs: false,
     });
@@ -118,13 +117,6 @@ export class OmeZarrImageLoader {
       );
     }
 
-    const axes = image.axes;
-    const scale = dataset.coordinateTransformations[0].scale;
-    const translation =
-      dataset.coordinateTransformations.length === 2
-        ? dataset.coordinateTransformations[1].translation
-        : new Array(axes.length).fill(0);
-
     const calculateOffset = (i: number) => {
       const index = indices[i];
       if (typeof index === "number" || index.start === null) return 0;
@@ -149,42 +141,57 @@ export class OmeZarrImageLoader {
     return chunk;
   }
 
-  public async loadAttributes(): Promise<LoaderAttributes> {
+  private getImageAttributes(scaleIndex?: number): {
+    image: OmeNgffImage["multiscales"][number];
+    dimensionNames: string[];
+    datasetPath: string;
+    scale: number[];
+    translation: number[];
+  } {
     const image = this.metadata_.multiscales[0];
-    const dimensions = image.axes.map((axis) => axis.name);
-    const dataset = image.datasets[this.scaleIndex_];
-    const array = await zarr.open.v2(this.root_.resolve(dataset.path), {
+    const axes = image.axes;
+    const dimensionNames = image.axes.map((axis) => axis.name);
+    const dataset = image.datasets[scaleIndex ?? this.scaleIndex_];
+    const datasetPath = dataset.path;
+    const scale = dataset.coordinateTransformations[0].scale;
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(axes.length).fill(0);
+    return {
+      image,
+      dimensionNames,
+      datasetPath,
+      scale,
+      translation,
+    };
+  }
+
+  public async loadAttributes(): Promise<LoaderAttributes> {
+    const { dimensionNames, datasetPath, scale } = this.getImageAttributes();
+
+    const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
       kind: "array",
       attrs: false,
     });
     const shape = array.shape;
-    const scale = dataset.coordinateTransformations[0].scale;
 
     return {
-      dimensions,
+      dimensionNames,
       shape,
       scale,
     };
   }
 
   // Converts a region to indices within an OME-Zarr image array.
-  regionToIndices(
-    region: Region,
-    datasetIndex: number = 0
-  ): Array<Slice | number> {
-    const axes = this.metadata_.multiscales[0].axes;
-    const dataset = this.metadata_.multiscales[0].datasets[datasetIndex];
-    const scale = dataset.coordinateTransformations[0].scale;
-    const translation =
-      dataset.coordinateTransformations.length === 2
-        ? dataset.coordinateTransformations[1].translation
-        : new Array(axes.length).fill(0);
+  regionToIndices(region: Region): Array<Slice | number> {
+    const { dimensionNames, scale, translation } = this.getImageAttributes();
 
     const indices: Array<Slice | number> = [];
-    for (const [i, axis] of axes.entries()) {
-      const match = region.find((s) => s.dimension == axis.name);
+    for (const [i, dimName] of dimensionNames.entries()) {
+      const match = region.find((s) => s.dimension == dimName);
       if (!match) {
-        throw new Error(`Region does not contain a slice for ${axis.name}`);
+        throw new Error(`Region does not contain a slice for ${dimName}`);
       }
       let index: Slice | number;
       const regionIndex = match.index;

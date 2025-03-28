@@ -45,8 +45,9 @@ export type ImageChunkSource = {
   open(): Promise<ImageChunkLoader>;
 };
 
+// TODO: we should make this more comprehensive, such as for multiscale images, etc.
 export type LoaderAttributes = {
-  dimensions: string[];
+  dimensionNames: string[];
   shape: readonly number[];
   scale: readonly number[];
 };

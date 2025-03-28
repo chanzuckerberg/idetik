@@ -89,16 +89,15 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
-  public setPosition(position: number) {
-    // this calls async from sync, but it is handled in setIndex by the loading token
-    this.loadSeriesAttributes().then((attributes) => {
-      const { start: seriesStart, scale: seriesDimScale } = attributes;
-      const index = Math.round((position - seriesStart) / seriesDimScale);
-      this.setIndex(index);
-    });
+  public async setPosition(position: number) {
+    const seriesAttributes = await this.loadSeriesAttributes();
+    const index = Math.round(
+      (position - seriesAttributes.start) / seriesAttributes.scale
+    );
+    this.setIndex(index);
   }
 
-  public setIndex(index: number) {
+  public async setIndex(index: number) {
     if (
       this.loadingToken_ &&
       this.loadingToken_.index === index &&
@@ -116,7 +115,7 @@ export class ImageSeriesLayer extends Layer {
     const chunk = this.dataChunks_[index];
     if (chunk === undefined) {
       this.loadingToken_ = { canceled: false, index: index };
-      this.loadAndSetIndex(index, this.loadingToken_);
+      await this.loadAndSetIndex(index, this.loadingToken_);
       return;
     }
     this.setData(chunk);
@@ -154,12 +153,12 @@ export class ImageSeriesLayer extends Layer {
     const loader = await this.getLoader();
 
     const attributes = await loader.loadAttributes();
-    const seriesIndex = attributes.dimensions.findIndex(
+    const seriesIndex = attributes.dimensionNames.findIndex(
       (dim) => dim === this.seriesDimensionName_
     );
     if (seriesIndex === -1) {
       throw new Error(
-        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${attributes.dimensions}`
+        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${attributes.dimensionNames}`
       );
     }
     const seriesDimScale = attributes.scale[seriesIndex];
@@ -237,19 +236,13 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
-  public async preloadSeries({ initialIndex = 0 }: { initialIndex: number }) {
-    console.debug(
-      `Preloading series for dim ${this.seriesDimensionName_}, starting at index ${initialIndex}`
-    );
+  public async preloadSeries() {
+    console.debug(`Preloading series for dim ${this.seriesDimensionName_}`);
     const { length } = await this.loadSeriesAttributes();
-    // Load the initial slice first - use `setIndex` in case it's already loaded
-    this.setIndex(initialIndex);
     // Load remaining slices concurrently, exclude the token so they don't get set
     const loadPromises = [];
     for (let index = 0; index < length; index++) {
-      if (index !== initialIndex) {
-        loadPromises.push(this.loadAndSetIndex(index));
-      }
+      loadPromises.push(this.loadAndSetIndex(index));
     }
 
     // Wait for all slices to finish loading

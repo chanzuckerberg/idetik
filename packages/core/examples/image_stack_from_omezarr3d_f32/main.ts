@@ -21,7 +21,9 @@ const source = new OmeZarrImageSource(url);
 const loader = await source.open();
 const attributes = await loader.loadAttributes();
 const zDimName = "z";
-const zAxisIndex = attributes.dimensions.findIndex((dim) => dim === zDimName);
+const zAxisIndex = attributes.dimensionNames.findIndex(
+  (dim) => dim === zDimName
+);
 const zMin = 0;
 const zMax = attributes.shape[zAxisIndex];
 const region: Region = [
@@ -139,7 +141,7 @@ loadAllButton.addEventListener("click", () => {
   console.log("loading all slices");
   loadAllButton.disabled = true;
   loadAllButton.value = "Loading all slices...";
-  layer.preloadSeries({ initialIndex: zSlider.valueAsNumber }).then(() => {
+  layer.preloadSeries().then(() => {
     loadAllButton.value = "Loaded all slices";
   });
 });
