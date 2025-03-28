@@ -183,7 +183,6 @@ export class OmeZarrImageLoader {
     };
   }
 
-  // Converts a region to indices within an OME-Zarr image array.
   regionToIndices(region: Region): Array<Slice | number> {
     const { dimensionNames, scale, translation } = this.getImageAttributes();
 

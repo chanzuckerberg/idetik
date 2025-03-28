@@ -98,18 +98,17 @@ export class ImageSeriesLayer extends Layer {
   }
 
   public async setIndex(index: number) {
-    if (
-      this.loadingToken_ &&
-      this.loadingToken_.index === index &&
-      !this.loadingToken_.canceled
-    ) {
-      console.debug("Ignoring duplicate active load index request");
-      return;
-    } else if (this.loadingToken_) {
-      console.debug(
-        `Cancelling load for index ${this.loadingToken_.index}, requested index is ${index}`
-      );
-      this.loadingToken_.canceled = true;
+    const token = this.loadingToken_;
+    if (token) {
+      if (token.index === index && !token.canceled) {
+        console.debug("Ignoring duplicate active setIndex request");
+        return;
+      } else {
+        console.debug(
+          `Cancelling setIndex request for index ${token.index}, new requested index is ${index}`
+        );
+        token.canceled = true;
+      }
     }
 
     const chunk = this.dataChunks_[index];
@@ -138,7 +137,6 @@ export class ImageSeriesLayer extends Layer {
     } else {
       this.texture_.data = chunk.data;
     }
-    this.setState("ready");
   }
 
   public close(): void {
@@ -188,10 +186,8 @@ export class ImageSeriesLayer extends Layer {
   }
 
   private async loadAndSetIndex(index: number, token?: LoadingToken) {
-    if (token && !token.canceled && this.state !== "loading") {
-      // if there is no token, we're only loading in the background
-      this.setState("loading");
-    }
+    this.setLoadingStateFromToken(token);
+
     const seriesAttributes = await this.loadSeriesAttributes();
     if (index < 0 || index >= seriesAttributes.length) {
       throw new Error(
@@ -212,27 +208,28 @@ export class ImageSeriesLayer extends Layer {
 
     const chunk = await loader.loadChunk(pointRegion, this.scheduler_);
 
-    // Store the chunk at the correct index
     this.dataChunks_[index] = chunk;
     console.debug(
-      `Loaded position ${position} (array index ${index}) for dim ${this.seriesDimensionName_}`
+      `Loaded data for position ${position} (array index ${index})`
     );
-
-    // set the data and mark the layer as ready if the token is valid
-    if (token && !token.canceled) {
+    if (!token) {
       console.debug(
-        `Setting data for position ${position} (array index ${index}) for dim ${this.seriesDimensionName_}`
+        `Not setting data for position ${position} (array index ${index}) - loaded in background`
       );
-      this.setData(chunk);
-      this.loadingToken_ = null;
-    } else if (token && token.canceled) {
+      return;
+    }
+
+    if (token.canceled) {
       console.debug(
-        `Not setting data for position ${position} (arry index ${index}) due to cancellation`
+        `Not setting data for position ${position} (array index ${index}) - canceled by subsequent request`
       );
     } else {
       console.debug(
-        `Not setting data for position ${position} (arry index ${index}) due to no token`
+        `Setting data for position ${position} (array index ${index})`
       );
+      this.loadingToken_ = null;
+      this.setData(chunk);
+      this.setState("ready");
     }
   }
 
@@ -272,5 +269,11 @@ export class ImageSeriesLayer extends Layer {
       return this.loader_;
     }
     return await this.source_.open();
+  }
+
+  private setLoadingStateFromToken(token?: LoadingToken) {
+    if (!!token && !token.canceled && this.state !== "loading") {
+      this.setState("loading");
+    }
   }
 }
