@@ -285,7 +285,8 @@ export class Task {
       ],
     });
     if (preLoad) {
-      layer.preloadSeries({ initialIndex: 0 });
+      layer.setIndex(0);
+      layer.preloadSeries();
     }
     return layer;
   }

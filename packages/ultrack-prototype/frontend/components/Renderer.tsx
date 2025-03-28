@@ -52,7 +52,6 @@ export default function Renderer({
     if (!task) return;
     lastTaskId.current = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
-    imageSeriesLayer.update();
     setImageSeriesLayer((prevLayer: ImageSeriesLayer | null) => {
       if (prevLayer !== null) prevLayer.close();
       return imageSeriesLayer;

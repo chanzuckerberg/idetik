@@ -31,8 +31,8 @@ export default function App() {
         <OmeZarrImageViewer
           sourceUrl={imageUrl}
           region={region}
-          scale={-2}
           seriesDimensionName="Z"
+          scale={-2}
         />
       </div>
     </div>
