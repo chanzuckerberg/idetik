@@ -5,11 +5,11 @@ import {
   ChannelControl,
   ChannelControlProps,
 } from "./components/ChannelControl";
-import { ImageLayer, ChannelProps } from "@idetik/core";
+import { ImageLayer, ImageSeriesLayer, ChannelProps } from "@idetik/core";
 import { useState, useEffect } from "react";
 
 interface ChannelControlsListProps {
-  layer: ImageLayer;
+  layer: ImageLayer | ImageSeriesLayer;
   controlProps: Partial<ChannelControlProps>[];
 }
 
@@ -85,6 +85,7 @@ export function ChannelControlsList({
       <Accordion
         id="channel-controls"
         className="flex-grow"
+        defaultExpanded
         square
         elevation={0}
       >

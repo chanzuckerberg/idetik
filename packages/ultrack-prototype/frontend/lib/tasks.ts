@@ -277,7 +277,7 @@ export class Task {
     const layer = new ImageSeriesLayer({
       source,
       region,
-      timeDimension: imageData.timeDimension,
+      seriesDimensionName: imageData.timeDimension,
       channelProps: [
         { color: [1, 0, 0] as [number, number, number] },
         { color: [0, 1, 0] as [number, number, number] },
@@ -285,7 +285,8 @@ export class Task {
       ],
     });
     if (preLoad) {
-      layer.update();
+      layer.setIndex(0);
+      layer.preloadSeries();
     }
     return layer;
   }

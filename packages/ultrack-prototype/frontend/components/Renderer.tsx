@@ -41,19 +41,8 @@ export default function Renderer({
   useEffect(() => {
     console.debug("Renderer::useEffect::curTime: ", curTime);
     if (imageSeriesLayer === null || tracksLayer === null) return;
-    if (imageSeriesLayer.state === "ready") {
-      imageSeriesLayer.setTimeIndex(curTime);
-      tracksLayer.setTimeIndex(curTime);
-      return;
-    }
-    const onStateChange = (newState: LayerState) => {
-      if (newState === "ready") {
-        imageSeriesLayer.setTimeIndex(curTime);
-        tracksLayer.setTimeIndex(curTime);
-      }
-    };
-    imageSeriesLayer.addStateChangeCallback(onStateChange);
-    return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
+    imageSeriesLayer.setPosition(curTime);
+    tracksLayer.setTimeIndex(curTime);
   }, [curTime, imageSeriesLayer, tracksLayer]);
 
   useEffect(() => {
@@ -63,7 +52,6 @@ export default function Renderer({
     if (!task) return;
     lastTaskId.current = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
-    imageSeriesLayer.update();
     setImageSeriesLayer((prevLayer: ImageSeriesLayer | null) => {
       if (prevLayer !== null) prevLayer.close();
       return imageSeriesLayer;
@@ -86,6 +74,7 @@ export default function Renderer({
     const onStateChange = (newState: LayerState) => {
       if (newState === "ready") {
         onReady();
+        imageSeriesLayer.removeStateChangeCallback(onStateChange);
       }
     };
     imageSeriesLayer.addStateChangeCallback(onStateChange);

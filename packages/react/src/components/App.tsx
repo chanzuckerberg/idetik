@@ -10,7 +10,7 @@ const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
   { dimension: "C", index: { type: "full" } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "Z", index: { type: "full" } },
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },
 ];
@@ -28,7 +28,12 @@ export default function App() {
           "gap-4"
         )}
       >
-        <OmeZarrImageViewer sourceUrl={imageUrl} region={region} />
+        <OmeZarrImageViewer
+          sourceUrl={imageUrl}
+          region={region}
+          seriesDimensionName="Z"
+          scale={-2}
+        />
       </div>
     </div>
   );

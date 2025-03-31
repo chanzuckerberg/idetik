@@ -54,6 +54,8 @@ export default defineConfig(() => {
             'react-dom': 'ReactDOM',
             'react/jsx-runtime': 'React.jsxRuntime',
             'react-dom/client': 'ReactDOM.client',
+            '@czi-sds/components': 'SDS',
+            '@mui/material': 'MaterialUI',
           },
         },
       },
