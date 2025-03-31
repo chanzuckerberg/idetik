@@ -76,6 +76,9 @@ export function OmeZarrImageViewer({
     highResSizeEstimate,
   ]);
 
+  const isFirstLoad =
+    !loadHighResButton || initialScale === 0 || !source.isHighRes;
+
   useEffect(() => {
     const setZRangeFromData = async () => {
       if (!source.source) return;
@@ -102,7 +105,6 @@ export function OmeZarrImageViewer({
         seriesDimensionName,
         channelProps,
       });
-      const isFirstLoad = !loadHighResButton || initialScale === 0 || !source.isHighRes;
       if (isFirstLoad) {
         setImageLayer(layer);
         layer.preloadSeries();
@@ -124,7 +126,7 @@ export function OmeZarrImageViewer({
       }
     };
     getLayer();
-  }, [initialScale, loadHighResButton, source, region, camera, seriesDimensionName]);
+  }, [isFirstLoad, source, region, camera, seriesDimensionName]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -161,7 +163,11 @@ export function OmeZarrImageViewer({
       />
       {imageLayer && (
         <div className={cns("absolute", "top-0", "left-0", "w-1/2")}>
-          <ChannelControlsList layer={imageLayer} controlProps={controlProps} />
+          <ChannelControlsList
+            layer={imageLayer}
+            controlProps={controlProps}
+            reset={isFirstLoad}
+          />
         </div>
       )}
       {loading && (

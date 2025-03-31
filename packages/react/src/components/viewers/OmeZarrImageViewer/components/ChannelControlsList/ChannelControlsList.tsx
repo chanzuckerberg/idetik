@@ -9,39 +9,33 @@ import {
   ChannelControlProps,
 } from "./components/ChannelControl";
 import { ImageSeriesLayer, ChannelProps } from "@idetik/core";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ChannelControlsListProps {
   layer: ImageSeriesLayer;
   controlProps: Partial<ChannelControlProps>[];
+  reset?: boolean;
 }
 
 export function ChannelControlsList({
   layer,
   controlProps,
+  reset,
 }: ChannelControlsListProps) {
   // Keep a local copy of channelProps to trigger re-renders
   const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
 
-  // Sync local state with layer's channelProps
+  // initial sync of local state with layer's channelProps
   useEffect(() => {
-    const initialLayerChannelProps = layer.channelProps ?? [];
+    if (reset || layer.channelProps?.length !== channelProps.length) {
+      setChannelProps(layer.channelProps ?? []);
+    }
+  }, [layer, reset, channelProps.length]);
 
-    const updatedChannelProps = initialLayerChannelProps.map(
-      (layerChannel: ChannelProps, index: number) => ({
-        visible:
-          controlProps?.[index]?.visible ?? layerChannel?.visible ?? true,
-        color: controlProps?.[index]?.color ?? layerChannel?.color,
-        contrastLimits:
-          controlProps?.[index]?.contrastLimits ?? layerChannel?.contrastLimits,
-      })
-    );
-
-    // Update both the layer and local state to keep them in sync
-    // TODO: use a dispatcher?
-    layer.setChannelProps(updatedChannelProps);
-    setChannelProps(updatedChannelProps);
-  }, [layer, controlProps]);
+  // update layer's channelProps when local state changes
+  useEffect(() => {
+    layer.setChannelProps(channelProps);
+  }, [channelProps, layer]);
 
   const updateChannel = (
     index: number,
@@ -58,8 +52,6 @@ export function ChannelControlsList({
       ...updates,
     };
 
-    // Update both the layer and local state to keep them in sync
-    layer.setChannelProps(updatedChannelProps);
     setChannelProps(updatedChannelProps);
   };
 
