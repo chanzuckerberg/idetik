@@ -1,15 +1,18 @@
-import { Accordion } from "@mui/material";
-import { AccordionHeader, AccordionDetails } from "@czi-sds/components";
+import {
+  AccordionHeader,
+  AccordionDetails,
+  Accordion,
+} from "@czi-sds/components";
 import cns from "classnames";
 import {
   ChannelControl,
   ChannelControlProps,
 } from "./components/ChannelControl";
-import { ImageLayer, ImageSeriesLayer, ChannelProps } from "@idetik/core";
+import { ImageSeriesLayer, ChannelProps } from "@idetik/core";
 import { useState, useEffect } from "react";
 
 interface ChannelControlsListProps {
-  layer: ImageLayer | ImageSeriesLayer;
+  layer: ImageSeriesLayer;
   controlProps: Partial<ChannelControlProps>[];
 }
 
@@ -78,7 +81,7 @@ export function ChannelControlsList({
         "before:w-full",
         "before:h-full",
         "before:bg-[--sds-color-semantic-base-background-primary]",
-        "before:opacity-50",
+        "before:opacity-35",
         "before:content-['']"
       )}
     >
@@ -94,7 +97,8 @@ export function ChannelControlsList({
             "flex",
             "w-full",
             "[&_.MuiAccordionSummary-root]:!flex-grow",
-            "[&_.Mui-expanded]:!min-h-0"
+            "[&_.Mui-expanded]:!min-h-0",
+            "[&_.MuiSvgIcon-root]:!fill-[--sds-color-semantic-text-primary]"
           )}
         >
           <AccordionHeader>

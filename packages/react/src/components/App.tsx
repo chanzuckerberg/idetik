@@ -32,7 +32,8 @@ export default function App() {
           sourceUrl={imageUrl}
           region={region}
           seriesDimensionName="Z"
-          scale={-2}
+          loadHighResButton
+          highResSizeEstimate="200 MB"
         />
       </div>
     </div>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import cns from "classnames";
-import CircularProgress from "@mui/material/CircularProgress";
-import { InputSlider } from "@czi-sds/components";
+import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import {
   ImageSeriesLayer,
   LayerManager,
@@ -20,14 +19,25 @@ interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   seriesDimensionName: string;
-  scale?: number;
+  initialScale?: number;
+  loadHighResButton?: boolean;
+  highResSizeEstimate?: string;
+}
+
+// consolidated state to prevent effects from firing multiple times
+interface SourceState {
+  source: OmeZarrImageSource | null;
+  url: string;
+  isHighRes: boolean;
 }
 
 export function OmeZarrImageViewer({
   sourceUrl,
   region,
-  scale,
   seriesDimensionName,
+  initialScale,
+  loadHighResButton,
+  highResSizeEstimate,
 }: OmeZarrImageViewerProps) {
   const [layerManager, _setLayerManager] = useState<LayerManager>(
     new LayerManager()
@@ -35,48 +45,86 @@ export function OmeZarrImageViewer({
   const [camera, _setCamera] = useState<OrthographicCamera>(
     new OrthographicCamera(0, 128, 0, 128)
   );
-  const [imageLayer, setImageLayer] = useState<ImageSeriesLayer | null>(null);
-  const [source, setSource] = useState<OmeZarrImageSource | null>(null);
+  const [source, setSource] = useState<SourceState>({
+    source: null,
+    url: sourceUrl,
+    isHighRes: initialScale === 0 || !loadHighResButton,
+  });
   const [loading, setLoading] = useState(true);
+  const [imageLayer, setImageLayer] = useState<ImageSeriesLayer | null>(null);
+
   const [controlProps, setControlProps] = useState<
     Partial<ChannelControlProps>[]
   >([]);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
-  const [zIndex, setZIndex] = useState(0);
+  const [zValue, setZValue] = useState(0.5);
+
+  // set a new source whenever *any* prop changes to force reload
+  useEffect(() => {
+    const source = new OmeZarrImageSource(sourceUrl, initialScale);
+    setSource({
+      source,
+      url: sourceUrl,
+      isHighRes: initialScale === 0 || !loadHighResButton,
+    });
+  }, [
+    sourceUrl,
+    region,
+    seriesDimensionName,
+    initialScale,
+    loadHighResButton,
+    highResSizeEstimate,
+  ]);
 
   useEffect(() => {
-    const source = new OmeZarrImageSource(sourceUrl, scale);
-    setSource(source);
-  }, [sourceUrl, scale]);
-
-  useEffect(() => {
-    setLoading(true);
+    const setZRangeFromData = async () => {
+      if (!source.source) return;
+      const loader = await source.source.open();
+      const attributes = await loader.loadAttributes();
+      const zAxisIndex = attributes.dimensionNames.findIndex(
+        (dim) => dim === seriesDimensionName
+      );
+      const min = 0;
+      const max = attributes.shape[zAxisIndex] - 1;
+      setZRange([min, max]);
+    };
     const getLayer = async () => {
-      if (!source) return;
+      setLoading(true);
+      if (!source.source) return;
       // TODO: may need to accept channel properties to be possibly overridden here
       // (i.e. for initial visibility, custom colors)
-      const omeroChannels = await loadOmeroChannels(sourceUrl);
+      const omeroChannels = await loadOmeroChannels(source.url);
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
       const layer = new ImageSeriesLayer({
-        source,
+        source: source.source,
         region,
         seriesDimensionName,
         channelProps,
       });
-      layer.preloadSeries().then(() => setLoading(false));
-      const setCamera = () => {
-        if (layer.extent !== undefined) {
-          camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
-          camera.update();
-          layer.removeStateChangeCallback(setCamera);
-        }
-      };
-      layer.addStateChangeCallback(setCamera);
-      setImageLayer(layer);
+      const isFirstLoad = !loadHighResButton || initialScale === 0 || !source.isHighRes;
+      if (isFirstLoad) {
+        setImageLayer(layer);
+        layer.preloadSeries();
+        await setZRangeFromData();
+        const setCamera = () => {
+          if (layer.extent !== undefined) {
+            setLoading(false);
+            camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
+            camera.update();
+            layer.removeStateChangeCallback(setCamera);
+          }
+        };
+        layer.addStateChangeCallback(setCamera);
+      } else {
+        await layer.preloadSeries();
+        await setZRangeFromData();
+        setLoading(false);
+        setImageLayer(layer);
+      }
     };
     getLayer();
-  }, [source, sourceUrl, region, camera, seriesDimensionName]);
+  }, [initialScale, loadHighResButton, source, region, camera, seriesDimensionName]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -85,24 +133,10 @@ export function OmeZarrImageViewer({
     }
   }, [imageLayer, layerManager]);
 
+  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   useEffect(() => {
-    if (seriesDimensionName !== undefined && source !== null) {
-      const setZRangeFromData = async () => {
-        const loader = await source.open();
-        const attributes = await loader.loadAttributes();
-        const zAxisIndex = attributes.dimensionNames.findIndex(
-          (dim) => dim === seriesDimensionName
-        );
-        const min = 0;
-        const max = attributes.shape[zAxisIndex] - 1;
-        setZRange([min, max]);
-        setZIndex(Math.floor((min + max) / 2));
-      };
-      setZRangeFromData();
-    }
-  }, [source, seriesDimensionName]);
-
-  imageLayer?.setIndex(zIndex);
+    imageLayer?.setIndex(zIndex);
+  }, [zIndex, imageLayer]);
 
   return (
     <div
@@ -125,50 +159,65 @@ export function OmeZarrImageViewer({
         camera={camera}
         cameraControls="panzoom"
       />
-      {loading && (
-        <div className={cns("absolute", "top-1/2", "left-1/2")}>
-          <CircularProgress />
-        </div>
-      )}
       {imageLayer && (
         <div className={cns("absolute", "top-0", "left-0", "w-1/2")}>
           <ChannelControlsList layer={imageLayer} controlProps={controlProps} />
         </div>
       )}
-      {seriesDimensionName && (
-        <div
-          className={cns(
-            "absolute",
-            "bottom-0",
-            "right-3",
-            "w-1/2",
-            "px-5",
-            "py-3",
-            "before:absolute",
-            "before:left-0",
-            "before:top-0",
-            "before:w-full",
-            "before:h-full",
-            "before:bg-[--sds-color-semantic-base-background-primary]",
-            "before:opacity-50",
-            "before:content-['']",
-            "flex",
-            "items-center"
-          )}
-        >
-          <InputSlider
-            min={zRange[0]}
-            max={zRange[1]}
-            value={zIndex}
-            onChange={(_, slice: number | number[]) => {
-              if (typeof slice === "number") {
-                setZIndex(slice);
-              }
-            }}
-            disabled={loading}
-          />
+      {loading && (
+        <div className={cns("absolute", "bottom-0", "left-3", "px-5", "py-3")}>
+          <LoadingIndicator sdsStyle="tag" />
         </div>
       )}
+      {!loading && !source.isHighRes && (
+        <div className={cns("absolute", "bottom-0", "left-3", "px-5", "py-3")}>
+          <Button
+            sdsType="primary"
+            sdsStyle="rounded"
+            onClick={() => {
+              const newSource = new OmeZarrImageSource(sourceUrl, 0);
+              setSource({ source: newSource, url: sourceUrl, isHighRes: true });
+            }}
+          >
+            {highResSizeEstimate
+              ? `Load high res (${highResSizeEstimate})`
+              : "Load high res"}
+          </Button>
+        </div>
+      )}
+      <div
+        className={cns(
+          "absolute",
+          "bottom-0",
+          "right-0",
+          "w-1/2",
+          "px-5",
+          "py-3",
+          "before:absolute",
+          "before:left-0",
+          "before:top-0",
+          "before:w-full",
+          "before:h-full",
+          "before:bg-[--sds-color-semantic-base-background-primary]",
+          "before:opacity-35",
+          "before:content-['']",
+          "flex",
+          "items-center"
+        )}
+      >
+        <InputSlider
+          min={0}
+          max={1}
+          step={1 / (zRange[1] - zRange[0])}
+          value={zValue}
+          onChange={(_, value: number | number[]) => {
+            if (typeof value === "number") {
+              setZValue(value);
+            }
+          }}
+          disabled={loading && !source.isHighRes}
+        />
+      </div>
     </div>
   );
 }

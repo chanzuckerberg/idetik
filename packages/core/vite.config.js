@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       // TODO: set these by build mode or something
       sourcemap: true,
-      minify: false,
+      // minify: false,
       lib: {
         entry: path.resolve(_dirname, 'src/index.ts'),
         name: 'idetik-core',
