@@ -80,6 +80,8 @@ export function OmeZarrImageViewer({
     !loadHighResButton || initialScale === 0 || !source.isHighRes;
 
   useEffect(() => {
+    let shouldSetLayer = true;
+    let layer: ImageSeriesLayer | null = null;
     const setZRangeFromData = async () => {
       if (!source.source) return;
       const loader = await source.source.open();
@@ -99,18 +101,21 @@ export function OmeZarrImageViewer({
       const omeroChannels = await loadOmeroChannels(source.url);
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
-      const layer = new ImageSeriesLayer({
+      layer = new ImageSeriesLayer({
         source: source.source,
         region,
         seriesDimensionName,
         channelProps,
       });
+      if (!shouldSetLayer) {
+        return;
+      }
       if (isFirstLoad) {
         setImageLayer(layer);
         layer.preloadSeries();
         await setZRangeFromData();
         const setCamera = () => {
-          if (layer.extent !== undefined) {
+          if (layer?.extent !== undefined) {
             setLoading(false);
             camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
             camera.update();
@@ -120,12 +125,20 @@ export function OmeZarrImageViewer({
         layer.addStateChangeCallback(setCamera);
       } else {
         await layer.preloadSeries();
+        if (!shouldSetLayer) {
+          return;
+        }
         await setZRangeFromData();
         setLoading(false);
         setImageLayer(layer);
       }
     };
     getLayer();
+
+    return () => {
+      layer?.close();
+      shouldSetLayer = false;
+    };
   }, [isFirstLoad, source, region, camera, seriesDimensionName]);
 
   useEffect(() => {
