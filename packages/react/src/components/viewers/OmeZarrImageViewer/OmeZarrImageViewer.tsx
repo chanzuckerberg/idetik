@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import cns from "classnames";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import {
@@ -140,6 +140,13 @@ export function OmeZarrImageViewer({
     imageLayer?.setIndex(zIndex);
   }, [zIndex, imageLayer]);
 
+  const resetChannelsCallback = useCallback(async () => {
+    const omeroChannels = await loadOmeroChannels(source.url);
+    const channelProps = omeroToChannelProps(omeroChannels);
+    imageLayer?.setChannelProps(channelProps);
+    setControlProps(omeroToControlProps(omeroChannels));
+  }, [source.url, imageLayer]);
+
   return (
     <div
       className={cns(
@@ -167,6 +174,7 @@ export function OmeZarrImageViewer({
             layer={imageLayer}
             controlProps={controlProps}
             reset={isFirstLoad}
+            resetCallback={resetChannelsCallback}
           />
         </div>
       )}

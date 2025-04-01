@@ -2,6 +2,7 @@ import {
   AccordionHeader,
   AccordionDetails,
   Accordion,
+  Button,
 } from "@czi-sds/components";
 import cns from "classnames";
 import {
@@ -15,12 +16,14 @@ interface ChannelControlsListProps {
   layer: ImageSeriesLayer;
   controlProps: Partial<ChannelControlProps>[];
   reset?: boolean;
+  resetCallback?: () => Promise<void>;
 }
 
 export function ChannelControlsList({
   layer,
   controlProps,
   reset,
+  resetCallback,
 }: ChannelControlsListProps) {
   // Keep a local copy of channelProps to trigger re-renders
   const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
@@ -90,7 +93,7 @@ export function ChannelControlsList({
             "w-full",
             "[&_.MuiAccordionSummary-root]:!flex-grow",
             "[&_.Mui-expanded]:!min-h-0",
-            "[&_.MuiSvgIcon-root]:!fill-[--sds-color-semantic-text-primary]"
+            "[&_.MuiSvgIcon-root]:!fill-[--sds-color-semantic-base-text-primary]"
           )}
         >
           <AccordionHeader>
@@ -140,6 +143,21 @@ export function ChannelControlsList({
               );
             })}
           </div>
+          {resetCallback && (
+            <span className={cns("flex", "justify-end", "mt-sds-xs")}>
+              <Button
+                sdsStyle="minimal"
+                sdsType="secondary"
+                onClick={() => {
+                  resetCallback().then(() => {
+                    setChannelProps(layer.channelProps ?? []);
+                  });
+                }}
+              >
+                Reset channels
+              </Button>
+            </span>
+          )}
         </AccordionDetails>
       </Accordion>
     </div>
