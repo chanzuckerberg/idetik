@@ -57,6 +57,8 @@ export function OmeZarrImageViewer({
   const [controlProps, setControlProps] = useState<
     Partial<ChannelControlProps>[]
   >([]);
+  const [needChannelsReset, setNeedChannelsReset] = useState(false);
+
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
 
@@ -122,6 +124,7 @@ export function OmeZarrImageViewer({
     return () => {
       layer?.close();
       shouldSetLayer = false;
+      setNeedChannelsReset(true);
     };
   }, [source, region, camera, seriesDimensionName]);
 
@@ -129,6 +132,7 @@ export function OmeZarrImageViewer({
     if (imageLayer) {
       layerManager.layers.length = 0;
       layerManager.add(imageLayer);
+      setNeedChannelsReset(false);
     }
   }, [imageLayer, layerManager]);
 
@@ -185,6 +189,7 @@ export function OmeZarrImageViewer({
           <ChannelControlsList
             layer={imageLayer}
             controlProps={controlProps}
+            reset={needChannelsReset}
             resetCallback={resetChannelsCallback}
           />
         </div>
