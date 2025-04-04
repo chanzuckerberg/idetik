@@ -4,7 +4,7 @@ import {
   bufferToDataType,
 } from "objects/textures/texture";
 
-export class DataTexture2D extends Texture {
+export class Texture2D extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
   private readonly height_: number;
@@ -25,7 +25,7 @@ export class DataTexture2D extends Texture {
   }
 
   public get type() {
-    return "DataTexture2D";
+    return "Texture2D";
   }
 
   public get data() {
