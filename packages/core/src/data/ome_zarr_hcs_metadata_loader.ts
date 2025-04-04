@@ -26,9 +26,25 @@ export type OmeroChannel = OmeroMetadata["channels"][number];
 export async function loadOmeroChannels(url: string): Promise<OmeroChannel[]> {
   const store = new zarr.FetchStore(url);
   const group = await zarr.open.v2(store, { kind: "group" });
-  // TODO: silly fix for removing top-level identity transform
-  // (same as ome_zarr_image_loader.ts)
-  const attrs = group.attrs;
+  const metadata = parseOmeNgffImage(group);
+  return metadata.omero?.channels ?? [];
+}
+
+export async function loadOmeroDefaultZ(url: string): Promise<number> {
+  const store = new zarr.FetchStore(url);
+  const group = await zarr.open.v2(store, { kind: "group" });
+  // @ts-expect-error rdefs is not in the provided schema
+  return group.attrs?.omero?.rdefs?.defaultZ ?? 0;
+}
+
+export function parseOmeNgffImage(group: zarr.Group<zarr.FetchStore>): Image {
+  // copy attrs to avoid mutating the original
+  const attrs = { ...group.attrs };
+  // TODO: silly fix for removing top-level identity transform,
+  // which is not allowed by spec but may have been written by
+  // some writers.
+  // This may need to be done for top-level `coordinateTransformations` as well.
+  // https://github.com/ome/ngff/pull/152
   if (
     Array.isArray(attrs?.multiscales) &&
     Array.isArray(attrs.multiscales[0]?.coordinateTransformations) &&
@@ -36,6 +52,5 @@ export async function loadOmeroChannels(url: string): Promise<OmeroChannel[]> {
   ) {
     delete attrs.multiscales[0].coordinateTransformations;
   }
-  const metadata = Image.parse(group.attrs);
-  return metadata.omero?.channels ?? [];
+  return Image.parse(attrs);
 }

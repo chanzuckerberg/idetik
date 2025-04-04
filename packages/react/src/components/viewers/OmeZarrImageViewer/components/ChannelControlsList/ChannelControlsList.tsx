@@ -61,7 +61,6 @@ export function ChannelControlsList({
   return (
     <div
       className={cns(
-        "z-[999]",
         "backdrop-blur-md",
         "transition-[left]",
         "duration-300",
@@ -83,7 +82,6 @@ export function ChannelControlsList({
       <Accordion
         id="channel-controls"
         className="flex-grow"
-        defaultExpanded
         square
         elevation={0}
       >

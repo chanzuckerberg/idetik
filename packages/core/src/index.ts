@@ -20,9 +20,10 @@ export { ImageSeriesLayer } from "layers/image_series_layer";
 
 export { OmeZarrImageSource } from "data/ome_zarr_image_source";
 export {
+  loadOmeroChannels,
+  loadOmeroDefaultZ,
   loadOmeZarrPlate,
   loadOmeZarrWell,
-  loadOmeroChannels,
 } from "data/ome_zarr_hcs_metadata_loader";
 export type {
   OmeroMetadata,

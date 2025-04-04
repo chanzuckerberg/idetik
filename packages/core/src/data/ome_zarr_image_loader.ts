@@ -11,6 +11,7 @@ import { isTextureUnpackRowAlignment } from "objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
 import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
+import { parseOmeNgffImage } from "data/ome_zarr_hcs_metadata_loader";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -40,20 +41,7 @@ export class OmeZarrImageLoader {
 
   constructor(root: zarr.Group<zarr.FetchStore>, scaleIndex?: number) {
     this.root_ = root;
-    const attrs = this.root_.attrs;
-    // TODO: silly fix for removing top-level identity transform,
-    // which is not allowed by spec but may have been written by
-    // some writers.
-    // This may need to be done for top-level `coordinateTransformations` as well.
-    // https://github.com/ome/ngff/pull/152
-    if (
-      Array.isArray(attrs?.multiscales) &&
-      Array.isArray(attrs.multiscales[0]?.coordinateTransformations) &&
-      attrs.multiscales[0].coordinateTransformations[0]?.type === "identity"
-    ) {
-      delete attrs.multiscales[0].coordinateTransformations;
-    }
-    this.metadata_ = OmeNgffImage.parse(this.root_.attrs);
+    this.metadata_ = parseOmeNgffImage(this.root_);
     if (this.metadata_.multiscales.length !== 1) {
       throw new Error(
         `Can only handle one multiscale image. Found ${this.metadata_.multiscales.length}`

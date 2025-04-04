@@ -4,8 +4,8 @@ import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
-const wellPath = "GOLGA2/Live";
-const imagePath = "000002";
+const wellPath = "ATG101/MeOH";
+const imagePath = "000001";
 const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
@@ -32,7 +32,6 @@ export default function App() {
           sourceUrl={imageUrl}
           region={region}
           seriesDimensionName="Z"
-          loadHighResButton
           highResSizeEstimate="200 MB"
         />
       </div>
