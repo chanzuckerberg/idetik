@@ -43,9 +43,7 @@ export function OmeZarrImageViewer({
   const [layerManager, _setLayerManager] = useState<LayerManager>(
     new LayerManager()
   );
-  const [camera, _setCamera] = useState<OrthographicCamera>(
-    new OrthographicCamera(0, 128, 0, 128)
-  );
+  const [camera, setCamera] = useState<OrthographicCamera | null>(null);
   const [source, setSource] = useState<SourceState>({
     source: null,
     url: sourceUrl,
@@ -109,15 +107,20 @@ export function OmeZarrImageViewer({
       }
       setImageLayer(layer);
       await setZRangeFromData();
-      const setCamera = () => {
+      const zoomToFit = () => {
         if (layer?.extent !== undefined) {
           setLoading(false);
-          camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
-          camera.update();
-          layer.removeStateChangeCallback(setCamera);
+          const newCamera = new OrthographicCamera(
+            0,
+            layer.extent.x,
+            0,
+            layer.extent.y
+          );
+          setCamera(newCamera);
+          layer.removeStateChangeCallback(zoomToFit);
         }
       };
-      layer.addStateChangeCallback(setCamera);
+      layer.addStateChangeCallback(zoomToFit);
     };
     getLayer();
 
@@ -125,8 +128,9 @@ export function OmeZarrImageViewer({
       layer?.close();
       shouldSetLayer = false;
       setNeedChannelsReset(true);
+      setImageLayer(null);
     };
-  }, [source, region, camera, seriesDimensionName]);
+  }, [source, region, seriesDimensionName]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -160,6 +164,17 @@ export function OmeZarrImageViewer({
     imageLayer?.setChannelProps(channelProps);
     setControlProps(omeroToControlProps(omeroChannels));
   }, [source.url, imageLayer]);
+
+  const loadAllSlicesCallback = useCallback(async () => {
+    setLoading(true);
+    try {
+      await imageLayer?.preloadSeries();
+    } catch {
+      console.debug("Load 3D high-res aborted - likely selected new condition");
+      return;
+    }
+    setAllSlicesLoaded(true);
+  }, [imageLayer]);
 
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
 
@@ -222,13 +237,7 @@ export function OmeZarrImageViewer({
               sdsStyle="rounded"
               size="small"
               disabled={loading}
-              onClick={() => {
-                setLoading(true);
-                imageLayer?.preloadSeries().then(() => {
-                  setLoading(false);
-                  setAllSlicesLoaded(true);
-                });
-              }}
+              onClick={loadAllSlicesCallback}
             >
               {highResSizeEstimate
                 ? `Load 3D high-res (${highResSizeEstimate})`

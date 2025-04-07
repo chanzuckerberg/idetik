@@ -1,12 +1,13 @@
 import cns from "classnames";
 import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
+import { useState } from "react";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
 const wellPath = "ATG101/MeOH";
-const imagePath = "000001";
-const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
+// const imagePath = "000002";
+// const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
   { dimension: "C", index: { type: "full" } },
@@ -16,6 +17,9 @@ const region: Region = [
 ];
 
 export default function App() {
+  const [imagePath, setImagePath] = useState("000001");
+
+  const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
   return (
     <div className={cns("h-screen", "flex", "flex-row", "gap-4", "p-4")}>
       <div
@@ -35,6 +39,11 @@ export default function App() {
           highResSizeEstimate="200 MB"
         />
       </div>
+      <input
+        type="button"
+        value="Next Image"
+        onClick={() => setImagePath("000002")}
+      />
     </div>
   );
 }
