@@ -140,9 +140,10 @@ export function OmeZarrImageViewer({
     }
   }, [imageLayer, layerManager]);
 
+  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
+
   useEffect(() => {
     if (!imageLayer) return;
-    const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
     let didSetLoadingTrue = false;
     const setIndex = async () => {
       const t = setTimeout(() => {
@@ -156,7 +157,7 @@ export function OmeZarrImageViewer({
       }
     };
     setIndex();
-  }, [imageLayer, zValue, zRange]);
+  }, [imageLayer, zIndex]);
 
   const resetChannelsCallback = useCallback(async () => {
     const omeroChannels = await loadOmeroChannels(source.url);
@@ -175,8 +176,6 @@ export function OmeZarrImageViewer({
     }
     setAllSlicesLoaded(true);
   }, [imageLayer]);
-
-  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
 
   return (
     <div
@@ -246,8 +245,7 @@ export function OmeZarrImageViewer({
           )}
           <div className={cns("flex", "justify-end", "w-1/3")}>
             {!loading && (
-              // TODO: I can't figure out how to properly style this with tailwind
-              // so I use a disabled button instead
+              // TODO: "tag" is not very semantic but this looks okay
               <Tag
                 label={`slice ${zIndex}/${zRange[1] - zRange[0]}`}
                 sdsStyle="square"
