@@ -173,6 +173,8 @@ export function OmeZarrImageViewer({
     } catch {
       console.debug("Load 3D high-res aborted - likely selected new condition");
       return;
+    } finally {
+      setLoading(false);
     }
     setAllSlicesLoaded(true);
   }, [imageLayer]);
