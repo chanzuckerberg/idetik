@@ -73,7 +73,7 @@ export class ImageRenderable extends RenderableObject {
       throw new Error("No texture set");
     }
 
-    if (texture.type === "DataTexture2D") {
+    if (texture.type === "Texture2D") {
       const { color, contrastLimits } =
         this.channels_[0] ?? validateChannel(texture, {});
       return {
@@ -112,8 +112,6 @@ export class ImageRenderable extends RenderableObject {
     if (!texture) {
       throw new Error("un-textured image not implemented");
     } else if (texture.type == "Texture2D") {
-      this.programName = "mesh";
-    } else if (texture.type == "DataTexture2D") {
       this.programName =
         texture.dataType == "float" ? "floatImage" : "uintImage";
     } else if (texture.type == "Texture2DArray") {
