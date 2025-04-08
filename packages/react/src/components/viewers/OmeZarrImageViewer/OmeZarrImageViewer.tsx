@@ -26,6 +26,8 @@ interface OmeZarrImageViewerProps {
   region: Region;
   seriesDimensionName: string;
   highResSizeEstimate?: string;
+  onFirstSliceLoaded?: (msTimeToLoad: number) => void;
+  onAllSlicesLoaded?: (msTimeToLoad: number) => void;
 }
 
 // consolidated state to prevent effects from firing multiple times
@@ -34,19 +36,14 @@ interface SourceState {
   url: string;
 }
 
-export function OmeZarrImageViewer({
-  sourceUrl,
-  region,
-  seriesDimensionName,
-  highResSizeEstimate,
-}: OmeZarrImageViewerProps) {
-  const [layerManager, _setLayerManager] = useState<LayerManager>(
+export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
+  const [layerManager, setLayerManager] = useState<LayerManager>(
     new LayerManager()
   );
   const [camera, setCamera] = useState<OrthographicCamera | null>(null);
   const [source, setSource] = useState<SourceState>({
     source: null,
-    url: sourceUrl,
+    url: props.sourceUrl,
   });
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
@@ -55,7 +52,6 @@ export function OmeZarrImageViewer({
   const [controlProps, setControlProps] = useState<
     Partial<ChannelControlProps>[]
   >([]);
-  const [needChannelsReset, setNeedChannelsReset] = useState(false);
 
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
@@ -63,17 +59,73 @@ export function OmeZarrImageViewer({
   // set a new source whenever *any* prop changes to force reload
   useEffect(() => {
     // 0 is the highest resolution
-    const source = new OmeZarrImageSource(sourceUrl, 0);
+    const source = new OmeZarrImageSource(props.sourceUrl, 0);
     setSource({
       source,
-      url: sourceUrl,
+      url: props.sourceUrl,
     });
     setAllSlicesLoaded(false);
-  }, [sourceUrl, region, seriesDimensionName, highResSizeEstimate]);
+  }, [props]);
 
+  const zoomToFit = useCallback((layer: ImageSeriesLayer) => {
+    if (layer.extent !== undefined) {
+      const newCamera = new OrthographicCamera(
+        0,
+        layer.extent.x,
+        0,
+        layer.extent.y
+      );
+      setCamera(newCamera);
+      return true;
+    }
+    return false;
+  }, [setCamera]);
+
+  const { region, seriesDimensionName, onFirstSliceLoaded, onAllSlicesLoaded} = props;
   useEffect(() => {
     let shouldSetLayer = true;
     let layer: ImageSeriesLayer | null = null;
+    const createLayer = async () => {
+      setLoading(true);
+      if (!source.source) return;
+      // TODO: may need to accept channel properties to be possibly overridden here
+      // (i.e. for initial visibility, custom colors)
+      const omeroChannels = await loadOmeroChannels(source.url);
+      const channelProps = omeroToChannelProps(omeroChannels);
+      setControlProps(omeroToControlProps(omeroChannels));
+      layer = new ImageSeriesLayer({
+        source: source.source,
+        region,
+        seriesDimensionName,
+        channelProps,
+      });
+      const timeLayerCreated = performance.now();
+      const onFirstLoad = () => {
+        if (!layer || !shouldSetLayer) {
+          return;
+        }
+        if (zoomToFit(layer)) {
+          setLoading(false);
+          const timeToLoad = performance.now() - timeLayerCreated;
+          onFirstSliceLoaded?.(timeToLoad);
+          layer.removeStateChangeCallback(onFirstLoad);
+        }
+      };
+      layer?.addStateChangeCallback(onFirstLoad);
+      if (shouldSetLayer) {
+        setImageLayer(layer);
+      }
+    };
+    createLayer();
+
+    return () => {
+      layer?.close();
+      shouldSetLayer = false;
+      setImageLayer(null);
+    };
+  }, [region, source, seriesDimensionName, onFirstSliceLoaded, zoomToFit]);
+
+  useEffect(() => {
     const setZRangeFromData = async () => {
       if (!source.source) return;
       const loader = await source.source.open();
@@ -88,57 +140,16 @@ export function OmeZarrImageViewer({
       setZValue(omeroDefaultZ / (max - min));
       setZRange([min, max]);
     };
-    const getLayer = async () => {
-      setLoading(true);
-      if (!source.source) return;
-      // TODO: may need to accept channel properties to be possibly overridden here
-      // (i.e. for initial visibility, custom colors)
-      const omeroChannels = await loadOmeroChannels(source.url);
-      const channelProps = omeroToChannelProps(omeroChannels);
-      setControlProps(omeroToControlProps(omeroChannels));
-      layer = new ImageSeriesLayer({
-        source: source.source,
-        region,
-        seriesDimensionName,
-        channelProps,
-      });
-      if (!shouldSetLayer) {
-        return;
-      }
-      setImageLayer(layer);
-      await setZRangeFromData();
-      const zoomToFit = () => {
-        if (layer?.extent !== undefined) {
-          setLoading(false);
-          const newCamera = new OrthographicCamera(
-            0,
-            layer.extent.x,
-            0,
-            layer.extent.y
-          );
-          setCamera(newCamera);
-          layer.removeStateChangeCallback(zoomToFit);
-        }
-      };
-      layer.addStateChangeCallback(zoomToFit);
-    };
-    getLayer();
-
-    return () => {
-      layer?.close();
-      shouldSetLayer = false;
-      setNeedChannelsReset(true);
-      setImageLayer(null);
-    };
-  }, [source, region, seriesDimensionName]);
+    setZRangeFromData();
+  }, [source, seriesDimensionName]);
 
   useEffect(() => {
     if (imageLayer) {
-      layerManager.layers.length = 0;
-      layerManager.add(imageLayer);
-      setNeedChannelsReset(false);
+      const newLayerManager = new LayerManager();
+      newLayerManager.add(imageLayer);
+      setLayerManager(newLayerManager);
     }
-  }, [imageLayer, layerManager]);
+  }, [imageLayer]);
 
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
 
@@ -150,10 +161,16 @@ export function OmeZarrImageViewer({
         setLoading(true);
         didSetLoadingTrue = true;
       }, 50);
-      await imageLayer.setIndex(zIndex);
-      clearTimeout(t);
-      if (didSetLoadingTrue) {
-        setLoading(false);
+      try {
+        await imageLayer.setIndex(zIndex);
+      } catch {
+        console.debug("Load slice aborted - likely selected new condition");
+        return;
+      } finally {
+        clearTimeout(t);
+        if (didSetLoadingTrue) {
+          setLoading(false);
+        }
       }
     };
     setIndex();
@@ -168,6 +185,7 @@ export function OmeZarrImageViewer({
 
   const loadAllSlicesCallback = useCallback(async () => {
     setLoading(true);
+    const timeLoadAllSlicesClicked = performance.now();
     try {
       await imageLayer?.preloadSeries();
     } catch {
@@ -176,8 +194,10 @@ export function OmeZarrImageViewer({
     } finally {
       setLoading(false);
     }
+    const timeToLoad = performance.now() - timeLoadAllSlicesClicked;
+    onAllSlicesLoaded?.(timeToLoad);
     setAllSlicesLoaded(true);
-  }, [imageLayer]);
+  }, [imageLayer, onAllSlicesLoaded]);
 
   return (
     <div
@@ -205,7 +225,6 @@ export function OmeZarrImageViewer({
           <ChannelControlsList
             layer={imageLayer}
             controlProps={controlProps}
-            reset={needChannelsReset}
             resetCallback={resetChannelsCallback}
           />
         </div>
@@ -240,8 +259,8 @@ export function OmeZarrImageViewer({
               disabled={loading}
               onClick={loadAllSlicesCallback}
             >
-              {highResSizeEstimate
-                ? `Load 3D high-res (${highResSizeEstimate})`
+              {props.highResSizeEstimate
+                ? `Load 3D high-res (${props.highResSizeEstimate})`
                 : "Load 3D high-res"}
             </Button>
           )}

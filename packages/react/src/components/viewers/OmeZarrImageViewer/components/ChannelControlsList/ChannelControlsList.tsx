@@ -10,34 +10,35 @@ import {
   ChannelControlProps,
 } from "./components/ChannelControl";
 import { ImageSeriesLayer, ChannelProps } from "@idetik/core";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface ChannelControlsListProps {
   layer: ImageSeriesLayer;
   controlProps: Partial<ChannelControlProps>[];
-  reset?: boolean;
   resetCallback?: () => Promise<void>;
 }
 
 export function ChannelControlsList({
   layer,
   controlProps,
-  reset,
   resetCallback,
 }: ChannelControlsListProps) {
   // Keep a local copy of channelProps to trigger re-renders
   const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
+  const isInternalUpdate = useRef(false);
 
   // initial sync of local state with layer's channelProps
+  // props change indicates this is not an internal update
   useEffect(() => {
-    if (reset || layer.channelProps?.length !== channelProps.length) {
-      setChannelProps(layer.channelProps ?? []);
-    }
-  }, [layer, reset, channelProps.length]);
+    isInternalUpdate.current = false;
+    setChannelProps(layer.channelProps ?? []);
+  }, [layer, controlProps, resetCallback]);
 
   // update layer's channelProps when local state changes
   useEffect(() => {
-    layer.setChannelProps(channelProps);
+    if (isInternalUpdate.current) {
+      layer.setChannelProps(channelProps);
+    }
   }, [channelProps, layer]);
 
   const updateChannel = (
@@ -48,6 +49,7 @@ export function ChannelControlsList({
       contrastLimits: [number, number];
     }>
   ) => {
+    isInternalUpdate.current = true;
     const updatedChannelProps = [...channelProps];
 
     updatedChannelProps[index] = {

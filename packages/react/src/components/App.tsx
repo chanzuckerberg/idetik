@@ -6,8 +6,6 @@ import { useState } from "react";
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
 const wellPath = "ATG101/MeOH";
-// const imagePath = "000002";
-// const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
   { dimension: "C", index: { type: "full" } },
@@ -16,9 +14,12 @@ const region: Region = [
   { dimension: "X", index: { type: "full" } },
 ];
 
-export default function App() {
-  const [imagePath, setImagePath] = useState("000001");
+const imagePaths = ["000000", "000001", "000002", "001000", "001001", "001002"];
 
+export default function App() {
+  const [imageIndex, setImageIndex] = useState(0);
+
+  const imagePath = imagePaths[imageIndex];
   const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
   return (
     <div className={cns("h-screen", "flex", "flex-row", "gap-4", "p-4")}>
@@ -37,12 +38,18 @@ export default function App() {
           region={region}
           seriesDimensionName="Z"
           highResSizeEstimate="200 MB"
+          onFirstSliceLoaded={(msTimeToLoad) => {
+            console.log(`First slice loaded in ${msTimeToLoad} ms`);
+          }}
+          onAllSlicesLoaded={(msTimeToLoad) => {
+            console.log(`All slices loaded in ${msTimeToLoad} ms`);
+          }}
         />
       </div>
       <input
         type="button"
-        value="Next Image"
-        onClick={() => setImagePath("000002")}
+        value="Switch Image"
+        onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
       />
     </div>
   );
