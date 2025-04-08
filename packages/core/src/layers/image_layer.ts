@@ -1,10 +1,10 @@
 import { Layer } from "core/layer";
 import { Region } from "data/region";
-import { ImageChunkSource } from "data/image_chunk";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
+import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { ChannelProps } from "objects/textures/channel";
 import { ImageRenderable } from "objects/renderable/image_renderable";
+import { Texture2D } from "objects/textures/texture_2d";
+import { PlaneGeometry } from "objects/geometry/plane_geometry";
 
 export type ImageLayerProps = {
   source: ImageChunkSource;
@@ -19,9 +19,7 @@ export class ImageLayer extends Layer {
   // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
   private readonly region_: Region;
   private channelProps_?: ChannelProps[];
-  // TODO: we don't need this texture_ field anymore
-  private texture_?: Texture2DArray;
-  private renderable_?: ImageRenderable;
+  private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
   constructor({ source, region, channelProps }: ImageLayerProps) {
@@ -54,7 +52,7 @@ export class ImageLayer extends Layer {
 
   public setChannelProps(channelProps: ChannelProps[]): void {
     this.channelProps_ = channelProps;
-    this.renderable_?.setChannelProps(channelProps);
+    this.image_?.setChannelProps(channelProps);
   }
 
   private async load(region: Region) {
@@ -68,13 +66,14 @@ export class ImageLayer extends Layer {
       x: chunk.shape.x * chunk.scale.x,
       y: chunk.shape.y * chunk.scale.y,
     };
-    this.texture_ = makeImageTextureArray(chunk);
-    this.renderable_ = makeImageRenderable(
+
+    this.image_ = this.createImage(
       chunk,
-      this.texture_,
+      Texture2D.createWithImageChunk(chunk),
       this.channelProps_
     );
-    this.addObject(this.renderable_);
+    this.addObject(this.image_);
+
     this.setState("ready");
   }
 
@@ -82,5 +81,17 @@ export class ImageLayer extends Layer {
   // see TracksLayer for another example
   public get extent(): { x: number; y: number } | undefined {
     return this.extent_;
+  }
+
+  private createImage(
+    chunk: ImageChunk,
+    texture: Texture2D,
+    channelProps?: ChannelProps[]
+  ) {
+    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
+    const image = new ImageRenderable(geometry, texture, channelProps);
+    image.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
+    image.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
+    return image;
   }
 }

@@ -4,6 +4,7 @@ import {
   bufferToDataType,
 } from "objects/textures/texture";
 
+import { ImageChunk } from "data/image_chunk";
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
@@ -45,5 +46,16 @@ export class Texture2DArray extends Texture {
 
   public get depth() {
     return this.depth_;
+  }
+
+  public static createWithImageChunk(chunk: ImageChunk) {
+    const texture = new Texture2DArray(
+      chunk.data,
+      chunk.shape.x,
+      chunk.shape.y
+    );
+    texture.unpackRowLength = chunk.rowStride;
+    texture.unpackAlignment = chunk.rowAlignmentBytes;
+    return texture;
   }
 }
