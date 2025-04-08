@@ -1,4 +1,4 @@
-import { Texture2D } from "@/objects/textures/texture_2d";
+import { Texture2D } from "objects/textures/texture_2d";
 import { Texture } from "objects/textures/texture";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { ImageChunk } from "data/image_chunk";

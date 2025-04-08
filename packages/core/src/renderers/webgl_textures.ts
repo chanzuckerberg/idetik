@@ -6,7 +6,7 @@ import {
   TextureDataFormat,
 } from "objects/textures/texture";
 
-import { Texture2D } from "@/objects/textures/texture_2d";
+import { Texture2D } from "objects/textures/texture_2d";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 
 export class WebGLTextures {
