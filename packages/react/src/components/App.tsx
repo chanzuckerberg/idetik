@@ -1,7 +1,7 @@
 import cns from "classnames";
 import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
@@ -21,6 +21,53 @@ export default function App() {
 
   const imagePath = imagePaths[imageIndex];
   const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
+
+  const layerCreatedTime = useRef<number | undefined>(undefined);
+  const loadAllSlicesClickedTime = useRef<number | undefined>(undefined);
+
+  const handleLayerCreated = useCallback(() => {
+    layerCreatedTime.current = performance.now();
+    console.log(`Layer created at ${layerCreatedTime.current}`);
+  }, []);
+
+  const handleFirstSliceLoaded = useCallback(() => {
+    if (layerCreatedTime.current !== undefined) {
+      const time = performance.now() - layerCreatedTime.current;
+      console.log(`First slice loaded after ${time} ms`);
+    } else {
+      console.log("First slice loaded, but layer created time is undefined");
+    }
+  }, []);
+
+  const handleLoadAllSlicesClicked = useCallback(() => {
+    loadAllSlicesClickedTime.current = performance.now();
+    console.log(
+      `Load all slices clicked at ${loadAllSlicesClickedTime.current}`
+    );
+  }, []);
+
+  const handleAllSlicesLoaded = useCallback(() => {
+    if (loadAllSlicesClickedTime.current !== undefined) {
+      const time = performance.now() - loadAllSlicesClickedTime.current;
+      console.log(`All slices loaded after ${time} ms`);
+    } else {
+      console.log(
+        "All slices loaded, but load all slices clicked time is undefined"
+      );
+    }
+  }, []);
+
+  const handleLoadAllSlicesAborted = useCallback(() => {
+    if (loadAllSlicesClickedTime.current !== undefined) {
+      const time = performance.now() - loadAllSlicesClickedTime.current;
+      console.log(`Load all slices aborted after ${time} ms`);
+    } else {
+      console.log(
+        "Load all slices aborted, but load all slices clicked time is undefined"
+      );
+    }
+  }, []);
+
   return (
     <div className={cns("h-screen", "flex", "flex-row", "gap-4", "p-4")}>
       <div
@@ -37,13 +84,12 @@ export default function App() {
           sourceUrl={imageUrl}
           region={region}
           seriesDimensionName="Z"
-          highResSizeEstimate="200 MB"
-          onFirstSliceLoaded={(msTimeToLoad) => {
-            console.log(`First slice loaded in ${msTimeToLoad} ms`);
-          }}
-          onAllSlicesLoaded={(msTimeToLoad) => {
-            console.log(`All slices loaded in ${msTimeToLoad} ms`);
-          }}
+          allSlicesSizeEstimate="250 MB"
+          onLayerCreated={handleLayerCreated}
+          onFirstSliceLoaded={handleFirstSliceLoaded}
+          onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+          onAllSlicesLoaded={handleAllSlicesLoaded}
+          onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
         />
       </div>
       <input

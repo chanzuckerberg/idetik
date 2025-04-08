@@ -25,9 +25,15 @@ interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   seriesDimensionName: string;
-  highResSizeEstimate?: string;
-  onFirstSliceLoaded?: (msTimeToLoad: number) => void;
-  onAllSlicesLoaded?: (msTimeToLoad: number) => void;
+  allSlicesSizeEstimate?: string;
+}
+
+interface OmeZarrImageViewerEvents {
+  onLayerCreated?: () => void;
+  onFirstSliceLoaded?: () => void;
+  onLoadAllSlicesClicked?: () => void;
+  onAllSlicesLoaded?: () => void;
+  onLoadAllSlicesAborted?: () => void;
 }
 
 // consolidated state to prevent effects from firing multiple times
@@ -36,7 +42,9 @@ interface SourceState {
   url: string;
 }
 
-export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
+export function OmeZarrImageViewer(
+  props: OmeZarrImageViewerProps & OmeZarrImageViewerEvents
+) {
   const [layerManager, setLayerManager] = useState<LayerManager>(
     new LayerManager()
   );
@@ -67,25 +75,39 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     setAllSlicesLoaded(false);
   }, [props]);
 
-  const zoomToFit = useCallback((layer: ImageSeriesLayer) => {
-    if (layer.extent !== undefined) {
-      const newCamera = new OrthographicCamera(
-        0,
-        layer.extent.x,
-        0,
-        layer.extent.y
-      );
-      setCamera(newCamera);
-      return true;
-    }
-    return false;
-  }, [setCamera]);
+  const zoomToFit = useCallback(
+    (layer: ImageSeriesLayer) => {
+      if (layer.extent !== undefined) {
+        const newCamera = new OrthographicCamera(
+          0,
+          layer.extent.x,
+          0,
+          layer.extent.y
+        );
+        setCamera(newCamera);
+        return true;
+      }
+      return false;
+    },
+    [setCamera]
+  );
 
-  const { region, seriesDimensionName, onFirstSliceLoaded, onAllSlicesLoaded} = props;
+  // destructure props to narrow useEffect dependencies
+  const {
+    region,
+    seriesDimensionName,
+    onLayerCreated,
+    onFirstSliceLoaded,
+    onLoadAllSlicesClicked,
+    onAllSlicesLoaded,
+    onLoadAllSlicesAborted,
+  } = props;
+
   useEffect(() => {
+    console.log("Creating image layer", source.url);
     let shouldSetLayer = true;
     let layer: ImageSeriesLayer | null = null;
-    const createLayer = async () => {
+    const createImageLayer = async () => {
       setLoading(true);
       if (!source.source) return;
       // TODO: may need to accept channel properties to be possibly overridden here
@@ -99,15 +121,14 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
         seriesDimensionName,
         channelProps,
       });
-      const timeLayerCreated = performance.now();
+      onLayerCreated?.();
       const onFirstLoad = () => {
         if (!layer || !shouldSetLayer) {
           return;
         }
         if (zoomToFit(layer)) {
           setLoading(false);
-          const timeToLoad = performance.now() - timeLayerCreated;
-          onFirstSliceLoaded?.(timeToLoad);
+          onFirstSliceLoaded?.();
           layer.removeStateChangeCallback(onFirstLoad);
         }
       };
@@ -116,14 +137,21 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
         setImageLayer(layer);
       }
     };
-    createLayer();
+    createImageLayer();
 
     return () => {
       layer?.close();
       shouldSetLayer = false;
       setImageLayer(null);
     };
-  }, [region, source, seriesDimensionName, onFirstSliceLoaded, zoomToFit]);
+  }, [
+    region,
+    source,
+    seriesDimensionName,
+    onLayerCreated,
+    onFirstSliceLoaded,
+    zoomToFit,
+  ]);
 
   useEffect(() => {
     const setZRangeFromData = async () => {
@@ -184,20 +212,25 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   }, [source.url, imageLayer]);
 
   const loadAllSlicesCallback = useCallback(async () => {
+    onLoadAllSlicesClicked?.();
     setLoading(true);
-    const timeLoadAllSlicesClicked = performance.now();
     try {
       await imageLayer?.preloadSeries();
     } catch {
       console.debug("Load 3D high-res aborted - likely selected new condition");
+      onLoadAllSlicesAborted?.();
       return;
     } finally {
       setLoading(false);
     }
-    const timeToLoad = performance.now() - timeLoadAllSlicesClicked;
-    onAllSlicesLoaded?.(timeToLoad);
+    onAllSlicesLoaded?.();
     setAllSlicesLoaded(true);
-  }, [imageLayer, onAllSlicesLoaded]);
+  }, [
+    imageLayer,
+    onLoadAllSlicesClicked,
+    onAllSlicesLoaded,
+    onLoadAllSlicesAborted,
+  ]);
 
   return (
     <div
@@ -259,8 +292,8 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
               disabled={loading}
               onClick={loadAllSlicesCallback}
             >
-              {props.highResSizeEstimate
-                ? `Load 3D high-res (${props.highResSizeEstimate})`
+              {props.allSlicesSizeEstimate
+                ? `Load 3D high-res (${props.allSlicesSizeEstimate})`
                 : "Load 3D high-res"}
             </Button>
           )}
