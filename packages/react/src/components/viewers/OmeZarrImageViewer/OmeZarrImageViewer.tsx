@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import cns from "classnames";
-import CircularProgress from "@mui/material/CircularProgress";
-import { InputSlider } from "@czi-sds/components";
+import {
+  Button,
+  InputSlider,
+  LoadingIndicator,
+  Tag,
+} from "@czi-sds/components";
 import {
   ImageSeriesLayer,
   LayerManager,
@@ -9,6 +13,7 @@ import {
   OrthographicCamera,
   Region,
   loadOmeroChannels,
+  loadOmeroDefaultZ,
 } from "@idetik/core";
 
 import { Renderer } from "./components/Renderer";
@@ -20,89 +25,212 @@ interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   seriesDimensionName: string;
-  scale?: number;
+  allSlicesSizeEstimate?: string;
 }
 
-export function OmeZarrImageViewer({
-  sourceUrl,
-  region,
-  scale,
-  seriesDimensionName,
-}: OmeZarrImageViewerProps) {
-  const [layerManager, _setLayerManager] = useState<LayerManager>(
+interface OmeZarrImageViewerEvents {
+  onLayerCreated?: () => void;
+  onFirstSliceLoaded?: () => void;
+  onLoadAllSlicesClicked?: () => void;
+  onAllSlicesLoaded?: () => void;
+  onLoadAllSlicesAborted?: () => void;
+}
+
+// consolidated state to prevent effects from firing multiple times
+interface SourceState {
+  source: OmeZarrImageSource | null;
+  url: string;
+}
+
+export function OmeZarrImageViewer(
+  props: OmeZarrImageViewerProps & OmeZarrImageViewerEvents
+) {
+  const [layerManager, setLayerManager] = useState<LayerManager>(
     new LayerManager()
   );
-  const [camera, _setCamera] = useState<OrthographicCamera>(
-    new OrthographicCamera(0, 128, 0, 128)
-  );
-  const [imageLayer, setImageLayer] = useState<ImageSeriesLayer | null>(null);
-  const [source, setSource] = useState<OmeZarrImageSource | null>(null);
+  const [camera, setCamera] = useState<OrthographicCamera | null>(null);
+  const [source, setSource] = useState<SourceState>({
+    source: null,
+    url: props.sourceUrl,
+  });
   const [loading, setLoading] = useState(true);
+  const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
+  const [imageLayer, setImageLayer] = useState<ImageSeriesLayer | null>(null);
+
   const [controlProps, setControlProps] = useState<
     Partial<ChannelControlProps>[]
   >([]);
+
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
-  const [zIndex, setZIndex] = useState(0);
+  const [zValue, setZValue] = useState(0.5);
+
+  // set a new source whenever *any* prop changes to force reload
+  useEffect(() => {
+    // 0 is the highest resolution
+    const source = new OmeZarrImageSource(props.sourceUrl, 0);
+    setSource({
+      source,
+      url: props.sourceUrl,
+    });
+    setAllSlicesLoaded(false);
+  }, [props]);
+
+  const zoomToFit = useCallback(
+    (layer: ImageSeriesLayer) => {
+      if (layer.extent !== undefined) {
+        const newCamera = new OrthographicCamera(
+          0,
+          layer.extent.x,
+          0,
+          layer.extent.y
+        );
+        setCamera(newCamera);
+        return true;
+      }
+      return false;
+    },
+    [setCamera]
+  );
+
+  // destructure props to narrow useEffect dependencies
+  const {
+    region,
+    seriesDimensionName,
+    onLayerCreated,
+    onFirstSliceLoaded,
+    onLoadAllSlicesClicked,
+    onAllSlicesLoaded,
+    onLoadAllSlicesAborted,
+  } = props;
 
   useEffect(() => {
-    const source = new OmeZarrImageSource(sourceUrl, scale);
-    setSource(source);
-  }, [sourceUrl, scale]);
-
-  useEffect(() => {
-    setLoading(true);
-    const getLayer = async () => {
-      if (!source) return;
+    console.log("Creating image layer", source.url);
+    let shouldSetLayer = true;
+    let layer: ImageSeriesLayer | null = null;
+    const createImageLayer = async () => {
+      setLoading(true);
+      if (!source.source) return;
       // TODO: may need to accept channel properties to be possibly overridden here
       // (i.e. for initial visibility, custom colors)
-      const omeroChannels = await loadOmeroChannels(sourceUrl);
+      const omeroChannels = await loadOmeroChannels(source.url);
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
-      const layer = new ImageSeriesLayer({
-        source,
+      layer = new ImageSeriesLayer({
+        source: source.source,
         region,
         seriesDimensionName,
         channelProps,
       });
-      layer.preloadSeries().then(() => setLoading(false));
-      const setCamera = () => {
-        if (layer.extent !== undefined) {
-          camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
-          camera.update();
-          layer.removeStateChangeCallback(setCamera);
+      onLayerCreated?.();
+      const onFirstLoad = () => {
+        if (!layer || !shouldSetLayer) {
+          return;
+        }
+        if (zoomToFit(layer)) {
+          setLoading(false);
+          onFirstSliceLoaded?.();
+          layer.removeStateChangeCallback(onFirstLoad);
         }
       };
-      layer.addStateChangeCallback(setCamera);
-      setImageLayer(layer);
+      layer?.addStateChangeCallback(onFirstLoad);
+      if (shouldSetLayer) {
+        setImageLayer(layer);
+      }
     };
-    getLayer();
-  }, [source, sourceUrl, region, camera, seriesDimensionName]);
+    createImageLayer();
+
+    return () => {
+      layer?.close();
+      shouldSetLayer = false;
+      setImageLayer(null);
+    };
+  }, [
+    region,
+    source,
+    seriesDimensionName,
+    onLayerCreated,
+    onFirstSliceLoaded,
+    zoomToFit,
+  ]);
+
+  useEffect(() => {
+    const setZRangeFromData = async () => {
+      if (!source.source) return;
+      const loader = await source.source.open();
+      const attributes = await loader.loadAttributes();
+      // TODO: this only supports "full" range and expects the series dimension to be Z
+      const zAxisIndex = attributes.dimensionNames.findIndex(
+        (dim) => dim === seriesDimensionName
+      );
+      const min = 0;
+      const max = attributes.shape[zAxisIndex] - 1;
+      const omeroDefaultZ = await loadOmeroDefaultZ(source.url);
+      setZValue(omeroDefaultZ / (max - min));
+      setZRange([min, max]);
+    };
+    setZRangeFromData();
+  }, [source, seriesDimensionName]);
 
   useEffect(() => {
     if (imageLayer) {
-      layerManager.layers.length = 0;
-      layerManager.add(imageLayer);
+      const newLayerManager = new LayerManager();
+      newLayerManager.add(imageLayer);
+      setLayerManager(newLayerManager);
     }
-  }, [imageLayer, layerManager]);
+  }, [imageLayer]);
+
+  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
 
   useEffect(() => {
-    if (seriesDimensionName !== undefined && source !== null) {
-      const setZRangeFromData = async () => {
-        const loader = await source.open();
-        const attributes = await loader.loadAttributes();
-        const zAxisIndex = attributes.dimensionNames.findIndex(
-          (dim) => dim === seriesDimensionName
-        );
-        const min = 0;
-        const max = attributes.shape[zAxisIndex] - 1;
-        setZRange([min, max]);
-        setZIndex(Math.floor((min + max) / 2));
-      };
-      setZRangeFromData();
-    }
-  }, [source, seriesDimensionName]);
+    if (!imageLayer) return;
+    let didSetLoadingTrue = false;
+    const setIndex = async () => {
+      const t = setTimeout(() => {
+        setLoading(true);
+        didSetLoadingTrue = true;
+      }, 50);
+      try {
+        await imageLayer.setIndex(zIndex);
+      } catch {
+        console.debug("Load slice aborted - likely selected new condition");
+        return;
+      } finally {
+        clearTimeout(t);
+        if (didSetLoadingTrue) {
+          setLoading(false);
+        }
+      }
+    };
+    setIndex();
+  }, [imageLayer, zIndex]);
 
-  imageLayer?.setIndex(zIndex);
+  const resetChannelsCallback = useCallback(async () => {
+    const omeroChannels = await loadOmeroChannels(source.url);
+    const channelProps = omeroToChannelProps(omeroChannels);
+    imageLayer?.setChannelProps(channelProps);
+    setControlProps(omeroToControlProps(omeroChannels));
+  }, [source.url, imageLayer]);
+
+  const loadAllSlicesCallback = useCallback(async () => {
+    onLoadAllSlicesClicked?.();
+    setLoading(true);
+    try {
+      await imageLayer?.preloadSeries();
+    } catch {
+      console.debug("Load 3D high-res aborted - likely selected new condition");
+      onLoadAllSlicesAborted?.();
+      return;
+    } finally {
+      setLoading(false);
+    }
+    onAllSlicesLoaded?.();
+    setAllSlicesLoaded(true);
+  }, [
+    imageLayer,
+    onLoadAllSlicesClicked,
+    onAllSlicesLoaded,
+    onLoadAllSlicesAborted,
+  ]);
 
   return (
     <div
@@ -125,50 +253,87 @@ export function OmeZarrImageViewer({
         camera={camera}
         cameraControls="panzoom"
       />
-      {loading && (
-        <div className={cns("absolute", "top-1/2", "left-1/2")}>
-          <CircularProgress />
-        </div>
-      )}
       {imageLayer && (
-        <div className={cns("absolute", "top-0", "left-0", "w-1/2")}>
-          <ChannelControlsList layer={imageLayer} controlProps={controlProps} />
-        </div>
-      )}
-      {seriesDimensionName && (
-        <div
-          className={cns(
-            "absolute",
-            "bottom-0",
-            "right-3",
-            "w-1/2",
-            "px-5",
-            "py-3",
-            "before:absolute",
-            "before:left-0",
-            "before:top-0",
-            "before:w-full",
-            "before:h-full",
-            "before:bg-[--sds-color-semantic-base-background-primary]",
-            "before:opacity-50",
-            "before:content-['']",
-            "flex",
-            "items-center"
-          )}
-        >
-          <InputSlider
-            min={zRange[0]}
-            max={zRange[1]}
-            value={zIndex}
-            onChange={(_, slice: number | number[]) => {
-              if (typeof slice === "number") {
-                setZIndex(slice);
-              }
-            }}
-            disabled={loading}
+        <div className={cns("absolute", "top-0", "left-0", "w-3/4")}>
+          <ChannelControlsList
+            layer={imageLayer}
+            controlProps={controlProps}
+            resetCallback={resetChannelsCallback}
           />
         </div>
       )}
+      <div
+        className={cns(
+          "absolute",
+          "bottom-0",
+          "right-0",
+          "w-full",
+          "px-5",
+          "py-3",
+          "flex",
+          "flex-col",
+          "items-end"
+        )}
+      >
+        <div
+          className={cns(
+            "flex",
+            "justify-end",
+            "items-center",
+            "w-full",
+            "h-6"
+          )}
+        >
+          {!allSlicesLoaded && (
+            <Button
+              sdsType="primary"
+              sdsStyle="rounded"
+              size="small"
+              disabled={loading}
+              onClick={loadAllSlicesCallback}
+            >
+              {props.allSlicesSizeEstimate
+                ? `Load 3D high-res (${props.allSlicesSizeEstimate})`
+                : "Load 3D high-res"}
+            </Button>
+          )}
+          <div className={cns("flex", "justify-end", "w-1/3")}>
+            {!loading && (
+              // TODO: "tag" is not very semantic but this looks okay
+              <Tag
+                label={`slice ${zIndex}/${zRange[1] - zRange[0]}`}
+                sdsStyle="square"
+                sdsType="secondary"
+                hover={false}
+              />
+            )}
+            {loading && <LoadingIndicator sdsStyle="tag" />}
+          </div>
+        </div>
+        {allSlicesLoaded && (
+          <div
+            className={cns(
+              "w-2/3",
+              "flex",
+              "justify-center",
+              "items-center",
+              "gap-2"
+            )}
+          >
+            <InputSlider
+              min={0}
+              max={1}
+              step={1 / (zRange[1] - zRange[0])}
+              value={zValue}
+              onChange={(_, value: number | number[]) => {
+                if (typeof value === "number") {
+                  setZValue(value);
+                }
+              }}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

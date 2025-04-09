@@ -247,7 +247,8 @@ export class ImageSeriesLayer extends Layer {
     for (const result of results) {
       if (result.status === "rejected") {
         if (result.reason instanceof AbortError) {
-          console.debug("Loading aborted.");
+          // reject the promise because this means the layer was closed
+          return Promise.reject(result.reason);
         } else {
           console.error(`Error loading slice: ${result.reason}`);
         }

@@ -1,44 +1,45 @@
-import { Accordion } from "@mui/material";
-import { AccordionHeader, AccordionDetails } from "@czi-sds/components";
+import {
+  AccordionHeader,
+  AccordionDetails,
+  Accordion,
+  Button,
+} from "@czi-sds/components";
 import cns from "classnames";
 import {
   ChannelControl,
   ChannelControlProps,
 } from "./components/ChannelControl";
-import { ImageLayer, ImageSeriesLayer, ChannelProps } from "@idetik/core";
-import { useState, useEffect } from "react";
+import { ImageSeriesLayer, ChannelProps } from "@idetik/core";
+import { useEffect, useRef, useState } from "react";
 
 interface ChannelControlsListProps {
-  layer: ImageLayer | ImageSeriesLayer;
+  layer: ImageSeriesLayer;
   controlProps: Partial<ChannelControlProps>[];
+  resetCallback?: () => Promise<void>;
 }
 
 export function ChannelControlsList({
   layer,
   controlProps,
+  resetCallback,
 }: ChannelControlsListProps) {
   // Keep a local copy of channelProps to trigger re-renders
   const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
+  const isInternalUpdate = useRef(false);
 
-  // Sync local state with layer's channelProps
+  // initial sync of local state with layer's channelProps
+  // props change indicates this is not an internal update
   useEffect(() => {
-    const initialLayerChannelProps = layer.channelProps ?? [];
+    isInternalUpdate.current = false;
+    setChannelProps(layer.channelProps ?? []);
+  }, [layer, controlProps, resetCallback]);
 
-    const updatedChannelProps = initialLayerChannelProps.map(
-      (layerChannel: ChannelProps, index: number) => ({
-        visible:
-          controlProps?.[index]?.visible ?? layerChannel?.visible ?? true,
-        color: controlProps?.[index]?.color ?? layerChannel?.color,
-        contrastLimits:
-          controlProps?.[index]?.contrastLimits ?? layerChannel?.contrastLimits,
-      })
-    );
-
-    // Update both the layer and local state to keep them in sync
-    // TODO: use a dispatcher?
-    layer.setChannelProps(updatedChannelProps);
-    setChannelProps(updatedChannelProps);
-  }, [layer, controlProps]);
+  // update layer's channelProps when local state changes
+  useEffect(() => {
+    if (isInternalUpdate.current) {
+      layer.setChannelProps(channelProps);
+    }
+  }, [channelProps, layer]);
 
   const updateChannel = (
     index: number,
@@ -48,6 +49,7 @@ export function ChannelControlsList({
       contrastLimits: [number, number];
     }>
   ) => {
+    isInternalUpdate.current = true;
     const updatedChannelProps = [...channelProps];
 
     updatedChannelProps[index] = {
@@ -55,15 +57,12 @@ export function ChannelControlsList({
       ...updates,
     };
 
-    // Update both the layer and local state to keep them in sync
-    layer.setChannelProps(updatedChannelProps);
     setChannelProps(updatedChannelProps);
   };
 
   return (
     <div
       className={cns(
-        "z-[999]",
         "backdrop-blur-md",
         "transition-[left]",
         "duration-300",
@@ -78,14 +77,13 @@ export function ChannelControlsList({
         "before:w-full",
         "before:h-full",
         "before:bg-[--sds-color-semantic-base-background-primary]",
-        "before:opacity-50",
+        "before:opacity-35",
         "before:content-['']"
       )}
     >
       <Accordion
         id="channel-controls"
         className="flex-grow"
-        defaultExpanded
         square
         elevation={0}
       >
@@ -94,7 +92,8 @@ export function ChannelControlsList({
             "flex",
             "w-full",
             "[&_.MuiAccordionSummary-root]:!flex-grow",
-            "[&_.Mui-expanded]:!min-h-0"
+            "[&_.Mui-expanded]:!min-h-0",
+            "[&_.MuiSvgIcon-root]:!fill-[--sds-color-semantic-base-text-primary]"
           )}
         >
           <AccordionHeader>
@@ -144,6 +143,21 @@ export function ChannelControlsList({
               );
             })}
           </div>
+          {resetCallback && (
+            <span className={cns("flex", "justify-end", "mt-sds-xs")}>
+              <Button
+                sdsStyle="minimal"
+                sdsType="secondary"
+                onClick={() => {
+                  resetCallback().then(() => {
+                    setChannelProps(layer.channelProps ?? []);
+                  });
+                }}
+              >
+                Reset channels
+              </Button>
+            </span>
+          )}
         </AccordionDetails>
       </Accordion>
     </div>

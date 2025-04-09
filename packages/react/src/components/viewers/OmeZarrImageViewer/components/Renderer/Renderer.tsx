@@ -12,7 +12,7 @@ type ControlType = "panzoom" | "none";
 
 interface RendererProps {
   layerManager: LayerManager;
-  camera: OrthographicCamera;
+  camera: OrthographicCamera | null;
   cameraControls?: ControlType;
   canvasId?: string;
 }
@@ -26,15 +26,15 @@ export function Renderer({
   const renderer = useRef<WebGLRenderer | null>(null);
   const controls = useRef<CameraControls>(new NullControls());
 
-  switch (cameraControls) {
-    case "panzoom":
+  useEffect(() => {
+    console.debug("Renderer::setControls");
+    if (camera && cameraControls === "panzoom") {
       controls.current = new PanZoomControls(camera, camera.position);
-      break;
-    case "none":
+    } else {
       controls.current = new NullControls();
-      break;
-  }
-  renderer.current?.setControls(controls.current);
+    }
+    renderer.current?.setControls(controls.current);
+  }, [camera, cameraControls]);
 
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
@@ -47,6 +47,9 @@ export function Renderer({
       renderer.current.setControls(controls.current);
     }
     function animate() {
+      if (!camera) {
+        return;
+      }
       renderer.current?.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
     }
