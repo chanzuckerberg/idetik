@@ -1,16 +1,40 @@
 import { RenderableObject } from "./renderable_object";
 
 export type LayerState = "initialized" | "loading" | "ready";
+export type BlendingMode = "normal" | "additive" | "subtractive" | "multiply";
+
 
 type StateChangeCallback = (
   newState: LayerState,
   prevState?: LayerState
 ) => void;
 
+export interface LayerOptions {
+  transparent?: boolean;
+  opacity?: number;
+  blendingMode?: BlendingMode;
+}
+
 export abstract class Layer {
   private objects_: RenderableObject[] = [];
   private state_: LayerState = "initialized";
   private callbacks_: StateChangeCallback[] = [];
+
+  public readonly transparent: boolean;
+  public readonly opacity: number;
+  public readonly blendingMode: BlendingMode;
+
+  /* eslint-disable @typescript-eslint/no-unused-vars -- these fields are scaffolded for upcoming blending support */
+  constructor({
+    transparent = false,
+    opacity = 1.0,
+    blendingMode = "normal"
+  }: LayerOptions = {}) {
+    this.transparent = transparent;
+    this.opacity = opacity;
+    this.blendingMode = blendingMode;
+  }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   public abstract update(): void;
 
