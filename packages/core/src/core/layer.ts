@@ -3,7 +3,6 @@ import { RenderableObject } from "./renderable_object";
 export type LayerState = "initialized" | "loading" | "ready";
 export type BlendingMode = "normal" | "additive" | "subtractive" | "multiply";
 
-
 type StateChangeCallback = (
   newState: LayerState,
   prevState?: LayerState
@@ -28,7 +27,7 @@ export abstract class Layer {
   constructor({
     transparent = false,
     opacity = 1.0,
-    blendingMode = "normal"
+    blendingMode = "normal",
   }: LayerOptions = {}) {
     this.transparent = transparent;
     this.opacity = opacity;
