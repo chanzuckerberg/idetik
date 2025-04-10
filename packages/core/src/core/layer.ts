@@ -1,4 +1,5 @@
 import { RenderableObject } from "./renderable_object";
+import { clamp01 } from "./utils";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type BlendingMode = "normal" | "additive" | "subtractive" | "multiply";
@@ -20,6 +21,9 @@ export abstract class Layer {
   private callbacks_: StateChangeCallback[] = [];
 
   public readonly transparent: boolean;
+  /**
+   * For layer opacity, value is clamped to the range [0.0, 1.0].
+   */
   public readonly opacity: number;
   public readonly blendingMode: BlendingMode;
 
@@ -29,8 +33,13 @@ export abstract class Layer {
     opacity = 1.0,
     blendingMode = "normal",
   }: LayerOptions = {}) {
+    if (opacity < 0 || opacity > 1) {
+      console.warn(
+        `Layer opacity out of bounds: ${opacity} — clamping to [0.0, 1.0]`
+      );
+    }
     this.transparent = transparent;
-    this.opacity = opacity;
+    this.opacity = clamp01(opacity);
     this.blendingMode = blendingMode;
   }
   /* eslint-enable @typescript-eslint/no-unused-vars */
