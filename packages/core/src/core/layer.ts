@@ -10,7 +10,7 @@ type StateChangeCallback = (
 ) => void;
 
 export interface LayerOptions {
-  transparent?: boolean;
+  isTransparent?: boolean;
   opacity?: number;
   blendingMode?: BlendingMode;
 }
@@ -20,7 +20,7 @@ export abstract class Layer {
   private state_: LayerState = "initialized";
   private callbacks_: StateChangeCallback[] = [];
 
-  public readonly transparent: boolean;
+  public readonly isTransparent: boolean;
   /**
    * For layer opacity, value is clamped to the range [0.0, 1.0].
    */
@@ -29,7 +29,7 @@ export abstract class Layer {
 
   /* eslint-disable @typescript-eslint/no-unused-vars -- these fields are scaffolded for upcoming blending support */
   constructor({
-    transparent = false,
+    isTransparent = false,
     opacity = 1.0,
     blendingMode = "normal",
   }: LayerOptions = {}) {
@@ -38,7 +38,7 @@ export abstract class Layer {
         `Layer opacity out of bounds: ${opacity} — clamping to [0.0, 1.0]`
       );
     }
-    this.transparent = transparent;
+    this.isTransparent = isTransparent;
     this.opacity = clamp01(opacity);
     this.blendingMode = blendingMode;
   }
