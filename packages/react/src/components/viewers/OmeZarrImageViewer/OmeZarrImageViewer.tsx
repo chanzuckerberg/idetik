@@ -241,9 +241,6 @@ export function OmeZarrImageViewer(
         "flex-col",
         "flex-1",
         "gap-4",
-        "border",
-        "border-solid",
-        "border-black",
         "min-h-0",
         "relative"
       )}
@@ -254,7 +251,15 @@ export function OmeZarrImageViewer(
         cameraControls="panzoom"
       />
       {imageLayer && (
-        <div className={cns("absolute", "top-0", "left-0", "w-3/4")}>
+        <div
+          className={cns(
+            "absolute",
+            "top-0",
+            "left-0",
+            "w-full",
+            "md:w-[400px]"
+          )}
+        >
           <ChannelControlsList
             layer={imageLayer}
             controlProps={controlProps}

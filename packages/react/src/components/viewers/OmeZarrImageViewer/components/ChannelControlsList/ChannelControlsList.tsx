@@ -63,22 +63,13 @@ export function ChannelControlsList({
   return (
     <div
       className={cns(
+        "text-white",
+        "bg-black/20",
         "backdrop-blur-md",
         "transition-[left]",
         "duration-300",
         "ease-in-out",
-        "flex",
-        "[&_.MuiAccordion-root]:!bg-transparent",
-        "[&_.MuiAccordionDetails-root]:!pb-[4px]",
-        "relative",
-        "before:absolute",
-        "before:left-0",
-        "before:top-0",
-        "before:w-full",
-        "before:h-full",
-        "before:bg-[--sds-color-semantic-base-background-primary]",
-        "before:opacity-35",
-        "before:content-['']"
+        "flex"
       )}
     >
       <Accordion
@@ -91,18 +82,20 @@ export function ChannelControlsList({
           className={cns(
             "flex",
             "w-full",
-            "[&_.MuiAccordionSummary-root]:!flex-grow",
-            "[&_.Mui-expanded]:!min-h-0",
-            "[&_.MuiSvgIcon-root]:!fill-[--sds-color-semantic-base-text-primary]"
+            "[&_.MuiAccordionSummary-expandIconWrapper_svg]:text-white",
+            "[&_.MuiAccordionSummary-expandIconWrapper_svg]:fill-white",
+            "[&_.MuiAccordionSummary-root]:flex-grow"
           )}
         >
           <AccordionHeader>
-            <div className={cns("flex", "items-center")}>Channel Controls</div>
+            <div className={cns("flex", "items-center", "text-white")}>
+              Channel Controls
+            </div>
           </AccordionHeader>
         </div>
 
         <AccordionDetails>
-          <div className={cns("grid grid-cols-4 grid-rows-auto gap-sds-xs")}>
+          <div className={cns("grid grid-cols-4 grid-rows-auto")}>
             {channelProps.map((props: ChannelProps, index: number) => {
               // TODO: can possibly clean this up with better types
               // error on undefined values - we're setting defaults
@@ -148,6 +141,7 @@ export function ChannelControlsList({
               <Button
                 sdsStyle="minimal"
                 sdsType="secondary"
+                className="text-white"
                 onClick={() => {
                   resetCallback().then(() => {
                     setChannelProps(layer.channelProps ?? []);
