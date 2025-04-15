@@ -10,7 +10,7 @@ import {
   ChannelControlProps,
 } from "./components/ChannelControl";
 import { ImageSeriesLayer, ChannelProps } from "@idetik/core";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 
 interface ChannelControlsListProps {
   layer: ImageSeriesLayer;
@@ -23,23 +23,7 @@ export function ChannelControlsList({
   controlProps,
   resetCallback,
 }: ChannelControlsListProps) {
-  // Keep a local copy of channelProps to trigger re-renders
-  const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
   const isInternalUpdate = useRef(false);
-
-  // initial sync of local state with layer's channelProps
-  // props change indicates this is not an internal update
-  useEffect(() => {
-    isInternalUpdate.current = false;
-    setChannelProps(layer.channelProps ?? []);
-  }, [layer, controlProps, resetCallback]);
-
-  // update layer's channelProps when local state changes
-  useEffect(() => {
-    if (isInternalUpdate.current) {
-      layer.setChannelProps(channelProps);
-    }
-  }, [channelProps, layer]);
 
   const updateChannel = (
     index: number,
@@ -50,14 +34,14 @@ export function ChannelControlsList({
     }>
   ) => {
     isInternalUpdate.current = true;
-    const updatedChannelProps = [...channelProps];
+    const updatedChannelProps = [...(layer.channelProps ?? [])];
 
     updatedChannelProps[index] = {
-      ...channelProps[index],
+      ...(layer.channelProps ?? [])[index],
       ...updates,
     };
 
-    setChannelProps(updatedChannelProps);
+    layer.setChannelProps(updatedChannelProps);
   };
 
   return (
@@ -103,45 +87,47 @@ export function ChannelControlsList({
 
         <AccordionDetails>
           <div className={cns("grid grid-cols-4 grid-rows-auto gap-sds-xs")}>
-            {channelProps.map((props: ChannelProps, index: number) => {
-              // TODO: can possibly clean this up with better types
-              // error on undefined values - we're setting defaults
-              // and merging objects in too many places
-              if (props.color === undefined) {
-                throw new Error(`Color not defined for channel ${index}`);
-              }
-              if (props.contrastLimits === undefined) {
-                throw new Error(
-                  `Contrast limits not defined for channel ${index}`
-                );
-              }
-              const contrastRange = (controlProps[index]?.contrastRange ??
-                props.contrastLimits)!;
-              if (contrastRange === undefined) {
-                throw new Error(
-                  `Contrast range not defined for channel ${index}`
-                );
-              }
+            {(layer.channelProps ?? []).map(
+              (props: ChannelProps, index: number) => {
+                // TODO: can possibly clean this up with better types
+                // error on undefined values - we're setting defaults
+                // and merging objects in too many places
+                if (props.color === undefined) {
+                  throw new Error(`Color not defined for channel ${index}`);
+                }
+                if (props.contrastLimits === undefined) {
+                  throw new Error(
+                    `Contrast limits not defined for channel ${index}`
+                  );
+                }
+                const contrastRange = (controlProps[index]?.contrastRange ??
+                  props.contrastLimits)!;
+                if (contrastRange === undefined) {
+                  throw new Error(
+                    `Contrast range not defined for channel ${index}`
+                  );
+                }
 
-              return (
-                <ChannelControl
-                  key={index}
-                  channelIndex={index}
-                  label={controlProps[index]?.label ?? `Channel ${index}`}
-                  color={props.color}
-                  contrastLimits={props.contrastLimits}
-                  contrastRange={contrastRange}
-                  visible={props.visible === undefined ? true : props.visible}
-                  onVisibilityChange={(visible) =>
-                    updateChannel(index, { visible })
-                  }
-                  onColorChange={(color) => updateChannel(index, { color })}
-                  onContrastChange={(contrastLimits) =>
-                    updateChannel(index, { contrastLimits })
-                  }
-                />
-              );
-            })}
+                return (
+                  <ChannelControl
+                    key={index}
+                    channelIndex={index}
+                    label={controlProps[index]?.label ?? `Channel ${index}`}
+                    color={props.color}
+                    contrastLimits={props.contrastLimits}
+                    contrastRange={contrastRange}
+                    visible={props.visible === undefined ? true : props.visible}
+                    onVisibilityChange={(visible) =>
+                      updateChannel(index, { visible })
+                    }
+                    onColorChange={(color) => updateChannel(index, { color })}
+                    onContrastChange={(contrastLimits) =>
+                      updateChannel(index, { contrastLimits })
+                    }
+                  />
+                );
+              }
+            )}
           </div>
           {resetCallback && (
             <span className={cns("flex", "justify-end", "mt-sds-xs")}>
@@ -150,7 +136,7 @@ export function ChannelControlsList({
                 sdsType="secondary"
                 onClick={() => {
                   resetCallback().then(() => {
-                    setChannelProps(layer.channelProps ?? []);
+                    layer.setChannelProps(layer.channelProps ?? []);
                   });
                 }}
               >

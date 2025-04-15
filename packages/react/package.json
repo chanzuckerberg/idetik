@@ -23,7 +23,8 @@
     "@mui/material": "^5.16.7",
     "@types/react-dom": "^18.3.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "valtio": "^2.1.4"
   },
   "description": "idetik react components",
   "main": "./dist/index.umd.cjs",

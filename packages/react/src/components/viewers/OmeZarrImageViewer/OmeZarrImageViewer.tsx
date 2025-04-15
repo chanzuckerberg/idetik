@@ -20,6 +20,7 @@ import { Renderer } from "./components/Renderer";
 import { ChannelControlsList } from "./components/ChannelControlsList";
 import { ChannelControlProps } from "./components/ChannelControlsList/components/ChannelControl";
 import { omeroToChannelProps, omeroToControlProps } from "./utils";
+import { proxy } from "valtio";
 
 interface OmeZarrImageViewerProps {
   sourceUrl: string;
@@ -115,12 +116,14 @@ export function OmeZarrImageViewer(
       const omeroChannels = await loadOmeroChannels(source.url);
       const channelProps = omeroToChannelProps(omeroChannels);
       setControlProps(omeroToControlProps(omeroChannels));
-      layer = new ImageSeriesLayer({
-        source: source.source,
-        region,
-        seriesDimensionName,
-        channelProps,
-      });
+      layer = proxy(
+        new ImageSeriesLayer({
+          source: source.source,
+          region,
+          seriesDimensionName,
+          channelProps,
+        })
+      );
       onLayerCreated?.();
       const onFirstLoad = () => {
         if (!layer || !shouldSetLayer) {
