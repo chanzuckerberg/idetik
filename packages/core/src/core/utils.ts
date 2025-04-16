@@ -41,10 +41,3 @@ export function generateUUID() {
     // .toLowerCase() flattens concatenated strings to save heap memory space.
     return uuid.toLowerCase();
 }
-
-export function clamp01(value: number): number {
-  if (value < 0 || value > 1) {
-    return Math.max(0.0, Math.min(1.0, value));
-  }
-  return value;
-}
