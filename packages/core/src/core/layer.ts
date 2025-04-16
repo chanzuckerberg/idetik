@@ -1,5 +1,5 @@
 import { RenderableObject } from "./renderable_object";
-import { clamp01 } from "./utils";
+import { clamp } from "utilities/clamp";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type BlendingMode = "normal" | "additive" | "subtractive" | "multiply";
@@ -18,16 +18,12 @@ export interface LayerOptions {
 export abstract class Layer {
   private objects_: RenderableObject[] = [];
   private state_: LayerState = "initialized";
-  private callbacks_: StateChangeCallback[] = [];
+  private readonly callbacks_: StateChangeCallback[] = [];
 
   public readonly isTransparent: boolean;
-  /**
-   * For layer opacity, value is clamped to the range [0.0, 1.0].
-   */
   public readonly opacity: number;
   public readonly blendingMode: BlendingMode;
 
-  /* eslint-disable @typescript-eslint/no-unused-vars -- these fields are scaffolded for upcoming blending support */
   constructor({
     isTransparent = false,
     opacity = 1.0,
@@ -39,10 +35,9 @@ export abstract class Layer {
       );
     }
     this.isTransparent = isTransparent;
-    this.opacity = clamp01(opacity);
+    this.opacity = clamp(opacity, 0.0, 1.0);
     this.blendingMode = blendingMode;
   }
-  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   public abstract update(): void;
 
