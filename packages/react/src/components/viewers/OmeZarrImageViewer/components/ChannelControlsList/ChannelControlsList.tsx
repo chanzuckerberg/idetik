@@ -140,8 +140,9 @@ export function ChannelControlsList({
             <span className={cns("flex", "justify-end", "mt-sds-xs")}>
               <Button
                 sdsStyle="minimal"
-                sdsType="secondary"
-                className="text-white"
+                sdsType="primary"
+                // Force dark mode styles on hover
+                className="text-white hidden md:block hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
                 onClick={() => {
                   resetCallback().then(() => {
                     setChannelProps(layer.channelProps ?? []);
