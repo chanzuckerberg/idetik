@@ -37,9 +37,7 @@ export function ContrastSlider({
         // Hardcode dark mode colors to force dark mode
         // look, no matter what the theme is
         "[&_.MuiSlider-rail]:!bg-[#494949]",
-        "[&_.MuiSlider-track]:!bg-dark-sds-color-primitive-blue-400",
         "[&_.MuiSlider-mark]:!bg-[#696969]",
-        "[&_.MuiSlider-valueLabel]:!bg-dark-sds-color-primitive-blue-400",
         "[&_.MuiSlider-valueLabelLabel]:!text-white"
       )}
       sx={{

@@ -344,6 +344,14 @@ export function OmeZarrImageViewer(
               max={1}
               step={1 / (zRange[1] - zRange[0])}
               value={zValue}
+              className={cns(
+                // Hardcode dark mode colors to force dark mode
+                // look, no matter what the theme is
+                // (Sharing styles with ContrastSlider component)
+                "[&_.MuiSlider-rail]:!bg-[#494949]",
+                "[&_.MuiSlider-mark]:!bg-[#696969]",
+                "[&_.MuiSlider-valueLabelLabel]:!text-white"
+              )}
               onChange={(_, value: number | number[]) => {
                 if (typeof value === "number") {
                   setZValue(value);
