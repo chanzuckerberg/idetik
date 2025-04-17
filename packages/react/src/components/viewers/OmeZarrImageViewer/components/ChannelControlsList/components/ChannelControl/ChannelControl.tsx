@@ -26,7 +26,7 @@ export function ChannelControl({
 }: ChannelControlProps) {
   return (
     <div className="grid grid-cols-subgrid col-start-1 col-end-5 items-center">
-      <div className="text-right text-xs text-white font-mono">{label}</div>
+      <div className="text-right text-xs text-white font-sds-code">{label}</div>
       <div className="col-span-3 flex items-center">
         <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
         <ColorPicker color={color} onChange={onColorChange} />

@@ -296,7 +296,7 @@ export function OmeZarrImageViewer(
                   "p-sds-xs",
                   "rounded-sds-m",
                   "shadow-sds-m",
-                  "font-mono"
+                  "font-sds-code"
                 )}
               >
                 Slice {zIndex}/{zRange[1] - zRange[0]}
