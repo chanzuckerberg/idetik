@@ -38,7 +38,10 @@ export function ContrastSlider({
         // look, no matter what the theme is
         "[&_.MuiSlider-rail]:!bg-[#494949]",
         "[&_.MuiSlider-mark]:!bg-[#696969]",
-        "[&_.MuiSlider-valueLabelLabel]:!text-white"
+        "[&_.MuiSlider-valueLabelLabel]:!text-white",
+        "[&_.MuiSlider-valueLabel]:!bg-[#0D7CB5]" // This is a biohub color,
+        // not sure how I can take theme variables from the actual application
+        // and use them here
       )}
       sx={{
         // Hacky way to override the thumb circle color to white
