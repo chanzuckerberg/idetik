@@ -311,7 +311,7 @@ export function OmeZarrImageViewer(
             size="small"
             disabled={loading}
             onClick={loadAllSlicesCallback}
-            className="mt-sds-l"
+            className="mt-sds-l shadow-sds-m"
           >
             {props.allSlicesSizeEstimate
               ? `Load 3D high-res (${props.allSlicesSizeEstimate})`
