@@ -42,7 +42,6 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected renderObject(layer: Layer, objectIndex: number) {
-
     const object = layer.objects[objectIndex];
     console.debug("Shader program:", object.programName);
     console.debug("layer.opacity", layer.opacity);

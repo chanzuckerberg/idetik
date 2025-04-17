@@ -21,7 +21,6 @@ export class LayerManager {
     return { opaque, transparent };
   }
 
-
   public add(layer: Layer) {
     this.layers_.push(layer);
   }

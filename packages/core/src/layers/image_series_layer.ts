@@ -58,7 +58,11 @@ export class ImageSeriesLayer extends Layer {
     opacity = 1.0,
     blendingMode = "normal",
   }: ImageSeriesLayerProps) {
-    console.log("ImageSeriesLayer constructor", { isTransparent, opacity, blendingMode });
+    console.log("ImageSeriesLayer constructor", {
+      isTransparent,
+      opacity,
+      blendingMode,
+    });
     super({ isTransparent, opacity, blendingMode });
     this.setState("initialized");
     this.source_ = source;

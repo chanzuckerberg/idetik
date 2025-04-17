@@ -56,7 +56,6 @@ if (slider === null) throw new Error("Time slider not found.");
 slider.min = `${timeInterval.start}`;
 slider.max = `${timeInterval.stop - 1}`;
 
-
 slider.addEventListener("input", (event) => {
   const value = (event.target as HTMLInputElement).valueAsNumber;
   const index = value - timeInterval.start;
