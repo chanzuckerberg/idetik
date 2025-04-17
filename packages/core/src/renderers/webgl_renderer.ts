@@ -1,5 +1,4 @@
 import { Renderer } from "core/renderer";
-import { RenderableObject } from "core/renderable_object";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
 import { Shader, shaderCode } from "./shaders";
@@ -7,6 +6,7 @@ import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
 import { mat4 } from "gl-matrix";
+import { Layer } from "core/layer";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -41,8 +41,39 @@ export class WebGLRenderer extends Renderer {
     this.resize(this.canvas.width, this.canvas.height);
   }
 
-  protected renderObject(object: RenderableObject) {
+  protected renderObject(layer: Layer, objectIndex: number) {
+
+    const object = layer.objects[objectIndex];
+    console.debug("Shader program:", object.programName);
+    console.debug("layer.opacity", layer.opacity);
     const program = this.getShaderProgram(object.programName).use();
+
+    if (layer.isTransparent) {
+      this.gl.enable(this.gl.POLYGON_OFFSET_FILL);
+      this.gl.polygonOffset(1.0, 1.0);
+
+      this.gl.enable(this.gl.BLEND);
+
+      switch (layer.blendingMode) {
+        case "additive":
+          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE);
+          break;
+        case "multiply":
+          this.gl.blendFunc(this.gl.DST_COLOR, this.gl.ZERO);
+          break;
+        case "subtractive":
+          this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_COLOR);
+          break;
+        case "normal":
+        default:
+          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+      }
+
+      this.gl.depthMask(false);
+    } else {
+      this.gl.disable(this.gl.BLEND);
+      this.gl.depthMask(true);
+    }
 
     const modelView = mat4.multiply(
       mat4.create(),
@@ -69,6 +100,10 @@ export class WebGLRenderer extends Renderer {
         case "Resolution":
           program.setUniform(uniformName, resolution);
           break;
+        case "u_opacity":
+          console.debug("Setting u_opacity to", layer.opacity);
+          program.setUniform(uniformName, layer.opacity);
+          break;
         default:
           // Get uniforms from the renderable object
           if (uniformName in objectUniforms) {
@@ -90,6 +125,11 @@ export class WebGLRenderer extends Renderer {
       this.gl.drawElements(type, index.length, this.gl.UNSIGNED_INT, 0);
     } else {
       this.gl.drawArrays(type, 0, object.geometry.itemSize);
+    }
+
+    if (layer.isTransparent) {
+      // Apply polygon offset to avoid z-fighting for overlapping transparent layers
+      this.gl.disable(this.gl.POLYGON_OFFSET_FILL);
     }
   }
 

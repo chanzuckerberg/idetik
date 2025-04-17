@@ -20,9 +20,9 @@ export abstract class Layer {
   private state_: LayerState = "initialized";
   private readonly callbacks_: StateChangeCallback[] = [];
 
-  public readonly isTransparent: boolean;
-  public readonly opacity: number;
-  public readonly blendingMode: BlendingMode;
+  public isTransparent: boolean;
+  public opacity: number;
+  public blendingMode: BlendingMode;
 
   constructor({
     isTransparent = false,
@@ -37,6 +37,18 @@ export abstract class Layer {
     this.isTransparent = isTransparent;
     this.opacity = clamp(opacity, 0.0, 1.0);
     this.blendingMode = blendingMode;
+  }
+
+  public setBlendingMode(mode: BlendingMode): void {
+    this.blendingMode = mode;
+  }
+
+  public setOpacity(opacity: number): void {
+    this.opacity = clamp(opacity, 0.0, 1.0);
+  }
+
+  public setIsTransparent(isTransparent: boolean): void {
+    this.isTransparent = isTransparent;
   }
 
   public abstract update(): void;
@@ -64,7 +76,7 @@ export abstract class Layer {
   protected setState(newState: LayerState) {
     const prevState = this.state_;
     this.state_ = newState;
-    console.debug(`${this.constructor.name} state change: ${newState}`);
+    // console.debug(`${this.constructor.name} state change: ${newState}`);
     this.callbacks_.forEach((callback) => callback(newState, prevState));
   }
 
