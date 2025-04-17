@@ -69,7 +69,16 @@ export default function App() {
   }, []);
 
   return (
-    <div className={cns("h-screen", "flex", "flex-row", "gap-4", "p-4")}>
+    <div
+      className={cns(
+        "h-screen",
+        "flex",
+        "flex-row",
+        // Organelle Box is using bg-dark-sds-color-primitive-gray-100
+        // behind the image viewer
+        "bg-dark-sds-color-primitive-gray-100"
+      )}
+    >
       <div
         className={cns(
           "w-full",
