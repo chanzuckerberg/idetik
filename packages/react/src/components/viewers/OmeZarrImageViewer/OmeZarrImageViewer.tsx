@@ -15,6 +15,7 @@ import { Renderer } from "./components/Renderer";
 import { ChannelControlsList } from "./components/ChannelControlsList";
 import { ChannelControlProps } from "./components/ChannelControlsList/components/ChannelControl";
 import { omeroToChannelProps, omeroToControlProps } from "./utils";
+import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
 
 interface OmeZarrImageViewerProps {
   sourceUrl: string;
@@ -291,7 +292,7 @@ export function OmeZarrImageViewer(
                 className={cns(
                   "text-white",
                   "text-sm",
-                  "bg-black/50",
+                  "bg-black/75",
                   "backdrop-blur-md",
                   "p-sds-xs",
                   "rounded-sds-m",
@@ -332,7 +333,7 @@ export function OmeZarrImageViewer(
               "items-center",
               "gap-2",
               "mt-sds-l",
-              "bg-black/50",
+              "bg-black/75",
               "backdrop-blur-md",
               "rounded-sds-m",
               "shadow-sds-m",
@@ -345,17 +346,7 @@ export function OmeZarrImageViewer(
               max={1}
               step={1 / (zRange[1] - zRange[0])}
               value={zValue}
-              className={cns(
-                // Hardcode dark mode colors to force dark mode
-                // look, no matter what the theme is
-                // (Sharing styles with ContrastSlider component)
-                "[&_.MuiSlider-rail]:!bg-[#494949]",
-                "[&_.MuiSlider-mark]:!bg-[#696969]",
-                "[&_.MuiSlider-valueLabelLabel]:!text-white",
-                "[&_.MuiSlider-valueLabel]:!bg-[#0D7CB5]" // This is a biohub color,
-                // not sure how I can take theme variables from the actual application
-                // and use them here
-              )}
+              {...MODIFIED_SLIDER_STYLES}
               onChange={(_, value: number | number[]) => {
                 if (typeof value === "number") {
                   setZValue(value);

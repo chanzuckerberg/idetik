@@ -64,7 +64,7 @@ export function ChannelControlsList({
     <div
       className={cns(
         "text-white",
-        "bg-black/50",
+        "bg-black/75",
         "backdrop-blur-md",
         "transition-[left]",
         "duration-300",
