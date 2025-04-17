@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import cns from "classnames";
-import {
-  Button,
-  InputSlider,
-  LoadingIndicator,
-  Tag,
-} from "@czi-sds/components";
+import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import {
   ImageSeriesLayer,
   LayerManager,
@@ -273,8 +268,7 @@ export function OmeZarrImageViewer(
           "bottom-0",
           "right-0",
           "w-full",
-          "px-5",
-          "py-3",
+          "m-sds-l",
           "flex",
           "flex-col",
           "items-end"
@@ -289,40 +283,59 @@ export function OmeZarrImageViewer(
             "h-6"
           )}
         >
-          {!allSlicesLoaded && (
-            <Button
-              sdsType="primary"
-              sdsStyle="rounded"
-              size="small"
-              disabled={loading}
-              onClick={loadAllSlicesCallback}
-            >
-              {props.allSlicesSizeEstimate
-                ? `Load 3D high-res (${props.allSlicesSizeEstimate})`
-                : "Load 3D high-res"}
-            </Button>
-          )}
           <div className={cns("flex", "justify-end", "w-1/3")}>
             {!loading && (
-              // TODO: "tag" is not very semantic but this looks okay
-              <Tag
-                label={`slice ${zIndex}/${zRange[1] - zRange[0]}`}
-                sdsStyle="square"
-                sdsType="secondary"
-                hover={false}
-              />
+              <div
+                // These share styles with ChannelControlsList
+                className={cns(
+                  "text-white",
+                  "text-sm",
+                  "bg-black/50",
+                  "backdrop-blur-md",
+                  "p-sds-xs",
+                  "rounded-sds-m",
+                  "shadow-sds-m",
+                  "font-mono"
+                )}
+              >
+                Slice {zIndex}/{zRange[1] - zRange[0]}
+              </div>
             )}
             {loading && <LoadingIndicator sdsStyle="tag" />}
           </div>
         </div>
+        {!allSlicesLoaded && (
+          <Button
+            sdsType="primary"
+            sdsStyle="square"
+            size="small"
+            disabled={loading}
+            onClick={loadAllSlicesCallback}
+            className="mt-sds-l"
+          >
+            {props.allSlicesSizeEstimate
+              ? `Load 3D high-res (${props.allSlicesSizeEstimate})`
+              : "Load 3D high-res"}
+          </Button>
+        )}
         {allSlicesLoaded && (
           <div
             className={cns(
-              "w-2/3",
+              // When using width 100%, the slider goes out of the
+              // container, just undo it by subtracting the margin
+              // of the container
+              "w-[calc(100%-2*theme(spacing.sds-l))] md:w-[200px]",
               "flex",
               "justify-center",
               "items-center",
-              "gap-2"
+              "gap-2",
+              "mt-sds-l",
+              "bg-black/50",
+              "backdrop-blur-md",
+              "rounded-sds-m",
+              "shadow-sds-m",
+              "py-sds-xs",
+              "px-sds-m"
             )}
           >
             <InputSlider
