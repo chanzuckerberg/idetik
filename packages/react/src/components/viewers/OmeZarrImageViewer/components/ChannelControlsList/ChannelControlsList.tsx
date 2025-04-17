@@ -64,12 +64,16 @@ export function ChannelControlsList({
     <div
       className={cns(
         "text-white",
-        "bg-black/20",
+        "bg-black/50",
         "backdrop-blur-md",
         "transition-[left]",
         "duration-300",
         "ease-in-out",
-        "flex"
+        "flex",
+        "rounded-sds-m",
+        "shadow-sds-m",
+        "m-sds-l",
+        "p-sds-xs"
       )}
     >
       <Accordion
@@ -142,7 +146,7 @@ export function ChannelControlsList({
                 sdsStyle="minimal"
                 sdsType="primary"
                 // Force dark mode styles on hover
-                className="text-white hidden md:block hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
+                className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
                 onClick={() => {
                   resetCallback().then(() => {
                     setChannelProps(layer.channelProps ?? []);
