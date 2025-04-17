@@ -27,7 +27,6 @@ export abstract class Layer {
   public readonly opacity: number;
   public readonly blendingMode: BlendingMode;
 
-  /* eslint-disable @typescript-eslint/no-unused-vars -- these fields are scaffolded for upcoming blending support */
   constructor({
     isTransparent = false,
     opacity = 1.0,
@@ -42,7 +41,6 @@ export abstract class Layer {
     this.opacity = clamp01(opacity);
     this.blendingMode = blendingMode;
   }
-  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   public abstract update(): void;
 
