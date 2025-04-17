@@ -18,6 +18,12 @@ export class LayerManager {
       }
     }
 
+    // Sort layers by zIndex:
+    // - Opaque: front-to-back (ascending) to optimize early depth rejection
+    // - Transparent: back-to-front (descending) to ensure correct alpha compositing
+    opaque.sort((a, b) => a.zIndex - b.zIndex);
+    transparent.sort((a, b) => b.zIndex - a.zIndex);
+
     return { opaque, transparent };
   }
 

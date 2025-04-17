@@ -43,8 +43,6 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(layer: Layer, objectIndex: number) {
     const object = layer.objects[objectIndex];
-    console.debug("Shader program:", object.programName);
-    console.debug("layer.opacity", layer.opacity);
     const program = this.getShaderProgram(object.programName).use();
 
     if (layer.isTransparent) {
@@ -100,7 +98,6 @@ export class WebGLRenderer extends Renderer {
           program.setUniform(uniformName, resolution);
           break;
         case "u_opacity":
-          console.debug("Setting u_opacity to", layer.opacity);
           program.setUniform(uniformName, layer.opacity);
           break;
         default:

@@ -7,6 +7,7 @@ import {
   WebGLRenderer,
 } from "@";
 import { BlendingMode } from "@/core/layer";
+import { loadOmeroDefaultZ } from "data/ome_zarr_hcs_metadata_loader";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
@@ -17,11 +18,23 @@ const camera = new OrthographicCamera(0, 1920, 0, 1440);
 // Source is 5D, so provide an interval in T a scalar index in Z
 // (first of only depth) to get a 2D image series.
 const source = new OmeZarrImageSource(url);
+
+// Get the default Z index from the zattrs
+let zIndex = 0;
+(async () => {
+  try {
+    zIndex = await loadOmeroDefaultZ(url);
+    console.log("Default Z index:", zIndex);
+  } catch (error) {
+    console.error("Error loading default Z index:", error);
+  }
+})();
+
 const timeInterval = { start: 100, stop: 120 };
 const region: Region = [
   { dimension: "T", index: { type: "interval", ...timeInterval } },
   { dimension: "C", index: { type: "full" } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "Z", index: { type: "point", value: zIndex } },
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },
 ];
@@ -49,6 +62,7 @@ const layer = new ImageSeriesLayer({
   region,
   seriesDimensionName: "T",
   channelProps,
+  zIndex,
 });
 layerManager.add(layer);
 

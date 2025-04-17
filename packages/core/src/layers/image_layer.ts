@@ -1,4 +1,4 @@
-import { Layer } from "core/layer";
+import { BlendingMode, Layer } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
@@ -10,6 +10,10 @@ export type ImageLayerProps = {
   source: ImageChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
+  isTransparent?: boolean;
+  opacity?: number;
+  blendingMode?: BlendingMode;
+  zIndex?: number;
 };
 
 // Loads data from an image source into renderable objects.
@@ -24,8 +28,16 @@ export class ImageLayer extends Layer {
   private renderable_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
-  constructor({ source, region, channelProps }: ImageLayerProps) {
-    super();
+  constructor({
+    source,
+    region,
+    channelProps,
+    isTransparent,
+    opacity,
+    blendingMode,
+    zIndex,
+  }: ImageLayerProps) {
+    super({ isTransparent, opacity, blendingMode, zIndex });
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;

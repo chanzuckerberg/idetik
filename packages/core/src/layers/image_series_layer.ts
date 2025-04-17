@@ -19,6 +19,7 @@ type ImageSeriesLayerProps = {
   isTransparent?: boolean;
   opacity?: number;
   blendingMode?: BlendingMode;
+  zIndex?: number;
 };
 
 export type SeriesAttributes = {
@@ -57,13 +58,9 @@ export class ImageSeriesLayer extends Layer {
     isTransparent = false,
     opacity = 1.0,
     blendingMode = "normal",
+    zIndex = 0,
   }: ImageSeriesLayerProps) {
-    console.log("ImageSeriesLayer constructor", {
-      isTransparent,
-      opacity,
-      blendingMode,
-    });
-    super({ isTransparent, opacity, blendingMode });
+    super({ isTransparent, opacity, blendingMode, zIndex });
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
