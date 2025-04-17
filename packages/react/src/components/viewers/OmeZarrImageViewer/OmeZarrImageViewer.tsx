@@ -299,7 +299,8 @@ export function OmeZarrImageViewer(
                   "font-sds-code"
                 )}
               >
-                Slice {zIndex}/{zRange[1] - zRange[0]}
+                Slice {zIndex.toString().padStart(2, "0")}/
+                {zRange[1] - zRange[0]}
               </div>
             )}
             {loading && <LoadingIndicator sdsStyle="tag" />}
