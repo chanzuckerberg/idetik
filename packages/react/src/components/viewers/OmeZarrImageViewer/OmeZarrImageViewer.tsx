@@ -252,7 +252,8 @@ export function OmeZarrImageViewer(
             "top-0",
             "left-0",
             "w-full",
-            "md:w-[400px]"
+            "md:!w-[400px]" // For some reason, this gets overwritten when compiled
+            // so make it important
           )}
         >
           <ChannelControlsList
