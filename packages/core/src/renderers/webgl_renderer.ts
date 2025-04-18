@@ -1,6 +1,7 @@
 import { Renderer } from "core/renderer";
 import { RenderableObject } from "core/renderable_object";
 import { WebGLShaderProgram } from "./webgl_shader_program";
+import { Logger } from "utilities/logger";
 
 import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
@@ -33,7 +34,7 @@ export class WebGLRenderer extends Renderer {
     if (!this.gl_) {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
-    console.log(`WebGL version ${this.gl.getParameter(this.gl.VERSION)}`);
+    Logger.info(`WebGL version ${this.gl.getParameter(this.gl.VERSION)}`);
 
     this.shaders_ = new Map<Shader, WebGLShaderProgram>();
     this.bindings_ = new WebGLBuffers(this.gl);

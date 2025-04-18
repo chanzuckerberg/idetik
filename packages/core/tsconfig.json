@@ -31,7 +31,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    "types": ["vite-plugin-glsl/ext"]
+    "types": ["vite-plugin-glsl/ext", "vite/client"]
   },
   "include": ["examples", "src", "test"]
 }
