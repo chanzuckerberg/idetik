@@ -3,7 +3,7 @@ import { Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { ChannelProps } from "objects/textures/channel";
 import { ImageRenderable } from "objects/renderable/image_renderable";
-import { Texture2D } from "objects/textures/texture_2d";
+import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 
 export type ImageLayerProps = {
@@ -67,11 +67,7 @@ export class ImageLayer extends Layer {
       y: chunk.shape.y * chunk.scale.y,
     };
 
-    this.image_ = this.createImage(
-      chunk,
-      Texture2D.createWithImageChunk(chunk),
-      this.channelProps_
-    );
+    this.image_ = this.createImage(chunk, this.channelProps_);
     this.addObject(this.image_);
 
     this.setState("ready");
@@ -83,13 +79,15 @@ export class ImageLayer extends Layer {
     return this.extent_;
   }
 
-  private createImage(
-    chunk: ImageChunk,
-    texture: Texture2D,
-    channelProps?: ChannelProps[]
-  ) {
+  private createImage(chunk: ImageChunk, channelProps?: ChannelProps[]) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-    const image = new ImageRenderable(geometry, texture, channelProps);
+
+    const image = new ImageRenderable(
+      geometry,
+      Texture2DArray.createWithImageChunk(chunk),
+      channelProps
+    );
+
     image.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
     return image;

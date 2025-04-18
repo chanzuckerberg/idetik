@@ -37,7 +37,7 @@ export class ImageSeriesLayer extends Layer {
   private readonly seriesDimensionName_: string;
   private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
-  private readonly loader_: ImageChunkLoader | null = null;
+  private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
   private texture_: Texture2DArray | null = null;
@@ -262,11 +262,9 @@ export class ImageSeriesLayer extends Layer {
     return this.extent_;
   }
 
-  private async getLoader(): Promise<ImageChunkLoader> {
-    if (this.loader_) {
-      return this.loader_;
-    }
-    return await this.source_.open();
+  private async getLoader() {
+    this.loader_ ??= await this.source_.open();
+    return this.loader_;
   }
 
   private setLoadingStateFromToken(token?: LoadingToken) {
