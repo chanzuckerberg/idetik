@@ -13,7 +13,7 @@ export function ColorPicker({ color, onChange }: ColorPickerProps) {
         type="color"
         value={rgbToHex(color)}
         onChange={(e) => onChange(hexToRgb(e.target.value))}
-        className="w-[26px] h-[30px] cursor-pointer appearance-none bg-transparent border-0 p-0 m-0"
+        className="cursor-pointer appearance-none bg-transparent border-0 p-0 m-0"
         style={{
           WebkitAppearance: "none",
           MozAppearance: "none",

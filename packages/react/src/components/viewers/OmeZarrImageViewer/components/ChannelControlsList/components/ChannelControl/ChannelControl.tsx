@@ -45,7 +45,7 @@ export function ChannelControl({
           disableHoverListener={visible}
         >
           {/* https://sds.czi.design/009eaf17b/p/74af45-tooltips/t/3543fca49d */}
-          <span className="flex-1 mx-[7px] mt-[5px]">
+          <span className="flex-1 ml-[12px] mt-[5px]">
             <ContrastSlider
               min={contrastRange[0]}
               max={contrastRange[1]}
