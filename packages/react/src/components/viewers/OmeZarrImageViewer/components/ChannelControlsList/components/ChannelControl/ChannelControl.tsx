@@ -1,6 +1,7 @@
 import { VisibilityToggle } from "./components/VisibilityToggle";
 import { ColorPicker } from "./components/ColorPicker";
 import { ContrastSlider } from "./components/ContrastSlider";
+import { Tooltip } from "@czi-sds/components";
 
 export interface ChannelControlProps {
   channelIndex: number;
@@ -32,14 +33,28 @@ export function ChannelControl({
       <div className="col-span-3 flex items-center">
         <VisibilityToggle visible={visible} onChange={onVisibilityChange} />
         <ColorPicker color={color} onChange={onColorChange} />
-        <div className="flex-1 mx-[7px] mt-[5px]">
-          <ContrastSlider
-            min={contrastRange[0]}
-            max={contrastRange[1]}
-            value={contrastLimits}
-            onChange={onContrastChange}
-          />
-        </div>
+        <Tooltip
+          arrow
+          sdsStyle="light"
+          title="Please click on the eye icon to enable contrast adjustment"
+          placement="top"
+          classes={{
+            tooltip: "!bg-white !text-black",
+            arrow: "!text-white",
+          }}
+          disableHoverListener={visible}
+        >
+          {/* https://sds.czi.design/009eaf17b/p/74af45-tooltips/t/3543fca49d */}
+          <span className="flex-1 mx-[7px] mt-[5px]">
+            <ContrastSlider
+              min={contrastRange[0]}
+              max={contrastRange[1]}
+              value={contrastLimits}
+              onChange={onContrastChange}
+              disabled={!visible}
+            />
+          </span>
+        </Tooltip>
       </div>
     </div>
   );

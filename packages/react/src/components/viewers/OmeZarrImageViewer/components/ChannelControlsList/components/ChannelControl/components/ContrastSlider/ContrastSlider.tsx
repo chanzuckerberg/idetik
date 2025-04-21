@@ -6,6 +6,7 @@ interface ContrastSliderProps {
   min: number;
   max: number;
   onChange: (limits: [number, number]) => void;
+  disabled?: boolean;
 }
 
 export function ContrastSlider({
@@ -13,6 +14,7 @@ export function ContrastSlider({
   max,
   value,
   onChange,
+  disabled,
 }: ContrastSliderProps) {
   const handleChange = (_event: Event, newValue: number | number[]) => {
     const limits = newValue as number[];
@@ -33,6 +35,7 @@ export function ContrastSlider({
       max={max}
       step={step}
       valueLabelDisplay="auto"
+      disabled={disabled}
       {...MODIFIED_SLIDER_STYLES}
     />
   );
