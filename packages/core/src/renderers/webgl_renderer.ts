@@ -118,7 +118,6 @@ export class WebGLRenderer extends Renderer {
     } else {
       this.gl.drawArrays(type, 0, object.geometry.itemSize);
     }
-
   }
 
   protected resize(width: number, height: number) {
