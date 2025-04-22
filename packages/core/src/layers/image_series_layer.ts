@@ -174,10 +174,6 @@ export class ImageSeriesLayer extends Layer {
     const seriesStart = indexIsFull ? 0 : this.seriesIndex_.start;
     const seriesStop = indexIsFull ? seriesMax : this.seriesIndex_.stop;
 
-    // console.debug(
-    //   `ImageSeriesLayer, loading index range: ${seriesStart}-${seriesStop} (${(seriesStop - seriesStart) / seriesDimScale - 1} slices) for dim ${this.seriesDimensionName_}`
-    // );
-
     const seriesLength = Math.round(
       (seriesStop - seriesStart) / seriesDimScale
     );
@@ -217,24 +213,24 @@ export class ImageSeriesLayer extends Layer {
     const chunk = await loader.loadChunk(pointRegion, this.scheduler_);
 
     this.dataChunks_[index] = chunk;
-    // console.debug(
-    //   `Loaded data for position ${position} (array index ${index})`
-    // );
+    console.debug(
+      `Loaded data for position ${position} (array index ${index})`
+    );
     if (!token) {
-      // console.debug(
-      //   `Not setting data for position ${position} (array index ${index}) - loaded in background`
-      // );
+      console.debug(
+        `Not setting data for position ${position} (array index ${index}) - loaded in background`
+      );
       return;
     }
 
     if (token.canceled) {
-      // console.debug(
-      //   `Not setting data for position ${position} (array index ${index}) - canceled by subsequent request`
-      // );
+      console.debug(
+        `Not setting data for position ${position} (array index ${index}) - canceled by subsequent request`
+      );
     } else {
-      // console.debug(
-      //   `Setting data for position ${position} (array index ${index})`
-      // );
+      console.debug(
+        `Setting data for position ${position} (array index ${index})`
+      );
       this.loadingToken_ = null;
       this.setData(chunk);
       this.setState("ready");

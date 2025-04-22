@@ -46,10 +46,9 @@ export class WebGLRenderer extends Renderer {
     const program = this.getShaderProgram(object.programName).use();
 
     if (layer.isTransparent) {
-      this.gl.enable(this.gl.POLYGON_OFFSET_FILL);
-      this.gl.polygonOffset(1.0, 1.0);
 
       this.gl.enable(this.gl.BLEND);
+      this.gl.depthMask(false);
 
       switch (layer.blendingMode) {
         case "additive":
@@ -66,7 +65,7 @@ export class WebGLRenderer extends Renderer {
           this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
       }
 
-      this.gl.depthMask(false);
+
     } else {
       this.gl.disable(this.gl.BLEND);
       this.gl.depthMask(true);
