@@ -70,13 +70,10 @@ export function ChannelControlsList({
         "duration-300",
         "ease-in-out",
         "flex",
+        "rounded-sds-m",
         "shadow-sds-m",
-        "m-0",
-        "md:m-sds-l",
-        "p-0",
-        "md:p-sds-xs",
-        "rounded-none",
-        "md:rounded-sds-m"
+        "m-sds-l",
+        "p-sds-xs"
       )}
     >
       <Accordion
@@ -102,13 +99,7 @@ export function ChannelControlsList({
         </div>
 
         <AccordionDetails>
-          <div
-            className={cns(
-              // The negative margins make the controls more compact on mobile,
-              // so we show more of the image
-              "grid grid-cols-4 grid-rows-auto -my-sds-xs md:my-0 [&>*]:-my-sds-m md:[&>*]:my-0"
-            )}
-          >
+          <div className={cns("grid grid-cols-4 grid-rows-auto")}>
             {channelProps.map((props: ChannelProps, index: number) => {
               // TODO: can possibly clean this up with better types
               // error on undefined values - we're setting defaults
