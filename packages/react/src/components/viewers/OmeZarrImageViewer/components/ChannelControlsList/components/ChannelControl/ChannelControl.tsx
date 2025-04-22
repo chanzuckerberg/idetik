@@ -36,10 +36,12 @@ export function ChannelControl({
         <Tooltip
           arrow
           sdsStyle="light"
-          title="Please click on the eye icon to enable contrast adjustment"
+          title="This layer is hidden"
+          subtitle="Click the eye icon to enable contrast adjustment."
           placement="top"
           classes={{
-            tooltip: "!bg-white !text-black",
+            // Force dark mode theme on tooltip
+            tooltip: "!bg-white !text-black [&_div]:!text-[#696969]",
             arrow: "!text-white",
           }}
           disableHoverListener={visible}
