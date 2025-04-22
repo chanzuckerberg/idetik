@@ -73,22 +73,14 @@ export default function App() {
       className={cns(
         "h-screen",
         "flex",
-        "flex-row",
+        "flex-col",
+        "overflow-hidden",
         // Organelle Box is using bg-dark-sds-color-primitive-gray-100
         // behind the image viewer
         "bg-dark-sds-color-primitive-gray-100"
       )}
     >
-      <div
-        className={cns(
-          "w-full",
-          "h-full",
-          "flex",
-          "flex-col",
-          "flex-1",
-          "gap-4"
-        )}
-      >
+      <div className={cns("flex-grow")}>
         <OmeZarrImageViewer
           sourceUrl={imageUrl}
           region={region}
@@ -105,6 +97,7 @@ export default function App() {
         type="button"
         value="Switch Image"
         onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
+        className="h-12"
       />
     </div>
   );
