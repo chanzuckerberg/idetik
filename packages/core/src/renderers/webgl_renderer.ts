@@ -46,7 +46,6 @@ export class WebGLRenderer extends Renderer {
     const program = this.getShaderProgram(object.programName).use();
 
     if (layer.isTransparent) {
-
       this.gl.enable(this.gl.BLEND);
       this.gl.depthMask(false);
 
@@ -64,8 +63,6 @@ export class WebGLRenderer extends Renderer {
         default:
           this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
       }
-
-
     } else {
       this.gl.disable(this.gl.BLEND);
       this.gl.depthMask(true);
