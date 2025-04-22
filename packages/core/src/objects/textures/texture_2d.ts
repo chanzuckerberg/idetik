@@ -3,6 +3,7 @@ import {
   Texture,
   bufferToDataType,
 } from "objects/textures/texture";
+import { ImageChunk } from "data/image_chunk";
 
 export class Texture2D extends Texture {
   private data_: DataTextureTypedArray;
@@ -38,5 +39,12 @@ export class Texture2D extends Texture {
 
   public get height() {
     return this.height_;
+  }
+
+  public static createWithImageChunk(chunk: ImageChunk) {
+    const texture = new Texture2D(chunk.data, chunk.shape.x, chunk.shape.y);
+    texture.unpackRowLength = chunk.rowStride;
+    texture.unpackAlignment = chunk.rowAlignmentBytes;
+    return texture;
   }
 }
