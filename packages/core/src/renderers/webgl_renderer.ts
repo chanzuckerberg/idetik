@@ -119,10 +119,6 @@ export class WebGLRenderer extends Renderer {
       this.gl.drawArrays(type, 0, object.geometry.itemSize);
     }
 
-    if (layer.isTransparent) {
-      // Apply polygon offset to avoid z-fighting for overlapping transparent layers
-      this.gl.disable(this.gl.POLYGON_OFFSET_FILL);
-    }
   }
 
   protected resize(width: number, height: number) {
