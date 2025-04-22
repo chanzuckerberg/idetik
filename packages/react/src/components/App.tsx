@@ -70,7 +70,11 @@ export default function App() {
 
   return (
     <div
+      // Container represents how it'll look in the Organelle Box portal
       className={cns(
+        "container",
+        "max-w-[713px]",
+        "mx-auto",
         "h-screen",
         "flex",
         "flex-col",
@@ -80,7 +84,7 @@ export default function App() {
         "bg-dark-sds-color-primitive-gray-100"
       )}
     >
-      <div className={cns("flex-grow")}>
+      <div className={cns("aspect-square")}>
         <OmeZarrImageViewer
           sourceUrl={imageUrl}
           region={region}
