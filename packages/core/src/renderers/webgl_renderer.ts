@@ -34,7 +34,10 @@ export class WebGLRenderer extends Renderer {
     if (!this.gl_) {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
-    Logger.info(`WebGL version ${this.gl.getParameter(this.gl.VERSION)}`);
+    Logger.info(
+      "WebGLRenderer",
+      `WebGL version ${this.gl.getParameter(this.gl.VERSION)}`
+    );
 
     this.shaders_ = new Map<Shader, WebGLShaderProgram>();
     this.bindings_ = new WebGLBuffers(this.gl);

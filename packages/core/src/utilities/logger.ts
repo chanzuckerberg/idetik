@@ -14,7 +14,8 @@ const Colors = {
   error: "\x1b[31m", // red
 } satisfies Record<LogLevel, string>;
 
-const regex = /at new\s+(.*)\s+\(/;
+// Add new module names here as needed to represent different parts of the application
+type Module = "WebGLRenderer" | "WebGLShaderProgram";
 
 export class Logger {
   private static logLevel_: LogLevel =
@@ -25,49 +26,48 @@ export class Logger {
   }
 
   public static debug(
+    moduleName: Module,
     message: string,
-    moduleName?: string,
     ...params: unknown[]
   ) {
-    Logger.log("debug", message, moduleName, ...params);
+    Logger.log("debug", moduleName, message, ...params);
   }
 
   public static info(
+    moduleName: Module,
     message: string,
-    moduleName?: string,
     ...params: unknown[]
   ) {
-    Logger.log("info", message, moduleName, ...params);
+    Logger.log("info", moduleName, message, ...params);
   }
 
   public static warn(
+    moduleName: Module,
     message: string,
-    moduleName?: string,
     ...params: unknown[]
   ) {
-    Logger.log("warn", message, moduleName, ...params);
+    Logger.log("warn", moduleName, message, ...params);
   }
 
   public static error(
+    moduleName: Module,
     message: string,
-    moduleName?: string,
     ...params: unknown[]
   ) {
-    Logger.log("error", message, moduleName, ...params);
+    Logger.log("error", moduleName, message, ...params);
   }
 
   private static log(
     level: LogLevel,
+    moduleName: Module,
     message: string,
-    moduleName?: string,
     ...args: unknown[]
   ) {
     if (Levels[level] < Levels[Logger.logLevel_]) return;
 
     const timestamp = new Date().toISOString();
-    const module = moduleName ?? Logger.detectModuleName();
     const color = Colors[level];
-    const tag = `[${timestamp}][${level.toUpperCase()}][${module}]`;
+    const tag = `[${timestamp}][${level.toUpperCase()}][${moduleName}]`;
     const output = [`${color}${tag}`, message, ...args];
 
     switch (level) {
@@ -84,25 +84,5 @@ export class Logger {
         console.error(...output);
         break;
     }
-  }
-
-  private static detectModuleName(): string {
-    // This logic is based on the format of the stack trace in the V8 engine
-    // (used by Node.js and Chrome). It also makes some assumptions about the
-    // calling context of the logger. It's very brittle and may break in future
-    // versions of Node.js or Chrome. Let's keep it simple for now and improve
-    // it later if needed.
-    try {
-      const err = new Error();
-      const stack = err.stack?.split("\n");
-      if (!stack || stack.length < 4) return "unknown";
-      const callerLine = stack[4]; // "at new ModuleName (file:line)"
-      const match = regex.exec(callerLine);
-      if (match) return match[1].trim();
-    } catch {
-      // ignore errors
-    }
-
-    return "unknown";
   }
 }

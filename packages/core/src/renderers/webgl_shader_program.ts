@@ -46,7 +46,7 @@ export class WebGLShaderProgram {
       case this.gl_.BOOL:
       case this.gl_.FLOAT:
         if (typeof value === "number") {
-          this.gl_.uniform1f(location, value as number);
+          this.gl_.uniform1f(location, value);
         } else {
           this.gl_.uniform1fv(location, value as Iterable<number>);
         }
