@@ -45,6 +45,8 @@ export function ChannelControl({
             arrow: "!text-white",
           }}
           disableHoverListener={visible}
+          disableTouchListener={visible}
+          enterTouchDelay={0}
         >
           {/* https://sds.czi.design/009eaf17b/p/74af45-tooltips/t/3543fca49d */}
           <span className="flex-1 ml-[12px] mt-[5px]">
