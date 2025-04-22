@@ -84,7 +84,7 @@ export default function App() {
         "bg-dark-sds-color-primitive-gray-100"
       )}
     >
-      <div className={cns("aspect-square")}>
+      <div className={cns("aspect-[4/5] md:aspect-square")}>
         <OmeZarrImageViewer
           sourceUrl={imageUrl}
           region={region}
