@@ -15,8 +15,6 @@ interface OmeZarrViewerContainerProps {
   region: Region;
   seriesDimensionName: string;
   allSlicesSizeEstimate?: string;
-
-  // Optional callbacks for instrumentation
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
   onLoadAllSlicesClicked?: () => void;
@@ -59,11 +57,6 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onLoadAllSlicesClicked,
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
-  });
-  console.log("[Viewer] Rendering Renderer with", {
-    camera,
-    layerManager,
-    imageLayer,
   });
   return (
     <div
