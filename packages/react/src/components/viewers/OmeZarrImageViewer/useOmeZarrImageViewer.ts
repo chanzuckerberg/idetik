@@ -54,7 +54,6 @@ export function useOmeZarrViewer({
   }, [imageLayer]);
 
   useEffect(() => {
-    console.log("[Viewer] Creating new OmeZarrImageSource for", sourceUrl);
     const newSource = new OmeZarrImageSource(sourceUrl, 0);
     setSource(newSource);
     setAllSlicesLoaded(false);
