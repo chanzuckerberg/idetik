@@ -49,11 +49,10 @@ export function useOmeZarrViewer({
     if (imageLayer) {
       const newManager = new LayerManager();
       newManager.add(imageLayer);
-      setLayerManager(newManager); // ✅ critical for image to show
+      setLayerManager(newManager);
     }
   }, [imageLayer]);
 
-  // Setup new source whenever props change
   useEffect(() => {
     console.log("[Viewer] Creating new OmeZarrImageSource for", sourceUrl);
     const newSource = new OmeZarrImageSource(sourceUrl, 0);
@@ -164,7 +163,7 @@ export function useOmeZarrViewer({
       try {
         await imageLayer.setIndex(zIndex);
       } catch {
-        // console.debug("Z index load aborted");
+        console.debug("Z index load aborted");
       } finally {
         clearTimeout(t);
         if (didSetLoadingTrue) {
