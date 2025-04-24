@@ -22,7 +22,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    "types": ["vite-plugin-glsl/ext"]
+    "types": ["vite-plugin-glsl/ext", "node"]
   },
   "include": ["frontend"]
 }
