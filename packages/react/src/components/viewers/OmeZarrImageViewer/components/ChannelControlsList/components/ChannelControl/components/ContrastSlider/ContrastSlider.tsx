@@ -18,6 +18,10 @@ export function ContrastSlider({
 }: ContrastSliderProps) {
   const handleChange = (_event: Event, newValue: number | number[]) => {
     const limits = newValue as number[];
+    // prevent updating if the limits are invalid
+    if (limits[0] >= limits[1]) {
+      return;
+    }
     onChange([limits[0], limits[1]]);
   };
 
