@@ -1,11 +1,13 @@
-
-import {
-  ChannelControlsList,
-} from "./components/ChannelControlsList"; // adjust paths as needed
+import { ChannelControlsList } from "./components/ChannelControlsList"; // adjust paths as needed
 import { Renderer } from "./components/Renderer";
 import { useOmeZarrViewer } from "./useOmeZarrImageViewer";
 import { Region } from "@idetik/core";
-import { Button, Tag, InputSlider, LoadingIndicator } from "@czi-sds/components";
+import {
+  Button,
+  Tag,
+  InputSlider,
+  LoadingIndicator,
+} from "@czi-sds/components";
 import cns from "classnames";
 
 interface OmeZarrViewerContainerProps {
@@ -58,21 +60,27 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
   });
-  console.log("[Viewer] Rendering Renderer with", { camera, layerManager, imageLayer });
+  console.log("[Viewer] Rendering Renderer with", {
+    camera,
+    layerManager,
+    imageLayer,
+  });
   return (
-    <div className={cns(
-      "w-full",
-      "h-full",
-      "flex",
-      "flex-col",
-      "flex-1",
-      "gap-4",
-      "border",
-      "border-solid",
-      "border-black",
-      "min-h-0",
-      "relative"
-    )}>
+    <div
+      className={cns(
+        "w-full",
+        "h-full",
+        "flex",
+        "flex-col",
+        "flex-1",
+        "gap-4",
+        "border",
+        "border-solid",
+        "border-black",
+        "min-h-0",
+        "relative"
+      )}
+    >
       {/* Main Image Viewer (fills space behind everything else) */}
       <Renderer
         layerManager={layerManager}
@@ -92,19 +100,29 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
       )}
 
       {/* Bottom-right overlay */}
-      <div className={cns(
-        "absolute",
-        "bottom-0",
-        "right-0",
-        "w-full",
-        "px-5",
-        "py-3",
-        "flex",
-        "flex-col",
-        "items-end"
-      )}>
+      <div
+        className={cns(
+          "absolute",
+          "bottom-0",
+          "right-0",
+          "w-full",
+          "px-5",
+          "py-3",
+          "flex",
+          "flex-col",
+          "items-end"
+        )}
+      >
         {/* Slice Label + Load Button */}
-        <div className={cns("flex", "justify-end", "items-center", "w-full", "h-6")}>
+        <div
+          className={cns(
+            "flex",
+            "justify-end",
+            "items-center",
+            "w-full",
+            "h-6"
+          )}
+        >
           {!allSlicesLoaded && (
             <Button
               sdsType="primary"
@@ -134,13 +152,15 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
 
         {/* Z-index slider */}
         {allSlicesLoaded && (
-          <div className={cns(
-            "w-2/3",
-            "flex",
-            "justify-center",
-            "items-center",
-            "gap-2"
-          )}>
+          <div
+            className={cns(
+              "w-2/3",
+              "flex",
+              "justify-center",
+              "items-center",
+              "gap-2"
+            )}
+          >
             <InputSlider
               min={0}
               max={1}
