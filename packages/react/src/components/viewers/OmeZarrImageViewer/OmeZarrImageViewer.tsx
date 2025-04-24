@@ -81,14 +81,12 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
         "relative"
       )}
     >
-      {/* Main Image Viewer (fills space behind everything else) */}
       <Renderer
         layerManager={layerManager}
         camera={camera}
         cameraControls="panzoom"
       />
 
-      {/* Overlay Controls */}
       {imageLayer && (
         <div className={cns("absolute", "top-0", "left-0", "w-3/4")}>
           <ChannelControlsList
@@ -99,7 +97,6 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
         </div>
       )}
 
-      {/* Bottom-right overlay */}
       <div
         className={cns(
           "absolute",
@@ -113,7 +110,6 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
           "items-end"
         )}
       >
-        {/* Slice Label + Load Button */}
         <div
           className={cns(
             "flex",
@@ -150,7 +146,6 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
           </div>
         </div>
 
-        {/* Z-index slider */}
         {allSlicesLoaded && (
           <div
             className={cns(
