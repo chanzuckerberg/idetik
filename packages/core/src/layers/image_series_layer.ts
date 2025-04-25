@@ -1,4 +1,4 @@
-import { BlendingMode, Layer } from "core/layer";
+import { blendMode, Layer } from "core/layer";
 import { Full, Interval, Region } from "data/region";
 import {
   ImageChunk,
@@ -16,9 +16,9 @@ type ImageSeriesLayerProps = {
   region: Region;
   seriesDimensionName: string;
   channelProps?: ChannelProps[];
-  isTransparent?: boolean;
+  transparent?: boolean;
   opacity?: number;
-  blendingMode?: BlendingMode;
+  blendMode?: blendMode;
   zIndex?: number;
 };
 
@@ -55,12 +55,12 @@ export class ImageSeriesLayer extends Layer {
     region,
     seriesDimensionName,
     channelProps,
-    isTransparent = false,
+    transparent: transparent = false,
     opacity = 1.0,
-    blendingMode = "normal",
+    blendMode: blendMode = "normal",
     zIndex = 0,
   }: ImageSeriesLayerProps) {
-    super({ isTransparent, opacity, blendingMode, zIndex });
+    super({ transparent: transparent, opacity, blendMode: blendMode, zIndex });
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
@@ -86,12 +86,12 @@ export class ImageSeriesLayer extends Layer {
     return this.channelProps_;
   }
 
-  public setChannelProps(channelProps: ChannelProps[]): void {
+  public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.renderable_?.setChannelProps(channelProps);
   }
 
-  public update(): void {
+  public update() {
     if (this.state === "initialized") {
       this.loadSeriesAttributes();
     }
@@ -147,7 +147,7 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
-  public close(): void {
+  public close() {
     this.scheduler_.shutdown();
   }
 

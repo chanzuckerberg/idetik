@@ -45,11 +45,11 @@ export class WebGLRenderer extends Renderer {
     const object = layer.objects[objectIndex];
     const program = this.getShaderProgram(object.programName).use();
 
-    if (layer.isTransparent) {
+    if (layer.transparent) {
       this.gl.enable(this.gl.BLEND);
       this.gl.depthMask(false);
 
-      switch (layer.blendingMode) {
+      switch (layer.blendMode) {
         case "additive":
           this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE);
           break;

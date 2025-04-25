@@ -1,4 +1,4 @@
-import { BlendingMode, Layer } from "core/layer";
+import { blendMode, Layer } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
@@ -10,9 +10,9 @@ export type ImageLayerProps = {
   source: ImageChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
-  isTransparent?: boolean;
+  transparent?: boolean;
   opacity?: number;
-  blendingMode?: BlendingMode;
+  blendMode?: blendMode;
   zIndex?: number;
 };
 
@@ -32,19 +32,19 @@ export class ImageLayer extends Layer {
     source,
     region,
     channelProps,
-    isTransparent,
+    transparent: transparent,
     opacity,
-    blendingMode,
+    blendMode: blendMode,
     zIndex,
   }: ImageLayerProps) {
-    super({ isTransparent, opacity, blendingMode, zIndex });
+    super({ transparent: transparent, opacity, blendMode: blendMode, zIndex });
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
     this.channelProps_ = channelProps;
   }
 
-  public update(): void {
+  public update() {
     switch (this.state) {
       case "initialized":
         this.load(this.region_);
@@ -64,7 +64,7 @@ export class ImageLayer extends Layer {
     return this.channelProps_;
   }
 
-  public setChannelProps(channelProps: ChannelProps[]): void {
+  public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.renderable_?.setChannelProps(channelProps);
   }

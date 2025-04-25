@@ -11,7 +11,7 @@ export class LayerManager {
     const transparent: Layer[] = [];
 
     for (const layer of this.layers) {
-      if (layer.isTransparent) {
+      if (layer.transparent) {
         transparent.push(layer);
       } else {
         opaque.push(layer);

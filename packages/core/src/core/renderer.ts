@@ -41,7 +41,6 @@ export abstract class Renderer {
     }
     const { opaque, transparent } = layerManager.partitionLayers();
 
-    // Render opaque layers first
     for (const layer of opaque) {
       layer.update();
       if (layer.state === "ready") {
@@ -51,14 +50,10 @@ export abstract class Renderer {
       }
     }
 
-    // Render transparent layers last
     for (const layer of transparent) {
       layer.update();
-      if (layer.state === "ready") {
-        for (let i = 0; i < layer.objects.length; i++) {
-          this.renderObject(layer, i);
-        }
-      }
+      if (layer.state !== "ready") continue;
+      layer.objects.forEach((_, i) => this.renderObject(layer, i));
     }
   }
 

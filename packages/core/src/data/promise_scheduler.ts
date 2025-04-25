@@ -42,7 +42,7 @@ export class PromiseScheduler {
     });
   }
 
-  private maybeRunNext(): void {
+  private maybeRunNext() {
     if (this.numRunning_ >= this.maxConcurrent_) return;
     const promise = this.pending_.shift();
     if (promise === undefined) return;

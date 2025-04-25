@@ -6,7 +6,7 @@ import {
   Region,
   WebGLRenderer,
 } from "@";
-import { BlendingMode } from "@/core/layer";
+import { blendMode } from "@/core/layer";
 import { loadOmeroDefaultZ } from "data/ome_zarr_hcs_metadata_loader";
 
 const url =
@@ -24,7 +24,6 @@ let zIndex = 0;
 (async () => {
   try {
     zIndex = await loadOmeroDefaultZ(url);
-    console.log("Default Z index:", zIndex);
   } catch (error) {
     console.error("Error loading default Z index:", error);
   }
@@ -66,40 +65,26 @@ const layer = new ImageSeriesLayer({
 });
 layerManager.add(layer);
 
-const overlayChannelProps = [
-  {
-    visible: true,
-    color: [1, 1, 0] as [number, number, number], // yellow-ish red+green
-    contrastLimits: [0, 255] as [number, number],
-  },
-  {
-    visible: false,
-    color: [0, 0, 0] as [number, number, number],
-    contrastLimits: [0, 255] as [number, number],
-  },
-  {
-    visible: false,
-    color: [0, 0, 0] as [number, number, number],
-    contrastLimits: [128, 255] as [number, number],
-  },
-];
+const overlayChannelProps = structuredClone(channelProps);
+overlayChannelProps[0].visible = true;
+overlayChannelProps[0].color = [1, 1, 0] as [number, number, number]; // yellow-ish red+green
+overlayChannelProps[1].visible = false;
+overlayChannelProps[2].visible = false;
 
 const overlayLayer = new ImageSeriesLayer({
   source,
   region,
   seriesDimensionName: "T",
   channelProps: overlayChannelProps,
-  isTransparent: true,
+  transparent: true,
   opacity: 0.5,
-  blendingMode: "normal", // just for now; you can try "additive", etc. later
+  blendMode: "normal", // just for now; you can try "additive", etc. later
 });
 layerManager.add(overlayLayer);
 
 const blendSelect = document.querySelector<HTMLSelectElement>("#blendMode");
 blendSelect?.addEventListener("change", (e) => {
-  overlayLayer.setBlendingMode(
-    (e.target as HTMLSelectElement).value as BlendingMode
-  );
+  overlayLayer.blendMode = (e.target as HTMLSelectElement).value as blendMode;
 });
 
 const slider = document.querySelector<HTMLInputElement>("#slider");
@@ -113,7 +98,7 @@ if (!opacitySlider) throw new Error("Opacity slider not found.");
 
 opacitySlider.addEventListener("input", (event) => {
   const value = (event.target as HTMLInputElement).valueAsNumber;
-  overlayLayer.setOpacity(value);
+  overlayLayer.opacity = value;
 });
 
 slider.addEventListener("input", (event) => {

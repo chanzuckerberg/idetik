@@ -23,7 +23,7 @@ export class PromiseQueue<T> {
     this.scheduler_ = scheduler;
   }
 
-  add(promise: () => Promise<T>): void {
+  add(promise: () => Promise<T>) {
     this.promises_.push(promise);
   }
 

@@ -2,7 +2,7 @@ import { RenderableObject } from "./renderable_object";
 import { clamp } from "utilities/clamp";
 
 export type LayerState = "initialized" | "loading" | "ready";
-export type BlendingMode = "normal" | "additive" | "subtractive" | "multiply";
+export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
 
 type StateChangeCallback = (
   newState: LayerState,
@@ -10,9 +10,9 @@ type StateChangeCallback = (
 ) => void;
 
 export interface LayerOptions {
-  isTransparent?: boolean;
+  transparent?: boolean;
   opacity?: number;
-  blendingMode?: BlendingMode;
+  blendMode?: blendMode;
   zIndex?: number;
 }
 
@@ -22,14 +22,14 @@ export abstract class Layer {
   private readonly callbacks_: StateChangeCallback[] = [];
 
   public zIndex: number = 0;
-  public isTransparent: boolean;
-  public opacity: number;
-  public blendingMode: BlendingMode;
+  public transparent: boolean;
+  private opacity_: number;
+  public blendMode: blendMode;
 
   constructor({
-    isTransparent = false,
+    transparent: transparent = false,
     opacity = 1.0,
-    blendingMode = "normal",
+    blendMode: blendMode = "normal",
     zIndex = 0,
   }: LayerOptions = {}) {
     if (opacity < 0 || opacity > 1) {
@@ -37,26 +37,21 @@ export abstract class Layer {
         `Layer opacity out of bounds: ${opacity} — clamping to [0.0, 1.0]`
       );
     }
-    this.isTransparent = isTransparent;
-    this.opacity = clamp(opacity, 0.0, 1.0);
-    this.blendingMode = blendingMode;
+    this.transparent = transparent;
+    this.opacity_ = clamp(opacity, 0.0, 1.0);
+    this.blendMode = blendMode;
     this.zIndex = zIndex;
   }
 
-  public setZIndex(z: number): void {
-    this.zIndex = z;
+  public get opacity() {
+    return this.opacity_;
   }
 
-  public setBlendingMode(mode: BlendingMode): void {
-    this.blendingMode = mode;
-  }
-
-  public setOpacity(opacity: number): void {
-    this.opacity = clamp(opacity, 0.0, 1.0);
-  }
-
-  public setIsTransparent(isTransparent: boolean): void {
-    this.isTransparent = isTransparent;
+  public set opacity(value: number) {
+    if (value < 0 || value > 1) {
+      console.warn(`Opacity out of bounds: ${value} — clamping to [0.0, 1.0]`);
+    }
+    this.opacity_ = clamp(value, 0.0, 1.0);
   }
 
   public abstract update(): void;

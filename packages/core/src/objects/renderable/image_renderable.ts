@@ -51,7 +51,7 @@ export class ImageRenderable extends RenderableObject {
     this.setProgramName();
   }
 
-  public setChannelProps(channels: ChannelProps[]): void {
+  public setChannelProps(channels: ChannelProps[]) {
     this.channels_ = validateChannels(this.textures[0], channels);
   }
 
@@ -60,7 +60,7 @@ export class ImageRenderable extends RenderableObject {
     channelIndex: number,
     property: K,
     value: Required<ChannelProps>[K]
-  ): void {
+  ) {
     if (channelIndex < 0 || channelIndex >= this.channels_.length) {
       throw new Error(`Invalid channel index: ${channelIndex}`);
     }
