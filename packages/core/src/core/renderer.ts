@@ -21,6 +21,9 @@ export abstract class Renderer {
   protected abstract renderObject(layer: Layer, objectIndex: number): void;
   protected abstract clear(): void;
 
+  protected beginTransparentPass(): void { }
+  protected endTransparentPass(): void { }
+
   constructor(selector: string) {
     this.canvas_ = document.querySelector<HTMLCanvasElement>(selector);
     if (!this.canvas_) {
@@ -50,11 +53,13 @@ export abstract class Renderer {
       }
     }
 
+    this.beginTransparentPass();
     for (const layer of transparent) {
       layer.update();
       if (layer.state !== "ready") continue;
       layer.objects.forEach((_, i) => this.renderObject(layer, i));
     }
+    this.endTransparentPass();
   }
 
   public setControls(controls: CameraControls) {

@@ -41,13 +41,21 @@ export class WebGLRenderer extends Renderer {
     this.resize(this.canvas.width, this.canvas.height);
   }
 
+  protected beginTransparentPass(): void {
+    this.gl.enable(this.gl.BLEND);
+    this.gl.depthMask(false);
+  }
+
+  protected endTransparentPass(): void {
+    this.gl.depthMask(true);
+    this.gl.disable(this.gl.BLEND);
+  }
+
   protected renderObject(layer: Layer, objectIndex: number) {
     const object = layer.objects[objectIndex];
     const program = this.getShaderProgram(object.programName).use();
 
     if (layer.transparent) {
-      this.gl.enable(this.gl.BLEND);
-      this.gl.depthMask(false);
 
       switch (layer.blendMode) {
         case "additive":
@@ -63,11 +71,7 @@ export class WebGLRenderer extends Renderer {
         default:
           this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
       }
-    } else {
-      this.gl.disable(this.gl.BLEND);
-      this.gl.depthMask(true);
     }
-
     const modelView = mat4.multiply(
       mat4.create(),
       this.activeCamera.transform.inverse,
