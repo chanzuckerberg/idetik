@@ -2,7 +2,7 @@ import { ChannelControlsList } from "./components/ChannelControlsList";
 import { Renderer } from "./components/Renderer";
 import { useOmeZarrViewer } from "./useOmeZarrImageViewer";
 import { Region } from "@idetik/core";
-import { Button, InputSlider } from "@czi-sds/components";
+import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
 
@@ -132,6 +132,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
                 {zRange[1] - zRange[0]}
               </div>
             )}
+            {loading && <LoadingIndicator sdsStyle="tag" />}
           </div>
         </div>
         {!allSlicesLoaded && (
