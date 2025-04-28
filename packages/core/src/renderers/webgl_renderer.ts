@@ -56,7 +56,6 @@ export class WebGLRenderer extends Renderer {
     const program = this.getShaderProgram(object.programName).use();
 
     if (layer.transparent) {
-
       switch (layer.blendMode) {
         case "additive":
           this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE);

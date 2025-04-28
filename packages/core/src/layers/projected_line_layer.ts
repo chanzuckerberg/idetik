@@ -25,7 +25,7 @@ export class ProjectedLineLayer extends Layer {
     this.addObject(new ProjectedLine({ geometry, color, width }));
   }
 
-  public update() { }
+  public update() {}
 
   // TODO: this is temporary - we may want to generalize this to all layers
   // for now it is used to set the initial camera position to be centered on the tracks

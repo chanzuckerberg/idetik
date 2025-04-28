@@ -21,8 +21,8 @@ export abstract class Renderer {
   protected abstract renderObject(layer: Layer, objectIndex: number): void;
   protected abstract clear(): void;
 
-  protected beginTransparentPass(): void { }
-  protected endTransparentPass(): void { }
+  protected beginTransparentPass(): void {}
+  protected endTransparentPass(): void {}
 
   constructor(selector: string) {
     this.canvas_ = document.querySelector<HTMLCanvasElement>(selector);
