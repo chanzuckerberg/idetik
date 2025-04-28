@@ -7,7 +7,6 @@ interface ColorPickerProps {
 
 export function ColorPicker({ color, onChange }: ColorPickerProps) {
   return (
-    // outer div is what is shown, because it's harder to style the input element
     <div className="flex items-center gap-sds-xxs p-sds-xxs">
       <input
         type="color"
