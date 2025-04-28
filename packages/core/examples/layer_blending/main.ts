@@ -61,7 +61,6 @@ const layer = new ImageSeriesLayer({
   region,
   seriesDimensionName: "T",
   channelProps,
-  zIndex,
 });
 layerManager.add(layer);
 

@@ -13,7 +13,6 @@ export type ImageLayerProps = {
   transparent?: boolean;
   opacity?: number;
   blendMode?: blendMode;
-  zIndex?: number;
 };
 
 // Loads data from an image source into renderable objects.

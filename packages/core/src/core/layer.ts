@@ -13,7 +13,6 @@ export interface LayerOptions {
   transparent?: boolean;
   opacity?: number;
   blendMode?: blendMode;
-  zIndex?: number;
 }
 
 export abstract class Layer {
@@ -21,7 +20,6 @@ export abstract class Layer {
   private state_: LayerState = "initialized";
   private readonly callbacks_: StateChangeCallback[] = [];
 
-  public zIndex: number = 0;
   public transparent: boolean;
   private opacity_: number;
   public blendMode: blendMode;
@@ -30,7 +28,6 @@ export abstract class Layer {
     transparent: transparent = false,
     opacity = 1.0,
     blendMode: blendMode = "normal",
-    zIndex = 0,
   }: LayerOptions = {}) {
     if (opacity < 0 || opacity > 1) {
       console.warn(
@@ -40,7 +37,6 @@ export abstract class Layer {
     this.transparent = transparent;
     this.opacity_ = clamp(opacity, 0.0, 1.0);
     this.blendMode = blendMode;
-    this.zIndex = zIndex;
   }
 
   public get opacity() {
