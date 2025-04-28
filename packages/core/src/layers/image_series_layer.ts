@@ -55,12 +55,9 @@ export class ImageSeriesLayer extends Layer {
     region,
     seriesDimensionName,
     channelProps,
-    transparent: transparent = false,
-    opacity = 1.0,
-    blendMode: blendMode = "normal",
-    zIndex = 0,
+    ...layerOptions
   }: ImageSeriesLayerProps) {
-    super({ transparent: transparent, opacity, blendMode: blendMode, zIndex });
+    super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;

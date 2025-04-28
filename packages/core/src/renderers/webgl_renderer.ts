@@ -47,8 +47,8 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected endTransparentPass(): void {
-    this.gl.depthMask(true);
     this.gl.disable(this.gl.BLEND);
+    this.gl.depthMask(true);
   }
 
   protected renderObject(layer: Layer, objectIndex: number) {

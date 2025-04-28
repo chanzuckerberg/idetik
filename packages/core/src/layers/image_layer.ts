@@ -32,12 +32,9 @@ export class ImageLayer extends Layer {
     source,
     region,
     channelProps,
-    transparent: transparent,
-    opacity,
-    blendMode: blendMode,
-    zIndex,
+    ...layerOptions
   }: ImageLayerProps) {
-    super({ transparent: transparent, opacity, blendMode: blendMode, zIndex });
+    super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
