@@ -7,9 +7,9 @@ import {
 } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "data/promise_scheduler";
-import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
 import { ImageRenderable } from "objects/renderable/image_renderable";
+import { PlaneGeometry } from "objects/geometry/plane_geometry";
 
 type ImageSeriesLayerProps = {
   source: ImageChunkSource;
@@ -43,7 +43,7 @@ export class ImageSeriesLayer extends Layer {
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private channelProps_?: ChannelProps[];
-  private renderable_?: ImageRenderable;
+  private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
   constructor({
@@ -80,7 +80,7 @@ export class ImageSeriesLayer extends Layer {
 
   public setChannelProps(channelProps: ChannelProps[]): void {
     this.channelProps_ = channelProps;
-    this.renderable_?.setChannelProps(channelProps);
+    this.image_?.setChannelProps(channelProps);
   }
 
   public update(): void {
@@ -121,19 +121,16 @@ export class ImageSeriesLayer extends Layer {
   }
 
   private setData(chunk: ImageChunk) {
-    if (!this.texture_ || !this.renderable_) {
-      this.texture_ = makeImageTextureArray(chunk);
-      this.renderable_ = makeImageRenderable(
-        chunk,
-        this.texture_,
-        this.channelProps_
-      );
+    if (!this.texture_ || !this.image_) {
+      this.texture_ = Texture2DArray.createWithImageChunk(chunk);
+      this.image_ = this.createImage(chunk, this.texture_, this.channelProps_);
+      this.addObject(this.image_);
+
       // extent does not change after renderable creation
       this.extent_ = {
         x: chunk.shape.x * chunk.scale.x,
         y: chunk.shape.y * chunk.scale.y,
       };
-      this.addObject(this.renderable_);
     } else {
       this.texture_.data = chunk.data;
     }
@@ -265,16 +262,26 @@ export class ImageSeriesLayer extends Layer {
     return this.extent_;
   }
 
-  private async getLoader(): Promise<ImageChunkLoader> {
-    if (this.loader_) {
-      return this.loader_;
-    }
-    return await this.source_.open();
+  private async getLoader() {
+    this.loader_ ??= await this.source_.open();
+    return this.loader_;
   }
 
   private setLoadingStateFromToken(token?: LoadingToken) {
     if (!!token && !token.canceled && this.state !== "loading") {
       this.setState("loading");
     }
+  }
+
+  private createImage(
+    chunk: ImageChunk,
+    texture: Texture2DArray,
+    channelProps?: ChannelProps[]
+  ) {
+    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
+    const image = new ImageRenderable(geometry, texture, channelProps);
+    image.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
+    image.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
+    return image;
   }
 }
