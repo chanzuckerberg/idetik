@@ -1,4 +1,4 @@
-import { blendMode, Layer } from "core/layer";
+import { Layer } from "core/layer";
 import { Full, Interval, Region } from "data/region";
 import {
   ImageChunk,
@@ -16,10 +16,6 @@ type ImageSeriesLayerProps = {
   region: Region;
   seriesDimensionName: string;
   channelProps?: ChannelProps[];
-  transparent?: boolean;
-  opacity?: number;
-  blendMode?: blendMode;
-  zIndex?: number;
 };
 
 export type SeriesAttributes = {

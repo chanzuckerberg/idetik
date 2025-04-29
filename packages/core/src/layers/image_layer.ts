@@ -1,4 +1,4 @@
-import { blendMode, Layer } from "core/layer";
+import { Layer } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
@@ -10,9 +10,6 @@ export type ImageLayerProps = {
   source: ImageChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
-  transparent?: boolean;
-  opacity?: number;
-  blendMode?: blendMode;
 };
 
 // Loads data from an image source into renderable objects.
