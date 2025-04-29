@@ -1,4 +1,4 @@
-import { Layer } from "core/layer";
+import { Layer, LayerOptions } from "core/layer";
 import { Full, Interval, Region } from "data/region";
 import {
   ImageChunk,
@@ -11,7 +11,7 @@ import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
 import { ImageRenderable } from "objects/renderable/image_renderable";
 
-type ImageSeriesLayerProps = {
+export type ImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   seriesDimensionName: string;

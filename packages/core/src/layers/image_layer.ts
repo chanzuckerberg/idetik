@@ -1,4 +1,4 @@
-import { Layer } from "core/layer";
+import { Layer, LayerOptions } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunkSource } from "data/image_chunk";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
@@ -6,7 +6,7 @@ import { makeImageTextureArray, makeImageRenderable } from "layers/image_utils";
 import { ChannelProps } from "objects/textures/channel";
 import { ImageRenderable } from "objects/renderable/image_renderable";
 
-export type ImageLayerProps = {
+export type ImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
