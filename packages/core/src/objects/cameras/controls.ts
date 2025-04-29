@@ -50,7 +50,7 @@ export class PanZoomControls implements CameraControls {
     ];
   }
 
-  private wheel(event: WheelEvent, clientToWorld: ClientToWorld): void {
+  private wheel(event: WheelEvent, clientToWorld: ClientToWorld) {
     event.preventDefault();
     const clientPos = vec2.fromValues(event.clientX, event.clientY);
     const preZoomPos = clientToWorld(clientPos, this.clipDepth);
@@ -69,7 +69,7 @@ export class PanZoomControls implements CameraControls {
     event: MouseEvent,
     target: EventTarget,
     clientToWorld: ClientToWorld
-  ): void {
+  ) {
     const clientStart = vec2.fromValues(event.clientX, event.clientY);
     let worldStart = clientToWorld(clientStart, this.clipDepth);
 
@@ -93,7 +93,7 @@ export class PanZoomControls implements CameraControls {
     target.addEventListener("mouseup", onMouseUp);
   }
 
-  private pan(deltaWorld: vec3): void {
+  private pan(deltaWorld: vec3) {
     this.camera_.pan(deltaWorld);
     vec3.add(this.panTarget_, this.panTarget_, deltaWorld);
   }

@@ -30,7 +30,7 @@ export class AxesLayer extends Layer {
     this.setState("ready");
   }
 
-  public update(): void {}
+  public update() {}
 }
 
 function makeAxis(params: {

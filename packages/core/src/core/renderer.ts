@@ -1,10 +1,10 @@
 import { vec2, vec3 } from "gl-matrix";
 import { LayerManager } from "./layer_manager";
 import { Camera } from "objects/cameras/camera";
-import { RenderableObject } from "core/renderable_object";
 import { PerspectiveCamera } from "objects/cameras/perspective_camera";
 import { OrthographicCamera } from "objects/cameras/orthographic_camera";
 import { CameraControls, NullControls } from "objects/cameras/controls";
+import { Layer } from "./layer";
 
 type Color = [number, number, number, number];
 
@@ -18,8 +18,11 @@ export abstract class Renderer {
   private controlCallbacks_: [string, (event: Event) => void][] = [];
 
   protected abstract resize(width: number, height: number): void;
-  protected abstract renderObject(object: RenderableObject): void;
+  protected abstract renderObject(layer: Layer, objectIndex: number): void;
   protected abstract clear(): void;
+
+  protected beginTransparentPass(): void {}
+  protected endTransparentPass(): void {}
 
   constructor(selector: string) {
     this.canvas_ = document.querySelector<HTMLCanvasElement>(selector);
@@ -39,14 +42,24 @@ export abstract class Renderer {
       this.activeCamera_ = camera;
       this.updateActiveCamera();
     }
-    layerManager.layers.forEach((layer) => {
+    const { opaque, transparent } = layerManager.partitionLayers();
+
+    for (const layer of opaque) {
       layer.update();
       if (layer.state === "ready") {
-        layer.objects.forEach((obj) => {
-          this.renderObject(obj);
-        });
+        for (let i = 0; i < layer.objects.length; i++) {
+          this.renderObject(layer, i);
+        }
       }
-    });
+    }
+
+    this.beginTransparentPass();
+    for (const layer of transparent) {
+      layer.update();
+      if (layer.state !== "ready") continue;
+      layer.objects.forEach((_, i) => this.renderObject(layer, i));
+    }
+    this.endTransparentPass();
   }
 
   public setControls(controls: CameraControls) {

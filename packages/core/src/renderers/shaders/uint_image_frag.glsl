@@ -8,11 +8,12 @@ uniform mediump usampler2D texture0;
 uniform vec3 Color;
 uniform float ValueOffset;
 uniform float ValueScale;
+uniform float u_opacity;
 
 in vec2 TexCoords;
 
 void main() {
     float texel = float(texture(texture0, TexCoords).r);
     float value = (texel + ValueOffset) * ValueScale;
-    fragColor = vec4(value * Color.rgb, 1);
+    fragColor = vec4(value * Color.rgb, u_opacity);
 }

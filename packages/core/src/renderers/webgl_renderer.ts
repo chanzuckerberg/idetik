@@ -1,5 +1,4 @@
 import { Renderer } from "core/renderer";
-import { RenderableObject } from "core/renderable_object";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 import { Logger } from "utilities/logger";
 
@@ -8,6 +7,7 @@ import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
 import { mat4 } from "gl-matrix";
+import { Layer } from "core/layer";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -45,9 +45,36 @@ export class WebGLRenderer extends Renderer {
     this.resize(this.canvas.width, this.canvas.height);
   }
 
-  protected renderObject(object: RenderableObject) {
+  protected beginTransparentPass(): void {
+    this.gl.enable(this.gl.BLEND);
+    this.gl.depthMask(false);
+  }
+
+  protected endTransparentPass(): void {
+    this.gl.disable(this.gl.BLEND);
+    this.gl.depthMask(true);
+  }
+
+  protected renderObject(layer: Layer, objectIndex: number) {
+    const object = layer.objects[objectIndex];
     const program = this.getShaderProgram(object.programName).use();
 
+    if (layer.transparent) {
+      switch (layer.blendMode) {
+        case "additive":
+          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE);
+          break;
+        case "multiply":
+          this.gl.blendFunc(this.gl.DST_COLOR, this.gl.ZERO);
+          break;
+        case "subtractive":
+          this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_COLOR);
+          break;
+        case "normal":
+        default:
+          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+      }
+    }
     const modelView = mat4.multiply(
       mat4.create(),
       this.activeCamera.transform.inverse,
@@ -72,6 +99,9 @@ export class WebGLRenderer extends Renderer {
           break;
         case "Resolution":
           program.setUniform(uniformName, resolution);
+          break;
+        case "u_opacity":
+          program.setUniform(uniformName, layer.opacity);
           break;
         default:
           // Get uniforms from the renderable object

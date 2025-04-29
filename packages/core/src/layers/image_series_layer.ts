@@ -1,4 +1,4 @@
-import { Layer } from "core/layer";
+import { Layer, LayerOptions } from "core/layer";
 import { Full, Interval, Region } from "data/region";
 import {
   ImageChunk,
@@ -11,7 +11,7 @@ import { ChannelProps } from "objects/textures/channel";
 import { ImageRenderable } from "objects/renderable/image_renderable";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 
-type ImageSeriesLayerProps = {
+export type ImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   seriesDimensionName: string;
@@ -51,8 +51,9 @@ export class ImageSeriesLayer extends Layer {
     region,
     seriesDimensionName,
     channelProps,
+    ...layerOptions
   }: ImageSeriesLayerProps) {
-    super();
+    super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
@@ -78,12 +79,12 @@ export class ImageSeriesLayer extends Layer {
     return this.channelProps_;
   }
 
-  public setChannelProps(channelProps: ChannelProps[]): void {
+  public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
   }
 
-  public update(): void {
+  public update() {
     if (this.state === "initialized") {
       this.loadSeriesAttributes();
     }
@@ -136,7 +137,7 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
-  public close(): void {
+  public close() {
     this.scheduler_.shutdown();
   }
 
@@ -162,10 +163,6 @@ export class ImageSeriesLayer extends Layer {
     const indexIsFull = this.seriesIndex_.type === "full";
     const seriesStart = indexIsFull ? 0 : this.seriesIndex_.start;
     const seriesStop = indexIsFull ? seriesMax : this.seriesIndex_.stop;
-
-    console.debug(
-      `ImageSeriesLayer, loading index range: ${seriesStart}-${seriesStop} (${(seriesStop - seriesStart) / seriesDimScale - 1} slices) for dim ${this.seriesDimensionName_}`
-    );
 
     const seriesLength = Math.round(
       (seriesStop - seriesStart) / seriesDimScale

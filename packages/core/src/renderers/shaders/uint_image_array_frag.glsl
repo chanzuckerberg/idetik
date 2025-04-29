@@ -11,6 +11,7 @@ uniform bool Visible[MAX_CHANNELS];
 uniform vec3 Color[MAX_CHANNELS];
 uniform float ValueOffset[MAX_CHANNELS];
 uniform float ValueScale[MAX_CHANNELS];
+uniform float u_opacity;
 
 in vec2 TexCoords;
 
@@ -25,5 +26,5 @@ void main() {
         value = clamp(value, 0.0, 1.0);
         rgbColor += value * Color[i].rgb;
     }
-    fragColor = vec4(rgbColor.rgb, 1);
+    fragColor = vec4(rgbColor, u_opacity);
 }

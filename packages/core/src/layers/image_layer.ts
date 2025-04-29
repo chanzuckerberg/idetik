@@ -1,4 +1,4 @@
-import { Layer } from "core/layer";
+import { Layer, LayerOptions } from "core/layer";
 import { Region } from "data/region";
 import { ImageChunk, ImageChunkSource } from "data/image_chunk";
 import { ChannelProps } from "objects/textures/channel";
@@ -6,7 +6,7 @@ import { ImageRenderable } from "objects/renderable/image_renderable";
 import { Texture2DArray } from "objects/textures/texture_2d_array";
 import { PlaneGeometry } from "objects/geometry/plane_geometry";
 
-export type ImageLayerProps = {
+export type ImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
@@ -22,15 +22,20 @@ export class ImageLayer extends Layer {
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
-  constructor({ source, region, channelProps }: ImageLayerProps) {
-    super();
+  constructor({
+    source,
+    region,
+    channelProps,
+    ...layerOptions
+  }: ImageLayerProps) {
+    super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
     this.channelProps_ = channelProps;
   }
 
-  public update(): void {
+  public update() {
     switch (this.state) {
       case "initialized":
         this.load(this.region_);
@@ -50,7 +55,7 @@ export class ImageLayer extends Layer {
     return this.channelProps_;
   }
 
-  public setChannelProps(channelProps: ChannelProps[]): void {
+  public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
   }

@@ -2,7 +2,7 @@ import { RenderableObject } from "./renderable_object";
 import { clamp } from "utilities/clamp";
 
 export type LayerState = "initialized" | "loading" | "ready";
-export type BlendingMode = "normal" | "additive" | "subtractive" | "multiply";
+export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
 
 type StateChangeCallback = (
   newState: LayerState,
@@ -10,9 +10,9 @@ type StateChangeCallback = (
 ) => void;
 
 export interface LayerOptions {
-  isTransparent?: boolean;
+  transparent?: boolean;
   opacity?: number;
-  blendingMode?: BlendingMode;
+  blendMode?: blendMode;
 }
 
 export abstract class Layer {
@@ -20,23 +20,34 @@ export abstract class Layer {
   private state_: LayerState = "initialized";
   private readonly callbacks_: StateChangeCallback[] = [];
 
-  public readonly isTransparent: boolean;
-  public readonly opacity: number;
-  public readonly blendingMode: BlendingMode;
+  public transparent: boolean;
+  private opacity_: number;
+  public blendMode: blendMode;
 
   constructor({
-    isTransparent = false,
+    transparent: transparent = false,
     opacity = 1.0,
-    blendingMode = "normal",
+    blendMode: blendMode = "normal",
   }: LayerOptions = {}) {
     if (opacity < 0 || opacity > 1) {
       console.warn(
         `Layer opacity out of bounds: ${opacity} — clamping to [0.0, 1.0]`
       );
     }
-    this.isTransparent = isTransparent;
-    this.opacity = clamp(opacity, 0.0, 1.0);
-    this.blendingMode = blendingMode;
+    this.transparent = transparent;
+    this.opacity_ = clamp(opacity, 0.0, 1.0);
+    this.blendMode = blendMode;
+  }
+
+  public get opacity() {
+    return this.opacity_;
+  }
+
+  public set opacity(value: number) {
+    if (value < 0 || value > 1) {
+      console.warn(`Opacity out of bounds: ${value} — clamping to [0.0, 1.0]`);
+    }
+    this.opacity_ = clamp(value, 0.0, 1.0);
   }
 
   public abstract update(): void;
@@ -64,7 +75,6 @@ export abstract class Layer {
   protected setState(newState: LayerState) {
     const prevState = this.state_;
     this.state_ = newState;
-    console.debug(`${this.constructor.name} state change: ${newState}`);
     this.callbacks_.forEach((callback) => callback(newState, prevState));
   }
 

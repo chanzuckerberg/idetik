@@ -23,7 +23,7 @@ export class PromiseQueue<T> {
     this.scheduler_ = scheduler;
   }
 
-  add(promise: () => Promise<T>): void {
+  add(promise: () => Promise<T>) {
     this.promises_.push(promise);
   }
 
@@ -68,10 +68,8 @@ export class OmeZarrImageLoader {
     region: Region,
     scheduler?: PromiseScheduler
   ): Promise<ImageChunk> {
-    console.debug("loading chunk with region", region, this.scaleIndex_);
     const { datasetPath, scale, translation } = this.getImageAttributes();
     const indices = this.regionToIndices(region);
-    console.debug("loading dataset with indices", datasetPath, indices);
 
     const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
       kind: "array",
@@ -125,7 +123,6 @@ export class OmeZarrImageLoader {
       scale: { x: scale[indices.length - 1], y: scale[indices.length - 2] },
       offset: { x: xOffset, y: yOffset },
     };
-    console.debug("loaded chunk ", chunk);
     return chunk;
   }
 

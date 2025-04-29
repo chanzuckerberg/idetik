@@ -61,7 +61,7 @@ export class TracksLayer extends Layer {
     }
   }
 
-  public update(): void {}
+  public update() {}
 
   // TODO: this is temporary - we may want to generalize this to all layers
   // for now it is used to set the initial camera position to be centered on the tracks
