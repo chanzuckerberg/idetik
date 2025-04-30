@@ -1,4 +1,5 @@
-import { ChannelControlsList } from "./components/ChannelControlsList";
+"use client";
+
 import { Renderer } from "./components/Renderer";
 import { useOmeZarrViewer } from "./useOmeZarrImageViewer";
 import { Region } from "@idetik/core";
@@ -15,6 +16,9 @@ interface OmeZarrViewerContainerProps {
   region: Region;
   seriesDimensionName: string;
   allSlicesSizeEstimate?: string;
+  classNames?: {
+    root?: string;
+  };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
   onLoadAllSlicesClicked?: () => void;
@@ -28,6 +32,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     region,
     seriesDimensionName,
     allSlicesSizeEstimate,
+    classNames,
     onLayerCreated,
     onFirstSliceLoaded,
     onLoadAllSlicesClicked,
@@ -38,15 +43,15 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
   const {
     layerManager,
     camera,
-    imageLayer,
-    controlProps,
+    // imageLayer,
+    // controlProps,
     zRange,
     zValue,
     zIndex,
     setZValue,
     loading,
     allSlicesLoaded,
-    resetChannelsCallback,
+    // resetChannelsCallback,
     loadAllSlicesCallback,
   } = useOmeZarrViewer({
     sourceUrl,
@@ -59,36 +64,12 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onLoadAllSlicesAborted,
   });
   return (
-    <div
-      className={cns(
-        "w-full",
-        "h-full",
-        "flex",
-        "flex-col",
-        "flex-1",
-        "gap-4",
-        "border",
-        "border-solid",
-        "border-black",
-        "min-h-0",
-        "relative"
-      )}
-    >
+    <div className={cns(classNames?.root)}>
       <Renderer
         layerManager={layerManager}
         camera={camera}
         cameraControls="panzoom"
       />
-
-      {imageLayer && (
-        <div className={cns("absolute", "top-0", "left-0", "w-3/4")}>
-          <ChannelControlsList
-            layer={imageLayer}
-            controlProps={controlProps}
-            resetCallback={resetChannelsCallback}
-          />
-        </div>
-      )}
 
       <div
         className={cns(

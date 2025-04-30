@@ -1,4 +1,3 @@
-import cns from "classnames";
 import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
@@ -69,29 +68,30 @@ export default function App() {
   }, []);
 
   return (
-    <div className={cns("h-screen", "flex", "flex-row", "gap-4", "p-4")}>
-      <div
-        className={cns(
-          "w-full",
-          "h-full",
-          "flex",
-          "flex-col",
-          "flex-1",
-          "gap-4"
-        )}
-      >
-        <OmeZarrImageViewer
-          sourceUrl={imageUrl}
-          region={region}
-          seriesDimensionName="Z"
-          allSlicesSizeEstimate="250 MB"
-          onLayerCreated={handleLayerCreated}
-          onFirstSliceLoaded={handleFirstSliceLoaded}
-          onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
-          onAllSlicesLoaded={handleAllSlicesLoaded}
-          onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-        />
-      </div>
+    <div className="h-screen flex gap-4 p-4 relative">
+      {imageLayer && (
+        <div className={cns("absolute", "top-0", "left-0", "w-3/4")}>
+          <ChannelControlsList
+            layer={imageLayer}
+            controlProps={controlProps}
+            resetCallback={resetChannelsCallback}
+          />
+        </div>
+      )}
+      <OmeZarrImageViewer
+        sourceUrl={imageUrl}
+        region={region}
+        seriesDimensionName="Z"
+        allSlicesSizeEstimate="250 MB"
+        classNames={{
+          root: "border border-solid border-black",
+        }}
+        onLayerCreated={handleLayerCreated}
+        onFirstSliceLoaded={handleFirstSliceLoaded}
+        onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+        onAllSlicesLoaded={handleAllSlicesLoaded}
+        onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
+      />
       <input
         type="button"
         value="Switch Image"
