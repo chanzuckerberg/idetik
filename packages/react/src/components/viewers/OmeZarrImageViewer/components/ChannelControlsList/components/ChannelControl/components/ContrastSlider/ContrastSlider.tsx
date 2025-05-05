@@ -1,10 +1,12 @@
 import { InputSlider } from "@czi-sds/components";
+import { MODIFIED_SLIDER_STYLES } from "./styles";
 
 interface ContrastSliderProps {
   value: [number, number];
   min: number;
   max: number;
   onChange: (limits: [number, number]) => void;
+  disabled?: boolean;
 }
 
 export function ContrastSlider({
@@ -12,9 +14,14 @@ export function ContrastSlider({
   max,
   value,
   onChange,
+  disabled,
 }: ContrastSliderProps) {
   const handleChange = (_event: Event, newValue: number | number[]) => {
     const limits = newValue as number[];
+    // prevent updating if the limits are invalid
+    if (limits[0] >= limits[1]) {
+      return;
+    }
     onChange([limits[0], limits[1]]);
   };
 
@@ -32,7 +39,8 @@ export function ContrastSlider({
       max={max}
       step={step}
       valueLabelDisplay="auto"
-      className="w-full"
+      disabled={disabled}
+      {...MODIFIED_SLIDER_STYLES}
     />
   );
 }
