@@ -5,9 +5,10 @@ import CssBaseline from "@mui/material/CssBaseline";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
 import App from "./App";
+import { IdetikProvider } from "./providers/IdetikProvider";
 
-// Create a wrapper component to handle theme and useMediaQuery
-export default function ThemedApp() {
+// Create a wrapper component to handle providers
+export default function AppWithProviders() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const theme = prefersDarkMode ? Theme("dark") : Theme("light");
 
@@ -16,7 +17,9 @@ export default function ThemedApp() {
       <ThemeProvider theme={theme}>
         <EmotionThemeProvider theme={theme}>
           <CssBaseline />
-          <App />
+          <IdetikProvider>
+            <App />
+          </IdetikProvider>
         </EmotionThemeProvider>
       </ThemeProvider>
     </StyledEngineProvider>

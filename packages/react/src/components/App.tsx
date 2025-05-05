@@ -1,7 +1,8 @@
-import cns from "classnames";
 import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
+import { ChannelControlsList } from "./viewers/OmeZarrImageViewer/components/ChannelControlsList";
+import { useIdetik } from "./hooks";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
@@ -25,6 +26,8 @@ export default function App() {
 
   const layerCreatedTime = useRef<number | undefined>(undefined);
   const loadAllSlicesClickedTime = useRef<number | undefined>(undefined);
+
+  const { imageLayer } = useIdetik();
 
   const handleLayerCreated = useCallback(() => {
     layerCreatedTime.current = performance.now();
@@ -70,17 +73,16 @@ export default function App() {
   }, []);
 
   return (
-    <div
-      className={cns(
-        "container",
-        "mx-auto",
-        "h-screen",
-        "flex",
-        "flex-col",
-        "overflow-hidden",
-        "bg-dark-sds-color-primitive-gray-100"
+    <div className="h-screen flex flex-col">
+      {imageLayer && (
+        <div className="absolute top-0 left-0 w-full md:!w-[400px]">
+          <ChannelControlsList
+            layer={imageLayer}
+            controlProps={controlProps}
+            resetCallback={resetChannelsCallback}
+          />
+        </div>
       )}
-    >
       <OmeZarrImageViewer
         sourceUrl={imageUrl}
         region={region}
