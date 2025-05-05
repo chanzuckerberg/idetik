@@ -70,7 +70,6 @@ export default function App() {
 
   return (
     <div
-      // Container represents how it'll look in the Organelle Box portal
       className={cns(
         "container",
         "max-w-[713px]",
@@ -79,24 +78,20 @@ export default function App() {
         "flex",
         "flex-col",
         "overflow-hidden",
-        // Organelle Box is using bg-dark-sds-color-primitive-gray-100
-        // behind the image viewer
         "bg-dark-sds-color-primitive-gray-100"
       )}
     >
-      <div className={cns("aspect-[4/5] md:aspect-square")}>
-        <OmeZarrImageViewer
-          sourceUrl={imageUrl}
-          region={region}
-          seriesDimensionName="Z"
-          allSlicesSizeEstimate="250 MB"
-          onLayerCreated={handleLayerCreated}
-          onFirstSliceLoaded={handleFirstSliceLoaded}
-          onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
-          onAllSlicesLoaded={handleAllSlicesLoaded}
-          onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-        />
-      </div>
+      <OmeZarrImageViewer
+        sourceUrl={imageUrl}
+        region={region}
+        seriesDimensionName="Z"
+        allSlicesSizeEstimate="250 MB"
+        onLayerCreated={handleLayerCreated}
+        onFirstSliceLoaded={handleFirstSliceLoaded}
+        onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+        onAllSlicesLoaded={handleAllSlicesLoaded}
+        onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
+      />
       <input
         type="button"
         value="Switch Image"

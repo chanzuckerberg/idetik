@@ -2,7 +2,28 @@
 
 React components for image viewers - wrapping idetik/core functionality
 
-## Getting Started
+## For Integrators: Using @idetik/react Components
+
+### Installation
+
+```bash
+npm install @idetik/react @idetik/core
+```
+
+### Basic Usage
+
+1. Wrap your application in the
+
+### Available Components
+
+The package provides several components for viewing and interacting with scientific image data:
+
+- `OmeZarrImageViewer`: TODO
+- `ChannelControlsList`: TODO
+
+## For Internal Developers
+
+### Getting Started
 
 ```bash
 # Install dependencies from root directory
@@ -28,11 +49,11 @@ If you make changes to the `@idetik/core` package, you'll need to:
 
 This ensures your React components use the latest version of the core package.
 
-## Component Development Guidelines
+### Component Development Guidelines
 
 Pure TypeScript code (has no react dependencies) should go in the `lib/` directory.
 
-### File Structure
+#### File Structure
 Each component should have its own directory with the following structure:
 ```
 ComponentName/
@@ -42,7 +63,7 @@ ComponentName/
 └── components/      # Sub-components (if needed)
 ```
 
-### Best Practices
+#### Best Practices
 
 1. **Exports**
    - Use named exports instead of default exports
@@ -97,7 +118,7 @@ ComponentName/
    );
    ```
 
-## Available Scripts
+### Available Scripts
 
 - `npm run dev` - Start the Vite development server
 - `npm run compile` - Run TypeScript compilation
