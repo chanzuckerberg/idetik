@@ -72,7 +72,6 @@ export default function App() {
     <div
       className={cns(
         "container",
-        "max-w-[713px]",
         "mx-auto",
         "h-screen",
         "flex",
