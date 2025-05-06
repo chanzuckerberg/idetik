@@ -71,9 +71,6 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col">
-      <div className="absolute top-0 left-0 w-full md:!w-[400px]">
-        <ChannelControlsList />
-      </div>
       <OmeZarrImageViewer
         sourceUrl={imageUrl}
         region={region}
@@ -88,6 +85,9 @@ export default function App() {
         onAllSlicesLoaded={handleAllSlicesLoaded}
         onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
       />
+      <div className="absolute top-0 left-0 w-full md:!w-[400px]">
+        <ChannelControlsList />
+      </div>
       <input
         type="button"
         value="Switch Image"
