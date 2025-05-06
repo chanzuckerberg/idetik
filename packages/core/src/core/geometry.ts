@@ -32,7 +32,7 @@ export class Geometry extends Node {
   }
 
   public get itemSize() {
-    return this.vertexData_.length / this.stride;
+    return this.vertexData_.byteLength / this.stride;
   }
 
   public get stride() {
