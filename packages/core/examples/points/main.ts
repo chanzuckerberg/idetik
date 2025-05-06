@@ -53,11 +53,7 @@ class Particles extends Layer {
   private needsUpdate_: boolean = true;
   public position: number = 0;
 
-  constructor(
-    points: vec3[],
-    color: [number, number, number],
-    marker: number,
-  ) {
+  constructor(points: vec3[], color: [number, number, number], marker: number) {
     super();
     this.setState("initialized");
     this.points_ = points;
@@ -85,11 +81,12 @@ class Particles extends Layer {
     const geometry = new PointsGeometry(
       this.points_.map((p) => {
         const zDist = Math.abs(p[2] - this.position);
+        // 64 is just a magic number that looks okay
         const zScale = zDist / 64.0 + 1.0;
         return {
           position: p,
           color: [r / zScale, g / zScale, b / zScale],
-          size: 16.0 / zScale,
+          size: 20.0 / zScale,
           marker: this.marker_,
         };
       })

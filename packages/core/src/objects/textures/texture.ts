@@ -21,8 +21,8 @@ export function concatenateTypedArrays(
 ): DataTextureTypedArray {
   const eachLength = data[0].length;
   const totalLength = data.length * eachLength;
-  const ArrayConstructor = data[0].constructor as DataTextureTypedArrayConstructor;
-  const result = new ArrayConstructor(totalLength);
+  const Constructor = data[0].constructor as DataTextureTypedArrayConstructor;
+  const result = new Constructor(totalLength);
   let offset = 0;
   for (const arr of data) {
     if (!(arr instanceof data[0].constructor)) {
