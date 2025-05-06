@@ -1,4 +1,3 @@
-import { ChannelControlsList } from "./components/ChannelControlsList";
 import { Renderer } from "./components/Renderer";
 import { useOmeZarrViewer } from "./useOmeZarrImageViewer";
 import { Region } from "@idetik/core";

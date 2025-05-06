@@ -9,7 +9,6 @@ import { ChannelControl } from "./components/ChannelControl";
 import { ChannelProps } from "@idetik/core";
 import { useEffect, useRef, useState } from "react";
 import { useIdetik } from "components/hooks";
-import { omeroToControlProps } from "../../utils";
 
 interface ChannelControlsListProps {
   resetCallback?: () => Promise<void>;
@@ -18,29 +17,26 @@ interface ChannelControlsListProps {
 export function ChannelControlsList({
   resetCallback,
 }: ChannelControlsListProps) {
-  const { imageSeriesLayer } = useIdetik();
+  const { channels, setChannels, channelControls } = useIdetik();
 
   // Keep a local copy of channelProps to trigger re-renders
-  const [channelProps, setChannelProps] = useState(
-    imageSeriesLayer?.channelProps ?? []
-  );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [channelProps, setChannelProps] = useState(channels ?? []);
   const isInternalUpdate = useRef(false);
 
   // initial sync of local state with layer's channelProps
   // props change indicates this is not an internal update
   useEffect(() => {
     isInternalUpdate.current = false;
-    setChannelProps(imageSeriesLayer?.channelProps ?? []);
-  }, [imageSeriesLayer, resetCallback]);
+    setChannelProps(channels ?? []);
+  }, [channels, resetCallback]);
 
   // update layer's channelProps when local state changes
   useEffect(() => {
     if (isInternalUpdate.current) {
-      imageSeriesLayer?.setChannelProps(channelProps);
+      setChannels(channelProps);
     }
-  }, [channelProps, imageSeriesLayer]);
-
-  const controlProps = omeroToControlProps(imageSeriesLayer?.channelProps);
+  }, [channelProps, setChannels]);
 
   const updateChannel = (
     index: number,
@@ -61,9 +57,17 @@ export function ChannelControlsList({
     setChannelProps(updatedChannelProps);
   };
 
-  if (imageSeriesLayer === undefined) {
+  // ImageSeriesLayer has not been initialized.
+  if (channels === undefined || channelControls === undefined) {
     return null;
   }
+
+  // const resetCallback = useCallback(async () => {
+  //   if (!source || !imageLayer) return;
+  //   const omeroChannels = await loadOmeroChannels(sourceUrl);
+  //   imageLayer.setChannelProps(omeroToChannelProps(omeroChannels));
+  //   setChannelControls(omeroToChannelControls(omeroChannels));
+  // }, [source, sourceUrl, imageLayer, setChannelControls]);
 
   return (
     <div
@@ -105,7 +109,7 @@ export function ChannelControlsList({
 
         <AccordionDetails>
           <div className={cns("grid grid-cols-4 grid-rows-auto")}>
-            {channelProps.map((props: ChannelProps, index: number) => {
+            {channels.map((props: ChannelProps, index: number) => {
               // TODO: can possibly clean this up with better types
               // error on undefined values - we're setting defaults
               // and merging objects in too many places
@@ -117,7 +121,7 @@ export function ChannelControlsList({
                   `Contrast limits not defined for channel ${index}`
                 );
               }
-              const contrastRange = (controlProps[index]?.contrastRange ??
+              const contrastRange = (channelControls[index]?.contrastRange ??
                 props.contrastLimits)!;
               if (contrastRange === undefined) {
                 throw new Error(
@@ -129,7 +133,7 @@ export function ChannelControlsList({
                 <ChannelControl
                   key={index}
                   channelIndex={index}
-                  label={controlProps[index]?.label ?? `Channel ${index}`}
+                  label={channelControls[index]?.label ?? `Channel ${index}`}
                   color={props.color}
                   contrastLimits={props.contrastLimits}
                   contrastRange={contrastRange}
@@ -154,7 +158,7 @@ export function ChannelControlsList({
                 className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
                 onClick={() => {
                   resetCallback().then(() => {
-                    setChannelProps(imageSeriesLayer.channelProps ?? []);
+                    setChannelProps(channels ?? []);
                   });
                 }}
               >

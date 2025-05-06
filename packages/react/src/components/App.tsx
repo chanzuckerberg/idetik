@@ -2,7 +2,6 @@ import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
 import { ChannelControlsList } from "./viewers/OmeZarrImageViewer/components/ChannelControlsList";
-import { useIdetik } from "./hooks";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";

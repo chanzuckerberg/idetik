@@ -9,8 +9,8 @@ import {
   loadOmeroDefaultZ,
 } from "@idetik/core";
 
-import { omeroToChannelProps, omeroToControlProps } from "./utils";
-import { ChannelControlProps } from "./components/ChannelControlsList/components/ChannelControl";
+import { omeroToChannelProps, omeroToChannelControls } from "./utils";
+import { useIdetik } from "components/hooks";
 
 interface UseOmeZarrViewerProps {
   sourceUrl: string;
@@ -41,6 +41,8 @@ export function useOmeZarrViewer({
   const [zValue, setZValue] = useState(0.5);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
+  const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
+    useIdetik();
 
   useEffect(() => {
     if (imageLayer) {
@@ -100,6 +102,8 @@ export function useOmeZarrViewer({
 
       if (shouldSetLayer) {
         setImageLayer(layer);
+        setImageSeriesLayer(layer);
+        setChannelControls(omeroToChannelControls(omeroChannels));
       }
     };
 
@@ -109,6 +113,7 @@ export function useOmeZarrViewer({
       shouldSetLayer = false;
       layer?.close();
       setImageLayer(null);
+      clearImageSeriesLayer();
     };
   }, [
     source,
@@ -118,6 +123,9 @@ export function useOmeZarrViewer({
     zoomToFit,
     onLayerCreated,
     onFirstSliceLoaded,
+    clearImageSeriesLayer,
+    setChannelControls,
+    setImageSeriesLayer,
   ]);
 
   // Fetch Z range from metadata
@@ -169,12 +177,6 @@ export function useOmeZarrViewer({
 
     updateIndex();
   }, [zIndex, imageLayer]);
-
-  const resetChannelsCallback = useCallback(async () => {
-    if (!source || !imageLayer) return;
-    const omeroChannels = await loadOmeroChannels(sourceUrl);
-    imageLayer.setChannelProps(omeroToChannelProps(omeroChannels));
-  }, [source, sourceUrl, imageLayer]);
 
   const loadAllSlicesCallback = useCallback(async () => {
     if (!imageLayer) return;
