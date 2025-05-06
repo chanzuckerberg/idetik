@@ -2,4 +2,6 @@
 import "./input.css";
 import { Renderer } from "./components/viewers/OmeZarrImageViewer/components/Renderer";
 import { OmeZarrImageViewer } from "./components/viewers/OmeZarrImageViewer";
-export { Renderer, OmeZarrImageViewer };
+import { useOmeZarrViewer } from "./components/viewers/OmeZarrImageViewer/useOmeZarrImageViewer";
+
+export { Renderer, OmeZarrImageViewer, useOmeZarrViewer };
