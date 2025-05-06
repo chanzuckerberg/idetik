@@ -115,18 +115,8 @@ export function useOmeZarrViewer({
       setImageLayer(null);
       clearImageSeriesLayer();
     };
-  }, [
-    source,
-    sourceUrl,
-    region,
-    seriesDimensionName,
-    zoomToFit,
-    onLayerCreated,
-    onFirstSliceLoaded,
-    clearImageSeriesLayer,
-    setChannelControls,
-    setImageSeriesLayer,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
+  }, [source, sourceUrl, region, seriesDimensionName]);
 
   // Fetch Z range from metadata
   useEffect(() => {

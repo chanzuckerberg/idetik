@@ -20,7 +20,6 @@ export function ChannelControlsList({
   const { channels, setChannels, channelControls } = useIdetik();
 
   // Keep a local copy of channelProps to trigger re-renders
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [channelProps, setChannelProps] = useState(channels ?? []);
   const isInternalUpdate = useRef(false);
 
