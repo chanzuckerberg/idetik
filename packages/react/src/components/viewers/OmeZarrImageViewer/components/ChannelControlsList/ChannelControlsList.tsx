@@ -5,41 +5,39 @@ import {
   Button,
 } from "@czi-sds/components";
 import cns from "classnames";
-import {
-  ChannelControl,
-  ChannelControlProps,
-} from "./components/ChannelControl";
-import { ImageSeriesLayer, ChannelProps } from "@idetik/core";
+import { ChannelControl } from "./components/ChannelControl";
+import { ChannelProps } from "@idetik/core";
 import { useEffect, useRef, useState } from "react";
+import { useIdetik } from "components/hooks";
 
 interface ChannelControlsListProps {
-  layer: ImageSeriesLayer;
-  controlProps: Partial<ChannelControlProps>[];
   resetCallback?: () => Promise<void>;
 }
 
 export function ChannelControlsList({
-  layer,
-  controlProps,
   resetCallback,
 }: ChannelControlsListProps) {
+  const { imageSeriesLayer } = useIdetik();
+
   // Keep a local copy of channelProps to trigger re-renders
-  const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
+  const [channelProps, setChannelProps] = useState(
+    imageSeriesLayer?.channelProps ?? []
+  );
   const isInternalUpdate = useRef(false);
 
   // initial sync of local state with layer's channelProps
   // props change indicates this is not an internal update
   useEffect(() => {
     isInternalUpdate.current = false;
-    setChannelProps(layer.channelProps ?? []);
-  }, [layer, controlProps, resetCallback]);
+    setChannelProps(imageSeriesLayer?.channelProps ?? []);
+  }, [imageSeriesLayer, resetCallback]);
 
   // update layer's channelProps when local state changes
   useEffect(() => {
     if (isInternalUpdate.current) {
-      layer.setChannelProps(channelProps);
+      imageSeriesLayer?.setChannelProps(channelProps);
     }
-  }, [channelProps, layer]);
+  }, [channelProps, imageSeriesLayer]);
 
   const updateChannel = (
     index: number,
@@ -59,6 +57,10 @@ export function ChannelControlsList({
 
     setChannelProps(updatedChannelProps);
   };
+
+  if (imageSeriesLayer === undefined) {
+    return null;
+  }
 
   return (
     <div
@@ -149,7 +151,7 @@ export function ChannelControlsList({
                 className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
                 onClick={() => {
                   resetCallback().then(() => {
-                    setChannelProps(layer.channelProps ?? []);
+                    setChannelProps(imageSeriesLayer.channelProps ?? []);
                   });
                 }}
               >

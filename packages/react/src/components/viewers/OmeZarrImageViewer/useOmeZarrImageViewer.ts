@@ -205,15 +205,12 @@ export function useOmeZarrViewer({
   return {
     layerManager,
     camera,
-    imageLayer,
-    controlProps,
     zRange,
     zValue,
     zIndex,
     setZValue,
     loading,
     allSlicesLoaded,
-    resetChannelsCallback,
     loadAllSlicesCallback,
   };
 }

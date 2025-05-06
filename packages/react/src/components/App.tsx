@@ -27,8 +27,6 @@ export default function App() {
   const layerCreatedTime = useRef<number | undefined>(undefined);
   const loadAllSlicesClickedTime = useRef<number | undefined>(undefined);
 
-  const { imageLayer } = useIdetik();
-
   const handleLayerCreated = useCallback(() => {
     layerCreatedTime.current = performance.now();
     console.log(`Layer created at ${layerCreatedTime.current}`);
@@ -74,20 +72,17 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col">
-      {imageLayer && (
-        <div className="absolute top-0 left-0 w-full md:!w-[400px]">
-          <ChannelControlsList
-            layer={imageLayer}
-            controlProps={controlProps}
-            resetCallback={resetChannelsCallback}
-          />
-        </div>
-      )}
+      <div className="absolute top-0 left-0 w-full md:!w-[400px]">
+        <ChannelControlsList />
+      </div>
       <OmeZarrImageViewer
         sourceUrl={imageUrl}
         region={region}
         seriesDimensionName="Z"
         allSlicesSizeEstimate="250 MB"
+        classNames={{
+          root: "bg-dark-sds-color-primitive-gray-100",
+        }}
         onLayerCreated={handleLayerCreated}
         onFirstSliceLoaded={handleFirstSliceLoaded}
         onLoadAllSlicesClicked={handleLoadAllSlicesClicked}

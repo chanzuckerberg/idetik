@@ -11,6 +11,9 @@ interface OmeZarrViewerContainerProps {
   region: Region;
   seriesDimensionName: string;
   allSlicesSizeEstimate?: string;
+  classNames?: {
+    root?: string;
+  };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
   onLoadAllSlicesClicked?: () => void;
@@ -24,6 +27,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     region,
     seriesDimensionName,
     allSlicesSizeEstimate,
+    classNames,
     onLayerCreated,
     onFirstSliceLoaded,
     onLoadAllSlicesClicked,
@@ -34,15 +38,12 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
   const {
     layerManager,
     camera,
-    imageLayer,
-    controlProps,
     zRange,
     zValue,
     zIndex,
     setZValue,
     loading,
     allSlicesLoaded,
-    resetChannelsCallback,
     loadAllSlicesCallback,
   } = useOmeZarrViewer({
     sourceUrl,
@@ -64,7 +65,8 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
         "flex-1",
         "gap-4",
         "min-h-0",
-        "relative"
+        "relative",
+        classNames?.root
       )}
     >
       <Renderer
@@ -72,26 +74,6 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
         camera={camera}
         cameraControls="panzoom"
       />
-
-      {imageLayer && (
-        <div
-          className={cns(
-            "absolute",
-            "top-0",
-            "left-0",
-            "w-full",
-            "md:!w-[400px]" // For some reason, this gets overwritten when compiled
-            // so make it important
-          )}
-        >
-          <ChannelControlsList
-            layer={imageLayer}
-            controlProps={controlProps}
-            resetCallback={resetChannelsCallback}
-          />
-        </div>
-      )}
-
       <div
         className={cns(
           "absolute",
