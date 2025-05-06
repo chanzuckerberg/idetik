@@ -158,7 +158,7 @@ export class WebGLRenderer extends Renderer {
       case "triangles":
         return this.gl.TRIANGLES;
       default:
-        throw new Error(`Unknown shader mode: ${type}`);
+        throw new Error(`Could not get draw mode for unknown shader: ${type}`);
     }
   }
 
