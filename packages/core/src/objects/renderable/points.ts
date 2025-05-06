@@ -15,7 +15,6 @@ export class Points extends RenderableObject {
     const [minMarker, maxMarker] = geometry.getMarkerRange();
     this.atlas_ =
       markerAtlas ?? makeSpriteAtlas(["circle", "square", "triangle"]);
-    console.log("ATLAS", this.atlas_);
 
     if (minMarker < 0 || maxMarker >= this.atlas_.depth) {
       throw new Error(

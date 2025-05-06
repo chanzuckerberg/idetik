@@ -12,9 +12,7 @@ import {
   ImageSeriesLayer,
 } from "@";
 
-const zLocation = 918.16;
-const IMAGE_SCALE = 4.99; // nm/px
-const IMAGE_SCALE_0 = 19.96; // nm/px
+import { vec3 } from "gl-matrix";
 
 const imageUrl =
   "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Tomograms/100/TS_100_3.zarr";
@@ -22,6 +20,11 @@ const ribosomesUrl =
   "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Annotations/104/cytosolic_ribosome-1.0_point.ndjson";
 const ferritinUrl =
   "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Annotations/101/ferritin_complex-1.0_point.ndjson";
+// image scale for the highest res + points coords
+const IMAGE_SCALE_0 = 4.99; // nm/px
+// image scale for the lowest res (the image we show)
+const IMAGE_SCALE_2 = 19.96; // nm/px
+const INITIAL_Z_POSITION = 918.16;
 
 const fetchNDJson = async (url: string) => {
   return await fetch(url).then(async (response) => {
@@ -32,10 +35,10 @@ const fetchNDJson = async (url: string) => {
       .map((line) => JSON.parse(line));
     return points.map((point) => {
       let { x, y, z } = point["location"];
-      x = x * IMAGE_SCALE;
-      y = y * IMAGE_SCALE;
-      z = z * IMAGE_SCALE;
-      return [x, y, z] as [number, number, number];
+      x = x * IMAGE_SCALE_0;
+      y = y * IMAGE_SCALE_0;
+      z = z * IMAGE_SCALE_0;
+      return [x, y, z] as vec3;
     });
   });
 };
@@ -43,26 +46,29 @@ const fetchNDJson = async (url: string) => {
 const ribosomeLocations = await fetchNDJson(ribosomesUrl);
 const ferritinLocations = await fetchNDJson(ferritinUrl);
 
-class PointsLayer extends Layer {
-  private points_: [number, number, number][] = [];
+class Particles extends Layer {
+  private points_: vec3[] = [];
   private color_: [number, number, number] = [0, 0, 0];
+  private marker_: number = 0;
   private needsUpdate_: boolean = true;
-  public zLocation: number = 0;
+  public position: number = 0;
 
   constructor(
-    points: [number, number, number][],
-    color: [number, number, number]
+    points: vec3[],
+    color: [number, number, number],
+    marker: number,
   ) {
     super();
     this.setState("initialized");
     this.points_ = points;
     this.color_ = color;
+    this.marker_ = marker;
     this.update();
     this.setState("ready");
   }
 
-  public setZLocation(z: number) {
-    this.zLocation = z;
+  public setPosition(z: number) {
+    this.position = z;
     this.needsUpdate_ = true;
   }
 
@@ -78,13 +84,13 @@ class PointsLayer extends Layer {
     const [r, g, b] = this.color_;
     const geometry = new PointsGeometry(
       this.points_.map((p) => {
-        const zDist = Math.abs(p[2] - this.zLocation);
+        const zDist = Math.abs(p[2] - this.position);
         const zScale = zDist / 64.0 + 1.0;
         return {
           position: p,
           color: [r / zScale, g / zScale, b / zScale],
           size: 16.0 / zScale,
-          marker: 0,
+          marker: this.marker_,
         };
       })
     );
@@ -95,10 +101,10 @@ class PointsLayer extends Layer {
   }
 }
 const layerManager = new LayerManager();
-const ribosomes = new PointsLayer(ribosomeLocations, [1, 0, 0]);
-const ferritin = new PointsLayer(ferritinLocations, [0, 1, 0]);
-ribosomes.setZLocation(zLocation);
-ferritin.setZLocation(zLocation);
+const ribosomes = new Particles(ribosomeLocations, [1, 0, 0], 0);
+const ferritin = new Particles(ferritinLocations, [0, 1, 0], 2);
+ribosomes.setPosition(INITIAL_Z_POSITION);
+ferritin.setPosition(INITIAL_Z_POSITION);
 layerManager.add(ribosomes);
 layerManager.add(ferritin);
 
@@ -119,7 +125,7 @@ const zMax = attributes.shape[zAxisIndex];
 const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
 zSlider.min = `${zMin}`;
 zSlider.max = `${zMax - 1}`;
-zSlider.value = `${zLocation / IMAGE_SCALE_0}`;
+zSlider.value = `${INITIAL_Z_POSITION / IMAGE_SCALE_2}`;
 const region: Region = [
   { dimension: "z", index: { type: "full" } },
   { dimension: "y", index: { type: "full" } },
@@ -142,16 +148,16 @@ const setCameraFrame = (newState: LayerState) => {
 };
 imageLayer.addStateChangeCallback(setCameraFrame);
 layerManager.add(imageLayer);
-imageLayer.setPosition(zLocation);
+imageLayer.setPosition(INITIAL_Z_POSITION);
 
 let debounce: number;
 zSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(async () => {
-    imageLayer.setIndex(value);
-    ribosomes.setZLocation(value * IMAGE_SCALE_0);
-    ferritin.setZLocation(value * IMAGE_SCALE_0);
+    await imageLayer.setPosition(value * IMAGE_SCALE_2);
+    ribosomes.setPosition(value * IMAGE_SCALE_2);
+    ferritin.setPosition(value * IMAGE_SCALE_2);
   }, 20);
 });
 
