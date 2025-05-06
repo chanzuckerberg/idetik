@@ -1,5 +1,4 @@
 import {
-  AxesLayer,
   Layer,
   LayerManager,
   PanZoomControls,
@@ -14,12 +13,15 @@ import {
 } from "@";
 
 const zLocation = 918.16;
-const IMAGE_SCALE = 4.99;  // nm/px
+const IMAGE_SCALE = 4.99; // nm/px
 const IMAGE_SCALE_0 = 19.96; // nm/px
 
-const imageUrl = "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Tomograms/100/TS_100_3.zarr";
-const ribosomesUrl = "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Annotations/104/cytosolic_ribosome-1.0_point.ndjson";
-const ferritinUrl = "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Annotations/101/ferritin_complex-1.0_point.ndjson";
+const imageUrl =
+  "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Tomograms/100/TS_100_3.zarr";
+const ribosomesUrl =
+  "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Annotations/104/cytosolic_ribosome-1.0_point.ndjson";
+const ferritinUrl =
+  "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Annotations/101/ferritin_complex-1.0_point.ndjson";
 
 const fetchNDJson = async (url: string) => {
   return await fetch(url).then(async (response) => {
@@ -47,7 +49,10 @@ class PointsLayer extends Layer {
   private needsUpdate_: boolean = true;
   public zLocation: number = 0;
 
-  constructor(points: [number, number, number][], color: [number, number, number]) {
+  constructor(
+    points: [number, number, number][],
+    color: [number, number, number]
+  ) {
     super();
     this.setState("initialized");
     this.points_ = points;
@@ -66,25 +71,23 @@ class PointsLayer extends Layer {
      * TODO: re-creating the geometry is not efficient,
      * but it's the simplest way to update all the
      * vertex attributes for now.
-    **/
+     **/
     if (!this.needsUpdate_) {
       return;
     }
     const [r, g, b] = this.color_;
-    const geometry = new PointsGeometry(this.points_.map((p) => {
-      const zDist = Math.abs(p[2] - this.zLocation);
-      const zScale = zDist / 64.0 + 1.0;
-      return {
-        position: p,
-        color: [
-          r / zScale,
-          g / zScale,
-          b / zScale,
-        ],
-        size: 16.0 / zScale,
-        marker: 0,
-      };
-    }));
+    const geometry = new PointsGeometry(
+      this.points_.map((p) => {
+        const zDist = Math.abs(p[2] - this.zLocation);
+        const zScale = zDist / 64.0 + 1.0;
+        return {
+          position: p,
+          color: [r / zScale, g / zScale, b / zScale],
+          size: 16.0 / zScale,
+          marker: 0,
+        };
+      })
+    );
     const pointsRenderable = new Points(geometry);
     this.objects.length = 0;
     this.addObject(pointsRenderable);
@@ -92,9 +95,6 @@ class PointsLayer extends Layer {
   }
 }
 const layerManager = new LayerManager();
-layerManager.add(new AxesLayer(
-  { length: 0.25, width: 0.01 }
-));
 const ribosomes = new PointsLayer(ribosomeLocations, [1, 0, 0]);
 const ferritin = new PointsLayer(ferritinLocations, [0, 1, 0]);
 ribosomes.setZLocation(zLocation);
@@ -129,9 +129,7 @@ const imageLayer = new ImageSeriesLayer({
   source: imageSource,
   region,
   seriesDimensionName: zDimName,
-  channelProps: [
-    { color: [1, 1, 1], contrastLimits: [-0.00001, 0.00001] },
-  ],
+  channelProps: [{ color: [1, 1, 1], contrastLimits: [-0.00001, 0.00001] }],
 });
 const setCameraFrame = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
@@ -156,7 +154,6 @@ zSlider.addEventListener("input", (event) => {
     ferritin.setZLocation(value * IMAGE_SCALE_0);
   }, 20);
 });
-
 
 animate();
 

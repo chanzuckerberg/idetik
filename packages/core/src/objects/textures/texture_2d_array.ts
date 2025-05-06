@@ -60,7 +60,11 @@ export class Texture2DArray extends Texture {
     return texture;
   }
 
-  public static createWithArrays(data: DataTextureTypedArray[], width: number, height: number) {
+  public static createWithArrays(
+    data: DataTextureTypedArray[],
+    width: number,
+    height: number
+  ) {
     const array = concatenateTypedArrays(data);
     const texture = new Texture2DArray(array, width, height);
     texture.unpackRowLength = width;

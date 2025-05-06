@@ -11,15 +11,18 @@ export type TextureDataType = "unsigned_byte" | "unsigned_short" | "float";
 export type TextureUnpackRowAlignment = 1 | 2 | 4 | 8;
 
 export type DataTextureTypedArray = Uint8Array | Uint16Array | Float32Array;
-type DataTextureConstructor =
+type DataTextureTypedArrayConstructor =
   | typeof Uint8Array
   | typeof Uint16Array
   | typeof Float32Array;
 
-export function concatenateTypedArrays(data: DataTextureTypedArray[]): DataTextureTypedArray {
+export function concatenateTypedArrays(
+  data: DataTextureTypedArray[]
+): DataTextureTypedArray {
   const eachLength = data[0].length;
   const totalLength = data.length * eachLength;
-  const result = new (data[0].constructor as DataTextureConstructor)(totalLength);
+  const ArrayConstructor = data[0].constructor as DataTextureTypedArrayConstructor;
+  const result = new ArrayConstructor(totalLength);
   let offset = 0;
   for (const arr of data) {
     if (!(arr instanceof data[0].constructor)) {

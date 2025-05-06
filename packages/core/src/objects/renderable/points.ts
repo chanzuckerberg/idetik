@@ -7,14 +7,14 @@ type Marker = ProceduralMarker | Float32Array;
 const WIDTH = 256;
 const HEIGHT = 256;
 
-
 export class Points extends RenderableObject {
   private atlas_: Texture2DArray;
 
   constructor(geometry: PointsGeometry, markerAtlas?: Texture2DArray) {
     super();
     const [minMarker, maxMarker] = geometry.getMarkerRange();
-    this.atlas_ = markerAtlas ?? makeSpriteAtlas(["circle", "square", "triangle"]);
+    this.atlas_ =
+      markerAtlas ?? makeSpriteAtlas(["circle", "square", "triangle"]);
     console.log("ATLAS", this.atlas_);
 
     if (minMarker < 0 || maxMarker >= this.atlas_.depth) {
@@ -38,7 +38,7 @@ const circle = () => {
   const data = new Float32Array(WIDTH * HEIGHT);
   for (let i = 0; i < HEIGHT; i++) {
     for (let j = 0; j < WIDTH; j++) {
-      if (((i - HEIGHT / 2) ** 2 + (j - WIDTH / 2) ** 2) < (WIDTH / 2) ** 2) {
+      if ((i - HEIGHT / 2) ** 2 + (j - WIDTH / 2) ** 2 < (WIDTH / 2) ** 2) {
         data[i * WIDTH + j] = 1.0;
       }
     }
@@ -50,7 +50,7 @@ const square = () => {
   const data = new Float32Array(WIDTH * HEIGHT);
   data.fill(1.0);
   return data;
-}
+};
 
 const triangle = () => {
   const data = new Float32Array(WIDTH * HEIGHT);
@@ -62,7 +62,7 @@ const triangle = () => {
     }
   }
   return data;
-}
+};
 
 // TODO: can we do border colors with this method?
 // TODO: do we need to soften the edges?
@@ -71,7 +71,6 @@ const markerDispatch: Map<ProceduralMarker, () => Float32Array> = new Map([
   ["square", square],
   ["triangle", triangle],
 ]);
-
 
 export const makeSpriteAtlas = (markers: Marker[]) => {
   const images = markers.map((marker) => {
@@ -91,4 +90,4 @@ export const makeSpriteAtlas = (markers: Marker[]) => {
   texture.wrapS = "clamp_to_edge";
   texture.wrapT = "clamp_to_edge";
   return texture;
-}
+};
