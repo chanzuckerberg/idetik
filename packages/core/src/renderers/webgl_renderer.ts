@@ -117,8 +117,7 @@ export class WebGLRenderer extends Renderer {
       this.textures_.bind(texture);
     });
 
-    // TODO: Move 'type' property to RenderableObject
-    const type = this.gl.TRIANGLES;
+    const type = this.getShaderMode(object.programName);
     const index = object.geometry.indexData;
     if (index.length) {
       this.gl.drawElements(type, index.length, this.gl.UNSIGNED_INT, 0);
@@ -150,6 +149,17 @@ export class WebGLRenderer extends Renderer {
       );
     }
     return this.shaders_.get(type)!;
+  }
+
+  private getShaderMode(type: Shader) {
+    switch (shaderCode[type].mode) {
+      case "points":
+        return this.gl.POINTS;
+      case "triangles":
+        return this.gl.TRIANGLES;
+      default:
+        throw new Error(`Unknown shader mode: ${type}`);
+    }
   }
 
   private get gl() {
