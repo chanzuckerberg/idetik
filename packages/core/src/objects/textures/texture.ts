@@ -11,6 +11,28 @@ export type TextureDataType = "unsigned_byte" | "unsigned_short" | "float";
 export type TextureUnpackRowAlignment = 1 | 2 | 4 | 8;
 
 export type DataTextureTypedArray = Uint8Array | Uint16Array | Float32Array;
+type DataTextureConstructor =
+  | typeof Uint8Array
+  | typeof Uint16Array
+  | typeof Float32Array;
+
+export function concatenateTypedArrays(data: DataTextureTypedArray[]): DataTextureTypedArray {
+  const eachLength = data[0].length;
+  const totalLength = data.length * eachLength;
+  const result = new (data[0].constructor as DataTextureConstructor)(totalLength);
+  let offset = 0;
+  for (const arr of data) {
+    if (!(arr instanceof data[0].constructor)) {
+      throw new Error("All arrays must be of the same type.");
+    }
+    if (arr.length !== eachLength) {
+      throw new Error("All arrays must have the same length.");
+    }
+    result.set(arr, offset);
+    offset += eachLength;
+  }
+  return result;
+}
 
 export function isTextureUnpackRowAlignment(
   value: number

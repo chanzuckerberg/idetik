@@ -38,3 +38,5 @@ export { NullControls, PanZoomControls } from "./objects/cameras/controls";
 export type { CameraControls } from "./objects/cameras/controls";
 
 export type { ChannelProps } from "./objects/textures/channel";
+export { PointsGeometry } from "./objects/geometry/points_geometry";
+export { Points } from "./objects/renderable/points";
