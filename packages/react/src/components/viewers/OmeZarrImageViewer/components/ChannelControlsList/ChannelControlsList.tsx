@@ -9,6 +9,7 @@ import { ChannelControl } from "./components/ChannelControl";
 import { ChannelProps } from "@idetik/core";
 import { useEffect, useRef, useState } from "react";
 import { useIdetik } from "components/hooks";
+import { omeroToControlProps } from "../../utils";
 
 interface ChannelControlsListProps {
   resetCallback?: () => Promise<void>;
@@ -38,6 +39,8 @@ export function ChannelControlsList({
       imageSeriesLayer?.setChannelProps(channelProps);
     }
   }, [channelProps, imageSeriesLayer]);
+
+  const controlProps = omeroToControlProps(imageSeriesLayer?.channelProps);
 
   const updateChannel = (
     index: number,

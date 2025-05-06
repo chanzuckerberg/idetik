@@ -37,9 +37,6 @@ export function useOmeZarrViewer({
   const [layerManager, setLayerManager] = useState(() => new LayerManager());
   const [camera, setCamera] = useState<OrthographicCamera | null>(null);
   const [imageLayer, setImageLayer] = useState<ImageSeriesLayer | null>(null);
-  const [controlProps, setControlProps] = useState<
-    Partial<ChannelControlProps>[]
-  >([]);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
   const [loading, setLoading] = useState(true);
@@ -79,7 +76,6 @@ export function useOmeZarrViewer({
       setLoading(true);
       const omeroChannels = await loadOmeroChannels(sourceUrl);
       const channelProps = omeroToChannelProps(omeroChannels);
-      setControlProps(omeroToControlProps(omeroChannels));
 
       layer = new ImageSeriesLayer({
         source,
@@ -178,7 +174,6 @@ export function useOmeZarrViewer({
     if (!source || !imageLayer) return;
     const omeroChannels = await loadOmeroChannels(sourceUrl);
     imageLayer.setChannelProps(omeroToChannelProps(omeroChannels));
-    setControlProps(omeroToControlProps(omeroChannels));
   }, [source, sourceUrl, imageLayer]);
 
   const loadAllSlicesCallback = useCallback(async () => {
