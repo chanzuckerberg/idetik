@@ -1,10 +1,10 @@
-import { Layer, LayerOptions } from "core/layer";
-import { Region } from "data/region";
-import { ImageChunk, ImageChunkSource } from "data/image_chunk";
-import { ChannelProps } from "objects/textures/channel";
-import { ImageRenderable } from "objects/renderable/image_renderable";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { PlaneGeometry } from "objects/geometry/plane_geometry";
+import { Layer, LayerOptions } from "../core/layer";
+import { Region } from "../data/region";
+import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
+import { ChannelProps } from "../objects/textures/channel";
+import { ImageRenderable } from "../objects/renderable/image_renderable";
+import { Texture2DArray } from "../objects/textures/texture_2d_array";
+import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 
 export type ImageLayerProps = LayerOptions & {
   source: ImageChunkSource;

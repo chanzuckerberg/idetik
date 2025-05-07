@@ -1,13 +1,13 @@
-import { Renderer } from "core/renderer";
+import { Renderer } from "../core/renderer";
 import { WebGLShaderProgram } from "./webgl_shader_program";
-import { Logger } from "utilities/logger";
+import { Logger } from "../utilities/logger";
 
 import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
 import { mat4 } from "gl-matrix";
-import { Layer } from "core/layer";
+import { Layer } from "../core/layer";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
