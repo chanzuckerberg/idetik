@@ -4,10 +4,10 @@ import {
   TextureWrapMode,
   TextureDataType,
   TextureDataFormat,
-} from "objects/textures/texture";
+} from "../objects/textures/texture";
 
-import { Texture2D } from "objects/textures/texture_2d";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { Texture2D } from "../objects/textures/texture_2d";
+import { Texture2DArray } from "../objects/textures/texture_2d_array";
 
 export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;

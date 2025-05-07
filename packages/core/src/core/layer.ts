@@ -1,5 +1,5 @@
 import { RenderableObject } from "./renderable_object";
-import { clamp } from "utilities/clamp";
+import { clamp } from "../utilities/clamp";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type blendMode = "normal" | "additive" | "subtractive" | "multiply";

@@ -1,6 +1,6 @@
 import { vec3 } from "gl-matrix";
 
-import { Geometry } from "core/geometry";
+import { Geometry } from "../../core/geometry";
 
 export class ProjectedLineGeometry extends Geometry {
   // this creates the geometry for a screen-space projected line

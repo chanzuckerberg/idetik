@@ -1,4 +1,4 @@
-import { Geometry } from "core/geometry";
+import { Geometry } from "../../core/geometry";
 
 export class PlaneGeometry extends Geometry {
   constructor(

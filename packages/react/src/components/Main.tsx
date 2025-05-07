@@ -2,7 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import cns from "classnames";
 
-import ThemedApp from "./ThemedApp.tsx";
+import ThemedApp from "./ThemedApp";
 import "../input.css";
 
 const domNode = document.getElementById("app")!;

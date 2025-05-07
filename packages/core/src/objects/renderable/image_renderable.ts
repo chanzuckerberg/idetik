@@ -1,12 +1,12 @@
-import { RenderableObject } from "core/renderable_object";
-import { Geometry } from "core/geometry";
-import { Texture } from "objects/textures/texture";
+import { RenderableObject } from "../../core/renderable_object";
+import { Geometry } from "../../core/geometry";
+import { Texture } from "../../objects/textures/texture";
 import {
   Channel,
   ChannelProps,
   validateChannel,
   validateChannels,
-} from "objects/textures/channel";
+} from "../../objects/textures/channel";
 
 type SingleUniformValues = {
   Color: [number, number, number];
