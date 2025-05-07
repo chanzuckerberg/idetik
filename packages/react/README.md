@@ -45,6 +45,10 @@ import { IdetikProvider } from '@idetik/react';
 
 3. Insert `<ChannelControlsList>` anywhere in your application.
 
+```tsx
+<ChannelControlsList />
+```
+
 ### Advanced usage
 
 To write custom control components, use the `useIdetik()` hook to access and update the global
