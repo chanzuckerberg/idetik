@@ -1,5 +1,5 @@
 import { ChannelProps, ImageSeriesLayer } from "@idetik/core";
-import { createContext, useCallback, useContext } from "react";
+import { createContext, useContext } from "react";
 
 export interface ChannelControl {
   label: string;
@@ -7,57 +7,33 @@ export interface ChannelControl {
 }
 
 export interface IdetikContextValue {
-  imageSeriesLayer?: ImageSeriesLayer;
-  setImageSeriesLayer: React.Dispatch<
-    React.SetStateAction<ImageSeriesLayer | undefined>
-  >;
-  channelControls?: ChannelControl[]; // Same order as ImageSeriesLayer.channelProps
+  isInitialized: boolean;
+
+  channels: ChannelProps[];
+  setChannels: (channels: ChannelProps[]) => void;
+  resetChannels: () => void;
+
+  channelControls: ChannelControl[]; // Same order as channels.
   setChannelControls: React.Dispatch<
     React.SetStateAction<ChannelControl[] | undefined>
   >;
+
+  setImageSeriesLayer: React.Dispatch<
+    React.SetStateAction<ImageSeriesLayer | undefined>
+  >;
+  clearImageSeriesLayer: () => void;
 }
 
-export const IdetikContext = createContext<IdetikContextValue>({
-  setImageSeriesLayer: () => {
-    throw new Error(
-      "<OmeZarrImageViewer> was initialized but your application was not wrapped with <IdetikProvider>."
-    );
-  },
-  setChannelControls: () => {
-    throw new Error(
-      "Viewer controls were initialized but your application was not wrapped with <IdetikProvider>."
-    );
-  },
-});
+export const IdetikContext = createContext<IdetikContextValue | undefined>(
+  undefined
+);
 
 /** Gives you access to Idetik global state to write our own custom components. */
-export function useIdetik() {
-  const {
-    imageSeriesLayer,
-    setImageSeriesLayer,
-    channelControls,
-    setChannelControls,
-  } = useContext(IdetikContext);
+export function useIdetik(): IdetikContextValue {
+  const contextValue = useContext(IdetikContext);
+  if (contextValue === undefined) {
+    throw new Error("You must wrap your application in <IdetikProvider>.");
+  }
 
-  const clearImageSeriesLayer = useCallback(() => {
-    imageSeriesLayer?.close();
-    setImageSeriesLayer(undefined);
-  }, [imageSeriesLayer, setImageSeriesLayer]);
-  const setChannels = useCallback(
-    (channelProps: ChannelProps[]) => {
-      imageSeriesLayer?.setChannelProps(channelProps);
-    },
-    [imageSeriesLayer]
-  );
-
-  return {
-    channels: imageSeriesLayer?.channelProps,
-    setChannels,
-
-    setImageSeriesLayer,
-    clearImageSeriesLayer,
-
-    channelControls,
-    setChannelControls,
-  };
+  return contextValue;
 }

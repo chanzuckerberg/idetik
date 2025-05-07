@@ -7,35 +7,16 @@ import {
 import cns from "classnames";
 import { ChannelControl } from "./components/ChannelControl";
 import { ChannelProps } from "@idetik/core";
-import { useEffect, useRef, useState } from "react";
 import { useIdetik } from "components/hooks";
 
-interface ChannelControlsListProps {
-  resetCallback?: () => Promise<void>;
-}
-
-export function ChannelControlsList({
-  resetCallback,
-}: ChannelControlsListProps) {
-  const { channels, setChannels, channelControls } = useIdetik();
-
-  // Keep a local copy of channelProps to trigger re-renders
-  const [channelProps, setChannelProps] = useState(channels ?? []);
-  const isInternalUpdate = useRef(false);
-
-  // initial sync of local state with layer's channelProps
-  // props change indicates this is not an internal update
-  useEffect(() => {
-    isInternalUpdate.current = false;
-    setChannelProps(channels ?? []);
-  }, [channels, resetCallback]);
-
-  // update layer's channelProps when local state changes
-  useEffect(() => {
-    if (isInternalUpdate.current) {
-      setChannels(channelProps);
-    }
-  }, [channelProps, setChannels]);
+export function ChannelControlsList() {
+  const {
+    isInitialized,
+    channels,
+    setChannels,
+    resetChannels,
+    channelControls,
+  } = useIdetik();
 
   const updateChannel = (
     index: number,
@@ -45,28 +26,17 @@ export function ChannelControlsList({
       contrastLimits: [number, number];
     }>
   ) => {
-    isInternalUpdate.current = true;
-    const updatedChannelProps = [...channelProps];
-
-    updatedChannelProps[index] = {
-      ...channelProps[index],
+    const updatedChannels = [...channels];
+    updatedChannels[index] = {
+      ...channels[index],
       ...updates,
     };
-
-    setChannelProps(updatedChannelProps);
+    setChannels(updatedChannels);
   };
 
-  // ImageSeriesLayer has not been initialized.
-  if (channels === undefined || channelControls === undefined) {
+  if (!isInitialized) {
     return null;
   }
-
-  // const resetCallback = useCallback(async () => {
-  //   if (!source || !imageLayer) return;
-  //   const omeroChannels = await loadOmeroChannels(sourceUrl);
-  //   imageLayer.setChannelProps(omeroToChannelProps(omeroChannels));
-  //   setChannelControls(omeroToChannelControls(omeroChannels));
-  // }, [source, sourceUrl, imageLayer, setChannelControls]);
 
   return (
     <div
@@ -148,23 +118,19 @@ export function ChannelControlsList({
               );
             })}
           </div>
-          {resetCallback && (
-            <span className={cns("flex", "justify-end", "mt-sds-xs")}>
-              <Button
-                sdsStyle="minimal"
-                sdsType="primary"
-                // Force dark mode styles on hover
-                className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
-                onClick={() => {
-                  resetCallback().then(() => {
-                    setChannelProps(channels ?? []);
-                  });
-                }}
-              >
-                Reset channels
-              </Button>
-            </span>
-          )}
+          <span className={cns("flex", "justify-end", "mt-sds-xs")}>
+            <Button
+              sdsStyle="minimal"
+              sdsType="primary"
+              // Force dark mode styles on hover
+              className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
+              onClick={() => {
+                resetChannels();
+              }}
+            >
+              Reset channels
+            </Button>
+          </span>
         </AccordionDetails>
       </Accordion>
     </div>

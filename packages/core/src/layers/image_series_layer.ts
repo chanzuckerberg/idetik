@@ -37,12 +37,14 @@ export class ImageSeriesLayer extends Layer {
   private readonly seriesDimensionName_: string;
   private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
+  private readonly initialChannelProps_?: ChannelProps[];
   private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private channelProps_?: ChannelProps[];
+  private channelChangeCallbacks_: Array<() => void> = [];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
@@ -73,15 +75,38 @@ export class ImageSeriesLayer extends Layer {
     }
     this.seriesIndex_ = seriesDimensionalIndex.index;
     this.channelProps_ = channelProps;
+    this.initialChannelProps_ = channelProps;
   }
 
   public get channelProps(): ChannelProps[] | undefined {
     return this.channelProps_;
   }
-
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
+    });
+  }
+  public resetChannelProps(): void {
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
+    }
+  }
+
+  /** useSyncExternalStore() compatible subscribe function. */
+  addChannelChangeCallback = (callback: () => void): (() => void) => {
+    this.channelChangeCallbacks_.push(callback);
+    return () => {
+      this.removeChannelChangeCallback(callback);
+    };
+  };
+  public removeChannelChangeCallback(callback: () => void): void {
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.channelChangeCallbacks_.splice(index, 1);
   }
 
   public update() {
