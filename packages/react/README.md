@@ -12,14 +12,43 @@ npm install @idetik/react @idetik/core
 
 ### Basic Usage
 
-1. Wrap your application in the
+1. Wrap your application in `<IdetikProvider>`.
 
-### Available Components
+```tsx
+import { IdetikProvider } from '@idetik/react';
 
-The package provides several components for viewing and interacting with scientific image data:
+...
 
-- `OmeZarrImageViewer`: TODO
-- `ChannelControlsList`: TODO
+<IdetikProvider>
+   <App />
+</IdetikProvider>,
+```
+
+2. Insert `<OmeZarrImageViewer>` anywhere in your application.
+
+```tsx
+<OmeZarrImageViewer
+   sourceUrl={imageUrl}
+   region={region}
+   seriesDimensionName="Z"
+   allSlicesSizeEstimate="250 MB"
+   classNames={{
+      root: "your-css-class",
+   }}
+   onLayerCreated={handleLayerCreated}
+   onFirstSliceLoaded={handleFirstSliceLoaded}
+   onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+   onAllSlicesLoaded={handleAllSlicesLoaded}
+   onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
+/>
+```
+
+3. Insert `<ChannelControlsList>` anywhere in your application.
+
+### Advanced usage
+
+To write custom control components, use the `useIdetik()` hook to access and update the global
+Idetik state.
 
 ## For Internal Developers
 
