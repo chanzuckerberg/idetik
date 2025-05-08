@@ -30,6 +30,11 @@ type LoadingToken = {
   index: number;
 };
 
+type SetIndexResult = {
+  success: boolean;
+  reason?: "duplicate" | "canceled";
+};
+
 // Loads 2D+z image data (Z-stack) from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
   private readonly source_: ImageChunkSource;
@@ -90,20 +95,20 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
-  public async setPosition(position: number) {
+  public async setPosition(position: number): Promise<SetIndexResult> {
     const seriesAttributes = await this.loadSeriesAttributes();
     const index = Math.round(
       (position - seriesAttributes.start) / seriesAttributes.scale
     );
-    this.setIndex(index);
+    return await this.setIndex(index);
   }
 
-  public async setIndex(index: number) {
+  public async setIndex(index: number): Promise<SetIndexResult> {
     const token = this.loadingToken_;
     if (token) {
       if (token.index === index && !token.canceled) {
         console.debug("Ignoring duplicate active setIndex request");
-        return;
+        return { success: false, reason: "duplicate" };
       } else {
         console.debug(
           `Cancelling setIndex request for index ${token.index}, new requested index is ${index}`
@@ -114,11 +119,14 @@ export class ImageSeriesLayer extends Layer {
 
     const chunk = this.dataChunks_[index];
     if (chunk === undefined) {
-      this.loadingToken_ = { canceled: false, index: index };
-      await this.loadAndSetIndex(index, this.loadingToken_);
-      return;
+      const newToken = { canceled: false, index: index };
+      this.loadingToken_ = newToken;
+      await this.loadAndSetIndex(index, newToken);
+      if (newToken.canceled) return { success: false, reason: "canceled" };
+    } else {
+      this.setData(chunk);
     }
-    this.setData(chunk);
+    return { success: true };
   }
 
   private setData(chunk: ImageChunk) {
@@ -145,7 +153,6 @@ export class ImageSeriesLayer extends Layer {
     if (this.seriesAttributes_) {
       return this.seriesAttributes_;
     }
-    this.setState("loading");
     const loader = await this.getLoader();
 
     const attributes = await loader.loadAttributes();
@@ -175,13 +182,10 @@ export class ImageSeriesLayer extends Layer {
       scale: seriesDimScale,
       length: seriesLength,
     };
-    this.setState("ready");
     return this.seriesAttributes_;
   }
 
   private async loadAndSetIndex(index: number, token?: LoadingToken) {
-    this.setLoadingStateFromToken(token);
-
     const seriesAttributes = await this.loadSeriesAttributes();
     if (index < 0 || index >= seriesAttributes.length) {
       throw new Error(
@@ -262,12 +266,6 @@ export class ImageSeriesLayer extends Layer {
   private async getLoader() {
     this.loader_ ??= await this.source_.open();
     return this.loader_;
-  }
-
-  private setLoadingStateFromToken(token?: LoadingToken) {
-    if (!!token && !token.canceled && this.state !== "loading") {
-      this.setState("loading");
-    }
   }
 
   private createImage(
