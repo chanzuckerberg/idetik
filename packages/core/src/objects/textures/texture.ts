@@ -1,4 +1,4 @@
-import { Node } from "core/node";
+import { Node } from "../../core/node";
 
 export type TextureFilter = "nearest" | "linear";
 

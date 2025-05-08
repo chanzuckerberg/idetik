@@ -1,9 +1,9 @@
 import { vec2, vec3 } from "gl-matrix";
 import { LayerManager } from "./layer_manager";
-import { Camera } from "objects/cameras/camera";
-import { PerspectiveCamera } from "objects/cameras/perspective_camera";
-import { OrthographicCamera } from "objects/cameras/orthographic_camera";
-import { CameraControls, NullControls } from "objects/cameras/controls";
+import { Camera } from "../objects/cameras/camera";
+import { PerspectiveCamera } from "../objects/cameras/perspective_camera";
+import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import { CameraControls, NullControls } from "../objects/cameras/controls";
 import { Layer } from "./layer";
 
 type Color = [number, number, number, number];

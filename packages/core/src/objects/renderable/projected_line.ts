@@ -1,6 +1,6 @@
 import { vec3 } from "gl-matrix";
-import { RenderableObject } from "core/renderable_object";
-import { ProjectedLineGeometry } from "objects/geometry/projected_line_geometry";
+import { RenderableObject } from "../../core/renderable_object";
+import { ProjectedLineGeometry } from "../../objects/geometry/projected_line_geometry";
 
 type LineParameters = {
   geometry: ProjectedLineGeometry;

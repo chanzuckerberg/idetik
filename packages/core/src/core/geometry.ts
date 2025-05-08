@@ -1,4 +1,4 @@
-import { Node } from "core/node";
+import { Node } from "./node";
 
 type GeometryAttributeType =
   | "position"

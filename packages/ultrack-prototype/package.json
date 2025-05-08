@@ -12,16 +12,16 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@idetik/core": "^0.0.1",
     "@czi-sds/components": "^21.2.0",
     "@emotion/css": "^11.13.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@eslint/js": "^9.9.0",
-    "@mui/base": "^5.0.0-beta.58",
-    "@mui/icons-material": "^5.16.7",
-    "@mui/lab": "^5.0.0-alpha.173",
-    "@mui/material": "^5.16.7",
+    "@idetik/core": "^0.0.1",
+    "@mui/base": "5.0.0-beta.58",
+    "@mui/icons-material": "5.16.7",
+    "@mui/lab": "5.0.0-alpha.173",
+    "@mui/material": "5.16.7",
     "@types/react-dom": "^18.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

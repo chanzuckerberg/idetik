@@ -1,15 +1,15 @@
-import { Layer, LayerOptions } from "core/layer";
-import { Full, Interval, Region } from "data/region";
+import { Layer, LayerOptions } from "../core/layer";
+import { Full, Interval, Region } from "../data/region";
 import {
   ImageChunk,
   ImageChunkLoader,
   ImageChunkSource,
-} from "data/image_chunk";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { AbortError, PromiseScheduler } from "data/promise_scheduler";
-import { ChannelProps } from "objects/textures/channel";
-import { ImageRenderable } from "objects/renderable/image_renderable";
-import { PlaneGeometry } from "objects/geometry/plane_geometry";
+} from "../data/image_chunk";
+import { Texture2DArray } from "../objects/textures/texture_2d_array";
+import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
+import { ChannelProps } from "../objects/textures/channel";
+import { ImageRenderable } from "../objects/renderable/image_renderable";
+import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 
 export type ImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
