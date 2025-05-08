@@ -112,7 +112,7 @@ maxSlider.addEventListener("input", (event) => {
 });
 
 // set up event handler with debouncing
-let debounce: number;
+let debounce: ReturnType<typeof setTimeout>;
 zSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;

@@ -1,6 +1,6 @@
 // TODO: move this file out of `textures`
-import { Texture } from "objects/textures/texture";
-import { MAX_CHANNELS } from "core/constants";
+import { Texture } from "../../objects/textures/texture";
+import { MAX_CHANNELS } from "../../core/constants";
 import { Texture2DArray } from "./texture_2d_array";
 
 type RgbColor = [number, number, number];

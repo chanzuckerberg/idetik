@@ -132,7 +132,7 @@ export function useOmeZarrViewer({
       const attrs = await loader.loadAttributes();
 
       const zIdx = attrs.dimensionNames.findIndex(
-        (d) => d === seriesDimensionName
+        (d: string) => d === seriesDimensionName
       );
       const min = 0;
       const max = attrs.shape[zIdx] - 1;

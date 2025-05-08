@@ -1,17 +1,17 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { Region } from "data/region";
+import { Region } from "../data/region";
 import {
   ImageChunk,
   isImageChunkData,
   LoaderAttributes,
-} from "data/image_chunk";
-import { isTextureUnpackRowAlignment } from "objects/textures/texture";
+} from "../data/image_chunk";
+import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
-import { parseOmeNgffImage } from "data/ome_zarr_hcs_metadata_loader";
+import { Image as OmeNgffImage } from "../data/ome_ngff/0.4/image";
+import { parseOmeNgffImage } from "../data/ome_zarr_hcs_metadata_loader";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52

@@ -1,9 +1,9 @@
-import { Node } from "core/node";
-import { Geometry } from "core/geometry";
-import { Texture } from "objects/textures/texture";
-import { AffineTransform } from "core/transforms";
+import { Node } from "../core/node";
+import { Geometry } from "../core/geometry";
+import { Texture } from "../objects/textures/texture";
+import { AffineTransform } from "../core/transforms";
 
-import { Shader } from "renderers/shaders";
+import { Shader } from "../renderers/shaders";
 
 export abstract class RenderableObject extends Node {
   private geometry_ = new Geometry();

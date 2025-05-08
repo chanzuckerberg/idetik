@@ -1,4 +1,4 @@
-import { RenderableObject } from "core/renderable_object";
+import { RenderableObject } from "../../core/renderable_object";
 import { mat4, quat, vec3, vec4 } from "gl-matrix";
 
 export abstract class Camera extends RenderableObject {

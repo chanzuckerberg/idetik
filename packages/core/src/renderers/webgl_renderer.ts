@@ -1,6 +1,6 @@
-import { Renderer } from "core/renderer";
+import { Renderer } from "../core/renderer";
 import { WebGLShaderProgram } from "./webgl_shader_program";
-import { Logger } from "utilities/logger";
+import { Logger } from "../utilities/logger";
 
 import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";

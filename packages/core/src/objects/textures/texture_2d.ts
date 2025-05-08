@@ -2,8 +2,8 @@ import {
   DataTextureTypedArray,
   Texture,
   bufferToDataType,
-} from "objects/textures/texture";
-import { ImageChunk } from "data/image_chunk";
+} from "../../objects/textures/texture";
+import { ImageChunk } from "../../data/image_chunk";
 
 export class Texture2D extends Texture {
   private data_: DataTextureTypedArray;
