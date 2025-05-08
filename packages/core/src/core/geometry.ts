@@ -34,7 +34,7 @@ export class Geometry extends Node {
     this.attributes_.push(attr);
   }
 
-  public get itemSize() {
+  public get vertexCount() {
     return this.vertexData_.byteLength / this.stride;
   }
 

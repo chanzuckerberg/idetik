@@ -122,7 +122,7 @@ export class WebGLRenderer extends Renderer {
     if (index.length) {
       this.gl.drawElements(type, index.length, this.gl.UNSIGNED_INT, 0);
     } else {
-      this.gl.drawArrays(type, 0, object.geometry.itemSize);
+      this.gl.drawArrays(type, 0, object.geometry.vertexCount);
     }
   }
 
