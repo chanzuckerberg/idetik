@@ -110,8 +110,11 @@ const onWellChange = async () => {
 wellSelector.addEventListener("change", onWellChange);
 imageSelector.addEventListener("change", onImageChange);
 
-// load initial well
-await onWellChange();
+const loadInitialWell = async () => {
+  await onWellChange();
+};
+
+loadInitialWell();
 
 function animate() {
   renderer.render(layerManager, camera);
