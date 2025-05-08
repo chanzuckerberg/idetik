@@ -54,7 +54,7 @@ export class WebGLRenderer extends Renderer {
     layer.objects.forEach((_, i) => this.renderObject(layer, i));
   }
 
-  public render(layerManager: LayerManager, camera: Camera): void {
+  public render(layerManager: LayerManager, camera: Camera) {
     this.clear();
     this.syncActiveCamera(camera);
 
@@ -86,17 +86,23 @@ export class WebGLRenderer extends Renderer {
     if (layer.transparent) {
       switch (layer.blendMode) {
         case "additive":
-          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE);
+          this.webglState_.setBlendFunc(this.gl.SRC_ALPHA, this.gl.ONE);
           break;
         case "multiply":
-          this.gl.blendFunc(this.gl.DST_COLOR, this.gl.ZERO);
+          this.webglState_.setBlendFunc(this.gl.DST_COLOR, this.gl.ZERO);
           break;
         case "subtractive":
-          this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_COLOR);
+          this.webglState_.setBlendFunc(
+            this.gl.ZERO,
+            this.gl.ONE_MINUS_SRC_COLOR
+          );
           break;
         case "normal":
         default:
-          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+          this.webglState_.setBlendFunc(
+            this.gl.SRC_ALPHA,
+            this.gl.ONE_MINUS_SRC_ALPHA
+          );
       }
     }
     const modelView = mat4.multiply(
