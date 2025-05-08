@@ -1,7 +1,7 @@
-import cns from "classnames";
 import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
+import { ChannelControlsList } from "./viewers/OmeZarrImageViewer/components/ChannelControlsList";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
@@ -16,6 +16,7 @@ const region: Region = [
 
 const imagePaths = ["000000", "000001", "000002", "001000", "001001", "001002"];
 
+/** Demo. */
 export default function App() {
   const [imageIndex, setImageIndex] = useState(0);
 
@@ -69,33 +70,23 @@ export default function App() {
   }, []);
 
   return (
-    <div
-      // Container represents how it'll look in the Organelle Box portal
-      className={cns(
-        "container",
-        "max-w-[713px]",
-        "mx-auto",
-        "h-screen",
-        "flex",
-        "flex-col",
-        "overflow-hidden",
-        // Organelle Box is using bg-dark-sds-color-primitive-gray-100
-        // behind the image viewer
-        "bg-dark-sds-color-primitive-gray-100"
-      )}
-    >
-      <div className={cns("aspect-[4/5] md:aspect-square")}>
-        <OmeZarrImageViewer
-          sourceUrl={imageUrl}
-          region={region}
-          seriesDimensionName="Z"
-          allSlicesSizeEstimate="250 MB"
-          onLayerCreated={handleLayerCreated}
-          onFirstSliceLoaded={handleFirstSliceLoaded}
-          onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
-          onAllSlicesLoaded={handleAllSlicesLoaded}
-          onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-        />
+    <div className="h-screen flex flex-col">
+      <OmeZarrImageViewer
+        sourceUrl={imageUrl}
+        region={region}
+        seriesDimensionName="Z"
+        allSlicesSizeEstimate="250 MB"
+        classNames={{
+          root: "bg-dark-sds-color-primitive-gray-100",
+        }}
+        onLayerCreated={handleLayerCreated}
+        onFirstSliceLoaded={handleFirstSliceLoaded}
+        onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+        onAllSlicesLoaded={handleAllSlicesLoaded}
+        onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
+      />
+      <div className="absolute top-0 left-0 w-full md:!w-[400px]">
+        <ChannelControlsList />
       </div>
       <input
         type="button"

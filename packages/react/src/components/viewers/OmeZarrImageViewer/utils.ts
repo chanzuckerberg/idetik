@@ -1,6 +1,6 @@
 import { OmeroChannel, ChannelProps } from "@idetik/core";
-import type { ChannelControlProps } from "./components/ChannelControlsList/components/ChannelControl";
 import { hexToRgb } from "lib/color";
+import { ChannelControl } from "components/hooks/useIdetik";
 
 // TODO: the limits/range from the omero channels should possibly be reversed
 // (start/end for limits, min/max for range) but the organelle box data works better this way
@@ -18,9 +18,9 @@ export const omeroToChannelProps = (
   });
 };
 
-export const omeroToControlProps = (
+export const omeroToChannelControls = (
   omeroChannels: OmeroChannel[]
-): Partial<ChannelControlProps>[] => {
+): ChannelControl[] => {
   return omeroChannels.map((channel, index) => {
     // remove prefix (number + hyphen) from label if present (seen in organelle box data)
     const label = (channel.label ?? `Ch${index}`).replace(/^\d+-/, "");

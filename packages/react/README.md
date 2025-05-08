@@ -2,7 +2,61 @@
 
 React components for image viewers - wrapping idetik/core functionality
 
-## Getting Started
+## For Integrators: Using @idetik/react Components
+
+### Installation
+
+```bash
+npm install @idetik/react @idetik/core
+```
+
+### Basic Usage
+
+1. Wrap your application in `<IdetikProvider>`.
+
+```tsx
+import { IdetikProvider } from '@idetik/react';
+
+...
+
+<IdetikProvider>
+   <App />
+</IdetikProvider>,
+```
+
+2. Insert `<OmeZarrImageViewer>` anywhere in your application.
+
+```tsx
+<OmeZarrImageViewer
+   sourceUrl={imageUrl}
+   region={region}
+   seriesDimensionName="Z"
+   allSlicesSizeEstimate="250 MB"
+   classNames={{
+      root: "your-css-class",
+   }}
+   onLayerCreated={handleLayerCreated}
+   onFirstSliceLoaded={handleFirstSliceLoaded}
+   onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+   onAllSlicesLoaded={handleAllSlicesLoaded}
+   onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
+/>
+```
+
+3. Insert `<ChannelControlsList>` anywhere in your application.
+
+```tsx
+<ChannelControlsList />
+```
+
+### Advanced usage
+
+To write custom control components, use the `useIdetik()` hook to access and update the global
+Idetik state.
+
+## For Internal Developers
+
+### Getting Started
 
 ```bash
 # Install dependencies from root directory
@@ -28,11 +82,11 @@ If you make changes to the `@idetik/core` package, you'll need to:
 
 This ensures your React components use the latest version of the core package.
 
-## Component Development Guidelines
+### Component Development Guidelines
 
 Pure TypeScript code (has no react dependencies) should go in the `lib/` directory.
 
-### File Structure
+#### File Structure
 Each component should have its own directory with the following structure:
 ```
 ComponentName/
@@ -42,7 +96,7 @@ ComponentName/
 └── components/      # Sub-components (if needed)
 ```
 
-### Best Practices
+#### Best Practices
 
 1. **Exports**
    - Use named exports instead of default exports
@@ -97,7 +151,7 @@ ComponentName/
    );
    ```
 
-## Available Scripts
+### Available Scripts
 
 - `npm run dev` - Start the Vite development server
 - `npm run compile` - Run TypeScript compilation

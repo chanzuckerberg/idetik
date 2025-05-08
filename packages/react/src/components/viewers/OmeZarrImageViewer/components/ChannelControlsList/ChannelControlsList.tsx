@@ -5,41 +5,18 @@ import {
   Button,
 } from "@czi-sds/components";
 import cns from "classnames";
-import {
-  ChannelControl,
-  ChannelControlProps,
-} from "./components/ChannelControl";
-import { ImageSeriesLayer, ChannelProps } from "@idetik/core";
-import { useEffect, useRef, useState } from "react";
+import { ChannelControl } from "./components/ChannelControl";
+import { ChannelProps } from "@idetik/core";
+import { useIdetik } from "components/hooks";
 
-interface ChannelControlsListProps {
-  layer: ImageSeriesLayer;
-  controlProps: Partial<ChannelControlProps>[];
-  resetCallback?: () => Promise<void>;
-}
-
-export function ChannelControlsList({
-  layer,
-  controlProps,
-  resetCallback,
-}: ChannelControlsListProps) {
-  // Keep a local copy of channelProps to trigger re-renders
-  const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
-  const isInternalUpdate = useRef(false);
-
-  // initial sync of local state with layer's channelProps
-  // props change indicates this is not an internal update
-  useEffect(() => {
-    isInternalUpdate.current = false;
-    setChannelProps(layer.channelProps ?? []);
-  }, [layer, controlProps, resetCallback]);
-
-  // update layer's channelProps when local state changes
-  useEffect(() => {
-    if (isInternalUpdate.current) {
-      layer.setChannelProps(channelProps);
-    }
-  }, [channelProps, layer]);
+export function ChannelControlsList() {
+  const {
+    isInitialized,
+    channels,
+    setChannels,
+    resetChannels,
+    channelControls,
+  } = useIdetik();
 
   const updateChannel = (
     index: number,
@@ -49,16 +26,17 @@ export function ChannelControlsList({
       contrastLimits: [number, number];
     }>
   ) => {
-    isInternalUpdate.current = true;
-    const updatedChannelProps = [...channelProps];
-
-    updatedChannelProps[index] = {
-      ...channelProps[index],
+    const updatedChannels = [...channels];
+    updatedChannels[index] = {
+      ...channels[index],
       ...updates,
     };
-
-    setChannelProps(updatedChannelProps);
+    setChannels(updatedChannels);
   };
+
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <div
@@ -100,7 +78,7 @@ export function ChannelControlsList({
 
         <AccordionDetails>
           <div className={cns("grid grid-cols-4 grid-rows-auto")}>
-            {channelProps.map((props: ChannelProps, index: number) => {
+            {channels.map((props: ChannelProps, index: number) => {
               // TODO: can possibly clean this up with better types
               // error on undefined values - we're setting defaults
               // and merging objects in too many places
@@ -112,7 +90,7 @@ export function ChannelControlsList({
                   `Contrast limits not defined for channel ${index}`
                 );
               }
-              const contrastRange = (controlProps[index]?.contrastRange ??
+              const contrastRange = (channelControls[index]?.contrastRange ??
                 props.contrastLimits)!;
               if (contrastRange === undefined) {
                 throw new Error(
@@ -124,7 +102,7 @@ export function ChannelControlsList({
                 <ChannelControl
                   key={index}
                   channelIndex={index}
-                  label={controlProps[index]?.label ?? `Channel ${index}`}
+                  label={channelControls[index]?.label ?? `Channel ${index}`}
                   color={props.color}
                   contrastLimits={props.contrastLimits}
                   contrastRange={contrastRange}
@@ -140,23 +118,19 @@ export function ChannelControlsList({
               );
             })}
           </div>
-          {resetCallback && (
-            <span className={cns("flex", "justify-end", "mt-sds-xs")}>
-              <Button
-                sdsStyle="minimal"
-                sdsType="primary"
-                // Force dark mode styles on hover
-                className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
-                onClick={() => {
-                  resetCallback().then(() => {
-                    setChannelProps(layer.channelProps ?? []);
-                  });
-                }}
-              >
-                Reset channels
-              </Button>
-            </span>
-          )}
+          <span className={cns("flex", "justify-end", "mt-sds-xs")}>
+            <Button
+              sdsStyle="minimal"
+              sdsType="primary"
+              // Force dark mode styles on hover
+              className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
+              onClick={() => {
+                resetChannels();
+              }}
+            >
+              Reset channels
+            </Button>
+          </span>
         </AccordionDetails>
       </Accordion>
     </div>
