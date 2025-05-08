@@ -21,9 +21,6 @@ export abstract class Renderer {
   protected abstract renderObject(layer: Layer, objectIndex: number): void;
   protected abstract clear(): void;
 
-  protected beginTransparentPass(): void {}
-  protected endTransparentPass(): void {}
-
   constructor(selector: string) {
     this.canvas_ = document.querySelector<HTMLCanvasElement>(selector);
     if (!this.canvas_) {
@@ -36,31 +33,14 @@ export abstract class Renderer {
     });
   }
 
-  public render(layerManager: LayerManager, camera: Camera) {
-    this.clear();
+  protected syncActiveCamera(camera: Camera) {
     if (this.activeCamera_ !== camera) {
       this.activeCamera_ = camera;
       this.updateActiveCamera();
     }
-    const { opaque, transparent } = layerManager.partitionLayers();
-
-    for (const layer of opaque) {
-      layer.update();
-      if (layer.state === "ready") {
-        for (let i = 0; i < layer.objects.length; i++) {
-          this.renderObject(layer, i);
-        }
-      }
-    }
-
-    this.beginTransparentPass();
-    for (const layer of transparent) {
-      layer.update();
-      if (layer.state !== "ready") continue;
-      layer.objects.forEach((_, i) => this.renderObject(layer, i));
-    }
-    this.endTransparentPass();
   }
+
+  public abstract render(layerManager: LayerManager, camera: Camera): void;
 
   public setControls(controls: CameraControls) {
     this.unbindControls();

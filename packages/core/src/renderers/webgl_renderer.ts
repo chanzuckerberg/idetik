@@ -7,7 +7,10 @@ import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
 import { mat4 } from "gl-matrix";
-import { Layer } from "core/layer";
+import { Layer } from "../core/layer";
+import { LayerManager } from "../core/layer_manager";
+import { Camera } from "../objects/cameras/camera";
+import { WebGLState } from "./WebGLState";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -26,6 +29,7 @@ export class WebGLRenderer extends Renderer {
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
+  private readonly webglState_: WebGLState;
 
   constructor(selector: string) {
     super(selector);
@@ -43,16 +47,36 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
     this.resize(this.canvas.width, this.canvas.height);
+    this.webglState_ = new WebGLState(this.gl);
   }
 
-  protected beginTransparentPass(): void {
-    this.gl.enable(this.gl.BLEND);
-    this.gl.depthMask(false);
+  private renderLayer(layer: Layer) {
+    layer.objects.forEach((_, i) => this.renderObject(layer, i));
   }
 
-  protected endTransparentPass(): void {
-    this.gl.disable(this.gl.BLEND);
-    this.gl.depthMask(true);
+  public render(layerManager: LayerManager, camera: Camera): void {
+    this.clear();
+    this.syncActiveCamera(camera);
+
+    const { opaque, transparent } = layerManager.partitionLayers();
+
+    this.webglState_.disable(this.gl.BLEND);
+    this.webglState_.setDepthMask(true);
+    for (const layer of opaque) {
+      layer.update();
+      if (layer.state === "ready") {
+        this.renderLayer(layer);
+      }
+    }
+
+    this.webglState_.enable(this.gl.BLEND);
+    this.webglState_.setDepthMask(false);
+    for (const layer of transparent) {
+      layer.update();
+      if (layer.state !== "ready") continue;
+      this.renderLayer(layer);
+    }
+    this.webglState_.setDepthMask(true);
   }
 
   protected renderObject(layer: Layer, objectIndex: number) {
