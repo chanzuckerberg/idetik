@@ -1,6 +1,6 @@
-import { RenderableObject } from "core/renderable_object";
-import { PointsGeometry } from "objects/geometry/points_geometry";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { RenderableObject } from "../../core/renderable_object";
+import { PointsGeometry } from "../geometry/points_geometry";
+import { Texture2DArray } from "../textures/texture_2d_array";
 
 type ProceduralMarker = "circle" | "square" | "triangle";
 type Marker = ProceduralMarker | Float32Array;

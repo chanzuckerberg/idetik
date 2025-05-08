@@ -152,7 +152,7 @@ zSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(async () => {
-    await imageLayer.setPosition(value * IMAGE_SCALE_2);
+    imageLayer.setPosition(value * IMAGE_SCALE_2);
     ribosomes.setPosition(value * IMAGE_SCALE_2);
     ferritin.setPosition(value * IMAGE_SCALE_2);
   }, 20);
