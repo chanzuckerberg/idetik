@@ -20,20 +20,18 @@ interface OmeZarrViewerContainerProps {
   onLoadAllSlicesAborted?: () => void;
 }
 
-export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
-  const {
-    sourceUrl,
-    region,
-    seriesDimensionName,
-    allSlicesSizeEstimate,
-    classNames,
-    onLayerCreated,
-    onFirstSliceLoaded,
-    onLoadAllSlicesClicked,
-    onAllSlicesLoaded,
-    onLoadAllSlicesAborted,
-  } = props;
-
+export function OmeZarrImageViewer({
+  sourceUrl,
+  region,
+  seriesDimensionName,
+  allSlicesSizeEstimate,
+  classNames,
+  onLayerCreated,
+  onFirstSliceLoaded,
+  onLoadAllSlicesClicked,
+  onAllSlicesLoaded,
+  onLoadAllSlicesAborted,
+}: OmeZarrViewerContainerProps) {
   const {
     layerManager,
     camera,
@@ -54,6 +52,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
   });
+
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
       <Renderer
@@ -72,7 +71,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
           "items-end"
         )}
       >
-        {!loading && (
+        {!loading ? (
           <div
             // These share styles with ChannelControlsList
             className={cns(
@@ -88,9 +87,10 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
           >
             Slice {zIndex.toString().padStart(2, "0")}/{zRange[1] - zRange[0]}
           </div>
+        ) : (
+          <LoadingIndicator sdsStyle="tag" />
         )}
-        {loading && <LoadingIndicator sdsStyle="tag" />}
-        {!allSlicesLoaded && (
+        {!allSlicesLoaded ? (
           <Button
             sdsType="primary"
             sdsStyle="square"
@@ -103,8 +103,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
               ? `Load 3D high-res (${allSlicesSizeEstimate})`
               : "Load 3D high-res"}
           </Button>
-        )}
-        {allSlicesLoaded && (
+        ) : (
           <div
             className={cns(
               // When using width 100%, the slider goes out of the
