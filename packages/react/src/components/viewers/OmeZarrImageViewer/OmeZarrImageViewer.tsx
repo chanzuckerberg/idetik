@@ -12,6 +12,9 @@ interface OmeZarrViewerContainerProps {
   allSlicesSizeEstimate?: string;
   classNames?: {
     root?: string;
+    sliceMetadataContainer?: string;
+    sliceIndicator?: string;
+    load3dButton?: string;
   };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
@@ -68,7 +71,9 @@ export function OmeZarrImageViewer({
           "m-sds-l",
           "flex",
           "flex-col",
-          "items-end"
+          "items-end",
+          "gap-sds-l",
+          classNames?.sliceMetadataContainer
         )}
       >
         {!loading ? (
@@ -82,7 +87,8 @@ export function OmeZarrImageViewer({
               "p-sds-xs",
               "rounded-sds-m",
               "shadow-sds-m",
-              "font-sds-code"
+              "font-sds-code",
+              classNames?.sliceIndicator
             )}
           >
             Slice {zIndex.toString().padStart(2, "0")}/{zRange[1] - zRange[0]}
@@ -97,7 +103,7 @@ export function OmeZarrImageViewer({
             size="small"
             disabled={loading}
             onClick={loadAllSlicesCallback}
-            className="mt-sds-l shadow-sds-m"
+            className={cns("shadow-sds-m", classNames?.load3dButton)}
           >
             {allSlicesSizeEstimate
               ? `Load 3D high-res (${allSlicesSizeEstimate})`
@@ -114,7 +120,6 @@ export function OmeZarrImageViewer({
               "justify-center",
               "items-center",
               "gap-2",
-              "mt-sds-l",
               "bg-black/75",
               "backdrop-blur-md",
               "rounded-sds-m",
