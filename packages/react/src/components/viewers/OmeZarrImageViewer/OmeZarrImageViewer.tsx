@@ -55,19 +55,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onLoadAllSlicesAborted,
   });
   return (
-    <div
-      className={cns(
-        "w-full",
-        "h-full",
-        "flex",
-        "flex-col",
-        "flex-1",
-        "gap-4",
-        "min-h-0",
-        "relative",
-        classNames?.root
-      )}
-    >
+    <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
       <Renderer
         layerManager={layerManager}
         camera={camera}
@@ -78,44 +66,30 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
           "absolute",
           "bottom-0",
           "right-0",
-          "w-full",
           "m-sds-l",
           "flex",
           "flex-col",
           "items-end"
         )}
       >
-        <div
-          className={cns(
-            "flex",
-            "justify-end",
-            "items-center",
-            "w-full",
-            "h-6"
-          )}
-        >
-          <div className={cns("flex", "justify-end", "w-1/3")}>
-            {!loading && (
-              <div
-                // These share styles with ChannelControlsList
-                className={cns(
-                  "text-white",
-                  "text-sm",
-                  "bg-black/75",
-                  "backdrop-blur-md",
-                  "p-sds-xs",
-                  "rounded-sds-m",
-                  "shadow-sds-m",
-                  "font-sds-code"
-                )}
-              >
-                Slice {zIndex.toString().padStart(2, "0")}/
-                {zRange[1] - zRange[0]}
-              </div>
+        {!loading && (
+          <div
+            // These share styles with ChannelControlsList
+            className={cns(
+              "text-white",
+              "text-sm",
+              "bg-black/75",
+              "backdrop-blur-md",
+              "p-sds-xs",
+              "rounded-sds-m",
+              "shadow-sds-m",
+              "font-sds-code"
             )}
-            {loading && <LoadingIndicator sdsStyle="tag" />}
+          >
+            Slice {zIndex.toString().padStart(2, "0")}/{zRange[1] - zRange[0]}
           </div>
-        </div>
+        )}
+        {loading && <LoadingIndicator sdsStyle="tag" />}
         {!allSlicesLoaded && (
           <Button
             sdsType="primary"
