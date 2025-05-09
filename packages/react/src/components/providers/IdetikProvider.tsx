@@ -26,7 +26,8 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
   >(undefined);
   const channels = useSyncExternalStore(
     imageSeriesLayer?.addChannelChangeCallback ?? (() => () => {}),
-    () => imageSeriesLayer?.channelProps ?? EMPTY_ARRAY
+    () => imageSeriesLayer?.channelProps ?? EMPTY_ARRAY,
+    () => EMPTY_ARRAY // Doesn't render anything on SSR
   );
   const [channelControls, setChannelControls] = useState<
     Array<ChannelControl> | undefined
