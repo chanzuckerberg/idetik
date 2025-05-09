@@ -85,9 +85,9 @@ export default function App() {
         onAllSlicesLoaded={handleAllSlicesLoaded}
         onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
       />
-      <ChannelControlsList
-        classNames={{ root: "absolute top-0 left-0 w-full md:!w-[400px]" }}
-      />
+      <div className="absolute top-0 left-0 w-full md:!w-[400px]">
+        <ChannelControlsList />
+      </div>
       <input
         type="button"
         value="Switch Image"

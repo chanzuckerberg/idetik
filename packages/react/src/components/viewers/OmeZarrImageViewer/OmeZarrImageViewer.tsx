@@ -97,7 +97,7 @@ export function OmeZarrImageViewer({
         ) : (
           <LoadingIndicator sdsStyle="tag" />
         )}
-        {allSlicesLoaded ? (
+        {!allSlicesLoaded ? (
           <Button
             sdsType="primary"
             sdsStyle="square"
@@ -113,13 +113,8 @@ export function OmeZarrImageViewer({
         ) : (
           <div
             className={cns(
-              // When using width 100%, the slider goes out of the
-              // container, just undo it by subtracting the margin
-              // of the container
-              "w-[calc(100%-2*theme(spacing.sds-l))] md:w-[200px]",
+              "w-full md:w-[200px]",
               "flex",
-              "justify-center",
-              "items-center",
               "bg-black/75",
               "rounded-sds-m",
               "shadow-sds-m",
