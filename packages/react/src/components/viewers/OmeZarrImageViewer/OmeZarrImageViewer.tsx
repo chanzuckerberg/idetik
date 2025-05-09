@@ -1,3 +1,5 @@
+"use client";
+
 import { Renderer } from "./components/Renderer";
 import { useOmeZarrViewer } from "./useOmeZarrImageViewer";
 import { Region } from "@idetik/core";
