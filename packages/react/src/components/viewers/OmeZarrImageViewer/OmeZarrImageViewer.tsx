@@ -83,7 +83,6 @@ export function OmeZarrImageViewer({
               "text-white",
               "text-sm",
               "bg-black/75",
-              "backdrop-blur-md",
               "p-sds-xs",
               "rounded-sds-m",
               "shadow-sds-m",
@@ -96,7 +95,7 @@ export function OmeZarrImageViewer({
         ) : (
           <LoadingIndicator sdsStyle="tag" />
         )}
-        {!allSlicesLoaded ? (
+        {allSlicesLoaded ? (
           <Button
             sdsType="primary"
             sdsStyle="square"
@@ -119,9 +118,7 @@ export function OmeZarrImageViewer({
               "flex",
               "justify-center",
               "items-center",
-              "gap-2",
               "bg-black/75",
-              "backdrop-blur-md",
               "rounded-sds-m",
               "shadow-sds-m",
               "py-sds-xs",
