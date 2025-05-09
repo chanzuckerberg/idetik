@@ -15,6 +15,7 @@ interface OmeZarrViewerContainerProps {
     sliceMetadataContainer?: string;
     sliceIndicator?: string;
     load3dButton?: string;
+    sliceSliderContainer?: string;
   };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
@@ -68,7 +69,8 @@ export function OmeZarrImageViewer({
           "absolute",
           "bottom-0",
           "right-0",
-          "m-sds-l",
+          "w-full",
+          "p-sds-l",
           "flex",
           "flex-col",
           "items-end",
@@ -122,7 +124,8 @@ export function OmeZarrImageViewer({
               "rounded-sds-m",
               "shadow-sds-m",
               "py-sds-xs",
-              "px-sds-m"
+              "px-sds-m",
+              classNames?.sliceSliderContainer
             )}
           >
             <InputSlider
