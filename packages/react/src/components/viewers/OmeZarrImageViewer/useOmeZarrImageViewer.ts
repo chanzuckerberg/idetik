@@ -10,7 +10,7 @@ import {
 } from "@idetik/core";
 
 import { omeroToChannelProps, omeroToChannelControls } from "./utils";
-import { useIdetik } from "components/hooks";
+import { useIdetik } from "../../hooks";
 
 interface UseOmeZarrViewerProps {
   sourceUrl: string;
