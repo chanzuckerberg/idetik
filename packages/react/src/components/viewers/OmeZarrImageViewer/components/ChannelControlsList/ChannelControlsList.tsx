@@ -9,7 +9,13 @@ import { ChannelControl } from "./components/ChannelControl";
 import { ChannelProps } from "@idetik/core";
 import { useIdetik } from "components/hooks";
 
-export function ChannelControlsList() {
+export interface ChannelControlsListProps {
+  classNames?: {
+    root?: string;
+  };
+}
+
+export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
   const {
     isInitialized,
     channels,
@@ -51,7 +57,8 @@ export function ChannelControlsList() {
         "rounded-sds-m",
         "shadow-sds-m",
         "m-sds-l",
-        "p-sds-xs"
+        "p-sds-xs",
+        classNames?.root
       )}
     >
       <Accordion
