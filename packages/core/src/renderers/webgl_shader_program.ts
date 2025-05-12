@@ -157,34 +157,40 @@ export class WebGLShaderProgram {
   }
 }
 
-const SAMPLER_TYPES: ReadonlySet<GLenum> = new Set<GLenum>([
-  WebGL2RenderingContext.SAMPLER_2D,
-  WebGL2RenderingContext.SAMPLER_CUBE,
-  WebGL2RenderingContext.SAMPLER_3D,
-  WebGL2RenderingContext.SAMPLER_2D_ARRAY,
-  WebGL2RenderingContext.SAMPLER_2D_SHADOW,
-  WebGL2RenderingContext.SAMPLER_CUBE_SHADOW,
-  WebGL2RenderingContext.SAMPLER_2D_ARRAY_SHADOW,
-  WebGL2RenderingContext.INT_SAMPLER_2D,
-  WebGL2RenderingContext.INT_SAMPLER_3D,
-  WebGL2RenderingContext.INT_SAMPLER_CUBE,
-  WebGL2RenderingContext.INT_SAMPLER_2D_ARRAY,
-  WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D,
-  WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_3D,
-  WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_CUBE,
-  WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D_ARRAY,
-  WebGL2RenderingContext.MAX_SAMPLES,
-  WebGL2RenderingContext.SAMPLER_BINDING,
-]);
+const SAMPLER_TYPES: ReadonlySet<GLenum> =
+  typeof window !== "undefined" // Don't error in SSR contexts.
+    ? new Set<GLenum>([
+        WebGL2RenderingContext.SAMPLER_2D,
+        WebGL2RenderingContext.SAMPLER_CUBE,
+        WebGL2RenderingContext.SAMPLER_3D,
+        WebGL2RenderingContext.SAMPLER_2D_ARRAY,
+        WebGL2RenderingContext.SAMPLER_2D_SHADOW,
+        WebGL2RenderingContext.SAMPLER_CUBE_SHADOW,
+        WebGL2RenderingContext.SAMPLER_2D_ARRAY_SHADOW,
+        WebGL2RenderingContext.INT_SAMPLER_2D,
+        WebGL2RenderingContext.INT_SAMPLER_3D,
+        WebGL2RenderingContext.INT_SAMPLER_CUBE,
+        WebGL2RenderingContext.INT_SAMPLER_2D_ARRAY,
+        WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D,
+        WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_3D,
+        WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_CUBE,
+        WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D_ARRAY,
+        WebGL2RenderingContext.MAX_SAMPLES,
+        WebGL2RenderingContext.SAMPLER_BINDING,
+      ])
+    : new Set();
 
 // using an array and converting to a set allows us to also create a type here
-const SUPPORTED_UNIFORM_TYPES_ = [
-  WebGL2RenderingContext.BOOL,
-  WebGL2RenderingContext.FLOAT,
-  WebGL2RenderingContext.FLOAT_VEC2,
-  WebGL2RenderingContext.FLOAT_VEC3,
-  WebGL2RenderingContext.FLOAT_MAT4,
-] as const;
+const SUPPORTED_UNIFORM_TYPES_ =
+  typeof window !== "undefined" // Don't error in SSR contexts.
+    ? [
+        WebGL2RenderingContext.BOOL,
+        WebGL2RenderingContext.FLOAT,
+        WebGL2RenderingContext.FLOAT_VEC2,
+        WebGL2RenderingContext.FLOAT_VEC3,
+        WebGL2RenderingContext.FLOAT_MAT4,
+      ]
+    : [];
 type SupportedUniformType = (typeof SUPPORTED_UNIFORM_TYPES_)[GLenum];
 const SUPPORTED_UNIFORM_TYPES: ReadonlySet<GLenum> = new Set<GLenum>(
   SUPPORTED_UNIFORM_TYPES_
