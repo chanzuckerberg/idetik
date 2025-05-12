@@ -7,7 +7,7 @@ import {
 import cns from "classnames";
 import { ChannelControl } from "./components/ChannelControl";
 import { ChannelProps } from "@idetik/core";
-import { useIdetik } from "components/hooks";
+import { useIdetik } from "../../../../hooks";
 
 export interface ChannelControlsListProps {
   classNames?: {

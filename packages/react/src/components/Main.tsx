@@ -2,7 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import cns from "classnames";
 
-import AppWithProviders from "./AppWithProviders.tsx";
+import AppWithProviders from "./AppWithProviders";
 import "../input.css";
 
 const domNode = document.getElementById("app")!;
