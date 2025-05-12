@@ -5,3 +5,4 @@ import { OmeZarrImageViewer } from "./components/viewers/OmeZarrImageViewer";
 import { useOmeZarrViewer } from "./components/viewers/OmeZarrImageViewer/useOmeZarrImageViewer";
 
 export { Renderer, OmeZarrImageViewer, useOmeZarrViewer };
+export { IdetikProvider } from "./components/providers/IdetikProvider";
