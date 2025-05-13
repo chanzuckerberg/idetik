@@ -6,23 +6,29 @@ export interface ChannelControl {
   contrastRange: [number, number];
 }
 
-export interface IdetikContextValue {
-  isInitialized: boolean;
-
-  channels: ChannelProps[];
-  setChannels: (channels: ChannelProps[]) => void;
-  resetChannels: () => void;
-
-  channelControls: ChannelControl[]; // Same order as channels.
-  setChannelControls: React.Dispatch<
-    React.SetStateAction<ChannelControl[] | undefined>
-  >;
-
-  setImageSeriesLayer: React.Dispatch<
-    React.SetStateAction<ImageSeriesLayer | undefined>
-  >;
-  clearImageSeriesLayer: () => void;
-}
+export type IdetikContextValue =
+  | {
+      isInitialized: true;
+      imageSeriesLayer: ImageSeriesLayer;
+      channels: ChannelProps[];
+      channelControls: ChannelControl[]; // Same order as channels.
+      setImageSeriesLayer: React.Dispatch<
+        React.SetStateAction<ImageSeriesLayer | undefined>
+      >;
+      clearImageSeriesLayer: () => void;
+      setChannelControls: React.Dispatch<
+        React.SetStateAction<Array<ChannelControl>>
+      >;
+    }
+  | {
+      isInitialized: false;
+      setImageSeriesLayer: React.Dispatch<
+        React.SetStateAction<ImageSeriesLayer | undefined>
+      >;
+      setChannelControls: React.Dispatch<
+        React.SetStateAction<Array<ChannelControl>>
+      >;
+    };
 
 export const IdetikContext = createContext<IdetikContextValue | undefined>(
   undefined

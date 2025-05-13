@@ -16,13 +16,7 @@ export interface ChannelControlsListProps {
 }
 
 export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
-  const {
-    isInitialized,
-    channels,
-    setChannels,
-    resetChannels,
-    channelControls,
-  } = useIdetik();
+  const idetikContext = useIdetik();
 
   const updateChannel = (
     index: number,
@@ -32,12 +26,15 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
       contrastLimits: [number, number];
     }>
   ) => {
-    const updatedChannels = [...channels];
+    if (!idetikContext.isInitialized) {
+      return;
+    }
+    const updatedChannels = [...idetikContext.channels];
     updatedChannels[index] = {
-      ...channels[index],
+      ...idetikContext.channels[index],
       ...updates,
     };
-    setChannels(updatedChannels);
+    idetikContext.imageSeriesLayer.setChannels(updatedChannels);
   };
 
   if (!isInitialized) {

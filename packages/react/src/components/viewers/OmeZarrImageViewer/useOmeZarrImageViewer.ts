@@ -41,8 +41,7 @@ export function useOmeZarrViewer({
   const [zValue, setZValue] = useState(0.5);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
-  const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
-    useIdetik();
+  const idetikContext = useIdetik();
 
   useEffect(() => {
     if (imageLayer) {
@@ -102,8 +101,8 @@ export function useOmeZarrViewer({
 
       if (shouldSetLayer) {
         setImageLayer(layer);
-        setImageSeriesLayer(layer);
-        setChannelControls(omeroToChannelControls(omeroChannels));
+        idetikContext.setImageSeriesLayer(layer);
+        idetikContext.setChannelControls(omeroToChannelControls(omeroChannels));
       }
     };
 
@@ -113,7 +112,9 @@ export function useOmeZarrViewer({
       shouldSetLayer = false;
       layer?.close();
       setImageLayer(null);
-      clearImageSeriesLayer();
+      if (idetikContext.isInitialized) {
+        idetikContext.clearImageSeriesLayer();
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
   }, [source, sourceUrl, region, seriesDimensionName]);
