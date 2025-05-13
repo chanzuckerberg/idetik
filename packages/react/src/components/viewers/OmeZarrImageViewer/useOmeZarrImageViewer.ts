@@ -53,6 +53,8 @@ export function useOmeZarrViewer({
   }, [imageLayer]);
 
   useEffect(() => {
+    const newSource = new OmeZarrImageSource(sourceUrl, 0);
+    setSource(newSource);
     setAllSlicesLoaded(false);
   }, [sourceUrl]);
 
@@ -67,6 +69,7 @@ export function useOmeZarrViewer({
 
   // Create Image Layer
   useEffect(() => {
+    if (!source) return;
     let shouldSetLayer = true;
     let layer: ImageSeriesLayer | null = null;
     console.log("[Viewer] Creating image layer");
@@ -77,7 +80,7 @@ export function useOmeZarrViewer({
       const channelProps = omeroToChannelProps(omeroChannels);
 
       layer = new ImageSeriesLayer({
-        source: new OmeZarrImageSource(sourceUrl, 0),
+        source,
         region,
         seriesDimensionName,
         channelProps,
@@ -113,13 +116,14 @@ export function useOmeZarrViewer({
       clearImageSeriesLayer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
-  }, [sourceUrl, region, seriesDimensionName]);
+  }, [source, sourceUrl, region, seriesDimensionName]);
 
   // Fetch Z range from metadata
   useEffect(() => {
     const fetchZRange = async () => {
-      const loader = await openImageSeriesLayer();
-      const attrs = await loader!.loadAttributes();
+      if (!source) return;
+      const loader = await source.open();
+      const attrs = await loader.loadAttributes();
 
       const zIdx = attrs.dimensionNames.findIndex(
         (d: string) => d === seriesDimensionName
