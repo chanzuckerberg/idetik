@@ -34,10 +34,10 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
       ...idetikContext.channels[index],
       ...updates,
     };
-    idetikContext.imageSeriesLayer.setChannels(updatedChannels);
+    idetikContext.imageSeriesLayer.setChannelProps(updatedChannels);
   };
 
-  if (!isInitialized) {
+  if (!idetikContext.isInitialized) {
     return null;
   }
 
@@ -82,45 +82,50 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
 
         <AccordionDetails>
           <div className={cns("grid grid-cols-4 grid-rows-auto")}>
-            {channels.map((props: ChannelProps, index: number) => {
-              // TODO: can possibly clean this up with better types
-              // error on undefined values - we're setting defaults
-              // and merging objects in too many places
-              if (props.color === undefined) {
-                throw new Error(`Color not defined for channel ${index}`);
-              }
-              if (props.contrastLimits === undefined) {
-                throw new Error(
-                  `Contrast limits not defined for channel ${index}`
-                );
-              }
-              const contrastRange = (channelControls[index]?.contrastRange ??
-                props.contrastLimits)!;
-              if (contrastRange === undefined) {
-                throw new Error(
-                  `Contrast range not defined for channel ${index}`
-                );
-              }
+            {idetikContext.channels.map(
+              (props: ChannelProps, index: number) => {
+                // TODO: can possibly clean this up with better types
+                // error on undefined values - we're setting defaults
+                // and merging objects in too many places
+                if (props.color === undefined) {
+                  throw new Error(`Color not defined for channel ${index}`);
+                }
+                if (props.contrastLimits === undefined) {
+                  throw new Error(
+                    `Contrast limits not defined for channel ${index}`
+                  );
+                }
+                const contrastRange = (idetikContext.channelControls[index]
+                  ?.contrastRange ?? props.contrastLimits)!;
+                if (contrastRange === undefined) {
+                  throw new Error(
+                    `Contrast range not defined for channel ${index}`
+                  );
+                }
 
-              return (
-                <ChannelControl
-                  key={index}
-                  channelIndex={index}
-                  label={channelControls[index]?.label ?? `Channel ${index}`}
-                  color={props.color}
-                  contrastLimits={props.contrastLimits}
-                  contrastRange={contrastRange}
-                  visible={props.visible === undefined ? true : props.visible}
-                  onVisibilityChange={(visible) =>
-                    updateChannel(index, { visible })
-                  }
-                  onColorChange={(color) => updateChannel(index, { color })}
-                  onContrastChange={(contrastLimits) =>
-                    updateChannel(index, { contrastLimits })
-                  }
-                />
-              );
-            })}
+                return (
+                  <ChannelControl
+                    key={index}
+                    channelIndex={index}
+                    label={
+                      idetikContext.channelControls[index]?.label ??
+                      `Channel ${index}`
+                    }
+                    color={props.color}
+                    contrastLimits={props.contrastLimits}
+                    contrastRange={contrastRange}
+                    visible={props.visible === undefined ? true : props.visible}
+                    onVisibilityChange={(visible) =>
+                      updateChannel(index, { visible })
+                    }
+                    onColorChange={(color) => updateChannel(index, { color })}
+                    onContrastChange={(contrastLimits) =>
+                      updateChannel(index, { contrastLimits })
+                    }
+                  />
+                );
+              }
+            )}
           </div>
           <span className={cns("flex", "justify-end", "mt-sds-xs")}>
             <Button

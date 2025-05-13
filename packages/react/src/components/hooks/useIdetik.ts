@@ -9,7 +9,7 @@ export interface ChannelControl {
 export type IdetikContextValue =
   | {
       isInitialized: true;
-      imageSeriesLayer: ImageSeriesLayer;
+      imageSeriesLayer: ImageSeriesLayer; // Only defined when isInitialized.
       channels: ChannelProps[];
       channelControls: ChannelControl[]; // Same order as channels.
       setImageSeriesLayer: React.Dispatch<
@@ -22,9 +22,13 @@ export type IdetikContextValue =
     }
   | {
       isInitialized: false;
+      imageSeriesLayer: undefined;
+      channels: ChannelProps[];
+      channelControls: ChannelControl[];
       setImageSeriesLayer: React.Dispatch<
         React.SetStateAction<ImageSeriesLayer | undefined>
       >;
+      clearImageSeriesLayer: () => void;
       setChannelControls: React.Dispatch<
         React.SetStateAction<Array<ChannelControl>>
       >;

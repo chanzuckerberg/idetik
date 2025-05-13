@@ -41,7 +41,8 @@ export function useOmeZarrViewer({
   const [zValue, setZValue] = useState(0.5);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
-  const idetikContext = useIdetik();
+  const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
+    useIdetik();
 
   useEffect(() => {
     if (imageLayer) {
@@ -52,8 +53,6 @@ export function useOmeZarrViewer({
   }, [imageLayer]);
 
   useEffect(() => {
-    const newSource = new OmeZarrImageSource(sourceUrl, 0);
-    setSource(newSource);
     setAllSlicesLoaded(false);
   }, [sourceUrl]);
 
@@ -68,7 +67,6 @@ export function useOmeZarrViewer({
 
   // Create Image Layer
   useEffect(() => {
-    if (!source) return;
     let shouldSetLayer = true;
     let layer: ImageSeriesLayer | null = null;
     console.log("[Viewer] Creating image layer");
@@ -79,7 +77,7 @@ export function useOmeZarrViewer({
       const channelProps = omeroToChannelProps(omeroChannels);
 
       layer = new ImageSeriesLayer({
-        source,
+        source: new OmeZarrImageSource(sourceUrl, 0),
         region,
         seriesDimensionName,
         channelProps,
@@ -101,8 +99,8 @@ export function useOmeZarrViewer({
 
       if (shouldSetLayer) {
         setImageLayer(layer);
-        idetikContext.setImageSeriesLayer(layer);
-        idetikContext.setChannelControls(omeroToChannelControls(omeroChannels));
+        setImageSeriesLayer(layer);
+        setChannelControls(omeroToChannelControls(omeroChannels));
       }
     };
 
@@ -112,19 +110,16 @@ export function useOmeZarrViewer({
       shouldSetLayer = false;
       layer?.close();
       setImageLayer(null);
-      if (idetikContext.isInitialized) {
-        idetikContext.clearImageSeriesLayer();
-      }
+      clearImageSeriesLayer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
-  }, [source, sourceUrl, region, seriesDimensionName]);
+  }, [sourceUrl, region, seriesDimensionName]);
 
   // Fetch Z range from metadata
   useEffect(() => {
     const fetchZRange = async () => {
-      if (!source) return;
-      const loader = await source.open();
-      const attrs = await loader.loadAttributes();
+      const loader = await openImageSeriesLayer();
+      const attrs = await loader!.loadAttributes();
 
       const zIdx = attrs.dimensionNames.findIndex(
         (d: string) => d === seriesDimensionName

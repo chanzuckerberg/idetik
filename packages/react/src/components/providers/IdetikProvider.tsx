@@ -54,7 +54,11 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
           }
         : {
             isInitialized: false,
+            imageSeriesLayer: undefined,
+            channels,
+            channelControls,
             setChannelControls,
+            clearImageSeriesLayer,
             setImageSeriesLayer,
           },
     [channels, imageSeriesLayer, channelControls, clearImageSeriesLayer]
