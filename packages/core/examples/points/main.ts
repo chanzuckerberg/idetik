@@ -1,32 +1,40 @@
 import {
+  ColorLike,
   Layer,
   LayerManager,
   PanZoomControls,
-  PointsGeometry,
   Points,
   WebGLRenderer,
   OrthographicCamera,
   OmeZarrImageSource,
   Region,
+  Texture2DArray,
   LayerState,
   ImageSeriesLayer,
+  Color,
 } from "@";
 
 import { vec3 } from "gl-matrix";
 
-const imageUrl =
-  "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Tomograms/100/TS_100_3.zarr";
-const ribosomesUrl =
-  "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Annotations/104/cytosolic_ribosome-1.0_point.ndjson";
-const ferritinUrl =
-  "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990/Annotations/101/ferritin_complex-1.0_point.ndjson";
-// image scale for the highest res + points coords
+const baseUrl =
+  "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990";
+const imageUrl = `${baseUrl}/Tomograms/100/TS_100_3.zarr`;
+const ribosomesUrl = `${baseUrl}/Annotations/104/cytosolic_ribosome-1.0_point.ndjson`;
+const ferritinUrl = `${baseUrl}/Annotations/101/ferritin_complex-1.0_point.ndjson`;
+const virusLikeUrl = `${baseUrl}/Annotations/106/pp7_vlp-1.0_point.ndjson`;
+
+// image scale for the highest res image --
+// point coordinates are stored in the pixel-space of
+// the highest res image, and need to be scaled
+// by this factor to match our world coordinates
 const IMAGE_SCALE_0 = 4.99; // nm/px
-// image scale for the lowest res (the image we show)
+// image scale for the lowest res --
+// this is the scale of the image we show
+// it is used for scaling of the slice/depth
 const IMAGE_SCALE_2 = 19.96; // nm/px
 const INITIAL_Z_POSITION = 918.16;
 
-const fetchNDJson = async (url: string) => {
+const fetchPositionsFromNDJson = async (url: string) => {
   return await fetch(url).then(async (response) => {
     const allPoints = await response.text();
     const points = allPoints
@@ -43,72 +51,148 @@ const fetchNDJson = async (url: string) => {
   });
 };
 
-const ribosomeLocations = await fetchNDJson(ribosomesUrl);
-const ferritinLocations = await fetchNDJson(ferritinUrl);
+const ribosomeLocations = await fetchPositionsFromNDJson(ribosomesUrl);
+const ferritinLocations = await fetchPositionsFromNDJson(ferritinUrl);
+const virusLikeLocations = await fetchPositionsFromNDJson(virusLikeUrl);
+
+type Marker = "circle" | "square" | "triangle";
 
 class Particles extends Layer {
-  private points_: vec3[] = [];
-  private color_: [number, number, number] = [0, 0, 0];
-  private marker_: number = 0;
+  private readonly points_: vec3[] = [];
+  private readonly color_: Color;
+  private readonly markerIndex_: number = 0;
+  private static markerAtlas_: Texture2DArray;
   private needsUpdate_: boolean = true;
-  public position: number = 0;
+  private depth_: number = 0;
 
-  constructor(points: vec3[], color: [number, number, number], marker: number) {
+  constructor(points: vec3[], color: ColorLike, marker: Marker) {
     super();
     this.setState("initialized");
     this.points_ = points;
-    this.color_ = color;
-    this.marker_ = marker;
-    this.update();
+    this.color_ = Color.from(color);
+    this.markerIndex_ = marker === "circle" ? 0 : marker === "square" ? 1 : 2;
+    this.refreshPointsRenderable();
     this.setState("ready");
   }
 
-  public setPosition(z: number) {
-    this.position = z;
+  public setDepth(z: number) {
+    this.depth_ = z;
     this.needsUpdate_ = true;
   }
 
   public update() {
-    /**
-     * TODO: re-creating the geometry is not efficient,
-     * but it's the simplest way to update all the
-     * vertex attributes for now.
-     **/
     if (!this.needsUpdate_) {
       return;
     }
-    const [r, g, b] = this.color_;
-    const geometry = new PointsGeometry(
-      this.points_.map((p) => {
-        const zDist = Math.abs(p[2] - this.position);
-        // 64 is just a magic number that looks okay
-        const zScale = zDist / 64.0 + 1.0;
-        return {
-          position: p,
-          color: [r / zScale, g / zScale, b / zScale],
-          size: 20.0 / zScale,
-          marker: this.marker_,
-        };
-      })
-    );
-    const pointsRenderable = new Points(geometry);
+    this.refreshPointsRenderable();
+    this.needsUpdate_ = false;
+  }
+
+  private refreshPointsRenderable() {
+    // TODO: change this to not re-create the renderable object
+    // once Geometry supports updating buffers
+    const { r, g, b } = this.color_;
+    const scaledPoints = this.points_.map((p) => {
+      const zDist = Math.abs(p[2] - this.depth_);
+      // 64 is just a magic number that looks okay
+      const zScale = zDist / 64.0 + 1.0;
+      return {
+        position: p,
+        color: Color.from([r / zScale, g / zScale, b / zScale]),
+        size: 20.0 / zScale,
+        markerIndex: this.markerIndex_,
+      };
+    });
+    const pointsRenderable = new Points(scaledPoints, Particles.markerAtlas);
     this.objects.length = 0;
     this.addObject(pointsRenderable);
-    this.needsUpdate_ = false;
+  }
+
+  private static get markerAtlas() {
+    if (!Particles.markerAtlas_) {
+      Particles.markerAtlas_ = Particles.createMarkerAtlas();
+    }
+    return Particles.markerAtlas_;
+  }
+
+  private static createMarkerAtlas() {
+    const square = (size: number) => {
+      const w = size;
+      const h = size;
+      const data = new Float32Array(w * h);
+      data.fill(1.0);
+      return data;
+    };
+
+    const circle = (size: number) => {
+      const w = size;
+      const h = size;
+      const data = new Float32Array(w * h);
+      for (let i = 0; i < h; i++) {
+        for (let j = 0; j < w; j++) {
+          if ((i - h / 2) ** 2 + (j - w / 2) ** 2 < (w / 2) ** 2) {
+            data[i * w + j] = 1.0;
+          }
+        }
+      }
+      return data;
+    };
+
+    const triangle = (size: number) => {
+      const w = size;
+      const h = size;
+      const data = new Float32Array(w * h);
+      for (let i = 0; i < h; i++) {
+        for (let j = 0; j < w; j++) {
+          if (j >= (w - i) / 2 && j <= (w + i) / 2) {
+            data[i * w + j] = 1.0;
+          }
+        }
+      }
+      return data;
+    };
+
+    const SPRITE_SIZE = 256;
+    const numMarkers = 3;
+    const pixelsPerMarkerSprite = SPRITE_SIZE * SPRITE_SIZE;
+    const data = new Float32Array(numMarkers * pixelsPerMarkerSprite);
+    const squareData = square(SPRITE_SIZE);
+    const circleData = circle(SPRITE_SIZE);
+    const triangleData = triangle(SPRITE_SIZE);
+    for (let i = 0; i < pixelsPerMarkerSprite; i++) {
+      data[i] = circleData[i];
+      data[i + pixelsPerMarkerSprite] = squareData[i];
+      data[i + 2 * pixelsPerMarkerSprite] = triangleData[i];
+    }
+
+    // TODO: this uses f32 values, which are not (by defualt) filterable in WebGL2
+    // to enable this, we can check/add OES_texture_float_linear.
+    // we also don't need the precision of f32 for this so I'd like to use an R8
+    // texture instead, but our Texture class does not yet support it.
+    const texture = new Texture2DArray(data, SPRITE_SIZE, SPRITE_SIZE);
+    texture.wrapR = "clamp_to_edge";
+    texture.wrapS = "clamp_to_edge";
+    texture.wrapT = "clamp_to_edge";
+    return texture;
   }
 }
 const layerManager = new LayerManager();
-const ribosomes = new Particles(ribosomeLocations, [1, 0, 0], 0);
-const ferritin = new Particles(ferritinLocations, [0, 1, 0], 2);
-ribosomes.setPosition(INITIAL_Z_POSITION);
-ferritin.setPosition(INITIAL_Z_POSITION);
+const ribosomes = new Particles(ribosomeLocations, Color.RED, "circle");
+const ferritin = new Particles(ferritinLocations, Color.GREEN, "triangle");
+const virusLike = new Particles(
+  virusLikeLocations,
+  new Color(1.0, 0.0, 1.0),
+  "square"
+);
+ribosomes.setDepth(INITIAL_Z_POSITION);
+ferritin.setDepth(INITIAL_Z_POSITION);
+virusLike.setDepth(INITIAL_Z_POSITION);
 layerManager.add(ribosomes);
 layerManager.add(ferritin);
+layerManager.add(virusLike);
 
 const renderer = new WebGLRenderer("#canvas");
 const camera = new OrthographicCamera(0, 1024, 0, 1024, -10000, 10000);
-const controls = new PanZoomControls(camera, [0, 0, 0]);
-renderer.setControls(controls);
 
 const imageSource = new OmeZarrImageSource(imageUrl);
 const loader = await imageSource.open();
@@ -132,7 +216,7 @@ const imageLayer = new ImageSeriesLayer({
   source: imageSource,
   region,
   seriesDimensionName: zDimName,
-  channelProps: [{ color: [1, 1, 1], contrastLimits: [-0.00001, 0.00001] }],
+  channelProps: [{ color: Color.WHITE, contrastLimits: [-0.00001, 0.00001] }],
 });
 const setCameraFrame = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
@@ -153,8 +237,9 @@ zSlider.addEventListener("input", (event) => {
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(async () => {
     imageLayer.setPosition(value * IMAGE_SCALE_2);
-    ribosomes.setPosition(value * IMAGE_SCALE_2);
-    ferritin.setPosition(value * IMAGE_SCALE_2);
+    ribosomes.setDepth(value * IMAGE_SCALE_2);
+    ferritin.setDepth(value * IMAGE_SCALE_2);
+    virusLike.setDepth(value * IMAGE_SCALE_2);
   }, 20);
 });
 

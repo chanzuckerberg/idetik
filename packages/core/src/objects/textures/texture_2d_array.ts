@@ -2,7 +2,6 @@ import {
   DataTextureTypedArray,
   Texture,
   bufferToDataType,
-  concatenateTypedArrays,
 } from "../../objects/textures/texture";
 
 import { ImageChunk } from "../../data/image_chunk";
@@ -57,18 +56,6 @@ export class Texture2DArray extends Texture {
     );
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
-    return texture;
-  }
-
-  public static createWithArrays(
-    data: DataTextureTypedArray[],
-    width: number,
-    height: number
-  ) {
-    const array = concatenateTypedArrays(data);
-    const texture = new Texture2DArray(array, width, height);
-    texture.unpackRowLength = width;
-    texture.unpackAlignment = 1;
     return texture;
   }
 }
