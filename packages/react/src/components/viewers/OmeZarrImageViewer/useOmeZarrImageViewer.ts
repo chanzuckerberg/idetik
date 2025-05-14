@@ -142,7 +142,9 @@ export function useOmeZarrViewer({
 
   useEffect(() => {
     if (!imageLayer || !contrastLimits) return;
-    const channelProps = imageLayer.channelProps ? [...imageLayer.channelProps] : [];
+    const channelProps = imageLayer.channelProps
+      ? [...imageLayer.channelProps]
+      : [];
     // Update all channels
     for (let i = 0; i < channelProps.length; i++) {
       channelProps[i] = {
