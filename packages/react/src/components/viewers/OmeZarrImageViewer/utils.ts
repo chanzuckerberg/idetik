@@ -35,6 +35,6 @@ export function getGrayscaleChannelProp(): ChannelProps {
   return {
     color: [1, 1, 1],
     visible: true,
-    contrastLimits: [-0.001, 0.001]
-  }
+    contrastLimits: [-0.00001, 0.00001],
+  };
 }

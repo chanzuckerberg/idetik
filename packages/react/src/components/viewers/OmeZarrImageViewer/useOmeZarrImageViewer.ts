@@ -9,7 +9,11 @@ import {
   loadOmeroDefaultZ,
 } from "@idetik/core";
 
-import { omeroToChannelProps, omeroToChannelControls, getGrayscaleChannelProp } from "./utils";
+import {
+  omeroToChannelProps,
+  omeroToChannelControls,
+  getGrayscaleChannelProp,
+} from "./utils";
 import { useIdetik } from "../../hooks";
 
 interface UseOmeZarrViewerProps {
@@ -82,7 +86,9 @@ export function useOmeZarrViewer({
         let channelProps;
 
         if (omeroChannels.length === 0) {
-          console.warn("No OMERO channels found. Falling back to 1 grayscale channel.");
+          console.warn(
+            "No OMERO channels found. Falling back to 1 grayscale channel."
+          );
           channelProps = [getGrayscaleChannelProp()];
         } else {
           channelProps = omeroToChannelProps(omeroChannels);
@@ -160,7 +166,9 @@ export function useOmeZarrViewer({
       const zNormalized = defaultZ / (max - min);
 
       if (Number.isNaN(zNormalized)) {
-        console.warn(`Computed zValue is NaN. defaultZ: ${defaultZ}, max: ${max}, min: ${min}`);
+        console.warn(
+          `Computed zValue is NaN. defaultZ: ${defaultZ}, max: ${max}, min: ${min}`
+        );
         setZValue(0.5);
       } else {
         setZValue(zNormalized);
