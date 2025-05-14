@@ -9,7 +9,7 @@ import {
   loadOmeroDefaultZ,
 } from "@idetik/core";
 
-import { omeroToChannelProps, omeroToChannelControls } from "./utils";
+import { omeroToChannelProps, omeroToChannelControls, getGrayscaleChannelProp } from "./utils";
 import { useIdetik } from "../../hooks";
 
 interface UseOmeZarrViewerProps {
@@ -76,34 +76,46 @@ export function useOmeZarrViewer({
     console.log("[Viewer] Loading omero channels from", sourceUrl);
     const createLayer = async () => {
       setLoading(true);
-      const omeroChannels = await loadOmeroChannels(sourceUrl);
-      const channelProps = omeroToChannelProps(omeroChannels);
 
-      layer = new ImageSeriesLayer({
-        source,
-        region,
-        seriesDimensionName,
-        channelProps,
-      });
+      try {
+        const omeroChannels = await loadOmeroChannels(sourceUrl);
+        let channelProps;
 
-      onLayerCreated?.();
-
-      const onFirstLoad = () => {
-        console.log("[Viewer] First slice loaded");
-        if (!shouldSetLayer) return;
-        if (zoomToFit(layer!)) {
-          setLoading(false);
-          onFirstSliceLoaded?.();
-          layer?.removeStateChangeCallback(onFirstLoad);
+        if (omeroChannels.length === 0) {
+          console.warn("No OMERO channels found. Falling back to 1 grayscale channel.");
+          channelProps = [getGrayscaleChannelProp()];
+        } else {
+          channelProps = omeroToChannelProps(omeroChannels);
         }
-      };
 
-      layer.addStateChangeCallback(onFirstLoad);
+        layer = new ImageSeriesLayer({
+          source,
+          region,
+          seriesDimensionName,
+          channelProps,
+        });
 
-      if (shouldSetLayer) {
-        setImageLayer(layer);
-        setImageSeriesLayer(layer);
-        setChannelControls(omeroToChannelControls(omeroChannels));
+        onLayerCreated?.();
+
+        const onFirstLoad = () => {
+          console.log("[Viewer] First slice loaded");
+          if (!shouldSetLayer) return;
+          if (zoomToFit(layer!)) {
+            setLoading(false);
+            onFirstSliceLoaded?.();
+            layer?.removeStateChangeCallback(onFirstLoad);
+          }
+        };
+
+        layer.addStateChangeCallback(onFirstLoad);
+
+        if (shouldSetLayer) {
+          setImageLayer(layer);
+          setImageSeriesLayer(layer);
+          setChannelControls(omeroToChannelControls(omeroChannels));
+        }
+      } catch (err) {
+        console.error("[Viewer] Failed to load OMERO metadata:", err);
       }
     };
 
@@ -125,22 +137,44 @@ export function useOmeZarrViewer({
       const loader = await source.open();
       const attrs = await loader.loadAttributes();
 
+      // console.log("[Viewer] attrs.dimensionNames:", attrs.dimensionNames);
+      // console.log("[Viewer] attrs.shape:", attrs.shape);
       const zIdx = attrs.dimensionNames.findIndex(
-        (d: string) => d === seriesDimensionName
+        (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
       );
+
+      // const zIdx = attrs.dimensionNames.findIndex(
+      //   (d: string) => d === seriesDimensionName
+      // );
       const min = 0;
       const max = attrs.shape[zIdx] - 1;
-      const defaultZ = await loadOmeroDefaultZ(sourceUrl);
 
-      setZValue(defaultZ / (max - min));
+      if (max - min <= 0) {
+        console.warn(`Invalid Z range: max ${max} <= min ${min}`);
+        setZRange([0, 0]);
+        setZValue(0);
+        return;
+      }
+
+      const defaultZ = await loadOmeroDefaultZ(sourceUrl);
+      const zNormalized = defaultZ / (max - min);
+
+      if (Number.isNaN(zNormalized)) {
+        console.warn(`Computed zValue is NaN. defaultZ: ${defaultZ}, max: ${max}, min: ${min}`);
+        setZValue(0.5);
+      } else {
+        setZValue(zNormalized);
+      }
+
       setZRange([min, max]);
     };
 
     fetchZRange();
+    // console.log("z range loaded");
   }, [source, seriesDimensionName, sourceUrl]);
 
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
-  console.log("[Viewer] zRange", zRange, "zValue", zValue, "zIndex", zIndex);
+  // console.log("[Viewer] zRange", zRange, "zValue", zValue, "zIndex", zIndex);
 
   // Update imageLayer's index on Z change
   useEffect(() => {
@@ -155,8 +189,9 @@ export function useOmeZarrViewer({
 
       try {
         await imageLayer.setIndex(zIndex);
-      } catch {
+      } catch (err) {
         console.debug("Z index load aborted");
+        console.error("Z index load aborted", err);
       } finally {
         clearTimeout(t);
         if (didSetLoadingTrue) {

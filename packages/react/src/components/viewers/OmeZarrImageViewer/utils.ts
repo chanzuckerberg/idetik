@@ -30,3 +30,11 @@ export const omeroToChannelControls = (
     };
   });
 };
+
+export function getGrayscaleChannelProp(): ChannelProps {
+  return {
+    color: [1, 1, 1],
+    visible: true,
+    contrastLimits: [-0.001, 0.001]
+  }
+}
