@@ -25,6 +25,7 @@ interface UseOmeZarrViewerProps {
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
+  contrastLimits?: [number, number];
 }
 
 export function useOmeZarrViewer({
@@ -36,6 +37,7 @@ export function useOmeZarrViewer({
   onLoadAllSlicesClicked,
   onAllSlicesLoaded,
   onLoadAllSlicesAborted,
+  contrastLimits,
 }: UseOmeZarrViewerProps) {
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [layerManager, setLayerManager] = useState(() => new LayerManager());
@@ -76,8 +78,6 @@ export function useOmeZarrViewer({
     if (!source) return;
     let shouldSetLayer = true;
     let layer: ImageSeriesLayer | null = null;
-    console.log("[Viewer] Creating image layer");
-    console.log("[Viewer] Loading omero channels from", sourceUrl);
     const createLayer = async () => {
       setLoading(true);
 
@@ -89,7 +89,11 @@ export function useOmeZarrViewer({
           console.warn(
             "No OMERO channels found. Falling back to 1 grayscale channel."
           );
-          channelProps = [getGrayscaleChannelProp()];
+          channelProps = [
+            contrastLimits
+              ? getGrayscaleChannelProp(contrastLimits)
+              : getGrayscaleChannelProp(),
+          ];
         } else {
           channelProps = omeroToChannelProps(omeroChannels);
         }
@@ -143,15 +147,10 @@ export function useOmeZarrViewer({
       const loader = await source.open();
       const attrs = await loader.loadAttributes();
 
-      // console.log("[Viewer] attrs.dimensionNames:", attrs.dimensionNames);
-      // console.log("[Viewer] attrs.shape:", attrs.shape);
       const zIdx = attrs.dimensionNames.findIndex(
         (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
       );
 
-      // const zIdx = attrs.dimensionNames.findIndex(
-      //   (d: string) => d === seriesDimensionName
-      // );
       const min = 0;
       const max = attrs.shape[zIdx] - 1;
 
@@ -178,11 +177,9 @@ export function useOmeZarrViewer({
     };
 
     fetchZRange();
-    // console.log("z range loaded");
   }, [source, seriesDimensionName, sourceUrl]);
 
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
-  // console.log("[Viewer] zRange", zRange, "zValue", zValue, "zIndex", zIndex);
 
   // Update imageLayer's index on Z change
   useEffect(() => {
@@ -217,7 +214,8 @@ export function useOmeZarrViewer({
     setLoading(true);
     try {
       await imageLayer.preloadSeries();
-    } catch {
+    } catch (err) {
+      console.error("Failed to load all slices", err);
       onLoadAllSlicesAborted?.();
       return;
     } finally {

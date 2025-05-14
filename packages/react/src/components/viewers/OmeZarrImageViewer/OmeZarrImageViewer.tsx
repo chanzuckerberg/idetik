@@ -10,6 +10,7 @@ interface OmeZarrViewerContainerProps {
   region: Region;
   seriesDimensionName: string;
   allSlicesSizeEstimate?: string;
+  contrastLimits?: [number, number];
   classNames?: {
     root?: string;
   };
@@ -26,6 +27,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     region,
     seriesDimensionName,
     allSlicesSizeEstimate,
+    contrastLimits,
     classNames,
     onLayerCreated,
     onFirstSliceLoaded,
@@ -48,6 +50,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     sourceUrl,
     region,
     seriesDimensionName,
+    contrastLimits,
     onLayerCreated,
     onFirstSliceLoaded,
     onLoadAllSlicesClicked,
