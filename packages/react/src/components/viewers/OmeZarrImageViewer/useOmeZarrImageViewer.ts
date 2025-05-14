@@ -57,7 +57,7 @@ export function useOmeZarrViewer({
   }, [imageLayer]);
 
   useEffect(() => {
-    const newSource = new OmeZarrImageSource(sourceUrl, 0);
+    const newSource = new OmeZarrImageSource(sourceUrl);
     setSource(newSource);
     setAllSlicesLoaded(false);
   }, [sourceUrl]);
