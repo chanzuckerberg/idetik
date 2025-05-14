@@ -143,14 +143,15 @@ export function useOmeZarrViewer({
   useEffect(() => {
     if (!imageLayer || !contrastLimits) return;
     const channelProps = imageLayer.channelProps ? [...imageLayer.channelProps] : [];
-    if (channelProps[0]) {
-      channelProps[0] = {
-        ...channelProps[0],
+    // Update all channels
+    for (let i = 0; i < channelProps.length; i++) {
+      channelProps[i] = {
+        ...channelProps[i],
         contrastLimits,
       };
-      imageLayer.setChannelProps(channelProps);
-      imageLayer.update();
     }
+    imageLayer.setChannelProps(channelProps);
+    imageLayer.update();
   }, [contrastLimits, imageLayer]);
 
   // Fetch Z range from metadata
