@@ -83,7 +83,9 @@ export class Color {
   public static WHITE: Color = new Color(1.0, 1.0, 1.0);
 
   private toHexComponent(value: number): string {
-    const hex = Math.round(value).toString(16).padStart(2, "0");
+    const hex = Math.round(value * 255)
+      .toString(16)
+      .padStart(2, "0");
     return hex.length === 1 ? "0" + hex : hex;
   }
 }
