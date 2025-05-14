@@ -32,16 +32,12 @@ const region: Region = [
   { dimension: "y", index: { type: "full" } },
 ];
 
-// Initial contrast limits for grayscale electron microscopy data
-const initialMinValue = -0.00001;
-const initialMaxValue = 0.00001;
-
 // This dataset is grayscale electron microscopy data
 const channelProps: ChannelProps[] = [
   {
     visible: true,
     color: [1, 1, 1],
-    contrastLimits: [initialMinValue, initialMaxValue],
+    contrastLimits: [-0.00001, 0.00001],
   },
 ];
 
@@ -51,15 +47,15 @@ const layer = new ImageSeriesLayer({
   seriesDimensionName: zDimName,
   channelProps,
 });
+layer.addStateChangeCallback((newState: LayerState) => {
+  stateEl!.textContent = newState;
+});
+
 layerManager.add(layer);
 
 const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
 const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
 const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total")!;
-const minSlider = document.querySelector<HTMLInputElement>("#min-slider")!;
-const maxSlider = document.querySelector<HTMLInputElement>("#max-slider")!;
-const minValueEl = document.querySelector<HTMLSpanElement>("#min-value")!;
-const maxValueEl = document.querySelector<HTMLSpanElement>("#max-value")!;
 const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
 const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all")!;
 
@@ -69,60 +65,16 @@ zSlider.max = `${zMax - 1}`;
 zSlider.value = "0";
 zTotalEl.textContent = `${zMax - zMin - 1}`;
 
-minSlider.min = "-0.000010";
-minSlider.max = "0";
-minSlider.step = "0.000001";
-minSlider.value = `${initialMinValue.toFixed(6)}`;
-
-maxSlider.min = "0";
-maxSlider.max = "0.00001";
-maxSlider.step = "0.000001";
-maxSlider.value = `${initialMaxValue.toFixed(6)}`;
-
-minValueEl.textContent = `${initialMinValue}`;
-maxValueEl.textContent = `${initialMaxValue}`;
-
-// Set up event handlers for contrast sliders
-minSlider.addEventListener("input", (event) => {
-  const minValue = (event.target as HTMLInputElement).valueAsNumber;
-  const maxValue = maxSlider.valueAsNumber;
-  minValueEl.textContent = minValue.toFixed(6);
-  // Update channel properties
-  layer.setChannelProps([
-    {
-      visible: true,
-      color: [1, 1, 1],
-      contrastLimits: [minValue, maxValue],
-    },
-  ]);
-});
-
-maxSlider.addEventListener("input", (event) => {
-  const maxValue = (event.target as HTMLInputElement).valueAsNumber;
-  const minValue = minSlider.valueAsNumber;
-  maxValueEl.textContent = maxValue.toFixed(6);
-  // Update channel properties
-  layer.setChannelProps([
-    {
-      visible: true,
-      color: [1, 1, 1],
-      contrastLimits: [minValue, maxValue],
-    },
-  ]);
-});
-
 // set up event handler with debouncing
 let debounce: ReturnType<typeof setTimeout>;
 zSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(() => {
-    layer.setIndex(value);
-    zIndexEl.textContent = `${value}`;
+    setLayerIndex(value);
   }, 20);
 });
 
-layer.setIndex(zSlider.valueAsNumber);
 const setCameraFrame = (newState: LayerState) => {
   if (newState === "ready" && layer.extent !== undefined) {
     camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
@@ -133,22 +85,36 @@ const setCameraFrame = (newState: LayerState) => {
   }
 };
 layer.addStateChangeCallback(setCameraFrame);
-layer.addStateChangeCallback((newState: LayerState) => {
-  stateEl!.textContent = newState;
-});
+setLayerIndex(zSlider.valueAsNumber);
 
 loadAllButton.addEventListener("click", () => {
-  console.log("loading all slices");
-  loadAllButton.disabled = true;
-  loadAllButton.value = "Loading all slices...";
-  layer.preloadSeries().then(() => {
-    loadAllButton.value = "Loaded all slices";
-  });
+  try {
+    preloadAllSlices();
+  } catch (error) {
+    console.error("Error preloading slices:", error);
+    loadAllButton.value = "Error loading slices";
+  }
 });
 
 function animate() {
   renderer.render(layerManager, camera);
   requestAnimationFrame(animate);
+}
+
+async function preloadAllSlices() {
+  console.log("loading all slices");
+  loadAllButton.disabled = true;
+  loadAllButton.value = "Loading all slices...";
+  await layer.preloadSeries();
+  loadAllButton.value = "Loaded all slices";
+}
+
+async function setLayerIndex(index: number) {
+  zIndexEl!.textContent = "...";
+  const result = await layer.setIndex(index);
+  if (result.success) {
+    zIndexEl!.textContent = `${index}`;
+  }
 }
 
 animate();

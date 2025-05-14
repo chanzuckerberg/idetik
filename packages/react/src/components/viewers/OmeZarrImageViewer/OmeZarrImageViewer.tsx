@@ -13,6 +13,10 @@ interface OmeZarrViewerContainerProps {
   contrastLimits?: [number, number];
   classNames?: {
     root?: string;
+    sliceMetadataContainer?: string;
+    sliceIndicator?: string;
+    load3dButton?: string;
+    sliceSliderContainer?: string;
   };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
@@ -57,20 +61,9 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
   });
+
   return (
-    <div
-      className={cns(
-        "w-full",
-        "h-full",
-        "flex",
-        "flex-col",
-        "flex-1",
-        "gap-4",
-        "min-h-0",
-        "relative",
-        classNames?.root
-      )}
-    >
+    <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
       <Renderer
         layerManager={layerManager}
         camera={camera}
@@ -82,75 +75,57 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
           "bottom-0",
           "right-0",
           "w-full",
-          "m-sds-l",
+          "p-sds-l",
           "flex",
           "flex-col",
-          "items-end"
+          "items-end",
+          "gap-sds-l",
+          classNames?.sliceMetadataContainer
         )}
       >
-        <div
-          className={cns(
-            "flex",
-            "justify-end",
-            "items-center",
-            "w-full",
-            "h-6"
-          )}
-        >
-          <div className={cns("flex", "justify-end", "w-1/3")}>
-            {!loading && (
-              <div
-                // These share styles with ChannelControlsList
-                className={cns(
-                  "text-white",
-                  "text-sm",
-                  "bg-black/75",
-                  "backdrop-blur-md",
-                  "p-sds-xs",
-                  "rounded-sds-m",
-                  "shadow-sds-m",
-                  "font-sds-code"
-                )}
-              >
-                Slice {zIndex.toString().padStart(2, "0")}/
-                {zRange[1] - zRange[0]}
-              </div>
+        {!loading ? (
+          <div
+            // These share styles with ChannelControlsList
+            className={cns(
+              "text-white",
+              "text-sm",
+              "bg-black/75",
+              "p-sds-xs",
+              "rounded-sds-m",
+              "shadow-sds-m",
+              "font-sds-code",
+              classNames?.sliceIndicator
             )}
-            {loading && <LoadingIndicator sdsStyle="tag" />}
+          >
+            Slice {zIndex.toString().padStart(2, "0")}/{zRange[1] - zRange[0]}
           </div>
-        </div>
-        {!allSlicesLoaded && (
+        ) : (
+          <LoadingIndicator sdsStyle="tag" />
+        )}
+        {!allSlicesLoaded ? (
           <Button
             sdsType="primary"
             sdsStyle="square"
             size="small"
             disabled={loading}
             onClick={loadAllSlicesCallback}
-            className="mt-sds-l shadow-sds-m"
+            className={cns("shadow-sds-m", classNames?.load3dButton)}
           >
             {allSlicesSizeEstimate
               ? `Load 3D high-res (${allSlicesSizeEstimate})`
               : "Load 3D high-res"}
           </Button>
-        )}
-        {allSlicesLoaded && (
+        ) : (
           <div
             className={cns(
-              // When using width 100%, the slider goes out of the
-              // container, just undo it by subtracting the margin
-              // of the container
-              "w-[calc(100%-2*theme(spacing.sds-l))] md:w-[200px]",
+              "w-full md:w-[200px]",
               "flex",
-              "justify-center",
-              "items-center",
-              "gap-2",
-              "mt-sds-l",
               "bg-black/75",
-              "backdrop-blur-md",
               "rounded-sds-m",
               "shadow-sds-m",
               "py-sds-xs",
-              "px-sds-m"
+              "px-sds-m",
+              classNames?.sliceSliderContainer
             )}
           >
             <InputSlider

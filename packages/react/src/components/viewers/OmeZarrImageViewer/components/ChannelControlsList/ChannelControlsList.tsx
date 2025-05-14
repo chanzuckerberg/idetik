@@ -16,13 +16,8 @@ export interface ChannelControlsListProps {
 }
 
 export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
-  const {
-    isInitialized,
-    channels,
-    setChannels,
-    resetChannels,
-    channelControls,
-  } = useIdetik();
+  const { isInitialized, imageSeriesLayer, channels, channelControls } =
+    useIdetik();
 
   const updateChannel = (
     index: number,
@@ -32,12 +27,15 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
       contrastLimits: [number, number];
     }>
   ) => {
+    if (!isInitialized) {
+      return;
+    }
     const updatedChannels = [...channels];
     updatedChannels[index] = {
       ...channels[index],
       ...updates,
     };
-    setChannels(updatedChannels);
+    imageSeriesLayer.setChannelProps(updatedChannels);
   };
 
   if (!isInitialized) {
@@ -132,7 +130,7 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
               // Force dark mode styles on hover
               className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
               onClick={() => {
-                resetChannels();
+                imageSeriesLayer.resetChannelProps();
               }}
             >
               Reset channels

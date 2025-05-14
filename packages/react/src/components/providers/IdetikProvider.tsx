@@ -1,6 +1,6 @@
 "use client";
 
-import { ChannelProps, ImageSeriesLayer } from "@idetik/core";
+import { ImageSeriesLayer } from "@idetik/core";
 import {
   PropsWithChildren,
   useCallback,
@@ -29,45 +29,39 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
     () => imageSeriesLayer?.channelProps ?? EMPTY_ARRAY,
     () => EMPTY_ARRAY // Doesn't render anything on SSR
   );
-  const [channelControls, setChannelControls] = useState<
-    Array<ChannelControl> | undefined
-  >(undefined);
+  const [channelControls, setChannelControls] = useState<Array<ChannelControl>>(
+    []
+  );
 
   // Memoized callbacks:
   const clearImageSeriesLayer = useCallback(() => {
     imageSeriesLayer?.close();
     setImageSeriesLayer(undefined);
   }, [imageSeriesLayer, setImageSeriesLayer]);
-  const setChannels = useCallback(
-    (channelProps: ChannelProps[]) => {
-      imageSeriesLayer?.setChannelProps(channelProps);
-    },
-    [imageSeriesLayer]
-  );
-  const resetChannels = useCallback(() => {
-    imageSeriesLayer?.resetChannelProps();
-  }, [imageSeriesLayer]);
 
   // Context value:
   const contextValue = useMemo<IdetikContextValue>(
-    () => ({
-      isInitialized: imageSeriesLayer !== undefined,
-      channels,
-      setChannels,
-      resetChannels,
-      channelControls: channelControls ?? [],
-      setChannelControls,
-      setImageSeriesLayer,
-      clearImageSeriesLayer,
-    }),
-    [
-      channels,
-      imageSeriesLayer,
-      channelControls,
-      clearImageSeriesLayer,
-      setChannels,
-      resetChannels,
-    ]
+    () =>
+      imageSeriesLayer !== undefined
+        ? {
+            isInitialized: true,
+            imageSeriesLayer,
+            channels,
+            channelControls,
+            setImageSeriesLayer,
+            clearImageSeriesLayer,
+            setChannelControls,
+          }
+        : {
+            isInitialized: false,
+            imageSeriesLayer: undefined,
+            channels,
+            channelControls,
+            setChannelControls,
+            clearImageSeriesLayer,
+            setImageSeriesLayer,
+          },
+    [channels, imageSeriesLayer, channelControls, clearImageSeriesLayer]
   );
 
   return (
