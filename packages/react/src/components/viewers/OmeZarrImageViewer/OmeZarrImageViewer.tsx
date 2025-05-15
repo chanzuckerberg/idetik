@@ -10,6 +10,7 @@ interface OmeZarrViewerContainerProps {
   region: Region;
   seriesDimensionName: string;
   allSlicesSizeEstimate?: string;
+  contrastLimits?: [number, number];
   classNames?: {
     root?: string;
     sliceMetadataContainer?: string;
@@ -24,18 +25,21 @@ interface OmeZarrViewerContainerProps {
   onLoadAllSlicesAborted?: () => void;
 }
 
-export function OmeZarrImageViewer({
-  sourceUrl,
-  region,
-  seriesDimensionName,
-  allSlicesSizeEstimate,
-  classNames,
-  onLayerCreated,
-  onFirstSliceLoaded,
-  onLoadAllSlicesClicked,
-  onAllSlicesLoaded,
-  onLoadAllSlicesAborted,
-}: OmeZarrViewerContainerProps) {
+export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
+  const {
+    sourceUrl,
+    region,
+    seriesDimensionName,
+    allSlicesSizeEstimate,
+    contrastLimits,
+    classNames,
+    onLayerCreated,
+    onFirstSliceLoaded,
+    onLoadAllSlicesClicked,
+    onAllSlicesLoaded,
+    onLoadAllSlicesAborted,
+  } = props;
+
   const {
     layerManager,
     camera,
@@ -50,6 +54,7 @@ export function OmeZarrImageViewer({
     sourceUrl,
     region,
     seriesDimensionName,
+    contrastLimits,
     onLayerCreated,
     onFirstSliceLoaded,
     onLoadAllSlicesClicked,
