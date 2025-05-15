@@ -13,6 +13,7 @@ import {
   omeroToChannelProps,
   omeroToChannelControls,
   getGrayscaleChannelProp,
+  defaultGreyscaleChannel,
 } from "./utils";
 import { useIdetik } from "../../hooks";
 
@@ -25,7 +26,7 @@ interface UseOmeZarrViewerProps {
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
-  contrastLimits?: [number, number];
+  fallbackContrastLimits?: [number, number];
 }
 
 export function useOmeZarrViewer({
@@ -37,7 +38,7 @@ export function useOmeZarrViewer({
   onLoadAllSlicesClicked,
   onAllSlicesLoaded,
   onLoadAllSlicesAborted,
-  contrastLimits,
+  fallbackContrastLimits,
 }: UseOmeZarrViewerProps) {
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [layerManager, setLayerManager] = useState(() => new LayerManager());
@@ -89,11 +90,7 @@ export function useOmeZarrViewer({
           console.warn(
             "No OMERO channels found. Falling back to 1 grayscale channel."
           );
-          channelProps = [
-            contrastLimits
-              ? getGrayscaleChannelProp(contrastLimits)
-              : getGrayscaleChannelProp(),
-          ];
+          channelProps = [getGrayscaleChannelProp(fallbackContrastLimits)];
         } else {
           channelProps = omeroToChannelProps(omeroChannels);
         }
@@ -122,7 +119,12 @@ export function useOmeZarrViewer({
         if (shouldSetLayer) {
           setImageLayer(layer);
           setImageSeriesLayer(layer);
-          setChannelControls(omeroToChannelControls(omeroChannels));
+          setChannelControls(
+            omeroToChannelControls(
+              omeroChannels,
+              defaultGreyscaleChannel(fallbackContrastLimits)
+            )
+          );
         }
       } catch (err) {
         console.error("[Viewer] Failed to load OMERO metadata:", err);
@@ -139,22 +141,6 @@ export function useOmeZarrViewer({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
   }, [source, sourceUrl, region, seriesDimensionName]);
-
-  useEffect(() => {
-    if (!imageLayer || !contrastLimits) return;
-    const channelProps = imageLayer.channelProps
-      ? [...imageLayer.channelProps]
-      : [];
-    // Update all channels
-    for (let i = 0; i < channelProps.length; i++) {
-      channelProps[i] = {
-        ...channelProps[i],
-        contrastLimits,
-      };
-    }
-    imageLayer.setChannelProps(channelProps);
-    imageLayer.update();
-  }, [contrastLimits, imageLayer]);
 
   // Fetch Z range from metadata
   useEffect(() => {
@@ -231,7 +217,7 @@ export function useOmeZarrViewer({
     try {
       await imageLayer.preloadSeries();
     } catch (err) {
-      console.error("Failed to load all slices", err);
+      console.warn("load all slices failed or was aborted", err);
       onLoadAllSlicesAborted?.();
       return;
     } finally {
