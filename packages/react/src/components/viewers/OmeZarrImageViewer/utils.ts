@@ -18,9 +18,21 @@ export const omeroToChannelProps = (
   });
 };
 
+export const defaultGreyscaleChannel = (
+  contrastLimits: [number, number] = [0, 1]
+): ChannelControl => ({
+  label: "Greyscale",
+  contrastRange: contrastLimits,
+});
+
 export const omeroToChannelControls = (
-  omeroChannels: OmeroChannel[]
+  omeroChannels: OmeroChannel[] | undefined,
+  defaultChannel?: ChannelControl
 ): ChannelControl[] => {
+  if (!omeroChannels || omeroChannels.length === 0) {
+    // No OMERO channels, return the default greyscale channel if provided
+    return defaultChannel ? [defaultChannel] : [];
+  }
   return omeroChannels.map((channel, index) => {
     // remove prefix (number + hyphen) from label if present (seen in organelle box data)
     const label = (channel.label ?? `Ch${index}`).replace(/^\d+-/, "");
