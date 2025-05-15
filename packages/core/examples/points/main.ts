@@ -187,9 +187,6 @@ const virusLike = new Particles(
 ribosomes.setDepth(INITIAL_Z_POSITION);
 ferritin.setDepth(INITIAL_Z_POSITION);
 virusLike.setDepth(INITIAL_Z_POSITION);
-layerManager.add(ribosomes);
-layerManager.add(ferritin);
-layerManager.add(virusLike);
 
 const renderer = new WebGLRenderer("#canvas");
 const camera = new OrthographicCamera(0, 1024, 0, 1024, -10000, 10000);
@@ -218,28 +215,33 @@ const imageLayer = new ImageSeriesLayer({
   seriesDimensionName: zDimName,
   channelProps: [{ color: Color.WHITE, contrastLimits: [-0.00001, 0.00001] }],
 });
-const setCameraFrame = (newState: LayerState) => {
+const onFirstImageLoad = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
     camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
     renderer.setControls(new PanZoomControls(camera, camera.position));
     camera.update();
     // remove the callback to only set the camera frame once
-    imageLayer.removeStateChangeCallback(setCameraFrame);
+    imageLayer.removeStateChangeCallback(onFirstImageLoad);
+    layerManager.add(ribosomes);
+    layerManager.add(ferritin);
+    layerManager.add(virusLike);
   }
 };
-imageLayer.addStateChangeCallback(setCameraFrame);
-layerManager.add(imageLayer);
+imageLayer.addStateChangeCallback(onFirstImageLoad);
 imageLayer.setPosition(INITIAL_Z_POSITION);
+layerManager.add(imageLayer);
 
 let debounce: number;
 zSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(async () => {
-    imageLayer.setPosition(value * IMAGE_SCALE_2);
-    ribosomes.setDepth(value * IMAGE_SCALE_2);
-    ferritin.setDepth(value * IMAGE_SCALE_2);
-    virusLike.setDepth(value * IMAGE_SCALE_2);
+    const result = await imageLayer.setPosition(value * IMAGE_SCALE_2);
+    if (result.success) {
+      ribosomes.setDepth(value * IMAGE_SCALE_2);
+      ferritin.setDepth(value * IMAGE_SCALE_2);
+      virusLike.setDepth(value * IMAGE_SCALE_2);
+    }
   }, 20);
 });
 

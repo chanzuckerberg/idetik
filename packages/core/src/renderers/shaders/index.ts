@@ -16,41 +16,31 @@ export type Shader =
   | "uintImage"
   | "uintImageArray";
 
-export type DrawMode = "points" | "triangles";
-
-export const shaderCode: Record<
-  Shader,
-  { vertex: string; fragment: string; mode: DrawMode }
-> = {
-  projectedLine: {
-    vertex: projectedLineVertexShader,
-    fragment: projectedLineFragmentShader,
-    mode: "triangles",
-  },
-  points: {
-    vertex: pointsVertexShader,
-    fragment: pointsFragmentShader,
-    mode: "points",
-  },
-  // TODO: consolidate image shaders
-  floatImage: {
-    vertex: meshVertexShader,
-    fragment: floatImageFragmentShader,
-    mode: "triangles",
-  },
-  floatImageArray: {
-    vertex: meshVertexShader,
-    fragment: floatImageArrayFragmentShader,
-    mode: "triangles",
-  },
-  uintImage: {
-    vertex: meshVertexShader,
-    fragment: uintImageFragmentShader,
-    mode: "triangles",
-  },
-  uintImageArray: {
-    vertex: meshVertexShader,
-    fragment: uintImageArrayFragmentShader,
-    mode: "triangles",
-  },
-};
+export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
+  {
+    projectedLine: {
+      vertex: projectedLineVertexShader,
+      fragment: projectedLineFragmentShader,
+    },
+    points: {
+      vertex: pointsVertexShader,
+      fragment: pointsFragmentShader,
+    },
+    // TODO: consolidate image shaders
+    floatImage: {
+      vertex: meshVertexShader,
+      fragment: floatImageFragmentShader,
+    },
+    floatImageArray: {
+      vertex: meshVertexShader,
+      fragment: floatImageArrayFragmentShader,
+    },
+    uintImage: {
+      vertex: meshVertexShader,
+      fragment: uintImageFragmentShader,
+    },
+    uintImageArray: {
+      vertex: meshVertexShader,
+      fragment: uintImageArrayFragmentShader,
+    },
+  };

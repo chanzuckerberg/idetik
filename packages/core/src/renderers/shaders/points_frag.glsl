@@ -12,7 +12,8 @@ flat in uint marker;
 
 void main() {
     float alpha = texture(markerAtlas, vec3(gl_PointCoord, marker)).r;
-    if (alpha < 1e-3) {
+    float alpha_threshold = 1e-2;
+    if (alpha < alpha_threshold) {
         discard;
     }
     fragColor = vec4(color.rgb, 1.0);
