@@ -1,17 +1,20 @@
 // TODO: move this file out of `textures`
+import { Color, ColorLike } from "../../core/color";
 import { Texture } from "../../objects/textures/texture";
 import { MAX_CHANNELS } from "../../core/constants";
 import { Texture2DArray } from "./texture_2d_array";
 
-type RgbColor = [number, number, number];
-
 export type Channel = {
   visible: boolean;
-  color: RgbColor;
+  color: Color;
   contrastLimits: [number, number];
 };
 
-export type ChannelProps = Partial<Channel>;
+export type ChannelProps = {
+  visible?: boolean;
+  color?: ColorLike;
+  contrastLimits?: [number, number];
+};
 
 export function validateChannel(
   texture: Texture | null,
@@ -21,8 +24,11 @@ export function validateChannel(
     visible = true;
   }
   if (color === undefined) {
-    color = [1, 1, 1];
+    color = Color.WHITE;
+  } else {
+    color = Color.from(color);
   }
+
   if (texture !== null) {
     contrastLimits = validateContrastLimits(contrastLimits, texture);
   } else if (contrastLimits === undefined) {

@@ -6,8 +6,10 @@ import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
-import { mat4 } from "gl-matrix";
 import { Layer } from "../core/layer";
+import { Primitive } from "../core/renderable_object";
+
+import { mat4 } from "gl-matrix";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -117,13 +119,12 @@ export class WebGLRenderer extends Renderer {
       this.textures_.bind(texture);
     });
 
-    // TODO: Move 'type' property to RenderableObject
-    const type = this.gl.TRIANGLES;
+    const primitive = this.getShaderPrimitive(object.primitive);
     const index = object.geometry.indexData;
     if (index.length) {
-      this.gl.drawElements(type, index.length, this.gl.UNSIGNED_INT, 0);
+      this.gl.drawElements(primitive, index.length, this.gl.UNSIGNED_INT, 0);
     } else {
-      this.gl.drawArrays(type, 0, object.geometry.itemSize);
+      this.gl.drawArrays(primitive, 0, object.geometry.vertexCount);
     }
   }
 
@@ -150,6 +151,19 @@ export class WebGLRenderer extends Renderer {
       );
     }
     return this.shaders_.get(type)!;
+  }
+
+  private getShaderPrimitive(type: Primitive) {
+    switch (type) {
+      case "points":
+        return this.gl.POINTS;
+      case "triangles":
+        return this.gl.TRIANGLES;
+      default: {
+        const exhaustiveCheck: never = type;
+        throw new Error(`Unknown Primitive type: ${exhaustiveCheck}`);
+      }
+    }
   }
 
   private get gl() {

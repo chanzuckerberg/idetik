@@ -1,3 +1,4 @@
+import { ColorLike } from "@idetik/core";
 import { VisibilityToggle } from "./components/VisibilityToggle";
 import { ColorPicker } from "./components/ColorPicker";
 import { ContrastSlider } from "./components/ContrastSlider";
@@ -6,13 +7,13 @@ import { Tooltip } from "@czi-sds/components";
 export interface ChannelControlProps {
   channelIndex: number;
   label: string;
-  color: [number, number, number];
+  color: ColorLike;
   contrastLimits: [number, number];
   contrastRange: [number, number];
   visible: boolean;
   onVisibilityChange: (visible: boolean) => void;
   onContrastChange: (limits: [number, number]) => void;
-  onColorChange: (color: [number, number, number]) => void;
+  onColorChange: (color: ColorLike) => void;
 }
 
 export function ChannelControl({

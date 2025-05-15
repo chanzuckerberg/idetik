@@ -6,7 +6,7 @@ import {
 } from "@czi-sds/components";
 import cns from "classnames";
 import { ChannelControl } from "./components/ChannelControl";
-import { ChannelProps } from "@idetik/core";
+import { ChannelProps, ColorLike } from "@idetik/core";
 import { useIdetik } from "../../../../hooks";
 
 export interface ChannelControlsListProps {
@@ -23,7 +23,7 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
     index: number,
     updates: Partial<{
       visible: boolean;
-      color: [number, number, number];
+      color: ColorLike;
       contrastLimits: [number, number];
     }>
   ) => {

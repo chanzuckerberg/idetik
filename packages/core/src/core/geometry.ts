@@ -7,7 +7,10 @@ type GeometryAttributeType =
   | "next_position"
   | "previous_position"
   | "direction"
-  | "path_proportion";
+  | "path_proportion"
+  | "color"
+  | "size"
+  | "marker";
 
 type GeometryAttribute = {
   type: GeometryAttributeType;
@@ -31,8 +34,8 @@ export class Geometry extends Node {
     this.attributes_.push(attr);
   }
 
-  public get itemSize() {
-    return this.vertexData_.length / this.stride;
+  public get vertexCount() {
+    return this.vertexData_.byteLength / this.stride;
   }
 
   public get stride() {
