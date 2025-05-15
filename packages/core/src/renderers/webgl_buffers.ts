@@ -60,6 +60,9 @@ export class WebGLBuffers {
       if (attr.type == "next_position") idx = 4;
       if (attr.type == "direction") idx = 5;
       if (attr.type == "path_proportion") idx = 6;
+      if (attr.type == "color") idx = 7;
+      if (attr.type == "size") idx = 8;
+      if (attr.type == "marker") idx = 9;
 
       this.gl_.vertexAttribPointer(
         idx,

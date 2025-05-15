@@ -28,7 +28,7 @@ export class WebGLTextures {
 
     this.gl_.bindTexture(this.getGLTextureType(texture), textureId);
     if (!this.textures_.has(texture.uuid)) {
-      this.configureTexture(texture);
+      this.allocateTextureStorage(texture);
       this.textures_.set(texture.uuid, textureId);
     }
 
@@ -39,6 +39,7 @@ export class WebGLTextures {
       // The offsets are always set to zero because we are replacing the entire data set.
       const offset = { x: 0, y: 0, z: 0 };
 
+      this.configureTextureParameters(texture);
       this.uploadTextureSubData(texture, mipmapLevel, offset);
       texture.needsUpdate = false;
     }
@@ -59,11 +60,6 @@ export class WebGLTextures {
       throw new Error(`Unable to generate a texture name`);
     }
     return texture;
-  }
-
-  private configureTexture(texture: Texture) {
-    this.configureTextureParameters(texture);
-    this.allocateTextureStorage(texture);
   }
 
   private configureTextureParameters(texture: Texture) {
