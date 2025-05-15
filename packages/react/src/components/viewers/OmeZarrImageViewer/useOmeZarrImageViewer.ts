@@ -90,9 +90,7 @@ export function useOmeZarrViewer({
           console.warn(
             "No OMERO channels found. Falling back to 1 grayscale channel."
           );
-          channelProps = [
-            getGrayscaleChannelProp(fallbackContrastLimits)
-          ];
+          channelProps = [getGrayscaleChannelProp(fallbackContrastLimits)];
         } else {
           channelProps = omeroToChannelProps(omeroChannels);
         }
@@ -121,7 +119,12 @@ export function useOmeZarrViewer({
         if (shouldSetLayer) {
           setImageLayer(layer);
           setImageSeriesLayer(layer);
-          setChannelControls(omeroToChannelControls(omeroChannels, defaultGreyscaleChannel(fallbackContrastLimits)));
+          setChannelControls(
+            omeroToChannelControls(
+              omeroChannels,
+              defaultGreyscaleChannel(fallbackContrastLimits)
+            )
+          );
         }
       } catch (err) {
         console.error("[Viewer] Failed to load OMERO metadata:", err);
@@ -138,7 +141,6 @@ export function useOmeZarrViewer({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
   }, [source, sourceUrl, region, seriesDimensionName]);
-
 
   // Fetch Z range from metadata
   useEffect(() => {
