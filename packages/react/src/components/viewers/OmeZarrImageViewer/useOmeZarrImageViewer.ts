@@ -140,6 +140,22 @@ export function useOmeZarrViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
   }, [source, sourceUrl, region, seriesDimensionName]);
 
+  useEffect(() => {
+    if (!imageLayer || !contrastLimits) return;
+    const channelProps = imageLayer.channelProps
+      ? [...imageLayer.channelProps]
+      : [];
+    // Update all channels
+    for (let i = 0; i < channelProps.length; i++) {
+      channelProps[i] = {
+        ...channelProps[i],
+        contrastLimits,
+      };
+    }
+    imageLayer.setChannelProps(channelProps);
+    imageLayer.update();
+  }, [contrastLimits, imageLayer]);
+
   // Fetch Z range from metadata
   useEffect(() => {
     const fetchZRange = async () => {
