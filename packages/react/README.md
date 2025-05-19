@@ -12,47 +12,71 @@ npm install @idetik/react @idetik/core
 
 ### Basic Usage
 
-1. Wrap your application in `<IdetikProvider>`.
-
 ```tsx
-import { IdetikProvider } from '@idetik/react';
+// Regular import (works in standard React apps)
+// import { IdetikProvider, OmeZarrImageViewer, ChannelControlsList, Region } from "@idetik/react";
 
-...
+// If using Next.js, use dynamic import to avoid SSR issues
+import dynamic from "next/dynamic";
+import { IdetikProvider, ChannelControlsList, Region } from "@idetik/react";
 
-<IdetikProvider>
-   <App />
-</IdetikProvider>,
-```
+// Define a simple loading component
+const LoadingComponent = () => (
+  <div className="flex items-center justify-center w-full h-full">
+    <div>Loading...</div>
+  </div>
+);
 
-2. Insert `<OmeZarrImageViewer>` anywhere in your application.
+// Dynamic import for Next.js
+const OmeZarrImageViewer = dynamic(
+  () => import("@idetik/react").then((mod) => mod.OmeZarrImageViewer),
+  {
+    ssr: false,
+    loading: () => <LoadingComponent />,
+  }
+);
 
-```tsx
-<OmeZarrImageViewer
-   sourceUrl={imageUrl}
-   region={region}
-   seriesDimensionName="Z"
-   allSlicesSizeEstimate="250 MB"
-   classNames={{
-      root: "your-css-class",
-   }}
-   onLayerCreated={handleLayerCreated}
-   onFirstSliceLoaded={handleFirstSliceLoaded}
-   onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
-   onAllSlicesLoaded={handleAllSlicesLoaded}
-   onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-/>
-```
+// Define the region to view
+const region: Region = [
+  { dimension: "T", index: { type: "point", value: 0 } },
+  { dimension: "C", index: { type: "full" } },
+  { dimension: "Z", index: { type: "full" } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
+];
 
-3. Insert `<ChannelControlsList>` anywhere in your application.
-
-```tsx
-<ChannelControlsList />
+export function ImageViewer({ zarrUrl }) {
+  return (
+    <IdetikProvider>
+      <div className="relative w-full h-full">
+        <div className="absolute top-0 left-0 z-10">
+          <ChannelControlsList />
+        </div>
+        <OmeZarrImageViewer
+          sourceUrl={zarrUrl}
+          region={region}
+          seriesDimensionName="Z"
+        />
+      </div>
+    </IdetikProvider>
+  );
+}
 ```
 
 ### Advanced usage
 
 To write custom control components, use the `useIdetik()` hook to access and update the global
 Idetik state.
+
+#### Tracking Metrics
+
+To track metrics, the `OmeZarrImageViewer` component accepts optional callbacks for the following events:
+
+- `onLayerCreated`
+- `onFirstSliceLoaded`
+- `onLoadAllSlicesClicked`
+- `onAllSlicesLoaded`
+- `onLoadAllSlicesAborted`
 
 ## For Internal Developers
 
