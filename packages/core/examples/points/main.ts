@@ -231,17 +231,15 @@ imageLayer.addStateChangeCallback(onFirstImageLoad);
 imageLayer.setPosition(INITIAL_Z_POSITION);
 layerManager.add(imageLayer);
 
-let debounce: number;
+let debounce: ReturnType<typeof setTimeout>;
 zSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(async () => {
-    const result = await imageLayer.setPosition(value * IMAGE_SCALE_2);
-    if (result.success) {
-      ribosomes.setDepth(value * IMAGE_SCALE_2);
-      ferritin.setDepth(value * IMAGE_SCALE_2);
-      virusLike.setDepth(value * IMAGE_SCALE_2);
-    }
+    await imageLayer.setPosition(value * IMAGE_SCALE_2);
+    ribosomes.setDepth(value * IMAGE_SCALE_2);
+    ferritin.setDepth(value * IMAGE_SCALE_2);
+    virusLike.setDepth(value * IMAGE_SCALE_2);
   }, 20);
 });
 
