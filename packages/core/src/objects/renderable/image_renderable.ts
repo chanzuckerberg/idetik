@@ -7,7 +7,7 @@ import {
   validateChannel,
   validateChannels,
 } from "../../objects/textures/channel";
-import { Color } from "@/core/color";
+import { Color } from "../../core/color";
 import { vec3 } from "gl-matrix";
 
 type SingleUniformValues = {
