@@ -14,8 +14,8 @@ import {
   omeroToChannelControls,
   getGrayscaleChannelProp,
   defaultGreyscaleChannel,
-} from "./utils";
-import { useIdetik } from "../../hooks";
+} from "../viewers/OmeZarrImageViewer/utils";
+import { useIdetik } from ".";
 
 interface UseOmeZarrViewerProps {
   sourceUrl: string;

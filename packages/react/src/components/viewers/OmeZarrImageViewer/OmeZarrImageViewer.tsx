@@ -1,5 +1,5 @@
 import { Renderer } from "./components/Renderer";
-import { useOmeZarrViewer } from "./useOmeZarrImageViewer";
+import { useOmeZarrViewer } from "../../hooks/useOmeZarrImageViewer";
 import { Region } from "@idetik/core";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
