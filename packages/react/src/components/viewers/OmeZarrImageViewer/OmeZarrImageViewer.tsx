@@ -97,7 +97,8 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
               classNames?.sliceIndicator
             )}
           >
-            Slice {zIndex.toString().padStart(2, "0")}/{zRange[1] - zRange[0]}
+            Slice {zIndex.toString().padStart(2, "0")}/
+            {(zRange[1] - zRange[0]).toString().padStart(2, "0")}
           </div>
         ) : (
           <LoadingIndicator sdsStyle="tag" />
