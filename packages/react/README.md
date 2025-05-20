@@ -12,7 +12,7 @@ npm install @idetik/react @idetik/core
 
 ### Basic Usage
 
-Here is an example of wrapping the `OmeZarrImageViewer` component for a Next.js app:
+Here is an example of using the `OmeZarrImageViewer` component in a Next.js app:
 ```tsx
 "use client";
 // Regular import (works in standard React apps)
