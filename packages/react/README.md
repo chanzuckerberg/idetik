@@ -15,28 +15,7 @@ npm install @idetik/react @idetik/core
 Here is an example of using the `OmeZarrImageViewer` component in a Next.js app:
 ```tsx
 "use client";
-// Regular import (works in standard React apps)
-// import { IdetikProvider, OmeZarrImageViewer, ChannelControlsList, Region } from "@idetik/react";
-
-// If using Next.js, use dynamic import to avoid SSR issues
-import dynamic from "next/dynamic";
-import { IdetikProvider, ChannelControlsList, Region } from "@idetik/react";
-
-// Define a simple loading component
-const LoadingComponent = () => (
-  <div className="flex items-center justify-center w-full h-full">
-    <div>Loading...</div>
-  </div>
-);
-
-// Dynamic import for Next.js
-const OmeZarrImageViewer = dynamic(
-  () => import("@idetik/react").then((mod) => mod.OmeZarrImageViewer),
-  {
-    ssr: false,
-    loading: () => <LoadingComponent />,
-  }
-);
+import { IdetikProvider, OmeZarrImageViewer, ChannelControlsList, Region } from "@idetik/react";
 
 // Define the region to view
 const region: Region = [
