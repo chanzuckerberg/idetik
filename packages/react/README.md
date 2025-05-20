@@ -12,7 +12,9 @@ npm install @idetik/react @idetik/core
 
 ### Basic Usage
 
+Here is an example of wrapping the `OmeZarrImageViewer` component for a Next.js app:
 ```tsx
+"use client";
 // Regular import (works in standard React apps)
 // import { IdetikProvider, OmeZarrImageViewer, ChannelControlsList, Region } from "@idetik/react";
 
@@ -45,7 +47,7 @@ const region: Region = [
   { dimension: "X", index: { type: "full" } },
 ];
 
-export function ImageViewer({ zarrUrl }) {
+export function ImageViewer({ zarrUrl }: { zarrUrl: string }) {
   return (
     <IdetikProvider>
       <div className="relative w-full h-full">
@@ -56,6 +58,7 @@ export function ImageViewer({ zarrUrl }) {
           sourceUrl={zarrUrl}
           region={region}
           seriesDimensionName="Z"
+          allSlicesSizeEstimate="250 MB" // Shows on the "Load 3D high-res" button
         />
       </div>
     </IdetikProvider>
