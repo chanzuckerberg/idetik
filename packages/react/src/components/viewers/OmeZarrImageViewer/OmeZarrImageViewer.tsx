@@ -1,5 +1,5 @@
 import { Renderer } from "./components/Renderer";
-import { useOmeZarrViewer } from "./useOmeZarrImageViewer";
+import { useOmeZarrViewer } from "../../hooks/useOmeZarrImageViewer";
 import { Region } from "@idetik/core";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
@@ -97,7 +97,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
               classNames?.sliceIndicator
             )}
           >
-            Slice {zIndex.toString().padStart(2, "0")}/{zRange[1] - zRange[0]}
+            Slice {zIndex}/{zRange[1] - zRange[0]}
           </div>
         ) : (
           <LoadingIndicator sdsStyle="tag" />

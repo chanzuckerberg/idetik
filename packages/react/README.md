@@ -12,47 +12,54 @@ npm install @idetik/react @idetik/core
 
 ### Basic Usage
 
-1. Wrap your application in `<IdetikProvider>`.
-
+Here is an example of using the `OmeZarrImageViewer` component:
 ```tsx
-import { IdetikProvider } from '@idetik/react';
+"use client";
+import { IdetikProvider, OmeZarrImageViewer, ChannelControlsList } from "@idetik/react";
+import { Region } from "@idetik/core";
 
-...
+// Define the region to view
+const region: Region = [
+  { dimension: "T", index: { type: "point", value: 0 } },
+  { dimension: "C", index: { type: "full" } },
+  { dimension: "Z", index: { type: "full" } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
+];
 
-<IdetikProvider>
-   <App />
-</IdetikProvider>,
-```
-
-2. Insert `<OmeZarrImageViewer>` anywhere in your application.
-
-```tsx
-<OmeZarrImageViewer
-   sourceUrl={imageUrl}
-   region={region}
-   seriesDimensionName="Z"
-   allSlicesSizeEstimate="250 MB"
-   classNames={{
-      root: "your-css-class",
-   }}
-   onLayerCreated={handleLayerCreated}
-   onFirstSliceLoaded={handleFirstSliceLoaded}
-   onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
-   onAllSlicesLoaded={handleAllSlicesLoaded}
-   onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-/>
-```
-
-3. Insert `<ChannelControlsList>` anywhere in your application.
-
-```tsx
-<ChannelControlsList />
+export function ImageViewer({ zarrUrl }: { zarrUrl: string }) {
+  return (
+    <IdetikProvider>
+      <div className="relative w-full h-full">
+        <div className="absolute top-0 left-0 z-10">
+          <ChannelControlsList />
+        </div>
+        <OmeZarrImageViewer
+          sourceUrl={zarrUrl}
+          region={region}
+          seriesDimensionName="Z"
+          allSlicesSizeEstimate="250 MB" // Shows on the "Load 3D high-res" button
+        />
+      </div>
+    </IdetikProvider>
+  );
+}
 ```
 
 ### Advanced usage
 
 To write custom control components, use the `useIdetik()` hook to access and update the global
 Idetik state.
+
+#### Tracking Metrics
+
+To track metrics, the `OmeZarrImageViewer` component accepts optional callbacks for the following events:
+
+- `onLayerCreated`
+- `onFirstSliceLoaded`
+- `onLoadAllSlicesClicked`
+- `onAllSlicesLoaded`
+- `onLoadAllSlicesAborted`
 
 ## For Internal Developers
 
