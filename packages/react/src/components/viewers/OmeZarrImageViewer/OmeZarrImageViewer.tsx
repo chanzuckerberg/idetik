@@ -63,7 +63,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
     resolutionLevel,
-    autoLoadAllSlices: true,
+    autoLoadAllSlices: false,
   });
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
