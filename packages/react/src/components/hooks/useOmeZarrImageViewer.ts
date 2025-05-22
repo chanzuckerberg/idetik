@@ -118,7 +118,6 @@ export function useOmeZarrViewer({
 
             // Auto load all slices after first slice is loaded if enabled
             if (autoLoadAllSlices && shouldSetLayer) {
-              console.log("Auto-loading all slices...");
               setLoading(true);
               try {
                 await layer.preloadSeries();

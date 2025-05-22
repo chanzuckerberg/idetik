@@ -65,7 +65,6 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     resolutionLevel,
     autoLoadAllSlices: true,
   });
-  console.log("allSlicesLoaded: ", allSlicesLoaded);
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
       <Renderer
