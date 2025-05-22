@@ -27,6 +27,7 @@ interface UseOmeZarrViewerProps {
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
   fallbackContrastLimits?: [number, number];
+  resolutionLevel?: number;
   autoLoadAllSlices?: boolean;
 }
 
@@ -40,6 +41,7 @@ export function useOmeZarrViewer({
   onAllSlicesLoaded,
   onLoadAllSlicesAborted,
   fallbackContrastLimits,
+  resolutionLevel = 0,
   autoLoadAllSlices = false,
 }: UseOmeZarrViewerProps) {
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
@@ -53,7 +55,6 @@ export function useOmeZarrViewer({
   const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
     useIdetik();
 
-  console.log("autoLoadAllSlices: ", autoLoadAllSlices);
   useEffect(() => {
     if (imageLayer) {
       const newManager = new LayerManager();
@@ -63,10 +64,10 @@ export function useOmeZarrViewer({
   }, [imageLayer]);
 
   useEffect(() => {
-    const newSource = new OmeZarrImageSource(sourceUrl);
+    const newSource = new OmeZarrImageSource(sourceUrl, resolutionLevel);
     setSource(newSource);
     setAllSlicesLoaded(false);
-  }, [sourceUrl]);
+  }, [sourceUrl, resolutionLevel]);
 
   const zoomToFit = useCallback((layer: ImageSeriesLayer) => {
     if (layer.extent) {

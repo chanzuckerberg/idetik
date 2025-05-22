@@ -23,6 +23,7 @@ interface OmeZarrViewerContainerProps {
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
+  resolutionLevel?: number;
 }
 
 export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
@@ -38,6 +39,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onLoadAllSlicesClicked,
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
+    resolutionLevel,
   } = props;
 
   const {
@@ -60,6 +62,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onLoadAllSlicesClicked,
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
+    resolutionLevel,
     autoLoadAllSlices: true,
   });
   console.log("allSlicesLoaded: ", allSlicesLoaded);
