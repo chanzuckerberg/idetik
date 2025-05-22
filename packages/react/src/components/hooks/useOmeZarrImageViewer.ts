@@ -27,6 +27,7 @@ interface UseOmeZarrViewerProps {
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
   fallbackContrastLimits?: [number, number];
+  autoLoadAllSlices?: boolean;
 }
 
 export function useOmeZarrViewer({
@@ -39,6 +40,7 @@ export function useOmeZarrViewer({
   onAllSlicesLoaded,
   onLoadAllSlicesAborted,
   fallbackContrastLimits,
+  autoLoadAllSlices = false,
 }: UseOmeZarrViewerProps) {
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [layerManager, setLayerManager] = useState(() => new LayerManager());
@@ -51,6 +53,7 @@ export function useOmeZarrViewer({
   const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
     useIdetik();
 
+  console.log("autoLoadAllSlices: ", autoLoadAllSlices);
   useEffect(() => {
     if (imageLayer) {
       const newManager = new LayerManager();
@@ -104,13 +107,29 @@ export function useOmeZarrViewer({
 
         onLayerCreated?.();
 
-        const onFirstLoad = () => {
+        const onFirstLoad = async () => {
           console.log("[Viewer] First slice loaded");
-          if (!shouldSetLayer) return;
-          if (zoomToFit(layer!)) {
+          if (!shouldSetLayer || !layer) return;
+          if (zoomToFit(layer)) {
             setLoading(false);
             onFirstSliceLoaded?.();
-            layer?.removeStateChangeCallback(onFirstLoad);
+            layer.removeStateChangeCallback(onFirstLoad);
+
+            // Auto load all slices after first slice is loaded if enabled
+            if (autoLoadAllSlices && shouldSetLayer) {
+              console.log("Auto-loading all slices...");
+              setLoading(true);
+              try {
+                await layer.preloadSeries();
+                onAllSlicesLoaded?.();
+                setAllSlicesLoaded(true);
+              } catch (err) {
+                console.warn("Auto-load all slices failed or was aborted", err);
+                onLoadAllSlicesAborted?.();
+              } finally {
+                setLoading(false);
+              }
+            }
           }
         };
 
@@ -140,7 +159,7 @@ export function useOmeZarrViewer({
       clearImageSeriesLayer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
-  }, [source, sourceUrl, region, seriesDimensionName]);
+  }, [source, sourceUrl, region, seriesDimensionName, autoLoadAllSlices]);
 
   // Fetch Z range from metadata
   useEffect(() => {
