@@ -178,53 +178,38 @@ export function useOmeZarrViewer({
 
   // Fetch Z range from metadata
   useEffect(() => {
-    console.log("useEffect triggered with:", {
-      source,
-      seriesDimensionName,
-      sourceUrl,
-    });
     const fetchZRange = async () => {
-      console.log("fetchZRange");
       if (!source) {
-        console.log("No source available, returning early");
+        console.warn("No source available, returning early on fetchZRange");
         return;
       }
       const loader = await source.open();
       const attrs = await loader.loadAttributes();
-      console.log("attrs", attrs);
 
       const zIdx = attrs.dimensionNames.findIndex(
         (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
       );
-      console.log("Found zIdx:", zIdx);
 
       const min = 0;
       const max = attrs.shape[zIdx] - 1;
-      console.log("Calculated range:", { min, max });
 
       if (max - min <= 0) {
-        console.warn(`Invalid Z range: max ${max} <= min ${min}`);
         setZRange([0, 0]);
         setZValue(0);
         return;
       }
-
-      console.log("ATTRS!!", attrs);
 
       let initialZ: number;
       if (shouldLoadMiddleZ) {
         // Calculate middle z value from shape array
         const zShape = attrs.shape[zIdx];
         initialZ = Math.floor(zShape / 2);
-        console.log("Using middle Z:", initialZ);
       } else {
         // Use default Z from metadata
         initialZ = await loadOmeroDefaultZ(sourceUrl);
-        console.log("Using default Z:", initialZ);
       }
 
       const zNormalized = initialZ / (max - min);
-      console.log("Calculated zNormalized:", zNormalized);
 
       if (Number.isNaN(zNormalized)) {
         console.warn(
@@ -235,10 +220,8 @@ export function useOmeZarrViewer({
         setZValue(zNormalized);
       }
 
-      console.log("zRange", min, max);
       setZRange([min, max]);
     };
-    console.log("fetchZRange before func call");
     fetchZRange();
   }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
 
@@ -258,8 +241,7 @@ export function useOmeZarrViewer({
       try {
         await imageLayer.setIndex(zIndex);
       } catch (err) {
-        console.debug("Z index load aborted");
-        console.error("Z index load aborted", err);
+        console.debug("Z index load aborted", err);
       } finally {
         clearTimeout(t);
         if (didSetLoadingTrue) {
@@ -278,7 +260,7 @@ export function useOmeZarrViewer({
     try {
       await imageLayer.preloadSeries();
     } catch (err) {
-      console.warn("load all slices failed or was aborted", err);
+      console.info("load all slices failed or was aborted", err);
       onLoadAllSlicesAborted?.();
       return;
     } finally {
