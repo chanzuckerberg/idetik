@@ -52,7 +52,6 @@ export function useOmeZarrViewer({
   const [imageLayer, setImageLayer] = useState<ImageSeriesLayer | null>(null);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
-  const [zIndex, setZIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
   const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
@@ -60,9 +59,11 @@ export function useOmeZarrViewer({
 
   useEffect(() => {
     if (imageLayer) {
+      // Compute zIndex from zValue and zRange
+      const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
       imageLayer.setIndex(zIndex);
     }
-  }, [imageLayer, zIndex]);
+  }, [imageLayer, zValue, zRange]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -189,7 +190,6 @@ export function useOmeZarrViewer({
       if (max - min <= 0) {
         setZRange([0, 0]);
         setZValue(0);
-        setZIndex(0);
         return;
       }
 
@@ -219,10 +219,6 @@ export function useOmeZarrViewer({
     fetchZRange();
   }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
 
-  useEffect(() => {
-    setZIndex(Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]));
-  }, [zValue, zRange]);
-
   // Update imageLayer's index on Z change
   useEffect(() => {
     if (!imageLayer) return;
@@ -235,6 +231,8 @@ export function useOmeZarrViewer({
       }, 50);
 
       try {
+        // Compute zIndex from zValue and zRange
+        const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
         await imageLayer.setIndex(zIndex);
       } catch (err) {
         console.debug("Z index load aborted", err);
@@ -247,7 +245,7 @@ export function useOmeZarrViewer({
     };
 
     updateIndex();
-  }, [zIndex, imageLayer]);
+  }, [zValue, zRange, imageLayer]);
 
   const loadAllSlicesCallback = useCallback(async () => {
     if (!imageLayer) return;
@@ -276,7 +274,6 @@ export function useOmeZarrViewer({
     camera,
     zRange,
     zValue,
-    zIndex,
     setZValue,
     loading,
     allSlicesLoaded,

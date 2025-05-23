@@ -50,7 +50,6 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     camera,
     zRange,
     zValue,
-    zIndex,
     setZValue,
     loading,
     allSlicesLoaded,
@@ -69,6 +68,8 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     shouldAutoLoadAllSlices: true,
     shouldLoadMiddleZ,
   });
+  // Compute zIndex for display
+  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
       <Renderer
