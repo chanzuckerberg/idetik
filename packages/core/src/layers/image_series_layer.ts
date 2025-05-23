@@ -232,10 +232,8 @@ export class ImageSeriesLayer extends Layer {
     const chunk = await loader.loadChunk(pointRegion, this.scheduler_);
 
     this.dataChunks_[index] = chunk;
-    if (!token) {
-      return;
-    }
-    if (!token.canceled) {
+
+    if (token && !token.canceled) {
       this.loadingToken_ = null;
       this.setData(chunk);
       this.setState("ready");
