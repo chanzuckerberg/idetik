@@ -219,7 +219,6 @@ export function useOmeZarrViewer({
     fetchZRange();
   }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
 
-  // Calculate zIndex whenever zValue or zRange changes
   useEffect(() => {
     setZIndex(Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]));
   }, [zValue, zRange]);
