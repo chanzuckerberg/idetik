@@ -46,13 +46,6 @@ export function useOmeZarrViewer({
   shouldAutoLoadAllSlices = false,
   shouldLoadMiddleZ = false,
 }: UseOmeZarrViewerProps) {
-  console.log("useOmeZarrViewer hook called with:", {
-    sourceUrl,
-    region,
-    seriesDimensionName,
-    resolutionLevel,
-    shouldAutoLoadAllSlices,
-  });
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [layerManager, setLayerManager] = useState(() => new LayerManager());
   const [camera, setCamera] = useState<OrthographicCamera | null>(null);
@@ -125,7 +118,6 @@ export function useOmeZarrViewer({
         onLayerCreated?.();
 
         const onFirstLoad = async () => {
-          console.log("[Viewer] First slice loaded");
           if (!shouldSetLayer || !layer) return;
           if (zoomToFit(layer)) {
             setLoading(false);
