@@ -43,7 +43,7 @@ export function useOmeZarrViewer({
   onLoadAllSlicesAborted,
   fallbackContrastLimits,
   resolutionLevel = 0,
-  shouldAutoLoadAllSlices = true,
+  shouldAutoLoadAllSlices = false,
   shouldLoadMiddleZ = false,
 }: UseOmeZarrViewerProps) {
   console.log("useOmeZarrViewer hook called with:", {
@@ -59,6 +59,7 @@ export function useOmeZarrViewer({
   const [imageLayer, setImageLayer] = useState<ImageSeriesLayer | null>(null);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
+  const [zIndex, setZIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
   const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
@@ -68,7 +69,7 @@ export function useOmeZarrViewer({
     if (imageLayer) {
       imageLayer.setIndex(zIndex);
     }
-  }, [imageLayer, zValue]);
+  }, [imageLayer, zIndex]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -196,6 +197,7 @@ export function useOmeZarrViewer({
       if (max - min <= 0) {
         setZRange([0, 0]);
         setZValue(0);
+        setZIndex(0);
         return;
       }
 
@@ -225,7 +227,10 @@ export function useOmeZarrViewer({
     fetchZRange();
   }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
 
-  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
+  // Calculate zIndex whenever zValue or zRange changes
+  useEffect(() => {
+    setZIndex(Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]));
+  }, [zValue, zRange]);
 
   // Update imageLayer's index on Z change
   useEffect(() => {
