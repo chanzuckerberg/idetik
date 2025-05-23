@@ -24,6 +24,8 @@ interface OmeZarrViewerContainerProps {
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
   resolutionLevel?: number;
+  shouldAutoLoadAllSlices?: boolean;
+  shouldLoadMiddleZ?: boolean;
 }
 
 export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
@@ -40,6 +42,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
     resolutionLevel,
+    shouldLoadMiddleZ,
   } = props;
 
   const {
@@ -63,7 +66,8 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
     resolutionLevel,
-    autoLoadAllSlices: false,
+    shouldAutoLoadAllSlices: true,
+    shouldLoadMiddleZ,
   });
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>

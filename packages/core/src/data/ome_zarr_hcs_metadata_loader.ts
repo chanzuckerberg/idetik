@@ -34,7 +34,11 @@ export async function loadOmeroDefaultZ(url: string): Promise<number> {
   const store = new zarr.FetchStore(url);
   const group = await zarr.open.v2(store, { kind: "group" });
   // @ts-expect-error rdefs is not in the provided schema
-  return group.attrs?.omero?.rdefs?.defaultZ ?? 0;
+  if (!group.attrs?.omero?.rdefs?.defaultZ) {
+    console.warn("No defaultZ found in OME-Zarr metadata, returning 0");
+    return 0;
+  }
+  return group.attrs?.omero?.rdefs?.defaultZ;
 }
 
 export function parseOmeNgffImage(group: zarr.Group<zarr.FetchStore>): Image {

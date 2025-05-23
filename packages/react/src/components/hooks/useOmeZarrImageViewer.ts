@@ -28,7 +28,8 @@ interface UseOmeZarrViewerProps {
   onLoadAllSlicesAborted?: () => void;
   fallbackContrastLimits?: [number, number];
   resolutionLevel?: number;
-  autoLoadAllSlices?: boolean;
+  shouldAutoLoadAllSlices?: boolean;
+  shouldLoadMiddleZ?: boolean;
 }
 
 export function useOmeZarrViewer({
@@ -42,8 +43,16 @@ export function useOmeZarrViewer({
   onLoadAllSlicesAborted,
   fallbackContrastLimits,
   resolutionLevel = 0,
-  autoLoadAllSlices = false,
+  shouldAutoLoadAllSlices = true,
+  shouldLoadMiddleZ = false,
 }: UseOmeZarrViewerProps) {
+  console.log("useOmeZarrViewer hook called with:", {
+    sourceUrl,
+    region,
+    seriesDimensionName,
+    resolutionLevel,
+    shouldAutoLoadAllSlices,
+  });
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [layerManager, setLayerManager] = useState(() => new LayerManager());
   const [camera, setCamera] = useState<OrthographicCamera | null>(null);
@@ -54,6 +63,12 @@ export function useOmeZarrViewer({
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
   const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
     useIdetik();
+
+  useEffect(() => {
+    if (imageLayer) {
+      imageLayer.setIndex(zIndex);
+    }
+  }, [imageLayer, zValue]);
 
   useEffect(() => {
     if (imageLayer) {
@@ -117,7 +132,7 @@ export function useOmeZarrViewer({
             layer.removeStateChangeCallback(onFirstLoad);
 
             // Auto load all slices after first slice is loaded if enabled
-            if (autoLoadAllSlices && shouldSetLayer) {
+            if (shouldAutoLoadAllSlices && shouldSetLayer) {
               setLoading(true);
               try {
                 await layer.preloadSeries();
@@ -159,21 +174,33 @@ export function useOmeZarrViewer({
       clearImageSeriesLayer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
-  }, [source, sourceUrl, region, seriesDimensionName, autoLoadAllSlices]);
+  }, [source, sourceUrl, region, seriesDimensionName, shouldAutoLoadAllSlices]);
 
   // Fetch Z range from metadata
   useEffect(() => {
+    console.log("useEffect triggered with:", {
+      source,
+      seriesDimensionName,
+      sourceUrl,
+    });
     const fetchZRange = async () => {
-      if (!source) return;
+      console.log("fetchZRange");
+      if (!source) {
+        console.log("No source available, returning early");
+        return;
+      }
       const loader = await source.open();
       const attrs = await loader.loadAttributes();
+      console.log("attrs", attrs);
 
       const zIdx = attrs.dimensionNames.findIndex(
         (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
       );
+      console.log("Found zIdx:", zIdx);
 
       const min = 0;
       const max = attrs.shape[zIdx] - 1;
+      console.log("Calculated range:", { min, max });
 
       if (max - min <= 0) {
         console.warn(`Invalid Z range: max ${max} <= min ${min}`);
@@ -182,23 +209,38 @@ export function useOmeZarrViewer({
         return;
       }
 
-      const defaultZ = await loadOmeroDefaultZ(sourceUrl);
-      const zNormalized = defaultZ / (max - min);
+      console.log("ATTRS!!", attrs);
+
+      let initialZ: number;
+      if (shouldLoadMiddleZ) {
+        // Calculate middle z value from shape array
+        const zShape = attrs.shape[zIdx];
+        initialZ = Math.floor(zShape / 2);
+        console.log("Using middle Z:", initialZ);
+      } else {
+        // Use default Z from metadata
+        initialZ = await loadOmeroDefaultZ(sourceUrl);
+        console.log("Using default Z:", initialZ);
+      }
+
+      const zNormalized = initialZ / (max - min);
+      console.log("Calculated zNormalized:", zNormalized);
 
       if (Number.isNaN(zNormalized)) {
         console.warn(
-          `Computed zValue is NaN. defaultZ: ${defaultZ}, max: ${max}, min: ${min}`
+          `Computed zValue is NaN. initialZ: ${initialZ}, max: ${max}, min: ${min}`
         );
         setZValue(0.5);
       } else {
         setZValue(zNormalized);
       }
 
+      console.log("zRange", min, max);
       setZRange([min, max]);
     };
-
+    console.log("fetchZRange before func call");
     fetchZRange();
-  }, [source, seriesDimensionName, sourceUrl]);
+  }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
 
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
 
