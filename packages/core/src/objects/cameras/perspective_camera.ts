@@ -51,17 +51,16 @@ export class PerspectiveCamera extends Camera {
     return this.fov_;
   }
 
-  public get effectiveFov() {
-    return this.fov_ / this.zoom_;
+  public zoom(factor: number) {
+    // clamp the field of view to prevent degenerate behavior
+    this.fov_ = Math.max(0.1, Math.min(179.9, this.fov_ / factor));
+    this.updateProjectionMatrix();
   }
 
   protected updateProjectionMatrix() {
-    // clamp the field of view and zoom to prevent degenerate behavior
-    const fov = Math.max(0.1, Math.min(179.9, this.fov_ / this.zoom_));
-    this.zoom_ = this.fov_ / fov;
     mat4.perspective(
       this.projectionMatrix_,
-      glMatrix.toRadian(fov),
+      glMatrix.toRadian(this.fov),
       this.aspectRatio_,
       this.near_,
       this.far_

@@ -1,5 +1,5 @@
 import { Camera } from "./camera";
-import { mat4 } from "gl-matrix";
+import { mat4, vec3, quat } from "gl-matrix";
 
 export class OrthographicCamera extends Camera {
   // width_ and height_ should always be defined by constructor (see setFrame)
@@ -12,7 +12,7 @@ export class OrthographicCamera extends Camera {
     right: number,
     top: number,
     bottom: number,
-    near = 0,
+    near = -100.0,
     far = 100.0
   ) {
     super();
@@ -31,12 +31,19 @@ export class OrthographicCamera extends Camera {
     this.height_ = Math.abs(top - bottom);
     const centerX = 0.5 * (left + right);
     const centerY = 0.5 * (bottom + top);
-    this.transform.setTranslation([centerX, centerY, 0]);
-    this.zoom_ = 1.0;
+    this.transform.setRotation(quat.create());
+    this.transform.setTranslation(vec3.fromValues(centerX, centerY, 0));
+    this.transform.setScale(vec3.fromValues(1, 1, 1));
   }
 
   public get type() {
     return "OrthographicCamera";
+  }
+
+  public zoom(factor: number) {
+    const inverseFactor = 1.0 / factor;
+    const scale = vec3.fromValues(inverseFactor, inverseFactor, inverseFactor);
+    this.transform.applyScale(scale);
   }
 
   protected updateProjectionMatrix() {
@@ -44,8 +51,8 @@ export class OrthographicCamera extends Camera {
     // is updated so that the aspect ratio of renderable objects is respected
     // (e.g. image pixels are isotropic) by padding the camera frame to form
     // the viewport frame.
-    const width = this.width_ / this.zoom_;
-    const height = this.height_ / this.zoom_;
+    const width = this.width_;
+    const height = this.height_;
     const frameAspectRatio = width / height;
     // When the viewport is wider than the camera frame, add horizontal
     // padding such that the height is unchanged. Otherwise, add vertical

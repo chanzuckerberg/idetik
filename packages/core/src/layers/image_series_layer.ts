@@ -300,8 +300,8 @@ export class ImageSeriesLayer extends Layer {
   ) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(geometry, texture, channelProps);
-    image.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
-    image.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
+    image.transform.applyScale([chunk.scale.x, chunk.scale.y, 1]);
+    image.transform.applyTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
   }
 }
