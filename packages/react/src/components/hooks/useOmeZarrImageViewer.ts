@@ -57,13 +57,12 @@ export function useOmeZarrViewer({
   const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
     useIdetik();
 
+  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   useEffect(() => {
     if (imageLayer) {
-      // Compute zIndex from zValue and zRange
-      const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
       imageLayer.setIndex(zIndex);
     }
-  }, [imageLayer, zValue, zRange]);
+  }, [imageLayer, zIndex]);
 
   useEffect(() => {
     if (imageLayer) {

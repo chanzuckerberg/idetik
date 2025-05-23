@@ -235,10 +235,11 @@ export class ImageSeriesLayer extends Layer {
     if (!token) {
       return;
     }
-
-    this.loadingToken_ = null;
-    this.setData(chunk);
-    this.setState("ready");
+    if (!token.canceled) {
+      this.loadingToken_ = null;
+      this.setData(chunk);
+      this.setState("ready");
+    }
   }
 
   public async preloadSeries() {
