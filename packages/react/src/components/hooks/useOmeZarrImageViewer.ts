@@ -27,6 +27,9 @@ interface UseOmeZarrViewerProps {
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
   fallbackContrastLimits?: [number, number];
+  resolutionLevel?: number;
+  shouldAutoLoadAllSlices?: boolean;
+  shouldLoadMiddleZ?: boolean;
 }
 
 export function useOmeZarrViewer({
@@ -39,6 +42,9 @@ export function useOmeZarrViewer({
   onAllSlicesLoaded,
   onLoadAllSlicesAborted,
   fallbackContrastLimits,
+  resolutionLevel = 0,
+  shouldAutoLoadAllSlices = false,
+  shouldLoadMiddleZ = false,
 }: UseOmeZarrViewerProps) {
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [layerManager, setLayerManager] = useState(() => new LayerManager());
@@ -51,6 +57,13 @@ export function useOmeZarrViewer({
   const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
     useIdetik();
 
+  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
+  useEffect(() => {
+    if (imageLayer) {
+      imageLayer.setIndex(zIndex);
+    }
+  }, [imageLayer, zIndex]);
+
   useEffect(() => {
     if (imageLayer) {
       const newManager = new LayerManager();
@@ -60,10 +73,10 @@ export function useOmeZarrViewer({
   }, [imageLayer]);
 
   useEffect(() => {
-    const newSource = new OmeZarrImageSource(sourceUrl);
+    const newSource = new OmeZarrImageSource(sourceUrl, resolutionLevel);
     setSource(newSource);
     setAllSlicesLoaded(false);
-  }, [sourceUrl]);
+  }, [sourceUrl, resolutionLevel]);
 
   const zoomToFit = useCallback((layer: ImageSeriesLayer) => {
     if (layer.extent) {
@@ -104,13 +117,27 @@ export function useOmeZarrViewer({
 
         onLayerCreated?.();
 
-        const onFirstLoad = () => {
-          console.log("[Viewer] First slice loaded");
-          if (!shouldSetLayer) return;
-          if (zoomToFit(layer!)) {
+        const onFirstLoad = async () => {
+          if (!shouldSetLayer || !layer) return;
+          if (zoomToFit(layer)) {
             setLoading(false);
             onFirstSliceLoaded?.();
-            layer?.removeStateChangeCallback(onFirstLoad);
+            layer.removeStateChangeCallback(onFirstLoad);
+
+            // Auto load all slices after first slice is loaded if enabled
+            if (shouldAutoLoadAllSlices && shouldSetLayer) {
+              setLoading(true);
+              try {
+                await layer.preloadSeries();
+                onAllSlicesLoaded?.();
+                setAllSlicesLoaded(true);
+              } catch (err) {
+                console.warn("Auto-load all slices failed or was aborted", err);
+                onLoadAllSlicesAborted?.();
+              } finally {
+                setLoading(false);
+              }
+            }
           }
         };
 
@@ -140,12 +167,15 @@ export function useOmeZarrViewer({
       clearImageSeriesLayer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
-  }, [source, sourceUrl, region, seriesDimensionName]);
+  }, [source, sourceUrl, region, seriesDimensionName, shouldAutoLoadAllSlices]);
 
   // Fetch Z range from metadata
   useEffect(() => {
     const fetchZRange = async () => {
-      if (!source) return;
+      if (!source) {
+        console.warn("No source available, returning early on fetchZRange");
+        return;
+      }
       const loader = await source.open();
       const attrs = await loader.loadAttributes();
 
@@ -157,18 +187,50 @@ export function useOmeZarrViewer({
       const max = attrs.shape[zIdx] - 1;
 
       if (max - min <= 0) {
-        console.warn(`Invalid Z range: max ${max} <= min ${min}`);
         setZRange([0, 0]);
         setZValue(0);
         return;
       }
 
-      const defaultZ = await loadOmeroDefaultZ(sourceUrl);
-      const zNormalized = defaultZ / (max - min);
+      let initialZ: number;
+      // Find the Z region and check if it is 'full'
+      const zRegion = region.find(
+        (d) => d.dimension.toUpperCase() === seriesDimensionName.toUpperCase()
+      );
+      const isFullZ = zRegion && zRegion.index?.type === "full";
+
+      if (isFullZ) {
+        if (shouldLoadMiddleZ) {
+          const zShape = attrs.shape[zIdx];
+          initialZ = Math.floor(zShape / 2);
+        } else {
+          initialZ = await loadOmeroDefaultZ(sourceUrl);
+        }
+      } else if (zRegion) {
+        switch (zRegion.index?.type) {
+          case "point":
+            initialZ = zRegion.index.value;
+            break;
+          case "interval":
+            initialZ = Math.floor(
+              (zRegion.index.start + zRegion.index.stop - 1) / 2
+            );
+            break;
+          default:
+            initialZ = 0;
+        }
+      } else {
+        initialZ = 0;
+      }
+
+      // Clamp initialZ to valid range
+      initialZ = Math.max(min, Math.min(max, initialZ));
+
+      const zNormalized = max - min > 0 ? initialZ / (max - min) : 0;
 
       if (Number.isNaN(zNormalized)) {
         console.warn(
-          `Computed zValue is NaN. defaultZ: ${defaultZ}, max: ${max}, min: ${min}`
+          `Computed zValue is NaN. initialZ: ${initialZ}, max: ${max}, min: ${min}`
         );
         setZValue(0.5);
       } else {
@@ -177,11 +239,8 @@ export function useOmeZarrViewer({
 
       setZRange([min, max]);
     };
-
     fetchZRange();
-  }, [source, seriesDimensionName, sourceUrl]);
-
-  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
+  }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
 
   // Update imageLayer's index on Z change
   useEffect(() => {
@@ -195,10 +254,11 @@ export function useOmeZarrViewer({
       }, 50);
 
       try {
+        // Compute zIndex from zValue and zRange
+        const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
         await imageLayer.setIndex(zIndex);
       } catch (err) {
-        console.debug("Z index load aborted");
-        console.error("Z index load aborted", err);
+        console.debug("Z index load aborted", err);
       } finally {
         clearTimeout(t);
         if (didSetLoadingTrue) {
@@ -208,7 +268,7 @@ export function useOmeZarrViewer({
     };
 
     updateIndex();
-  }, [zIndex, imageLayer]);
+  }, [zValue, zRange, imageLayer]);
 
   const loadAllSlicesCallback = useCallback(async () => {
     if (!imageLayer) return;
@@ -217,7 +277,7 @@ export function useOmeZarrViewer({
     try {
       await imageLayer.preloadSeries();
     } catch (err) {
-      console.warn("load all slices failed or was aborted", err);
+      console.info("load all slices failed or was aborted", err);
       onLoadAllSlicesAborted?.();
       return;
     } finally {
@@ -237,7 +297,6 @@ export function useOmeZarrViewer({
     camera,
     zRange,
     zValue,
-    zIndex,
     setZValue,
     loading,
     allSlicesLoaded,

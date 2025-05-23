@@ -23,6 +23,9 @@ interface OmeZarrViewerContainerProps {
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
+  resolutionLevel?: number;
+  shouldAutoLoadAllSlices?: boolean;
+  shouldLoadMiddleZ?: boolean;
 }
 
 export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
@@ -38,6 +41,8 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onLoadAllSlicesClicked,
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
+    resolutionLevel,
+    shouldLoadMiddleZ,
   } = props;
 
   const {
@@ -45,7 +50,6 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     camera,
     zRange,
     zValue,
-    zIndex,
     setZValue,
     loading,
     allSlicesLoaded,
@@ -60,8 +64,12 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onLoadAllSlicesClicked,
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
+    resolutionLevel,
+    shouldAutoLoadAllSlices: true,
+    shouldLoadMiddleZ,
   });
-
+  // Compute zIndex for display
+  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
       <Renderer
