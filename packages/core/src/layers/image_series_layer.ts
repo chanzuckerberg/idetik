@@ -232,32 +232,16 @@ export class ImageSeriesLayer extends Layer {
     const chunk = await loader.loadChunk(pointRegion, this.scheduler_);
 
     this.dataChunks_[index] = chunk;
-    // console.debug(
-    //   `Loaded data for position ${position} (array index ${index})`
-    // );
     if (!token) {
-      // console.debug(
-      //   `Not setting data for position ${position} (array index ${index}) - loaded in background`
-      // );
       return;
     }
 
-    if (token.canceled) {
-      // console.debug(
-      //   `Not setting data for position ${position} (array index ${index}) - canceled by subsequent request`
-      // );
-    } else {
-      // console.debug(
-      //   `Setting data for position ${position} (array index ${index})`
-      // );
-      this.loadingToken_ = null;
-      this.setData(chunk);
-      this.setState("ready");
-    }
+    this.loadingToken_ = null;
+    this.setData(chunk);
+    this.setState("ready");
   }
 
   public async preloadSeries() {
-    console.debug(`Preloading series for dim ${this.seriesDimensionName_}`);
     const { length } = await this.loadSeriesAttributes();
     // Load remaining slices concurrently, exclude the token so they don't get set
     const loadPromises = [];
@@ -276,11 +260,6 @@ export class ImageSeriesLayer extends Layer {
           console.error(`Error loading slice: ${result.reason}`);
         }
       }
-    }
-    if (!results.some((result) => result.status === "rejected")) {
-      console.debug(
-        `Loaded all ${this.dataChunks_.length} slices for dim ${this.seriesDimensionName_}`
-      );
     }
   }
 
