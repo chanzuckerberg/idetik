@@ -43,7 +43,8 @@ export class OrthographicCamera extends Camera {
   public zoom(factor: number) {
     const inverseFactor = 1.0 / factor;
     const scale = vec3.fromValues(inverseFactor, inverseFactor, inverseFactor);
-    this.transform.applyScale(scale);
+    const newScale = vec3.multiply(vec3.create(), this.transform.scale, scale);
+    this.transform.setScale(newScale);
   }
 
   protected updateProjectionMatrix() {
