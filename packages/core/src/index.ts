@@ -1,5 +1,6 @@
-export { WebGLRenderer } from "./renderers/webgl_renderer";
+export { Idetik } from "./idetik";
 
+export { WebGLRenderer } from "./renderers/webgl_renderer";
 export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
 export { NullControls, PanZoomControls } from "./objects/cameras/controls";

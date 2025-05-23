@@ -1,20 +1,16 @@
 import {
-  LayerManager,
   LayerState,
+  Idetik,
   ImageSeriesLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
-  WebGLRenderer,
   ChannelProps,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 const url =
   "https://files.cryoetdataportal.cziscience.com/10444/24apr23a_Position_12/Reconstructions/VoxelSpacing4.990/Tomograms/100/24apr23a_Position_12.zarr";
-const layerManager = new LayerManager();
-const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(0, 128, 0, 128);
 
 // Source is 3D with axes (z, y, x), so we provide an interval in z
 const source = new OmeZarrImageSource(url);
@@ -47,11 +43,10 @@ const layer = new ImageSeriesLayer({
   seriesDimensionName: zDimName,
   channelProps,
 });
+
 layer.addStateChangeCallback((newState: LayerState) => {
   stateEl!.textContent = newState;
 });
-
-layerManager.add(layer);
 
 const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
 const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
@@ -75,10 +70,18 @@ zSlider.addEventListener("input", (event) => {
   }, 20);
 });
 
+const camera = new OrthographicCamera(0, 128, 0, 128);
+const app = new Idetik({
+  canvasSelector: "canvas",
+  camera,
+  layers: [layer],
+}).start();
+
+layer.setIndex(zSlider.valueAsNumber);
 const setCameraFrame = (newState: LayerState) => {
   if (newState === "ready" && layer.extent !== undefined) {
     camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
-    renderer.setControls(new PanZoomControls(camera, camera.position));
+    app.setControls(new PanZoomControls(camera, camera.position));
     camera.update();
     // remove the callback to only set the camera frame once
     layer.removeStateChangeCallback(setCameraFrame);
@@ -96,11 +99,6 @@ loadAllButton.addEventListener("click", () => {
   }
 });
 
-function animate() {
-  renderer.render(layerManager, camera);
-  requestAnimationFrame(animate);
-}
-
 async function preloadAllSlices() {
   console.log("loading all slices");
   loadAllButton.disabled = true;
@@ -116,5 +114,3 @@ async function setLayerIndex(index: number) {
     zIndexEl!.textContent = `${index}`;
   }
 }
-
-animate();
