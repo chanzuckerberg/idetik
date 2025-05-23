@@ -194,16 +194,40 @@ export function useOmeZarrViewer({
       }
 
       let initialZ: number;
-      if (shouldLoadMiddleZ) {
-        // Calculate middle z value from shape array
-        const zShape = attrs.shape[zIdx];
-        initialZ = Math.floor(zShape / 2);
+      // Find the Z region and check if it is 'full'
+      const zRegion = region.find(
+        (d) => d.dimension.toUpperCase() === seriesDimensionName.toUpperCase()
+      );
+      const isFullZ = zRegion && zRegion.index?.type === "full";
+
+      if (isFullZ) {
+        if (shouldLoadMiddleZ) {
+          const zShape = attrs.shape[zIdx];
+          initialZ = Math.floor(zShape / 2);
+        } else {
+          initialZ = await loadOmeroDefaultZ(sourceUrl);
+        }
+      } else if (zRegion) {
+        switch (zRegion.index?.type) {
+          case "point":
+            initialZ = zRegion.index.value;
+            break;
+          case "interval":
+            initialZ = Math.floor(
+              (zRegion.index.start + zRegion.index.stop - 1) / 2
+            );
+            break;
+          default:
+            initialZ = 0;
+        }
       } else {
-        // Use default Z from metadata
-        initialZ = await loadOmeroDefaultZ(sourceUrl);
+        initialZ = 0;
       }
 
-      const zNormalized = initialZ / (max - min);
+      // Clamp initialZ to valid range
+      initialZ = Math.max(min, Math.min(max, initialZ));
+
+      const zNormalized = max - min > 0 ? initialZ / (max - min) : 0;
 
       if (Number.isNaN(zNormalized)) {
         console.warn(
