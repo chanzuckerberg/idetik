@@ -243,6 +243,16 @@ zSlider.addEventListener("input", (event) => {
   }, 20);
 });
 
+const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+canvas.addEventListener("click", (event) => {
+  const x = event.clientX;
+  const y = event.clientY;
+  const clipPos = renderer.clientToClip([x, y]);
+  const worldPos = camera.clipToWorld(clipPos);
+  console.log("World position:", worldPos);
+  console.log("zSlider value:", zSlider.valueAsNumber);
+});
+
 animate();
 
 function animate() {

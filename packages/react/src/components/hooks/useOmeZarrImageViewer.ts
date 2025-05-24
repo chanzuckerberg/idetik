@@ -15,7 +15,7 @@ import {
   getGrayscaleChannelProp,
   defaultGreyscaleChannel,
 } from "../viewers/OmeZarrImageViewer/utils";
-import { useIdetik } from ".";
+import { useIdetik } from "./useIdetik";
 
 interface UseOmeZarrViewerProps {
   sourceUrl: string;
