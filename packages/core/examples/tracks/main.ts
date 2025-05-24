@@ -105,8 +105,7 @@ layerManager.add(lineLayer);
 
 const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
 const camera = new OrthographicCamera(left, right, top, bottom);
-camera.zoom = 0.5;
-camera.transform.translate([0, 0, 1]);
+camera.zoom(0.5);
 
 const controls = new PanZoomControls(camera, camera.position);
 renderer.setControls(controls);
