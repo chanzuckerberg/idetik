@@ -10,12 +10,10 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 const url =
-  // "https://files.cryoetdataportal.cziscience.com/10444/24apr23a_Position_12/Reconstructions/VoxelSpacing4.990/Tomograms/100/24apr23a_Position_12.zarr";
-  // "https://czii-onsite.czbiohub.org/krios1.processing/denoise/25apr21a/run001/Position_6_Vol.zarr/";
-  "https://onsite.czbiohub.org/group.czii/ashley.anderson/hitl-samples/Position_6_Vol_rechunked.zarr/";
+  "https://files.cryoetdataportal.cziscience.com/10444/24apr23a_Position_12/Reconstructions/VoxelSpacing4.990/Tomograms/100/24apr23a_Position_12.zarr";
 
 // Source is 3D with axes (z, y, x), so we provide an interval in z
-const source = new OmeZarrImageSource(url, 0);
+const source = new OmeZarrImageSource(url);
 const loader = await source.open();
 const attributes = await loader.loadAttributes();
 const zDimName = "z";
