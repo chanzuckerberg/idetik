@@ -12,7 +12,7 @@ export class OrthographicCamera extends Camera {
     right: number,
     top: number,
     bottom: number,
-    near = -100.0,
+    near = 0.0,
     far = 100.0
   ) {
     super();
