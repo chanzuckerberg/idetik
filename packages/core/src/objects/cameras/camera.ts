@@ -25,7 +25,7 @@ export abstract class Camera extends RenderableObject {
   public abstract zoom(factor: number): void;
 
   public pan(vec: vec3) {
-    this.transform.applyTranslation(vec);
+    this.transform.addTranslation(vec);
   }
 
   public get position() {

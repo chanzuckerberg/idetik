@@ -18,7 +18,6 @@ import { vec3 } from "gl-matrix";
 
 const baseUrl =
   "https://files.cryoetdataportal.cziscience.com/10445/TS_100_3/Reconstructions/VoxelSpacing4.990";
-const RUN_ID = 17682;
 const imageUrl = `${baseUrl}/Tomograms/100/TS_100_3.zarr`;
 const ribosomesUrl = `${baseUrl}/Annotations/104/cytosolic_ribosome-1.0_point.ndjson`;
 const ferritinUrl = `${baseUrl}/Annotations/101/ferritin_complex-1.0_point.ndjson`;
@@ -242,33 +241,6 @@ zSlider.addEventListener("input", (event) => {
     ferritin.setDepth(value * IMAGE_SCALE_2);
     virusLike.setDepth(value * IMAGE_SCALE_2);
   }, 20);
-});
-
-const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-canvas.addEventListener("click", (event) => {
-  const x = event.clientX;
-  const y = event.clientY;
-  const clipPos = renderer.clientToClip([x, y]);
-  const worldPos = camera.clipToWorld(clipPos);
-  console.log("World position:", worldPos);
-  console.log("zSlider value:", zSlider.valueAsNumber);
-  const getNearest = async () => {
-    const response = await fetch('https://wired-escargot.dev-vcp.dev.czi.team/nearest_points', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        x: worldPos[0],
-        y: worldPos[1],
-        z: zSlider.valueAsNumber * IMAGE_SCALE_2,
-        run_id: RUN_ID,
-        dataset_id: "TODO",
-        model: "TODO",
-        k_nearest: 10
-      })
-    });
-    console.log(`Response from server for {worldPos}:`, response.status, await response.json());
-  };
-  getNearest();
 });
 
 animate();

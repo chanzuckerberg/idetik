@@ -2,7 +2,7 @@ import { mat4, vec3, quat } from "gl-matrix";
 
 import { expect, test, vi } from "vitest";
 
-import { AffineTransform } from "@/core/transforms";
+import { SrtTransform } from "@/core/transforms";
 
 // NOTES:
 // * mat4 is column-major
@@ -14,9 +14,9 @@ const expectMatrixEquals = (a: mat4, b: mat4) => {
 };
 
 test("rotate", () => {
-  const t = new AffineTransform();
+  const t = new SrtTransform();
   const q = quat.rotateZ(quat.create(), quat.create(), Math.PI / 2);
-  t.applyRotation(q);
+  t.addRotation(q);
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -25,7 +25,7 @@ test("rotate", () => {
       0, 0, 1, 0,
       0, 0, 0, 1 ]
   );
-  t.applyRotation(quat.invert(quat.create(), q));
+  t.addRotation(quat.invert(quat.create(), q));
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -37,9 +37,9 @@ test("rotate", () => {
 });
 
 test("translate", () => {
-  const t = new AffineTransform();
+  const t = new SrtTransform();
   const t0 = vec3.fromValues(1, 2, 3);
-  t.applyTranslation(t0);
+  t.addTranslation(t0);
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -48,7 +48,7 @@ test("translate", () => {
       0, 0, 1, 0,
       1, 2, 3, 1 ]
   );
-  t.applyTranslation(t0);
+  t.addTranslation(t0);
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -60,8 +60,8 @@ test("translate", () => {
 });
 
 test("scale", () => {
-  const t = new AffineTransform();
-  t.applyScale(vec3.fromValues(2, 3, 4));
+  const t = new SrtTransform();
+  t.addScale(vec3.fromValues(2, 3, 4));
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -70,7 +70,7 @@ test("scale", () => {
       0, 0, 4, 0,
       0, 0, 0, 1 ]
   );
-  t.applyScale(vec3.fromValues(2, 3, 4));
+  t.addScale(vec3.fromValues(2, 3, 4));
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -82,9 +82,9 @@ test("scale", () => {
 });
 
 test("scale then translate", () => {
-  const t = new AffineTransform();
-  t.applyScale(vec3.fromValues(2, 3, 4));
-  t.applyTranslation(vec3.fromValues(1, 2, 3));
+  const t = new SrtTransform();
+  t.addScale(vec3.fromValues(2, 3, 4));
+  t.addTranslation(vec3.fromValues(1, 2, 3));
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -96,9 +96,9 @@ test("scale then translate", () => {
 });
 
 test("translate then scale", () => {
-  const t = new AffineTransform();
-  t.applyTranslation(vec3.fromValues(1, 2, 3));
-  t.applyScale(vec3.fromValues(2, 3, 4));
+  const t = new SrtTransform();
+  t.addTranslation(vec3.fromValues(1, 2, 3));
+  t.addScale(vec3.fromValues(2, 3, 4));
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -110,10 +110,10 @@ test("translate then scale", () => {
 });
 
 test("rotate then translate", () => {
-  const t = new AffineTransform();
+  const t = new SrtTransform();
   const q = quat.rotateZ(quat.create(), quat.create(), Math.PI / 2);
-  t.applyRotation(q);
-  t.applyTranslation(vec3.fromValues(1, 2, 3));
+  t.addRotation(q);
+  t.addTranslation(vec3.fromValues(1, 2, 3));
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -125,10 +125,10 @@ test("rotate then translate", () => {
 });
 
 test("translate then rotate", () => {
-  const t = new AffineTransform();
-  t.applyTranslation(vec3.fromValues(1, 2, 3));
+  const t = new SrtTransform();
+  t.addTranslation(vec3.fromValues(1, 2, 3));
   const q = quat.rotateZ(quat.create(), quat.create(), Math.PI / 2);
-  t.applyRotation(q);
+  t.addRotation(q);
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
@@ -141,25 +141,25 @@ test("translate then rotate", () => {
 
 test("inverse", () => {
   // use two transforms to check inverse is correct without first accessing the matrix
-  const t0 = new AffineTransform();
-  const t1 = new AffineTransform();
+  const t0 = new SrtTransform();
+  const t1 = new SrtTransform();
   const rotation = quat.rotateZ(quat.create(), quat.create(), Math.PI / 2);
   const translation = vec3.fromValues(1, 2, 3);
   const scale = vec3.fromValues(2, 3, 4);
-  t0.applyRotation(rotation);
-  t0.applyTranslation(translation);
-  t0.applyScale(scale);
-  t1.applyRotation(rotation);
-  t1.applyTranslation(translation);
-  t1.applyScale(scale);
+  t0.addRotation(rotation);
+  t0.addTranslation(translation);
+  t0.addScale(scale);
+  t1.addRotation(rotation);
+  t1.addTranslation(translation);
+  t1.addScale(scale);
   expectMatrixEquals(t0.inverse, mat4.invert(mat4.create(), t1.matrix));
 });
 
 test("matrix is cached on repeat access", () => {
-  const t = new AffineTransform();
+  const t = new SrtTransform();
   // @ts-expect-error TS2345 - spying on private method
   const computeSpy = vi.spyOn(t, "computeMatrix");
-  t.applyTranslation(vec3.fromValues(1, 2, 3));
+  t.addTranslation(vec3.fromValues(1, 2, 3));
   expect(t.matrix).toBe(t.matrix);
   expect(computeSpy).toHaveBeenCalledTimes(1);
 });
