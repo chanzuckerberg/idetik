@@ -1,10 +1,9 @@
 import {
+  Idetik,
   ColorLike,
   Layer,
-  LayerManager,
   PanZoomControls,
   Points,
-  WebGLRenderer,
   OrthographicCamera,
   OmeZarrImageSource,
   Region,
@@ -176,7 +175,6 @@ class Particles extends Layer {
     return texture;
   }
 }
-const layerManager = new LayerManager();
 const ribosomes = new Particles(ribosomeLocations, Color.RED, "circle");
 const ferritin = new Particles(ferritinLocations, Color.GREEN, "triangle");
 const virusLike = new Particles(
@@ -187,9 +185,6 @@ const virusLike = new Particles(
 ribosomes.setDepth(INITIAL_Z_POSITION);
 ferritin.setDepth(INITIAL_Z_POSITION);
 virusLike.setDepth(INITIAL_Z_POSITION);
-
-const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(0, 1024, 0, 1024, -10000, 10000);
 
 const imageSource = new OmeZarrImageSource(imageUrl);
 const loader = await imageSource.open();
@@ -215,21 +210,31 @@ const imageLayer = new ImageSeriesLayer({
   seriesDimensionName: zDimName,
   channelProps: [{ color: Color.WHITE, contrastLimits: [-0.00001, 0.00001] }],
 });
+
+const camera = new OrthographicCamera(0, 1024, 0, 1024, -10000, 10000);
+const app = new Idetik({
+  canvasSelector: "canvas",
+  camera,
+  layers: [imageLayer],
+}).start();
+
 const onFirstImageLoad = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
     camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
-    renderer.setControls(new PanZoomControls(camera, camera.position));
+    app.setControls(new PanZoomControls(camera, camera.position));
     camera.update();
+
+    app.layerManager.add(ribosomes);
+    app.layerManager.add(ferritin);
+    app.layerManager.add(virusLike);
+
     // remove the callback to only set the camera frame once
     imageLayer.removeStateChangeCallback(onFirstImageLoad);
-    layerManager.add(ribosomes);
-    layerManager.add(ferritin);
-    layerManager.add(virusLike);
   }
 };
+
 imageLayer.addStateChangeCallback(onFirstImageLoad);
 imageLayer.setPosition(INITIAL_Z_POSITION);
-layerManager.add(imageLayer);
 
 let debounce: ReturnType<typeof setTimeout>;
 zSlider.addEventListener("input", (event) => {
@@ -242,10 +247,3 @@ zSlider.addEventListener("input", (event) => {
     virusLike.setDepth(value * IMAGE_SCALE_2);
   }, 20);
 });
-
-animate();
-
-function animate() {
-  renderer.render(layerManager, camera);
-  requestAnimationFrame(animate);
-}

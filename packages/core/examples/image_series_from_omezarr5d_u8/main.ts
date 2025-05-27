@@ -1,18 +1,13 @@
 import {
+  Idetik,
   ImageSeriesLayer,
-  LayerManager,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
-  WebGLRenderer,
 } from "@";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
-const layerManager = new LayerManager();
-const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(0, 1920, 0, 1440);
-
 // Source is 5D, so provide an interval in T a scalar index in Z
 // (first of only depth) to get a 2D image series.
 const source = new OmeZarrImageSource(url);
@@ -49,7 +44,6 @@ const layer = new ImageSeriesLayer({
   seriesDimensionName: "T",
   channelProps,
 });
-layerManager.add(layer);
 
 const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
@@ -63,12 +57,10 @@ slider.addEventListener("input", (event) => {
 });
 
 layer.setIndex(slider.valueAsNumber - timeInterval.start);
-
 layer.preloadSeries();
 
-function animate() {
-  renderer.render(layerManager, camera);
-  requestAnimationFrame(animate);
-}
-
-animate();
+new Idetik({
+  canvasSelector: "canvas",
+  camera: new OrthographicCamera(0, 1920, 0, 1440),
+  layers: [layer],
+}).start();
