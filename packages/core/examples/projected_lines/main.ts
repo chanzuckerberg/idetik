@@ -1,11 +1,4 @@
-import {
-  LayerManager,
-  PerspectiveCamera,
-  ProjectedLineLayer,
-  WebGLRenderer,
-} from "@";
-
-const layersManager = new LayerManager();
+import { Idetik, PerspectiveCamera, ProjectedLineLayer } from "@";
 
 const helixA = generateHelix({
   radius: 1.0,
@@ -26,20 +19,17 @@ const layer = new ProjectedLineLayer([
   { path: helixB, color: [0.0, 0.7, 0.0], width: 0.02 },
 ]);
 
-layersManager.add(layer);
-
-const renderer = new WebGLRenderer("#canvas");
-const camera = new PerspectiveCamera({
-  fov: 60,
-  aspectRatio: renderer.width / renderer.height,
+const app = new Idetik({
+  canvasSelector: "canvas",
+  layers: [layer],
 });
 
-animate();
+app.camera = new PerspectiveCamera({
+  fov: 60,
+  aspectRatio: app.width / app.height,
+});
 
-function animate() {
-  renderer.render(layersManager, camera);
-  requestAnimationFrame(animate);
-}
+app.start();
 
 function generateHelix(params: {
   radius: number;

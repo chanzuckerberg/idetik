@@ -1,11 +1,10 @@
 import {
+  Idetik,
   ImageLayer,
-  LayerManager,
   OrthographicCamera,
   OmeZarrImageSource,
   PanZoomControls,
   Region,
-  WebGLRenderer,
   loadOmeroChannels,
   loadOmeroDefaultZ,
   loadOmeZarrPlate,
@@ -34,11 +33,14 @@ wellPaths.forEach((path) => {
   wellSelector.value = initialWellPath;
 });
 
-const layerManager = new LayerManager();
-const renderer = new WebGLRenderer("#canvas");
 const camera = new OrthographicCamera(0, 840, 0, 360);
 const controls = new PanZoomControls(camera, camera.position);
-renderer.setControls(controls);
+const app = new Idetik({
+  canvasSelector: "canvas",
+  camera,
+  controls,
+}).start();
+
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
   { dimension: "C", index: { type: "interval", start: 1, stop: 3 } },
@@ -51,7 +53,7 @@ const imageSelector = document.querySelector("#image") as HTMLSelectElement;
 
 const onImageChange = async () => {
   console.debug("onImageChange: ", imageSelector.value);
-  layerManager.layers.length = 0;
+  app.layerManager.layers.length = 0;
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl, 0);
@@ -76,7 +78,7 @@ const onImageChange = async () => {
       { color: [1, 0, 1], contrastLimits: contrastLimits[1] },
     ],
   });
-  layerManager.add(layer);
+  app.layerManager.add(layer);
   layer.addStateChangeCallback((state) => {
     if (state === "ready" && layer.extent) {
       camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
@@ -88,7 +90,7 @@ const onImageChange = async () => {
 
 const onWellChange = async () => {
   console.debug("onWellChange: ", wellSelector.value);
-  layerManager.layers.length = 0;
+  app.layerManager.layers.length = 0;
   const path = wellSelector.value;
   const well = await loadOmeZarrWell(plateUrl, path);
   console.debug("well", well);
@@ -115,10 +117,3 @@ const loadInitialWell = async () => {
 };
 
 loadInitialWell();
-
-function animate() {
-  renderer.render(layerManager, camera);
-  requestAnimationFrame(animate);
-}
-
-animate();
