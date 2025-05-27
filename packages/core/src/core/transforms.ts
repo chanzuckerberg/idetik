@@ -15,7 +15,6 @@ export class AffineTransform {
 
   public setRotation(q: quat) {
     quat.copy(this.rotation_, q);
-    vec3.transformQuat(this.translation_, this.translation_, q);
     this.dirty_ = true;
   }
 
