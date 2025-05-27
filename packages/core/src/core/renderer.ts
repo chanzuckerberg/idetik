@@ -95,9 +95,9 @@ export abstract class Renderer {
   }
 
   private updateActiveCamera() {
-    const aspectRatio = this.width_ / this.height_;
+    const canvasAspectRatio = this.width_ / this.height_;
     if (this.activeCamera_) {
-      this.activeCamera_.setAspectRatio(aspectRatio);
+      this.activeCamera_.setAspectRatio(canvasAspectRatio);
     }
   }
 
