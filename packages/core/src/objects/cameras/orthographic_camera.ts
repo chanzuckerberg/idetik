@@ -22,8 +22,9 @@ export class OrthographicCamera extends Camera {
     this.updateProjectionMatrix();
   }
 
-  public setViewportAspectRatio(aspectRatio: number) {
+  public setAspectRatio(aspectRatio: number) {
     this.viewportAspectRatio_ = aspectRatio;
+    this.updateProjectionMatrix();
   }
 
   public setFrame(left: number, right: number, bottom: number, top: number) {

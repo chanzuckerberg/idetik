@@ -1,8 +1,6 @@
 import { vec2, vec3 } from "gl-matrix";
 import { LayerManager } from "./layer_manager";
 import { Camera } from "../objects/cameras/camera";
-import { PerspectiveCamera } from "../objects/cameras/perspective_camera";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { CameraControls, NullControls } from "../objects/cameras/controls";
 import { Layer } from "./layer";
 
@@ -99,13 +97,7 @@ export abstract class Renderer {
   private updateActiveCamera() {
     const aspectRatio = this.width_ / this.height_;
     if (this.activeCamera_) {
-      if (this.activeCamera_ instanceof PerspectiveCamera) {
-        this.activeCamera_.setAspectRatio(aspectRatio);
-      }
-      if (this.activeCamera_ instanceof OrthographicCamera) {
-        this.activeCamera_.setViewportAspectRatio(aspectRatio);
-      }
-      this.activeCamera_.update();
+      this.activeCamera_.setAspectRatio(aspectRatio);
     }
   }
 

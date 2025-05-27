@@ -93,8 +93,8 @@ export class ImageLayer extends Layer {
       channelProps
     );
 
-    image.transform.applyScale([chunk.scale.x, chunk.scale.y, 1]);
-    image.transform.applyTranslation([chunk.offset.x, chunk.offset.y, 0]);
+    image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
+    image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
   }
 }

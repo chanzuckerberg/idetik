@@ -21,6 +21,7 @@ export abstract class Camera extends RenderableObject {
     return this.projectionMatrix_;
   }
 
+  public abstract setAspectRatio(aspectRatio: number): void;
   public abstract zoom(factor: number): void;
 
   public pan(vec: vec3) {

@@ -41,6 +41,7 @@ export class PerspectiveCamera extends Camera {
 
   public setAspectRatio(aspectRatio: number) {
     this.aspectRatio_ = aspectRatio;
+    this.updateProjectionMatrix();
   }
 
   public get type() {
