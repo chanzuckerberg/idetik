@@ -1,11 +1,15 @@
 import { Camera } from "./camera";
-import { mat4, vec3, quat } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
+
+const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
+const DEFAULT_WIDTH = 128;
+const DEFAULT_HEIGHT = 128 / DEFAULT_ASPECT_RATIO;
 
 export class OrthographicCamera extends Camera {
   // width_ and height_ should always be defined by constructor (see setFrame)
-  private width_: number = 128;
-  private height_: number = 128;
-  private viewportAspectRatio_: number = 1;
+  private width_: number = DEFAULT_WIDTH;
+  private height_: number = DEFAULT_HEIGHT;
+  private viewportAspectRatio_: number = DEFAULT_ASPECT_RATIO;
 
   constructor(
     left: number,
@@ -32,9 +36,7 @@ export class OrthographicCamera extends Camera {
     this.height_ = Math.abs(top - bottom);
     const centerX = 0.5 * (left + right);
     const centerY = 0.5 * (bottom + top);
-    this.transform.setRotation(quat.create());
     this.transform.setTranslation(vec3.fromValues(centerX, centerY, 0));
-    this.transform.setScale(vec3.fromValues(1, 1, 1));
   }
 
   public get type() {
@@ -42,10 +44,12 @@ export class OrthographicCamera extends Camera {
   }
 
   public zoom(factor: number) {
+    if (factor <= 0) {
+      throw new Error(`Invalid zoom factor: ${factor}`);
+    }
     const inverseFactor = 1.0 / factor;
-    const scale = vec3.fromValues(inverseFactor, inverseFactor, inverseFactor);
-    const newScale = vec3.multiply(vec3.create(), this.transform.scale, scale);
-    this.transform.setScale(newScale);
+    const scale = vec3.fromValues(inverseFactor, inverseFactor, 1.0);
+    this.transform.addScale(scale);
   }
 
   protected updateProjectionMatrix() {

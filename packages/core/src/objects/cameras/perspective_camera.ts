@@ -3,6 +3,8 @@ import { glMatrix, mat4, vec3 } from "gl-matrix";
 
 const DEFAULT_FOV = 60; // degrees
 const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
+const MIN_FOV = 0.1; // degrees
+const MAX_FOV = 180 - MIN_FOV; // degrees
 
 type PerspectiveCameraOptions = {
   fov?: number;
@@ -25,8 +27,8 @@ export class PerspectiveCamera extends Camera {
       position = vec3.fromValues(0, 0, 0),
     } = options;
 
-    if (fov <= 0 || fov >= 180) {
-      throw new Error(`Invalid field of view: ${fov}`);
+    if (fov < MIN_FOV || fov > MAX_FOV) {
+      throw new Error(`Invalid field of view: ${fov}, must be in [${MIN_FOV}, ${MAX_FOV}] degrees`);
     }
     super();
     this.fov_ = fov;
@@ -53,8 +55,11 @@ export class PerspectiveCamera extends Camera {
   }
 
   public zoom(factor: number) {
+    if (factor <= 0) {
+      throw new Error(`Invalid zoom factor: ${factor}`);
+    }
     // clamp the field of view to prevent degenerate behavior
-    this.fov_ = Math.max(0.1, Math.min(179.9, this.fov_ / factor));
+    this.fov_ = Math.max(MIN_FOV, Math.min(MAX_FOV, this.fov_ / factor));
     this.updateProjectionMatrix();
   }
 
