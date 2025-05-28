@@ -3,6 +3,7 @@ import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { PanZoomControls } from "./objects/cameras/controls";
+import { Logger } from "./utilities/logger";
 
 type IdetikParams = {
   canvasSelector: string;
@@ -34,13 +35,29 @@ export class Idetik {
     }
   }
 
+  public get width() {
+    return this.renderer_.width;
+  }
+
+  public get height() {
+    return this.renderer_.height;
+  }
+
   // TODO: this should be modified once the controls are moved to the idetik class
   public setControls(controls: PanZoomControls) {
     this.renderer_.setControls(controls);
   }
 
   public start() {
+    Logger.info("Idetik", "Idetik runtime started");
     const render = () => {
+      if (!this.camera) {
+        Logger.warn(
+          "Idetik",
+          "A camera must be set before starting the Idetik runtime"
+        );
+        return;
+      }
       this.renderer_.render(this.layerManager, this.camera);
       requestAnimationFrame(render);
     };

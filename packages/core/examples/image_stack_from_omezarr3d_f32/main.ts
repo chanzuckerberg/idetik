@@ -1,6 +1,6 @@
 import {
-  LayerState,
   Idetik,
+  LayerState,
   ImageSeriesLayer,
   OmeZarrImageSource,
   OrthographicCamera,
