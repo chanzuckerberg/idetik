@@ -43,7 +43,7 @@ export class Color {
     return this.rgb_[2];
   }
 
-  public get a(): number | null {
+  public get a(): number {
     return this.alpha_;
   }
 

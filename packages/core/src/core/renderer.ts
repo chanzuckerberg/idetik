@@ -1,18 +1,17 @@
 import { vec2, vec3 } from "gl-matrix";
 import { LayerManager } from "./layer_manager";
 import { Camera } from "../objects/cameras/camera";
+import { Color } from "./color";
 import { PerspectiveCamera } from "../objects/cameras/perspective_camera";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { CameraControls, NullControls } from "../objects/cameras/controls";
 import { Layer } from "./layer";
 
-type Color = [number, number, number, number];
-
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
   private width_ = 0;
   private height_ = 0;
-  private backgroundColor_: Color = [0, 0, 0, 0];
+  private backgroundColor_: Color = new Color(0, 0, 0, 0);
   private activeCamera_: Camera | null = null;
   private controls_: CameraControls = new NullControls();
   private controlCallbacks_: [string, (event: Event) => void][] = [];
