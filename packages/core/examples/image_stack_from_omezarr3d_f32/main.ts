@@ -6,6 +6,7 @@ import {
   OrthographicCamera,
   Region,
   ChannelProps,
+  Color,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
@@ -32,7 +33,7 @@ const region: Region = [
 const channelProps: ChannelProps[] = [
   {
     visible: true,
-    color: [1, 1, 1],
+    color: Color.WHITE,
     contrastLimits: [-0.00001, 0.00001],
   },
 ];

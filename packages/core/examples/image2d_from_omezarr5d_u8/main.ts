@@ -1,5 +1,6 @@
 import { vec3 } from "gl-matrix";
 import {
+  Color,
   Idetik,
   ImageLayer,
   OmeZarrImageSource,
@@ -28,7 +29,7 @@ const region: Region = [
 ];
 const channelProps = [
   {
-    color: [0, 1, 0] as [number, number, number],
+    color: Color.GREEN,
     contrastLimits: [0, 128] as [number, number],
   },
 ];

@@ -1,4 +1,5 @@
 import {
+  Color,
   Idetik,
   ImageSeriesLayer,
   OmeZarrImageSource,
@@ -24,17 +25,17 @@ const region: Region = [
 const channelProps = [
   {
     visible: false,
-    color: [1, 0, 0] as [number, number, number],
+    color: Color.RED,
     contrastLimits: [0, 255] as [number, number],
   },
   {
     visible: true,
-    color: [0, 1, 0] as [number, number, number],
+    color: Color.GREEN,
     contrastLimits: [0, 255] as [number, number],
   },
   {
     visible: true,
-    color: [0, 0, 1] as [number, number, number],
+    color: Color.BLUE,
     contrastLimits: [128, 255] as [number, number],
   },
 ];
