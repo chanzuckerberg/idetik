@@ -7,19 +7,19 @@ import { Logger } from "./utilities/logger";
 
 type IdetikParams = {
   canvasSelector: string;
-  camera?: Camera;
+  camera: Camera;
   controls?: PanZoomControls;
   layers?: Layer[];
 };
 
 export class Idetik {
   public layerManager: LayerManager;
-  public camera?: Camera;
+  public camera: Camera;
 
   private readonly renderer_: WebGLRenderer;
 
   constructor(params: IdetikParams) {
-    this.camera = params.camera || undefined;
+    this.camera = params.camera;
     this.layerManager = new LayerManager();
     this.renderer_ = new WebGLRenderer(params.canvasSelector);
 

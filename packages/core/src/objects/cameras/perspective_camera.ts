@@ -13,7 +13,7 @@ type PerspectiveCameraOptions = {
 };
 
 export class PerspectiveCamera extends Camera {
-  private fov_: number;
+  private readonly fov_: number;
   private aspectRatio_: number;
 
   constructor(options: PerspectiveCameraOptions = {}) {
