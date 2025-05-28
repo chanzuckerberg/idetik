@@ -19,17 +19,11 @@ const layer = new ProjectedLineLayer([
   { path: helixB, color: [0.0, 0.7, 0.0], width: 0.02 },
 ]);
 
-const app = new Idetik({
+new Idetik({
   canvasSelector: "canvas",
+  camera: new PerspectiveCamera({ fov: 60 }),
   layers: [layer],
-});
-
-app.camera = new PerspectiveCamera({
-  fov: 60,
-  aspectRatio: app.width / app.height,
-});
-
-app.start();
+}).start();
 
 function generateHelix(params: {
   radius: number;
