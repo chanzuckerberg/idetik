@@ -1,7 +1,7 @@
 import { vec2, vec3 } from "gl-matrix";
 import { LayerManager } from "./layer_manager";
 import { Camera } from "../objects/cameras/camera";
-import { Color } from "./color";
+import { Color, ColorLike } from "./color";
 import { PerspectiveCamera } from "../objects/cameras/perspective_camera";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { CameraControls, NullControls } from "../objects/cameras/controls";
@@ -124,8 +124,8 @@ export abstract class Renderer {
     return this.backgroundColor_;
   }
 
-  public set backgroundColor(color: Color) {
-    this.backgroundColor_ = color;
+  public set backgroundColor(color: ColorLike) {
+    this.backgroundColor_ = Color.from(color);
   }
 
   protected get activeCamera() {
