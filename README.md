@@ -70,7 +70,7 @@ provided script in `ultrack-prototype/run-full-stack.slurm`:
 ```shell
 ❯ ssh $USER@login01.czbiohub.org
 ❯ # ...you will need to confirm login using Duo 2FA
-❯ cd src/imaging-active-learning  # or whatever your local path to the repo
+❯ cd src/idetik  # or whatever your local path to the repo
 ❯ sbatch ./ultrack-prototype/run-full-stack.slurm
 Submitted batch job 1234567  # job ID will be unique
 ❯ squeue --user $USER

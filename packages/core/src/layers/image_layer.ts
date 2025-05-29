@@ -16,7 +16,7 @@ export type ImageLayerProps = LayerOptions & {
 export class ImageLayer extends Layer {
   private readonly source_: ImageChunkSource;
   // TODO: remove this when region is passed through to update.
-  // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
+  // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
