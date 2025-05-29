@@ -65,7 +65,6 @@ export default function Renderer({
       layerManager.add(tracksLayer);
       const extent = tracksLayer.extent;
       camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
-      camera.update();
       camera.zoom(0.25);
       controls.panTarget = camera.position;
     };

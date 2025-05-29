@@ -1,5 +1,5 @@
 import { Camera } from "./camera";
-import { mat4, vec3 } from "gl-matrix";
+import { mat4 } from "gl-matrix";
 
 const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 const DEFAULT_WIDTH = 128;
@@ -34,9 +34,12 @@ export class OrthographicCamera extends Camera {
   public setFrame(left: number, right: number, bottom: number, top: number) {
     this.width_ = Math.abs(right - left);
     this.height_ = Math.abs(top - bottom);
+    this.updateProjectionMatrix();
     const centerX = 0.5 * (left + right);
     const centerY = 0.5 * (bottom + top);
-    this.transform.setTranslation(vec3.fromValues(centerX, centerY, 0));
+    this.transform.setTranslation([centerX, centerY, 0]);
+    this.transform.setScale([1, 1, 1]);
+    this.transform.setRotation([0, 0, 0, 1]);
   }
 
   public get type() {
@@ -48,8 +51,7 @@ export class OrthographicCamera extends Camera {
       throw new Error(`Invalid zoom factor: ${factor}`);
     }
     const inverseFactor = 1.0 / factor;
-    const scale = vec3.fromValues(inverseFactor, inverseFactor, 1.0);
-    this.transform.addScale(scale);
+    this.transform.addScale([inverseFactor, inverseFactor, 1.0]);
   }
 
   protected updateProjectionMatrix() {
