@@ -120,7 +120,7 @@ export abstract class Renderer {
     return this.height_;
   }
 
-  public get backgroundColor() {
+  public get backgroundColor(): Color {
     return this.backgroundColor_;
   }
 
