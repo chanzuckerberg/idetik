@@ -276,7 +276,6 @@ export class ImageSeriesLayer extends Layer {
     texture: Texture2DArray,
     channelProps?: ChannelProps[]
   ) {
-    console.log("createImage", this.channelProps_);
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(geometry, texture, channelProps);
     image.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
