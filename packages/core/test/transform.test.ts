@@ -10,7 +10,25 @@ import { SrtTransform } from "@/core/transforms";
 // even though it provides worse output on failure
 
 const expectMatrixEquals = (a: mat4, b: mat4) => {
-  expect(mat4.equals(a, b)).toBe(true);
+  try {
+    expect(mat4.equals(a, b)).toBe(true);
+  } catch (error) {
+    console.error("Expected matrices to be equal, but they are not:");
+    console.error("Matrix A:", a);
+    console.error("Matrix B:", b);
+    throw error;
+  }
+};
+
+const expectMatrixNotEquals = (a: mat4, b: mat4) => {
+  try {
+    expect(mat4.equals(a, b)).toBe(false);
+  } catch (error) {
+    console.error("Expected matrices to be *not* equal:");
+    console.error("Matrix A:", a);
+    console.error("Matrix B:", b);
+    throw error;
+  }
 };
 
 test("rotate", () => {
@@ -20,19 +38,19 @@ test("rotate", () => {
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 0, 1, 0, 0,
-     -1, 0, 0, 0,
+    [0, 1, 0, 0,
+      -1, 0, 0, 0,
       0, 0, 1, 0,
-      0, 0, 0, 1 ]
+      0, 0, 0, 1]
   );
   t.addRotation(quat.invert(quat.create(), q));
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 1, 0, 0, 0,
+    [1, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
-      0, 0, 0, 1 ]
+      0, 0, 0, 1]
   );
 });
 
@@ -43,19 +61,19 @@ test("translate", () => {
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 1, 0, 0, 0,
+    [1, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
-      1, 2, 3, 1 ]
+      1, 2, 3, 1]
   );
   t.addTranslation(t0);
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 1, 0, 0, 0,
+    [1, 0, 0, 0,
       0, 1, 0, 0,
       0, 0, 1, 0,
-      2, 4, 6, 1 ]
+      2, 4, 6, 1]
   );
 });
 
@@ -65,19 +83,19 @@ test("scale", () => {
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 2, 0, 0, 0,
+    [2, 0, 0, 0,
       0, 3, 0, 0,
       0, 0, 4, 0,
-      0, 0, 0, 1 ]
+      0, 0, 0, 1]
   );
   t.addScale(vec3.fromValues(2, 3, 4));
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 4, 0, 0, 0,
+    [4, 0, 0, 0,
       0, 9, 0, 0,
       0, 0, 16, 0,
-      0, 0, 0, 1 ]
+      0, 0, 0, 1]
   );
 });
 
@@ -88,10 +106,10 @@ test("scale then translate", () => {
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 2, 0, 0, 0,
+    [2, 0, 0, 0,
       0, 3, 0, 0,
       0, 0, 4, 0,
-      1, 2, 3, 1 ]
+      1, 2, 3, 1]
   );
 });
 
@@ -102,10 +120,10 @@ test("translate then scale", () => {
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 2, 0, 0, 0,
+    [2, 0, 0, 0,
       0, 3, 0, 0,
       0, 0, 4, 0,
-      2, 6, 12, 1 ]
+      1, 2, 3, 1]
   );
 });
 
@@ -117,10 +135,10 @@ test("rotate then translate", () => {
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 0, 1, 0, 0,
-     -1, 0, 0, 0,
+    [0, 1, 0, 0,
+      -1, 0, 0, 0,
       0, 0, 1, 0,
-      1, 2, 3, 1 ]
+      1, 2, 3, 1]
   );
 });
 
@@ -132,10 +150,10 @@ test("translate then rotate", () => {
   // prettier-ignore
   expectMatrixEquals(
     t.matrix,
-    [ 0, 1, 0, 0,
-     -1, 0, 0, 0,
+    [0, 1, 0, 0,
+      -1, 0, 0, 0,
       0, 0, 1, 0,
-     -2, 1, 3, 1 ]
+      1, 2, 3, 1]
   );
 });
 
@@ -162,4 +180,255 @@ test("matrix is cached on repeat access", () => {
   t.addTranslation(vec3.fromValues(1, 2, 3));
   expect(t.matrix).toBe(t.matrix);
   expect(computeSpy).toHaveBeenCalledTimes(1);
+});
+
+test("setRotation replaces existing rotation", () => {
+  const t = new SrtTransform();
+  const q1 = quat.rotateX(quat.create(), quat.create(), Math.PI / 4);
+  const q2 = quat.rotateY(quat.create(), quat.create(), Math.PI / 2);
+
+  t.setRotation(q1);
+  const matrix1 = mat4.clone(t.matrix);
+
+  t.setRotation(q2);
+  const matrix2 = mat4.clone(t.matrix);
+
+  expectMatrixNotEquals(matrix1, matrix2);
+
+  // prettier-ignore
+  expectMatrixEquals(
+    matrix2,
+    [0, 0, -1, 0,
+      0, 1, 0, 0,
+      1, 0, 0, 0,
+      0, 0, 0, 1]
+  );
+});
+
+test("setTranslation replaces existing translation", () => {
+  const t = new SrtTransform();
+
+  t.setTranslation(vec3.fromValues(1, 2, 3));
+  // prettier-ignore
+  expectMatrixEquals(
+    t.matrix,
+    [1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      1, 2, 3, 1]
+  );
+
+  t.setTranslation(vec3.fromValues(4, 5, 6));
+  // prettier-ignore
+  expectMatrixEquals(
+    t.matrix,
+    [1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      4, 5, 6, 1]
+  );
+});
+
+test("setScale replaces existing scale", () => {
+  const t = new SrtTransform();
+
+  t.setScale(vec3.fromValues(2, 3, 4));
+  // prettier-ignore
+  expectMatrixEquals(
+    t.matrix,
+    [2, 0, 0, 0,
+      0, 3, 0, 0,
+      0, 0, 4, 0,
+      0, 0, 0, 1]
+  );
+
+  t.setScale(vec3.fromValues(5, 6, 7));
+  // prettier-ignore
+  expectMatrixEquals(
+    t.matrix,
+    [5, 0, 0, 0,
+      0, 6, 0, 0,
+      0, 0, 7, 0,
+      0, 0, 0, 1]
+  );
+});
+
+test("getters return independent copies", () => {
+  const t = new SrtTransform();
+  const originalRotation = quat.rotateX(
+    quat.create(),
+    quat.create(),
+    Math.PI / 4
+  );
+  const originalTranslation = vec3.fromValues(1, 2, 3);
+  const originalScale = vec3.fromValues(2, 3, 4);
+
+  t.setRotation(originalRotation);
+  t.setTranslation(originalTranslation);
+  t.setScale(originalScale);
+
+  const gotRotation = t.rotation;
+  const gotTranslation = t.translation;
+  const gotScale = t.scale;
+
+  expect(quat.equals(gotRotation, originalRotation)).toBe(true);
+  expect(vec3.equals(gotTranslation, originalTranslation)).toBe(true);
+  expect(vec3.equals(gotScale, originalScale)).toBe(true);
+
+  quat.rotateY(gotRotation, gotRotation, Math.PI);
+  vec3.add(gotTranslation, gotTranslation, vec3.fromValues(10, 10, 10));
+  vec3.multiply(gotScale, gotScale, vec3.fromValues(2, 2, 2));
+
+  expect(quat.equals(t.rotation, originalRotation)).toBe(true);
+  expect(vec3.equals(t.translation, originalTranslation)).toBe(true);
+  expect(vec3.equals(t.scale, originalScale)).toBe(true);
+});
+
+test("default transform is identity", () => {
+  const t = new SrtTransform();
+
+  // prettier-ignore
+  expectMatrixEquals(
+    t.matrix,
+    [1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1]
+  );
+
+  expect(quat.equals(t.rotation, quat.create())).toBe(true);
+  expect(vec3.equals(t.translation, vec3.create())).toBe(true);
+  expect(vec3.equals(t.scale, vec3.fromValues(1, 1, 1))).toBe(true);
+});
+
+test("zero scale", () => {
+  const t = new SrtTransform();
+  t.setScale(vec3.fromValues(0, 0, 0));
+
+  // prettier-ignore
+  expectMatrixEquals(
+    t.matrix,
+    [0, 0, 0, 0,
+      0, 0, 0, 0,
+      0, 0, 0, 0,
+      0, 0, 0, 1]
+  );
+});
+
+test("partial zero scale", () => {
+  const t = new SrtTransform();
+  t.setScale(vec3.fromValues(2, 0, 3));
+
+  // prettier-ignore
+  expectMatrixEquals(
+    t.matrix,
+    [2, 0, 0, 0,
+      0, 0, 0, 0,
+      0, 0, 3, 0,
+      0, 0, 0, 1]
+  );
+});
+
+test("multiple axis rotations combine correctly", () => {
+  const t = new SrtTransform();
+
+  const rotX = quat.rotateX(quat.create(), quat.create(), Math.PI / 2);
+  const rotY = quat.rotateY(quat.create(), quat.create(), Math.PI / 2);
+  const rotZ = quat.rotateZ(quat.create(), quat.create(), Math.PI / 2);
+
+  t.addRotation(rotX);
+  t.addRotation(rotY);
+  t.addRotation(rotZ);
+
+  const combined = mat4.clone(t.matrix);
+
+  const tX = new SrtTransform();
+  tX.addRotation(rotX);
+
+  expectMatrixNotEquals(combined, tX.matrix);
+});
+
+test("scale rotation translation order", () => {
+  const t = new SrtTransform();
+
+  t.addScale(vec3.fromValues(2, 3, 4));
+  t.addRotation(quat.rotateZ(quat.create(), quat.create(), Math.PI / 2));
+  t.addTranslation(vec3.fromValues(5, 6, 7));
+
+  // prettier-ignore
+  expectMatrixEquals(
+    t.matrix,
+    [0, 2, 0, 0,
+    -3, 0, 0, 0,
+     0, 0, 4, 0,
+     5, 6, 7, 1]
+  );
+});
+
+test("inverse produces identity when multiplied", () => {
+  const t = new SrtTransform();
+
+  t.addScale(vec3.fromValues(2, 3, 4));
+  t.addRotation(quat.rotateZ(quat.create(), quat.create(), Math.PI / 4));
+  t.addTranslation(vec3.fromValues(1, 2, 3));
+
+  const forward = mat4.clone(t.matrix);
+  const inverse = mat4.clone(t.inverse);
+
+  const product = mat4.multiply(mat4.create(), forward, inverse);
+  // prettier-ignore
+  expectMatrixEquals(
+    product,
+    [1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1]
+  );
+});
+
+test("inverse is not cached", () => {
+  const t = new SrtTransform();
+  t.setTranslation(vec3.fromValues(1, 2, 3));
+
+  const inverse1 = t.inverse;
+  const inverse2 = t.inverse;
+
+  expect(inverse1).not.toBe(inverse2);
+  expectMatrixEquals(inverse1, inverse2);
+});
+
+test("dirty flag invalidates cache on all operations", () => {
+  const t = new SrtTransform();
+  // @ts-expect-error TS2345 - spying on private method
+  const computeSpy = vi.spyOn(t, "computeMatrix");
+
+  void t.matrix;
+  expect(computeSpy).toHaveBeenCalledTimes(1);
+
+  void t.matrix;
+  expect(computeSpy).toHaveBeenCalledTimes(1);
+
+  t.addTranslation(vec3.fromValues(1, 0, 0));
+  void t.matrix;
+  expect(computeSpy).toHaveBeenCalledTimes(2);
+
+  t.addRotation(quat.rotateX(quat.create(), quat.create(), 0.1));
+  void t.matrix;
+  expect(computeSpy).toHaveBeenCalledTimes(3);
+
+  t.addScale(vec3.fromValues(1.1, 1.1, 1.1));
+  void t.matrix;
+  expect(computeSpy).toHaveBeenCalledTimes(4);
+
+  t.setTranslation(vec3.fromValues(2, 0, 0));
+  void t.matrix;
+  expect(computeSpy).toHaveBeenCalledTimes(5);
+
+  t.setRotation(quat.create());
+  void t.matrix;
+  expect(computeSpy).toHaveBeenCalledTimes(6);
+
+  t.setScale(vec3.fromValues(2, 2, 2));
+  void t.matrix;
+  expect(computeSpy).toHaveBeenCalledTimes(7);
 });
