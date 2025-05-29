@@ -18,7 +18,7 @@ export type Index = Point | Interval | Full;
 
 // An index for a specific dimension or axis in a region.
 // TODO: add a unit for the index value(s).
-// https://github.com/chanzuckerberg/imaging-active-learning/issues/36
+// https://github.com/chanzuckerberg/idetik/issues/36
 export type DimensionalIndex = {
   dimension: string;
   index: Index;
