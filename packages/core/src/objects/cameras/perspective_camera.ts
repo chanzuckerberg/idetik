@@ -15,7 +15,7 @@ type PerspectiveCameraOptions = {
 };
 
 export class PerspectiveCamera extends Camera {
-  private readonly fov_: number;
+  private fov_: number;
   private aspectRatio_: number;
 
   constructor(options: PerspectiveCameraOptions = {}) {
@@ -28,7 +28,9 @@ export class PerspectiveCamera extends Camera {
     } = options;
 
     if (fov < MIN_FOV || fov > MAX_FOV) {
-      throw new Error(`Invalid field of view: ${fov}, must be in [${MIN_FOV}, ${MAX_FOV}] degrees`);
+      throw new Error(
+        `Invalid field of view: ${fov}, must be in [${MIN_FOV}, ${MAX_FOV}] degrees`
+      );
     }
     super();
     this.fov_ = fov;
