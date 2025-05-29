@@ -1,16 +1,10 @@
 import { vec3, vec4 } from "gl-matrix";
 
-export type ColorLike =
-  | Color
-  | vec3
-  | vec4
-  | [number, number, number]
-  | [number, number, number, number];
+export type ColorLike = Color | vec3 | vec4;
 
 export class Color {
   // RGBA color values in the range [0, 1]
-  private rgb_: vec3;
-  private alpha_: number = 1.0;
+  private readonly rgba_: readonly [number, number, number, number];
 
   constructor(r: number, g: number, b: number, a?: number) {
     if (r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1) {
@@ -19,32 +13,31 @@ export class Color {
     if (a !== undefined && (a < 0 || a > 1)) {
       throw new Error("Alpha value must be in the range [0, 1]");
     }
-    this.rgb_ = vec3.fromValues(r, g, b);
-    this.alpha_ = a ?? 1.0;
+    this.rgba_ = [r, g, b, a ?? 1.0];
   }
 
-  public get rgb(): vec3 {
-    return vec3.clone(this.rgb_);
+  public get rgb(): [number, number, number] {
+    return [this.rgba_[0], this.rgba_[1], this.rgba_[2]];
   }
 
-  public get rgba(): vec4 {
-    return vec4.fromValues(this.r, this.g, this.b, this.alpha_);
+  public get rgba(): readonly [number, number, number, number] {
+    return this.rgba_;
   }
 
   public get r(): number {
-    return this.rgb_[0];
+    return this.rgba_[0];
   }
 
   public get g(): number {
-    return this.rgb_[1];
+    return this.rgba_[1];
   }
 
   public get b(): number {
-    return this.rgb_[2];
+    return this.rgba_[2];
   }
 
   public get a(): number {
-    return this.alpha_;
+    return this.rgba_[3];
   }
 
   public get rgbHex(): string {

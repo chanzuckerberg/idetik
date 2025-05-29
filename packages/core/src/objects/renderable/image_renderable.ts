@@ -7,7 +7,6 @@ import {
   validateChannel,
   validateChannels,
 } from "../../objects/textures/channel";
-import { Color } from "../../core/color";
 import { vec3 } from "gl-matrix";
 
 type SingleUniformValues = {
@@ -80,7 +79,7 @@ export class ImageRenderable extends RenderableObject {
       const { color, contrastLimits } =
         this.channels_[0] ?? validateChannel(texture, {});
       return {
-        Color: Color.from(color).rgb,
+        Color: color.rgb,
         ValueOffset: -contrastLimits[0],
         ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
       };
@@ -93,9 +92,8 @@ export class ImageRenderable extends RenderableObject {
 
       // All channels (including defaults) are already in this.channels_
       this.channels_.forEach((channel) => {
-        const channelColor = Color.from(channel.color);
         visible.push(channel.visible);
-        color.push(...channelColor.rgb);
+        color.push(...channel.color.rgb);
         valueOffset.push(-channel.contrastLimits[0]);
         valueScale.push(
           1 / (channel.contrastLimits[1] - channel.contrastLimits[0])
