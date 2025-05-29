@@ -1,6 +1,6 @@
 import { mat4, vec3, quat } from "gl-matrix";
 
-export class SrtTransform {
+export class TrsTransform {
   private dirty_ = true;
   private matrix_ = mat4.create();
   private rotation_ = quat.create();

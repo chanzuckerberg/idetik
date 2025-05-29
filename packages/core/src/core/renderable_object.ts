@@ -1,7 +1,7 @@
 import { Node } from "../core/node";
 import { Geometry } from "../core/geometry";
 import { Texture } from "../objects/textures/texture";
-import { SrtTransform } from "../core/transforms";
+import { TrsTransform } from "../core/transforms";
 
 import { Shader } from "../renderers/shaders";
 
@@ -10,7 +10,7 @@ export type Primitive = "triangles" | "points";
 export abstract class RenderableObject extends Node {
   private geometry_ = new Geometry();
   private textures_: Texture[] = [];
-  private transform_ = new SrtTransform();
+  private transform_ = new TrsTransform();
   private programName_: Shader | null = null;
   private primitive_: Primitive = "triangles";
 

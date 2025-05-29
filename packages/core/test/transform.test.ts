@@ -2,7 +2,7 @@ import { mat4, vec3, quat } from "gl-matrix";
 
 import { expect, test, vi } from "vitest";
 
-import { SrtTransform } from "@/core/transforms";
+import { TrsTransform } from "@/core/transforms";
 
 // NOTES:
 // * mat4 is column-major
@@ -32,7 +32,7 @@ const expectMatrixNotEquals = (a: mat4, b: mat4) => {
 };
 
 test("rotate", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   const q = quat.rotateZ(quat.create(), quat.create(), Math.PI / 2);
   t.addRotation(q);
   // prettier-ignore
@@ -55,7 +55,7 @@ test("rotate", () => {
 });
 
 test("translate", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   const t0 = vec3.fromValues(1, 2, 3);
   t.addTranslation(t0);
   // prettier-ignore
@@ -78,7 +78,7 @@ test("translate", () => {
 });
 
 test("scale", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   t.addScale(vec3.fromValues(2, 3, 4));
   // prettier-ignore
   expectMatrixEquals(
@@ -100,7 +100,7 @@ test("scale", () => {
 });
 
 test("scale then translate", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   t.addScale(vec3.fromValues(2, 3, 4));
   t.addTranslation(vec3.fromValues(1, 2, 3));
   // prettier-ignore
@@ -114,7 +114,7 @@ test("scale then translate", () => {
 });
 
 test("translate then scale", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   t.addTranslation(vec3.fromValues(1, 2, 3));
   t.addScale(vec3.fromValues(2, 3, 4));
   // prettier-ignore
@@ -128,7 +128,7 @@ test("translate then scale", () => {
 });
 
 test("rotate then translate", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   const q = quat.rotateZ(quat.create(), quat.create(), Math.PI / 2);
   t.addRotation(q);
   t.addTranslation(vec3.fromValues(1, 2, 3));
@@ -143,7 +143,7 @@ test("rotate then translate", () => {
 });
 
 test("translate then rotate", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   t.addTranslation(vec3.fromValues(1, 2, 3));
   const q = quat.rotateZ(quat.create(), quat.create(), Math.PI / 2);
   t.addRotation(q);
@@ -159,8 +159,8 @@ test("translate then rotate", () => {
 
 test("inverse", () => {
   // use two transforms to check inverse is correct without first accessing the matrix
-  const t0 = new SrtTransform();
-  const t1 = new SrtTransform();
+  const t0 = new TrsTransform();
+  const t1 = new TrsTransform();
   const rotation = quat.rotateZ(quat.create(), quat.create(), Math.PI / 2);
   const translation = vec3.fromValues(1, 2, 3);
   const scale = vec3.fromValues(2, 3, 4);
@@ -174,7 +174,7 @@ test("inverse", () => {
 });
 
 test("matrix is cached on repeat access", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   // @ts-expect-error TS2345 - spying on private method
   const computeSpy = vi.spyOn(t, "computeMatrix");
   t.addTranslation(vec3.fromValues(1, 2, 3));
@@ -183,7 +183,7 @@ test("matrix is cached on repeat access", () => {
 });
 
 test("setRotation replaces existing rotation", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   const q1 = quat.rotateX(quat.create(), quat.create(), Math.PI / 4);
   const q2 = quat.rotateY(quat.create(), quat.create(), Math.PI / 2);
 
@@ -206,7 +206,7 @@ test("setRotation replaces existing rotation", () => {
 });
 
 test("setTranslation replaces existing translation", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
 
   t.setTranslation(vec3.fromValues(1, 2, 3));
   // prettier-ignore
@@ -230,7 +230,7 @@ test("setTranslation replaces existing translation", () => {
 });
 
 test("setScale replaces existing scale", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
 
   t.setScale(vec3.fromValues(2, 3, 4));
   // prettier-ignore
@@ -254,7 +254,7 @@ test("setScale replaces existing scale", () => {
 });
 
 test("getters return independent copies", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   const originalRotation = quat.rotateX(
     quat.create(),
     quat.create(),
@@ -285,7 +285,7 @@ test("getters return independent copies", () => {
 });
 
 test("default transform is identity", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
 
   // prettier-ignore
   expectMatrixEquals(
@@ -302,7 +302,7 @@ test("default transform is identity", () => {
 });
 
 test("zero scale", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   t.setScale(vec3.fromValues(0, 0, 0));
 
   // prettier-ignore
@@ -316,7 +316,7 @@ test("zero scale", () => {
 });
 
 test("partial zero scale", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   t.setScale(vec3.fromValues(2, 0, 3));
 
   // prettier-ignore
@@ -330,7 +330,7 @@ test("partial zero scale", () => {
 });
 
 test("multiple axis rotations combine correctly", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
 
   const rotX = quat.rotateX(quat.create(), quat.create(), Math.PI / 2);
   const rotY = quat.rotateY(quat.create(), quat.create(), Math.PI / 2);
@@ -342,14 +342,14 @@ test("multiple axis rotations combine correctly", () => {
 
   const combined = mat4.clone(t.matrix);
 
-  const tX = new SrtTransform();
+  const tX = new TrsTransform();
   tX.addRotation(rotX);
 
   expectMatrixNotEquals(combined, tX.matrix);
 });
 
 test("scale rotation translation order", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
 
   t.addScale(vec3.fromValues(2, 3, 4));
   t.addRotation(quat.rotateZ(quat.create(), quat.create(), Math.PI / 2));
@@ -366,7 +366,7 @@ test("scale rotation translation order", () => {
 });
 
 test("inverse produces identity when multiplied", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
 
   t.addScale(vec3.fromValues(2, 3, 4));
   t.addRotation(quat.rotateZ(quat.create(), quat.create(), Math.PI / 4));
@@ -387,7 +387,7 @@ test("inverse produces identity when multiplied", () => {
 });
 
 test("inverse is not cached", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   t.setTranslation(vec3.fromValues(1, 2, 3));
 
   const inverse1 = t.inverse;
@@ -398,7 +398,7 @@ test("inverse is not cached", () => {
 });
 
 test("dirty flag invalidates cache on all operations", () => {
-  const t = new SrtTransform();
+  const t = new TrsTransform();
   // @ts-expect-error TS2345 - spying on private method
   const computeSpy = vi.spyOn(t, "computeMatrix");
 
