@@ -53,7 +53,7 @@ export class OmeZarrImageLoader {
       // TODO: when undefined use the input to determine what level to load.
       // That is, dynamically select the scale based on the size of the chunk
       // to be loaded and how big it will be on screen.
-      // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
+      // https://github.com/chanzuckerberg/idetik/issues/37
       // default to the lowest resolution
       this.scaleIndex_ = numScales - 1;
     } else if (scaleIndex < 0) {

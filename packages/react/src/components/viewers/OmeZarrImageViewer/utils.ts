@@ -1,5 +1,4 @@
-import { OmeroChannel, ChannelProps } from "@idetik/core";
-import { hexToRgb } from "lib/color";
+import { OmeroChannel, ChannelProps, Color } from "@idetik/core";
 import { ChannelControl } from "../../hooks/useIdetik";
 
 // TODO: the limits/range from the omero channels should possibly be reversed
@@ -12,7 +11,7 @@ export const omeroToChannelProps = (
     const { start, end, min, max } = channel.window;
     return {
       visible: channel.active,
-      color: hexToRgb(channel.color),
+      color: Color.fromRgbHex(channel.color),
       contrastLimits: [Math.max(start, min), Math.min(end, max)],
     };
   });
