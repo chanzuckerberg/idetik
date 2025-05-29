@@ -1,4 +1,6 @@
 import {
+  ChannelProps,
+  Color,
   Idetik,
   ImageSeriesLayer,
   OmeZarrImageSource,
@@ -35,21 +37,21 @@ const region: Region = [
 ];
 // Raise the contrast limits for the blue channel because there is
 // a lot of low signal that washes everything else out.
-const channelProps = [
+const channelProps: ChannelProps[] = [
   {
     visible: false,
-    color: [1, 0, 0] as [number, number, number],
-    contrastLimits: [0, 255] as [number, number],
+    color: Color.RED,
+    contrastLimits: [0, 255],
   },
   {
     visible: true,
-    color: [0, 1, 0] as [number, number, number],
-    contrastLimits: [0, 255] as [number, number],
+    color: Color.BLUE,
+    contrastLimits: [0, 255],
   },
   {
     visible: true,
-    color: [0, 0, 1] as [number, number, number],
-    contrastLimits: [128, 255] as [number, number],
+    color: Color.GREEN,
+    contrastLimits: [128, 255],
   },
 ];
 const layer = new ImageSeriesLayer({
@@ -61,9 +63,11 @@ const layer = new ImageSeriesLayer({
 
 const overlayChannelProps = structuredClone(channelProps);
 overlayChannelProps[0].visible = true;
-overlayChannelProps[0].color = [1, 1, 0] as [number, number, number]; // yellow-ish red+green
+overlayChannelProps[0].color = new Color(1, 1, 0); // yellow-ish red+green
 overlayChannelProps[1].visible = false;
+overlayChannelProps[1].color = Color.BLUE;
 overlayChannelProps[2].visible = false;
+overlayChannelProps[2].color = Color.GREEN;
 
 const overlayLayer = new ImageSeriesLayer({
   source,
