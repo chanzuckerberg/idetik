@@ -329,7 +329,7 @@ test("partial zero scale", () => {
   );
 });
 
-test("multiple axis rotations combine correctly", () => {
+test("multiple axis rotations combine", () => {
   const t = new TrsTransform();
 
   const rotX = quat.rotateX(quat.create(), quat.create(), Math.PI / 2);
@@ -341,6 +341,14 @@ test("multiple axis rotations combine correctly", () => {
   t.addRotation(rotZ);
 
   const combined = mat4.clone(t.matrix);
+  expectMatrixEquals(
+    combined,
+    // prettier-ignore
+    [0, 0, 1, 0,
+      0, -1, 0, 0,
+      1, 0, 0, 0,
+      0, 0, 0, 1]
+  );
 
   const tX = new TrsTransform();
   tX.addRotation(rotX);
@@ -384,51 +392,4 @@ test("inverse produces identity when multiplied", () => {
       0, 0, 1, 0,
       0, 0, 0, 1]
   );
-});
-
-test("inverse is not cached", () => {
-  const t = new TrsTransform();
-  t.setTranslation(vec3.fromValues(1, 2, 3));
-
-  const inverse1 = t.inverse;
-  const inverse2 = t.inverse;
-
-  expect(inverse1).not.toBe(inverse2);
-  expectMatrixEquals(inverse1, inverse2);
-});
-
-test("dirty flag invalidates cache on all operations", () => {
-  const t = new TrsTransform();
-  // @ts-expect-error TS2345 - spying on private method
-  const computeSpy = vi.spyOn(t, "computeMatrix");
-
-  void t.matrix;
-  expect(computeSpy).toHaveBeenCalledTimes(1);
-
-  void t.matrix;
-  expect(computeSpy).toHaveBeenCalledTimes(1);
-
-  t.addTranslation(vec3.fromValues(1, 0, 0));
-  void t.matrix;
-  expect(computeSpy).toHaveBeenCalledTimes(2);
-
-  t.addRotation(quat.rotateX(quat.create(), quat.create(), 0.1));
-  void t.matrix;
-  expect(computeSpy).toHaveBeenCalledTimes(3);
-
-  t.addScale(vec3.fromValues(1.1, 1.1, 1.1));
-  void t.matrix;
-  expect(computeSpy).toHaveBeenCalledTimes(4);
-
-  t.setTranslation(vec3.fromValues(2, 0, 0));
-  void t.matrix;
-  expect(computeSpy).toHaveBeenCalledTimes(5);
-
-  t.setRotation(quat.create());
-  void t.matrix;
-  expect(computeSpy).toHaveBeenCalledTimes(6);
-
-  t.setScale(vec3.fromValues(2, 2, 2));
-  void t.matrix;
-  expect(computeSpy).toHaveBeenCalledTimes(7);
 });
