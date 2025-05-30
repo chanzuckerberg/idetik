@@ -96,8 +96,6 @@ const imageSeriesLayer = new ImageSeriesLayer({
   channelProps,
 });
 
-const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
-
 const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
 slider.min = timeInterval.start.toString();
@@ -114,9 +112,9 @@ slider.addEventListener("input", (event) => {
   lineLayer.setTimeIndex(value);
 });
 
+const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
 const camera = new OrthographicCamera(left, right, top, bottom);
-camera.zoom = 0.5;
-camera.transform.translate([0, 0, 1]);
+camera.zoom(0.5);
 
 new Idetik({
   canvasSelector: "canvas",
