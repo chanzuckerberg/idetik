@@ -1,3 +1,4 @@
+import { IdetikContext } from "../idetik";
 import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 
@@ -25,9 +26,9 @@ export abstract class Layer {
   public blendMode: blendMode;
 
   constructor({
-    transparent: transparent = false,
+    transparent = false,
     opacity = 1.0,
-    blendMode: blendMode = "normal",
+    blendMode = "normal",
   }: LayerOptions = {}) {
     if (opacity < 0 || opacity > 1) {
       console.warn(
@@ -51,6 +52,12 @@ export abstract class Layer {
   }
 
   public abstract update(): void;
+
+  // TODO: Consider making this an abstract method once chunk manager
+  // integration is finalized. Most layers will likely need access to the chunk
+  // manager, but for now, we allow optional overrides to avoid requiring
+  // placeholder implementations.
+  public onAttached(_context: IdetikContext) {}
 
   public get objects() {
     return this.objects_;
