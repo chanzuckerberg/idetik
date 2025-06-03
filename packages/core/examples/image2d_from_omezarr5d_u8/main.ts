@@ -1,20 +1,19 @@
 import { vec3 } from "gl-matrix";
 import {
+  ChannelProps,
+  Color,
+  Idetik,
   ImageLayer,
-  LayerManager,
   OmeZarrImageSource,
   OrthographicCamera,
   PerspectiveCamera,
   Region,
-  WebGLRenderer,
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
-const layerManager = new LayerManager();
-const renderer = new WebGLRenderer("#canvas");
 const orthoCam = new OrthographicCamera(-2000, 2000, -2000, 2000);
 const cameraPos = vec3.fromValues(0, 0, 5000);
 const perspectiveCam = new PerspectiveCamera({ fov: 60, position: cameraPos });
@@ -29,28 +28,23 @@ const region: Region = [
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },
 ];
-const channelProps = [
+const channelProps: ChannelProps[] = [
   {
-    color: [0, 1, 0] as [number, number, number],
-    contrastLimits: [0, 128] as [number, number],
+    color: Color.GREEN,
+    contrastLimits: [0, 128],
   },
 ];
 const layer = new ImageLayer({ source, region, channelProps });
 const axes = new AxesLayer({ length: 1920, width: 0.01 });
-layerManager.add(layer);
-layerManager.add(axes);
-
-let camera: PerspectiveCamera | OrthographicCamera = perspectiveCam;
-
 const orthoCamControls = new PanZoomControls(orthoCam);
 const perspectiveCamControls = new PanZoomControls(perspectiveCam);
 
-renderer.setControls(perspectiveCamControls);
-
-function animate() {
-  renderer.render(layerManager, camera);
-  requestAnimationFrame(animate);
-}
+const app = new Idetik({
+  canvasSelector: "canvas",
+  camera: perspectiveCam,
+  controls: perspectiveCamControls,
+  layers: [layer, axes],
+}).start();
 
 document.addEventListener("keydown", (event) => {
   if (event.key === " ") {
@@ -59,10 +53,8 @@ document.addEventListener("keydown", (event) => {
 });
 
 function toggleCamera() {
-  camera = camera === orthoCam ? perspectiveCam : orthoCam;
-  renderer.setControls(
-    camera === orthoCam ? orthoCamControls : perspectiveCamControls
+  app.camera = app.camera === orthoCam ? perspectiveCam : orthoCam;
+  app.setControls(
+    app.camera === orthoCam ? orthoCamControls : perspectiveCamControls
   );
 }
-
-animate();

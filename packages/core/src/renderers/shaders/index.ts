@@ -5,9 +5,12 @@ import floatImageFragmentShader from "./float_image_frag.glsl";
 import floatImageArrayFragmentShader from "./float_image_array_frag.glsl";
 import uintImageFragmentShader from "./uint_image_frag.glsl";
 import uintImageArrayFragmentShader from "./uint_image_array_frag.glsl";
+import pointsVertexShader from "./points_vert.glsl";
+import pointsFragmentShader from "./points_frag.glsl";
 
 export type Shader =
   | "projectedLine"
+  | "points"
   | "floatImage"
   | "floatImageArray"
   | "uintImage"
@@ -18,6 +21,10 @@ export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
     projectedLine: {
       vertex: projectedLineVertexShader,
       fragment: projectedLineFragmentShader,
+    },
+    points: {
+      vertex: pointsVertexShader,
+      fragment: pointsFragmentShader,
     },
     // TODO: consolidate image shaders
     floatImage: {

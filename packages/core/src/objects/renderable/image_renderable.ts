@@ -7,9 +7,10 @@ import {
   validateChannel,
   validateChannels,
 } from "../../objects/textures/channel";
+import { vec3 } from "gl-matrix";
 
 type SingleUniformValues = {
-  Color: [number, number, number];
+  Color: vec3;
   ValueOffset: number;
   ValueScale: number;
 };
@@ -55,16 +56,17 @@ export class ImageRenderable extends RenderableObject {
     this.channels_ = validateChannels(this.textures[0], channels);
   }
 
-  // TODO: validate the properties when setting this way?
   public setChannelProperty<K extends keyof ChannelProps>(
     channelIndex: number,
     property: K,
     value: Required<ChannelProps>[K]
   ) {
-    if (channelIndex < 0 || channelIndex >= this.channels_.length) {
-      throw new Error(`Invalid channel index: ${channelIndex}`);
-    }
-    this.channels_[channelIndex][property] = value;
+    const newChannel = validateChannel(this.textures[0], {
+      ...this.channels_[channelIndex],
+      [property]: value,
+    });
+
+    this.channels_[channelIndex] = newChannel;
   }
 
   public override getUniforms(): SingleUniformValues | ArrayUniformValues {
@@ -77,7 +79,7 @@ export class ImageRenderable extends RenderableObject {
       const { color, contrastLimits } =
         this.channels_[0] ?? validateChannel(texture, {});
       return {
-        Color: color,
+        Color: color.rgb,
         ValueOffset: -contrastLimits[0],
         ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
       };
@@ -91,7 +93,7 @@ export class ImageRenderable extends RenderableObject {
       // All channels (including defaults) are already in this.channels_
       this.channels_.forEach((channel) => {
         visible.push(channel.visible);
-        color.push(...channel.color);
+        color.push(...channel.color.rgb);
         valueOffset.push(-channel.contrastLimits[0]);
         valueScale.push(
           1 / (channel.contrastLimits[1] - channel.contrastLimits[0])

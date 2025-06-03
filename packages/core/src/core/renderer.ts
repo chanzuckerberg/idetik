@@ -1,18 +1,15 @@
 import { vec2, vec3 } from "gl-matrix";
 import { LayerManager } from "./layer_manager";
 import { Camera } from "../objects/cameras/camera";
-import { PerspectiveCamera } from "../objects/cameras/perspective_camera";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import { Color, ColorLike } from "./color";
 import { CameraControls, NullControls } from "../objects/cameras/controls";
 import { Layer } from "./layer";
-
-type Color = [number, number, number, number];
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
   private width_ = 0;
   private height_ = 0;
-  private backgroundColor_: Color = [0, 0, 0, 0];
+  private backgroundColor_: Color = new Color(0, 0, 0, 0);
   private activeCamera_: Camera | null = null;
   private controls_: CameraControls = new NullControls();
   private controlCallbacks_: [string, (event: Event) => void][] = [];
@@ -77,15 +74,9 @@ export abstract class Renderer {
   }
 
   private updateActiveCamera() {
-    const aspectRatio = this.width_ / this.height_;
+    const canvasAspectRatio = this.width_ / this.height_;
     if (this.activeCamera_) {
-      if (this.activeCamera_ instanceof PerspectiveCamera) {
-        this.activeCamera_.setAspectRatio(aspectRatio);
-      }
-      if (this.activeCamera_ instanceof OrthographicCamera) {
-        this.activeCamera_.setViewportAspectRatio(aspectRatio);
-      }
-      this.activeCamera_.update();
+      this.activeCamera_.setAspectRatio(canvasAspectRatio);
     }
   }
 
@@ -101,12 +92,12 @@ export abstract class Renderer {
     return this.height_;
   }
 
-  public get backgroundColor() {
+  public get backgroundColor(): Color {
     return this.backgroundColor_;
   }
 
-  public set backgroundColor(color: Color) {
-    this.backgroundColor_ = color;
+  public set backgroundColor(color: ColorLike) {
+    this.backgroundColor_ = Color.from(color);
   }
 
   protected get activeCamera() {

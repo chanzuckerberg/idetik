@@ -2,7 +2,68 @@
 
 React components for image viewers - wrapping idetik/core functionality
 
-## Getting Started
+## For Integrators: Using @idetik/react Components
+
+### Installation
+
+```bash
+npm install @idetik/react @idetik/core
+```
+
+### Basic Usage
+
+Here is an example of using the `OmeZarrImageViewer` component:
+```tsx
+"use client";
+import { IdetikProvider, OmeZarrImageViewer, ChannelControlsList } from "@idetik/react";
+import { Region } from "@idetik/core";
+
+// Define the region to view
+const region: Region = [
+  { dimension: "T", index: { type: "point", value: 0 } },
+  { dimension: "C", index: { type: "full" } },
+  { dimension: "Z", index: { type: "full" } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
+];
+
+export function ImageViewer({ zarrUrl }: { zarrUrl: string }) {
+  return (
+    <IdetikProvider>
+      <div className="relative w-full h-full">
+        <div className="absolute top-0 left-0 z-10">
+          <ChannelControlsList />
+        </div>
+        <OmeZarrImageViewer
+          sourceUrl={zarrUrl}
+          region={region}
+          seriesDimensionName="Z"
+          allSlicesSizeEstimate="250 MB" // Shows on the "Load 3D high-res" button
+        />
+      </div>
+    </IdetikProvider>
+  );
+}
+```
+
+### Advanced usage
+
+To write custom control components, use the `useIdetik()` hook to access and update the global
+Idetik state.
+
+#### Tracking Metrics
+
+To track metrics, the `OmeZarrImageViewer` component accepts optional callbacks for the following events:
+
+- `onLayerCreated`
+- `onFirstSliceLoaded`
+- `onLoadAllSlicesClicked`
+- `onAllSlicesLoaded`
+- `onLoadAllSlicesAborted`
+
+## For Internal Developers
+
+### Getting Started
 
 ```bash
 # Install dependencies from root directory
@@ -28,11 +89,11 @@ If you make changes to the `@idetik/core` package, you'll need to:
 
 This ensures your React components use the latest version of the core package.
 
-## Component Development Guidelines
+### Component Development Guidelines
 
 Pure TypeScript code (has no react dependencies) should go in the `lib/` directory.
 
-### File Structure
+#### File Structure
 Each component should have its own directory with the following structure:
 ```
 ComponentName/
@@ -42,7 +103,7 @@ ComponentName/
 └── components/      # Sub-components (if needed)
 ```
 
-### Best Practices
+#### Best Practices
 
 1. **Exports**
    - Use named exports instead of default exports
@@ -97,7 +158,7 @@ ComponentName/
    );
    ```
 
-## Available Scripts
+### Available Scripts
 
 - `npm run dev` - Start the Vite development server
 - `npm run compile` - Run TypeScript compilation

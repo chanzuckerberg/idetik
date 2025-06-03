@@ -1,5 +1,5 @@
 import { RenderableObject } from "../../core/renderable_object";
-import { mat4, quat, vec3, vec4 } from "gl-matrix";
+import { mat4, vec3, vec4 } from "gl-matrix";
 
 export abstract class Camera extends RenderableObject {
   protected projectionMatrix_ = mat4.create();
@@ -21,17 +21,11 @@ export abstract class Camera extends RenderableObject {
     return this.projectionMatrix_;
   }
 
-  public get zoom() {
-    return this.zoom_;
-  }
-
-  public set zoom(zoom: number) {
-    this.zoom_ = zoom;
-    this.updateProjectionMatrix();
-  }
+  public abstract setAspectRatio(aspectRatio: number): void;
+  public abstract zoom(factor: number): void;
 
   public pan(vec: vec3) {
-    this.transform.translate(vec);
+    this.transform.addTranslation(vec);
   }
 
   public get position() {
@@ -40,15 +34,22 @@ export abstract class Camera extends RenderableObject {
 
   public clipToWorld(position: vec3): vec3 {
     const clipPos = vec4.fromValues(position[0], position[1], position[2], 1);
-    const projectionInverse = mat4.invert(mat4.create(), this.projectionMatrix);
-    const worldPos = vec4.transformMat4(
+    const projectionInverse = mat4.invert(
+      mat4.create(),
+      this.projectionMatrix_
+    );
+    const viewPos = vec4.transformMat4(
       vec4.create(),
       clipPos,
       projectionInverse
     );
-    const rotation = mat4.getRotation(quat.create(), this.transform.matrix);
-    vec4.transformQuat(worldPos, worldPos, rotation);
-    vec4.scale(worldPos, worldPos, 1 / worldPos[3]);
+    vec4.scale(viewPos, viewPos, 1 / viewPos[3]);
+    // the camera transform is *not* inverted here because we use the inverse when rendering
+    const worldPos = vec4.transformMat4(
+      vec4.create(),
+      viewPos,
+      this.transform.matrix
+    );
     return vec3.fromValues(worldPos[0], worldPos[1], worldPos[2]);
   }
 }

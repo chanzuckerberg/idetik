@@ -16,7 +16,7 @@ export type ImageLayerProps = LayerOptions & {
 export class ImageLayer extends Layer {
   private readonly source_: ImageChunkSource;
   // TODO: remove this when region is passed through to update.
-  // https://github.com/chanzuckerberg/imaging-active-learning/issues/33
+  // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
@@ -93,8 +93,8 @@ export class ImageLayer extends Layer {
       channelProps
     );
 
-    image.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
-    image.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
+    image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
+    image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
   }
 }

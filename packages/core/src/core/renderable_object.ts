@@ -1,15 +1,18 @@
 import { Node } from "../core/node";
 import { Geometry } from "../core/geometry";
 import { Texture } from "../objects/textures/texture";
-import { AffineTransform } from "../core/transforms";
+import { TrsTransform } from "../core/transforms";
 
 import { Shader } from "../renderers/shaders";
+
+export type Primitive = "triangles" | "points";
 
 export abstract class RenderableObject extends Node {
   private geometry_ = new Geometry();
   private textures_: Texture[] = [];
-  private transform_ = new AffineTransform();
+  private transform_ = new TrsTransform();
   private programName_: Shader | null = null;
+  private primitive_: Primitive = "triangles";
 
   public addTexture(texture: Texture) {
     this.textures_.push(texture);
@@ -40,6 +43,14 @@ export abstract class RenderableObject extends Node {
 
   protected set programName(programName: Shader) {
     this.programName_ = programName;
+  }
+
+  public get primitive(): Primitive {
+    return this.primitive_;
+  }
+
+  protected set primitive(primitive: Primitive) {
+    this.primitive_ = primitive;
   }
 
   /**

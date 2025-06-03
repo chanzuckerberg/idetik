@@ -1,14 +1,13 @@
 import { vec3 } from "gl-matrix";
 import {
+  Idetik,
   ImageSeriesLayer,
-  LayerManager,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
   TracksLayer,
-  WebGLRenderer,
+  PanZoomControls,
 } from "@";
-import { PanZoomControls } from "@/objects/cameras/controls";
 
 // payload roughly equivalent to task 0 from
 // https://public.czbiohub.org/royerlab/ultrack/multi-color/mock_data.json
@@ -97,20 +96,6 @@ const imageSeriesLayer = new ImageSeriesLayer({
   channelProps,
 });
 
-const renderer = new WebGLRenderer("#canvas");
-
-const layerManager = new LayerManager();
-layerManager.add(imageSeriesLayer);
-layerManager.add(lineLayer);
-
-const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
-const camera = new OrthographicCamera(left, right, top, bottom);
-camera.zoom = 0.5;
-camera.transform.translate([0, 0, 1]);
-
-const controls = new PanZoomControls(camera, camera.position);
-renderer.setControls(controls);
-
 const slider = document.querySelector<HTMLInputElement>("#slider");
 if (slider === null) throw new Error("Time slider not found.");
 slider.min = timeInterval.start.toString();
@@ -127,9 +112,13 @@ slider.addEventListener("input", (event) => {
   lineLayer.setTimeIndex(value);
 });
 
-animate();
+const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
+const camera = new OrthographicCamera(left, right, top, bottom);
+camera.zoom(0.5);
 
-function animate() {
-  renderer.render(layerManager, camera);
-  requestAnimationFrame(animate);
-}
+new Idetik({
+  canvasSelector: "canvas",
+  camera,
+  controls: new PanZoomControls(camera, camera.position),
+  layers: [imageSeriesLayer, lineLayer],
+}).start();

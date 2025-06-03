@@ -30,6 +30,11 @@ type LoadingToken = {
   index: number;
 };
 
+type SetIndexResult = {
+  success: boolean;
+  reason?: "duplicate" | "canceled";
+};
+
 // Loads 2D+z image data (Z-stack) from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
   private readonly source_: ImageChunkSource;
@@ -37,12 +42,14 @@ export class ImageSeriesLayer extends Layer {
   private readonly seriesDimensionName_: string;
   private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
+  private readonly initialChannelProps_?: ChannelProps[];
   private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private channelProps_?: ChannelProps[];
+  private channelChangeCallbacks_: Array<() => void> = [];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
@@ -73,15 +80,38 @@ export class ImageSeriesLayer extends Layer {
     }
     this.seriesIndex_ = seriesDimensionalIndex.index;
     this.channelProps_ = channelProps;
+    this.initialChannelProps_ = channelProps;
   }
 
   public get channelProps(): ChannelProps[] | undefined {
     return this.channelProps_;
   }
-
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
+    });
+  }
+  public resetChannelProps(): void {
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
+    }
+  }
+
+  /** useSyncExternalStore() compatible subscribe function. */
+  addChannelChangeCallback = (callback: () => void): (() => void) => {
+    this.channelChangeCallbacks_.push(callback);
+    return () => {
+      this.removeChannelChangeCallback(callback);
+    };
+  };
+  public removeChannelChangeCallback(callback: () => void): void {
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.channelChangeCallbacks_.splice(index, 1);
   }
 
   public update() {
@@ -90,20 +120,20 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
-  public async setPosition(position: number) {
+  public async setPosition(position: number): Promise<SetIndexResult> {
     const seriesAttributes = await this.loadSeriesAttributes();
     const index = Math.round(
       (position - seriesAttributes.start) / seriesAttributes.scale
     );
-    this.setIndex(index);
+    return await this.setIndex(index);
   }
 
-  public async setIndex(index: number) {
+  public async setIndex(index: number): Promise<SetIndexResult> {
     const token = this.loadingToken_;
     if (token) {
       if (token.index === index && !token.canceled) {
         console.debug("Ignoring duplicate active setIndex request");
-        return;
+        return { success: false, reason: "duplicate" };
       } else {
         console.debug(
           `Cancelling setIndex request for index ${token.index}, new requested index is ${index}`
@@ -114,11 +144,14 @@ export class ImageSeriesLayer extends Layer {
 
     const chunk = this.dataChunks_[index];
     if (chunk === undefined) {
-      this.loadingToken_ = { canceled: false, index: index };
-      await this.loadAndSetIndex(index, this.loadingToken_);
-      return;
+      const newToken = { canceled: false, index: index };
+      this.loadingToken_ = newToken;
+      await this.loadAndSetIndex(index, newToken);
+      if (newToken.canceled) return { success: false, reason: "canceled" };
+    } else {
+      this.setData(chunk);
     }
-    this.setData(chunk);
+    return { success: true };
   }
 
   private setData(chunk: ImageChunk) {
@@ -145,7 +178,6 @@ export class ImageSeriesLayer extends Layer {
     if (this.seriesAttributes_) {
       return this.seriesAttributes_;
     }
-    this.setState("loading");
     const loader = await this.getLoader();
 
     const attributes = await loader.loadAttributes();
@@ -175,13 +207,10 @@ export class ImageSeriesLayer extends Layer {
       scale: seriesDimScale,
       length: seriesLength,
     };
-    this.setState("ready");
     return this.seriesAttributes_;
   }
 
   private async loadAndSetIndex(index: number, token?: LoadingToken) {
-    this.setLoadingStateFromToken(token);
-
     const seriesAttributes = await this.loadSeriesAttributes();
     if (index < 0 || index >= seriesAttributes.length) {
       throw new Error(
@@ -203,24 +232,8 @@ export class ImageSeriesLayer extends Layer {
     const chunk = await loader.loadChunk(pointRegion, this.scheduler_);
 
     this.dataChunks_[index] = chunk;
-    console.debug(
-      `Loaded data for position ${position} (array index ${index})`
-    );
-    if (!token) {
-      console.debug(
-        `Not setting data for position ${position} (array index ${index}) - loaded in background`
-      );
-      return;
-    }
 
-    if (token.canceled) {
-      console.debug(
-        `Not setting data for position ${position} (array index ${index}) - canceled by subsequent request`
-      );
-    } else {
-      console.debug(
-        `Setting data for position ${position} (array index ${index})`
-      );
+    if (token && !token.canceled) {
       this.loadingToken_ = null;
       this.setData(chunk);
       this.setState("ready");
@@ -228,7 +241,6 @@ export class ImageSeriesLayer extends Layer {
   }
 
   public async preloadSeries() {
-    console.debug(`Preloading series for dim ${this.seriesDimensionName_}`);
     const { length } = await this.loadSeriesAttributes();
     // Load remaining slices concurrently, exclude the token so they don't get set
     const loadPromises = [];
@@ -248,11 +260,6 @@ export class ImageSeriesLayer extends Layer {
         }
       }
     }
-    if (!results.some((result) => result.status === "rejected")) {
-      console.debug(
-        `Loaded all ${this.dataChunks_.length} slices for dim ${this.seriesDimensionName_}`
-      );
-    }
   }
 
   public get extent(): { x: number; y: number } | undefined {
@@ -264,12 +271,6 @@ export class ImageSeriesLayer extends Layer {
     return this.loader_;
   }
 
-  private setLoadingStateFromToken(token?: LoadingToken) {
-    if (!!token && !token.canceled && this.state !== "loading") {
-      this.setState("loading");
-    }
-  }
-
   private createImage(
     chunk: ImageChunk,
     texture: Texture2DArray,
@@ -277,8 +278,8 @@ export class ImageSeriesLayer extends Layer {
   ) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(geometry, texture, channelProps);
-    image.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
-    image.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
+    image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
+    image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
   }
 }
