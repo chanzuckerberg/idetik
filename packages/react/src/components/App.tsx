@@ -77,7 +77,7 @@ export default function App() {
         seriesDimensionName="Z"
         allSlicesSizeEstimate="250 MB"
         classNames={{
-          root: "bg-dark-sds-color-primitive-gray-100",
+          root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
         }}
         onLayerCreated={handleLayerCreated}
         onFirstSliceLoaded={handleFirstSliceLoaded}
@@ -90,9 +90,9 @@ export default function App() {
       </div>
       <input
         type="button"
-        value="Switch Image"
+        value="Next Image"
         onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
-        className="h-12"
+        className="h-12 shrink-0 basis-[50px]"
       />
     </div>
   );

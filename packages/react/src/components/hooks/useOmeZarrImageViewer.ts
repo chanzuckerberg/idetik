@@ -53,13 +53,6 @@ export function useOmeZarrViewer({
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
   const { idetik, setIdetik, clear, setChannelControls } = useIdetik();
 
-  const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
-  useEffect(() => {
-    if (idetik !== undefined) {
-      (idetik.layerManager.layers[0] as ImageSeriesLayer)?.setIndex(zIndex);
-    }
-  }, [idetik, zIndex]);
-
   useEffect(() => {
     const newSource = new OmeZarrImageSource(sourceUrl, resolutionLevel);
     setSource(newSource);
@@ -108,6 +101,9 @@ export function useOmeZarrViewer({
           seriesDimensionName,
           channelProps,
         });
+        layer.setIndex(
+          Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0])
+        );
 
         onLayerCreated?.();
 
