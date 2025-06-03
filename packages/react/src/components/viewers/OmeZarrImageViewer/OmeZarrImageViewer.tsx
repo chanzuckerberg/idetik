@@ -42,6 +42,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
     resolutionLevel,
+    shouldAutoLoadAllSlices,
     shouldLoadMiddleZ,
   } = props;
 
@@ -65,7 +66,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
     resolutionLevel,
-    shouldAutoLoadAllSlices: true,
+    shouldAutoLoadAllSlices,
     shouldLoadMiddleZ,
   });
   // Compute zIndex for display
