@@ -40,7 +40,12 @@ export class WebGLState {
     }
   }
 
+  private isCapabilityEnabled(cap: GLenum, desired: boolean): boolean {
+    return this.enabledCapabilities_.get(cap) === desired;
+  }
+
   public setDepthTesting(enabled: boolean) {
+    if (this.isCapabilityEnabled(this.gl_.DEPTH_TEST, enabled)) return;
     if (enabled) {
       this.enable(this.gl_.DEPTH_TEST);
     } else {
@@ -49,6 +54,7 @@ export class WebGLState {
   }
 
   public setBlending(enabled: boolean) {
+    if (this.isCapabilityEnabled(this.gl_.BLEND, enabled)) return;
     if (enabled) {
       this.enable(this.gl_.BLEND);
     } else {
