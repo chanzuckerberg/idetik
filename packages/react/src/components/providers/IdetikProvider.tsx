@@ -1,6 +1,6 @@
 "use client";
 
-import { ImageSeriesLayer } from "@idetik/core";
+import { Idetik, ImageSeriesLayer } from "@idetik/core";
 import {
   PropsWithChildren,
   useCallback,
@@ -14,54 +14,55 @@ import {
   IdetikContextValue,
 } from "../hooks/useIdetik";
 
-// The return value of the getSnapshot() argument to useSyncExternalStore() must be memoized to
+// The return value of the getSnapshot argument to useSyncExternalStore() must be memoized to
 // prevent infinite rerenders.
 const EMPTY_ARRAY: never[] = [];
 
 /** Global Idetik state provider that you must wrap your application in. */
 export const IdetikProvider = ({ children }: PropsWithChildren) => {
-  // Global state:
-  const [imageSeriesLayer, setImageSeriesLayer] = useState<
-    ImageSeriesLayer | undefined
-  >(undefined);
+  const getImageSeriesLayer = (): ImageSeriesLayer | undefined =>
+    idetik?.layerManager.layers[0] as ImageSeriesLayer;
+
+  // GLOBAL STATE:
+  const [idetik, setIdetik] = useState<Idetik | undefined>(undefined);
   const channels = useSyncExternalStore(
-    imageSeriesLayer?.addChannelChangeCallback ?? (() => () => {}),
-    () => imageSeriesLayer?.channelProps ?? EMPTY_ARRAY,
+    getImageSeriesLayer()?.addChannelChangeCallback ?? (() => () => {}),
+    () => getImageSeriesLayer()?.channelProps ?? EMPTY_ARRAY,
     () => EMPTY_ARRAY // Doesn't render anything on SSR
   );
   const [channelControls, setChannelControls] = useState<Array<ChannelControl>>(
     []
   );
 
-  // Memoized callbacks:
-  const clearImageSeriesLayer = useCallback(() => {
-    imageSeriesLayer?.close();
-    setImageSeriesLayer(undefined);
-  }, [imageSeriesLayer, setImageSeriesLayer]);
+  // MEMOIZED CALLBACKS:
+  const clear = useCallback(() => {
+    getImageSeriesLayer()?.close();
+    setIdetik(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- idetik is the only real dependency.
+  }, [idetik]);
 
-  // Context value:
+  // CONTEXT VALUE:
   const contextValue = useMemo<IdetikContextValue>(
     () =>
-      imageSeriesLayer !== undefined
+      idetik !== undefined
         ? {
             isInitialized: true,
-            imageSeriesLayer,
+            idetik,
             channels,
             channelControls,
-            setImageSeriesLayer,
-            clearImageSeriesLayer,
+            setIdetik,
+            clear,
             setChannelControls,
           }
         : {
             isInitialized: false,
-            imageSeriesLayer: undefined,
             channels,
             channelControls,
+            setIdetik,
+            clear,
             setChannelControls,
-            clearImageSeriesLayer,
-            setImageSeriesLayer,
           },
-    [channels, imageSeriesLayer, channelControls, clearImageSeriesLayer]
+    [channels, idetik, channelControls, clear]
   );
 
   return (

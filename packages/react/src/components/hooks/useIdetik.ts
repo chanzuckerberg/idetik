@@ -1,4 +1,4 @@
-import { ChannelProps, ImageSeriesLayer } from "@idetik/core";
+import { ChannelProps, Idetik } from "@idetik/core";
 import { createContext, useContext } from "react";
 
 export interface ChannelControl {
@@ -6,33 +6,24 @@ export interface ChannelControl {
   contrastRange: [number, number];
 }
 
-export type IdetikContextValue =
+export type IdetikContextValue = (
   | {
       isInitialized: true;
-      imageSeriesLayer: ImageSeriesLayer; // Only defined when isInitialized.
-      channels: ChannelProps[];
-      channelControls: ChannelControl[]; // Same order as channels.
-      setImageSeriesLayer: React.Dispatch<
-        React.SetStateAction<ImageSeriesLayer | undefined>
-      >;
-      clearImageSeriesLayer: () => void;
-      setChannelControls: React.Dispatch<
-        React.SetStateAction<Array<ChannelControl>>
-      >;
+      idetik: Idetik;
     }
   | {
       isInitialized: false;
-      imageSeriesLayer: undefined;
-      channels: ChannelProps[];
-      channelControls: ChannelControl[];
-      setImageSeriesLayer: React.Dispatch<
-        React.SetStateAction<ImageSeriesLayer | undefined>
-      >;
-      clearImageSeriesLayer: () => void;
-      setChannelControls: React.Dispatch<
-        React.SetStateAction<Array<ChannelControl>>
-      >;
-    };
+      idetik: undefined;
+    }
+) & {
+  channels: ChannelProps[];
+  channelControls: ChannelControl[]; // Same order as channels.
+  setIdetik: React.Dispatch<React.SetStateAction<Idetik | undefined>>;
+  clear: () => void;
+  setChannelControls: React.Dispatch<
+    React.SetStateAction<Array<ChannelControl>>
+  >;
+};
 
 export const IdetikContext = createContext<IdetikContextValue | undefined>(
   undefined

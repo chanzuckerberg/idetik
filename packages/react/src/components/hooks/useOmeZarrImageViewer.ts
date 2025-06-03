@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  LayerManager,
   OmeZarrImageSource,
   OrthographicCamera,
   ImageSeriesLayer,
   Region,
   loadOmeroChannels,
   loadOmeroDefaultZ,
+  Idetik,
 } from "@idetik/core";
 
 import {
@@ -47,30 +47,18 @@ export function useOmeZarrViewer({
   shouldLoadMiddleZ = false,
 }: UseOmeZarrViewerProps) {
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
-  const [layerManager, setLayerManager] = useState(() => new LayerManager());
-  const [camera, setCamera] = useState<OrthographicCamera | null>(null);
-  const [imageLayer, setImageLayer] = useState<ImageSeriesLayer | null>(null);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
-  const { setImageSeriesLayer, clearImageSeriesLayer, setChannelControls } =
-    useIdetik();
+  const { idetik, setIdetik, clear, setChannelControls } = useIdetik();
 
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   useEffect(() => {
-    if (imageLayer) {
-      imageLayer.setIndex(zIndex);
+    if (idetik !== undefined) {
+      (idetik.layerManager.layers[0] as ImageSeriesLayer)?.setIndex(zIndex);
     }
-  }, [imageLayer, zIndex]);
-
-  useEffect(() => {
-    if (imageLayer) {
-      const newManager = new LayerManager();
-      newManager.add(imageLayer);
-      setLayerManager(newManager);
-    }
-  }, [imageLayer]);
+  }, [idetik, zIndex]);
 
   useEffect(() => {
     const newSource = new OmeZarrImageSource(sourceUrl, resolutionLevel);
@@ -78,14 +66,20 @@ export function useOmeZarrViewer({
     setAllSlicesLoaded(false);
   }, [sourceUrl, resolutionLevel]);
 
-  const zoomToFit = useCallback((layer: ImageSeriesLayer) => {
-    if (layer.extent) {
-      const cam = new OrthographicCamera(0, layer.extent.x, 0, layer.extent.y);
-      setCamera(cam);
-      return true;
-    }
-    return false;
-  }, []);
+  const zoomToFit = useCallback(
+    (layer: ImageSeriesLayer): OrthographicCamera | void => {
+      if (layer.extent) {
+        const cam = new OrthographicCamera(
+          0,
+          layer.extent.x,
+          0,
+          layer.extent.y
+        );
+        return cam;
+      }
+    },
+    []
+  );
 
   // Create Image Layer
   useEffect(() => {
@@ -119,7 +113,8 @@ export function useOmeZarrViewer({
 
         const onFirstLoad = async () => {
           if (!shouldSetLayer || !layer) return;
-          if (zoomToFit(layer)) {
+          const camera = zoomToFit(layer);
+          if (camera !== undefined) {
             setLoading(false);
             onFirstSliceLoaded?.();
             layer.removeStateChangeCallback(onFirstLoad);
@@ -138,21 +133,25 @@ export function useOmeZarrViewer({
                 setLoading(false);
               }
             }
+            if (shouldSetLayer) {
+              setIdetik(
+                new Idetik({
+                  canvasSelector: "#renderer",
+                  camera,
+                  layers: [layer],
+                })
+              );
+              setChannelControls(
+                omeroToChannelControls(
+                  omeroChannels,
+                  defaultGreyscaleChannel(fallbackContrastLimits)
+                )
+              );
+            }
           }
         };
 
         layer.addStateChangeCallback(onFirstLoad);
-
-        if (shouldSetLayer) {
-          setImageLayer(layer);
-          setImageSeriesLayer(layer);
-          setChannelControls(
-            omeroToChannelControls(
-              omeroChannels,
-              defaultGreyscaleChannel(fallbackContrastLimits)
-            )
-          );
-        }
       } catch (err) {
         console.error("[Viewer] Failed to load OMERO metadata:", err);
       }
@@ -162,9 +161,7 @@ export function useOmeZarrViewer({
 
     return () => {
       shouldSetLayer = false;
-      layer?.close();
-      setImageLayer(null);
-      clearImageSeriesLayer();
+      clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
   }, [source, sourceUrl, region, seriesDimensionName, shouldAutoLoadAllSlices]);
@@ -240,11 +237,12 @@ export function useOmeZarrViewer({
       setZRange([min, max]);
     };
     fetchZRange();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Dependencies that affect z range.
   }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
 
   // Update imageLayer's index on Z change
   useEffect(() => {
-    if (!imageLayer) return;
+    if (!idetik) return;
     let didSetLoadingTrue = false;
 
     const updateIndex = async () => {
@@ -256,7 +254,9 @@ export function useOmeZarrViewer({
       try {
         // Compute zIndex from zValue and zRange
         const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
-        await imageLayer.setIndex(zIndex);
+        await (idetik.layerManager.layers[0] as ImageSeriesLayer)?.setIndex(
+          zIndex
+        );
       } catch (err) {
         console.debug("Z index load aborted", err);
       } finally {
@@ -268,14 +268,16 @@ export function useOmeZarrViewer({
     };
 
     updateIndex();
-  }, [zValue, zRange, imageLayer]);
+  }, [idetik, zValue, zRange]);
 
   const loadAllSlicesCallback = useCallback(async () => {
-    if (!imageLayer) return;
+    if (!idetik) return;
     onLoadAllSlicesClicked?.();
     setLoading(true);
     try {
-      await imageLayer.preloadSeries();
+      await (
+        idetik.layerManager.layers[0] as ImageSeriesLayer
+      )?.preloadSeries();
     } catch (err) {
       console.info("load all slices failed or was aborted", err);
       onLoadAllSlicesAborted?.();
@@ -286,15 +288,13 @@ export function useOmeZarrViewer({
     onAllSlicesLoaded?.();
     setAllSlicesLoaded(true);
   }, [
-    imageLayer,
+    idetik,
     onLoadAllSlicesClicked,
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
   ]);
 
   return {
-    layerManager,
-    camera,
     zRange,
     zValue,
     setZValue,
