@@ -68,8 +68,6 @@ export class WebGLRenderer extends Renderer {
 
     const { opaque, transparent } = layerManager.partitionLayers();
 
-    console.log("opaque layers", opaque.length);
-    console.log("transparent layers", transparent.length);
     this.state_.setDepthMask(true);
     for (const layer of opaque) {
       layer.update();
