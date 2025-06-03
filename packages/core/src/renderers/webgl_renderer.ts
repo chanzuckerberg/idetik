@@ -31,7 +31,7 @@ export class WebGLRenderer extends Renderer {
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
-  private readonly webglState_: WebGLState;
+  private readonly state_: WebGLState;
 
   constructor(selector: string) {
     super(selector);
@@ -49,21 +49,28 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
     this.resize(this.canvas.width, this.canvas.height);
-    this.webglState_ = new WebGLState(this.gl);
+    this.state_ = new WebGLState(this.gl);
   }
 
   private renderLayer(layer: Layer) {
+    // Set blending mode once per layer
+    if (layer.transparent) {
+      this.state_.setBlendingMode(layer.blendMode);
+    } else {
+      this.state_.setBlendingMode("none");
+    }
     layer.objects.forEach((_, i) => this.renderObject(layer, i));
   }
 
   public render(layerManager: LayerManager, camera: Camera) {
     this.clear();
-    this.syncActiveCamera(camera);
+    this.activeCamera = camera;
 
     const { opaque, transparent } = layerManager.partitionLayers();
 
-    this.webglState_.disable(this.gl.BLEND);
-    this.webglState_.setDepthMask(true);
+    console.log("opaque layers", opaque.length);
+    console.log("transparent layers", transparent.length);
+    this.state_.setDepthMask(true);
     for (const layer of opaque) {
       layer.update();
       if (layer.state === "ready") {
@@ -71,42 +78,19 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
-    this.webglState_.enable(this.gl.BLEND);
-    this.webglState_.setDepthMask(false);
+    this.state_.setDepthMask(false);
     for (const layer of transparent) {
       layer.update();
       if (layer.state !== "ready") continue;
       this.renderLayer(layer);
     }
-    this.webglState_.setDepthMask(true);
+    this.state_.setDepthMask(true);
   }
 
   protected renderObject(layer: Layer, objectIndex: number) {
     const object = layer.objects[objectIndex];
     const program = this.getShaderProgram(object.programName).use();
 
-    if (layer.transparent) {
-      switch (layer.blendMode) {
-        case "additive":
-          this.webglState_.setBlendFunc(this.gl.SRC_ALPHA, this.gl.ONE);
-          break;
-        case "multiply":
-          this.webglState_.setBlendFunc(this.gl.DST_COLOR, this.gl.ZERO);
-          break;
-        case "subtractive":
-          this.webglState_.setBlendFunc(
-            this.gl.ZERO,
-            this.gl.ONE_MINUS_SRC_COLOR
-          );
-          break;
-        case "normal":
-        default:
-          this.webglState_.setBlendFunc(
-            this.gl.SRC_ALPHA,
-            this.gl.ONE_MINUS_SRC_ALPHA
-          );
-      }
-    }
     const modelView = mat4.multiply(
       mat4.create(),
       this.activeCamera.transform.inverse,
@@ -165,7 +149,7 @@ export class WebGLRenderer extends Renderer {
   protected clear() {
     this.gl.clearColor(...this.backgroundColor.rgba);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-    this.gl.enable(this.gl.DEPTH_TEST);
+    this.state_.setDepthTesting(true);
     this.gl.depthFunc(this.gl.LEQUAL);
   }
 

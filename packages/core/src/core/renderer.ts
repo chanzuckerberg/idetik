@@ -30,7 +30,7 @@ export abstract class Renderer {
     });
   }
 
-  protected syncActiveCamera(camera: Camera) {
+  protected set activeCamera(camera: Camera) {
     if (this.activeCamera_ !== camera) {
       this.activeCamera_ = camera;
       this.updateActiveCamera();
