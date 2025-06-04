@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite -m production",
     "compile": "tsc",
     "build": "vite build && tsc && rollup -c rollup.config.js",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",

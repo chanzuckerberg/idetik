@@ -13,8 +13,9 @@ import {
   IdetikContextValue,
 } from "../hooks/useIdetik";
 
-// The return value of the getSnapshot argument to useSyncExternalStore() must be memoized to
-// prevent infinite rerenders.
+// When the layer is not initialized yet, we can't instantiate a new (unstable) [] every render b/c
+// it will cause useSyncExternalStore() to re-render, resulting in another [] instance, which will
+// cause React to re-render again, resulting in an infinite loop.
 const EMPTY_ARRAY: never[] = [];
 
 /** Global Idetik state provider that you must wrap your application in. */
