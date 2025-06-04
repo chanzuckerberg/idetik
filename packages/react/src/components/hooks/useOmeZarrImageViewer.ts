@@ -110,6 +110,7 @@ export function useOmeZarrViewer({
         const onFirstLoad = async () => {
           if (!shouldSetLayer || !layer) return;
           const camera = zoomToFit(layer);
+          // TODO: Make camera type not possible to be undefined.
           if (camera !== undefined) {
             if (idetik === undefined) {
               setIdetik(
