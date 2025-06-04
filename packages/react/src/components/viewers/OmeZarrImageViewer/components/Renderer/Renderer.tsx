@@ -1,40 +1,39 @@
 import { useEffect, useRef } from "react";
 import {
-  LayerManager,
-  OrthographicCamera,
   CameraControls,
   PanZoomControls,
   NullControls,
   WebGLRenderer,
 } from "@idetik/core";
+import { useIdetik } from "components/hooks";
 
 type ControlType = "panzoom" | "none";
 
 interface RendererProps {
-  layerManager: LayerManager;
-  camera: OrthographicCamera | null;
   cameraControls?: ControlType;
   canvasId?: string;
 }
 
 export function Renderer({
-  layerManager,
-  camera,
   cameraControls = "panzoom",
   canvasId = "renderer",
 }: RendererProps) {
   const renderer = useRef<WebGLRenderer | null>(null);
   const controls = useRef<CameraControls>(new NullControls());
+  const { idetik } = useIdetik();
 
   useEffect(() => {
     console.debug("Renderer::setControls");
-    if (camera && cameraControls === "panzoom") {
-      controls.current = new PanZoomControls(camera, camera.position);
+    if (idetik?.camera && cameraControls === "panzoom") {
+      controls.current = new PanZoomControls(
+        idetik.camera,
+        idetik.camera.position
+      );
     } else {
       controls.current = new NullControls();
     }
     renderer.current?.setControls(controls.current);
-  }, [camera, cameraControls]);
+  }, [idetik, cameraControls]);
 
   // Use the mount-effect so that the renderer can find the corresponding
   // element by its ID.
@@ -47,10 +46,10 @@ export function Renderer({
       renderer.current.setControls(controls.current);
     }
     function animate() {
-      if (!camera) {
+      if (!idetik?.camera) {
         return;
       }
-      renderer.current?.render(layerManager, camera);
+      renderer.current?.render(idetik.layerManager, idetik.camera);
       lastRequestId = requestAnimationFrame(animate);
     }
     animate();
@@ -60,7 +59,7 @@ export function Renderer({
         cancelAnimationFrame(lastRequestId);
       }
     };
-  }, [canvasId, camera, layerManager]);
+  }, [idetik, canvasId]);
 
   return <canvas id={canvasId} style={{ width: "100%", height: "100%" }} />;
 }

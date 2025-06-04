@@ -47,8 +47,6 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
   } = props;
 
   const {
-    layerManager,
-    camera,
     zRange,
     zValue,
     setZValue,
@@ -73,11 +71,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
-      <Renderer
-        layerManager={layerManager}
-        camera={camera}
-        cameraControls="panzoom"
-      />
+      <Renderer cameraControls="panzoom" />
       <div
         className={cns(
           "absolute",

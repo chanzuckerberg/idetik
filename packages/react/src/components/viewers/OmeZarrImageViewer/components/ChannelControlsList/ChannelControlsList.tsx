@@ -6,7 +6,7 @@ import {
 } from "@czi-sds/components";
 import cns from "classnames";
 import { ChannelControl } from "./components/ChannelControl";
-import { ChannelProps, ColorLike } from "@idetik/core";
+import { ChannelProps, ColorLike, ImageSeriesLayer } from "@idetik/core";
 import { useIdetik } from "../../../../hooks";
 
 export interface ChannelControlsListProps {
@@ -16,8 +16,7 @@ export interface ChannelControlsListProps {
 }
 
 export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
-  const { isInitialized, imageSeriesLayer, channels, channelControls } =
-    useIdetik();
+  const { idetik, isInitialized, channels, channelControls } = useIdetik();
 
   const updateChannel = (
     index: number,
@@ -35,7 +34,9 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
       ...channels[index],
       ...updates,
     };
-    imageSeriesLayer.setChannelProps(updatedChannels);
+    (idetik.layerManager.layers[0] as ImageSeriesLayer)?.setChannelProps(
+      updatedChannels
+    );
   };
 
   if (!isInitialized) {
@@ -130,7 +131,9 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
               // Force dark mode styles on hover
               className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
               onClick={() => {
-                imageSeriesLayer.resetChannelProps();
+                (
+                  idetik.layerManager.layers[0] as ImageSeriesLayer
+                ).resetChannelProps();
               }}
             >
               Reset channels
