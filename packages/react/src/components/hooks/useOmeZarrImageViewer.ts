@@ -141,6 +141,7 @@ export function useOmeZarrViewer({
             } else {
               idetik.layerManager.add(layer);
               idetik.camera = camera;
+              idetik.setControls(cameraControls);
             }
             setLoading(false);
             onFirstSliceLoaded?.();
