@@ -7,6 +7,8 @@ import {
   loadOmeroChannels,
   loadOmeroDefaultZ,
   Idetik,
+  PanZoomControls,
+  NullControls,
 } from "@idetik/core";
 
 import {
@@ -17,10 +19,19 @@ import {
 } from "../viewers/OmeZarrImageViewer/utils";
 import { useIdetik } from ".";
 
-interface UseOmeZarrViewerProps {
+export interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   seriesDimensionName: string;
+  cameraControlType?: "panzoom" | "none";
+  allSlicesSizeEstimate?: string;
+  classNames?: {
+    root?: string;
+    sliceMetadataContainer?: string;
+    sliceIndicator?: string;
+    load3dButton?: string;
+    sliceSliderContainer?: string;
+  };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
   onLoadAllSlicesClicked?: () => void;
@@ -36,6 +47,7 @@ export function useOmeZarrViewer({
   sourceUrl,
   region,
   seriesDimensionName,
+  cameraControlType,
   onLayerCreated,
   onFirstSliceLoaded,
   onLoadAllSlicesClicked,
@@ -45,7 +57,7 @@ export function useOmeZarrViewer({
   lod = 0,
   shouldAutoLoadAllSlices = false,
   shouldLoadMiddleZ = false,
-}: UseOmeZarrViewerProps) {
+}: OmeZarrImageViewerProps) {
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
@@ -113,16 +125,22 @@ export function useOmeZarrViewer({
           const camera = zoomToFit(layer);
           // TODO: Make camera type not possible to be undefined.
           if (camera !== undefined) {
+            const cameraControls =
+              cameraControlType === "panzoom"
+                ? new PanZoomControls(camera, camera.position)
+                : new NullControls();
             if (idetik === undefined) {
               setIdetik(
                 new Idetik({
                   canvasSelector: "#renderer",
                   camera,
                   layers: [layer],
+                  controls: cameraControls,
                 })
               );
             } else {
               idetik.layerManager.add(layer);
+              idetik.camera = camera;
             }
             setLoading(false);
             onFirstSliceLoaded?.();

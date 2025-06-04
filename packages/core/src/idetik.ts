@@ -2,14 +2,14 @@ import { Camera } from "./objects/cameras/camera";
 import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
-import { PanZoomControls } from "./objects/cameras/controls";
+import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
 
 type IdetikParams = {
   canvasSelector: string;
   camera: Camera;
-  controls?: PanZoomControls;
+  controls?: CameraControls;
   layers?: Layer[];
 };
 
@@ -24,6 +24,7 @@ export class Idetik {
   private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
   private readonly chunkManager_: ChunkManager;
+  private stopped_ = true;
 
   constructor(params: IdetikParams) {
     this.camera = params.camera;
@@ -57,13 +58,17 @@ export class Idetik {
   }
 
   // TODO: this should be modified once the controls are moved to the idetik class
-  public setControls(controls: PanZoomControls) {
+  public setControls(controls: CameraControls) {
     this.renderer_.setControls(controls);
   }
 
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
+    this.stopped_ = false;
     const render = () => {
+      if (this.stopped_) {
+        return;
+      }
       if (!this.camera) {
         Logger.warn(
           "Idetik",
@@ -81,5 +86,9 @@ export class Idetik {
     };
     render();
     return this;
+  }
+
+  public stop() {
+    this.stopped_ = true;
   }
 }

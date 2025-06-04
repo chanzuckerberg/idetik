@@ -1,38 +1,18 @@
 import { Renderer } from "./components/Renderer";
-import { useOmeZarrViewer } from "../../hooks/useOmeZarrImageViewer";
-import { Region } from "@idetik/core";
+import {
+  OmeZarrImageViewerProps,
+  useOmeZarrViewer,
+} from "../../hooks/useOmeZarrImageViewer";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
 
-interface OmeZarrViewerContainerProps {
-  sourceUrl: string;
-  region: Region;
-  seriesDimensionName: string;
-  allSlicesSizeEstimate?: string;
-  fallbackContrastLimits?: [number, number];
-  classNames?: {
-    root?: string;
-    sliceMetadataContainer?: string;
-    sliceIndicator?: string;
-    load3dButton?: string;
-    sliceSliderContainer?: string;
-  };
-  onLayerCreated?: () => void;
-  onFirstSliceLoaded?: () => void;
-  onLoadAllSlicesClicked?: () => void;
-  onAllSlicesLoaded?: () => void;
-  onLoadAllSlicesAborted?: () => void;
-  resolutionLevel?: number;
-  shouldAutoLoadAllSlices?: boolean;
-  shouldLoadMiddleZ?: boolean;
-}
-
-export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
+export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   const {
     sourceUrl,
     region,
     seriesDimensionName,
+    cameraControlType = "panzoom",
     allSlicesSizeEstimate,
     fallbackContrastLimits,
     classNames,
@@ -57,6 +37,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     sourceUrl,
     region,
     seriesDimensionName,
+    cameraControlType,
     fallbackContrastLimits,
     onLayerCreated,
     onFirstSliceLoaded,
@@ -71,7 +52,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
-      <Renderer cameraControls="panzoom" />
+      <Renderer />
       <div
         className={cns(
           "absolute",
