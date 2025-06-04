@@ -16,6 +16,7 @@ export type IdetikContextValue = (
       idetik: undefined;
     }
 ) & {
+  // TODO: Refactor into 1 array that lives in each layer.
   channels: ChannelProps[];
   channelControls: ChannelControl[]; // Same order as channels.
   setIdetik: React.Dispatch<React.SetStateAction<Idetik | undefined>>;
