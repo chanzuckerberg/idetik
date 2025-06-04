@@ -19,6 +19,7 @@ export type IdetikContextValue = (
   // TODO: Refactor into 1 array that lives in each layer.
   channels: ChannelProps[];
   channelControls: ChannelControl[]; // Same order as channels.
+  // TODO: Remove need to integrator to set Idetik.
   setIdetik: (idetik: Idetik) => void;
   setChannelControls: React.Dispatch<
     React.SetStateAction<Array<ChannelControl>>
