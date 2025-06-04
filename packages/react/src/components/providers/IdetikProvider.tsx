@@ -3,7 +3,6 @@
 import { Idetik, ImageSeriesLayer } from "@idetik/core";
 import {
   PropsWithChildren,
-  useCallback,
   useMemo,
   useState,
   useSyncExternalStore,
@@ -20,27 +19,19 @@ const EMPTY_ARRAY: never[] = [];
 
 /** Global Idetik state provider that you must wrap your application in. */
 export const IdetikProvider = ({ children }: PropsWithChildren) => {
-  const getImageSeriesLayer = (): ImageSeriesLayer | undefined =>
-    idetik?.layerManager.layers[0] as ImageSeriesLayer;
-
-  // GLOBAL STATE:
   const [idetik, setIdetik] = useState<Idetik | undefined>(undefined);
+  const imageSeriesLayer = idetik?.layerManager.layers[0] as
+    | ImageSeriesLayer
+    | undefined;
   const channels = useSyncExternalStore(
-    getImageSeriesLayer()?.addChannelChangeCallback ?? (() => () => {}),
-    () => getImageSeriesLayer()?.channelProps ?? EMPTY_ARRAY,
+    imageSeriesLayer?.addChannelChangeCallback ?? (() => () => {}),
+    () => imageSeriesLayer?.channelProps ?? EMPTY_ARRAY,
     () => EMPTY_ARRAY // Doesn't render anything on SSR
   );
   const [channelControls, setChannelControls] = useState<Array<ChannelControl>>(
     []
   );
 
-  // MEMOIZED CALLBACKS:
-  const clear = useCallback(() => {
-    getImageSeriesLayer()?.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- idetik is the only real dependency.
-  }, [idetik]);
-
-  // CONTEXT VALUE:
   const contextValue = useMemo<IdetikContextValue>(
     () =>
       idetik !== undefined
@@ -50,7 +41,6 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
             channels,
             channelControls,
             setIdetik,
-            clear,
             setChannelControls,
           }
         : {
@@ -58,10 +48,9 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
             channels,
             channelControls,
             setIdetik,
-            clear,
             setChannelControls,
           },
-    [channels, idetik, channelControls, clear]
+    [channels, idetik, channelControls]
   );
 
   return (

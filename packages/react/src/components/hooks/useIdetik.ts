@@ -19,7 +19,6 @@ export type IdetikContextValue = (
   channels: ChannelProps[];
   channelControls: ChannelControl[]; // Same order as channels.
   setIdetik: React.Dispatch<React.SetStateAction<Idetik | undefined>>;
-  clear: () => void;
   setChannelControls: React.Dispatch<
     React.SetStateAction<Array<ChannelControl>>
   >;

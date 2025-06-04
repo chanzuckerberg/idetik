@@ -51,7 +51,7 @@ export function useOmeZarrViewer({
   const [zValue, setZValue] = useState(0.5);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
-  const { idetik, setIdetik, clear, setChannelControls } = useIdetik();
+  const { idetik, setIdetik, setChannelControls } = useIdetik();
 
   useEffect(() => {
     const newSource = new OmeZarrImageSource(sourceUrl, resolutionLevel);
@@ -120,7 +120,6 @@ export function useOmeZarrViewer({
                 })
               );
             } else {
-              idetik.layerManager.remove(0);
               idetik.layerManager.add(layer);
             }
             setLoading(false);
@@ -162,7 +161,7 @@ export function useOmeZarrViewer({
 
     return () => {
       shouldSetLayer = false;
-      clear();
+      idetik?.layerManager.remove(0);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
   }, [source, sourceUrl, region, seriesDimensionName, shouldAutoLoadAllSlices]);
