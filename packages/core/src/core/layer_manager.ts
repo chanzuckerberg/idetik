@@ -24,6 +24,9 @@ export class LayerManager {
   public add(layer: Layer) {
     this.layers_.push(layer);
   }
+  public remove(index: number) {
+    this.layers_.splice(index, 1);
+  }
 
   public get layers() {
     return this.layers_;

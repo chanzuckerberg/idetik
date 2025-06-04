@@ -119,6 +119,9 @@ export function useOmeZarrViewer({
                   layers: [layer],
                 })
               );
+            } else {
+              idetik.layerManager.remove(0);
+              idetik.layerManager.add(layer);
             }
             setLoading(false);
             onFirstSliceLoaded?.();
