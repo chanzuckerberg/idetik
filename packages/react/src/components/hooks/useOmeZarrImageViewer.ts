@@ -111,6 +111,15 @@ export function useOmeZarrViewer({
           if (!shouldSetLayer || !layer) return;
           const camera = zoomToFit(layer);
           if (camera !== undefined) {
+            if (idetik === undefined) {
+              setIdetik(
+                new Idetik({
+                  canvasSelector: "#renderer",
+                  camera,
+                  layers: [layer],
+                })
+              );
+            }
             setLoading(false);
             onFirstSliceLoaded?.();
             layer.removeStateChangeCallback(onFirstLoad);
@@ -130,13 +139,6 @@ export function useOmeZarrViewer({
               }
             }
             if (shouldSetLayer) {
-              setIdetik(
-                new Idetik({
-                  canvasSelector: "#renderer",
-                  camera,
-                  layers: [layer],
-                })
-              );
               setChannelControls(
                 omeroToChannelControls(
                   omeroChannels,
