@@ -37,7 +37,6 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
   // MEMOIZED CALLBACKS:
   const clear = useCallback(() => {
     getImageSeriesLayer()?.close();
-    setIdetik(undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- idetik is the only real dependency.
   }, [idetik]);
 
