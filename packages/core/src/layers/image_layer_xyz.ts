@@ -1,4 +1,5 @@
 import { Layer, LayerOptions } from "../core/layer";
+import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { ChannelProps } from "../objects/textures/channel";
@@ -12,11 +13,8 @@ export type ImageLayerProps = LayerOptions & {
   channelProps?: ChannelProps[];
 };
 
-// Loads data from an image source into renderable objects.
-export class ImageLayer extends Layer {
+export class ImageLayerXYZ extends Layer {
   private readonly source_: ImageChunkSource;
-  // TODO: remove this when region is passed through to update.
-  // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
@@ -35,6 +33,10 @@ export class ImageLayer extends Layer {
     this.channelProps_ = channelProps;
   }
 
+  public onAttached(_context: IdetikContext): void {
+    // TODO: context.chunkManager.addSource(this.source_)
+  }
+
   public update() {
     switch (this.state) {
       case "initialized":
@@ -51,7 +53,6 @@ export class ImageLayer extends Layer {
   }
 
   public get channelProps(): ChannelProps[] | undefined {
-    // TODO: should this return Channel[] instead of ChannelProps[]?
     return this.channelProps_;
   }
 
@@ -78,8 +79,6 @@ export class ImageLayer extends Layer {
     this.setState("ready");
   }
 
-  // TODO: we probably want something like this, but it should be unified across layers
-  // see TracksLayer for another example
   public get extent(): { x: number; y: number } | undefined {
     return this.extent_;
   }
