@@ -1,100 +1,91 @@
-import { Region } from "@idetik/core";
-import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
-import { useCallback, useRef, useState } from "react";
-import { ChannelControlsList } from "./viewers/OmeZarrImageViewer/components/ChannelControlsList";
+import { ProjectedLineLayer } from "@idetik/core"
+import { Button } from "@czi-sds/components";
+import { useIdetik } from "./hooks/useIdetik";
+import { IdetikCanvas } from "./IdetikCanvas";
+import { IdetikLayerList } from "./IdetikLayerList";
+import { RefObject } from "react";
 
-const sourceUrl =
-  "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
-const wellPath = "ATG101/MeOH";
-const region: Region = [
-  { dimension: "T", index: { type: "point", value: 0 } },
-  { dimension: "C", index: { type: "full" } },
-  { dimension: "Z", index: { type: "full" } },
-  { dimension: "Y", index: { type: "full" } },
-  { dimension: "X", index: { type: "full" } },
-];
+interface AppProps {
+  canvasRef: RefObject<HTMLCanvasElement>;
+}
 
-const imagePaths = ["000000", "000001", "000002", "001000", "001001", "001002"];
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~137.50776405003785 degrees
+
 
 /** Demo. */
-export default function App() {
-  const [imageIndex, setImageIndex] = useState(0);
+export default function App({ canvasRef }: AppProps) {
+  const contextValue = useIdetik();
 
-  const imagePath = imagePaths[imageIndex];
-  const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
+  console.debug("App::render", { contextValue });
 
-  const layerCreatedTime = useRef<number | undefined>(undefined);
-  const loadAllSlicesClickedTime = useRef<number | undefined>(undefined);
-
-  const handleLayerCreated = useCallback(() => {
-    layerCreatedTime.current = performance.now();
-    console.log(`Layer created at ${layerCreatedTime.current}`);
-  }, []);
-
-  const handleFirstSliceLoaded = useCallback(() => {
-    if (layerCreatedTime.current !== undefined) {
-      const time = performance.now() - layerCreatedTime.current;
-      console.log(`First slice loaded after ${time} ms`);
-    } else {
-      console.log("First slice loaded, but layer created time is undefined");
+  const createLayer = () => {
+    if (!contextValue) {
+      console.error("Context value is not available");
+      return;
     }
-  }, []);
-
-  const handleLoadAllSlicesClicked = useCallback(() => {
-    loadAllSlicesClickedTime.current = performance.now();
-    console.log(
-      `Load all slices clicked at ${loadAllSlicesClickedTime.current}`
-    );
-  }, []);
-
-  const handleAllSlicesLoaded = useCallback(() => {
-    if (loadAllSlicesClickedTime.current !== undefined) {
-      const time = performance.now() - loadAllSlicesClickedTime.current;
-      console.log(`All slices loaded after ${time} ms`);
-    } else {
-      console.log(
-        "All slices loaded, but load all slices clicked time is undefined"
-      );
-    }
-  }, []);
-
-  const handleLoadAllSlicesAborted = useCallback(() => {
-    if (loadAllSlicesClickedTime.current !== undefined) {
-      const time = performance.now() - loadAllSlicesClickedTime.current;
-      console.log(`Load all slices aborted after ${time} ms`);
-    } else {
-      console.log(
-        "Load all slices aborted, but load all slices clicked time is undefined"
-      );
-    }
-  }, []);
+    const basePath = [[-1, 0, 0], [1, 0, 0]];
+    const angle = contextValue.idetik.layerManager.layers.length * GOLDEN_ANGLE;
+    const path: [number, number, number][] = basePath.map((point) => {
+      const x = point[0] * Math.cos(angle) - point[1] * Math.sin(angle);
+      const y = point[0] * Math.sin(angle) + point[1] * Math.cos(angle);
+      return [x, y, point[2]];
+    });
+    // set color based on angle, cycling through the hue spectrum
+    const hue = (angle / (2 * Math.PI)) % 1; // Normalize angle to [0, 1]
+    const saturation = 1.0; // Fixed saturation
+    const lightness = 0.5; // Fixed lightness
+    // convert HSL to RGB (fixed saturation and lightness)
+    const color: [number, number, number] = hslToRgb(hue, saturation, lightness);
+    const layer = new ProjectedLineLayer([{
+      path,
+      color,
+      width: 0.05,
+    }]);
+    contextValue.addLayer(layer);
+    console.log("Layer added:", layer);
+    console.log("Current layers:", contextValue.idetik.layerManager.layers);
+    console.log("Camera:", contextValue.idetik.camera);
+  };
 
   return (
-    <div className="h-screen flex flex-col">
-      <OmeZarrImageViewer
-        sourceUrl={imageUrl}
-        region={region}
-        seriesDimensionName="Z"
-        initialIndex="omeroDefaultZ"
-        classNames={{
-          root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
-        }}
-        loadAllButtonText="Load 3D high-res (250MB)"
-        onLayerCreated={handleLayerCreated}
-        onFirstSliceLoaded={handleFirstSliceLoaded}
-        onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
-        onAllSlicesLoaded={handleAllSlicesLoaded}
-        onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-      />
-      <div className="absolute top-0 left-0 w-full md:!w-[400px]">
-        <ChannelControlsList />
+    <div className="h-screen flex">
+      <div className="flex-1">
+        <IdetikCanvas
+          ref={canvasRef}
+          style={{ width: "100%", height: "100%" }}
+        />
       </div>
-      <input
-        type="button"
-        value="Next Image"
-        onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
-        className="h-12 shrink-0 basis-[50px]"
-      />
+      <div className="w-64 p-4 bg-gray-100 flex flex-col">
+        <Button sdsStyle="minimal" onClick={createLayer}>
+          Add Line Layer
+        </Button>
+        <IdetikLayerList />
+      </div>
     </div>
   );
 }
+
+const hslToRgb = (hue: number, saturation: number, lightness: number): [number, number, number] => {
+  const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const x = c * (1 - Math.abs((hue * 6) % 2 - 1));
+  const m = lightness - c / 2;
+
+  let r: number, g: number, b: number;
+
+  if (hue < 1 / 6) {
+    [r, g, b] = [c, x, 0];
+  } else if (hue < 2 / 6) {
+    [r, g, b] = [x, c, 0];
+  } else if (hue < 3 / 6) {
+    [r, g, b] = [0, c, x];
+  } else if (hue < 4 / 6) {
+    [r, g, b] = [0, x, c];
+  } else if (hue < 5 / 6) {
+    [r, g, b] = [x, 0, c];
+  } else {
+    [r, g, b] = [c, 0, x];
+  }
+
+  return [r + m, g + m, b + m];
+};
+

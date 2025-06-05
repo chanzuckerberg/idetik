@@ -1,61 +1,64 @@
 "use client";
 
-import { Idetik, ImageSeriesLayer } from "@idetik/core";
+import { Idetik, Layer, OrthographicCamera, PanZoomControls } from "@idetik/core";
 import {
   PropsWithChildren,
-  useMemo,
+  RefObject,
   useState,
-  useSyncExternalStore,
+  useEffect,
+  useCallback,
 } from "react";
 import {
-  ChannelControl,
   IdetikContext,
   IdetikContextValue,
 } from "../hooks/useIdetik";
 
-// When the layer is not initialized yet, we can't instantiate a new (unstable) [] every render b/c
-// it will cause useSyncExternalStore() to re-render, resulting in another [] instance, which will
-// cause React to re-render again, resulting in an infinite loop.
-const EMPTY_ARRAY: never[] = [];
+
+interface IdetikProviderProps {
+  canvasRef: RefObject<HTMLCanvasElement>;
+}
+
 
 /** Global Idetik state provider that you must wrap your application in. */
-export const IdetikProvider = ({ children }: PropsWithChildren) => {
-  const [idetik, setIdetik] = useState<Idetik | undefined>(undefined);
-  const imageSeriesLayer = idetik?.layerManager.layers[0] as
-    | ImageSeriesLayer
-    | undefined;
-  const channels = useSyncExternalStore(
-    imageSeriesLayer?.addChannelChangeCallback ?? (() => () => {}),
-    () => imageSeriesLayer?.channelProps ?? EMPTY_ARRAY,
-    () => EMPTY_ARRAY // Doesn't render anything on SSR
+export const IdetikProvider = ({ canvasRef, children }: PropsWithChildren<IdetikProviderProps>) => {
+  const [camera] = useState<OrthographicCamera>(
+    // default camera frame
+    new OrthographicCamera(-1, 1, 1, -1)
   );
-  const [channelControls, setChannelControls] = useState<Array<ChannelControl>>(
-    []
+  const [controls] = useState<PanZoomControls>(
+    new PanZoomControls(camera, camera.position)
   );
+  const [idetik, setIdetik] = useState<Idetik | null>(null);
 
-  const contextValue = useMemo<IdetikContextValue>(
-    () =>
-      idetik !== undefined
-        ? {
-            isInitialized: true,
-            idetik,
-            channels,
-            channelControls,
-            setIdetik,
-            setChannelControls,
-          }
-        : {
-            isInitialized: false,
-            channels,
-            channelControls,
-            setIdetik,
-            setChannelControls,
-          },
-    [channels, idetik, channelControls]
-  );
+  // Initialize Idetik when canvas becomes available
+  useEffect(() => {
+    if (canvasRef.current && !idetik) {
+      const newIdetik = new Idetik({
+        canvas: canvasRef.current,
+        camera,
+        controls,
+      });
+      newIdetik.start();
+      setIdetik(newIdetik);
+    }
+  }, [canvasRef, camera, controls, idetik]);
+
+  const addLayer = useCallback((layer: Layer) => {
+    idetik?.layerManager.add(layer);
+  }, [idetik]);
+
+  const removeLayer = useCallback((layer: Layer) => {
+    idetik?.layerManager.remove(layer);
+  }, [idetik]);
+
+  const idetikContext: IdetikContextValue | null = idetik ? {
+    idetik,
+    addLayer,
+    removeLayer,
+  } : null;
 
   return (
-    <IdetikContext.Provider value={contextValue}>
+    <IdetikContext.Provider value={idetikContext}>
       {children}
     </IdetikContext.Provider>
   );
