@@ -39,7 +39,11 @@ export class LayerManager {
     this.layers_.splice(index, 1);
   }
 
-  public get layers() {
+  public removeAll() {
+    this.layers_.length = 0;
+  }
+
+  public get layers(): readonly Layer[] {
     return this.layers_;
   }
 }

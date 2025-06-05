@@ -60,7 +60,7 @@ export default function Renderer({
     const onReady = () => {
       setPlaybackEnabled(true);
       // TODO: update the data on the layers instead of creating new ones
-      layerManager.layers.length = 0;
+      layerManager.removeAll();
       layerManager.add(imageSeriesLayer);
       layerManager.add(tracksLayer);
       const extent = tracksLayer.extent;
