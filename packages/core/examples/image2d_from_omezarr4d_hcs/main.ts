@@ -53,7 +53,7 @@ const imageSelector = document.querySelector("#image") as HTMLSelectElement;
 
 const onImageChange = async () => {
   console.debug("onImageChange: ", imageSelector.value);
-  app.layerManager.layers.length = 0;
+  app.layerManager.removeAll();
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl, 0);
@@ -90,7 +90,7 @@ const onImageChange = async () => {
 
 const onWellChange = async () => {
   console.debug("onWellChange: ", wellSelector.value);
-  app.layerManager.layers.length = 0;
+  app.layerManager.removeAll();
   const path = wellSelector.value;
   const well = await loadOmeZarrWell(plateUrl, path);
   console.debug("well", well);

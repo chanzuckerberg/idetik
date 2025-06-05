@@ -1,4 +1,5 @@
 import { Layer, LayerOptions } from "../core/layer";
+import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { ChannelProps } from "../objects/textures/channel";
@@ -33,6 +34,10 @@ export class ImageLayer extends Layer {
     this.source_ = source;
     this.region_ = region;
     this.channelProps_ = channelProps;
+  }
+
+  public onAttached(_context: IdetikContext): void {
+    // TODO: context.chunkManager.addSource(this.source_)
   }
 
   public update() {
