@@ -28,6 +28,7 @@ platforms = ["linux-64", "osx-arm64", "win-64"]
 [tool.pixi.dependencies]
 numba = "*"
 higra = "*"
+libgfortran5 = ">14"
 
 [tool.pixi.pypi-dependencies]
 ultrack-learns = { path = ".", editable = true }
