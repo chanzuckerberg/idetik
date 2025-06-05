@@ -7,6 +7,9 @@ import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
 import { Layer } from "../core/layer";
+import { LayerManager } from "../core/layer_manager";
+import { Camera } from "../objects/cameras/camera";
+import { WebGLState } from "./WebGLState";
 import { Primitive } from "../core/renderable_object";
 
 import { mat4 } from "gl-matrix";
@@ -28,6 +31,7 @@ export class WebGLRenderer extends Renderer {
   private readonly shaders_: Map<Shader, WebGLShaderProgram>;
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
+  private readonly state_: WebGLState;
 
   constructor(selector: string) {
     super(selector);
@@ -45,38 +49,46 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
     this.resize(this.canvas.width, this.canvas.height);
+    this.state_ = new WebGLState(this.gl);
   }
 
-  protected beginTransparentPass(): void {
-    this.gl.enable(this.gl.BLEND);
-    this.gl.depthMask(false);
+  private renderLayer(layer: Layer) {
+    // Set blending mode once per layer
+    if (layer.transparent) {
+      this.state_.setBlendingMode(layer.blendMode);
+    } else {
+      this.state_.setBlendingMode("none");
+    }
+    layer.objects.forEach((_, i) => this.renderObject(layer, i));
   }
 
-  protected endTransparentPass(): void {
-    this.gl.disable(this.gl.BLEND);
-    this.gl.depthMask(true);
+  public render(layerManager: LayerManager, camera: Camera) {
+    this.clear();
+    this.activeCamera = camera;
+
+    const { opaque, transparent } = layerManager.partitionLayers();
+
+    this.state_.setDepthMask(true);
+    for (const layer of opaque) {
+      layer.update();
+      if (layer.state === "ready") {
+        this.renderLayer(layer);
+      }
+    }
+
+    this.state_.setDepthMask(false);
+    for (const layer of transparent) {
+      layer.update();
+      if (layer.state !== "ready") continue;
+      this.renderLayer(layer);
+    }
+    this.state_.setDepthMask(true);
   }
 
   protected renderObject(layer: Layer, objectIndex: number) {
     const object = layer.objects[objectIndex];
     const program = this.getShaderProgram(object.programName).use();
 
-    if (layer.transparent) {
-      switch (layer.blendMode) {
-        case "additive":
-          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE);
-          break;
-        case "multiply":
-          this.gl.blendFunc(this.gl.DST_COLOR, this.gl.ZERO);
-          break;
-        case "subtractive":
-          this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_COLOR);
-          break;
-        case "normal":
-        default:
-          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-      }
-    }
     const modelView = mat4.multiply(
       mat4.create(),
       this.activeCamera.transform.inverse,
@@ -135,7 +147,7 @@ export class WebGLRenderer extends Renderer {
   protected clear() {
     this.gl.clearColor(...this.backgroundColor.rgba);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-    this.gl.enable(this.gl.DEPTH_TEST);
+    this.state_.setDepthTesting(true);
     this.gl.depthFunc(this.gl.LEQUAL);
   }
 
