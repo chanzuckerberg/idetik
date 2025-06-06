@@ -24,7 +24,7 @@ export class Idetik {
   private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
   private readonly chunkManager_: ChunkManager;
-  private stopped_ = true;
+  private lastAnimationId: number | undefined;
 
   constructor(params: IdetikParams) {
     this.camera = params.camera;
@@ -64,11 +64,7 @@ export class Idetik {
 
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
-    this.stopped_ = false;
     const render = () => {
-      if (this.stopped_) {
-        return;
-      }
       if (!this.camera) {
         Logger.warn(
           "Idetik",
@@ -82,13 +78,15 @@ export class Idetik {
         this.renderer_.height
       );
       this.renderer_.render(this.layerManager, this.camera);
-      requestAnimationFrame(render);
+      this.lastAnimationId = requestAnimationFrame(render);
     };
     render();
     return this;
   }
 
   public stop() {
-    this.stopped_ = true;
+    if (this.lastAnimationId !== undefined) {
+      cancelAnimationFrame(this.lastAnimationId);
+    }
   }
 }
