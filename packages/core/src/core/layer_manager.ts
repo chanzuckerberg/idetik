@@ -71,7 +71,7 @@ export class LayerManager {
     return () => {
       this.removeLayersChangeCallback(callback);
     };
-  }
+  };
 
   public removeLayersChangeCallback(callback: () => void): void {
     const index = this.callbacks_.indexOf(callback);

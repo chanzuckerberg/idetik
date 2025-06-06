@@ -12,7 +12,13 @@ interface HcsImagePanelProps {
 }
 
 /** Controlled component that provides dynamic HCS well and FOV selectors */
-export function HcsImagePanel({ baseUrl, well, fov, onWellChange, onFovChange }: HcsImagePanelProps) {
+export function HcsImagePanel({
+  baseUrl,
+  well,
+  fov,
+  onWellChange,
+  onFovChange,
+}: HcsImagePanelProps) {
   const [wellOptions, setWellOptions] = useState<string[]>([]);
   const [fovOptions, setFovOptions] = useState<string[]>([]);
   const [isLoadingWells, setIsLoadingWells] = useState(false);
@@ -24,7 +30,7 @@ export function HcsImagePanel({ baseUrl, well, fov, onWellChange, onFovChange }:
       setIsLoadingWells(true);
       try {
         const plate = await loadOmeZarrPlate(baseUrl);
-        const wells = plate.plate?.wells.map(w => w.path) || [];
+        const wells = plate.plate?.wells.map((w) => w.path) || [];
         setWellOptions(wells);
       } catch (error) {
         console.error("Failed to load plate metadata:", error);
@@ -48,7 +54,7 @@ export function HcsImagePanel({ baseUrl, well, fov, onWellChange, onFovChange }:
       setIsLoadingFovs(true);
       try {
         const wellData = await loadOmeZarrWell(baseUrl, well);
-        const fovs = wellData.well?.images.map(img => img.path) || [];
+        const fovs = wellData.well?.images.map((img) => img.path) || [];
         setFovOptions(fovs);
       } catch (error) {
         console.error("Failed to load well metadata:", error);
@@ -73,7 +79,7 @@ export function HcsImagePanel({ baseUrl, well, fov, onWellChange, onFovChange }:
           <option value="">
             {isLoadingWells ? "Loading wells..." : "Select well..."}
           </option>
-          {wellOptions.map(wellPath => (
+          {wellOptions.map((wellPath) => (
             <option key={wellPath} value={wellPath}>
               {wellPath}
             </option>
@@ -89,9 +95,13 @@ export function HcsImagePanel({ baseUrl, well, fov, onWellChange, onFovChange }:
           disabled={isLoadingFovs || !well}
         >
           <option value="">
-            {isLoadingFovs ? "Loading FOVs..." : !well ? "Select well first" : "Select FOV..."}
+            {isLoadingFovs
+              ? "Loading FOVs..."
+              : !well
+                ? "Select well first"
+                : "Select FOV..."}
           </option>
-          {fovOptions.map(fovPath => (
+          {fovOptions.map((fovPath) => (
             <option key={fovPath} value={fovPath}>
               {fovPath}
             </option>

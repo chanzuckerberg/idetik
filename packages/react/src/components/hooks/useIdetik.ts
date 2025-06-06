@@ -1,11 +1,10 @@
 import { Idetik, Layer } from "@idetik/core";
 import { createContext, useContext } from "react";
 
-
 export type IdetikContextValue = {
-  idetik: Idetik,
-  addLayer: (layer: Layer) => void,
-  removeLayer: (layer: Layer) => void,
+  idetik: Idetik;
+  addLayer: (layer: Layer) => void;
+  removeLayer: (layer: Layer) => void;
 };
 
 export const IdetikContext = createContext<IdetikContextValue | null>(null);

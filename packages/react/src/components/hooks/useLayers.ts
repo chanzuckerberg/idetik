@@ -6,7 +6,10 @@ import { useIdetik } from "./useIdetik";
 const EMPTY_LAYERS: Layer[] = [];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useLayers = (createLayers: () => Layer[], deps: any[]): Layer[] => {
+export const useLayers = (
+  createLayers: () => Layer[],
+  deps: any[]
+): Layer[] => {
   const [managedLayers, setManagedLayers] = useState<Layer[]>([]);
   const contextValue = useIdetik();
 
@@ -23,7 +26,7 @@ export const useLayers = (createLayers: () => Layer[], deps: any[]): Layer[] => 
   );
 
   // Filter to only return the layers we're managing that still exist in LayerManager
-  const activeManagedLayers = managedLayers.filter(layer => 
+  const activeManagedLayers = managedLayers.filter((layer) =>
     allLayers.includes(layer)
   );
 
@@ -32,13 +35,13 @@ export const useLayers = (createLayers: () => Layer[], deps: any[]): Layer[] => 
 
     const newLayers = createLayers();
 
-    newLayers.forEach(layer => contextValue.addLayer(layer));
+    newLayers.forEach((layer) => contextValue.addLayer(layer));
     setManagedLayers(newLayers);
 
     return () => {
       try {
         // Attempt to remove layers when the component unmounts
-        newLayers.forEach(layer => contextValue.removeLayer(layer));
+        newLayers.forEach((layer) => contextValue.removeLayer(layer));
       } catch (error) {
         // Not a big deal if they've already been cleaned up by something else
         console.warn("Layer not found in context during cleanup", error);

@@ -7,8 +7,8 @@ import {
   Region,
   loadOmeroChannels,
   loadOmeroDefaultZ,
-  OrthographicCamera
-} from "@idetik/core"
+  OrthographicCamera,
+} from "@idetik/core";
 import { Button } from "@czi-sds/components";
 import { useIdetik } from "./hooks/useIdetik";
 import { useLayers } from "./hooks/useLayers";
@@ -30,9 +30,11 @@ interface HcsMetadata {
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~137.50776405003785 degrees
 
-
 /** Demo. */
-export default function App({ canvasRef, baseUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/" }: AppProps) {
+export default function App({
+  canvasRef,
+  baseUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/",
+}: AppProps) {
   const contextValue = useIdetik();
 
   // HCS state
@@ -90,7 +92,7 @@ export default function App({ canvasRef, baseUrl = "https://public.czbiohub.org/
       const camera = contextValue?.idetik.camera as OrthographicCamera;
       camera?.setFrame(0, x, y, 0);
     });
-    return [layer]
+    return [layer];
   }, [hcsMetadata]);
 
   const createLayer = () => {
@@ -98,7 +100,10 @@ export default function App({ canvasRef, baseUrl = "https://public.czbiohub.org/
       console.error("Context value is not available");
       return;
     }
-    const basePath = [[-100, 0, 0], [100, 0, 0]];
+    const basePath = [
+      [-100, 0, 0],
+      [100, 0, 0],
+    ];
     const angle = contextValue.idetik.layerManager.layers.length * GOLDEN_ANGLE;
     const path: [number, number, number][] = basePath.map((point) => {
       const x = point[0] * Math.cos(angle) - point[1] * Math.sin(angle);
@@ -110,12 +115,18 @@ export default function App({ canvasRef, baseUrl = "https://public.czbiohub.org/
     const saturation = 1.0; // Fixed saturation
     const lightness = 0.5; // Fixed lightness
     // convert HSL to RGB (fixed saturation and lightness)
-    const color: [number, number, number] = hslToRgb(hue, saturation, lightness);
-    const layer = new ProjectedLineLayer([{
-      path,
-      color,
-      width: 0.01,
-    }]);
+    const color: [number, number, number] = hslToRgb(
+      hue,
+      saturation,
+      lightness
+    );
+    const layer = new ProjectedLineLayer([
+      {
+        path,
+        color,
+        width: 0.01,
+      },
+    ]);
     contextValue.addLayer(layer);
     console.log("Layer added:", layer);
     console.log("Current layers:", contextValue.idetik.layerManager.layers);
@@ -154,9 +165,13 @@ export default function App({ canvasRef, baseUrl = "https://public.czbiohub.org/
   );
 }
 
-const hslToRgb = (hue: number, saturation: number, lightness: number): [number, number, number] => {
+const hslToRgb = (
+  hue: number,
+  saturation: number,
+  lightness: number
+): [number, number, number] => {
   const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
-  const x = c * (1 - Math.abs((hue * 6) % 2 - 1));
+  const x = c * (1 - Math.abs(((hue * 6) % 2) - 1));
   const m = lightness - c / 2;
 
   let r: number, g: number, b: number;
@@ -177,4 +192,3 @@ const hslToRgb = (hue: number, saturation: number, lightness: number): [number, 
 
   return [r + m, g + m, b + m];
 };
-

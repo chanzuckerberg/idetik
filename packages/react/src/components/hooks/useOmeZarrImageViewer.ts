@@ -133,7 +133,8 @@ export function useOmeZarrViewer({
                 ? new PanZoomControls(camera, camera.position)
                 : new NullControls();
             if (idetik === undefined) {
-              const canvas = document.querySelector<HTMLCanvasElement>("#renderer")!;
+              const canvas =
+                document.querySelector<HTMLCanvasElement>("#renderer")!;
               setIdetik(
                 new Idetik({
                   canvas,

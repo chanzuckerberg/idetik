@@ -36,9 +36,9 @@ export function IdetikLayerList() {
           {layers.map((layer: Layer, index: number) => (
             <li key={index}>
               {`Layer ${index + 1}`}
-              <button 
+              <button
                 onClick={() => contextValue.removeLayer(layer)}
-                style={{ marginLeft: '8px' }}
+                style={{ marginLeft: "8px" }}
               >
                 Remove
               </button>

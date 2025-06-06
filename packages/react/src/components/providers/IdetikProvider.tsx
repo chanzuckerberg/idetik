@@ -1,6 +1,11 @@
 "use client";
 
-import { Idetik, Layer, OrthographicCamera, PanZoomControls } from "@idetik/core";
+import {
+  Idetik,
+  Layer,
+  OrthographicCamera,
+  PanZoomControls,
+} from "@idetik/core";
 import {
   PropsWithChildren,
   RefObject,
@@ -8,19 +13,17 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import {
-  IdetikContext,
-  IdetikContextValue,
-} from "../hooks/useIdetik";
-
+import { IdetikContext, IdetikContextValue } from "../hooks/useIdetik";
 
 interface IdetikProviderProps {
   canvasRef: RefObject<HTMLCanvasElement>;
 }
 
-
 /** Global Idetik state provider that you must wrap your application in. */
-export const IdetikProvider = ({ canvasRef, children }: PropsWithChildren<IdetikProviderProps>) => {
+export const IdetikProvider = ({
+  canvasRef,
+  children,
+}: PropsWithChildren<IdetikProviderProps>) => {
   const [camera] = useState<OrthographicCamera>(
     // default camera frame
     new OrthographicCamera(-1, 1, 1, -1)
@@ -43,19 +46,27 @@ export const IdetikProvider = ({ canvasRef, children }: PropsWithChildren<Idetik
     }
   }, [canvasRef, camera, controls, idetik]);
 
-  const addLayer = useCallback((layer: Layer) => {
-    idetik?.layerManager.add(layer);
-  }, [idetik]);
+  const addLayer = useCallback(
+    (layer: Layer) => {
+      idetik?.layerManager.add(layer);
+    },
+    [idetik]
+  );
 
-  const removeLayer = useCallback((layer: Layer) => {
-    idetik?.layerManager.remove(layer);
-  }, [idetik]);
+  const removeLayer = useCallback(
+    (layer: Layer) => {
+      idetik?.layerManager.remove(layer);
+    },
+    [idetik]
+  );
 
-  const idetikContext: IdetikContextValue | null = idetik ? {
-    idetik,
-    addLayer,
-    removeLayer,
-  } : null;
+  const idetikContext: IdetikContextValue | null = idetik
+    ? {
+        idetik,
+        addLayer,
+        removeLayer,
+      }
+    : null;
 
   return (
     <IdetikContext.Provider value={idetikContext}>
