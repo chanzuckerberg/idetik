@@ -24,7 +24,7 @@ export class Idetik {
   private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
   private readonly chunkManager_: ChunkManager;
-  private lastAnimationId: number | undefined;
+  private lastAnimationId_?: number;
 
   constructor(params: IdetikParams) {
     this.camera = params.camera;
@@ -78,15 +78,15 @@ export class Idetik {
         this.renderer_.height
       );
       this.renderer_.render(this.layerManager, this.camera);
-      this.lastAnimationId = requestAnimationFrame(render);
+      this.lastAnimationId_ = requestAnimationFrame(render);
     };
     render();
     return this;
   }
 
   public stop() {
-    if (this.lastAnimationId !== undefined) {
-      cancelAnimationFrame(this.lastAnimationId);
+    if (this.lastAnimationId_ !== undefined) {
+      cancelAnimationFrame(this.lastAnimationId_);
     }
   }
 }
