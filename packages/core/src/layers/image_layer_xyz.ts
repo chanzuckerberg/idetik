@@ -1,11 +1,13 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
-import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
+import { ImageChunk, ImageChunkSource, ImageChunkLoader } from "../data/image_chunk";
 import { ChannelProps } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
+import { LODResult } from "../core/chunk_manager";
+import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
 
 export type ImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -19,6 +21,9 @@ export class ImageLayerXYZ extends Layer {
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
+  private context_?: IdetikContext;
+  private availableScales_?: number[][];
+  private currentLOD_?: LODResult;
 
   constructor({
     source,
@@ -33,8 +38,8 @@ export class ImageLayerXYZ extends Layer {
     this.channelProps_ = channelProps;
   }
 
-  public onAttached(_context: IdetikContext): void {
-    // TODO: context.chunkManager.addSource(this.source_)
+  public onAttached(context: IdetikContext): void {
+    this.context_ = context;
   }
 
   public update() {
@@ -43,7 +48,9 @@ export class ImageLayerXYZ extends Layer {
         this.load(this.region_);
         break;
       case "loading":
+        break;
       case "ready":
+        this.updateLOD();
         break;
       default: {
         const exhaustiveCheck: never = this.state;
@@ -67,6 +74,9 @@ export class ImageLayerXYZ extends Layer {
     }
     this.setState("loading");
     const loader = await this.source_.open();
+
+    await this.loadAvailableScales(loader);
+
     const chunk = await loader.loadChunk(region);
     this.extent_ = {
       x: chunk.shape.x * chunk.scale.x,
@@ -95,5 +105,72 @@ export class ImageLayerXYZ extends Layer {
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
+  }
+
+  private async loadAvailableScales(loader: ImageChunkLoader) {
+    if (loader instanceof OmeZarrImageLoader) {
+      const image = loader.metadata_.multiscales[0];
+      this.availableScales_ = image.datasets.map(dataset =>
+        dataset.coordinateTransformations[0].scale
+      );
+    } else {
+      const attributes = await loader.loadAttributes();
+      this.availableScales_ = [Array.from(attributes.scale)];
+    }
+  }
+
+  private updateLOD() {
+    if (!this.context_ || !this.availableScales_) {
+      return;
+    }
+
+    try {
+      const camera = this.context_.getCamera();
+      const viewport = this.context_.getViewport();
+
+      const lodResult = this.context_.chunkManager.computeLOD(
+        camera,
+        viewport.width,
+        viewport.height,
+        this.availableScales_
+      );
+      
+      if (!this.currentLOD_ || lodResult.scaleIndex !== this.currentLOD_.scaleIndex) {
+        this.currentLOD_ = lodResult;
+        this.reloadWithScale(lodResult.scaleIndex);
+      }
+    } catch (error) {
+      console.warn('Failed to compute LOD:', error);
+    }
+  }
+
+  private async reloadWithScale(scaleIndex: number) {
+    if (!this.image_) {
+      return;
+    }
+
+    try {
+      const loader = await this.source_.open();
+      if (loader instanceof OmeZarrImageLoader) {
+        loader.scaleIndex_ = scaleIndex;
+      }
+
+      const chunk = await loader.loadChunk(this.region_);
+
+      this.extent_ = {
+        x: chunk.shape.x * chunk.scale.x,
+        y: chunk.shape.y * chunk.scale.y,
+      };
+
+      this.clearObjects();
+      this.image_ = this.createImage(chunk, this.channelProps_);
+      this.addObject(this.image_);
+    } catch (error) {
+      console.warn('Failed to reload with new scale:', error);
+    }
+  }
+
+  public get currentLOD(): LODResult | undefined {
+    return this.currentLOD_;
   }
 }
