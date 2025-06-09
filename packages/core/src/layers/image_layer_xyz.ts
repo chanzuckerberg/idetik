@@ -3,15 +3,15 @@ import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import {
   ImageChunk,
-  ImageChunkSource,
   ImageChunkLoader,
+  ImageChunkSource,
+  LoaderAttributes,
 } from "../data/image_chunk";
 import { ChannelProps } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { LODResult } from "../core/chunk_manager";
-import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
 
 export type ImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -26,31 +26,43 @@ export class ImageLayerXYZ extends Layer {
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
   private context_?: IdetikContext;
-  private availableScales_?: number[][];
   private currentLOD_?: LODResult;
-
-  // TODO:(shlomnissan) Remove this parameter—LOD will be computed
-  // dynamically by the chunk manager.
-  private readonly lod_?: number;
+  private attributes_: LoaderAttributes[] | undefined;
+  private loader_: ImageChunkLoader | undefined;
 
   constructor({
     source,
     region,
     channelProps,
-    lod,
     ...layerOptions
   }: ImageLayerProps) {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-    this.lod_ = lod;
     this.channelProps_ = channelProps;
   }
 
-  public onAttached(context: IdetikContext): void {
+  private async ensureLoader(): Promise<ImageChunkLoader> {
+    if (!this.loader_) {
+      this.loader_ = await this.source_.open();
+    }
+    return this.loader_;
+  }
+
+  private async ensureAttributes(): Promise<LoaderAttributes[]> {
+    if (!this.attributes_) {
+      const loader = await this.ensureLoader();
+      this.attributes_ = await loader.loadAttributes();
+    }
+    return this.attributes_;
+  }
+
+  public async onAttached(context: IdetikContext): Promise<void> {
     // TODO: context.chunkManager.addSource(this.source_)
     this.context_ = context;
+    await this.ensureLoader(); // preload loader early
+    await this.ensureAttributes(); // preload attributes early
   }
 
   public update() {
@@ -84,13 +96,11 @@ export class ImageLayerXYZ extends Layer {
       throw new Error(`Trying to load chunks more than once.`);
     }
     this.setState("loading");
-    const loader = await this.source_.open();
-    
-    // await this.loadAvailableScales(loader);
-    // const chunk = await loader.loadChunk(region);
+    const loader = await this.ensureLoader();
 
-    const attributes = await loader.loadAttributes();
-    const lod = this.lod_ ?? attributes.length - 1;
+    const attributes = await this.ensureAttributes();
+    // Use computed LOD if available; otherwise default to lowest resolution
+    const lod = this.currentLOD_?.scaleIndex ?? attributes.length - 1;
 
     const chunk = await loader.loadChunk(region, lod);
 
@@ -123,35 +133,22 @@ export class ImageLayerXYZ extends Layer {
     return image;
   }
 
-  private async loadAvailableScales(loader: ImageChunkLoader) {
-    if (loader instanceof OmeZarrImageLoader) {
-      // TODO: Support multiple multiscales (pyramids) per image.
-      // Currently assumes multiscales[0] is the only pyramid, which is typical for most datasets.
-      // In future, we could expose a way to select which pyramid to use. (e.g. a dropdown?)
-      const image = loader.metadata_.multiscales[0];
-      this.availableScales_ = image.datasets.map(
-        (dataset) => dataset.coordinateTransformations[0].scale
-      );
-    } else {
-      const attributes = await loader.loadAttributes();
-      this.availableScales_ = [Array.from(attributes.scale)];
-    }
-  }
-
-  private updateLOD() {
-    if (!this.context_ || !this.availableScales_) {
+  private async updateLOD() {
+    if (!this.context_) {
       return;
     }
 
     try {
       const camera = this.context_.getCamera();
       const viewport = this.context_.getViewport();
+      const attributes = await this.ensureAttributes();
+      const availableScales = attributes.map((attr) => attr.scale);
 
       const lodResult = this.context_.chunkManager.computeLOD(
         camera,
         viewport.width,
         viewport.height,
-        this.availableScales_
+        availableScales
       );
 
       if (
@@ -166,18 +163,14 @@ export class ImageLayerXYZ extends Layer {
     }
   }
 
-  private async reloadWithScale(scaleIndex: number) {
+  private async reloadWithScale(lod: number) {
     if (!this.image_) {
       return;
     }
 
     try {
-      const loader = await this.source_.open();
-      if (loader instanceof OmeZarrImageLoader) {
-        loader.scaleIndex_ = scaleIndex;
-      }
-
-      const chunk = await loader.loadChunk(this.region_);
+      const loader = await this.ensureLoader();
+      const chunk = await loader.loadChunk(this.region_, lod);
 
       this.extent_ = {
         x: chunk.shape.x * chunk.scale.x,

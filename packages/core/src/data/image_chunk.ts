@@ -49,7 +49,7 @@ export type ImageChunkSource = {
 export type LoaderAttributes = {
   dimensionNames: string[];
   shape: readonly number[];
-  scale: readonly number[];
+  scale: number[];
 };
 
 export type ImageChunkLoader = {
