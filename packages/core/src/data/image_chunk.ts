@@ -53,6 +53,11 @@ export type LoaderAttributes = {
 };
 
 export type ImageChunkLoader = {
-  loadChunk(input: Region, scheduler?: PromiseScheduler): Promise<ImageChunk>;
-  loadAttributes(): Promise<LoaderAttributes>;
+  loadChunk(
+    input: Region,
+    lod: number,
+    scheduler?: PromiseScheduler
+  ): Promise<ImageChunk>;
+
+  loadAttributes(): Promise<LoaderAttributes[]>;
 };
