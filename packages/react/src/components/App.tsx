@@ -11,14 +11,13 @@ import {
 } from "@idetik/core";
 import { Button } from "@czi-sds/components";
 import { useIdetik } from "./hooks/useIdetik";
-import { useLayers } from "./hooks/useLayers";
 import { IdetikCanvas } from "./IdetikCanvas";
 import { IdetikLayerList } from "./IdetikLayerList";
 import { HcsImagePanel } from "./HcsImagePanel";
-import { RefObject, useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { ChannelControlsList } from "./viewers/OmeZarrImageViewer/components/ChannelControlsList";
 
 interface AppProps {
-  canvasRef: RefObject<HTMLCanvasElement>;
   baseUrl?: string;
 }
 
@@ -32,15 +31,19 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~137.50776405003785 degree
 
 /** Demo. */
 export default function App({
-  canvasRef,
-  baseUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/",
+  baseUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr",
 }: AppProps) {
-  const contextValue = useIdetik();
+  const {
+    isReady: runtimeIsReady,
+    activeLayers,
+    methods,
+    runtime,
+  } = useIdetik();
 
-  // HCS state
   const [well, setWell] = useState<string>("ACTB/PFA");
   const [fov, setFov] = useState<string>("001002");
   const [hcsMetadata, setHcsMetadata] = useState<HcsMetadata | null>(null);
+  const imageLayerRef = useRef<ImageSeriesLayer | null>(null);
 
   // Load HCS metadata when well/fov changes
   useEffect(() => {
@@ -64,9 +67,11 @@ export default function App({
     loadMetadata();
   }, [baseUrl, well, fov]);
 
-  // Create ImageSeriesLayer once metadata is loaded
-  const [imageLayer] = useLayers(() => {
-    if (!hcsMetadata) return [];
+  // Manage image layer lifecycle with cleanup
+  useEffect(() => {
+    if (!runtimeIsReady || !hcsMetadata || imageLayerRef.current) {
+      return;
+    }
 
     const source = new OmeZarrImageSource(hcsMetadata.imageUrl);
     const region: Region = [
@@ -77,26 +82,39 @@ export default function App({
       { dimension: "X", index: { type: "full" } },
     ];
 
-    const layer = new ImageSeriesLayer({
+    const newLayer = new ImageSeriesLayer({
       source,
       region,
       seriesDimensionName: "Z",
       channelProps: hcsMetadata.omeroChannels.map((channel) => ({
         visible: channel.active,
         color: Color.fromRgbHex(channel.color),
-        contrastLimits: [channel.window.start, channel.window.end],
+        contrastLimits: [channel.window.min, channel.window.max],
       })),
     });
-    layer.setIndex(0).then(() => {
-      const { x, y } = layer.extent!;
-      const camera = contextValue?.idetik.camera as OrthographicCamera;
+    methods.addLayer(newLayer);
+    imageLayerRef.current = newLayer;
+    newLayer.setIndex(0).then(() => {
+      if (imageLayerRef.current !== newLayer) {
+        return;
+      }
+      const { x, y } = newLayer.extent!;
+      const camera = runtime.camera as OrthographicCamera;
       camera?.setFrame(0, x, y, 0);
     });
-    return [layer];
-  }, [hcsMetadata]);
+
+    return () => {
+      if (imageLayerRef.current === newLayer) {
+        if (methods?.isLayerActive(newLayer)) {
+          methods.removeLayer(newLayer);
+        }
+        imageLayerRef.current = null;
+      }
+    };
+  }, [runtimeIsReady, methods, runtime, hcsMetadata]);
 
   const createLayer = () => {
-    if (!contextValue) {
+    if (!runtimeIsReady) {
       console.error("Context value is not available");
       return;
     }
@@ -104,7 +122,7 @@ export default function App({
       [-100, 0, 0],
       [100, 0, 0],
     ];
-    const angle = contextValue.idetik.layerManager.layers.length * GOLDEN_ANGLE;
+    const angle = activeLayers.length * GOLDEN_ANGLE;
     const path: [number, number, number][] = basePath.map((point) => {
       const x = point[0] * Math.cos(angle) - point[1] * Math.sin(angle);
       const y = point[0] * Math.sin(angle) + point[1] * Math.cos(angle);
@@ -127,19 +145,28 @@ export default function App({
         width: 0.01,
       },
     ]);
-    contextValue.addLayer(layer);
-    console.log("Layer added:", layer);
-    console.log("Current layers:", contextValue.idetik.layerManager.layers);
-    console.log("Camera:", contextValue.idetik.camera);
+    methods.addLayer(layer);
   };
 
   return (
     <div className="h-screen flex">
       <div className="flex-1">
-        <IdetikCanvas
-          ref={canvasRef}
-          style={{ width: "100%", height: "100%" }}
-        />
+        {imageLayerRef.current && (
+          <ChannelControlsList
+            layer={imageLayerRef.current}
+            labels={
+              hcsMetadata?.omeroChannels.map((c) => c.label || "FIXME") ?? []
+            }
+            contrastRanges={
+              hcsMetadata?.omeroChannels.map((c) => [
+                c.window.start,
+                c.window.end,
+              ]) ?? []
+            }
+            classNames={{ root: "absolute top-0 left-0 z-10" }}
+          />
+        )}
+        <IdetikCanvas />
       </div>
       <div className="w-64 p-4 bg-gray-100 flex flex-col gap-4">
         <HcsImagePanel
@@ -149,11 +176,6 @@ export default function App({
           onWellChange={setWell}
           onFovChange={setFov}
         />
-
-        <div>
-          <h4>Image Layer</h4>
-          <p>Ready: {imageLayer ? "Yes" : "No"}</p>
-        </div>
 
         <Button sdsStyle="minimal" onClick={createLayer}>
           Add Line Layer

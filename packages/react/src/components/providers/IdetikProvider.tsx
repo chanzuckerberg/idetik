@@ -8,22 +8,19 @@ import {
 } from "@idetik/core";
 import {
   PropsWithChildren,
-  RefObject,
   useState,
   useEffect,
   useCallback,
+  useSyncExternalStore,
+  useMemo,
 } from "react";
 import { IdetikContext, IdetikContextValue } from "../hooks/useIdetik";
 
-interface IdetikProviderProps {
-  canvasRef: RefObject<HTMLCanvasElement>;
-}
+// Stable empty array reference to avoid infinite renders
+const EMPTY_LAYERS: Layer[] = [];
 
 /** Global Idetik state provider that you must wrap your application in. */
-export const IdetikProvider = ({
-  canvasRef,
-  children,
-}: PropsWithChildren<IdetikProviderProps>) => {
+export const IdetikProvider = ({ children }: PropsWithChildren) => {
   const [camera] = useState<OrthographicCamera>(
     // default camera frame
     new OrthographicCamera(-1, 1, 1, -1)
@@ -32,12 +29,13 @@ export const IdetikProvider = ({
     new PanZoomControls(camera, camera.position)
   );
   const [idetik, setIdetik] = useState<Idetik | null>(null);
+  const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
 
   // Initialize Idetik when canvas becomes available
   useEffect(() => {
-    if (canvasRef.current && !idetik) {
+    if (canvasRef && !idetik) {
       const newIdetik = new Idetik({
-        canvas: canvasRef.current,
+        canvas: canvasRef,
         camera,
         controls,
       });
@@ -60,13 +58,48 @@ export const IdetikProvider = ({
     [idetik]
   );
 
-  const idetikContext: IdetikContextValue | null = idetik
+  const isLayerActive = useCallback(
+    (layer: Layer) => {
+      if (!idetik) return false;
+      return idetik.layerManager.layers.includes(layer);
+    },
+    [idetik]
+  );
+
+  const activeLayers = useSyncExternalStore(
+    (callback) => {
+      if (!idetik) return () => {};
+      return idetik.layerManager.addCallback(callback);
+    },
+    () => {
+      if (!idetik) return EMPTY_LAYERS;
+      return idetik.layerManager.getSnapshot();
+    }
+  );
+
+  const methods = useMemo(
+    () => ({
+      addLayer,
+      removeLayer,
+      isLayerActive,
+    }),
+    [addLayer, removeLayer, isLayerActive]
+  );
+
+  const idetikContext: IdetikContextValue = idetik
     ? {
-        idetik,
-        addLayer,
-        removeLayer,
+        isReady: true,
+        activeLayers,
+        methods,
+        runtime: idetik,
       }
-    : null;
+    : {
+        isReady: false,
+        activeLayers: [],
+        methods: null,
+        runtime: null,
+        initializeWithCanvas: setCanvasRef,
+      };
 
   return (
     <IdetikContext.Provider value={idetikContext}>

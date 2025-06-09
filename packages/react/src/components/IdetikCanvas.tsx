@@ -1,14 +1,34 @@
 "use client";
 
-import { forwardRef, HTMLProps } from "react";
+import { useCallback } from "react";
+import { useIdetik } from "./hooks/useIdetik";
 
-type IdetikCanvasProps = HTMLProps<HTMLCanvasElement>;
+interface IdetikCanvasProps {
+  canvasId?: string;
+  style?: React.CSSProperties;
+}
 
-/** Canvas component for Idetik visualization. Must be used inside IdetikProvider. */
-export const IdetikCanvas = forwardRef<HTMLCanvasElement, IdetikCanvasProps>(
-  (props, ref) => {
-    return <canvas ref={ref} {...props} />;
-  }
-);
+export function IdetikCanvas({
+  canvasId = "idetik-canvas",
+  style = { width: "100%", height: "100%" },
+}: IdetikCanvasProps) {
+  const contextValue = useIdetik();
 
-IdetikCanvas.displayName = "IdetikCanvas";
+  const canvasCallbackRef = useCallback(
+    (canvas: HTMLCanvasElement | null) => {
+      if (!contextValue.isReady && canvas) {
+        contextValue.initializeWithCanvas(canvas);
+      }
+    },
+    [contextValue]
+  );
+
+  return (
+    <canvas
+      ref={canvasCallbackRef}
+      id={canvasId}
+      className="idetik-canvas"
+      style={style}
+    />
+  );
+}
