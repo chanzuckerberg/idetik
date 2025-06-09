@@ -5,7 +5,7 @@ export interface LODResult {
   scaleIndex: number;
   // Effective resolution in pixels per world unit
   resolution: number;
-  // Scale factor for this level (physical units per pixel)
+  // Scale factor for this level (world units per pixel)
   scaleFactor: number;
 }
 

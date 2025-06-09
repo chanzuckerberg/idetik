@@ -43,6 +43,7 @@ export class ImageLayerXYZ extends Layer {
   }
 
   public onAttached(context: IdetikContext): void {
+    // TODO: context.chunkManager.addSource(this.source_)
     this.context_ = context;
   }
 
