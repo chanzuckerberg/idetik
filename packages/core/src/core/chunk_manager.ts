@@ -95,17 +95,12 @@ export class ChunkManager {
     };
   }
 
-  /**
-   * Calculate the world space extent (width/height) currently visible in the camera view.
-   */
+  // Calculate the world space extent (width/height) currently visible in the camera view.
   private calculateViewExtent(
     camera: Camera,
     _bufferWidth: number, // screen width
     _bufferHeight: number // screen height
   ): { worldWidth: number; worldHeight: number } {
-    // virtual world space extent
-    // Convert screen corners to world coordinates to determine view extent
-
     // Screen space corners (normalized device coordinates: -1 to +1)
     const topLeft = camera.clipToWorld([-1, 1, 0]); // camera space to world space
     const topRight = camera.clipToWorld([1, 1, 0]);
