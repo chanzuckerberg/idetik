@@ -43,27 +43,33 @@ export class ImageSeriesLayer extends Layer {
   private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
   private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channelChangeCallbacks_: Array<() => void> = [];
   private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
   private texture_: Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private channelProps_?: ChannelProps[];
-  private channelChangeCallbacks_: Array<() => void> = [];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
+
+  // TODO:(shlomnissan) Remove this parameter—LOD will be computed
+  // dynamically by the chunk manager.
+  private readonly lod_?: number;
 
   constructor({
     source,
     region,
     seriesDimensionName,
     channelProps,
+    lod,
     ...layerOptions
   }: ImageSeriesLayerProps) {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
+    this.lod_ = lod;
     this.seriesDimensionName_ = seriesDimensionName;
     const seriesDimensionalIndex = region.find(
       (x) => x.dimension == seriesDimensionName
@@ -179,18 +185,21 @@ export class ImageSeriesLayer extends Layer {
       return this.seriesAttributes_;
     }
     const loader = await this.getLoader();
-
     const attributes = await loader.loadAttributes();
-    const seriesIndex = attributes.dimensionNames.findIndex(
+    const numScales = attributes.length;
+    const attributesForLastScale = attributes[numScales - 1];
+
+    const seriesIndex = attributesForLastScale.dimensionNames.findIndex(
       (dim) => dim === this.seriesDimensionName_
     );
     if (seriesIndex === -1) {
       throw new Error(
-        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${attributes.dimensionNames}`
+        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${attributesForLastScale.dimensionNames}`
       );
     }
-    const seriesDimScale = attributes.scale[seriesIndex];
-    const seriesMax = attributes.shape[seriesIndex] * seriesDimScale;
+    const seriesDimScale = attributesForLastScale.scale[seriesIndex];
+    const seriesMax =
+      attributesForLastScale.shape[seriesIndex] * seriesDimScale;
 
     const indexIsFull = this.seriesIndex_.type === "full";
     const seriesStart = indexIsFull ? 0 : this.seriesIndex_.start;
@@ -217,7 +226,6 @@ export class ImageSeriesLayer extends Layer {
         `Requested index ${index} is out of bounds [0, ${seriesAttributes.length - 1}]`
       );
     }
-    const loader = await this.getLoader();
 
     // replace the series region with a point region for the requested index
     const position = seriesAttributes.start + index * seriesAttributes.scale;
@@ -229,8 +237,11 @@ export class ImageSeriesLayer extends Layer {
       index: { type: "point", value: position },
     });
 
-    const chunk = await loader.loadChunk(pointRegion, this.scheduler_);
+    const loader = await this.getLoader();
+    const attributes = await loader.loadAttributes();
+    const lod = this.lod_ ?? attributes.length - 1;
 
+    const chunk = await loader.loadChunk(pointRegion, lod, this.scheduler_);
     this.dataChunks_[index] = chunk;
 
     if (token && !token.canceled) {

@@ -13,11 +13,19 @@ import { PromiseScheduler } from "./promise_scheduler";
 import { Image as OmeNgffImage } from "../data/ome_ngff/0.4/image";
 import { parseOmeNgffImage } from "../data/ome_zarr_hcs_metadata_loader";
 
+type ImageAttributes = {
+  image: OmeNgffImage["multiscales"][number];
+  dimensionNames: string[];
+  datasetPath: string;
+  scale: number[];
+  translation: number[];
+};
+
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
 export class PromiseQueue<T> {
-  private promises_: Array<() => Promise<T>> = [];
-  private scheduler_: PromiseScheduler;
+  private readonly promises_: Array<() => Promise<T>> = [];
+  private readonly scheduler_: PromiseScheduler;
 
   constructor(scheduler: PromiseScheduler) {
     this.scheduler_ = scheduler;
@@ -35,11 +43,11 @@ export class PromiseQueue<T> {
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
-  root_: zarr.Group<zarr.FetchStore>;
-  scaleIndex_: number;
-  metadata_: OmeNgffImage;
+  private readonly root_: zarr.Group<zarr.FetchStore>;
+  private readonly metadata_: OmeNgffImage;
+  private readonly lods_: number;
 
-  constructor(root: zarr.Group<zarr.FetchStore>, scaleIndex?: number) {
+  constructor(root: zarr.Group<zarr.FetchStore>) {
     this.root_ = root;
     this.metadata_ = parseOmeNgffImage(this.root_);
     if (this.metadata_.multiscales.length !== 1) {
@@ -48,28 +56,23 @@ export class OmeZarrImageLoader {
       );
     }
 
-    const numScales = this.metadata_.multiscales[0].datasets.length;
-    if (scaleIndex === undefined) {
-      // TODO: when undefined use the input to determine what level to load.
-      // That is, dynamically select the scale based on the size of the chunk
-      // to be loaded and how big it will be on screen.
-      // https://github.com/chanzuckerberg/idetik/issues/37
-      // default to the lowest resolution
-      this.scaleIndex_ = numScales - 1;
-    } else if (scaleIndex < 0) {
-      // allow reverse indexing with negative numbers
-      this.scaleIndex_ = Math.max(0, numScales + scaleIndex);
-    } else {
-      this.scaleIndex_ = Math.min(numScales - 1, scaleIndex);
-    }
+    this.lods_ = this.metadata_.multiscales[0].datasets.length;
   }
 
   async loadChunk(
     region: Region,
+    lod: number,
     scheduler?: PromiseScheduler
   ): Promise<ImageChunk> {
-    const { datasetPath, scale, translation } = this.getImageAttributes();
-    const indices = this.regionToIndices(region);
+    if (lod >= this.lods_) {
+      throw new Error(
+        `Invalid LOD index: ${lod}. Only ${this.lods_} lod(s) available`
+      );
+    }
+
+    const attributes = this.getImageAttributes()[lod];
+    const indices = this.regionToIndices(region, attributes);
+    const { datasetPath, scale, translation } = attributes;
 
     const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
       kind: "array",
@@ -126,50 +129,51 @@ export class OmeZarrImageLoader {
     return chunk;
   }
 
-  private getImageAttributes(scaleIndex?: number): {
-    image: OmeNgffImage["multiscales"][number];
-    dimensionNames: string[];
-    datasetPath: string;
-    scale: number[];
-    translation: number[];
-  } {
-    const image = this.metadata_.multiscales[0];
-    const axes = image.axes;
-    const dimensionNames = image.axes.map((axis) => axis.name);
-    const dataset = image.datasets[scaleIndex ?? this.scaleIndex_];
-    const datasetPath = dataset.path;
-    const scale = dataset.coordinateTransformations[0].scale;
-    const translation =
-      dataset.coordinateTransformations.length === 2
-        ? dataset.coordinateTransformations[1].translation
-        : new Array(axes.length).fill(0);
-    return {
-      image,
-      dimensionNames,
-      datasetPath,
-      scale,
-      translation,
-    };
+  private getImageAttributes(): ImageAttributes[] {
+    const output: ImageAttributes[] = [];
+
+    for (let i = 0; i < this.lods_; ++i) {
+      const image = this.metadata_.multiscales[0];
+      const axes = image.axes;
+      const dimensionNames = image.axes.map((axis) => axis.name);
+      const dataset = image.datasets[i];
+      const datasetPath = dataset.path;
+      const scale = dataset.coordinateTransformations[0].scale;
+      const translation =
+        dataset.coordinateTransformations.length === 2
+          ? dataset.coordinateTransformations[1].translation
+          : new Array(axes.length).fill(0);
+
+      output.push({ image, dimensionNames, datasetPath, scale, translation });
+    }
+
+    return output;
   }
 
-  public async loadAttributes(): Promise<LoaderAttributes> {
-    const { dimensionNames, datasetPath, scale } = this.getImageAttributes();
-
-    const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
-      kind: "array",
-      attrs: false,
-    });
-    const shape = array.shape;
-
-    return {
-      dimensionNames,
-      shape,
-      scale,
-    };
+  public async loadAttributes(): Promise<LoaderAttributes[]> {
+    return await Promise.all(
+      this.getImageAttributes().map(async (attr) => {
+        const zarrArray = await zarr.open.v2(
+          this.root_.resolve(attr.datasetPath),
+          {
+            kind: "array",
+            attrs: false,
+          }
+        );
+        return {
+          dimensionNames: attr.dimensionNames,
+          shape: zarrArray.shape,
+          scale: attr.scale,
+        };
+      })
+    );
   }
 
-  regionToIndices(region: Region): Array<Slice | number> {
-    const { dimensionNames, scale, translation } = this.getImageAttributes();
+  private regionToIndices(
+    region: Region,
+    attributes: ImageAttributes
+  ): Array<Slice | number> {
+    const { dimensionNames, scale, translation } = attributes;
 
     const indices: Array<Slice | number> = [];
     for (const [i, dimName] of dimensionNames.entries()) {

@@ -27,7 +27,7 @@ interface UseOmeZarrViewerProps {
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
   fallbackContrastLimits?: [number, number];
-  resolutionLevel?: number;
+  lod?: number;
   shouldAutoLoadAllSlices?: boolean;
   shouldLoadMiddleZ?: boolean;
 }
@@ -42,7 +42,7 @@ export function useOmeZarrViewer({
   onAllSlicesLoaded,
   onLoadAllSlicesAborted,
   fallbackContrastLimits,
-  resolutionLevel = 0,
+  lod = 0,
   shouldAutoLoadAllSlices = false,
   shouldLoadMiddleZ = false,
 }: UseOmeZarrViewerProps) {
@@ -54,10 +54,10 @@ export function useOmeZarrViewer({
   const { idetik, setIdetik, setChannelControls } = useIdetik();
 
   useEffect(() => {
-    const newSource = new OmeZarrImageSource(sourceUrl, resolutionLevel);
+    const newSource = new OmeZarrImageSource(sourceUrl);
     setSource(newSource);
     setAllSlicesLoaded(false);
-  }, [sourceUrl, resolutionLevel]);
+  }, [sourceUrl, lod]);
 
   const zoomToFit = useCallback(
     (layer: ImageSeriesLayer): OrthographicCamera | void => {
@@ -100,6 +100,7 @@ export function useOmeZarrViewer({
           region,
           seriesDimensionName,
           channelProps,
+          lod,
         });
         layer.setIndex(
           Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0])
@@ -175,14 +176,15 @@ export function useOmeZarrViewer({
         return;
       }
       const loader = await source.open();
-      const attrs = await loader.loadAttributes();
+      const attributes = await loader.loadAttributes();
+      const attributesForLOD = attributes[lod];
 
-      const zIdx = attrs.dimensionNames.findIndex(
+      const zIdx = attributesForLOD.dimensionNames.findIndex(
         (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
       );
 
       const min = 0;
-      const max = attrs.shape[zIdx] - 1;
+      const max = attributesForLOD.shape[zIdx] - 1;
 
       if (max - min <= 0) {
         setZRange([0, 0]);
@@ -199,7 +201,7 @@ export function useOmeZarrViewer({
 
       if (isFullZ) {
         if (shouldLoadMiddleZ) {
-          const zShape = attrs.shape[zIdx];
+          const zShape = attributesForLOD.shape[zIdx];
           initialZ = Math.floor(zShape / 2);
         } else {
           initialZ = await loadOmeroDefaultZ(sourceUrl);

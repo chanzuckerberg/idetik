@@ -63,7 +63,7 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onLoadAllSlicesClicked,
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
-    resolutionLevel,
+    lod: resolutionLevel,
     shouldAutoLoadAllSlices,
     shouldLoadMiddleZ,
   });

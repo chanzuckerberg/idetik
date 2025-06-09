@@ -22,16 +22,22 @@ export class ImageLayer extends Layer {
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
+  // TODO:(shlomnissan) Remove this parameter—LOD will be computed
+  // dynamically by the chunk manager.
+  private readonly lod_?: number;
+
   constructor({
     source,
     region,
     channelProps,
+    lod,
     ...layerOptions
   }: ImageLayerProps) {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
+    this.lod_ = lod;
     this.channelProps_ = channelProps;
   }
 
@@ -66,7 +72,10 @@ export class ImageLayer extends Layer {
     }
     this.setState("loading");
     const loader = await this.source_.open();
-    const chunk = await loader.loadChunk(region);
+    const attributes = await loader.loadAttributes();
+    const lod = this.lod_ ?? attributes.length - 1;
+
+    const chunk = await loader.loadChunk(region, lod);
     this.extent_ = {
       x: chunk.shape.x * chunk.scale.x,
       y: chunk.shape.y * chunk.scale.y,

@@ -56,7 +56,7 @@ const onImageChange = async () => {
   app.layerManager.removeAll();
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
-  const source = new OmeZarrImageSource(imageUrl, 0);
+  const source = new OmeZarrImageSource(imageUrl);
   const omeroDefaultZ = await loadOmeroDefaultZ(imageUrl);
   region[2] = {
     dimension: "Z",
@@ -77,6 +77,7 @@ const onImageChange = async () => {
       { color: [0, 1, 1], contrastLimits: contrastLimits[0] },
       { color: [1, 0, 1], contrastLimits: contrastLimits[1] },
     ],
+    lod: 0,
   });
   app.layerManager.add(layer);
   layer.addStateChangeCallback((state) => {
