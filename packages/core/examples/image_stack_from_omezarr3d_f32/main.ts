@@ -17,12 +17,15 @@ const url =
 const source = new OmeZarrImageSource(url);
 const loader = await source.open();
 const attributes = await loader.loadAttributes();
+const lods = attributes.length;
+const attributesForLastLod = attributes[lods - 1];
+
 const zDimName = "z";
-const zAxisIndex = attributes.dimensionNames.findIndex(
+const zAxisIndex = attributesForLastLod.dimensionNames.findIndex(
   (dim) => dim === zDimName
 );
 const zMin = 0;
-const zMax = attributes.shape[zAxisIndex];
+const zMax = attributesForLastLod.shape[zAxisIndex];
 const region: Region = [
   { dimension: zDimName, index: { type: "full" } },
   { dimension: "x", index: { type: "full" } },
