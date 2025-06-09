@@ -1,7 +1,11 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
-import { ImageChunk, ImageChunkSource, ImageChunkLoader } from "../data/image_chunk";
+import {
+  ImageChunk,
+  ImageChunkSource,
+  ImageChunkLoader,
+} from "../data/image_chunk";
 import { ChannelProps } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
@@ -109,9 +113,12 @@ export class ImageLayerXYZ extends Layer {
 
   private async loadAvailableScales(loader: ImageChunkLoader) {
     if (loader instanceof OmeZarrImageLoader) {
+      // TODO: Support multiple multiscales (pyramids) per image.
+      // Currently assumes multiscales[0] is the only pyramid, which is typical for most datasets.
+      // In future, we could expose a way to select which pyramid to use. (e.g. a dropdown?)
       const image = loader.metadata_.multiscales[0];
-      this.availableScales_ = image.datasets.map(dataset =>
-        dataset.coordinateTransformations[0].scale
+      this.availableScales_ = image.datasets.map(
+        (dataset) => dataset.coordinateTransformations[0].scale
       );
     } else {
       const attributes = await loader.loadAttributes();
@@ -134,13 +141,16 @@ export class ImageLayerXYZ extends Layer {
         viewport.height,
         this.availableScales_
       );
-      
-      if (!this.currentLOD_ || lodResult.scaleIndex !== this.currentLOD_.scaleIndex) {
+
+      if (
+        !this.currentLOD_ ||
+        lodResult.scaleIndex !== this.currentLOD_.scaleIndex
+      ) {
         this.currentLOD_ = lodResult;
         this.reloadWithScale(lodResult.scaleIndex);
       }
     } catch (error) {
-      console.warn('Failed to compute LOD:', error);
+      console.warn("Failed to compute LOD:", error);
     }
   }
 
@@ -166,7 +176,7 @@ export class ImageLayerXYZ extends Layer {
       this.image_ = this.createImage(chunk, this.channelProps_);
       this.addObject(this.image_);
     } catch (error) {
-      console.warn('Failed to reload with new scale:', error);
+      console.warn("Failed to reload with new scale:", error);
     }
   }
 

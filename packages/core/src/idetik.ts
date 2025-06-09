@@ -35,7 +35,10 @@ export class Idetik {
     this.context_ = {
       chunkManager: this.chunkManager_,
       getCamera: () => this.camera,
-      getViewport: () => ({ width: this.renderer_.width, height: this.renderer_.height }),
+      getViewport: () => ({
+        width: this.renderer_.width,
+        height: this.renderer_.height,
+      }),
     };
 
     this.layerManager = new LayerManager(this.context_);
