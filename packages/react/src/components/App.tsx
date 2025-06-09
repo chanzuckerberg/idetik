@@ -1,6 +1,5 @@
 import {
   Color,
-  ProjectedLineLayer,
   ImageSeriesLayer,
   OmeZarrImageSource,
   OmeroChannel,
@@ -9,7 +8,6 @@ import {
   loadOmeroDefaultZ,
   OrthographicCamera,
 } from "@idetik/core";
-import { Button } from "@czi-sds/components";
 import { useIdetik } from "./hooks/useIdetik";
 import { IdetikCanvas } from "./IdetikCanvas";
 import { IdetikLayerList } from "./IdetikLayerList";
@@ -27,15 +25,13 @@ interface HcsMetadata {
   defaultZ: number;
 }
 
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~137.50776405003785 degrees
-
-/** Demo. */
+/** Demonstration app for Idetik with HCS image support */
 export default function App({
   baseUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr",
 }: AppProps) {
   const {
     isReady: runtimeIsReady,
-    activeLayers,
+    // activeLayers,
     methods,
     runtime,
   } = useIdetik();
@@ -113,44 +109,10 @@ export default function App({
     };
   }, [runtimeIsReady, methods, runtime, hcsMetadata]);
 
-  const createLayer = () => {
-    if (!runtimeIsReady) {
-      console.error("Context value is not available");
-      return;
-    }
-    const basePath = [
-      [-100, 0, 0],
-      [100, 0, 0],
-    ];
-    const angle = activeLayers.length * GOLDEN_ANGLE;
-    const path: [number, number, number][] = basePath.map((point) => {
-      const x = point[0] * Math.cos(angle) - point[1] * Math.sin(angle);
-      const y = point[0] * Math.sin(angle) + point[1] * Math.cos(angle);
-      return [x, y, point[2]];
-    });
-    // set color based on angle, cycling through the hue spectrum
-    const hue = (angle / (2 * Math.PI)) % 1; // Normalize angle to [0, 1]
-    const saturation = 1.0; // Fixed saturation
-    const lightness = 0.5; // Fixed lightness
-    // convert HSL to RGB (fixed saturation and lightness)
-    const color: [number, number, number] = hslToRgb(
-      hue,
-      saturation,
-      lightness
-    );
-    const layer = new ProjectedLineLayer([
-      {
-        path,
-        color,
-        width: 0.01,
-      },
-    ]);
-    methods.addLayer(layer);
-  };
-
   return (
     <div className="h-screen flex">
       <div className="flex-1">
+        <IdetikCanvas />
         {imageLayerRef.current && (
           <ChannelControlsList
             layer={imageLayerRef.current}
@@ -166,8 +128,8 @@ export default function App({
             classNames={{ root: "absolute top-0 left-0 z-10" }}
           />
         )}
-        <IdetikCanvas />
       </div>
+
       <div className="w-64 p-4 bg-gray-100 flex flex-col gap-4">
         <HcsImagePanel
           baseUrl={baseUrl}
@@ -176,41 +138,8 @@ export default function App({
           onWellChange={setWell}
           onFovChange={setFov}
         />
-
-        <Button sdsStyle="minimal" onClick={createLayer}>
-          Add Line Layer
-        </Button>
-
         <IdetikLayerList />
       </div>
     </div>
   );
 }
-
-const hslToRgb = (
-  hue: number,
-  saturation: number,
-  lightness: number
-): [number, number, number] => {
-  const c = (1 - Math.abs(2 * lightness - 1)) * saturation;
-  const x = c * (1 - Math.abs(((hue * 6) % 2) - 1));
-  const m = lightness - c / 2;
-
-  let r: number, g: number, b: number;
-
-  if (hue < 1 / 6) {
-    [r, g, b] = [c, x, 0];
-  } else if (hue < 2 / 6) {
-    [r, g, b] = [x, c, 0];
-  } else if (hue < 3 / 6) {
-    [r, g, b] = [0, c, x];
-  } else if (hue < 4 / 6) {
-    [r, g, b] = [0, x, c];
-  } else if (hue < 5 / 6) {
-    [r, g, b] = [x, 0, c];
-  } else {
-    [r, g, b] = [c, 0, x];
-  }
-
-  return [r + m, g + m, b + m];
-};
