@@ -1,14 +1,19 @@
-import { Region } from "@idetik/core";
-import { Renderer } from "./components/Renderer";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  OmeZarrImageViewerProps,
-  useOmeZarrViewer,
-} from "../../hooks/useOmeZarrImageViewer";
+  OmeZarrImageSource,
+  OrthographicCamera,
+  ImageSeriesLayer,
+  Region,
+  loadOmeroChannels,
+  loadOmeroDefaultZ,
+} from "@idetik/core";
+import { useIdetik } from "../../hooks/useIdetik";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
+import { omeroToChannelProps, getGrayscaleChannelProp } from "./utils";
 
-interface OmeZarrViewerContainerProps {
+interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   seriesDimensionName: string;
@@ -31,7 +36,7 @@ interface OmeZarrViewerContainerProps {
   onLoadAllSlicesAborted?: () => void;
 }
 
-export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
+export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   const {
     sourceUrl,
     region,
@@ -44,24 +49,247 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     onLoadAllSlicesClicked,
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
-    resolutionLevel,
-    shouldAutoLoadAllSlices,
-    shouldLoadMiddleZ,
+    resolutionLevel = 0,
+    shouldAutoLoadAllSlices = false,
+    shouldLoadMiddleZ = false,
   } = props;
 
-  const {
-    zRange,
+  const { isReady: runtimeIsReady, methods, runtime } = useIdetik();
+
+  const [source, setSource] = useState<OmeZarrImageSource | null>(null);
+  const [zRange, setZRange] = useState<[number, number]>([0, 0]);
+  const [zValue, setZValue] = useState(0.5);
+  const [loading, setLoading] = useState(true);
+  const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
+  const imageLayerRef = useRef<ImageSeriesLayer | null>(null);
+
+  // Create source when URL or resolution changes
+  useEffect(() => {
+    const newSource = new OmeZarrImageSource(sourceUrl, resolutionLevel);
+    setSource(newSource);
+    setAllSlicesLoaded(false);
+  }, [sourceUrl, resolutionLevel]);
+
+  // Create Image Layer
+  useEffect(() => {
+    if (!source || !runtimeIsReady) return;
+    let shouldSetLayer = true;
+    let layer: ImageSeriesLayer | null = null;
+
+    const createLayer = async () => {
+      setLoading(true);
+
+      try {
+        const omeroChannels = await loadOmeroChannels(sourceUrl);
+        let channelProps;
+
+        if (omeroChannels.length === 0) {
+          console.warn(
+            "No OMERO channels found. Falling back to 1 grayscale channel."
+          );
+          channelProps = [getGrayscaleChannelProp(fallbackContrastLimits)];
+        } else {
+          channelProps = omeroToChannelProps(omeroChannels);
+        }
+
+        layer = new ImageSeriesLayer({
+          source,
+          region,
+          seriesDimensionName,
+          channelProps,
+        });
+        layer.setIndex(
+          Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0])
+        );
+
+        onLayerCreated?.();
+
+        const onFirstLoad = async () => {
+          if (!shouldSetLayer || !layer) return;
+
+          methods.addLayer(layer);
+          imageLayerRef.current = layer;
+
+          // Set camera frame from layer extent like in App.tsx
+          if (layer.extent && runtime) {
+            const { x, y } = layer.extent;
+            const camera = runtime.camera as OrthographicCamera;
+            camera?.setFrame(0, x, y, 0);
+          }
+
+          setLoading(false);
+          onFirstSliceLoaded?.();
+          layer.removeStateChangeCallback(onFirstLoad);
+
+          // Auto load all slices after first slice is loaded if enabled
+          if (shouldAutoLoadAllSlices && shouldSetLayer) {
+            setLoading(true);
+            try {
+              await layer.preloadSeries();
+              onAllSlicesLoaded?.();
+              setAllSlicesLoaded(true);
+            } catch (err) {
+              console.warn("Auto-load all slices failed or was aborted", err);
+              onLoadAllSlicesAborted?.();
+            } finally {
+              setLoading(false);
+            }
+          }
+        };
+
+        layer.addStateChangeCallback(onFirstLoad);
+      } catch (err) {
+        console.error("[Viewer] Failed to load OMERO metadata:", err);
+      }
+    };
+
+    createLayer();
+
+    return () => {
+      shouldSetLayer = false;
+      if (
+        imageLayerRef.current &&
+        methods.isLayerActive(imageLayerRef.current)
+      ) {
+        methods.removeLayer(imageLayerRef.current);
+        imageLayerRef.current = null;
+      }
+    };
+  }, [
+    source,
+    sourceUrl,
+    region,
+    seriesDimensionName,
+    shouldAutoLoadAllSlices,
+    runtimeIsReady,
+    methods,
+    runtime,
     zValue,
-    setZValue,
-    loading,
-    allSlicesLoaded,
-    loadAllSlicesCallback,
-  } = useOmeZarrViewer(props);
+    zRange,
+    fallbackContrastLimits,
+    onLayerCreated,
+    onFirstSliceLoaded,
+    onAllSlicesLoaded,
+    onLoadAllSlicesAborted,
+  ]);
+
+  // Fetch Z range from metadata
+  useEffect(() => {
+    const fetchZRange = async () => {
+      if (!source) {
+        console.warn("No source available, returning early on fetchZRange");
+        return;
+      }
+      const loader = await source.open();
+      const attrs = await loader.loadAttributes();
+
+      const zIdx = attrs.dimensionNames.findIndex(
+        (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
+      );
+
+      const min = 0;
+      const max = attrs.shape[zIdx] - 1;
+
+      if (max - min <= 0) {
+        setZRange([0, 0]);
+        setZValue(0);
+        return;
+      }
+
+      let initialZ: number;
+      const zRegion = region.find(
+        (d) => d.dimension.toUpperCase() === seriesDimensionName.toUpperCase()
+      );
+      const isFullZ = zRegion && zRegion.index?.type === "full";
+
+      if (isFullZ) {
+        if (shouldLoadMiddleZ) {
+          const zShape = attrs.shape[zIdx];
+          initialZ = Math.floor(zShape / 2);
+        } else {
+          initialZ = await loadOmeroDefaultZ(sourceUrl);
+        }
+      } else if (zRegion) {
+        switch (zRegion.index?.type) {
+          case "point":
+            initialZ = zRegion.index.value;
+            break;
+          case "interval":
+            initialZ = Math.floor(
+              (zRegion.index.start + zRegion.index.stop - 1) / 2
+            );
+            break;
+          default:
+            initialZ = 0;
+        }
+      } else {
+        initialZ = 0;
+      }
+
+      initialZ = Math.max(min, Math.min(max, initialZ));
+      const zNormalized = max - min > 0 ? initialZ / (max - min) : 0;
+
+      if (Number.isNaN(zNormalized)) {
+        console.warn(
+          `Computed zValue is NaN. initialZ: ${initialZ}, max: ${max}, min: ${min}`
+        );
+        setZValue(0.5);
+      } else {
+        setZValue(zNormalized);
+      }
+
+      setZRange([min, max]);
+    };
+    fetchZRange();
+  }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
+
+  // Update imageLayer's index on Z change
+  useEffect(() => {
+    if (!imageLayerRef.current) return;
+    let didSetLoadingTrue = false;
+
+    const updateIndex = async () => {
+      const t = setTimeout(() => {
+        setLoading(true);
+        didSetLoadingTrue = true;
+      }, 50);
+
+      try {
+        const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
+        await imageLayerRef.current?.setIndex(zIndex);
+      } catch (err) {
+        console.debug("Z index load aborted", err);
+      } finally {
+        clearTimeout(t);
+        if (didSetLoadingTrue) {
+          setLoading(false);
+        }
+      }
+    };
+
+    updateIndex();
+  }, [zValue, zRange]);
+
+  const loadAllSlicesCallback = useCallback(async () => {
+    if (!imageLayerRef.current) return;
+    onLoadAllSlicesClicked?.();
+    setLoading(true);
+    try {
+      await imageLayerRef.current.preloadSeries();
+    } catch (err) {
+      console.info("load all slices failed or was aborted", err);
+      onLoadAllSlicesAborted?.();
+      return;
+    } finally {
+      setLoading(false);
+    }
+    onAllSlicesLoaded?.();
+    setAllSlicesLoaded(true);
+  }, [onLoadAllSlicesClicked, onAllSlicesLoaded, onLoadAllSlicesAborted]);
   // Compute zIndex for display
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
-      <Renderer />
       <div
         className={cns(
           "absolute",
