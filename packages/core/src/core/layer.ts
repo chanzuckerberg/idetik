@@ -57,7 +57,7 @@ export abstract class Layer {
   // integration is finalized. Most layers will likely need access to the chunk
   // manager, but for now, we allow optional overrides to avoid requiring
   // placeholder implementations.
-  public onAttached(_context: IdetikContext) {}
+  public async onAttached(_context: IdetikContext) {}
 
   public get objects() {
     return this.objects_;
