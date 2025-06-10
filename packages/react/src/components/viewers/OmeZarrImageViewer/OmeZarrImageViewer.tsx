@@ -6,12 +6,14 @@ import {
   Region,
   loadOmeroChannels,
   loadOmeroDefaultZ,
+  OmeroChannel,
 } from "@idetik/core";
 import { useIdetik } from "../../hooks/useIdetik";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
 import { omeroToChannelProps, getGrayscaleChannelProp } from "./utils";
+import { ChannelControlsList } from "./components/ChannelControlsList";
 
 interface OmeZarrImageViewerProps {
   sourceUrl: string;
@@ -61,6 +63,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   const [zValue, setZValue] = useState(0.5);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
+  const [omeroChannels, setOmeroChannels] = useState<OmeroChannel[]>([]);
   const imageLayerRef = useRef<ImageSeriesLayer | null>(null);
 
   // Create source when URL or resolution changes
@@ -73,39 +76,36 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   // Create Image Layer
   useEffect(() => {
     if (!source || !runtimeIsReady) return;
-    let shouldSetLayer = true;
-    let layer: ImageSeriesLayer | null = null;
 
     const createLayer = async () => {
       setLoading(true);
 
       try {
-        const omeroChannels = await loadOmeroChannels(sourceUrl);
+        const loadedOmeroChannels = await loadOmeroChannels(sourceUrl);
+        setOmeroChannels(loadedOmeroChannels);
         let channelProps;
 
-        if (omeroChannels.length === 0) {
+        if (loadedOmeroChannels.length === 0) {
           console.warn(
             "No OMERO channels found. Falling back to 1 grayscale channel."
           );
           channelProps = [getGrayscaleChannelProp(fallbackContrastLimits)];
         } else {
-          channelProps = omeroToChannelProps(omeroChannels);
+          channelProps = omeroToChannelProps(loadedOmeroChannels);
         }
 
-        layer = new ImageSeriesLayer({
+        const layer = new ImageSeriesLayer({
           source,
           region,
           seriesDimensionName,
           channelProps,
         });
-        layer.setIndex(
-          Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0])
-        );
+        imageLayerRef.current = layer;
 
         onLayerCreated?.();
 
         const onFirstLoad = async () => {
-          if (!shouldSetLayer || !layer) return;
+          if (imageLayerRef.current !== layer) return;
 
           methods.addLayer(layer);
           imageLayerRef.current = layer;
@@ -122,7 +122,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           layer.removeStateChangeCallback(onFirstLoad);
 
           // Auto load all slices after first slice is loaded if enabled
-          if (shouldAutoLoadAllSlices && shouldSetLayer) {
+          if (shouldAutoLoadAllSlices) {
             setLoading(true);
             try {
               await layer.preloadSeries();
@@ -146,7 +146,6 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     createLayer();
 
     return () => {
-      shouldSetLayer = false;
       if (
         imageLayerRef.current &&
         methods.isLayerActive(imageLayerRef.current)
@@ -164,8 +163,6 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     runtimeIsReady,
     methods,
     runtime,
-    zValue,
-    zRange,
     fallbackContrastLimits,
     onLayerCreated,
     onFirstSliceLoaded,
@@ -241,7 +238,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
       setZRange([min, max]);
     };
     fetchZRange();
-  }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
+  }, [region, source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
 
   // Update imageLayer's index on Z change
   useEffect(() => {
@@ -289,19 +286,19 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   // Compute zIndex for display
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (
-    <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
+    <>
+      {imageLayerRef.current && omeroChannels.length > 0 && (
+        <ChannelControlsList
+          layer={imageLayerRef.current}
+          labels={omeroChannels.map((c) => c.label || "Channel")}
+          contrastRanges={omeroChannels.map((c) => [c.window.start, c.window.end])}
+          classNames={{ root: "absolute top-0 left-0 z-10" }}
+        />
+      )}
       <div
         className={cns(
-          "absolute",
-          "bottom-0",
-          "right-0",
-          "w-full",
-          "p-sds-l",
-          "flex",
-          "flex-col",
-          "items-end",
-          "gap-sds-l",
-          classNames?.sliceMetadataContainer
+          classNames?.sliceMetadataContainer ||
+          "absolute bottom-0 right-0 w-full p-sds-l flex flex-col items-end gap-sds-l"
         )}
       >
         {!loading ? (
@@ -363,6 +360,6 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
