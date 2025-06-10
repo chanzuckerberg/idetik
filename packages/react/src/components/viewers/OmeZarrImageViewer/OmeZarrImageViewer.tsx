@@ -48,6 +48,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
               "rounded-sds-m",
               "shadow-sds-m",
               "font-sds-code",
+              "select-none",
               classNames?.sliceIndicator
             )}
           >
