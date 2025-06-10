@@ -7,6 +7,7 @@ import {
   ImageChunkSource,
   LoaderAttributes,
 } from "../data/image_chunk";
+import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
@@ -22,6 +23,7 @@ export type ImageLayerProps = LayerOptions & {
 export class ImageLayerXYZ extends Layer {
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
+  private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
@@ -63,9 +65,19 @@ export class ImageLayerXYZ extends Layer {
     this.context_ = context;
     await this.ensureLoader(); // preload loader early
     await this.ensureAttributes(); // preload attributes early
+    this.chunkManagerSource_ = await context.chunkManager.addSource(
+      this.source_
+    );
   }
 
   public update() {
+    if (!this.chunkManagerSource_) return;
+
+    const chunks = this.chunkManagerSource_.getVisibleChunks();
+    chunks.forEach((_) => {
+      // TODO: create image renderable for visible chunks if needed
+    });
+
     switch (this.state) {
       case "initialized":
         this.load(this.region_);

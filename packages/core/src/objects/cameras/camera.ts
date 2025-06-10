@@ -21,6 +21,10 @@ export abstract class Camera extends RenderableObject {
     return this.projectionMatrix_;
   }
 
+  get viewMatrix() {
+    return this.transform.inverse;
+  }
+
   public abstract setAspectRatio(aspectRatio: number): void;
   public abstract zoom(factor: number): void;
 
