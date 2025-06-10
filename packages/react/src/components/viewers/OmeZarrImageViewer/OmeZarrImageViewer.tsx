@@ -8,23 +8,7 @@ import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
 
 export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
-  const {
-    sourceUrl,
-    region,
-    seriesDimensionName,
-    cameraControlType = "panzoom",
-    allSlicesSizeEstimate,
-    fallbackContrastLimits,
-    classNames,
-    onLayerCreated,
-    onFirstSliceLoaded,
-    onLoadAllSlicesClicked,
-    onAllSlicesLoaded,
-    onLoadAllSlicesAborted,
-    lod,
-    shouldAutoLoadAllSlices,
-    shouldLoadMiddleZ,
-  } = props;
+  const { allSlicesSizeEstimate, classNames } = props;
 
   const {
     zRange,
@@ -33,21 +17,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     loading,
     allSlicesLoaded,
     loadAllSlicesCallback,
-  } = useOmeZarrViewer({
-    sourceUrl,
-    region,
-    seriesDimensionName,
-    cameraControlType,
-    fallbackContrastLimits,
-    onLayerCreated,
-    onFirstSliceLoaded,
-    onLoadAllSlicesClicked,
-    onAllSlicesLoaded,
-    onLoadAllSlicesAborted,
-    lod,
-    shouldAutoLoadAllSlices,
-    shouldLoadMiddleZ,
-  });
+  } = useOmeZarrViewer(props);
   // Compute zIndex for display
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (
