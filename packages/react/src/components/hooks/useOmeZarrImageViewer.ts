@@ -47,7 +47,7 @@ export function useOmeZarrViewer({
   sourceUrl,
   region,
   seriesDimensionName,
-  cameraControlType,
+  cameraControlType = "panzoom",
   onLayerCreated,
   onFirstSliceLoaded,
   onLoadAllSlicesClicked,
