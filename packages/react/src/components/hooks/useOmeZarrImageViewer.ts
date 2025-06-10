@@ -37,6 +37,7 @@ export interface OmeZarrImageViewerProps {
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
+  formatIndexIndicator?: (currentIndex: number, totalIndexes: number) => string;
   fallbackContrastLimits?: [number, number];
   lod?: number;
   shouldAutoLoadAllSlices?: boolean;

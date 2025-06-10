@@ -8,7 +8,7 @@ import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
 
 export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
-  const { allSlicesSizeEstimate, classNames } = props;
+  const { allSlicesSizeEstimate, classNames, formatIndexIndicator } = props;
 
   const {
     zRange,
@@ -51,7 +51,9 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
               classNames?.sliceIndicator
             )}
           >
-            Slice {zIndex}/{zRange[1] - zRange[0]}
+            {formatIndexIndicator !== undefined
+              ? formatIndexIndicator(zIndex, zRange[1] - zRange[0])
+              : `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
           </div>
         ) : (
           <LoadingIndicator sdsStyle="tag" />

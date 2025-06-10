@@ -3,9 +3,12 @@ import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
 import { ChannelControlsList } from "./viewers/OmeZarrImageViewer/components/ChannelControlsList";
 
+// const sourceUrl =
+//   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
 const sourceUrl =
-  "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
-const wellPath = "ATG101/MeOH";
+  "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_cropped.zarr";
+// const wellPath = "ATG101/MeOH";
+const wellPath = "B/3";
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
   { dimension: "C", index: { type: "full" } },
@@ -84,6 +87,9 @@ export default function App() {
         onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
         onAllSlicesLoaded={handleAllSlicesLoaded}
         onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
+        formatIndexIndicator={(currentIndex, totalIndexes) =>
+          `${currentIndex} ${totalIndexes}`
+        }
       />
       <div className="absolute top-0 left-0 w-full md:!w-[400px]">
         <ChannelControlsList />
