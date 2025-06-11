@@ -28,25 +28,13 @@ export class ChunkManagerSource {
     this.region_ = region;
   }
 
-  public async load(): Promise<ImageChunk | undefined> {
-    if (!this.region_) {
-      return undefined;
-    }
-
-    await this.loadChunk();
-    const chunks = this.getVisibleChunks();
-    return chunks[0];
-  }
-
-  public async updateLOD(
-    camera: Camera,
-    bufferWidth: number
-  ): Promise<ImageChunk | undefined> {
+  public async updateLOD(camera: Camera, bufferWidth: number) {
     const availableScales = this.attributes_.map((attr) => attr.scale);
-    
+
     if (availableScales.length === 0) {
       // No scales available, just ensure chunk is loaded at current LOD
-      return await this.load();
+      await this.loadChunk();
+      return;
     }
 
     const lodResult = this.computeLOD(camera, bufferWidth, availableScales);
@@ -57,7 +45,7 @@ export class ChunkManagerSource {
       this.currentLOD_ = lodResult;
     }
 
-    return await this.load();
+    await this.loadChunk();
   }
 
   public getVisibleChunks(): ImageChunk[] {
