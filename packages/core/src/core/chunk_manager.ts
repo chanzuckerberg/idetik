@@ -67,7 +67,7 @@ export class ChunkManagerSource {
     return [chunk];
   }
 
-  public async updateLOD(camera: Camera, bufferWidth: number, bufferHeight: number): Promise<ImageChunk | undefined> {
+  public async loadChunk(camera: Camera, bufferWidth: number, bufferHeight: number): Promise<ImageChunk | undefined> {
     const availableScales = this.attributes_.map(attr => attr.scale);
     const lodResult = this.computeLOD(camera, bufferWidth, bufferHeight, availableScales);
 
@@ -226,12 +226,10 @@ export class ChunkManager {
     return existing;
   }
 
-  public async update(camera: Camera, region: Region, bufferWidth: number, bufferHeight: number) {
+  public async update(camera: Camera, bufferWidth: number, bufferHeight: number) {
     // const visibleBounds = this.computeVisibleBounds(camera);
-    // Note: ChunkManager doesn't know about regions, so layers will call updateLOD directly
-    // This is left here for future use when we implement proper chunk management
     for (const source of this.sources_.values()) {
-      await source.updateLOD(camera, bufferWidth, bufferHeight, region);
+      await source.loadChunk(camera, bufferWidth, bufferHeight);
     }
   }
 

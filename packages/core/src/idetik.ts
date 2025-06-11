@@ -5,7 +5,6 @@ import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { PanZoomControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
-import { Region } from "./data/region";
 
 type IdetikParams = {
   canvasSelector: string;
@@ -66,7 +65,7 @@ export class Idetik {
     this.renderer_.setControls(controls);
   }
 
-  public start(region: Region) {
+  public start() {
     Logger.info("Idetik", "Idetik runtime started");
     const render = () => {
       if (!this.camera) {
@@ -78,7 +77,6 @@ export class Idetik {
       }
       this.chunkManager_.update(
         this.camera,
-        region,
         this.renderer_.width,
         this.renderer_.height
       );

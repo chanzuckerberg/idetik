@@ -55,7 +55,7 @@ export class ImageLayerXYZ extends Layer {
       case "loading":
         break;
       case "ready":
-        await this.updateLOD();
+        await this.loadChunk();
         break;
       default: {
         const exhaustiveCheck: never = this.state;
@@ -83,13 +83,13 @@ export class ImageLayerXYZ extends Layer {
     this.setState("ready");
   }
 
-  private async updateLOD() {
+  private async loadChunk() {
     if (!this.chunkManagerSource_ || !this.context_) return;
 
     const camera = this.context_.camera;
     const viewport = this.context_.viewport;
 
-    const newChunk = await this.chunkManagerSource_.updateLOD(
+    const newChunk = await this.chunkManagerSource_.loadChunk(
       camera,
       viewport.width,
       viewport.height
