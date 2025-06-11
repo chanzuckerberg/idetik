@@ -4,6 +4,7 @@ import {
   ImageChunkSource,
   LoaderAttributes,
 } from "@/data/image_chunk";
+import { Region } from "@/data/region";
 
 export interface LODResult {
   // Optimal scale index to use (0 = highest resolution)
@@ -20,68 +21,67 @@ import { vec2, vec4, mat4 } from "gl-matrix";
 type Bounds = { min: vec2; max: vec2 };
 
 export class ChunkManagerSource {
-  // @ts-expect-error unused for now
-  private readonly chunks_: ImageChunk[][] = [];
-  // @ts-expect-error unused for now
-  private readonly loader_;
+  private readonly loader_: ImageChunkLoader;
+  private readonly attributes_: LoaderAttributes[];
+  private region_?: Region;
+  private currentLOD_?: LODResult;
 
-  constructor(loader: ImageChunkLoader, _: LoaderAttributes[]) {
+  constructor(loader: ImageChunkLoader, attributes: LoaderAttributes[]) {
     this.loader_ = loader;
-
-    // TODO: create chunks for each LOD without loading data
+    this.attributes_ = attributes;
   }
 
-  public getVisibleChunks(): ImageChunk[] {
-    return [];
+  public setRegion(region: Region) {
+    this.region_ = region;
   }
 
-  public updateChunks(_: Bounds) {
-    // TODO: intersection test, set visibility and load data
-  }
-}
-
-export class ChunkManager {
-  private readonly sources_ = new Map<ImageChunkSource, ChunkManagerSource>();
-
-  public async addSource(source: ImageChunkSource) {
-    let existing = this.sources_.get(source);
-    if (!existing) {
-      const loader = await source.open();
-      const attrs = await loader.loadAttributes();
-      existing = new ChunkManagerSource(loader, attrs);
-      this.sources_.set(source, existing);
+  public async load(): Promise<ImageChunk | undefined> {
+    if (!this.region_) {
+      return undefined;
     }
-    return existing;
+
+    // Use computed LOD if available; otherwise default to lowest resolution
+    const lod = this.currentLOD_?.scaleIndex ?? this.attributes_.length - 1;
+
+    return await this.loader_.loadChunk(this.region_, lod);
   }
 
-  public update(camera: Camera, _bufferWidth: number, _bufferHeight: number) {
-    const visibleBounds = this.computeVisibleBounds(camera);
+  public async reloadWithScale(lod: number): Promise<ImageChunk | undefined> {
+    if (!this.region_) {
+      return undefined;
+    }
 
-    // TODO: compute LOD assuming the index is not image-based
-
-    for (const [_, chunkManagerSource] of this.sources_) {
-      chunkManagerSource.updateChunks(visibleBounds);
+    try {
+      return await this.loader_.loadChunk(this.region_, lod);
+    } catch (error) {
+      console.warn("Failed to reload with new scale:", error);
+      return undefined;
     }
   }
 
-  private computeVisibleBounds(camera: Camera): Bounds {
-    let topLeft = vec4.fromValues(-1.0, 1.0, 0.0, 1.0);
-    let bottomRight = vec4.fromValues(1.0, -1.0, 0.0, 1.0);
+  public async getVisibleChunks(): Promise<ImageChunk[]> {
+    if (!this.region_ || !this.currentLOD_) {
+      return [];
+    }
+    const chunk = await this.loader_.loadChunk(this.region_, this.currentLOD_.scaleIndex);
+    return [chunk];
+  }
 
-    const viewProjection = mat4.multiply(
-      mat4.create(),
-      camera.projectionMatrix,
-      camera.viewMatrix
-    );
+  public async updateLOD(camera: Camera, bufferWidth: number, bufferHeight: number): Promise<ImageChunk | undefined> {
+    const availableScales = this.attributes_.map(attr => attr.scale);
+    const lodResult = this.computeLOD(camera, bufferWidth, bufferHeight, availableScales);
 
-    const inv = mat4.invert(mat4.create(), viewProjection);
-    topLeft = vec4.transformMat4(vec4.create(), topLeft, inv);
-    bottomRight = vec4.transformMat4(vec4.create(), bottomRight, inv);
+    const lodChanged = !this.currentLOD_ || lodResult.scaleIndex !== this.currentLOD_.scaleIndex;
 
-    return {
-      min: vec2.fromValues(topLeft[0], topLeft[1]),
-      max: vec2.fromValues(bottomRight[0], bottomRight[1]),
-    };
+    if (lodChanged) {
+      const oldLOD = this.currentLOD_?.scaleIndex ?? 'none';
+      console.log(`LOD changed from ${oldLOD} to ${lodResult.scaleIndex} (resolution: ${lodResult.resolution.toFixed(2)}, scale factor: ${lodResult.scaleFactor.toFixed(4)})`);
+      this.currentLOD_ = lodResult;
+      return await this.reloadWithScale(lodResult.scaleIndex);
+    }
+
+    this.currentLOD_ = lodResult;
+    return undefined;
   }
 
   public computeLOD(
@@ -90,6 +90,7 @@ export class ChunkManager {
     bufferHeight: number, // screen/canvas height in pixels
     availableScales: number[][] // scale factors per LOD, where each scale is [c, z, y, x]
   ): LODResult {
+    // console.log("computeLOD", availableScales);
     if (availableScales.length === 0) {
       throw new Error("No scales available");
     }
@@ -186,4 +187,52 @@ export class ChunkManager {
 
     return { worldWidth, worldHeight };
   }
+
+}
+
+export class ChunkManager {
+  private readonly sources_ = new Map<ImageChunkSource, ChunkManagerSource>();
+
+  public computeVisibleBounds(camera: Camera): Bounds {
+    let topLeft = vec4.fromValues(-1.0, 1.0, 0.0, 1.0);
+    let bottomRight = vec4.fromValues(1.0, -1.0, 0.0, 1.0);
+
+    const viewProjection = mat4.multiply(
+      mat4.create(),
+      camera.projectionMatrix,
+      camera.viewMatrix
+    );
+
+    const inv = mat4.invert(mat4.create(), viewProjection);
+    topLeft = vec4.transformMat4(vec4.create(), topLeft, inv);
+    bottomRight = vec4.transformMat4(vec4.create(), bottomRight, inv);
+
+    return {
+      min: vec2.fromValues(topLeft[0], topLeft[1]),
+      max: vec2.fromValues(bottomRight[0], bottomRight[1]),
+    };
+  }
+
+  public async addSource(source: ImageChunkSource) {
+    let existing = this.sources_.get(source);
+    if (!existing) {
+      console.log("adding sourceq", source);
+      const loader = await source.open();
+      const attrs = await loader.loadAttributes();
+      existing = new ChunkManagerSource(loader, attrs);
+      this.sources_.set(source, existing);
+      console.log("added source", source);
+    }
+    return existing;
+  }
+
+  public async update(camera: Camera, region: Region, bufferWidth: number, bufferHeight: number) {
+    // const visibleBounds = this.computeVisibleBounds(camera);
+    // Note: ChunkManager doesn't know about regions, so layers will call updateLOD directly
+    // This is left here for future use when we implement proper chunk management
+    for (const source of this.sources_.values()) {
+      await source.updateLOD(camera, bufferWidth, bufferHeight, region);
+    }
+  }
+
 }
