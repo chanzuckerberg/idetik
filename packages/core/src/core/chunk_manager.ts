@@ -33,15 +33,10 @@ export class ChunkManagerSource {
       return undefined;
     }
 
-    console.log('Loading chunk with LOD:', this.currentLOD_, 'Region:', this.region_);
-    console.log('Available attributes:', this.attributes_);
-
     try {
       return await this.loader_.loadChunk(this.region_, this.currentLOD_);
     } catch (error) {
       console.warn("Failed to reload with new scale:", error);
-      console.warn("Current LOD:", this.currentLOD_);
-      console.warn("Attributes length:", this.attributes_.length);
       return undefined;
     }
   }
@@ -51,7 +46,6 @@ export class ChunkManagerSource {
     let lodResult: number;
 
     if (availableScales.length === 0) {
-      console.warn("No scales available, using default LOD 0");
       lodResult = 0; // Use first LOD level when no scales available
       if (firstPass) {
         this.currentLOD_ = lodResult;
@@ -92,14 +86,12 @@ export class ChunkManagerSource {
 
     // Check for invalid values
     if (!isFinite(virtualWidth) || virtualWidth <= 0 || !isFinite(bufferWidth) || bufferWidth <= 0) {
-      console.warn('Invalid dimensions for LOD calculation:', { virtualWidth, bufferWidth });
       return 0; // Default to highest resolution
     }
 
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
 
     if (!isFinite(virtualUnitsPerScreenPixel) || virtualUnitsPerScreenPixel <= 0) {
-      console.warn('Invalid virtualUnitsPerScreenPixel:', virtualUnitsPerScreenPixel);
       return 0;
     }
 
@@ -167,12 +159,10 @@ export class ChunkManager {
   public async addSource(source: ImageChunkSource) {
     let existing = this.sources_.get(source);
     if (!existing) {
-      console.log("adding sourceq", source);
       const loader = await source.open();
       const attrs = await loader.loadAttributes();
       existing = new ChunkManagerSource(loader, attrs);
       this.sources_.set(source, existing);
-      console.log("added source", source);
     }
     return existing;
   }

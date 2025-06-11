@@ -37,7 +37,6 @@ export class ImageLayerXYZ extends Layer {
   }
 
   public async onAttached(context: IdetikContext): Promise<void> {
-    console.log("onAttached");
     this.context_ = context;
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_
