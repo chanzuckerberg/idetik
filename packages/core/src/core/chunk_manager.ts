@@ -11,6 +11,7 @@ import { vec4, mat4 } from "gl-matrix";
 
 export class ChunkManagerSource {
   private readonly loader_: ImageChunkLoader;
+  private readonly chunks_: ImageChunk[][] = [];
   private readonly attributes_: LoaderAttributes[];
   private region_?: Region;
   private currentLOD_: number;
@@ -75,12 +76,19 @@ export class ChunkManagerSource {
       return [];
     }
 
+    // Check if we already have the chunk cached for current LOD
+    if (this.chunks_[this.currentLOD_]?.length > 0) {
+      return this.chunks_[this.currentLOD_];
+    }
+
     try {
+      // Cache the loaded chunk
       const chunk = await this.loader_.loadChunk(
         this.region_,
         this.currentLOD_
       );
-      return [chunk];
+      this.chunks_[this.currentLOD_] = [chunk];
+      return this.chunks_[this.currentLOD_];
     } catch (error) {
       // Throttle error logging to prevent console spam in render loop
       const now = Date.now();
