@@ -186,7 +186,7 @@ export class ImageSeriesLayer extends Layer {
     }
     const loader = await this.getLoader();
     const attributes = await loader.loadAttributes();
-    const attributesForLOD = attributes[this.lod_ ?? 0];
+    const attributesForLOD = attributes[this.lod_ ?? attributes.length - 1];
 
     const seriesIndex = attributesForLOD.dimensionNames.findIndex(
       (dim) => dim === this.seriesDimensionName_
