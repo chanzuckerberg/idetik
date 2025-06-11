@@ -32,9 +32,11 @@ export class ChunkManagerSource {
     const availableScales = this.attributes_.map((attr) => attr.scale);
 
     if (availableScales.length === 0) {
-      // No scales available, just ensure chunk is loaded at current LOD
-      await this.loadChunk();
-      return;
+      if (this.currentLOD_ !== this.attributes_.length - 1) {
+        // No scales available, just ensure chunk is loaded at current LOD
+        await this.loadChunk();
+        return;
+      }
     }
 
     const lodResult = this.computeLOD(camera, bufferWidth, availableScales);
@@ -43,9 +45,8 @@ export class ChunkManagerSource {
     if (lodChanged) {
       console.log(`LOD changed from ${this.currentLOD_} to ${lodResult}`);
       this.currentLOD_ = lodResult;
+      await this.loadChunk();
     }
-
-    await this.loadChunk();
   }
 
   public getVisibleChunks(): ImageChunk[] {
