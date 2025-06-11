@@ -47,12 +47,10 @@ export class ImageLayerXYZ extends Layer {
 
     switch (this.state) {
       case "initialized":
+      case "ready":
         await this.updateChunks();
         break;
       case "loading":
-        break;
-      case "ready":
-        await this.updateChunks();
         break;
       default: {
         const exhaustiveCheck: never = this.state;
@@ -64,32 +62,27 @@ export class ImageLayerXYZ extends Layer {
   private async updateChunks() {
     if (!this.chunkManagerSource_) return;
 
-    const isInitialLoad = this.state === "initialized";
-
-    if (isInitialLoad) {
+    if (this.state === "initialized") {
       this.setState("loading");
     }
 
-    const chunks = await this.chunkManagerSource_.getVisibleChunks();
+    await this.chunkManagerSource_.loadChunk();
+    const chunks = this.chunkManagerSource_.getVisibleChunks();
 
     if (chunks.length > 0) {
-      this.processChunk(chunks[0], !isInitialLoad);
+      this.processChunk(chunks[0]);
     }
 
-    if (isInitialLoad) {
-      this.setState("ready");
-    }
+    this.setState("ready");
   }
 
-  private processChunk(chunk: ImageChunk, shouldClear: boolean) {
+  private processChunk(chunk: ImageChunk) {
     this.extent_ = {
       x: chunk.shape.x * chunk.scale.x,
       y: chunk.shape.y * chunk.scale.y,
     };
 
-    if (shouldClear) {
-      this.clearObjects();
-    }
+    this.clearObjects();
 
     this.image_ = this.createImage(chunk);
     this.addObject(this.image_);

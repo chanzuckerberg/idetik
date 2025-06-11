@@ -21,7 +21,7 @@ export class ChunkManagerSource {
   constructor(loader: ImageChunkLoader, attributes: LoaderAttributes[]) {
     this.loader_ = loader;
     this.attributes_ = attributes;
-    this.currentLOD_ = this.attributes_.length - 1;
+    this.currentLOD_ = this.attributes_.length - 1; // default to lowest res
   }
 
   public setRegion(region: Region) {
@@ -30,74 +30,66 @@ export class ChunkManagerSource {
 
   public async load(): Promise<ImageChunk | undefined> {
     if (!this.region_) {
-      return;
+      return undefined;
     }
 
-    try {
-      const chunks = await this.getVisibleChunks();
-      return chunks[0]; // Return first (and only) chunk
-    } catch (error) {
-      console.warn("Failed to load chunk:", error);
-      return;
-    }
+    await this.loadChunk();
+    const chunks = this.getVisibleChunks();
+    return chunks[0];
   }
 
   public async updateLOD(
     camera: Camera,
-    bufferWidth: number,
-    firstPass: boolean = false
+    bufferWidth: number
   ): Promise<ImageChunk | undefined> {
     const availableScales = this.attributes_.map((attr) => attr.scale);
-    let lodResult: number;
-
+    
     if (availableScales.length === 0) {
-      lodResult = 0; // Use first LOD level when no scales available
-      if (firstPass) {
-        this.currentLOD_ = lodResult;
-        return await this.load();
-      }
-    } else {
-      lodResult = this.computeLOD(camera, bufferWidth, availableScales);
-    }
-
-    const lodChanged = lodResult !== this.currentLOD_;
-
-    if (lodChanged || firstPass) {
-      if (lodChanged) {
-        const oldLOD = this.currentLOD_ ?? "none";
-        console.log(`LOD changed from ${oldLOD} to ${lodResult}`);
-      }
-      this.currentLOD_ = lodResult;
+      // No scales available, just ensure chunk is loaded at current LOD
       return await this.load();
     }
+
+    const lodResult = this.computeLOD(camera, bufferWidth, availableScales);
+    const lodChanged = lodResult !== this.currentLOD_;
+
+    if (lodChanged) {
+      console.log(`LOD changed from ${this.currentLOD_} to ${lodResult}`);
+      this.currentLOD_ = lodResult;
+    }
+
+    return await this.load();
   }
 
-  public async getVisibleChunks(): Promise<ImageChunk[]> {
+  public getVisibleChunks(): ImageChunk[] {
     if (!this.region_) {
       return [];
     }
+    return this.chunks_[this.currentLOD_] || [];
+  }
 
-    // Check if we already have the chunk cached for current LOD
+  public async loadChunk(): Promise<void> {
+    if (!this.region_) {
+      return;
+    }
+
+    // Check if already cached
     if (this.chunks_[this.currentLOD_]?.length > 0) {
-      return this.chunks_[this.currentLOD_];
+      return;
     }
 
     try {
-      // Cache the loaded chunk
       const chunk = await this.loader_.loadChunk(
         this.region_,
         this.currentLOD_
       );
       this.chunks_[this.currentLOD_] = [chunk];
-      return this.chunks_[this.currentLOD_];
     } catch (error) {
       // Throttle error logging to prevent console spam in render loop
       const now = Date.now();
       if (now - this.lastErrorTime_ > this.ERROR_THROTTLE_MS_) {
-        console.warn("Failed to load chunk in getVisibleChunks:", error);
+        console.warn("Failed to load chunk:", error);
         this.lastErrorTime_ = now;
       }
-      return [];
     }
   }
 
