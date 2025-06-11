@@ -71,10 +71,7 @@ export class Idetik {
         );
         return;
       }
-      this.chunkManager_.update(
-        this.camera,
-        this.renderer_.width
-      );
+      this.chunkManager_.update(this.camera, this.renderer_.width);
       this.renderer_.render(this.layerManager, this.camera);
       requestAnimationFrame(render);
     };

@@ -6,17 +6,16 @@ import {
 } from "@/data/image_chunk";
 import { Region } from "@/data/region";
 
-
 import { Camera } from "../objects/cameras/camera";
-import { vec2, vec4, mat4 } from "gl-matrix";
-
-type Bounds = { min: vec2; max: vec2 };
+import { vec4, mat4 } from "gl-matrix";
 
 export class ChunkManagerSource {
   private readonly loader_: ImageChunkLoader;
   private readonly attributes_: LoaderAttributes[];
   private region_?: Region;
   private currentLOD_: number;
+  private lastErrorTime_ = 0;
+  private readonly ERROR_THROTTLE_MS_ = 5000; // Only log errors every 5 seconds
 
   constructor(loader: ImageChunkLoader, attributes: LoaderAttributes[]) {
     this.loader_ = loader;
@@ -41,8 +40,12 @@ export class ChunkManagerSource {
     }
   }
 
-  public async updateLOD(camera: Camera, bufferWidth: number, firstPass: boolean = false): Promise<ImageChunk | undefined> {
-    const availableScales = this.attributes_.map(attr => attr.scale);
+  public async updateLOD(
+    camera: Camera,
+    bufferWidth: number,
+    firstPass: boolean = false
+  ): Promise<ImageChunk | undefined> {
+    const availableScales = this.attributes_.map((attr) => attr.scale);
     let lodResult: number;
 
     if (availableScales.length === 0) {
@@ -59,7 +62,7 @@ export class ChunkManagerSource {
 
     if (lodChanged || firstPass) {
       if (lodChanged) {
-        const oldLOD = this.currentLOD_ ?? 'none';
+        const oldLOD = this.currentLOD_ ?? "none";
         console.log(`LOD changed from ${oldLOD} to ${lodResult}`);
       }
       this.currentLOD_ = lodResult;
@@ -71,8 +74,22 @@ export class ChunkManagerSource {
     if (!this.region_) {
       return [];
     }
-    const chunk = await this.loader_.loadChunk(this.region_, this.currentLOD_);
-    return [chunk];
+
+    try {
+      const chunk = await this.loader_.loadChunk(
+        this.region_,
+        this.currentLOD_
+      );
+      return [chunk];
+    } catch (error) {
+      // Throttle error logging to prevent console spam in render loop
+      const now = Date.now();
+      if (now - this.lastErrorTime_ > this.ERROR_THROTTLE_MS_) {
+        console.warn("Failed to load chunk in getVisibleChunks:", error);
+        this.lastErrorTime_ = now;
+      }
+      return [];
+    }
   }
 
   public computeLOD(
@@ -85,13 +102,21 @@ export class ChunkManagerSource {
     const virtualWidth = viewExtent.worldWidth;
 
     // Check for invalid values
-    if (!isFinite(virtualWidth) || virtualWidth <= 0 || !isFinite(bufferWidth) || bufferWidth <= 0) {
+    if (
+      !isFinite(virtualWidth) ||
+      virtualWidth <= 0 ||
+      !isFinite(bufferWidth) ||
+      bufferWidth <= 0
+    ) {
       return 0; // Default to highest resolution
     }
 
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
 
-    if (!isFinite(virtualUnitsPerScreenPixel) || virtualUnitsPerScreenPixel <= 0) {
+    if (
+      !isFinite(virtualUnitsPerScreenPixel) ||
+      virtualUnitsPerScreenPixel <= 0
+    ) {
       return 0;
     }
 
@@ -106,9 +131,10 @@ export class ChunkManagerSource {
   }
 
   // Calculate the visible bounds in virtual space.
-  private calculateVisibleBounds(
-    camera: Camera,
-  ): { worldWidth: number; worldHeight: number } {
+  private calculateVisibleBounds(camera: Camera): {
+    worldWidth: number;
+    worldHeight: number;
+  } {
     // Screen space corners (normalized device coordinates: -1 to +1)
     const topLeftNDC = vec4.fromValues(-1, 1, 0, 1);
     const bottomRightNDC = vec4.fromValues(1, -1, 0, 1);
@@ -122,39 +148,26 @@ export class ChunkManagerSource {
     const invViewProjection = mat4.invert(mat4.create(), viewProjection);
 
     // Transform to world space
-    const topLeftWorld = vec4.transformMat4(vec4.create(), topLeftNDC, invViewProjection);
-    const bottomRightWorld = vec4.transformMat4(vec4.create(), bottomRightNDC, invViewProjection);
+    const topLeftWorld = vec4.transformMat4(
+      vec4.create(),
+      topLeftNDC,
+      invViewProjection
+    );
+    const bottomRightWorld = vec4.transformMat4(
+      vec4.create(),
+      bottomRightNDC,
+      invViewProjection
+    );
 
     const worldWidth = Math.abs(bottomRightWorld[0] - topLeftWorld[0]);
     const worldHeight = Math.abs(topLeftWorld[1] - bottomRightWorld[1]);
 
     return { worldWidth, worldHeight };
   }
-
 }
 
 export class ChunkManager {
   private readonly sources_ = new Map<ImageChunkSource, ChunkManagerSource>();
-
-  public computeVisibleBounds(camera: Camera): Bounds {
-    let topLeft = vec4.fromValues(-1.0, 1.0, 0.0, 1.0);
-    let bottomRight = vec4.fromValues(1.0, -1.0, 0.0, 1.0);
-
-    const viewProjection = mat4.multiply(
-      mat4.create(),
-      camera.projectionMatrix,
-      camera.viewMatrix
-    );
-
-    const inv = mat4.invert(mat4.create(), viewProjection);
-    topLeft = vec4.transformMat4(vec4.create(), topLeft, inv);
-    bottomRight = vec4.transformMat4(vec4.create(), bottomRight, inv);
-
-    return {
-      min: vec2.fromValues(topLeft[0], topLeft[1]),
-      max: vec2.fromValues(bottomRight[0], bottomRight[1]),
-    };
-  }
 
   public async addSource(source: ImageChunkSource) {
     let existing = this.sources_.get(source);
@@ -168,10 +181,8 @@ export class ChunkManager {
   }
 
   public async update(camera: Camera, bufferWidth: number) {
-    // const visibleBounds = this.computeVisibleBounds(camera);
     for (const source of this.sources_.values()) {
       await source.updateLOD(camera, bufferWidth);
     }
   }
-
 }
