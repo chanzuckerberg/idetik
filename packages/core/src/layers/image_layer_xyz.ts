@@ -68,7 +68,7 @@ export class ImageLayerXYZ extends Layer {
     if (!this.chunkManagerSource_ || !this.context_) return;
 
     const firstPass = this.state === "initialized";
-    
+
     if (firstPass) {
       this.setState("loading");
     }
@@ -79,7 +79,6 @@ export class ImageLayerXYZ extends Layer {
     const newChunk = await this.chunkManagerSource_.updateLOD(
       camera,
       viewport.width,
-      viewport.height,
       firstPass
     );
 

@@ -33,27 +33,32 @@ export class ChunkManagerSource {
       return undefined;
     }
 
+    console.log('Loading chunk with LOD:', this.currentLOD_, 'Region:', this.region_);
+    console.log('Available attributes:', this.attributes_);
+
     try {
       return await this.loader_.loadChunk(this.region_, this.currentLOD_);
     } catch (error) {
       console.warn("Failed to reload with new scale:", error);
+      console.warn("Current LOD:", this.currentLOD_);
+      console.warn("Attributes length:", this.attributes_.length);
       return undefined;
     }
   }
 
-  public async updateLOD(camera: Camera, bufferWidth: number, bufferHeight: number, firstPass: boolean = false): Promise<ImageChunk | undefined> {
+  public async updateLOD(camera: Camera, bufferWidth: number, firstPass: boolean = false): Promise<ImageChunk | undefined> {
     const availableScales = this.attributes_.map(attr => attr.scale);
     let lodResult: number;
+
     if (availableScales.length === 0) {
-      console.warn("No scales available");
-      lodResult = this.attributes_.length - 1;
+      console.warn("No scales available, using default LOD 0");
+      lodResult = 0; // Use first LOD level when no scales available
       if (firstPass) {
-        // if first pass, set the current LOD to the default and load the chunk
         this.currentLOD_ = lodResult;
         return await this.load();
       }
     } else {
-      lodResult = this.computeLOD(camera, bufferWidth, bufferHeight, availableScales);
+      lodResult = this.computeLOD(camera, bufferWidth, availableScales);
     }
 
     const lodChanged = lodResult !== this.currentLOD_;
@@ -85,14 +90,27 @@ export class ChunkManagerSource {
     const viewExtent = this.calculateVisibleBounds(camera);
     const virtualWidth = viewExtent.worldWidth;
 
+    // Check for invalid values
+    if (!isFinite(virtualWidth) || virtualWidth <= 0 || !isFinite(bufferWidth) || bufferWidth <= 0) {
+      console.warn('Invalid dimensions for LOD calculation:', { virtualWidth, bufferWidth });
+      return 0; // Default to highest resolution
+    }
+
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
+
+    if (!isFinite(virtualUnitsPerScreenPixel) || virtualUnitsPerScreenPixel <= 0) {
+      console.warn('Invalid virtualUnitsPerScreenPixel:', virtualUnitsPerScreenPixel);
+      return 0;
+    }
 
     const numLods = availableScales.length;
     const lodShift = numLods - 1;
-    const lodF = lodShift + Math.log2(1 / virtualUnitsPerScreenPixel);
+    const lodF = lodShift - Math.log2(1 / virtualUnitsPerScreenPixel);
 
     const maxLod = numLods - 1;
-    return Math.max(0, Math.min(maxLod, Math.floor(lodF)));
+    const result = Math.max(0, Math.min(maxLod, Math.floor(lodF)));
+
+    return result;
   }
 
   // Calculate the visible bounds in virtual space.
@@ -159,10 +177,10 @@ export class ChunkManager {
     return existing;
   }
 
-  public async update(camera: Camera, bufferWidth: number, bufferHeight: number) {
+  public async update(camera: Camera, bufferWidth: number) {
     // const visibleBounds = this.computeVisibleBounds(camera);
     for (const source of this.sources_.values()) {
-      await source.updateLOD(camera, bufferWidth, bufferHeight);
+      await source.updateLOD(camera, bufferWidth);
     }
   }
 
