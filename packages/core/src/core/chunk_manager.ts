@@ -39,17 +39,8 @@ export class ChunkManagerSource {
     if (!this.region_) {
       return undefined;
     }
-
     // Use computed LOD if available; otherwise default to lowest resolution
     const lod = this.currentLOD_?.scaleIndex ?? this.attributes_.length - 1;
-
-    return await this.loader_.loadChunk(this.region_, lod);
-  }
-
-  public async reloadWithScale(lod: number): Promise<ImageChunk | undefined> {
-    if (!this.region_) {
-      return undefined;
-    }
 
     try {
       return await this.loader_.loadChunk(this.region_, lod);
@@ -59,15 +50,7 @@ export class ChunkManagerSource {
     }
   }
 
-  public async getVisibleChunks(): Promise<ImageChunk[]> {
-    if (!this.region_ || !this.currentLOD_) {
-      return [];
-    }
-    const chunk = await this.loader_.loadChunk(this.region_, this.currentLOD_.scaleIndex);
-    return [chunk];
-  }
-
-  public async loadChunk(camera: Camera, bufferWidth: number, bufferHeight: number): Promise<ImageChunk | undefined> {
+  public async updateLOD(camera: Camera, bufferWidth: number, bufferHeight: number): Promise<ImageChunk | undefined> {
     const availableScales = this.attributes_.map(attr => attr.scale);
     const lodResult = this.computeLOD(camera, bufferWidth, bufferHeight, availableScales);
 
@@ -77,11 +60,20 @@ export class ChunkManagerSource {
       const oldLOD = this.currentLOD_?.scaleIndex ?? 'none';
       console.log(`LOD changed from ${oldLOD} to ${lodResult.scaleIndex} (resolution: ${lodResult.resolution.toFixed(2)}, scale factor: ${lodResult.scaleFactor.toFixed(4)})`);
       this.currentLOD_ = lodResult;
-      return await this.reloadWithScale(lodResult.scaleIndex);
+      return await this.load();
     }
 
     this.currentLOD_ = lodResult;
+    // return await this.load();
     return undefined;
+  }
+
+  public async getVisibleChunks(): Promise<ImageChunk[]> {
+    if (!this.region_ || !this.currentLOD_) {
+      return [];
+    }
+    const chunk = await this.loader_.loadChunk(this.region_, this.currentLOD_.scaleIndex);
+    return [chunk];
   }
 
   public computeLOD(
@@ -229,7 +221,7 @@ export class ChunkManager {
   public async update(camera: Camera, bufferWidth: number, bufferHeight: number) {
     // const visibleBounds = this.computeVisibleBounds(camera);
     for (const source of this.sources_.values()) {
-      await source.loadChunk(camera, bufferWidth, bufferHeight);
+      await source.updateLOD(camera, bufferWidth, bufferHeight);
     }
   }
 

@@ -89,7 +89,7 @@ export class ImageLayerXYZ extends Layer {
     const camera = this.context_.camera;
     const viewport = this.context_.viewport;
 
-    const newChunk = await this.chunkManagerSource_.loadChunk(
+    const newChunk = await this.chunkManagerSource_.updateLOD(
       camera,
       viewport.width,
       viewport.height
