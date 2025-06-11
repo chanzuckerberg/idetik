@@ -89,25 +89,7 @@ export class ChunkManagerSource {
     // Get the actual visible bounds to determine virtual width
     const viewExtent = this.calculateVisibleBounds(camera);
     const virtualWidth = viewExtent.worldWidth;
-
-    // Check for invalid values
-    if (
-      !isFinite(virtualWidth) ||
-      virtualWidth <= 0 ||
-      !isFinite(bufferWidth) ||
-      bufferWidth <= 0
-    ) {
-      return 0; // Default to highest resolution
-    }
-
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
-
-    if (
-      !isFinite(virtualUnitsPerScreenPixel) ||
-      virtualUnitsPerScreenPixel <= 0
-    ) {
-      return 0;
-    }
 
     const numLods = availableScales.length;
     const lodShift = numLods - 1;
