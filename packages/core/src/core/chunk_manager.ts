@@ -6,14 +6,6 @@ import {
 } from "@/data/image_chunk";
 import { Region } from "@/data/region";
 
-export interface LODResult {
-  // Optimal scale index to use (0 = highest resolution)
-  scaleIndex: number;
-  // Effective resolution in pixels per world unit
-  resolution: number;
-  // Scale factor for this level (world units per pixel)
-  scaleFactor: number;
-}
 
 import { Camera } from "../objects/cameras/camera";
 import { vec2, vec4, mat4 } from "gl-matrix";
@@ -24,7 +16,7 @@ export class ChunkManagerSource {
   private readonly loader_: ImageChunkLoader;
   private readonly attributes_: LoaderAttributes[];
   private region_?: Region;
-  private currentLOD_?: LODResult;
+  private currentLOD_?: { scaleIndex: number; resolution: number };
 
   constructor(loader: ImageChunkLoader, attributes: LoaderAttributes[]) {
     this.loader_ = loader;
@@ -59,7 +51,7 @@ export class ChunkManagerSource {
     if (lodChanged || firstPass) {
       if (lodChanged) {
         const oldLOD = this.currentLOD_?.scaleIndex ?? 'none';
-        console.log(`LOD changed from ${oldLOD} to ${lodResult.scaleIndex} (resolution: ${lodResult.resolution.toFixed(2)}, scale factor: ${lodResult.scaleFactor.toFixed(4)})`);
+        console.log(`LOD changed from ${oldLOD} to ${lodResult.scaleIndex} (resolution: ${lodResult.resolution.toFixed(2)}`);
       }
       this.currentLOD_ = lodResult;
       return await this.load();
@@ -79,18 +71,13 @@ export class ChunkManagerSource {
     bufferWidth: number, // screen/canvas width in pixels
     bufferHeight: number, // screen/canvas height in pixels
     availableScales: number[][] // scale factors per LOD, where each scale is [c, z, y, x]
-  ): LODResult {
-    // console.log("computeLOD", availableScales);
+  ): { scaleIndex: number; resolution: number } {
     if (availableScales.length === 0) {
       throw new Error("No scales available");
     }
 
     // Calculate world-space dimensions of the current visible view
-    const viewExtent = this.calculateViewExtent(
-      camera,
-      bufferWidth,
-      bufferHeight
-    );
+    const viewExtent = this.calculateViewExtent(camera);
 
     // Calculate desired screen resolution: pixels per world unit
     // i.e., how many screen pixels span one unit of virtual space (zoom-dependent)
@@ -143,20 +130,16 @@ export class ChunkManagerSource {
     const scaleX = selectedScale[selectedScale.length - 1];
     const scaleY = selectedScale[selectedScale.length - 2];
     const effectiveResolution = Math.min(1.0 / scaleX, 1.0 / scaleY);
-    const effectiveScaleFactor = Math.max(scaleX, scaleY);
 
     return {
       scaleIndex: bestScaleIndex,
       resolution: effectiveResolution,
-      scaleFactor: effectiveScaleFactor,
     };
   }
 
   // Calculate the world space extent (width/height) currently visible in the camera view.
   private calculateViewExtent(
     camera: Camera,
-    _bufferWidth: number, // screen width
-    _bufferHeight: number // screen height
   ): { worldWidth: number; worldHeight: number } {
     // Screen space corners (normalized device coordinates: -1 to +1)
     const topLeft = camera.clipToWorld([-1, 1, 0]); // camera space to world space

@@ -10,7 +10,6 @@ export { Layer } from "./core/layer";
 export type { LayerState } from "./core/layer";
 export { LayerManager } from "./core/layer_manager";
 export { ChunkManager } from "./core/chunk_manager";
-export type { LODResult } from "./core/chunk_manager";
 
 export { AxesLayer } from "./layers/axes_layer";
 export { ProjectedLineLayer } from "./layers/projected_line_layer";
