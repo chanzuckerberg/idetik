@@ -89,7 +89,7 @@ export class ChunkManagerSource {
   ): number {
     // Get the actual visible bounds to determine virtual width
     const viewExtent = this.calculateVisibleBounds(camera);
-    const virtualWidth = viewExtent.worldWidth;
+    const virtualWidth = viewExtent.virtualWidth;
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
 
     const numLods = availableScales.length;
@@ -104,8 +104,8 @@ export class ChunkManagerSource {
 
   // Calculate the visible bounds in virtual space.
   private calculateVisibleBounds(camera: Camera): {
-    worldWidth: number;
-    worldHeight: number;
+    virtualWidth: number;
+    virtualHeight: number;
   } {
     // Screen space corners (normalized device coordinates: -1 to +1)
     const topLeftNDC = vec4.fromValues(-1, 1, 0, 1);
@@ -119,7 +119,7 @@ export class ChunkManagerSource {
     );
     const invViewProjection = mat4.invert(mat4.create(), viewProjection);
 
-    // Transform to world space
+    // Transform to virtual space
     const topLeftWorld = vec4.transformMat4(
       vec4.create(),
       topLeftNDC,
@@ -131,10 +131,10 @@ export class ChunkManagerSource {
       invViewProjection
     );
 
-    const worldWidth = Math.abs(bottomRightWorld[0] - topLeftWorld[0]);
-    const worldHeight = Math.abs(topLeftWorld[1] - bottomRightWorld[1]);
+    const virtualWidth = Math.abs(bottomRightWorld[0] - topLeftWorld[0]);
+    const virtualHeight = Math.abs(topLeftWorld[1] - bottomRightWorld[1]);
 
-    return { worldWidth, worldHeight };
+    return { virtualWidth, virtualHeight };
   }
 }
 

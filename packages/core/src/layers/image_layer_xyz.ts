@@ -35,7 +35,7 @@ export class ImageLayerXYZ extends Layer {
     this.channelProps_ = channelProps;
   }
 
-  public async onAttached(context: IdetikContext): Promise<void> {
+  public async onAttached(context: IdetikContext) {
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_
     );
