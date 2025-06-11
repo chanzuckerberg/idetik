@@ -15,8 +15,6 @@ type IdetikParams = {
 
 export type IdetikContext = {
   chunkManager: ChunkManager;
-  camera: Camera;
-  viewport: { width: number; height: number };
 };
 
 export class Idetik {
@@ -34,8 +32,6 @@ export class Idetik {
 
     this.context_ = {
       chunkManager: this.chunkManager_,
-      camera: this.camera,
-      viewport: { width: this.renderer_.width, height: this.renderer_.height },
     };
 
     this.layerManager = new LayerManager(this.context_);
@@ -77,8 +73,7 @@ export class Idetik {
       }
       this.chunkManager_.update(
         this.camera,
-        this.renderer_.width,
-        this.renderer_.height
+        this.renderer_.width
       );
       this.renderer_.render(this.layerManager, this.camera);
       requestAnimationFrame(render);

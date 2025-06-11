@@ -46,16 +46,16 @@ export class ImageLayerXYZ extends Layer {
   }
 
   public async update() {
-    if (!this.chunkManagerSource_ || !this.context_) return;
+    if (!this.chunkManagerSource_) return;
 
     switch (this.state) {
       case "initialized":
-        await this.updateImage();
+        await this.updateChunks();
         break;
       case "loading":
         break;
       case "ready":
-        await this.updateImage();
+        await this.updateChunks();
         break;
       default: {
         const exhaustiveCheck: never = this.state;
@@ -64,29 +64,22 @@ export class ImageLayerXYZ extends Layer {
     }
   }
 
-  private async updateImage() {
-    if (!this.chunkManagerSource_ || !this.context_) return;
+  private async updateChunks() {
+    if (!this.chunkManagerSource_) return;
 
-    const firstPass = this.state === "initialized";
+    const isInitialLoad = this.state === "initialized";
 
-    if (firstPass) {
+    if (isInitialLoad) {
       this.setState("loading");
     }
 
-    const camera = this.context_.camera;
-    const viewport = this.context_.viewport;
+    const chunks = await this.chunkManagerSource_.getVisibleChunks();
 
-    const newChunk = await this.chunkManagerSource_.updateLOD(
-      camera,
-      viewport.width,
-      firstPass
-    );
-
-    if (newChunk) {
-      this.processChunk(newChunk, !firstPass);
+    if (chunks.length > 0) {
+      this.processChunk(chunks[0], !isInitialLoad);
     }
 
-    if (firstPass) {
+    if (isInitialLoad) {
       this.setState("ready");
     }
   }
