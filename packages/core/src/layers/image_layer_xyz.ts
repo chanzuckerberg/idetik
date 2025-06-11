@@ -66,14 +66,15 @@ export class ImageLayerXYZ extends Layer {
       this.setState("loading");
     }
 
-    await this.chunkManagerSource_.loadChunk();
     const chunks = this.chunkManagerSource_.getVisibleChunks();
 
     if (chunks.length > 0) {
       this.processChunk(chunks[0]);
     }
 
-    this.setState("ready");
+    if (this.state === "loading") {
+      this.setState("ready");
+    }
   }
 
   private processChunk(chunk: ImageChunk) {
