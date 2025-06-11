@@ -16,11 +16,12 @@ export class ChunkManagerSource {
   private readonly loader_: ImageChunkLoader;
   private readonly attributes_: LoaderAttributes[];
   private region_?: Region;
-  private currentLOD_?: { scaleIndex: number; resolution: number };
+  private currentLOD_: number;
 
   constructor(loader: ImageChunkLoader, attributes: LoaderAttributes[]) {
     this.loader_ = loader;
     this.attributes_ = attributes;
+    this.currentLOD_ = this.attributes_.length - 1;
   }
 
   public setRegion(region: Region) {
@@ -31,11 +32,9 @@ export class ChunkManagerSource {
     if (!this.region_) {
       return undefined;
     }
-    // Use computed LOD if available; otherwise default to lowest resolution
-    const lod = this.currentLOD_?.scaleIndex ?? this.attributes_.length - 1;
 
     try {
-      return await this.loader_.loadChunk(this.region_, lod);
+      return await this.loader_.loadChunk(this.region_, this.currentLOD_);
     } catch (error) {
       console.warn("Failed to reload with new scale:", error);
       return undefined;
@@ -44,14 +43,25 @@ export class ChunkManagerSource {
 
   public async updateLOD(camera: Camera, bufferWidth: number, bufferHeight: number, firstPass: boolean = false): Promise<ImageChunk | undefined> {
     const availableScales = this.attributes_.map(attr => attr.scale);
-    const lodResult = this.computeLOD(camera, bufferWidth, bufferHeight, availableScales);
+    let lodResult: number;
+    if (availableScales.length === 0) {
+      console.warn("No scales available");
+      lodResult = this.attributes_.length - 1;
+      if (firstPass) {
+        // if first pass, set the current LOD to the default and load the chunk
+        this.currentLOD_ = lodResult;
+        return await this.load();
+      }
+    } else {
+      lodResult = this.computeLOD(camera, bufferWidth, bufferHeight, availableScales);
+    }
 
-    const lodChanged = !this.currentLOD_ || lodResult.scaleIndex !== this.currentLOD_.scaleIndex;
+    const lodChanged = lodResult !== this.currentLOD_;
 
     if (lodChanged || firstPass) {
       if (lodChanged) {
-        const oldLOD = this.currentLOD_?.scaleIndex ?? 'none';
-        console.log(`LOD changed from ${oldLOD} to ${lodResult.scaleIndex} (resolution: ${lodResult.resolution.toFixed(2)}`);
+        const oldLOD = this.currentLOD_ ?? 'none';
+        console.log(`LOD changed from ${oldLOD} to ${lodResult}`);
       }
       this.currentLOD_ = lodResult;
       return await this.load();
@@ -59,10 +69,10 @@ export class ChunkManagerSource {
   }
 
   public async getVisibleChunks(): Promise<ImageChunk[]> {
-    if (!this.region_ || !this.currentLOD_) {
+    if (!this.region_) {
       return [];
     }
-    const chunk = await this.loader_.loadChunk(this.region_, this.currentLOD_.scaleIndex);
+    const chunk = await this.loader_.loadChunk(this.region_, this.currentLOD_);
     return [chunk];
   }
 
@@ -71,13 +81,10 @@ export class ChunkManagerSource {
     bufferWidth: number, // screen/canvas width in pixels
     bufferHeight: number, // screen/canvas height in pixels
     availableScales: number[][] // scale factors per LOD, where each scale is [c, z, y, x]
-  ): { scaleIndex: number; resolution: number } {
-    if (availableScales.length === 0) {
-      throw new Error("No scales available");
-    }
+  ): number {
 
     // Calculate world-space dimensions of the current visible view
-    const viewExtent = this.calculateViewExtent(camera);
+    const viewExtent = this.calculateVisibleBounds(camera);
 
     // Calculate desired screen resolution: pixels per world unit
     // i.e., how many screen pixels span one unit of virtual space (zoom-dependent)
@@ -126,37 +133,31 @@ export class ChunkManagerSource {
       }
     }
 
-    const selectedScale = availableScales[bestScaleIndex];
-    const scaleX = selectedScale[selectedScale.length - 1];
-    const scaleY = selectedScale[selectedScale.length - 2];
-    const effectiveResolution = Math.min(1.0 / scaleX, 1.0 / scaleY);
-
-    return {
-      scaleIndex: bestScaleIndex,
-      resolution: effectiveResolution,
-    };
+    return bestScaleIndex;
   }
 
-  // Calculate the world space extent (width/height) currently visible in the camera view.
-  private calculateViewExtent(
+  // Calculate the visible bounds in virtual space.
+  private calculateVisibleBounds(
     camera: Camera,
   ): { worldWidth: number; worldHeight: number } {
     // Screen space corners (normalized device coordinates: -1 to +1)
-    const topLeft = camera.clipToWorld([-1, 1, 0]); // camera space to world space
-    const topRight = camera.clipToWorld([1, 1, 0]);
-    const bottomLeft = camera.clipToWorld([-1, -1, 0]);
-    const bottomRight = camera.clipToWorld([1, -1, 0]);
+    const topLeftNDC = vec4.fromValues(-1, 1, 0, 1);
+    const bottomRightNDC = vec4.fromValues(1, -1, 0, 1);
 
-    // Calculate world space dimensions
-    const worldWidth = Math.max(
-      Math.abs(topRight[0] - topLeft[0]),
-      Math.abs(bottomRight[0] - bottomLeft[0])
+    // Compute inverse view-projection matrix once
+    const viewProjection = mat4.multiply(
+      mat4.create(),
+      camera.projectionMatrix,
+      camera.viewMatrix
     );
+    const invViewProjection = mat4.invert(mat4.create(), viewProjection);
 
-    const worldHeight = Math.max(
-      Math.abs(topLeft[1] - bottomLeft[1]),
-      Math.abs(topRight[1] - bottomRight[1])
-    );
+    // Transform to world space
+    const topLeftWorld = vec4.transformMat4(vec4.create(), topLeftNDC, invViewProjection);
+    const bottomRightWorld = vec4.transformMat4(vec4.create(), bottomRightNDC, invViewProjection);
+
+    const worldWidth = Math.abs(bottomRightWorld[0] - topLeftWorld[0]);
+    const worldHeight = Math.abs(topLeftWorld[1] - bottomRightWorld[1]);
 
     return { worldWidth, worldHeight };
   }
