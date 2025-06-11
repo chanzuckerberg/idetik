@@ -92,7 +92,7 @@ export class ChunkManagerSource {
     }
   }
 
-  public computeLOD(
+  private computeLOD(
     camera: Camera,
     bufferWidth: number, // screen/canvas width in pixels
     availableScales: number[][] // scale factors per LOD, where each scale is [c, z, y, x]
