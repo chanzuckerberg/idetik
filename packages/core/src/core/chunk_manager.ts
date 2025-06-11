@@ -30,14 +30,15 @@ export class ChunkManagerSource {
 
   public async load(): Promise<ImageChunk | undefined> {
     if (!this.region_) {
-      return undefined;
+      return;
     }
 
     try {
-      return await this.loader_.loadChunk(this.region_, this.currentLOD_);
+      const chunks = await this.getVisibleChunks();
+      return chunks[0]; // Return first (and only) chunk
     } catch (error) {
-      console.warn("Failed to reload with new scale:", error);
-      return undefined;
+      console.warn("Failed to load chunk:", error);
+      return;
     }
   }
 
