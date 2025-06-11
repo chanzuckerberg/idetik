@@ -79,61 +79,20 @@ export class ChunkManagerSource {
   public computeLOD(
     camera: Camera,
     bufferWidth: number, // screen/canvas width in pixels
-    bufferHeight: number, // screen/canvas height in pixels
     availableScales: number[][] // scale factors per LOD, where each scale is [c, z, y, x]
   ): number {
-
-    // Calculate world-space dimensions of the current visible view
+    // Get the actual visible bounds to determine virtual width
     const viewExtent = this.calculateVisibleBounds(camera);
+    const virtualWidth = viewExtent.worldWidth;
 
-    // Calculate desired screen resolution: pixels per world unit
-    // i.e., how many screen pixels span one unit of virtual space (zoom-dependent)
-    const desiredResolutionX = bufferWidth / viewExtent.worldWidth;
-    const desiredResolutionY = bufferHeight / viewExtent.worldHeight;
+    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
 
-    // Choose the higher resolution between X and Y (higher pixels per unit) to avoid aliasing
-    const desiredResolution = Math.max(desiredResolutionX, desiredResolutionY);
+    const numLods = availableScales.length;
+    const lodShift = numLods - 1;
+    const lodF = lodShift + Math.log2(1 / virtualUnitsPerScreenPixel);
 
-    // Select the LOD with resolution closest to what's needed - prefer higher resolution over lower resolution
-    let bestScaleIndex = 0;
-    let bestResolutionMatch = Infinity;
-
-    for (let i = 0; i < availableScales.length; i++) {
-      const scale = availableScales[i];
-
-      // Assume last two dimensions are spatial (y, x) — scale = world units per texel
-      const scaleX = scale[scale.length - 1];
-      const scaleY = scale[scale.length - 2];
-
-      // Convert resolution to texels per world unit
-      // Higher = more detail; lower = coarser
-      // Less than 1 texel per world unit = undersampling → aliasing risk
-      const resolutionX = 1.0 / scaleX;
-      const resolutionY = 1.0 / scaleY;
-      const resolution = Math.min(resolutionX, resolutionY); // Conservative estimate
-
-      const resolutionRatio = resolution / desiredResolution;
-
-      // Scoring:
-      // - If ratio >= 1.0 → oversampling → mildly penalize
-      // - If ratio < 1.0 → undersampling → penalize more strongly
-      let score: number;
-      if (resolutionRatio >= 1.0) {
-        // Resolution is higher than desired - score based on how much excess detail
-        score = resolutionRatio;
-      } else {
-        // Resolution is lower than desired - penalize but not too harshly
-        // Use 1/ratio so that the higher resolution ( that's closer to desired) gets better score
-        score = 1.0 / resolutionRatio;
-      }
-
-      if (score < bestResolutionMatch) {
-        bestResolutionMatch = score;
-        bestScaleIndex = i;
-      }
-    }
-
-    return bestScaleIndex;
+    const maxLod = numLods - 1;
+    return Math.max(0, Math.min(maxLod, Math.floor(lodF)));
   }
 
   // Calculate the visible bounds in virtual space.
