@@ -50,12 +50,12 @@ export class ImageLayerXYZ extends Layer {
 
     switch (this.state) {
       case "initialized":
-        await this.load();
+        await this.updateImage();
         break;
       case "loading":
         break;
       case "ready":
-        await this.loadChunk();
+        await this.updateImage();
         break;
       default: {
         const exhaustiveCheck: never = this.state;
@@ -64,27 +64,14 @@ export class ImageLayerXYZ extends Layer {
     }
   }
 
-  private async load() {
-    if (!this.chunkManagerSource_) return;
-
-    this.setState("loading");
-    const chunk = await this.chunkManagerSource_.load();
-
-    if (chunk) {
-      this.extent_ = {
-        x: chunk.shape.x * chunk.scale.x,
-        y: chunk.shape.y * chunk.scale.y,
-      };
-
-      this.image_ = this.createImage(chunk);
-      this.addObject(this.image_);
-    }
-
-    this.setState("ready");
-  }
-
-  private async loadChunk() {
+  private async updateImage() {
     if (!this.chunkManagerSource_ || !this.context_) return;
+
+    const firstPass = this.state === "initialized";
+    
+    if (firstPass) {
+      this.setState("loading");
+    }
 
     const camera = this.context_.camera;
     const viewport = this.context_.viewport;
@@ -92,19 +79,31 @@ export class ImageLayerXYZ extends Layer {
     const newChunk = await this.chunkManagerSource_.updateLOD(
       camera,
       viewport.width,
-      viewport.height
+      viewport.height,
+      firstPass
     );
 
     if (newChunk) {
-      this.extent_ = {
-        x: newChunk.shape.x * newChunk.scale.x,
-        y: newChunk.shape.y * newChunk.scale.y,
-      };
-
-      this.clearObjects();
-      this.image_ = this.createImage(newChunk);
-      this.addObject(this.image_);
+      this.processChunk(newChunk, !firstPass);
     }
+
+    if (firstPass) {
+      this.setState("ready");
+    }
+  }
+
+  private processChunk(chunk: ImageChunk, shouldClear: boolean) {
+    this.extent_ = {
+      x: chunk.shape.x * chunk.scale.x,
+      y: chunk.shape.y * chunk.scale.y,
+    };
+
+    if (shouldClear) {
+      this.clearObjects();
+    }
+
+    this.image_ = this.createImage(chunk);
+    this.addObject(this.image_);
   }
 
   public get channelProps(): ChannelProps[] | undefined {

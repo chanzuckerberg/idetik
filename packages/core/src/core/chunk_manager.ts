@@ -50,22 +50,20 @@ export class ChunkManagerSource {
     }
   }
 
-  public async updateLOD(camera: Camera, bufferWidth: number, bufferHeight: number): Promise<ImageChunk | undefined> {
+  public async updateLOD(camera: Camera, bufferWidth: number, bufferHeight: number, firstPass: boolean = false): Promise<ImageChunk | undefined> {
     const availableScales = this.attributes_.map(attr => attr.scale);
     const lodResult = this.computeLOD(camera, bufferWidth, bufferHeight, availableScales);
 
     const lodChanged = !this.currentLOD_ || lodResult.scaleIndex !== this.currentLOD_.scaleIndex;
 
-    if (lodChanged) {
-      const oldLOD = this.currentLOD_?.scaleIndex ?? 'none';
-      console.log(`LOD changed from ${oldLOD} to ${lodResult.scaleIndex} (resolution: ${lodResult.resolution.toFixed(2)}, scale factor: ${lodResult.scaleFactor.toFixed(4)})`);
+    if (lodChanged || firstPass) {
+      if (lodChanged) {
+        const oldLOD = this.currentLOD_?.scaleIndex ?? 'none';
+        console.log(`LOD changed from ${oldLOD} to ${lodResult.scaleIndex} (resolution: ${lodResult.resolution.toFixed(2)}, scale factor: ${lodResult.scaleFactor.toFixed(4)})`);
+      }
       this.currentLOD_ = lodResult;
       return await this.load();
     }
-
-    this.currentLOD_ = lodResult;
-    // return await this.load();
-    return undefined;
   }
 
   public async getVisibleChunks(): Promise<ImageChunk[]> {
