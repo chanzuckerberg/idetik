@@ -74,7 +74,9 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
     () => {
       if (!idetik) return EMPTY_LAYERS;
       return idetik.layerManager.getSnapshot();
-    }
+    },
+    // fallback for SSR/initial render
+    () => EMPTY_LAYERS
   );
 
   const methods = useMemo(

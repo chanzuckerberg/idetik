@@ -1,7 +1,6 @@
 // Core components
 export { default as App } from "./App";
 export { default as AppWithProviders } from "./AppWithProviders";
-export { default as Main } from "./Main";
 export { IdetikCanvas } from "./IdetikCanvas";
 export { IdetikLayerList } from "./IdetikLayerList";
 export { HcsImagePanel } from "./HcsImagePanel";

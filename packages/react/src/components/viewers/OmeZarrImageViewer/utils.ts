@@ -1,5 +1,12 @@
 import { OmeroChannel, ChannelProps, Color } from "@idetik/core";
-import { ChannelControl } from "../../hooks/useIdetik";
+
+// FIXME: this type is not particularly helpful
+// but it contains the "extra" properties we need for
+// the control that core does not track
+type ChannelControl = {
+  label: string;
+  contrastRange: [number, number];
+};
 
 // TODO: the limits/range from the omero channels should possibly be reversed
 // (start/end for limits, min/max for range) but the organelle box data works better this way
