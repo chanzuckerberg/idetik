@@ -1,7 +1,7 @@
 import { Region } from "@idetik/core";
-import { OmeZarrImageViewer } from "../../src/components/viewers/OmeZarrImageViewer";
+import { OmeZarrImageViewer } from "../../components/viewers/OmeZarrImageViewer";
 import { useState } from "react";
-import { ChannelControlsList } from "../../src/components/viewers/OmeZarrImageViewer/components/ChannelControlsList";
+import { ChannelControlsList } from "../../components/viewers/OmeZarrImageViewer/components/ChannelControlsList";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_cropped.zarr";
@@ -29,6 +29,7 @@ export default function App() {
         sourceUrl={imageUrl}
         region={region}
         seriesDimensionName="T"
+        initialIndex="start"
         loadAllButtonText="Load entire duration (230MB)"
         classNames={{
           root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
