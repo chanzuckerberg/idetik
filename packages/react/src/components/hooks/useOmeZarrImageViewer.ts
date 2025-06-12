@@ -24,7 +24,6 @@ export interface OmeZarrImageViewerProps {
   region: Region;
   seriesDimensionName: string;
   cameraControlType?: "panzoom" | "none";
-  allSlicesSizeEstimate?: string;
   classNames?: {
     root?: string;
     sliceMetadataContainer?: string;
@@ -37,11 +36,14 @@ export interface OmeZarrImageViewerProps {
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
-  formatIndexIndicator?: (currentIndex: number, totalIndexes: number) => string;
+  indexIndicatorText?:
+    | string
+    | ((currentIndex: number, totalIndexes: number) => string);
+  loadAllButtonText?: string | (() => string);
   fallbackContrastLimits?: [number, number];
   lod?: number;
   shouldAutoLoadAllSlices?: boolean;
-  shouldLoadMiddleZ?: boolean;
+  initialIndex?: "start" | "middle" | "end";
 }
 
 export function useOmeZarrViewer({
@@ -57,7 +59,7 @@ export function useOmeZarrViewer({
   fallbackContrastLimits,
   lod = 0,
   shouldAutoLoadAllSlices = false,
-  shouldLoadMiddleZ = false,
+  initialIndex,
 }: OmeZarrImageViewerProps) {
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
@@ -220,11 +222,19 @@ export function useOmeZarrViewer({
       const isFullZ = zRegion && zRegion.index?.type === "full";
 
       if (isFullZ) {
-        if (shouldLoadMiddleZ) {
-          const zShape = attributesForLOD.shape[zIdx];
-          initialZ = Math.floor(zShape / 2);
-        } else {
-          initialZ = await loadOmeroDefaultZ(sourceUrl);
+        const zShape = attributesForLOD.shape[zIdx];
+        switch (initialIndex) {
+          case "start":
+            initialZ = 0;
+            break;
+          case "middle":
+            initialZ = Math.floor(zShape / 2);
+            break;
+          case "end":
+            initialZ = zShape;
+            break;
+          default:
+            initialZ = await loadOmeroDefaultZ(sourceUrl);
         }
       } else if (zRegion) {
         switch (zRegion.index?.type) {
@@ -261,7 +271,7 @@ export function useOmeZarrViewer({
     };
     fetchZRange();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Dependencies that affect z range.
-  }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
+  }, [source, seriesDimensionName, sourceUrl, initialIndex]);
 
   // Update imageLayer's index on Z change
   useEffect(() => {

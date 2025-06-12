@@ -7,9 +7,9 @@ const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_cropped.zarr";
 const wellPath = "B/3";
 const region: Region = [
-  { dimension: "T", index: { type: "point", value: 0 } },
+  { dimension: "T", index: { type: "full" } },
   { dimension: "C", index: { type: "full" } },
-  { dimension: "Z", index: { type: "full" } },
+  { dimension: "Z", index: { type: "point", value: 0 } },
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },
 ];
@@ -28,13 +28,13 @@ export default function App() {
       <OmeZarrImageViewer
         sourceUrl={imageUrl}
         region={region}
-        seriesDimensionName="Z"
-        allSlicesSizeEstimate="250 MB"
+        seriesDimensionName="T"
+        loadAllButtonText="Load entire duration (230MB)"
         classNames={{
           root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
         }}
-        formatIndexIndicator={(currentIndex, totalIndexes) =>
-          `Time ${currentIndex} of ${totalIndexes}`
+        indexIndicatorText={(currentIndex, totalIndexes) =>
+          `${Math.floor(currentIndex / 60)}h${currentIndex % 60}m of ${Math.floor(totalIndexes / 60)}h${totalIndexes % 60}m`
         }
       />
       <div className="absolute top-0 left-0 w-full md:!w-[400px]">

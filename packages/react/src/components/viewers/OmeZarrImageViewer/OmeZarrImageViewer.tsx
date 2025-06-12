@@ -8,7 +8,7 @@ import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
 
 export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
-  const { allSlicesSizeEstimate, classNames, formatIndexIndicator } = props;
+  const { classNames, indexIndicatorText, loadAllButtonText } = props;
 
   const {
     zRange,
@@ -52,9 +52,11 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
               classNames?.sliceIndicator
             )}
           >
-            {formatIndexIndicator !== undefined
-              ? formatIndexIndicator(zIndex, zRange[1] - zRange[0])
-              : `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
+            {typeof indexIndicatorText === "string" && indexIndicatorText}
+            {typeof indexIndicatorText === "function" &&
+              indexIndicatorText(zIndex, zRange[1] - zRange[0])}
+            {typeof indexIndicatorText === "undefined" &&
+              `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
           </div>
         ) : (
           <LoadingIndicator sdsStyle="tag" />
@@ -68,9 +70,9 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
             onClick={loadAllSlicesCallback}
             className={cns("shadow-sds-m", classNames?.load3dButton)}
           >
-            {allSlicesSizeEstimate
-              ? `Load 3D high-res (${allSlicesSizeEstimate})`
-              : "Load 3D high-res"}
+            {typeof loadAllButtonText === "string" && loadAllButtonText}
+            {typeof loadAllButtonText === "function" && loadAllButtonText()}
+            {typeof loadAllButtonText === "undefined" && "Load 3D high-res"}
           </Button>
         ) : (
           <div
