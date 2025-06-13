@@ -171,7 +171,7 @@ export class ImageSeriesLayer extends Layer {
         x: chunk.shape.x * chunk.scale.x,
         y: chunk.shape.y * chunk.scale.y,
       };
-    } else {
+    } else if (chunk.data) {
       this.texture_.data = chunk.data;
     }
   }
@@ -241,7 +241,7 @@ export class ImageSeriesLayer extends Layer {
     const attributes = await loader.loadAttributes();
     const lod = this.lod_ ?? attributes.length - 1;
 
-    const chunk = await loader.loadChunk(pointRegion, lod, this.scheduler_);
+    const chunk = await loader.loadRegion(pointRegion, lod, this.scheduler_);
     this.dataChunks_[index] = chunk;
 
     if (token && !token.canceled) {

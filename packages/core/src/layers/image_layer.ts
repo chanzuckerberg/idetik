@@ -75,7 +75,7 @@ export class ImageLayer extends Layer {
     const attributes = await loader.loadAttributes();
     const lod = this.lod_ ?? attributes.length - 1;
 
-    const chunk = await loader.loadChunk(region, lod);
+    const chunk = await loader.loadRegion(region, lod);
     this.extent_ = {
       x: chunk.shape.x * chunk.scale.x,
       y: chunk.shape.y * chunk.scale.y,
