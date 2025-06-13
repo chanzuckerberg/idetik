@@ -10,24 +10,67 @@ import { vec2, vec4, mat4 } from "gl-matrix";
 
 type Bounds = { min: vec2; max: vec2 };
 
+// temporary value. LOD will be computed dynamically
+const curr_lod = 0;
+
 export class ChunkManagerSource {
-  // @ts-expect-error unused for now
   private readonly chunks_: ImageChunk[][] = [];
-  // @ts-expect-error unused for now
   private readonly loader_;
 
-  constructor(loader: ImageChunkLoader, _: LoaderAttributes[]) {
+  constructor(loader: ImageChunkLoader, attrs: LoaderAttributes[]) {
     this.loader_ = loader;
 
-    // TODO: create chunks for each LOD without loading data
+    this.chunks_ = Array(attrs.length).fill(null).map(() => []);
+    for (let lod = 0; lod < attrs.length; ++lod) {
+      const chunkWidth = attrs[lod].chunks[4];
+      const chunkHeight = attrs[lod].chunks[3];
+      const chunksX = Math.ceil(attrs[lod].shape[4] / chunkWidth);
+      const chunksY = Math.ceil(attrs[lod].shape[3] / chunkHeight);
+      const channels = attrs[lod].shape.length === 3 ? attrs[lod].shape[0] : 1
+      for (let x = 0; x < chunksX; ++x) {
+        for (let y = 0; y < chunksY; ++y) {
+          this.chunks_[lod].push({
+            state: "unloaded",
+            lod,
+            visible: true, // TODO:(shlomnissan) should be set to false
+            shape: {
+              x: chunkWidth,
+              y: chunkHeight,
+              c: channels
+            },
+            rowStride: chunkWidth,
+            rowAlignmentBytes: 2, // TODO:(shlomnissan) calculate based on data
+            chunkIndex: {x, y},
+            scale: {
+              x: attrs[lod].scale[4],
+              y: attrs[lod].scale[3]
+            },
+            offset: {
+              x: x * chunkWidth * attrs[lod].scale[4],
+              y: y * chunkHeight * attrs[lod].scale[3]
+            }
+          });
+        }
+      }
+    }
   }
 
   public getVisibleChunks(): ImageChunk[] {
-    return [];
+    return this.chunks_[curr_lod].filter(e => e.visible);
   }
 
-  public updateChunks(_: Bounds) {
-    // TODO: intersection test, set visibility and load data
+  public async updateChunks(_: Bounds) {
+    // TODO: map the LOD factor to an available LOD in image space
+    // TODO: intersection tests for the current LOD (load 'unloaded' visible chunks)
+
+    for (const chunk of this.chunks_[curr_lod]) {
+      if (chunk.state === "unloaded") {
+        chunk.state = "loading";
+        this.loader_.loadChunkXYZ(chunk).then(() => {
+          chunk.state = "loaded";
+        });
+      }
+    }
   }
 }
 
@@ -48,7 +91,7 @@ export class ChunkManager {
   public update(camera: Camera, _bufferWidth: number, _bufferHeight: number) {
     const visibleBounds = this.computeVisibleBounds(camera);
 
-    // TODO: compute LOD assuming the index is not image-based
+    // TODO: compute the LOD factor
 
     for (const [_, chunkManagerSource] of this.sources_) {
       chunkManagerSource.updateChunks(visibleBounds);

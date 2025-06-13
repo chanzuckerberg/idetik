@@ -59,6 +59,33 @@ export class OmeZarrImageLoader {
     this.lods_ = this.metadata_.multiscales[0].datasets.length;
   }
 
+  async loadChunkXYZ(chunk: ImageChunk) {
+    const attrs = this.getImageAttributes()[chunk.lod];
+    const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
+      kind: "array",
+      attrs: false,
+    });
+
+    const d = await array.getChunk([
+      400, // t
+      0, // c
+      1, // z
+      chunk.chunkIndex!.y, // y
+      chunk.chunkIndex!.x  // x
+    ]);
+
+    if (!isImageChunkData(d.data)) {
+      throw new Error(
+        `Subarray has an unsupported data type, data=${d.data.constructor.name}`
+      );
+    }
+
+    // slice data
+
+    const slice = chunk.shape.x * chunk.shape.y;
+    chunk.data = d.data.subarray(120 * slice - 1, 120 * slice + slice - 1);
+  }
+
   async loadChunk(
     region: Region,
     lod: number,
@@ -87,6 +114,7 @@ export class OmeZarrImageLoader {
     }
     const subarray = await zarr.get(array, indices, options);
 
+
     if (!isImageChunkData(subarray.data)) {
       throw new Error(
         `Subarray has an unsupported data type, data=${subarray.data.constructor.name}`
@@ -114,7 +142,10 @@ export class OmeZarrImageLoader {
     const xOffset = calculateOffset(indices.length - 1);
     const yOffset = calculateOffset(indices.length - 2);
 
-    const chunk = {
+    const chunk: ImageChunk = {
+      state: "loaded",
+      lod: lod,
+      visible: true,
       data: subarray.data,
       shape: {
         x: subarray.shape[subarray.shape.length - 1],
@@ -161,6 +192,7 @@ export class OmeZarrImageLoader {
           }
         );
         return {
+          chunks: zarrArray.chunks,
           dimensionNames: attr.dimensionNames,
           shape: zarrArray.shape,
           scale: attr.scale,

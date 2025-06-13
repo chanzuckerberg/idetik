@@ -21,6 +21,7 @@ export class ImageLayerXYZ extends Layer {
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
+  private visibleChunks_: ImageChunk[] = [];
 
   // TODO:(shlomnissan) Remove this parameter—LOD will be computed
   // dynamically by the chunk manager.
@@ -51,22 +52,14 @@ export class ImageLayerXYZ extends Layer {
     if (!this.chunkManagerSource_) return;
 
     const chunks = this.chunkManagerSource_.getVisibleChunks();
-    chunks.forEach((_) => {
-      // TODO: create image renderable for visible chunks if needed
+    chunks.forEach((chunk) => {
+      if (chunk.state === "loaded" && !this.visibleChunks_.includes(chunk)) {
+        this.visibleChunks_.push(chunk);
+        this.addObject(this.createImage(chunk, this.channelProps));
+      }
     });
 
-    switch (this.state) {
-      case "initialized":
-        this.load(this.region_);
-        break;
-      case "loading":
-      case "ready":
-        break;
-      default: {
-        const exhaustiveCheck: never = this.state;
-        throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
-      }
-    }
+    this.setState("ready");
   }
 
   public get channelProps(): ChannelProps[] | undefined {
@@ -76,27 +69,6 @@ export class ImageLayerXYZ extends Layer {
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
-  }
-
-  private async load(region: Region) {
-    if (this.state !== "initialized") {
-      throw new Error(`Trying to load chunks more than once.`);
-    }
-    this.setState("loading");
-    const loader = await this.source_.open();
-    const attributes = await loader.loadAttributes();
-    const lod = this.lod_ ?? attributes.length - 1;
-
-    const chunk = await loader.loadChunk(region, lod);
-    this.extent_ = {
-      x: chunk.shape.x * chunk.scale.x,
-      y: chunk.shape.y * chunk.scale.y,
-    };
-
-    this.image_ = this.createImage(chunk, this.channelProps_);
-    this.addObject(this.image_);
-
-    this.setState("ready");
   }
 
   public get extent(): { x: number; y: number } | undefined {

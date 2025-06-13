@@ -50,7 +50,7 @@ export class Texture2DArray extends Texture {
 
   public static createWithImageChunk(chunk: ImageChunk) {
     const texture = new Texture2DArray(
-      chunk.data,
+      chunk.data!,
       chunk.shape.x,
       chunk.shape.y
     );

@@ -23,7 +23,10 @@ export function isImageChunkData(value: unknown): value is ImageChunkData {
 // TODO: include the region of this chunk.
 // https://github.com/chanzuckerberg/idetik/issues/34
 export type ImageChunk = {
-  data: ImageChunkData;
+  data?: ImageChunkData;
+  state: "unloaded" | "loading" | "loaded";
+  lod: number;
+  visible: boolean;
   shape: {
     x: number;
     y: number;
@@ -31,6 +34,10 @@ export type ImageChunk = {
   };
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
+  chunkIndex?: {
+    x: number;
+    y: number;
+  };
   scale: {
     x: number;
     y: number;
@@ -47,6 +54,7 @@ export type ImageChunkSource = {
 
 // TODO: we should make this more comprehensive, such as for multiscale images, etc.
 export type LoaderAttributes = {
+  chunks: readonly number[];
   dimensionNames: string[];
   shape: readonly number[];
   scale: readonly number[];
@@ -58,6 +66,8 @@ export type ImageChunkLoader = {
     lod: number,
     scheduler?: PromiseScheduler
   ): Promise<ImageChunk>;
+
+  loadChunkXYZ(chunk: ImageChunk): Promise<void>;
 
   loadAttributes(): Promise<LoaderAttributes[]>;
 };
