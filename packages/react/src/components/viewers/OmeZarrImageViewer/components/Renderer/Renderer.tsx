@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useIdetik } from "components/hooks";
+import { useIdetik } from "../../../../hooks";
 
 interface RendererProps {
   canvasId?: string;

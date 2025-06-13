@@ -43,7 +43,7 @@ export interface OmeZarrImageViewerProps {
   fallbackContrastLimits?: [number, number];
   lod?: number;
   shouldAutoLoadAllSlices?: boolean;
-  initialIndex?: "start" | "middle" | "end";
+  initialIndex?: "start" | "middle" | "end" | "omeroDefaultZ";
 }
 
 export function useOmeZarrViewer({
@@ -233,8 +233,11 @@ export function useOmeZarrViewer({
           case "end":
             initialZ = zShape;
             break;
-          default:
+          case "omeroDefaultZ":
             initialZ = await loadOmeroDefaultZ(sourceUrl);
+            break;
+          default:
+            initialZ = 0;
         }
       } else if (zRegion) {
         switch (zRegion.index?.type) {

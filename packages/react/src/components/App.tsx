@@ -75,6 +75,7 @@ export default function App() {
         sourceUrl={imageUrl}
         region={region}
         seriesDimensionName="Z"
+        initialIndex="omeroDefaultZ"
         classNames={{
           root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
         }}
