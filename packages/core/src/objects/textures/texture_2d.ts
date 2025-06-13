@@ -43,7 +43,7 @@ export class Texture2D extends Texture {
 
   public static createWithImageChunk(chunk: ImageChunk) {
     if (!chunk.data) {
-      throw Error("Chunk doesn't have data associated with it")
+      throw Error("Chunk doesn't have data associated with it");
     }
     const texture = new Texture2D(chunk.data, chunk.shape.x, chunk.shape.y);
     texture.unpackRowLength = chunk.rowStride;

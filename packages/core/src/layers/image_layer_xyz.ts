@@ -16,29 +16,16 @@ export type ImageLayerProps = LayerOptions & {
 
 export class ImageLayerXYZ extends Layer {
   private readonly source_: ImageChunkSource;
-  private readonly region_: Region;
   private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
   private visibleChunks_: ImageChunk[] = [];
 
-  // TODO:(shlomnissan) Remove this parameter—LOD will be computed
-  // dynamically by the chunk manager.
-  private readonly lod_?: number;
-
-  constructor({
-    source,
-    region,
-    channelProps,
-    lod,
-    ...layerOptions
-  }: ImageLayerProps) {
+  constructor({ source, channelProps, ...layerOptions }: ImageLayerProps) {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
-    this.region_ = region;
-    this.lod_ = lod;
     this.channelProps_ = channelProps;
   }
 
@@ -52,6 +39,23 @@ export class ImageLayerXYZ extends Layer {
     if (!this.chunkManagerSource_) return;
 
     const chunks = this.chunkManagerSource_.getVisibleChunks();
+
+    // Check if LOD has changed - if so, clear old chunks
+    if (chunks.length > 0) {
+      const currentLOD = chunks[0].lod;
+      const hasLODChanged =
+        this.visibleChunks_.length > 0 &&
+        this.visibleChunks_[0].lod !== currentLOD;
+
+      if (hasLODChanged) {
+        console.log(
+          `LOD changed in ImageLayerXYZ: clearing ${this.visibleChunks_.length} old chunks, ${this.objects.length} objects`
+        );
+        this.clearObjects();
+        this.visibleChunks_ = [];
+      }
+    }
+
     chunks.forEach((chunk) => {
       if (chunk.state === "loaded" && !this.visibleChunks_.includes(chunk)) {
         this.visibleChunks_.push(chunk);
@@ -76,6 +80,29 @@ export class ImageLayerXYZ extends Layer {
   }
 
   private createImage(chunk: ImageChunk, channelProps?: ChannelProps[]) {
+    console.log(
+      `createImage: chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}) LOD ${chunk.lod}`
+    );
+    console.log(
+      `  - shape: ${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.c}`
+    );
+    console.log(`  - scale: [${chunk.scale.x}, ${chunk.scale.y}]`);
+    console.log(`  - offset: [${chunk.offset.x}, ${chunk.offset.y}]`);
+    console.log(`  - data length: ${chunk.data?.length || "no data"}`);
+
+    // Check data validity
+    if (chunk.data) {
+      const firstFew = Array.from(chunk.data.slice(0, 10));
+      let minVal = chunk.data[0];
+      let maxVal = chunk.data[0];
+      for (let i = 0; i < chunk.data.length; i++) {
+        if (chunk.data[i] < minVal) minVal = chunk.data[i];
+        if (chunk.data[i] > maxVal) maxVal = chunk.data[i];
+      }
+      console.log(`  - data sample: [${firstFew.join(", ")}...]`);
+      console.log(`  - data range: ${minVal} to ${maxVal}`);
+    }
+
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
     const image = new ImageRenderable(
@@ -86,6 +113,10 @@ export class ImageLayerXYZ extends Layer {
 
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
+
+    console.log(
+      `  - final transform: scale=[${chunk.scale.x}, ${chunk.scale.y}, 1], translation=[${chunk.offset.x}, ${chunk.offset.y}, 0]`
+    );
     return image;
   }
 }
