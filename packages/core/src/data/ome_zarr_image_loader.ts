@@ -59,6 +59,50 @@ export class OmeZarrImageLoader {
     this.lods_ = this.metadata_.multiscales[0].datasets.length;
   }
 
+  async loadChunkXYZ(chunk: ImageChunk) {
+    const attrs = this.getImageAttributes()[chunk.lod];
+    const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
+      kind: "array",
+      attrs: false,
+    });
+
+    const region: Region = [
+      { dimension: "t", index: { type: "point", value: 400 } },
+      { dimension: "c", index: { type: "point", value: 0 } },
+      { dimension: "z", index: { type: "point", value: 300 } },
+      {
+        dimension: "y",
+        index: {
+          type: "interval",
+          start: chunk.chunkIndex!.y * chunk.shape.y * chunk.scale.y,
+          stop: (chunk.chunkIndex!.y + 1) * chunk.shape.y * chunk.scale.y,
+        },
+      },
+      {
+        dimension: "x",
+        index: {
+          type: "interval",
+          start: chunk.chunkIndex!.x * chunk.shape.x * chunk.scale.x,
+          stop: (chunk.chunkIndex!.x + 1) * chunk.shape.x * chunk.scale.x,
+        },
+      },
+    ];
+
+    const indices = this.regionToIndices(region, attrs);
+    const subarray = await zarr.get(array, indices);
+
+    const ctr = subarray.data.constructor.name;
+    if (!isImageChunkData(subarray.data)) {
+      throw new Error(`Subarray has an unsupported data type, data=${ctr}`);
+    }
+
+    chunk.shape.x = subarray.shape[1];
+    chunk.shape.y = subarray.shape[0];
+    chunk.rowStride = subarray.stride[0];
+
+    chunk.data = subarray.data;
+  }
+
   async loadChunk(
     region: Region,
     lod: number,
@@ -114,7 +158,10 @@ export class OmeZarrImageLoader {
     const xOffset = calculateOffset(indices.length - 1);
     const yOffset = calculateOffset(indices.length - 2);
 
-    const chunk = {
+    const chunk: ImageChunk = {
+      state: "loaded",
+      lod: lod,
+      visible: true,
       data: subarray.data,
       shape: {
         x: subarray.shape[subarray.shape.length - 1],
@@ -161,6 +208,7 @@ export class OmeZarrImageLoader {
           }
         );
         return {
+          chunks: zarrArray.chunks,
           dimensionNames: attr.dimensionNames,
           shape: zarrArray.shape,
           scale: attr.scale,

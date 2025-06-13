@@ -17,10 +17,12 @@ export type ImageLayerProps = LayerOptions & {
 export class ImageLayerXYZ extends Layer {
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
+  private useChunkManager_: boolean;
   private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
+  private visibleChunks_: ImageChunk[] = [];
 
   // TODO:(shlomnissan) Remove this parameter—LOD will be computed
   // dynamically by the chunk manager.
@@ -39,6 +41,11 @@ export class ImageLayerXYZ extends Layer {
     this.region_ = region;
     this.lod_ = lod;
     this.channelProps_ = channelProps;
+
+    const x = region.find((r) => r.dimension === "x");
+    const y = region.find((r) => r.dimension === "y");
+    this.useChunkManager_ =
+      x?.index.type === "full" && y?.index.type === "full";
   }
 
   public async onAttached(context: IdetikContext) {
@@ -50,23 +57,30 @@ export class ImageLayerXYZ extends Layer {
   public update() {
     if (!this.chunkManagerSource_) return;
 
-    const chunks = this.chunkManagerSource_.getVisibleChunks();
-    chunks.forEach((_) => {
-      // TODO: create image renderable for visible chunks if needed
-    });
-
-    switch (this.state) {
-      case "initialized":
-        this.load(this.region_);
-        break;
-      case "loading":
-      case "ready":
-        break;
-      default: {
-        const exhaustiveCheck: never = this.state;
-        throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
+    if (this.useChunkManager_) {
+      const chunks = this.chunkManagerSource_.getVisibleChunks();
+      chunks.forEach((chunk) => {
+        if (chunk.state === "loaded" && !this.visibleChunks_.includes(chunk)) {
+          this.visibleChunks_.push(chunk);
+          this.addObject(this.createImage(chunk, this.channelProps));
+        }
+      });
+    } else {
+      switch (this.state) {
+        case "initialized":
+          this.load(this.region_);
+          break;
+        case "loading":
+        case "ready":
+          break;
+        default: {
+          const exhaustiveCheck: never = this.state;
+          throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
+        }
       }
     }
+
+    this.setState("ready");
   }
 
   public get channelProps(): ChannelProps[] | undefined {

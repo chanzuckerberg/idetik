@@ -171,7 +171,7 @@ export class ImageSeriesLayer extends Layer {
         x: chunk.shape.x * chunk.scale.x,
         y: chunk.shape.y * chunk.scale.y,
       };
-    } else {
+    } else if (chunk.data) {
       this.texture_.data = chunk.data;
     }
   }
