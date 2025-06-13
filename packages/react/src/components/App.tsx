@@ -75,10 +75,11 @@ export default function App() {
         sourceUrl={imageUrl}
         region={region}
         seriesDimensionName="Z"
-        allSlicesSizeEstimate="250 MB"
+        initialIndex="omeroDefaultZ"
         classNames={{
           root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
         }}
+        loadAllButtonText="Load 3D high-res (250MB)"
         onLayerCreated={handleLayerCreated}
         onFirstSliceLoaded={handleFirstSliceLoaded}
         onLoadAllSlicesClicked={handleLoadAllSlicesClicked}

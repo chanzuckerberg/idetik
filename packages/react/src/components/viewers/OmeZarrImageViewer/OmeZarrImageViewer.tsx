@@ -1,50 +1,14 @@
 import { Renderer } from "./components/Renderer";
-import { useOmeZarrViewer } from "../../hooks/useOmeZarrImageViewer";
-import { Region } from "@idetik/core";
+import {
+  OmeZarrImageViewerProps,
+  useOmeZarrViewer,
+} from "../../hooks/useOmeZarrImageViewer";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
 
-interface OmeZarrViewerContainerProps {
-  sourceUrl: string;
-  region: Region;
-  seriesDimensionName: string;
-  allSlicesSizeEstimate?: string;
-  fallbackContrastLimits?: [number, number];
-  classNames?: {
-    root?: string;
-    sliceMetadataContainer?: string;
-    sliceIndicator?: string;
-    load3dButton?: string;
-    sliceSliderContainer?: string;
-  };
-  onLayerCreated?: () => void;
-  onFirstSliceLoaded?: () => void;
-  onLoadAllSlicesClicked?: () => void;
-  onAllSlicesLoaded?: () => void;
-  onLoadAllSlicesAborted?: () => void;
-  resolutionLevel?: number;
-  shouldAutoLoadAllSlices?: boolean;
-  shouldLoadMiddleZ?: boolean;
-}
-
-export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
-  const {
-    sourceUrl,
-    region,
-    seriesDimensionName,
-    allSlicesSizeEstimate,
-    fallbackContrastLimits,
-    classNames,
-    onLayerCreated,
-    onFirstSliceLoaded,
-    onLoadAllSlicesClicked,
-    onAllSlicesLoaded,
-    onLoadAllSlicesAborted,
-    resolutionLevel,
-    shouldAutoLoadAllSlices,
-    shouldLoadMiddleZ,
-  } = props;
+export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
+  const { classNames, indexIndicatorText, loadAllButtonText } = props;
 
   const {
     zRange,
@@ -53,25 +17,12 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
     loading,
     allSlicesLoaded,
     loadAllSlicesCallback,
-  } = useOmeZarrViewer({
-    sourceUrl,
-    region,
-    seriesDimensionName,
-    fallbackContrastLimits,
-    onLayerCreated,
-    onFirstSliceLoaded,
-    onLoadAllSlicesClicked,
-    onAllSlicesLoaded,
-    onLoadAllSlicesAborted,
-    lod: resolutionLevel,
-    shouldAutoLoadAllSlices,
-    shouldLoadMiddleZ,
-  });
+  } = useOmeZarrViewer(props);
   // Compute zIndex for display
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
-      <Renderer cameraControls="panzoom" />
+      <Renderer />
       <div
         className={cns(
           "absolute",
@@ -97,10 +48,15 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
               "rounded-sds-m",
               "shadow-sds-m",
               "font-sds-code",
+              "select-none",
               classNames?.sliceIndicator
             )}
           >
-            Slice {zIndex}/{zRange[1] - zRange[0]}
+            {typeof indexIndicatorText === "string" && indexIndicatorText}
+            {typeof indexIndicatorText === "function" &&
+              indexIndicatorText(zIndex, zRange[1] - zRange[0])}
+            {typeof indexIndicatorText === "undefined" &&
+              `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
           </div>
         ) : (
           <LoadingIndicator sdsStyle="tag" />
@@ -114,9 +70,9 @@ export function OmeZarrImageViewer(props: OmeZarrViewerContainerProps) {
             onClick={loadAllSlicesCallback}
             className={cns("shadow-sds-m", classNames?.load3dButton)}
           >
-            {allSlicesSizeEstimate
-              ? `Load 3D high-res (${allSlicesSizeEstimate})`
-              : "Load 3D high-res"}
+            {typeof loadAllButtonText === "string" && loadAllButtonText}
+            {typeof loadAllButtonText === "function" && loadAllButtonText()}
+            {typeof loadAllButtonText === "undefined" && "Load 3D high-res"}
           </Button>
         ) : (
           <div

@@ -2,14 +2,14 @@ import { Camera } from "./objects/cameras/camera";
 import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
-import { PanZoomControls } from "./objects/cameras/controls";
+import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
 
 type IdetikParams = {
   canvasSelector: string;
   camera: Camera;
-  controls?: PanZoomControls;
+  controls?: CameraControls;
   layers?: Layer[];
 };
 
@@ -24,6 +24,7 @@ export class Idetik {
   private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
   private readonly chunkManager_: ChunkManager;
+  private lastAnimationId_?: number;
 
   constructor(params: IdetikParams) {
     this.camera = params.camera;
@@ -57,7 +58,7 @@ export class Idetik {
   }
 
   // TODO: this should be modified once the controls are moved to the idetik class
-  public setControls(controls: PanZoomControls) {
+  public setControls(controls: CameraControls) {
     this.renderer_.setControls(controls);
   }
 
@@ -77,9 +78,15 @@ export class Idetik {
         this.renderer_.height
       );
       this.renderer_.render(this.layerManager, this.camera);
-      requestAnimationFrame(render);
+      this.lastAnimationId_ = requestAnimationFrame(render);
     };
     render();
     return this;
+  }
+
+  public stop() {
+    if (this.lastAnimationId_ !== undefined) {
+      cancelAnimationFrame(this.lastAnimationId_);
+    }
   }
 }

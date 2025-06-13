@@ -7,6 +7,8 @@ import {
   loadOmeroChannels,
   loadOmeroDefaultZ,
   Idetik,
+  PanZoomControls,
+  NullControls,
 } from "@idetik/core";
 
 import {
@@ -17,25 +19,38 @@ import {
 } from "../viewers/OmeZarrImageViewer/utils";
 import { useIdetik } from ".";
 
-interface UseOmeZarrViewerProps {
+export interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   seriesDimensionName: string;
+  cameraControlType?: "panzoom" | "none";
+  classNames?: {
+    root?: string;
+    sliceMetadataContainer?: string;
+    sliceIndicator?: string;
+    load3dButton?: string;
+    sliceSliderContainer?: string;
+  };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
+  indexIndicatorText?:
+    | string
+    | ((currentIndex: number, totalIndexes: number) => string);
+  loadAllButtonText?: string | (() => string);
   fallbackContrastLimits?: [number, number];
   lod?: number;
   shouldAutoLoadAllSlices?: boolean;
-  shouldLoadMiddleZ?: boolean;
+  initialIndex?: "start" | "middle" | "end" | "omeroDefaultZ";
 }
 
 export function useOmeZarrViewer({
   sourceUrl,
   region,
   seriesDimensionName,
+  cameraControlType = "panzoom",
   onLayerCreated,
   onFirstSliceLoaded,
   onLoadAllSlicesClicked,
@@ -44,8 +59,8 @@ export function useOmeZarrViewer({
   fallbackContrastLimits,
   lod = 0,
   shouldAutoLoadAllSlices = false,
-  shouldLoadMiddleZ = false,
-}: UseOmeZarrViewerProps) {
+  initialIndex,
+}: OmeZarrImageViewerProps) {
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
@@ -113,16 +128,23 @@ export function useOmeZarrViewer({
           const camera = zoomToFit(layer);
           // TODO: Make camera type not possible to be undefined.
           if (camera !== undefined) {
+            const cameraControls =
+              cameraControlType === "panzoom"
+                ? new PanZoomControls(camera, camera.position)
+                : new NullControls();
             if (idetik === undefined) {
               setIdetik(
                 new Idetik({
                   canvasSelector: "#renderer",
                   camera,
                   layers: [layer],
+                  controls: cameraControls,
                 })
               );
             } else {
               idetik.layerManager.add(layer);
+              idetik.camera = camera;
+              idetik.setControls(cameraControls);
             }
             setLoading(false);
             onFirstSliceLoaded?.();
@@ -200,11 +222,22 @@ export function useOmeZarrViewer({
       const isFullZ = zRegion && zRegion.index?.type === "full";
 
       if (isFullZ) {
-        if (shouldLoadMiddleZ) {
-          const zShape = attributesForLOD.shape[zIdx];
-          initialZ = Math.floor(zShape / 2);
-        } else {
-          initialZ = await loadOmeroDefaultZ(sourceUrl);
+        const zShape = attributesForLOD.shape[zIdx];
+        switch (initialIndex) {
+          case "start":
+            initialZ = 0;
+            break;
+          case "middle":
+            initialZ = Math.floor(zShape / 2);
+            break;
+          case "end":
+            initialZ = zShape;
+            break;
+          case "omeroDefaultZ":
+            initialZ = await loadOmeroDefaultZ(sourceUrl);
+            break;
+          default:
+            initialZ = 0;
         }
       } else if (zRegion) {
         switch (zRegion.index?.type) {
@@ -241,7 +274,7 @@ export function useOmeZarrViewer({
     };
     fetchZRange();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Dependencies that affect z range.
-  }, [source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
+  }, [source, seriesDimensionName, sourceUrl, initialIndex]);
 
   // Update imageLayer's index on Z change
   useEffect(() => {
