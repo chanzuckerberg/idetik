@@ -60,19 +60,35 @@ export class OmeZarrImageLoader {
   }
 
   async loadChunkXYZ(chunk: ImageChunk) {
+    console.log(
+      `OmeZarrImageLoader.loadChunkXYZ: Loading chunk (${chunk.chunkIndex!.x},${chunk.chunkIndex!.y}) for LOD ${chunk.lod}`
+    );
+
     const attrs = this.getImageAttributes()[chunk.lod];
+    console.log(`  - Dataset path for LOD ${chunk.lod}: ${attrs.datasetPath}`);
+
     const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
       kind: "array",
       attrs: false,
     });
 
-    const d = await array.getChunk([
+    console.log(`  - Array shape: [${array.shape.join(", ")}]`);
+    console.log(`  - Array chunks: [${array.chunks.join(", ")}]`);
+
+    const chunkCoords = [
       400, // t
       0, // c
       1, // z
       chunk.chunkIndex!.y, // y
-      chunk.chunkIndex!.x  // x
-    ]);
+      chunk.chunkIndex!.x, // x
+    ];
+    console.log(
+      `  - Requesting chunk coordinates: [${chunkCoords.join(", ")}]`
+    );
+
+    const d = await array.getChunk(chunkCoords);
+    console.log(`  - Retrieved chunk shape: [${d.shape.join(", ")}]`);
+    console.log(`  - Retrieved data length: ${d.data.length}`);
 
     if (!isImageChunkData(d.data)) {
       throw new Error(
@@ -80,10 +96,57 @@ export class OmeZarrImageLoader {
       );
     }
 
-    // slice data
+    // Calculate the correct slice based on chunk dimensions
+    // The zarr chunk shape is [t, c, z, y, x] = [1, 1, 128, 362, 362]
+    // We want z slice 1, so we need to extract the right 2D slice from the 3D data
+    const [, , _, yDim, xDim] = d.shape;
+    const sliceSize = yDim * xDim; // 362 * 362 = 131044
+    const zIndex = 1; // We want z=1
+    const sliceStart = zIndex * sliceSize;
+    const sliceEnd = sliceStart + sliceSize;
 
-    const slice = chunk.shape.x * chunk.shape.y;
-    chunk.data = d.data.subarray(120 * slice - 1, 120 * slice + slice - 1);
+    console.log(
+      `  - Calculated slice: z=${zIndex}, slice size=${sliceSize}, range=[${sliceStart}, ${sliceEnd})`
+    );
+
+    chunk.data = d.data.subarray(sliceStart, sliceEnd);
+    console.log(`  - Final chunk data length: ${chunk.data.length}`);
+
+    // Sample the data and calculate range
+    const sample = Array.from(chunk.data.slice(0, 10));
+    let minVal = chunk.data[0];
+    let maxVal = chunk.data[0];
+    let nonZeroCount = 0;
+    for (let i = 0; i < chunk.data.length; i++) {
+      if (chunk.data[i] < minVal) minVal = chunk.data[i];
+      if (chunk.data[i] > maxVal) maxVal = chunk.data[i];
+      if (chunk.data[i] !== 0) nonZeroCount++;
+    }
+    console.log(`  - Data sample: [${sample.join(", ")}...]`);
+    console.log(
+      `  - Data range: ${minVal} to ${maxVal} (${nonZeroCount}/${chunk.data.length} non-zero values)`
+    );
+
+    // Also try different z-slices to see if we're using the right one
+    if (chunk.chunkIndex!.x === 0 && chunk.chunkIndex!.y === 0) {
+      console.log(`  - Checking other z-slices for comparison:`);
+      for (let z = 0; z < 3; z++) {
+        const testStart = z * sliceSize;
+        const testEnd = testStart + Math.min(1000, sliceSize);
+        const testSlice = d.data.subarray(testStart, testEnd);
+        let testMin = testSlice[0];
+        let testMax = testSlice[0];
+        let testNonZero = 0;
+        for (let i = 0; i < testSlice.length; i++) {
+          if (testSlice[i] < testMin) testMin = testSlice[i];
+          if (testSlice[i] > testMax) testMax = testSlice[i];
+          if (testSlice[i] !== 0) testNonZero++;
+        }
+        console.log(
+          `    z=${z}: range ${testMin}-${testMax}, ${testNonZero}/${testSlice.length} non-zero`
+        );
+      }
+    }
   }
 
   async loadChunk(
@@ -113,7 +176,6 @@ export class OmeZarrImageLoader {
       };
     }
     const subarray = await zarr.get(array, indices, options);
-
 
     if (!isImageChunkData(subarray.data)) {
       throw new Error(

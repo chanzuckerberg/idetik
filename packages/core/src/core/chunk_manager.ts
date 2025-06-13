@@ -14,10 +14,11 @@ export class ChunkManagerSource {
   private readonly chunks_: ImageChunk[][] = [];
   private readonly loader_;
   private currentLOD_: number = 0;
+  private readonly attributes_: LoaderAttributes[];
 
   constructor(loader: ImageChunkLoader, attrs: LoaderAttributes[]) {
     this.loader_ = loader;
-
+    this.attributes_ = attrs;
     this.chunks_ = Array(attrs.length)
       .fill(null)
       .map(() => []);
@@ -26,6 +27,7 @@ export class ChunkManagerSource {
       const chunkHeight = attrs[lod].chunks[3];
       const chunksX = Math.ceil(attrs[lod].shape[4] / chunkWidth);
       const chunksY = Math.ceil(attrs[lod].shape[3] / chunkHeight);
+
       const channels = attrs[lod].shape.length === 3 ? attrs[lod].shape[0] : 1;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
@@ -127,17 +129,12 @@ export class ChunkManagerSource {
       }
     }
   }
+
   public computeLOD(
     visibleBounds: Bounds,
     bufferWidth: number // screen/canvas width in pixels
   ): void {
-    // Get available scales from chunks
-    const availableScales = this.chunks_.map((_, lod) => [
-      1,
-      1,
-      this.chunks_[lod][0]?.scale.y || 1,
-      this.chunks_[lod][0]?.scale.x || 1,
-    ]);
+    const availableScales = this.attributes_.map((attr) => attr.scale);
 
     // Calculate virtual width from visible bounds
     const virtualWidth = Math.abs(visibleBounds.max[0] - visibleBounds.min[0]);

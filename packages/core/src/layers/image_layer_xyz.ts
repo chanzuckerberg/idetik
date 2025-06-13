@@ -48,9 +48,6 @@ export class ImageLayerXYZ extends Layer {
         this.visibleChunks_[0].lod !== currentLOD;
 
       if (hasLODChanged) {
-        console.log(
-          `LOD changed in ImageLayerXYZ: clearing ${this.visibleChunks_.length} old chunks, ${this.objects.length} objects`
-        );
         this.clearObjects();
         this.visibleChunks_ = [];
       }
@@ -80,27 +77,13 @@ export class ImageLayerXYZ extends Layer {
   }
 
   private createImage(chunk: ImageChunk, channelProps?: ChannelProps[]) {
-    console.log(
-      `createImage: chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}) LOD ${chunk.lod}`
-    );
-    console.log(
-      `  - shape: ${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.c}`
-    );
-    console.log(`  - scale: [${chunk.scale.x}, ${chunk.scale.y}]`);
-    console.log(`  - offset: [${chunk.offset.x}, ${chunk.offset.y}]`);
-    console.log(`  - data length: ${chunk.data?.length || "no data"}`);
-
-    // Check data validity
     if (chunk.data) {
-      const firstFew = Array.from(chunk.data.slice(0, 10));
       let minVal = chunk.data[0];
       let maxVal = chunk.data[0];
       for (let i = 0; i < chunk.data.length; i++) {
         if (chunk.data[i] < minVal) minVal = chunk.data[i];
         if (chunk.data[i] > maxVal) maxVal = chunk.data[i];
       }
-      console.log(`  - data sample: [${firstFew.join(", ")}...]`);
-      console.log(`  - data range: ${minVal} to ${maxVal}`);
     }
 
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
@@ -113,10 +96,6 @@ export class ImageLayerXYZ extends Layer {
 
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
-
-    console.log(
-      `  - final transform: scale=[${chunk.scale.x}, ${chunk.scale.y}, 1], translation=[${chunk.offset.x}, ${chunk.offset.y}, 0]`
-    );
     return image;
   }
 }
