@@ -49,6 +49,7 @@ export default defineConfig(() => {
           '@mui/material',
         ],
         output: {
+          banner: '"use client";\n',
           globals: {
             'react': 'React',
             'react-dom': 'ReactDOM',

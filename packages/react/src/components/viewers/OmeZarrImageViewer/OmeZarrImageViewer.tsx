@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   OmeZarrImageSource,
@@ -9,6 +11,7 @@ import {
   OmeroChannel,
 } from "@idetik/core";
 import { useIdetik } from "../../hooks/useIdetik";
+import { IdetikCanvas } from "../../IdetikCanvas";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
@@ -286,7 +289,8 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   // Compute zIndex for display
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (
-    <>
+    <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
+      <IdetikCanvas />
       {imageLayerRef.current && omeroChannels.length > 0 && (
         <ChannelControlsList
           layer={imageLayerRef.current}
@@ -360,6 +364,6 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
