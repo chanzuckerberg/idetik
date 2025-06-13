@@ -7,8 +7,8 @@ import { StyledEngineProvider, ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import "../../dist";
 import { Theme } from "@czi-sds/components";
-import { IdetikProvider } from "index";
 import App from "./App";
+import { IdetikProvider } from "../../src";
 
 const domNode = document.getElementById("app")!;
 const root = createRoot(domNode);
