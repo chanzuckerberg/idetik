@@ -53,8 +53,7 @@ export class ImageSeriesLayer extends Layer {
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
-  // TODO:(shlomnissan) Remove this parameter—LOD will be computed
-  // dynamically by the chunk manager.
+  // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
   private readonly lod_?: number;
 
   constructor({
@@ -171,7 +170,7 @@ export class ImageSeriesLayer extends Layer {
         x: chunk.shape.x * chunk.scale.x,
         y: chunk.shape.y * chunk.scale.y,
       };
-    } else {
+    } else if (chunk.data) {
       this.texture_.data = chunk.data;
     }
   }
@@ -241,7 +240,7 @@ export class ImageSeriesLayer extends Layer {
     const attributes = await loader.loadAttributes();
     const lod = this.lod_ ?? attributes.length - 1;
 
-    const chunk = await loader.loadChunk(pointRegion, lod, this.scheduler_);
+    const chunk = await loader.loadRegion(pointRegion, lod, this.scheduler_);
     this.dataChunks_[index] = chunk;
 
     if (token && !token.canceled) {

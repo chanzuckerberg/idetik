@@ -59,7 +59,39 @@ export class OmeZarrImageLoader {
     this.lods_ = this.metadata_.multiscales[0].datasets.length;
   }
 
-  async loadChunk(
+  public async loadChunkDataFromRegion(chunk: ImageChunk, region: Region) {
+    const attrs = this.getImageAttributes()[chunk.lod];
+    const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
+      kind: "array",
+      attrs: false,
+    });
+
+    const dimInfo = await this.getDimInfoMap(region, chunk, attrs);
+    if (!dimInfo.has("x") || !dimInfo.has("y")) {
+      throw new Error("Missing required spatial axis x/y");
+    }
+
+    const chunkCoords: number[] = [];
+    dimInfo.forEach((info) => chunkCoords.push(info.chunkIdx));
+    const subarray = await array.getChunk(chunkCoords);
+
+    const data = subarray.data;
+    if (!isImageChunkData(data)) {
+      throw new Error(
+        `Subarray has an unsupported data type, data=${data.constructor.name}`
+      );
+    }
+
+    const sliceSize = chunk.shape.x * chunk.shape.y;
+    const zInfo = dimInfo.get("z");
+    const zOffset = zInfo
+      ? sliceSize * (zInfo.value % array.chunks[zInfo.dimIdx])
+      : 0;
+
+    chunk.data = data.slice(zOffset, zOffset + sliceSize);
+  }
+
+  async loadRegion(
     region: Region,
     lod: number,
     scheduler?: PromiseScheduler
@@ -114,13 +146,17 @@ export class OmeZarrImageLoader {
     const xOffset = calculateOffset(indices.length - 1);
     const yOffset = calculateOffset(indices.length - 2);
 
-    const chunk = {
+    const chunk: ImageChunk = {
+      state: "loaded",
+      lod: lod,
+      visible: true,
       data: subarray.data,
       shape: {
         x: subarray.shape[subarray.shape.length - 1],
         y: subarray.shape[subarray.shape.length - 2],
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
+      chunkIndex: { x: 0, y: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
       scale: { x: scale[indices.length - 1], y: scale[indices.length - 2] },
@@ -161,12 +197,50 @@ export class OmeZarrImageLoader {
           }
         );
         return {
+          chunks: zarrArray.chunks,
           dimensionNames: attr.dimensionNames,
           shape: zarrArray.shape,
           scale: attr.scale,
         };
       })
     );
+  }
+
+  private async getDimInfoMap(
+    region: Region,
+    chunk: ImageChunk,
+    attrs: ImageAttributes
+  ) {
+    const indices = this.regionToIndices(region, attrs);
+    const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
+      kind: "array",
+      attrs: false,
+    });
+
+    const output = new Map();
+    region.forEach((entry, dimIdx) => {
+      if (entry.dimension === "x") {
+        const value = 0; // not used for x dimension
+        output.set("x", { dimIdx, chunkIdx: chunk.chunkIndex.x, value });
+        return;
+      }
+
+      if (entry.dimension === "y") {
+        const value = 0; // not used for y dimension
+        output.set("y", { dimIdx, chunkIdx: chunk.chunkIndex.y, value });
+        return;
+      }
+
+      const value = indices[dimIdx];
+      if (typeof value !== "number") {
+        throw new Error(`Expected numeric index for ${entry.dimension}`);
+      }
+
+      const chunkIdx = Math.floor(value / array.chunks[dimIdx]);
+      output.set(entry.dimension, { dimIdx, chunkIdx, value });
+    });
+
+    return output;
   }
 
   private regionToIndices(
