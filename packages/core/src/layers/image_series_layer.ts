@@ -186,20 +186,18 @@ export class ImageSeriesLayer extends Layer {
     }
     const loader = await this.getLoader();
     const attributes = await loader.loadAttributes();
-    const numScales = attributes.length;
-    const attributesForLastScale = attributes[numScales - 1];
+    const attributesForLOD = attributes[this.lod_ ?? attributes.length - 1];
 
-    const seriesIndex = attributesForLastScale.dimensionNames.findIndex(
+    const seriesIndex = attributesForLOD.dimensionNames.findIndex(
       (dim) => dim === this.seriesDimensionName_
     );
     if (seriesIndex === -1) {
       throw new Error(
-        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${attributesForLastScale.dimensionNames}`
+        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${attributesForLOD.dimensionNames}`
       );
     }
-    const seriesDimScale = attributesForLastScale.scale[seriesIndex];
-    const seriesMax =
-      attributesForLastScale.shape[seriesIndex] * seriesDimScale;
+    const seriesDimScale = attributesForLOD.scale[seriesIndex];
+    const seriesMax = attributesForLOD.shape[seriesIndex] * seriesDimScale;
 
     const indexIsFull = this.seriesIndex_.type === "full";
     const seriesStart = indexIsFull ? 0 : this.seriesIndex_.start;
