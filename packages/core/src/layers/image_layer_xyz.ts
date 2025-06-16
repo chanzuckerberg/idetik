@@ -16,6 +16,8 @@ export type ImageLayerProps = LayerOptions & {
 
 export class ImageLayerXYZ extends Layer {
   private readonly source_: ImageChunkSource;
+  private readonly region_: Region;
+  private useChunkManager_: boolean;
   private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
@@ -27,6 +29,11 @@ export class ImageLayerXYZ extends Layer {
     this.setState("initialized");
     this.source_ = source;
     this.channelProps_ = channelProps;
+
+    const x = region.find((r) => r.dimension === "x");
+    const y = region.find((r) => r.dimension === "y");
+    this.useChunkManager_ =
+      x?.index.type === "full" && y?.index.type === "full";
   }
 
   public async onAttached(context: IdetikContext) {
@@ -36,30 +43,42 @@ export class ImageLayerXYZ extends Layer {
   }
 
   public update() {
-    if (!this.chunkManagerSource_) return;
+    if (this.useChunkManager_) {
+      const chunks = this.chunkManagerSource_.getVisibleChunks();
+      
+      // Check if LOD has changed - if so, clear old chunks
+      if (chunks.length > 0) {
+        const currentLOD = chunks[0].lod;
+        const hasLODChanged =
+          this.visibleChunks_.length > 0 &&
+          this.visibleChunks_[0].lod !== currentLOD;
 
-    const chunks = this.chunkManagerSource_.getVisibleChunks();
-
-    // Check if LOD has changed - if so, clear old chunks
-    if (chunks.length > 0) {
-      const currentLOD = chunks[0].lod;
-      const hasLODChanged =
-        this.visibleChunks_.length > 0 &&
-        this.visibleChunks_[0].lod !== currentLOD;
-
-      if (hasLODChanged) {
-        this.clearObjects();
-        this.visibleChunks_ = [];
+        if (hasLODChanged) {
+          this.clearObjects();
+          this.visibleChunks_ = [];
+        }
+      }
+      
+      chunks.forEach((chunk) => {
+        if (chunk.state === "loaded" && !this.visibleChunks_.includes(chunk)) {
+          this.visibleChunks_.push(chunk);
+          this.addObject(this.createImage(chunk, this.channelProps));
+        }
+      });
+    } else {
+      switch (this.state) {
+        case "initialized":
+          this.load(this.region_);
+          break;
+        case "loading":
+        case "ready":
+          break;
+        default: {
+          const exhaustiveCheck: never = this.state;
+          throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
+        }
       }
     }
-
-    chunks.forEach((chunk) => {
-      if (chunk.state === "loaded" && !this.visibleChunks_.includes(chunk)) {
-        this.visibleChunks_.push(chunk);
-        this.addObject(this.createImage(chunk, this.channelProps));
-      }
-    });
-
     this.setState("ready");
   }
 

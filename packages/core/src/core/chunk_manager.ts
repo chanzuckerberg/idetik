@@ -10,6 +10,9 @@ import { vec2, vec4, mat4 } from "gl-matrix";
 
 type Bounds = { min: vec2; max: vec2 };
 
+// temporary value. LOD will be computed dynamically
+const curr_lod = 0;
+
 export class ChunkManagerSource {
   private readonly chunks_: ImageChunk[][] = [];
   private readonly loader_;
@@ -19,6 +22,8 @@ export class ChunkManagerSource {
   constructor(loader: ImageChunkLoader, attrs: LoaderAttributes[]) {
     this.loader_ = loader;
     this.attributes_ = attrs;
+
+    // generate chunks for each LOD without loading data
     this.chunks_ = Array(attrs.length)
       .fill(null)
       .map(() => []);

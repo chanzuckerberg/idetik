@@ -4,6 +4,20 @@ import { PromiseScheduler } from "./promise_scheduler";
 
 const imageChunkDataTypes = [Uint8Array, Uint16Array, Float32Array] as const;
 type ImageChunkData = InstanceType<(typeof imageChunkDataTypes)[number]>;
+const imageChunkDataTypeMap: Record<
+  string,
+  (typeof imageChunkDataTypes)[number]
+> = {
+  Uint8Array,
+  Uint16Array,
+  Float32Array,
+};
+
+export function allocateChunkData(value: string, size: number) {
+  if (!isImageChunkData) return;
+  return new imageChunkDataTypeMap[value](size);
+}
+
 export function isImageChunkData(value: unknown): value is ImageChunkData {
   if (
     imageChunkDataTypes.some(
