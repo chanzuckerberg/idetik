@@ -23,7 +23,7 @@ const EMPTY_LAYERS: Layer[] = [];
 export const IdetikProvider = ({ children }: PropsWithChildren) => {
   const [camera] = useState<OrthographicCamera>(
     // default camera frame
-    new OrthographicCamera(-1, 1, 1, -1)
+    new OrthographicCamera(-1, 1, 1, -1, -1000, 1000)
   );
   const [controls] = useState<PanZoomControls>(
     new PanZoomControls(camera, camera.position)
