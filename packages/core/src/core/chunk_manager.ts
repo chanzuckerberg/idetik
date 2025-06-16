@@ -93,16 +93,16 @@ export class ChunkManagerSource {
     const currentChunks = this.chunks_[this.currentLOD_];
     if (currentChunks.length === 0) return;
 
-    // Get chunk size in world coordinates for current LOD
+    // Get chunk size in virtual coordinates for current LOD
     const firstChunk = currentChunks[0];
-    const chunkWorldWidth = firstChunk.shape.x * firstChunk.scale.x;
-    const chunkWorldHeight = firstChunk.shape.y * firstChunk.scale.y;
+    const chunkVirtualWidth = firstChunk.shape.x * firstChunk.scale.x;
+    const chunkVirtualHeight = firstChunk.shape.y * firstChunk.scale.y;
 
     // Compute chunk index range using analytical approach
-    const chunkIndexX1 = Math.floor(visibleBounds.min[0] / chunkWorldWidth);
-    const chunkIndexX2 = Math.floor(visibleBounds.max[0] / chunkWorldWidth);
-    const chunkIndexY1 = Math.floor(visibleBounds.min[1] / chunkWorldHeight);
-    const chunkIndexY2 = Math.floor(visibleBounds.max[1] / chunkWorldHeight);
+    const chunkIndexX1 = Math.floor(visibleBounds.min[0] / chunkVirtualWidth);
+    const chunkIndexX2 = Math.floor(visibleBounds.max[0] / chunkVirtualWidth);
+    const chunkIndexY1 = Math.floor(visibleBounds.min[1] / chunkVirtualHeight);
+    const chunkIndexY2 = Math.floor(visibleBounds.max[1] / chunkVirtualHeight);
 
     // Ensure min/max are in correct order
     const minChunkIndexX = Math.min(chunkIndexX1, chunkIndexX2);
