@@ -11,12 +11,14 @@ import { vec2, vec4, mat4 } from "gl-matrix";
 type Bounds = { min: vec2; max: vec2 };
 
 // temporary value. LOD will be computed dynamically
-const curr_lod = 1;
+// const curr_lod = 1;
 
 export class ChunkManagerSource {
   private readonly chunks_: ImageChunk[][] = [];
   private readonly loader_;
   private readonly region_;
+  private readonly attrs_: LoaderAttributes[];
+  public currentLOD_: number = 0;
 
   constructor(
     loader: ImageChunkLoader,
@@ -25,12 +27,14 @@ export class ChunkManagerSource {
   ) {
     this.loader_ = loader;
     this.region_ = region;
+    this.attrs_ = attrs;
+    this.currentLOD_ = 1;
 
     // generate chunks for each LOD without loading data
-    this.chunks_ = Array(attrs.length)
+    this.chunks_ = Array(this.attrs_.length)
       .fill(null)
       .map(() => []);
-    for (let lod = 0; lod < attrs.length; ++lod) {
+    for (let lod = 0; lod < this.attrs_.length; ++lod) {
       const xIdx = region.findIndex(
         (entry) => entry.dimension.toLocaleLowerCase() === "x"
       );
@@ -41,11 +45,11 @@ export class ChunkManagerSource {
         throw new Error("Missing required spatial axis x/y");
       }
 
-      const chunkWidth = attrs[lod].chunks[xIdx];
-      const chunkHeight = attrs[lod].chunks[yIdx];
-      const chunksX = Math.ceil(attrs[lod].shape[xIdx] / chunkWidth);
-      const chunksY = Math.ceil(attrs[lod].shape[yIdx] / chunkHeight);
-      const channels = attrs[lod].shape.length === 3 ? attrs[lod].shape[0] : 1;
+      const chunkWidth = this.attrs_[lod].chunks[xIdx];
+      const chunkHeight = this.attrs_[lod].chunks[yIdx];
+      const chunksX = Math.ceil(this.attrs_[lod].shape[xIdx] / chunkWidth);
+      const chunksY = Math.ceil(this.attrs_[lod].shape[yIdx] / chunkHeight);
+      const channels = this.attrs_[lod].shape.length === 3 ? this.attrs_[lod].shape[0] : 1;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
           this.chunks_[lod].push({
@@ -61,12 +65,12 @@ export class ChunkManagerSource {
             rowAlignmentBytes: 1,
             chunkIndex: { x, y },
             scale: {
-              x: attrs[lod].scale[xIdx],
-              y: attrs[lod].scale[yIdx],
+              x: this.attrs_[lod].scale[xIdx],
+              y: this.attrs_[lod].scale[yIdx],
             },
             offset: {
-              x: x * chunkWidth * attrs[lod].scale[xIdx],
-              y: y * chunkHeight * attrs[lod].scale[yIdx],
+              x: x * chunkWidth * this.attrs_[lod].scale[xIdx],
+              y: y * chunkHeight * this.attrs_[lod].scale[yIdx],
             },
           });
         }
@@ -75,13 +79,36 @@ export class ChunkManagerSource {
   }
 
   public getVisibleChunks(): ImageChunk[] {
-    return this.chunks_[curr_lod].filter((e) => e.visible);
+    return this.chunks_[this.currentLOD_].filter((e) => e.visible);
+  }
+
+  public computeLOD(
+    visibleBounds: Bounds,
+    bufferWidth: number // screen/canvas width in pixels
+  ): void {
+    const availableScales = this.attrs_.map((attr) => attr.scale);
+
+    // Calculate virtual width from visible bounds
+    const virtualWidth = Math.abs(visibleBounds.max[0] - visibleBounds.min[0]);
+    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
+
+    const numLods = availableScales.length;
+    const lodShift = numLods - 1;
+    const lodF = lodShift - Math.log2(1 / virtualUnitsPerScreenPixel);
+
+    const maxLod = numLods - 1;
+    const newLOD = Math.max(0, Math.min(maxLod, Math.floor(lodF)));
+
+    if (newLOD !== this.currentLOD_) {
+      console.log(`LOD changed from ${this.currentLOD_} to ${newLOD}`);
+      this.currentLOD_ = newLOD;
+    }
   }
 
   public async updateChunks(_: Bounds) {
     // TODO: map the LOD factor from the chunk manager to an available LOD in image space
     // TODO: replace the following block with loading based on intersection tests
-    for (const chunk of this.chunks_[curr_lod]) {
+    for (const chunk of this.chunks_[this.currentLOD_]) {
       if (chunk.state === "unloaded") {
         chunk.state = "loading";
         this.loader_.loadChunkDataFromRegion(chunk, this.region_).then(() => {
@@ -112,6 +139,7 @@ export class ChunkManager {
     // TODO: compute the LOD factor
 
     for (const [_, chunkManagerSource] of this.sources_) {
+      chunkManagerSource.computeLOD(visibleBounds, _bufferWidth);
       chunkManagerSource.updateChunks(visibleBounds);
     }
   }

@@ -29,20 +29,17 @@ export class ImageLayer extends Layer {
   private visibleChunks_: Map<ImageChunk, ImageRenderable> = new Map();
 
   // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
-  private readonly lod_?: number;
 
   constructor({
     source,
     region,
     channelProps,
-    lod,
     ...layerOptions
   }: ImageLayerProps) {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-    this.lod_ = lod;
     this.channelProps_ = channelProps;
 
     const x = region.find((r) => r.dimension.toLowerCase() === "x");
@@ -132,7 +129,7 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const attributes = await loader.loadAttributes();
-    const lod = this.lod_ ?? attributes.length - 1;
+    const lod = this.chunkManagerSource_?.currentLOD_ ?? attributes.length - 1;
 
     const chunk = await loader.loadRegion(region, lod);
     this.extent_ = {
