@@ -44,20 +44,10 @@ export class ChunkManagerSource {
       .fill(null)
       .map(() => []);
     for (let lod = 0; lod < this.attrs_.length; ++lod) {
-      const xIdx = region.findIndex(
-        (entry) => entry.dimension.toLocaleLowerCase() === "x"
-      );
-      const yIdx = region.findIndex(
-        (entry) => entry.dimension.toLocaleLowerCase() === "y"
-      );
-      if (xIdx === -1 || yIdx === -1) {
-        throw new Error("Missing required spatial axis x/y");
-      }
-
-      const chunkWidth = this.attrs_[lod].chunks[xIdx];
-      const chunkHeight = this.attrs_[lod].chunks[yIdx];
-      const chunksX = Math.ceil(this.attrs_[lod].shape[xIdx] / chunkWidth);
-      const chunksY = Math.ceil(this.attrs_[lod].shape[yIdx] / chunkHeight);
+      const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
+      const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
+      const chunksX = Math.ceil(this.attrs_[lod].shape[this.xIdx_] / chunkWidth);
+      const chunksY = Math.ceil(this.attrs_[lod].shape[this.yIdx_] / chunkHeight);
       const channels =
         this.attrs_[lod].shape.length === 3 ? this.attrs_[lod].shape[0] : 1;
       for (let x = 0; x < chunksX; ++x) {
@@ -75,12 +65,12 @@ export class ChunkManagerSource {
             rowAlignmentBytes: 1,
             chunkIndex: { x, y },
             scale: {
-              x: this.attrs_[lod].scale[xIdx],
-              y: this.attrs_[lod].scale[yIdx],
+              x: this.attrs_[lod].scale[this.xIdx_],
+              y: this.attrs_[lod].scale[this.yIdx_],
             },
             offset: {
-              x: x * chunkWidth * this.attrs_[lod].scale[xIdx],
-              y: y * chunkHeight * this.attrs_[lod].scale[yIdx],
+              x: x * chunkWidth * this.attrs_[lod].scale[this.xIdx_],
+              y: y * chunkHeight * this.attrs_[lod].scale[this.yIdx_],
             },
           });
         }
