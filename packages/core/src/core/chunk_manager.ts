@@ -46,8 +46,12 @@ export class ChunkManagerSource {
     for (let lod = 0; lod < this.attrs_.length; ++lod) {
       const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
       const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
-      const chunksX = Math.ceil(this.attrs_[lod].shape[this.xIdx_] / chunkWidth);
-      const chunksY = Math.ceil(this.attrs_[lod].shape[this.yIdx_] / chunkHeight);
+      const chunksX = Math.ceil(
+        this.attrs_[lod].shape[this.xIdx_] / chunkWidth
+      );
+      const chunksY = Math.ceil(
+        this.attrs_[lod].shape[this.yIdx_] / chunkHeight
+      );
       const channels =
         this.attrs_[lod].shape.length === 3 ? this.attrs_[lod].shape[0] : 1;
       for (let x = 0; x < chunksX; ++x) {
