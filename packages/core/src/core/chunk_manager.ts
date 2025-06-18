@@ -10,9 +10,6 @@ import { vec2, vec4, mat4 } from "gl-matrix";
 
 type Bounds = { min: vec2; max: vec2 };
 
-// temporary value. LOD will be computed dynamically
-// const curr_lod = 1;
-
 export class ChunkManagerSource {
   private readonly chunks_: ImageChunk[][] = [];
   private readonly loader_;
@@ -49,7 +46,8 @@ export class ChunkManagerSource {
       const chunkHeight = this.attrs_[lod].chunks[yIdx];
       const chunksX = Math.ceil(this.attrs_[lod].shape[xIdx] / chunkWidth);
       const chunksY = Math.ceil(this.attrs_[lod].shape[yIdx] / chunkHeight);
-      const channels = this.attrs_[lod].shape.length === 3 ? this.attrs_[lod].shape[0] : 1;
+      const channels =
+        this.attrs_[lod].shape.length === 3 ? this.attrs_[lod].shape[0] : 1;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
           this.chunks_[lod].push({
