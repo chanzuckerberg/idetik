@@ -94,12 +94,14 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
         activeLayers,
         methods,
         runtime: idetik,
+        canvas: canvasRef!,
       }
     : {
         isReady: false,
         activeLayers: [],
         methods: null,
         runtime: null,
+        canvas: null,
         initializeWithCanvas: setCanvasRef,
       };
 

@@ -1,5 +1,4 @@
 import { Region } from "@idetik/core";
-import { IdetikCanvas } from "./IdetikCanvas";
 import { IdetikLayerList } from "./IdetikLayerList";
 import { HcsImagePanel } from "./HcsImagePanel";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer/OmeZarrImageViewer";
@@ -28,14 +27,14 @@ export default function App({
   return (
     <div className="h-screen flex">
       <div className="flex-1 relative">
-        <IdetikCanvas />
         <OmeZarrImageViewer
           sourceUrl={sourceUrl}
           region={region}
           seriesDimensionName="Z"
           allSlicesSizeEstimate={"250MB"}
           classNames={{
-            sliceMetadataContainer: "absolute bottom-0 right-0 w-full p-sds-l flex flex-col items-end gap-sds-l",
+            sliceMetadataContainer:
+              "absolute bottom-0 right-0 w-full p-sds-l flex flex-col items-end gap-sds-l",
           }}
         />
       </div>

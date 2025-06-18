@@ -10,6 +10,7 @@ export type IdetikContextValue =
         removeLayer: (layer: Layer) => void;
         isLayerActive: (layer: Layer) => boolean;
       };
+      canvas: HTMLCanvasElement;
       runtime: Idetik;
     }
   | {
@@ -17,6 +18,7 @@ export type IdetikContextValue =
       activeLayers: [];
       methods: null;
       runtime: null;
+      canvas: null;
       initializeWithCanvas: (canvas: HTMLCanvasElement) => void;
     };
 

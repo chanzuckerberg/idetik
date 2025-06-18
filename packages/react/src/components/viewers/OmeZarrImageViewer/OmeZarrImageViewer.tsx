@@ -295,14 +295,17 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
         <ChannelControlsList
           layer={imageLayerRef.current}
           labels={omeroChannels.map((c) => c.label || "Channel")}
-          contrastRanges={omeroChannels.map((c) => [c.window.start, c.window.end])}
+          contrastRanges={omeroChannels.map((c) => [
+            c.window.start,
+            c.window.end,
+          ])}
           classNames={{ root: "absolute top-0 left-0 z-10" }}
         />
       )}
       <div
         className={cns(
           classNames?.sliceMetadataContainer ||
-          "absolute bottom-0 right-0 w-full p-sds-l flex flex-col items-end gap-sds-l"
+            "absolute bottom-0 right-0 w-full p-sds-l flex flex-col items-end gap-sds-l"
         )}
       >
         {!loading ? (

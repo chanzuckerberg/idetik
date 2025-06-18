@@ -47,6 +47,7 @@ export default defineConfig(() => {
           'react-dom/client',
           '@czi-sds/components',
           '@mui/material',
+          '@idetik/core',
         ],
         output: {
           banner: '"use client";\n',
@@ -57,6 +58,7 @@ export default defineConfig(() => {
             'react-dom/client': 'ReactDOM.client',
             '@czi-sds/components': 'SDS',
             '@mui/material': 'MaterialUI',
+            '@idetik/core': 'IDETIKCore',
           },
         },
       },
