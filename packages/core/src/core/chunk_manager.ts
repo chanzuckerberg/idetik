@@ -11,7 +11,7 @@ import { vec2, vec4, mat4 } from "gl-matrix";
 type Bounds = { min: vec2; max: vec2 };
 
 // temporary value. LOD will be computed dynamically
-const curr_lod = 0;
+const curr_lod = 1;
 
 export class ChunkManagerSource {
   private readonly chunks_: ImageChunk[][] = [];
@@ -31,8 +31,12 @@ export class ChunkManagerSource {
       .fill(null)
       .map(() => []);
     for (let lod = 0; lod < attrs.length; ++lod) {
-      const xIdx = region.findIndex((entry) => entry.dimension === "x");
-      const yIdx = region.findIndex((entry) => entry.dimension === "y");
+      const xIdx = region.findIndex(
+        (entry) => entry.dimension.toLocaleLowerCase() === "x"
+      );
+      const yIdx = region.findIndex(
+        (entry) => entry.dimension.toLocaleLowerCase() === "y"
+      );
       if (xIdx === -1 || yIdx === -1) {
         throw new Error("Missing required spatial axis x/y");
       }

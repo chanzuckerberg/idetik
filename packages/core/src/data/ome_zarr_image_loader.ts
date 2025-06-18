@@ -67,7 +67,10 @@ export class OmeZarrImageLoader {
     });
 
     const dimInfo = await this.getDimInfoMap(region, chunk, attrs);
-    if (!dimInfo.has("x") || !dimInfo.has("y")) {
+    if (
+      !(dimInfo.has("x") || dimInfo.has("X")) ||
+      !(dimInfo.has("y") || dimInfo.has("Y"))
+    ) {
       throw new Error("Missing required spatial axis x/y");
     }
 
@@ -83,7 +86,7 @@ export class OmeZarrImageLoader {
     }
 
     const sliceSize = chunk.shape.x * chunk.shape.y;
-    const zInfo = dimInfo.get("z");
+    const zInfo = dimInfo.get("z") ?? dimInfo.get("Z");
     const zOffset = zInfo
       ? sliceSize * (zInfo.value % array.chunks[zInfo.dimIdx])
       : 0;

@@ -15,7 +15,7 @@ const Colors = {
 } satisfies Record<LogLevel, string>;
 
 // Add new module names here as needed to represent different parts of the application
-type Module = "WebGLRenderer" | "WebGLShaderProgram" | "Idetik";
+type Module = "WebGLRenderer" | "WebGLShaderProgram" | "Idetik" | "ImageLayer";
 
 export class Logger {
   private static logLevel_: LogLevel =
