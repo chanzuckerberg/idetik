@@ -86,6 +86,23 @@ export class ChunkManagerSource {
   ): void {
     const availableScales = this.attrs_.map((attr) => attr.scale);
 
+    // Assert that scales are separated by factors of 2
+    const EPS = 1e-6;
+    for (let i = 1; i < availableScales.length; i++) {
+      const prev = availableScales[i - 1];
+      const curr = availableScales[i];
+      const rx = prev[0] / curr[0];
+      const ry = prev[1] / curr[1];
+      if (Math.abs(rx - 2) > EPS || Math.abs(ry - 2) > EPS) {
+        console.error(
+          `Scale ratio between levels ${i - 1} and ${i} is (${rx}, ${ry}), expected (2.0, 2.0)`
+        );
+        throw new Error(
+          `Scales must be separated by factors of 2. Got ratio (${rx}, ${ry}) between scales ${prev} and ${curr}`
+        );
+      }
+    }
+
     // Calculate virtual width from visible bounds
     const virtualWidth = Math.abs(visibleBounds.max[0] - visibleBounds.min[0]);
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
