@@ -4,6 +4,7 @@ import { PromiseScheduler } from "./promise_scheduler";
 
 const imageChunkDataTypes = [Uint8Array, Uint16Array, Float32Array] as const;
 type ImageChunkData = InstanceType<(typeof imageChunkDataTypes)[number]>;
+
 export function isImageChunkData(value: unknown): value is ImageChunkData {
   if (
     imageChunkDataTypes.some(
@@ -23,7 +24,10 @@ export function isImageChunkData(value: unknown): value is ImageChunkData {
 // TODO: include the region of this chunk.
 // https://github.com/chanzuckerberg/idetik/issues/34
 export type ImageChunk = {
-  data: ImageChunkData;
+  data?: ImageChunkData;
+  state: "unloaded" | "loading" | "loaded";
+  lod: number;
+  visible: boolean;
   shape: {
     x: number;
     y: number;
@@ -31,6 +35,10 @@ export type ImageChunk = {
   };
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
+  chunkIndex: {
+    x: number;
+    y: number;
+  };
   scale: {
     x: number;
     y: number;
@@ -47,17 +55,20 @@ export type ImageChunkSource = {
 
 // TODO: we should make this more comprehensive, such as for multiscale images, etc.
 export type LoaderAttributes = {
+  chunks: readonly number[];
   dimensionNames: string[];
   shape: readonly number[];
   scale: readonly number[];
 };
 
 export type ImageChunkLoader = {
-  loadChunk(
+  loadRegion(
     input: Region,
     lod: number,
     scheduler?: PromiseScheduler
   ): Promise<ImageChunk>;
+
+  loadChunkDataFromRegion(chunk: ImageChunk, region: Region): Promise<void>;
 
   loadAttributes(): Promise<LoaderAttributes[]>;
 };

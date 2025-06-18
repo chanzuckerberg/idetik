@@ -49,6 +49,11 @@ export class Texture2DArray extends Texture {
   }
 
   public static createWithImageChunk(chunk: ImageChunk) {
+    if (!chunk.data) {
+      throw new Error(
+        "Unabled to create texture, chunk data is not initialized."
+      );
+    }
     const texture = new Texture2DArray(
       chunk.data,
       chunk.shape.x,

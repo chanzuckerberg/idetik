@@ -93,6 +93,13 @@ export abstract class Layer {
     this.objects_.push(object);
   }
 
+  protected removeObject(object: RenderableObject) {
+    const index = this.objects_.indexOf(object);
+    if (index !== -1) {
+      this.objects_.splice(index, 1);
+    }
+  }
+
   protected clearObjects() {
     this.objects_ = [];
   }

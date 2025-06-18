@@ -1,6 +1,7 @@
 import {
   Idetik,
-  ImageLayerXYZ,
+  AxesLayer,
+  ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
@@ -21,16 +22,17 @@ const region: Region = [
   { dimension: "t", index: { type: "point", value: 400 } },
   { dimension: "c", index: { type: "point", value: 0 } },
   { dimension: "z", index: { type: "point", value: 300 } },
-  { dimension: "y", index: { type: "interval", start: top, stop: bottom } },
-  { dimension: "x", index: { type: "interval", start: left, stop: right } },
+  { dimension: "y", index: { type: "full" } },
+  { dimension: "x", index: { type: "full" } },
 ];
 const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
-const layer = new ImageLayerXYZ({ source, region, channelProps });
+const imageLayer = new ImageLayer({ source, region, channelProps });
+const axesLayer = new AxesLayer({ length: 1500, width: 0.01 });
 const camera = new OrthographicCamera(left, right, top, bottom);
 
 new Idetik({
   canvasSelector: "canvas",
   camera,
   controls: new PanZoomControls(camera, camera.position),
-  layers: [layer],
+  layers: [imageLayer, axesLayer],
 }).start();

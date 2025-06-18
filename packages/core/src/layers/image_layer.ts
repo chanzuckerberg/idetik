@@ -1,10 +1,13 @@
 import { Layer, LayerOptions } from "../core/layer";
+import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
+import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
+import { Logger } from "../utilities/logger";
 
 export type ImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -18,12 +21,14 @@ export class ImageLayer extends Layer {
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
+  private useChunkManager_: boolean;
+  private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
+  private visibleChunks_: Map<ImageChunk, ImageRenderable> = new Map();
 
-  // TODO:(shlomnissan) Remove this parameter—LOD will be computed
-  // dynamically by the chunk manager.
+  // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
   private readonly lod_?: number;
 
   constructor({
@@ -39,19 +44,73 @@ export class ImageLayer extends Layer {
     this.region_ = region;
     this.lod_ = lod;
     this.channelProps_ = channelProps;
+
+    const x = region.find((r) => r.dimension.toLowerCase() === "x");
+    const y = region.find((r) => r.dimension.toLowerCase() === "y");
+    const hasIntervals = region.some((r) => r.index.type === "interval");
+    this.useChunkManager_ =
+      !hasIntervals && x?.index.type === "full" && y?.index.type === "full";
+
+    if (this.useChunkManager_) {
+      Logger.info("ImageLayer", "Loading data using the chunk manager");
+    }
+  }
+
+  public async onAttached(context: IdetikContext) {
+    if (this.useChunkManager_) {
+      this.chunkManagerSource_ = await context.chunkManager.addSource(
+        this.source_,
+        this.region_
+      );
+    }
+  }
+
+  private updateChunks() {
+    if (!this.chunkManagerSource_) return;
+
+    // Temporary until we decide how to approach state management
+    if (this.state !== "ready") {
+      this.setState("ready");
+    }
+
+    // TODO:(shlomnissan) Reuse images instead of deleting and creating new ones.
+    //
+    // This loop removes image renderables for chunks that are no longer visible.
+    // While this approach works for now, it may be more efficient in the future
+    // to reuse renderables by updating their underlying data instead of repeatedly
+    // creating new texture objects. Note: GPU resources are not currently being
+    // released, so this will also need to be addressed soon.
+    this.visibleChunks_.forEach((image, chunk) => {
+      if (!chunk.visible) {
+        this.removeObject(image);
+        this.visibleChunks_.delete(chunk); // safe
+      }
+    });
+
+    this.chunkManagerSource_.getVisibleChunks().forEach((chunk) => {
+      if (chunk.state === "loaded" && !this.visibleChunks_.has(chunk)) {
+        const image = this.createImage(chunk, this.channelProps);
+        this.visibleChunks_.set(chunk, image);
+        this.addObject(image);
+      }
+    });
   }
 
   public update() {
-    switch (this.state) {
-      case "initialized":
-        this.load(this.region_);
-        break;
-      case "loading":
-      case "ready":
-        break;
-      default: {
-        const exhaustiveCheck: never = this.state;
-        throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
+    if (this.useChunkManager_) {
+      this.updateChunks();
+    } else {
+      switch (this.state) {
+        case "initialized":
+          this.load(this.region_);
+          break;
+        case "loading":
+        case "ready":
+          break;
+        default: {
+          const exhaustiveCheck: never = this.state;
+          throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
+        }
       }
     }
   }
@@ -75,7 +134,7 @@ export class ImageLayer extends Layer {
     const attributes = await loader.loadAttributes();
     const lod = this.lod_ ?? attributes.length - 1;
 
-    const chunk = await loader.loadChunk(region, lod);
+    const chunk = await loader.loadRegion(region, lod);
     this.extent_ = {
       x: chunk.shape.x * chunk.scale.x,
       y: chunk.shape.y * chunk.scale.y,
