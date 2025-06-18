@@ -16,6 +16,8 @@ export class ChunkManagerSource {
   private readonly region_;
   private readonly attrs_: LoaderAttributes[];
   public currentLOD_: number = 0;
+  private readonly xIdx_: number;
+  private readonly yIdx_: number;
 
   constructor(
     loader: ImageChunkLoader,
@@ -26,6 +28,16 @@ export class ChunkManagerSource {
     this.region_ = region;
     this.attrs_ = attrs;
     this.currentLOD_ = 1;
+
+    this.xIdx_ = region.findIndex(
+      (entry) => entry.dimension.toLocaleLowerCase() === "x"
+    );
+    this.yIdx_ = region.findIndex(
+      (entry) => entry.dimension.toLocaleLowerCase() === "y"
+    );
+    if (this.xIdx_ === -1 || this.yIdx_ === -1) {
+      throw new Error("Missing required spatial axis x/y");
+    }
 
     // generate chunks for each LOD without loading data
     this.chunks_ = Array(this.attrs_.length)
@@ -91,8 +103,9 @@ export class ChunkManagerSource {
     for (let i = 1; i < availableScales.length; i++) {
       const prev = availableScales[i - 1];
       const curr = availableScales[i];
-      const rx = prev[0] / curr[0];
-      const ry = prev[1] / curr[1];
+      const rx = curr[this.xIdx_] / prev[this.xIdx_];
+      const ry = curr[this.yIdx_] / prev[this.yIdx_];
+
       if (Math.abs(rx - 2) > EPS || Math.abs(ry - 2) > EPS) {
         console.error(
           `Scale ratio between levels ${i - 1} and ${i} is (${rx}, ${ry}), expected (2.0, 2.0)`
