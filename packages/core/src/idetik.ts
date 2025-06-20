@@ -5,6 +5,7 @@ import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
+import { vec2, vec3 } from "gl-matrix";
 
 type IdetikParams = {
   canvas?: HTMLCanvasElement;
@@ -21,8 +22,9 @@ export type IdetikContext = {
 export class Idetik {
   public layerManager: LayerManager;
   public camera: Camera;
-  public readonly renderer_: WebGLRenderer;
+  public readonly canvas: HTMLCanvasElement;
 
+  private readonly renderer_: WebGLRenderer;
   private readonly context_: IdetikContext;
   private readonly chunkManager_: ChunkManager;
   private lastAnimationId_?: number;
@@ -42,6 +44,7 @@ export class Idetik {
     if (!canvas) {
       throw new Error(`Canvas not found: ${params.canvasSelector}`);
     }
+    this.canvas = canvas;
     this.renderer_ = new WebGLRenderer(canvas);
     this.chunkManager_ = new ChunkManager();
 
@@ -74,6 +77,13 @@ export class Idetik {
   // TODO: this should be modified once the controls are moved to the idetik class
   public setControls(controls: CameraControls) {
     this.renderer_.setControls(controls);
+  }
+
+  // TODO: this can be moved directly to this calss, but will need access to (and possibly expose)
+  // the canvas element
+  // let's do it at the same time `setControls` is moved to this class
+  public clientToClip(position: vec2, depth: number = 0): vec3 {
+    return this.renderer_.clientToClip(position, depth);
   }
 
   public start() {
