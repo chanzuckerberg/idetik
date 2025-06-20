@@ -57,6 +57,7 @@ const virusLikeLocations = await fetchPositionsFromNDJson(virusLikeUrl);
 type Marker = "circle" | "square" | "triangle";
 
 class Particles extends Layer {
+  public type = "Particles";
   private readonly points_: vec3[] = [];
   private readonly color_: Color;
   private readonly markerIndex_: number = 0;
@@ -214,8 +215,9 @@ const imageLayer = new ImageSeriesLayer({
 });
 
 const camera = new OrthographicCamera(0, 1024, 0, 1024, -10000, 10000);
+const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
 const app = new Idetik({
-  canvasSelector: "canvas",
+  canvas,
   camera,
   layers: [imageLayer],
 }).start();

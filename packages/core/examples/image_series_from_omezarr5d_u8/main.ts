@@ -62,7 +62,7 @@ layer.setIndex(slider.valueAsNumber - timeInterval.start);
 layer.preloadSeries();
 
 new Idetik({
-  canvasSelector: "canvas",
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera: new OrthographicCamera(0, 1920, 0, 1440),
   layers: [layer],
 }).start();

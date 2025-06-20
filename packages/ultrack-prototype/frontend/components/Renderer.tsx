@@ -53,10 +53,18 @@ export default function Renderer({
     lastTaskId.current = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
     setImageSeriesLayer((prevLayer: ImageSeriesLayer | null) => {
-      if (prevLayer !== null) prevLayer.close();
+      if (prevLayer !== null) {
+        prevLayer.close();
+        layerManager.remove(prevLayer);
+      }
       return imageSeriesLayer;
     });
-    setTracksLayer(tracksLayer);
+    setTracksLayer((prevLayer: TracksLayer | null) => {
+      if (prevLayer !== null) {
+        layerManager.remove(prevLayer);
+      }
+      return tracksLayer;
+    });
     const onReady = () => {
       setPlaybackEnabled(true);
       // TODO: update the data on the layers instead of creating new ones
@@ -78,7 +86,9 @@ export default function Renderer({
       }
     };
     imageSeriesLayer.addStateChangeCallback(onStateChange);
-    return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
+    return () => {
+      imageSeriesLayer.removeStateChangeCallback(onStateChange);
+    };
   }, [task, setPlaybackEnabled]);
 
   // Use the mount-effect so that the renderer can find the corresponding
@@ -86,7 +96,8 @@ export default function Renderer({
   useEffect(() => {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
-    const renderer = new WebGLRenderer(`#${canvasId}`);
+    const canvas = document.querySelector<HTMLCanvasElement>(`#${canvasId}`)!;
+    const renderer = new WebGLRenderer(canvas);
     renderer.setControls(controls);
     function animate() {
       renderer.render(layerManager, camera);

@@ -3,7 +3,7 @@ import {
   ImageChunkLoader,
   ImageChunkSource,
   LoaderAttributes,
-} from "@/data/image_chunk";
+} from "../data/image_chunk";
 import { Region } from "../data/region";
 import { Camera } from "../objects/cameras/camera";
 import { vec2, vec4, mat4 } from "gl-matrix";

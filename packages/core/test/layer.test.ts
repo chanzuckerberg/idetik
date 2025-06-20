@@ -3,6 +3,8 @@ import { expect, test, vi } from "vitest";
 import { Layer } from "@";
 
 class TestLayer extends Layer {
+  public type = "TestLayer";
+
   public update() {}
 
   public setStateReady() {

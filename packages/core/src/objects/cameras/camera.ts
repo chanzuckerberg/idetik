@@ -5,7 +5,6 @@ export abstract class Camera extends RenderableObject {
   protected projectionMatrix_ = mat4.create();
   protected near_ = 0;
   protected far_ = 0;
-  protected zoom_ = 1;
 
   protected abstract updateProjectionMatrix(): void;
 

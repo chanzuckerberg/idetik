@@ -7,7 +7,8 @@ import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
 
 type IdetikParams = {
-  canvasSelector: string;
+  canvas?: HTMLCanvasElement;
+  canvasSelector?: string;
   camera: Camera;
   controls?: CameraControls;
   layers?: Layer[];
@@ -20,15 +21,26 @@ export type IdetikContext = {
 export class Idetik {
   public layerManager: LayerManager;
   public camera: Camera;
+  public readonly renderer_: WebGLRenderer;
 
   private readonly context_: IdetikContext;
-  private readonly renderer_: WebGLRenderer;
   private readonly chunkManager_: ChunkManager;
   private lastAnimationId_?: number;
 
   constructor(params: IdetikParams) {
+    if (!params.canvas && !params.canvasSelector) {
+      throw new Error("Either canvas or canvasSelector must be provided");
+    }
+    if (params.canvas && params.canvasSelector) {
+      throw new Error("Cannot provide both canvas and canvasSelector");
+    }
+    
     this.camera = params.camera;
-    this.renderer_ = new WebGLRenderer(params.canvasSelector);
+    const canvas = params.canvas || document.querySelector<HTMLCanvasElement>(params.canvasSelector!);
+    if (!canvas) {
+      throw new Error(`Canvas not found: ${params.canvasSelector}`);
+    }
+    this.renderer_ = new WebGLRenderer(canvas);
     this.chunkManager_ = new ChunkManager();
 
     this.context_ = {

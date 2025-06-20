@@ -3,6 +3,8 @@ import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geomet
 import { ProjectedLine } from "../objects/renderable/projected_line";
 
 export class AxesLayer extends Layer {
+  public readonly type = "AxesLayer";
+
   constructor(params: { length: number; width: number }) {
     super();
     const { length, width } = params;
