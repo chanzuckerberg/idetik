@@ -18,9 +18,6 @@ export abstract class Renderer {
   protected abstract renderObject(layer: Layer, objectIndex: number): void;
   protected abstract clear(): void;
 
-  protected beginTransparentPass(): void {}
-  protected endTransparentPass(): void {}
-
   constructor(canvas: HTMLCanvasElement) {
     this.canvas_ = canvas;
     this.updateRendererSize();

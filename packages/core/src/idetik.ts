@@ -34,9 +34,11 @@ export class Idetik {
     if (params.canvas && params.canvasSelector) {
       throw new Error("Cannot provide both canvas and canvasSelector");
     }
-    
+
     this.camera = params.camera;
-    const canvas = params.canvas || document.querySelector<HTMLCanvasElement>(params.canvasSelector!);
+    const canvas =
+      params.canvas ||
+      document.querySelector<HTMLCanvasElement>(params.canvasSelector!);
     if (!canvas) {
       throw new Error(`Canvas not found: ${params.canvasSelector}`);
     }
