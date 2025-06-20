@@ -27,6 +27,11 @@ interface OmeZarrImageViewerProps {
   resolutionLevel?: number;
   shouldAutoLoadAllSlices?: boolean;
   shouldLoadMiddleZ?: boolean;
+  initialIndex?: "start" | "middle" | "end" | "omeroDefaultZ";
+  loadAllButtonText?: string;
+  indexIndicatorText?:
+    | string
+    | ((currentIndex: number, totalIndexes: number) => string);
   classNames?: {
     root?: string;
     sliceMetadataContainer?: string;
@@ -57,6 +62,9 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     resolutionLevel = 0,
     shouldAutoLoadAllSlices = false,
     shouldLoadMiddleZ = false,
+    initialIndex = "omeroDefaultZ",
+    loadAllButtonText,
+    indexIndicatorText,
   } = props;
 
   const { isReady: runtimeIsReady, methods, runtime } = useIdetik();
@@ -71,7 +79,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
 
   // Create source when URL or resolution changes
   useEffect(() => {
-    const newSource = new OmeZarrImageSource(sourceUrl, resolutionLevel);
+    const newSource = new OmeZarrImageSource(sourceUrl);
     setSource(newSource);
     setAllSlicesLoaded(false);
   }, [sourceUrl, resolutionLevel]);
@@ -182,13 +190,14 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
       }
       const loader = await source.open();
       const attrs = await loader.loadAttributes();
+      const attrsForLevel = attrs[resolutionLevel];
 
-      const zIdx = attrs.dimensionNames.findIndex(
+      const zIdx = attrsForLevel.dimensionNames.findIndex(
         (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
       );
 
       const min = 0;
-      const max = attrs.shape[zIdx] - 1;
+      const max = attrsForLevel.shape[zIdx] - 1;
 
       if (max - min <= 0) {
         setZRange([0, 0]);
@@ -204,8 +213,16 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
 
       if (isFullZ) {
         if (shouldLoadMiddleZ) {
-          const zShape = attrs.shape[zIdx];
+          const zShape = attrsForLevel.shape[zIdx];
           initialZ = Math.floor(zShape / 2);
+        } else if (initialIndex === "start") {
+          initialZ = 0;
+        } else if (initialIndex === "middle") {
+          const zShape = attrsForLevel.shape[zIdx];
+          initialZ = Math.floor(zShape / 2);
+        } else if (initialIndex === "end") {
+          const zShape = attrsForLevel.shape[zIdx];
+          initialZ = zShape - 1;
         } else {
           initialZ = await loadOmeroDefaultZ(sourceUrl);
         }
@@ -241,7 +258,15 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
       setZRange([min, max]);
     };
     fetchZRange();
-  }, [region, source, seriesDimensionName, sourceUrl, shouldLoadMiddleZ]);
+  }, [
+    region,
+    source,
+    seriesDimensionName,
+    sourceUrl,
+    shouldLoadMiddleZ,
+    initialIndex,
+    resolutionLevel,
+  ]);
 
   // Update imageLayer's index on Z change
   useEffect(() => {
@@ -324,7 +349,11 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
               classNames?.sliceIndicator
             )}
           >
-            {`Slice ${zIndex}/${zRange[1] - zRange[0]}`}
+            {typeof indexIndicatorText === "string" && indexIndicatorText}
+            {typeof indexIndicatorText === "function" &&
+              indexIndicatorText(zIndex, zRange[1] - zRange[0])}
+            {typeof indexIndicatorText === "undefined" &&
+              `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
           </div>
         ) : (
           <LoadingIndicator sdsStyle="tag" />
@@ -338,7 +367,10 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
             onClick={loadAllSlicesCallback}
             className={cns("shadow-sds-m", classNames?.load3dButton)}
           >
-            {allSlicesSizeEstimate ? `Load 3D high-res (${allSlicesSizeEstimate})` : "Load 3D high-res"}
+            {loadAllButtonText ||
+              (allSlicesSizeEstimate
+                ? `Load 3D high-res (${allSlicesSizeEstimate})`
+                : "Load 3D high-res")}
           </Button>
         ) : (
           <div
