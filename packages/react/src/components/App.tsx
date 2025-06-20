@@ -31,7 +31,7 @@ export default function App({
           sourceUrl={sourceUrl}
           region={region}
           seriesDimensionName="Z"
-          allSlicesSizeEstimate={"250MB"}
+          loadAllButtonText={"Load 3D high-res (250MB)"}
           classNames={{
             sliceMetadataContainer:
               "absolute bottom-0 right-0 w-full p-sds-l flex flex-col items-end gap-sds-l",

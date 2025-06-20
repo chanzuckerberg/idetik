@@ -15,23 +15,28 @@ import { IdetikCanvas } from "../../IdetikCanvas";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
-import { omeroToChannelProps, getGrayscaleChannelProp } from "./utils";
+import {
+  omeroToChannelProps,
+  getGrayscaleChannelProp,
+  omeroToChannelControls,
+  defaultGreyscaleChannel,
+  ExtraControlProps,
+} from "./utils";
 import { ChannelControlsList } from "./components/ChannelControlsList";
 
 interface OmeZarrImageViewerProps {
   sourceUrl: string;
   region: Region;
   seriesDimensionName: string;
-  allSlicesSizeEstimate?: string;
   fallbackContrastLimits?: [number, number];
   resolutionLevel?: number;
   shouldAutoLoadAllSlices?: boolean;
   shouldLoadMiddleZ?: boolean;
   initialIndex?: "start" | "middle" | "end" | "omeroDefaultZ";
-  loadAllButtonText?: string;
   indexIndicatorText?:
     | string
     | ((currentIndex: number, totalIndexes: number) => string);
+  loadAllButtonText?: string | (() => string);
   classNames?: {
     root?: string;
     sliceMetadataContainer?: string;
@@ -51,7 +56,6 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     sourceUrl,
     region,
     seriesDimensionName,
-    allSlicesSizeEstimate,
     fallbackContrastLimits,
     classNames,
     onLayerCreated,
@@ -75,6 +79,9 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
   const [omeroChannels, setOmeroChannels] = useState<OmeroChannel[]>([]);
+  const [extraControlProps, setExtraControlProps] = useState<
+    ExtraControlProps[]
+  >([]);
   const imageLayerRef = useRef<ImageSeriesLayer | null>(null);
 
   // Create source when URL or resolution changes
@@ -104,6 +111,12 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
         } else {
           channelProps = omeroToChannelProps(loadedOmeroChannels);
         }
+
+        const extraControlProps = omeroToChannelControls(
+          loadedOmeroChannels,
+          defaultGreyscaleChannel(fallbackContrastLimits)
+        );
+        setExtraControlProps(extraControlProps);
 
         const layer = new ImageSeriesLayer({
           source,
@@ -319,18 +332,22 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
       {imageLayerRef.current && omeroChannels.length > 0 && (
         <ChannelControlsList
           layer={imageLayerRef.current}
-          labels={omeroChannels.map((c) => c.label || "Channel")}
-          contrastRanges={omeroChannels.map((c) => [
-            c.window.start,
-            c.window.end,
-          ])}
+          extraControlProps={extraControlProps}
           classNames={{ root: "absolute top-0 left-0 z-10" }}
         />
       )}
       <div
         className={cns(
-          classNames?.sliceMetadataContainer ||
-            "absolute bottom-0 right-0 w-full p-sds-l flex flex-col items-end gap-sds-l"
+          "absolute",
+          "bottom-0",
+          "right-0",
+          "w-full",
+          "p-sds-l",
+          "flex",
+          "flex-col",
+          "items-end",
+          "gap-sds-l",
+          classNames?.sliceMetadataContainer
         )}
       >
         {!loading ? (
@@ -367,10 +384,9 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
             onClick={loadAllSlicesCallback}
             className={cns("shadow-sds-m", classNames?.load3dButton)}
           >
-            {loadAllButtonText ||
-              (allSlicesSizeEstimate
-                ? `Load 3D high-res (${allSlicesSizeEstimate})`
-                : "Load 3D high-res")}
+            {typeof loadAllButtonText === "string" && loadAllButtonText}
+            {typeof loadAllButtonText === "function" && loadAllButtonText()}
+            {typeof loadAllButtonText === "undefined" && "Load 3D high-res"}
           </Button>
         ) : (
           <div

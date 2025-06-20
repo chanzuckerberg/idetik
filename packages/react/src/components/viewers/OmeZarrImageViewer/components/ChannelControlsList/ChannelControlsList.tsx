@@ -9,15 +9,16 @@ import { ChannelControl } from "./components/ChannelControl";
 import { ChannelProps, ColorLike, ImageSeriesLayer } from "@idetik/core";
 import { useIdetik } from "../../../../hooks";
 import { useSyncExternalStore } from "react";
+import { ExtraControlProps } from "../../utils";
 
 export interface ChannelControlsListProps {
   // TODO: make this work with ImageLayer as well - need to refactor to add
   // useSyncExternalStore-compatible methods to ImageLayer
   layer: ImageSeriesLayer;
   // TODO: it's awkward to have labels and contrastRanges as separate props
-  // but they also don't belong on ImageSeriesLayer...
-  labels: string[];
-  contrastRanges: [number, number][];
+  // but they're not needed for *rendering* so they don't belong in the library
+  // - one option is to add a way to store related additional properties in the library
+  extraControlProps: ExtraControlProps[];
   classNames?: {
     root?: string;
   };
@@ -25,8 +26,7 @@ export interface ChannelControlsListProps {
 
 export function ChannelControlsList({
   layer,
-  labels,
-  contrastRanges,
+  extraControlProps,
   classNames,
 }: ChannelControlsListProps) {
   const { isReady: idetikIsReady } = useIdetik();
@@ -112,7 +112,7 @@ export function ChannelControlsList({
                 );
               }
               // FIXME: create an input prop for contrastRange
-              const contrastRange = contrastRanges[index];
+              const contrastRange = extraControlProps[index].contrastRange;
               if (contrastRange === undefined) {
                 throw new Error(
                   `Contrast range not defined for channel ${index}`
@@ -123,7 +123,7 @@ export function ChannelControlsList({
                 <ChannelControl
                   key={index}
                   channelIndex={index}
-                  label={labels[index] ?? `Channel ${index}`}
+                  label={extraControlProps[index].label}
                   color={props.color}
                   contrastLimits={props.contrastLimits}
                   contrastRange={contrastRange as [number, number]}
