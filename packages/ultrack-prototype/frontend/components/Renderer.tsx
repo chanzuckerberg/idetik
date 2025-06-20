@@ -53,18 +53,10 @@ export default function Renderer({
     lastTaskId.current = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
     setImageSeriesLayer((prevLayer: ImageSeriesLayer | null) => {
-      if (prevLayer !== null) {
-        prevLayer.close();
-        layerManager.remove(prevLayer);
-      }
+      prevLayer?.close();
       return imageSeriesLayer;
     });
-    setTracksLayer((prevLayer: TracksLayer | null) => {
-      if (prevLayer !== null) {
-        layerManager.remove(prevLayer);
-      }
-      return tracksLayer;
-    });
+    setTracksLayer(tracksLayer);
     const onReady = () => {
       setPlaybackEnabled(true);
       // TODO: update the data on the layers instead of creating new ones
