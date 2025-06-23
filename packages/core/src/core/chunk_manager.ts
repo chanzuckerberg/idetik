@@ -155,8 +155,6 @@ export class ChunkManager {
   public update(camera: Camera, _bufferWidth: number, _bufferHeight: number) {
     const visibleBounds = this.computeVisibleBounds(camera);
 
-    // TODO: compute the LOD factor
-
     for (const [_, chunkManagerSource] of this.sources_) {
       chunkManagerSource.computeLOD(visibleBounds, _bufferWidth);
       chunkManagerSource.updateChunks(visibleBounds);
