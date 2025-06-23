@@ -162,8 +162,6 @@ export class ChunkManager {
     const virtualUnitsPerScreenPixel = virtualWidth / _bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
-    // TODO: compute the LOD factor
-
     for (const [_, chunkManagerSource] of this.sources_) {
       chunkManagerSource.setLOD(lodFactor);
       chunkManagerSource.updateChunks(visibleBounds);
