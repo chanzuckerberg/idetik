@@ -12,7 +12,7 @@ import { almostEqual } from "@/utilities/almost_equal";
 type Bounds = { min: vec2; max: vec2 };
 
 export class ChunkManagerSource {
-  private readonly chunks_: ImageChunk[][] = [];
+  private readonly chunks_: ImageChunk[][];
   private readonly loader_;
   private readonly region_;
   private readonly attrs_: LoaderAttributes[];
@@ -102,9 +102,6 @@ export class ChunkManagerSource {
       const ry = curr[yIdx] / prev[yIdx];
 
       if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
-        console.error(
-          `Scale ratio between levels ${i - 1} and ${i} is (${rx}, ${ry}), expected (2.0, 2.0)`
-        );
         throw new Error(
           `Scales must be separated by factors of 2. Got ratio (${rx}, ${ry}) between scales ${prev} and ${curr}`
         );
