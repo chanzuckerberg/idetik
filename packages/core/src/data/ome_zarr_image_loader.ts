@@ -222,15 +222,23 @@ export class OmeZarrImageLoader {
 
     const output = new Map();
     region.forEach((entry, dimIdx) => {
-      if (entry.dimension === "x") {
+      if (entry.dimension.toLocaleLowerCase() === "x") {
         const value = 0; // not used for x dimension
-        output.set("x", { dimIdx, chunkIdx: chunk.chunkIndex.x, value });
+        output.set(entry.dimension, {
+          dimIdx,
+          chunkIdx: chunk.chunkIndex.x,
+          value,
+        });
         return;
       }
 
-      if (entry.dimension === "y") {
+      if (entry.dimension.toLocaleLowerCase() === "y") {
         const value = 0; // not used for y dimension
-        output.set("y", { dimIdx, chunkIdx: chunk.chunkIndex.y, value });
+        output.set(entry.dimension, {
+          dimIdx,
+          chunkIdx: chunk.chunkIndex.y,
+          value,
+        });
         return;
       }
 
