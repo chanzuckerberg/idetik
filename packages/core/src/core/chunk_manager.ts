@@ -114,12 +114,9 @@ export class ChunkManagerSource {
     const virtualWidth = Math.abs(visibleBounds.max[0] - visibleBounds.min[0]);
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
 
-    const numLods = availableScales.length;
-    const lodShift = numLods - 1;
-    const lodF = lodShift - Math.log2(1 / virtualUnitsPerScreenPixel);
-
-    const maxLod = numLods - 1;
-    const newLOD = Math.max(0, Math.min(maxLod, Math.floor(lodF)));
+    const maxLod = availableScales.length - 1;
+    const lodF = maxLod - Math.log2(1 / virtualUnitsPerScreenPixel);
+    const newLod = Math.max(0, Math.min(maxLod, Math.floor(lodF)));
 
     if (newLOD !== this.currentLOD_) {
       console.log(`LOD changed from ${this.currentLOD_} to ${newLOD}`);
