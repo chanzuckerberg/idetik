@@ -7,10 +7,12 @@ import {
 } from "./components/viewers/OmeZarrImageViewer";
 import { useIdetik, useOmeZarrViewer } from "./components/hooks";
 import { IdetikProvider } from "./components/providers";
+import { OmeZarrImageViewerProps } from "./components/hooks/useOmeZarrImageViewer";
 
 export {
   Renderer,
   OmeZarrImageViewer,
+  type OmeZarrImageViewerProps,
   ChannelControlsList,
   useIdetik,
   useOmeZarrViewer,
