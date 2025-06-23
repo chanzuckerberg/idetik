@@ -27,6 +27,7 @@ export class ImageLayer extends Layer {
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
   private visibleChunks_: Map<ImageChunk, ImageRenderable> = new Map();
+  private readonly lod_?: number;
 
   // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
 
@@ -34,6 +35,7 @@ export class ImageLayer extends Layer {
     source,
     region,
     channelProps,
+    lod,
     ...layerOptions
   }: ImageLayerProps) {
     super(layerOptions);
@@ -41,6 +43,7 @@ export class ImageLayer extends Layer {
     this.source_ = source;
     this.region_ = region;
     this.channelProps_ = channelProps;
+    this.lod_ = lod;
 
     const x = region.find((r) => r.dimension.toLowerCase() === "x");
     const y = region.find((r) => r.dimension.toLowerCase() === "y");
@@ -129,7 +132,7 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const attributes = await loader.loadAttributes();
-    const lod = this.chunkManagerSource_?.currentLOD_ ?? attributes.length - 1;
+    const lod = this.lod_ ?? attributes.length - 1;
 
     const chunk = await loader.loadRegion(region, lod);
     this.extent_ = {
