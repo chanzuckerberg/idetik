@@ -7,7 +7,7 @@ import {
 import { Region } from "../data/region";
 import { Camera } from "../objects/cameras/camera";
 import { vec2, vec4, mat4 } from "gl-matrix";
-import { almostEqual } from "@/utilities/almost_equal";
+import { almostEqual } from "../utilities/almost_equal";
 
 type Bounds = { min: vec2; max: vec2 };
 
