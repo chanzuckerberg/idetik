@@ -202,11 +202,11 @@ export class ChunkManagerSource {
     const epsilon = 1e-6;
     return (
       Math.abs(visibleBounds.min[0] - this.lastVisibleBounds_.min[0]) >
-      epsilon ||
+        epsilon ||
       Math.abs(visibleBounds.min[1] - this.lastVisibleBounds_.min[1]) >
-      epsilon ||
+        epsilon ||
       Math.abs(visibleBounds.max[0] - this.lastVisibleBounds_.max[0]) >
-      epsilon ||
+        epsilon ||
       Math.abs(visibleBounds.max[1] - this.lastVisibleBounds_.max[1]) > epsilon
     );
   }
