@@ -69,7 +69,7 @@ export class ChunkManagerSource {
           this.chunks_.push({
             state: "unloaded",
             lod,
-            visible: true, // TODO:(shlomnissan) should be set to false
+            visible: false,
             shape: {
               x: chunkWidth,
               y: chunkHeight,
