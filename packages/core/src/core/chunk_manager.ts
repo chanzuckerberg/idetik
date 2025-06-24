@@ -157,10 +157,9 @@ export class ChunkManagerSource {
   }
 
   private computeVisibleChunks(visibleBounds: Bounds): void {
-    const currentChunks = this.chunks_;
-    if (currentChunks.length === 0) return;
+    if (this.chunks_.length === 0) return;
 
-    const firstChunk = currentChunks[0];
+    const firstChunk = this.chunks_[0];
     const chunkVirtualWidth = firstChunk.shape.x * firstChunk.scale.x;
     const chunkVirtualHeight = firstChunk.shape.y * firstChunk.scale.y;
 
@@ -175,12 +174,12 @@ export class ChunkManagerSource {
     const maxChunkIndexY = Math.max(chunkIndexY1, chunkIndexY2);
 
     // Reset all chunks to not visible first
-    for (const chunk of currentChunks) {
+    for (const chunk of this.chunks_) {
       chunk.visible = false;
     }
 
     // Set visible chunks based on index range
-    for (const chunk of currentChunks) {
+    for (const chunk of this.chunks_) {
       if (!chunk.chunkIndex) continue;
       const { x, y } = chunk.chunkIndex;
       if (
