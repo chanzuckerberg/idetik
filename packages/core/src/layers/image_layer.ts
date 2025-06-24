@@ -35,6 +35,7 @@ export class ImageLayer extends Layer {
     source,
     region,
     channelProps,
+    lod,
     ...layerOptions
   }: ImageLayerProps) {
     super(layerOptions);
@@ -131,7 +132,7 @@ export class ImageLayer extends Layer {
     this.setState("loading");
     const loader = await this.source_.open();
     const attributes = await loader.loadAttributes();
-    const lod = this.chunkManagerSource_?.currentLOD_ ?? attributes.length - 1;
+    const lod = this.lod_ ?? attributes.length - 1;
 
     const chunk = await loader.loadRegion(region, lod);
     this.extent_ = {
