@@ -114,10 +114,8 @@ export class ChunkManagerSource {
   }
 
   public setLOD(lodFactor: number): void {
-    const numLods = this.attrs_.length;
-    const lodShift = numLods - 1;
-    const lodF = lodShift - lodFactor;
-    const newLOD = Math.max(0, Math.min(numLods - 1, Math.floor(lodF)));
+    const maxLOD = this.attrs_.length - 1;
+    const targetLOD = Math.max(0, Math.min(maxLOD, Math.floor(maxLOD - lodFactor)));
 
     if (newLOD !== this.currentLOD_) {
       console.debug(`LOD changed from ${this.currentLOD_} to ${newLOD}`);
