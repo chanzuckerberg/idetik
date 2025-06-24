@@ -7,16 +7,19 @@ import {
 import { Region } from "../data/region";
 import { Camera } from "../objects/cameras/camera";
 import { vec2, vec4, mat4 } from "gl-matrix";
+import { almostEqual } from "../utilities/almost_equal";
 
 type Bounds = { min: vec2; max: vec2 };
 
-// temporary value. LOD will be computed dynamically
-const curr_lod = 1;
-
 export class ChunkManagerSource {
-  private readonly chunks_: ImageChunk[][] = [];
+  private readonly chunks_: ImageChunk[][];
   private readonly loader_;
   private readonly region_;
+  private readonly attrs_: LoaderAttributes[];
+  private currentLOD_: number = 0;
+  private readonly xIdx_: number;
+  private readonly yIdx_: number;
+  private readonly channelIdx_: number;
 
   constructor(
     loader: ImageChunkLoader,
@@ -25,27 +28,43 @@ export class ChunkManagerSource {
   ) {
     this.loader_ = loader;
     this.region_ = region;
+    this.attrs_ = attrs;
+    this.currentLOD_ = 0;
 
+    this.xIdx_ = region.findIndex(
+      (entry) => entry.dimension.toLocaleLowerCase() === "x"
+    );
+    this.yIdx_ = region.findIndex(
+      (entry) => entry.dimension.toLocaleLowerCase() === "y"
+    );
+    if (this.xIdx_ === -1 || this.yIdx_ === -1) {
+      throw new Error("Missing required spatial axis x/y");
+    }
+    this.validateScaleRatios(this.xIdx_, this.yIdx_);
+    let channelIdx = region.findIndex(
+      (entry) => entry.dimension.toLowerCase() === "c"
+    );
+    if (channelIdx === -1) {
+      channelIdx = 0;
+    }
+    this.channelIdx_ = channelIdx;
     // generate chunks for each LOD without loading data
-    this.chunks_ = Array(attrs.length)
+    this.chunks_ = Array(this.attrs_.length)
       .fill(null)
       .map(() => []);
-    for (let lod = 0; lod < attrs.length; ++lod) {
-      const xIdx = region.findIndex(
-        (entry) => entry.dimension.toLocaleLowerCase() === "x"
+    for (let lod = 0; lod < this.attrs_.length; ++lod) {
+      const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
+      const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
+      const chunksX = Math.ceil(
+        this.attrs_[lod].shape[this.xIdx_] / chunkWidth
       );
-      const yIdx = region.findIndex(
-        (entry) => entry.dimension.toLocaleLowerCase() === "y"
+      const chunksY = Math.ceil(
+        this.attrs_[lod].shape[this.yIdx_] / chunkHeight
       );
-      if (xIdx === -1 || yIdx === -1) {
-        throw new Error("Missing required spatial axis x/y");
-      }
-
-      const chunkWidth = attrs[lod].chunks[xIdx];
-      const chunkHeight = attrs[lod].chunks[yIdx];
-      const chunksX = Math.ceil(attrs[lod].shape[xIdx] / chunkWidth);
-      const chunksY = Math.ceil(attrs[lod].shape[yIdx] / chunkHeight);
-      const channels = attrs[lod].shape.length === 3 ? attrs[lod].shape[0] : 1;
+      const channels =
+        this.attrs_[lod].shape.length === 3
+          ? this.attrs_[lod].shape[this.channelIdx_]
+          : 1;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
           this.chunks_[lod].push({
@@ -61,12 +80,12 @@ export class ChunkManagerSource {
             rowAlignmentBytes: 1,
             chunkIndex: { x, y },
             scale: {
-              x: attrs[lod].scale[xIdx],
-              y: attrs[lod].scale[yIdx],
+              x: this.attrs_[lod].scale[this.xIdx_],
+              y: this.attrs_[lod].scale[this.yIdx_],
             },
             offset: {
-              x: x * chunkWidth * attrs[lod].scale[xIdx],
-              y: y * chunkHeight * attrs[lod].scale[yIdx],
+              x: x * chunkWidth * this.attrs_[lod].scale[this.xIdx_],
+              y: y * chunkHeight * this.attrs_[lod].scale[this.yIdx_],
             },
           });
         }
@@ -74,14 +93,43 @@ export class ChunkManagerSource {
     }
   }
 
+  private validateScaleRatios(xIdx: number, yIdx: number): void {
+    const availableScales = this.attrs_.map((attr) => attr.scale);
+    for (let i = 1; i < availableScales.length; i++) {
+      const prev = availableScales[i - 1];
+      const curr = availableScales[i];
+      const rx = curr[xIdx] / prev[xIdx];
+      const ry = curr[yIdx] / prev[yIdx];
+
+      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
+        throw new Error(
+          `Scales must be separated by factors of 2. Got ratio (${rx}, ${ry}) between scales ${prev} and ${curr}`
+        );
+      }
+    }
+  }
+
   public getVisibleChunks(): ImageChunk[] {
-    return this.chunks_[curr_lod].filter((e) => e.visible);
+    return this.chunks_[this.currentLOD_].filter((e) => e.visible);
+  }
+
+  public setLOD(lodFactor: number): void {
+    const maxLOD = this.attrs_.length - 1;
+    const targetLOD = Math.max(
+      0,
+      Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
+    );
+
+    if (targetLOD !== this.currentLOD_) {
+      console.debug(`LOD changed from ${this.currentLOD_} to ${targetLOD}`);
+      this.currentLOD_ = targetLOD;
+    }
   }
 
   public async updateChunks(_: Bounds) {
     // TODO: map the LOD factor from the chunk manager to an available LOD in image space
     // TODO: replace the following block with loading based on intersection tests
-    for (const chunk of this.chunks_[curr_lod]) {
+    for (const chunk of this.chunks_[this.currentLOD_]) {
       if (chunk.state === "unloaded") {
         chunk.state = "loading";
         this.loader_.loadChunkDataFromRegion(chunk, this.region_).then(() => {
@@ -108,10 +156,12 @@ export class ChunkManager {
 
   public update(camera: Camera, _bufferWidth: number, _bufferHeight: number) {
     const visibleBounds = this.computeVisibleBounds(camera);
-
-    // TODO: compute the LOD factor
+    const virtualWidth = Math.abs(visibleBounds.max[0] - visibleBounds.min[0]);
+    const virtualUnitsPerScreenPixel = virtualWidth / _bufferWidth;
+    const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     for (const [_, chunkManagerSource] of this.sources_) {
+      chunkManagerSource.setLOD(lodFactor);
       chunkManagerSource.updateChunks(visibleBounds);
     }
   }
