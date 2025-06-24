@@ -131,8 +131,6 @@ export class ChunkManagerSource {
   }
 
   public async updateChunks(visibleBounds: Bounds) {
-    // TODO: map the LOD factor from the chunk manager to an available LOD in image space
-    // TODO: replace the following block with loading based on intersection tests
     if (this.hasVisibleBoundsChanged(visibleBounds)) {
       this.computeVisibleChunks(visibleBounds);
       this.lastVisibleBounds_ = {
