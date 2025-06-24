@@ -195,6 +195,7 @@ export class ChunkManagerSource {
       return true;
     }
 
+    const EPSILON = 1e-6;
     return (
       Math.abs(visibleBounds.min[0] - this.lastVisibleBounds_.min[0]) >
         EPSILON ||
