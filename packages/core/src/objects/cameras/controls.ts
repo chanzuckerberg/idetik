@@ -87,13 +87,11 @@ export class PanZoomControls implements CameraControls {
     const onMouseUp = () => {
       target.removeEventListener("mousemove", onMouseMove);
       target.removeEventListener("mouseup", onMouseUp);
-      target.removeEventListener("mouseleave", onMouseUp);
       target.removeEventListener("mouseout", onMouseUp);
     };
 
     target.addEventListener("mousemove", onMouseMove);
     target.addEventListener("mouseup", onMouseUp);
-    target.addEventListener("mouseleave", onMouseUp);
     target.addEventListener("mouseout", onMouseUp);
   }
 
