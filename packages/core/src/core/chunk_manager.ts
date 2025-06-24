@@ -165,14 +165,14 @@ export class ChunkManagerSource {
     const chunkVirtualHeight = firstChunkAtLOD.shape.y * firstChunkAtLOD.scale.y;
 
     const chunkIndexX1 = Math.floor(visibleBounds.min[0] / chunkVirtualWidth);
-    const chunkIndexX2 = Math.floor(visibleBounds.max[0] / chunkVirtualWidth);
+    const chunkIndexX2 = Math.ceil(visibleBounds.max[0] / chunkVirtualWidth);
     const chunkIndexY1 = Math.floor(visibleBounds.min[1] / chunkVirtualHeight);
-    const chunkIndexY2 = Math.floor(visibleBounds.max[1] / chunkVirtualHeight);
+    const chunkIndexY2 = Math.ceil(visibleBounds.max[1] / chunkVirtualHeight);
 
-    const minChunkIndexX = Math.min(chunkIndexX1, chunkIndexX2);
-    const maxChunkIndexX = Math.max(chunkIndexX1, chunkIndexX2);
-    const minChunkIndexY = Math.min(chunkIndexY1, chunkIndexY2);
-    const maxChunkIndexY = Math.max(chunkIndexY1, chunkIndexY2);
+    const minChunkIndexX = chunkIndexX1;
+    const maxChunkIndexX = chunkIndexX2;
+    const minChunkIndexY = chunkIndexY1;
+    const maxChunkIndexY = chunkIndexY2;
 
     // Reset visibility and set visible chunks based on index range in a single pass
     for (const chunk of this.chunks_) {
@@ -233,8 +233,8 @@ export class ChunkManager {
   }
 
   private computeVisibleBounds(camera: Camera): Bounds {
-    let topLeft = vec4.fromValues(-1.0, 1.0, 0.0, 1.0);
-    let bottomRight = vec4.fromValues(1.0, -1.0, 0.0, 1.0);
+    let topLeft = vec4.fromValues(-1.0, -1.0, 0.0, 1.0);
+    let bottomRight = vec4.fromValues(1.0, 1.0, 0.0, 1.0);
 
     const viewProjection = mat4.multiply(
       mat4.create(),
