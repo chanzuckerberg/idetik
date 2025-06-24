@@ -159,9 +159,10 @@ export class ChunkManagerSource {
   private computeVisibleChunks(visibleBounds: Bounds): void {
     if (this.chunks_.length === 0) return;
 
-    const firstChunk = this.chunks_[0];
-    const chunkVirtualWidth = firstChunk.shape.x * firstChunk.scale.x;
-    const chunkVirtualHeight = firstChunk.shape.y * firstChunk.scale.y;
+    const firstChunkAtLOD = this.chunks_.find((chunk) => chunk.lod === this.currentLOD_);
+    if (!firstChunkAtLOD) return;
+    const chunkVirtualWidth = firstChunkAtLOD.shape.x * firstChunkAtLOD.scale.x;
+    const chunkVirtualHeight = firstChunkAtLOD.shape.y * firstChunkAtLOD.scale.y;
 
     const chunkIndexX1 = Math.floor(visibleBounds.min[0] / chunkVirtualWidth);
     const chunkIndexX2 = Math.floor(visibleBounds.max[0] / chunkVirtualWidth);
@@ -195,18 +196,15 @@ export class ChunkManagerSource {
       return true;
     }
 
-    const EPSILON = 1e-6;
     return (
-      Math.abs(visibleBounds.min[0] - this.lastVisibleBounds_.min[0]) >
-        EPSILON ||
-      Math.abs(visibleBounds.min[1] - this.lastVisibleBounds_.min[1]) >
-        EPSILON ||
-      Math.abs(visibleBounds.max[0] - this.lastVisibleBounds_.max[0]) >
-        EPSILON ||
-      Math.abs(visibleBounds.max[1] - this.lastVisibleBounds_.max[1]) > EPSILON
+      !almostEqual(visibleBounds.min[0], this.lastVisibleBounds_.min[0]) ||
+      !almostEqual(visibleBounds.min[1], this.lastVisibleBounds_.min[1]) ||
+      !almostEqual(visibleBounds.max[0], this.lastVisibleBounds_.max[0]) ||
+      !almostEqual(visibleBounds.max[1], this.lastVisibleBounds_.max[1])
     );
   }
 }
+
 
 export class ChunkManager {
   private readonly sources_ = new Map<ImageChunkSource, ChunkManagerSource>();
