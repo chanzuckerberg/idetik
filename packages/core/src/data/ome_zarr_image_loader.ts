@@ -222,7 +222,7 @@ export class OmeZarrImageLoader {
 
     const output = new Map();
     region.forEach((entry, dimIdx) => {
-      if (entry.dimension.toLocaleLowerCase() === "x") {
+      if (entry.dimension.toLowerCase() === "x") {
         const value = 0; // not used for x dimension
         output.set(entry.dimension, {
           dimIdx,
@@ -232,7 +232,7 @@ export class OmeZarrImageLoader {
         return;
       }
 
-      if (entry.dimension.toLocaleLowerCase() === "y") {
+      if (entry.dimension.toLowerCase() === "y") {
         const value = 0; // not used for y dimension
         output.set(entry.dimension, {
           dimIdx,
