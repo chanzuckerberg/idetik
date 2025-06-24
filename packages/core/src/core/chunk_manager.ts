@@ -110,7 +110,9 @@ export class ChunkManagerSource {
   }
 
   public getVisibleChunks(): ImageChunk[] {
-    const visibleChunks = this.chunks_[this.currentLOD_].filter((e) => e.visible);
+    const visibleChunks = this.chunks_[this.currentLOD_].filter(
+      (e) => e.visible
+    );
     const visibleAndReady = visibleChunks.filter((e) => e.state === "loaded");
     return visibleAndReady;
   }
@@ -134,12 +136,17 @@ export class ChunkManagerSource {
     for (const chunk of this.chunks_[this.currentLOD_]) {
       if (chunk.visible && chunk.state === "unloaded") {
         chunk.state = "loading";
-        this.loader_.loadChunkDataFromRegion(chunk, this.region_).then(() => {
-          chunk.state = "loaded";
-        }).catch((error) => {
-          console.error(`Error loading chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`);
-          chunk.state = "unloaded";
-        });
+        this.loader_
+          .loadChunkDataFromRegion(chunk, this.region_)
+          .then(() => {
+            chunk.state = "loaded";
+          })
+          .catch((error) => {
+            console.error(
+              `Error loading chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`
+            );
+            chunk.state = "unloaded";
+          });
       }
     }
   }
