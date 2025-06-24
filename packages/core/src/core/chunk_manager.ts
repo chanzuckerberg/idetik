@@ -110,7 +110,9 @@ export class ChunkManagerSource {
   }
 
   public getVisibleChunks(): ImageChunk[] {
-    return this.chunks_[this.currentLOD_].filter((e) => e.visible);
+    const visibleChunks = this.chunks_[this.currentLOD_].filter((e) => e.visible);
+    const visibleAndReady = visibleChunks.filter((e) => e.state === "loaded");
+    return visibleAndReady;
   }
 
   public setLOD(lodFactor: number): void {
@@ -126,15 +128,59 @@ export class ChunkManagerSource {
     }
   }
 
-  public async updateChunks(_: Bounds) {
-    // TODO: map the LOD factor from the chunk manager to an available LOD in image space
-    // TODO: replace the following block with loading based on intersection tests
+  public async updateChunks(visibleBounds: Bounds) {
+    this.computeVisibleChunks(visibleBounds);
+
     for (const chunk of this.chunks_[this.currentLOD_]) {
-      if (chunk.state === "unloaded") {
+      if (chunk.visible && chunk.state === "unloaded") {
         chunk.state = "loading";
         this.loader_.loadChunkDataFromRegion(chunk, this.region_).then(() => {
           chunk.state = "loaded";
+        }).catch((error) => {
+          console.error(`Error loading chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`);
+          chunk.state = "unloaded";
         });
+      }
+    }
+  }
+
+  private computeVisibleChunks(visibleBounds: Bounds): void {
+    const currentChunks = this.chunks_[this.currentLOD_];
+    if (currentChunks.length === 0) return;
+
+    // Get chunk size in virtual coordinates for current LOD
+    const firstChunk = currentChunks[0];
+    const chunkVirtualWidth = firstChunk.shape.x * firstChunk.scale.x;
+    const chunkVirtualHeight = firstChunk.shape.y * firstChunk.scale.y;
+
+    // Compute chunk index range using analytical approach
+    const chunkIndexX1 = Math.floor(visibleBounds.min[0] / chunkVirtualWidth);
+    const chunkIndexX2 = Math.floor(visibleBounds.max[0] / chunkVirtualWidth);
+    const chunkIndexY1 = Math.floor(visibleBounds.min[1] / chunkVirtualHeight);
+    const chunkIndexY2 = Math.floor(visibleBounds.max[1] / chunkVirtualHeight);
+
+    // Ensure min/max are in correct order
+    const minChunkIndexX = Math.min(chunkIndexX1, chunkIndexX2);
+    const maxChunkIndexX = Math.max(chunkIndexX1, chunkIndexX2);
+    const minChunkIndexY = Math.min(chunkIndexY1, chunkIndexY2);
+    const maxChunkIndexY = Math.max(chunkIndexY1, chunkIndexY2);
+
+    // Reset all chunks to not visible first
+    for (const chunk of currentChunks) {
+      chunk.visible = false;
+    }
+
+    // Set visible chunks based on index range
+    for (const chunk of currentChunks) {
+      if (!chunk.chunkIndex) continue;
+      const { x, y } = chunk.chunkIndex;
+      if (
+        x >= minChunkIndexX &&
+        x <= maxChunkIndexX &&
+        y >= minChunkIndexY &&
+        y <= maxChunkIndexY
+      ) {
+        chunk.visible = true;
       }
     }
   }
