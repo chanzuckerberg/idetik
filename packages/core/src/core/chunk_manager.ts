@@ -12,7 +12,7 @@ import { almostEqual } from "../utilities/almost_equal";
 type Bounds = { min: vec2; max: vec2 };
 
 export class ChunkManagerSource {
-  private readonly chunks_: ImageChunk[][];
+  private readonly chunks_: ImageChunk[];
   private readonly loader_;
   private readonly region_;
   private readonly attrs_: LoaderAttributes[];
@@ -49,9 +49,7 @@ export class ChunkManagerSource {
     }
     this.channelIdx_ = channelIdx;
     // generate chunks for each LOD without loading data
-    this.chunks_ = Array(this.attrs_.length)
-      .fill(null)
-      .map(() => []);
+    this.chunks_ = [];
     for (let lod = 0; lod < this.attrs_.length; ++lod) {
       const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
       const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
@@ -67,7 +65,7 @@ export class ChunkManagerSource {
           : 1;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
-          this.chunks_[lod].push({
+          this.chunks_.push({
             state: "unloaded",
             lod,
             visible: true, // TODO:(shlomnissan) should be set to false
@@ -110,7 +108,9 @@ export class ChunkManagerSource {
   }
 
   public getVisibleChunks(): ImageChunk[] {
-    return this.chunks_[this.currentLOD_].filter((e) => e.visible);
+    return this.chunks_.filter(
+      (chunk) => chunk.lod === this.currentLOD_ && chunk.visible
+    );
   }
 
   public setLOD(lodFactor: number): void {
@@ -129,7 +129,7 @@ export class ChunkManagerSource {
   public async updateChunks(_: Bounds) {
     // TODO: map the LOD factor from the chunk manager to an available LOD in image space
     // TODO: replace the following block with loading based on intersection tests
-    for (const chunk of this.chunks_[this.currentLOD_]) {
+    for (const chunk of this.chunks_) {
       if (chunk.state === "unloaded") {
         chunk.state = "loading";
         this.loader_.loadChunkDataFromRegion(chunk, this.region_).then(() => {
