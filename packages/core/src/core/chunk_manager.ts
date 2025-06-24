@@ -132,7 +132,7 @@ export class ChunkManagerSource {
 
   public async updateChunks(visibleBounds: Bounds) {
     if (this.hasVisibleBoundsChanged(visibleBounds)) {
-      this.computeVisibleChunks(visibleBounds);
+      this.updateVisibleChunks(visibleBounds);
       this.lastVisibleBounds_ = {
         min: vec2.clone(visibleBounds.min),
         max: vec2.clone(visibleBounds.max),
@@ -156,23 +156,23 @@ export class ChunkManagerSource {
     }
   }
 
-  private computeVisibleChunks(visibleBounds: Bounds): void {
+  private updateVisibleChunks(visibleBounds: Bounds): void {
     if (this.chunks_.length === 0) return;
 
-    const firstChunkAtLOD = this.chunks_.find((chunk) => chunk.lod === this.currentLOD_);
+    const firstChunkAtLOD = this.chunks_.find(
+      (chunk) => chunk.lod === this.currentLOD_
+    );
     if (!firstChunkAtLOD) return;
     const chunkVirtualWidth = firstChunkAtLOD.shape.x * firstChunkAtLOD.scale.x;
-    const chunkVirtualHeight = firstChunkAtLOD.shape.y * firstChunkAtLOD.scale.y;
+    const chunkVirtualHeight =
+      firstChunkAtLOD.shape.y * firstChunkAtLOD.scale.y;
 
-    const chunkIndexX1 = Math.floor(visibleBounds.min[0] / chunkVirtualWidth);
-    const chunkIndexX2 = Math.ceil(visibleBounds.max[0] / chunkVirtualWidth);
-    const chunkIndexY1 = Math.floor(visibleBounds.min[1] / chunkVirtualHeight);
-    const chunkIndexY2 = Math.ceil(visibleBounds.max[1] / chunkVirtualHeight);
-
-    const minChunkIndexX = chunkIndexX1;
-    const maxChunkIndexX = chunkIndexX2;
-    const minChunkIndexY = chunkIndexY1;
-    const maxChunkIndexY = chunkIndexY2;
+    const minChunkIndexX = Math.floor(visibleBounds.min[0] / chunkVirtualWidth);
+    const maxChunkIndexX = Math.ceil(visibleBounds.max[0] / chunkVirtualWidth);
+    const minChunkIndexY = Math.floor(
+      visibleBounds.min[1] / chunkVirtualHeight
+    );
+    const maxChunkIndexY = Math.ceil(visibleBounds.max[1] / chunkVirtualHeight);
 
     // Reset visibility and set visible chunks based on index range in a single pass
     for (const chunk of this.chunks_) {
@@ -204,7 +204,6 @@ export class ChunkManagerSource {
     );
   }
 }
-
 
 export class ChunkManager {
   private readonly sources_ = new Map<ImageChunkSource, ChunkManagerSource>();
