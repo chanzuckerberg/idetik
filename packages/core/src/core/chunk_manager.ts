@@ -12,7 +12,7 @@ import { almostEqual } from "../utilities/almost_equal";
 type Bounds = { min: vec2; max: vec2 };
 
 export class ChunkManagerSource {
-  private readonly chunks_: ImageChunk[][];
+  private readonly chunks_: ImageChunk[];
   private readonly loader_;
   private readonly region_;
   private readonly attrs_: LoaderAttributes[];
@@ -20,6 +20,7 @@ export class ChunkManagerSource {
   private readonly xIdx_: number;
   private readonly yIdx_: number;
   private readonly channelIdx_: number;
+  private lastVisibleBounds_: Bounds | null = null;
 
   constructor(
     loader: ImageChunkLoader,
@@ -49,9 +50,7 @@ export class ChunkManagerSource {
     }
     this.channelIdx_ = channelIdx;
     // generate chunks for each LOD without loading data
-    this.chunks_ = Array(this.attrs_.length)
-      .fill(null)
-      .map(() => []);
+    this.chunks_ = [];
     for (let lod = 0; lod < this.attrs_.length; ++lod) {
       const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
       const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
@@ -67,7 +66,7 @@ export class ChunkManagerSource {
           : 1;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
-          this.chunks_[lod].push({
+          this.chunks_.push({
             state: "unloaded",
             lod,
             visible: true, // TODO:(shlomnissan) should be set to false
@@ -110,11 +109,12 @@ export class ChunkManagerSource {
   }
 
   public getVisibleChunks(): ImageChunk[] {
-    const visibleChunks = this.chunks_[this.currentLOD_].filter(
-      (e) => e.visible
+    return this.chunks_.filter(
+      (chunk) =>
+        chunk.lod === this.currentLOD_ &&
+        chunk.visible &&
+        chunk.state === "loaded"
     );
-    const visibleAndReady = visibleChunks.filter((e) => e.state === "loaded");
-    return visibleAndReady;
   }
 
   public setLOD(lodFactor: number): void {
@@ -131,9 +131,16 @@ export class ChunkManagerSource {
   }
 
   public async updateChunks(visibleBounds: Bounds) {
-    this.computeVisibleChunks(visibleBounds);
-
-    for (const chunk of this.chunks_[this.currentLOD_]) {
+    // TODO: map the LOD factor from the chunk manager to an available LOD in image space
+    // TODO: replace the following block with loading based on intersection tests
+    if (this.hasVisibleBoundsChanged(visibleBounds)) {
+      this.computeVisibleChunks(visibleBounds);
+      this.lastVisibleBounds_ = {
+        min: vec2.clone(visibleBounds.min),
+        max: vec2.clone(visibleBounds.max),
+      };
+    }
+    for (const chunk of this.chunks_) {
       if (chunk.visible && chunk.state === "unloaded") {
         chunk.state = "loading";
         this.loader_
@@ -152,21 +159,18 @@ export class ChunkManagerSource {
   }
 
   private computeVisibleChunks(visibleBounds: Bounds): void {
-    const currentChunks = this.chunks_[this.currentLOD_];
+    const currentChunks = this.chunks_;
     if (currentChunks.length === 0) return;
 
-    // Get chunk size in virtual coordinates for current LOD
     const firstChunk = currentChunks[0];
     const chunkVirtualWidth = firstChunk.shape.x * firstChunk.scale.x;
     const chunkVirtualHeight = firstChunk.shape.y * firstChunk.scale.y;
 
-    // Compute chunk index range using analytical approach
     const chunkIndexX1 = Math.floor(visibleBounds.min[0] / chunkVirtualWidth);
     const chunkIndexX2 = Math.floor(visibleBounds.max[0] / chunkVirtualWidth);
     const chunkIndexY1 = Math.floor(visibleBounds.min[1] / chunkVirtualHeight);
     const chunkIndexY2 = Math.floor(visibleBounds.max[1] / chunkVirtualHeight);
 
-    // Ensure min/max are in correct order
     const minChunkIndexX = Math.min(chunkIndexX1, chunkIndexX2);
     const maxChunkIndexX = Math.max(chunkIndexX1, chunkIndexX2);
     const minChunkIndexY = Math.min(chunkIndexY1, chunkIndexY2);
@@ -190,6 +194,23 @@ export class ChunkManagerSource {
         chunk.visible = true;
       }
     }
+  }
+
+  private hasVisibleBoundsChanged(visibleBounds: Bounds): boolean {
+    if (!this.lastVisibleBounds_) {
+      return true;
+    }
+
+    const epsilon = 1e-6;
+    return (
+      Math.abs(visibleBounds.min[0] - this.lastVisibleBounds_.min[0]) >
+      epsilon ||
+      Math.abs(visibleBounds.min[1] - this.lastVisibleBounds_.min[1]) >
+      epsilon ||
+      Math.abs(visibleBounds.max[0] - this.lastVisibleBounds_.max[0]) >
+      epsilon ||
+      Math.abs(visibleBounds.max[1] - this.lastVisibleBounds_.max[1]) > epsilon
+    );
   }
 }
 
