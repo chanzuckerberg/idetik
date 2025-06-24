@@ -173,22 +173,19 @@ export class ChunkManagerSource {
     const minChunkIndexY = Math.min(chunkIndexY1, chunkIndexY2);
     const maxChunkIndexY = Math.max(chunkIndexY1, chunkIndexY2);
 
-    // Reset all chunks to not visible first
+    // Reset visibility and set visible chunks based on index range in a single pass
     for (const chunk of this.chunks_) {
       chunk.visible = false;
-    }
-
-    // Set visible chunks based on index range
-    for (const chunk of this.chunks_) {
-      if (!chunk.chunkIndex) continue;
-      const { x, y } = chunk.chunkIndex;
-      if (
-        x >= minChunkIndexX &&
-        x <= maxChunkIndexX &&
-        y >= minChunkIndexY &&
-        y <= maxChunkIndexY
-      ) {
-        chunk.visible = true;
+      if (chunk.chunkIndex) {
+        const { x, y } = chunk.chunkIndex;
+        if (
+          x >= minChunkIndexX &&
+          x <= maxChunkIndexX &&
+          y >= minChunkIndexY &&
+          y <= maxChunkIndexY
+        ) {
+          chunk.visible = true;
+        }
       }
     }
   }
