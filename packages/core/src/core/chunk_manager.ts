@@ -40,13 +40,13 @@ export class ChunkManagerSource {
     if (this.xIdx_ === -1 || this.yIdx_ === -1) {
       throw new Error("Missing required spatial axis x/y");
     }
+    this.validateScaleRatios(this.xIdx_, this.yIdx_);
     let channelIdx = region.findIndex(
       (entry) => entry.dimension.toLowerCase() === "c"
     );
     if (channelIdx === -1) {
       channelIdx = 0;
     }
-    this.validateScaleRatios(this.xIdx_, this.yIdx_);
     this.channelIdx_ = channelIdx;
     // generate chunks for each LOD without loading data
     this.chunks_ = Array(this.attrs_.length)
@@ -115,11 +115,14 @@ export class ChunkManagerSource {
 
   public setLOD(lodFactor: number): void {
     const maxLOD = this.attrs_.length - 1;
-    const targetLOD = Math.max(0, Math.min(maxLOD, Math.floor(maxLOD - lodFactor)));
+    const targetLOD = Math.max(
+      0,
+      Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
+    );
 
-    if (newLOD !== this.currentLOD_) {
-      console.debug(`LOD changed from ${this.currentLOD_} to ${newLOD}`);
-      this.currentLOD_ = newLOD;
+    if (targetLOD !== this.currentLOD_) {
+      console.debug(`LOD changed from ${this.currentLOD_} to ${targetLOD}`);
+      this.currentLOD_ = targetLOD;
     }
   }
 
