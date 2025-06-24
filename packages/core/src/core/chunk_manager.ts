@@ -108,7 +108,9 @@ export class ChunkManagerSource {
   }
 
   public getVisibleChunks(): ImageChunk[] {
-    return this.chunks_.filter((chunk) => chunk.lod === this.currentLOD_ && chunk.visible);
+    return this.chunks_.filter(
+      (chunk) => chunk.lod === this.currentLOD_ && chunk.visible
+    );
   }
 
   public setLOD(lodFactor: number): void {
