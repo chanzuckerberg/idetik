@@ -66,6 +66,7 @@ export function useOmeZarrViewer({
   const [zValue, setZValue] = useState(0.5);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
+  const [unit, setUnit] = useState<string>();
   const { idetik, setIdetik, setChannelControls } = useIdetik();
 
   useEffect(() => {
@@ -200,6 +201,18 @@ export function useOmeZarrViewer({
       const loader = await source.open();
       const attributes = await loader.loadAttributes();
       const attributesForLOD = attributes[lod];
+
+      // TODO: this does not fit here, but is here because we have the result
+      // of loadAttributes. We also assume that the last dimension will give
+      // us the x-unit, which currently holds with idetik but is fragile.
+      const dimensionUnits = attributesForLOD.dimensionUnits;
+      const xUnit = dimensionUnits[dimensionUnits.length - 1];
+      if (xUnit === undefined) {
+        console.warn(
+          "No x-unit found in attributes, setting unit to undefined"
+        );
+      }
+      setUnit(xUnit);
 
       const zIdx = attributesForLOD.dimensionNames.findIndex(
         (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
@@ -337,5 +350,6 @@ export function useOmeZarrViewer({
     loading,
     allSlicesLoaded,
     loadAllSlicesCallback,
+    unit,
   };
 }
