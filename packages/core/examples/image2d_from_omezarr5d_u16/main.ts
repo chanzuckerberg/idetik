@@ -32,11 +32,8 @@ const axes = new AxesLayer({ length: 2000, width: 0.01 });
 const camera = new OrthographicCamera(left, right, top, bottom);
 
 const scaleBar = new ScaleBar({
-  boxDiv: document.querySelector("#scale-bar-box") as HTMLDivElement,
   textDiv: document.querySelector("#scale-bar-text") as HTMLDivElement,
   barDiv: document.querySelector("#scale-bar-line") as HTMLDivElement,
-  boxProportion: 0.25,
-  barProportion: 0.9,
   unit: "μm",
 });
 
