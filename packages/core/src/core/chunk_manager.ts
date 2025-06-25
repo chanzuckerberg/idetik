@@ -94,14 +94,12 @@ export class ChunkManagerSource {
   }
 
   public getChunks(): ImageChunk[] {
-    const chunks = this.chunks_.filter(
+    return this.chunks_.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
         chunk.visible &&
         chunk.state === "loaded"
     );
-    console.debug(chunks);
-    return chunks;
   }
 
   public loadVisibleChunks() {
@@ -156,7 +154,13 @@ export class ChunkManagerSource {
   }
 
   private updateChunkVisibility(visibleBounds: Bounds): void {
-    if (this.chunks_.length === 0) return;
+    if (this.chunks_.length === 0) {
+      Logger.warn(
+        "ChunkManager",
+        "updateChunkVisibility called with no chunks initialized"
+      );
+      return;
+    }
 
     for (const chunk of this.chunks_) {
       if (!chunk.chunkIndex) {
