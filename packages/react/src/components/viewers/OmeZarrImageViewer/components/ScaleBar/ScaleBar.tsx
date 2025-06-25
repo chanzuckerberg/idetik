@@ -21,46 +21,35 @@ function getUnitAbbreviation(unit: string | undefined): string {
   }
 }
 
-class ScaleBarOverlay {
-  private barDiv_: HTMLDivElement;
-  private readonly onBarWidthChanged_: (width: number) => void;
-
-  public constructor(
-    barDiv: HTMLDivElement,
-    onBarWidthChanged: (width: number) => void
-  ) {
-    this.barDiv_ = barDiv;
-    this.onBarWidthChanged_ = onBarWidthChanged;
-  }
-
-  public update(idetik: Idetik) {
-    const camera = idetik.camera;
-    if (camera.type !== "OrthographicCamera") {
-      throw new Error("ScaleBar can only be used with OrthographicCamera");
-    }
-    const orthoCamera = camera as OrthographicCamera;
-    const cameraWidth =
-      orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
-    const barWidth = (this.barDiv_.offsetWidth / idetik.width) * cameraWidth;
-    this.onBarWidthChanged_(barWidth);
-  }
-}
-
 type ScaleBarProps = {
   unit?: string;
 };
 
 export function ScaleBar(props: ScaleBarProps) {
   const { idetik } = useIdetik();
-  const barDivRef = useRef(null);
+  const barDivRef = useRef<HTMLDivElement>(null);
   const [barWidth, setBarWidth] = useState<number>(0);
 
   useEffect(() => {
-    if (!idetik || !barDivRef.current) return;
-    const scaleBar = new ScaleBarOverlay(barDivRef.current!, setBarWidth);
-    idetik.overlays.push({ update: scaleBar.update });
+    if (!idetik) return;
+    const overlay = {
+      update: (idetik: Idetik) => {
+        if (barDivRef.current === null) return;
+        const camera = idetik.camera;
+        if (camera.type !== "OrthographicCamera") {
+          throw new Error("ScaleBar can only be used with OrthographicCamera");
+        }
+        const orthoCamera = camera as OrthographicCamera;
+        const cameraWidth =
+          orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
+        const barWidth =
+          (barDivRef.current.offsetWidth / idetik.width) * cameraWidth;
+        setBarWidth(barWidth);
+      },
+    };
+    idetik.overlays.push(overlay);
     return () => {
-      const idx = idetik.overlays.indexOf(scaleBar);
+      const idx = idetik.overlays.indexOf(overlay);
       if (idx > -1) idetik.overlays.splice(idx, 1);
     };
   }, [idetik, setBarWidth]);
