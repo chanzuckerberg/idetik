@@ -157,41 +157,35 @@ export class ChunkManagerSource {
 
   private updateChunkVisibility(visibleBounds: Bounds): void {
     if (this.chunks_.length === 0) return;
-    const firstChunkAtLOD = this.chunks_.find(
-      (chunk) => chunk.lod === this.currentLOD_
-    );
-    if (!firstChunkAtLOD) return;
-    const chunkVirtualWidth = firstChunkAtLOD.shape.x * firstChunkAtLOD.scale.x;
-    const chunkVirtualHeight =
-      firstChunkAtLOD.shape.y * firstChunkAtLOD.scale.y;
 
-    const minChunkIndexX = Math.floor(visibleBounds.min[0] / chunkVirtualWidth);
-    const maxChunkIndexX = Math.ceil(visibleBounds.max[0] / chunkVirtualWidth);
-    const minChunkIndexY = Math.floor(
-      visibleBounds.min[1] / chunkVirtualHeight
-    );
-    const maxChunkIndexY = Math.ceil(visibleBounds.max[1] / chunkVirtualHeight);
-
-    // Reset visibility and set visible chunks based on index range in a single pass
     for (const chunk of this.chunks_) {
-      // exit early if chunks are not at the current LOD
-      if (chunk.lod !== this.currentLOD_) {
+      if (!chunk.chunkIndex) {
         chunk.visible = false;
         continue;
       }
 
-      chunk.visible = false;
-      if (chunk.chunkIndex) {
-        const { x, y } = chunk.chunkIndex;
-        if (
-          x >= minChunkIndexX &&
-          x <= maxChunkIndexX &&
-          y >= minChunkIndexY &&
-          y <= maxChunkIndexY
-        ) {
-          chunk.visible = true;
-        }
-      }
+      const chunkVirtualWidth = chunk.shape.x * chunk.scale.x;
+      const chunkVirtualHeight = chunk.shape.y * chunk.scale.y;
+
+      const minChunkIndexX = Math.floor(
+        visibleBounds.min[0] / chunkVirtualWidth
+      );
+      const maxChunkIndexX = Math.ceil(
+        visibleBounds.max[0] / chunkVirtualWidth
+      );
+      const minChunkIndexY = Math.floor(
+        visibleBounds.min[1] / chunkVirtualHeight
+      );
+      const maxChunkIndexY = Math.ceil(
+        visibleBounds.max[1] / chunkVirtualHeight
+      );
+
+      const { x, y } = chunk.chunkIndex;
+      chunk.visible =
+        x >= minChunkIndexX &&
+        x <= maxChunkIndexX &&
+        y >= minChunkIndexY &&
+        y <= maxChunkIndexY;
     }
   }
 
