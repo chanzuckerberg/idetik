@@ -41,8 +41,6 @@ const app = new Idetik({
   controls,
 }).start();
 
-let currentLayer: ImageLayer | undefined;
-
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
   { dimension: "C", index: { type: "interval", start: 1, stop: 3 } },
@@ -55,9 +53,7 @@ const imageSelector = document.querySelector("#image") as HTMLSelectElement;
 
 const onImageChange = async () => {
   console.debug("onImageChange: ", imageSelector.value);
-  if (currentLayer) {
-    app.layerManager.remove(currentLayer);
-  }
+  app.layerManager.removeAll();
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl);
@@ -74,7 +70,7 @@ const onImageChange = async () => {
     [omeroChannels[1].window.start, omeroChannels[1].window.end],
     [omeroChannels[2].window.start, omeroChannels[2].window.end],
   ];
-  currentLayer = new ImageLayer({
+  const newLayer = new ImageLayer({
     source,
     region,
     channelProps: [
@@ -83,10 +79,10 @@ const onImageChange = async () => {
     ],
     lod: 0,
   });
-  app.layerManager.add(currentLayer);
-  currentLayer.addStateChangeCallback((state) => {
-    if (state === "ready" && currentLayer?.extent) {
-      camera.setFrame(0, currentLayer.extent.x, 0, currentLayer.extent.y);
+  app.layerManager.add(newLayer);
+  newLayer.addStateChangeCallback((state) => {
+    if (state === "ready" && newLayer?.extent) {
+      camera.setFrame(0, newLayer.extent.x, 0, newLayer.extent.y);
       camera.update();
       controls.panTarget = camera.position;
     }
@@ -95,9 +91,7 @@ const onImageChange = async () => {
 
 const onWellChange = async () => {
   console.debug("onWellChange: ", wellSelector.value);
-  if (currentLayer) {
-    app.layerManager.remove(currentLayer);
-  }
+  app.layerManager.removeAll();
   const path = wellSelector.value;
   const well = await loadOmeZarrWell(plateUrl, path);
   console.debug("well", well);

@@ -39,7 +39,7 @@ export class Idetik {
 
     this.camera = params.camera;
     const canvas =
-      params.canvas ||
+      params.canvas ??
       document.querySelector<HTMLCanvasElement>(params.canvasSelector!);
     if (!canvas) {
       throw new Error(`Canvas not found: ${params.canvasSelector}`);
@@ -79,7 +79,7 @@ export class Idetik {
     this.renderer_.setControls(controls);
   }
 
-  // TODO: this can be moved directly to this calss, but will need access to (and possibly expose)
+  // TODO: this can be moved directly to this class, but will need access to (and possibly expose)
   // the canvas element
   // let's do it at the same time `setControls` is moved to this class
   public clientToClip(position: vec2, depth: number = 0): vec3 {
