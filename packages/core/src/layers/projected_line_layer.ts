@@ -10,6 +10,8 @@ type LineParameters = {
 };
 
 export class ProjectedLineLayer extends Layer {
+  public readonly type = "ProjectedLineLayer";
+
   private paths_: vec3[][] = [];
 
   constructor(lines: LineParameters[] = []) {

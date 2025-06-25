@@ -36,7 +36,7 @@ wellPaths.forEach((path) => {
 const camera = new OrthographicCamera(0, 840, 0, 360);
 const controls = new PanZoomControls(camera, camera.position);
 const app = new Idetik({
-  canvasSelector: "canvas",
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   controls,
 }).start();
@@ -70,7 +70,7 @@ const onImageChange = async () => {
     [omeroChannels[1].window.start, omeroChannels[1].window.end],
     [omeroChannels[2].window.start, omeroChannels[2].window.end],
   ];
-  const layer = new ImageLayer({
+  const newLayer = new ImageLayer({
     source,
     region,
     channelProps: [
@@ -79,10 +79,10 @@ const onImageChange = async () => {
     ],
     lod: 0,
   });
-  app.layerManager.add(layer);
-  layer.addStateChangeCallback((state) => {
-    if (state === "ready" && layer.extent) {
-      camera.setFrame(0, layer.extent.x, 0, layer.extent.y);
+  app.layerManager.add(newLayer);
+  newLayer.addStateChangeCallback((state) => {
+    if (state === "ready" && newLayer.extent) {
+      camera.setFrame(0, newLayer.extent.x, 0, newLayer.extent.y);
       camera.update();
       controls.panTarget = camera.position;
     }

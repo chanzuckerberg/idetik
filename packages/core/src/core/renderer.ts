@@ -18,11 +18,8 @@ export abstract class Renderer {
   protected abstract renderObject(layer: Layer, objectIndex: number): void;
   protected abstract clear(): void;
 
-  constructor(selector: string) {
-    this.canvas_ = document.querySelector<HTMLCanvasElement>(selector);
-    if (!this.canvas_) {
-      throw new Error(`Canvas element not found for selector "${selector}"`);
-    }
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas_ = canvas;
     this.updateRendererSize();
     window.addEventListener("resize", () => {
       this.updateRendererSize();

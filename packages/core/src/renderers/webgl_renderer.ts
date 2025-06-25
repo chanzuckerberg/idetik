@@ -33,8 +33,8 @@ export class WebGLRenderer extends Renderer {
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
 
-  constructor(selector: string) {
-    super(selector);
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
 
     this.gl_ = this.canvas.getContext("webgl2", { depth: true });
     if (!this.gl_) {

@@ -37,6 +37,8 @@ type SetIndexResult = {
 
 // Loads 2D+z image data (Z-stack) from an image source into renderable objects.
 export class ImageSeriesLayer extends Layer {
+  public readonly type = "ImageSeriesLayer";
+
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
   private readonly seriesDimensionName_: string;
