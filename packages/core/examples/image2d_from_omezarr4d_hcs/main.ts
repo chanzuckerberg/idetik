@@ -81,7 +81,7 @@ const onImageChange = async () => {
   });
   app.layerManager.add(newLayer);
   newLayer.addStateChangeCallback((state) => {
-    if (state === "ready" && newLayer?.extent) {
+    if (state === "ready" && newLayer.extent) {
       camera.setFrame(0, newLayer.extent.x, 0, newLayer.extent.y);
       camera.update();
       controls.panTarget = camera.position;
