@@ -37,6 +37,6 @@ export class ScaleBar {
     this.boxDiv_.style.width = `${this.boxProportion_ * 100}%`;
     this.barDiv_.style.width = `${this.barProportion_ * 100}%`;
     const barWidth = this.boxProportion_ * this.barProportion_ * cameraWidth;
-    this.textDiv_.textContent = `${(barWidth).toFixed(2)} ${this.unit_}`;
+    this.textDiv_.textContent = `${barWidth.toFixed(2)} ${this.unit_}`;
   }
 }

@@ -77,10 +77,7 @@ export class OrthographicCamera extends Camera {
     } else {
       viewportHalfHeight *= frameAspectRatio / this.viewportAspectRatio_;
     }
-    this.viewportSize_ = [
-      2 * viewportHalfWidth,
-      2 * viewportHalfHeight,
-    ];
+    this.viewportSize_ = [2 * viewportHalfWidth, 2 * viewportHalfHeight];
     // Center the camera frame in the padded viewport frame.
     mat4.ortho(
       this.projectionMatrix_,
