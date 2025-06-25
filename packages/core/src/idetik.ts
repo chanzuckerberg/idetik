@@ -1,6 +1,7 @@
 import { Camera } from "./objects/cameras/camera";
 import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
+import { Overlay } from "./core/overlay";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
@@ -11,6 +12,7 @@ type IdetikParams = {
   camera: Camera;
   controls?: CameraControls;
   layers?: Layer[];
+  overlays?: Overlay[];
 };
 
 export type IdetikContext = {
@@ -20,6 +22,7 @@ export type IdetikContext = {
 export class Idetik {
   public layerManager: LayerManager;
   public camera: Camera;
+  public overlays: Overlay[] = [];
 
   private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
@@ -46,6 +49,10 @@ export class Idetik {
       for (const layer of params.layers) {
         this.layerManager.add(layer);
       }
+    }
+
+    if (params.overlays) {
+      this.overlays = params.overlays;
     }
   }
 
@@ -78,6 +85,9 @@ export class Idetik {
         this.renderer_.height
       );
       this.renderer_.render(this.layerManager, this.camera);
+      for (const overlay of this.overlays) {
+        overlay.update(this);
+      }
       this.lastAnimationId_ = requestAnimationFrame(render);
     };
     render();
