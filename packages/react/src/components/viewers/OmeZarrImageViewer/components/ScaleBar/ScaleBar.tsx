@@ -21,6 +21,33 @@ function getUnitAbbreviation(unit: string | undefined): string {
   }
 }
 
+class ScaleBarOverlay {
+  private barDivRef_: React.RefObject<HTMLDivElement>;
+  private setBarWidth_: React.Dispatch<React.SetStateAction<number>>;
+
+  constructor(
+    barDivRef: React.RefObject<HTMLDivElement>,
+    setBarWidth: React.Dispatch<React.SetStateAction<number>>
+  ) {
+    this.barDivRef_ = barDivRef;
+    this.setBarWidth_ = setBarWidth;
+  }
+
+  update(idetik: Idetik) {
+    const barDiv = this.barDivRef_.current;
+    if (barDiv === null) return;
+    const camera = idetik.camera;
+    if (camera.type !== "OrthographicCamera") {
+      throw new Error("ScaleBar can only be used with OrthographicCamera");
+    }
+    const orthoCamera = camera as OrthographicCamera;
+    const cameraWidth =
+      orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
+    const barWidth = (barDiv.offsetWidth / idetik.width) * cameraWidth;
+    this.setBarWidth_(barWidth);
+  }
+}
+
 type ScaleBarProps = {
   unit?: string;
 };
@@ -32,26 +59,9 @@ export function ScaleBar(props: ScaleBarProps) {
 
   useEffect(() => {
     if (!idetik) return;
-    const overlay = {
-      update: (idetik: Idetik) => {
-        if (barDivRef.current === null) return;
-        const camera = idetik.camera;
-        if (camera.type !== "OrthographicCamera") {
-          throw new Error("ScaleBar can only be used with OrthographicCamera");
-        }
-        const orthoCamera = camera as OrthographicCamera;
-        const cameraWidth =
-          orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
-        const barWidth =
-          (barDivRef.current.offsetWidth / idetik.width) * cameraWidth;
-        setBarWidth(barWidth);
-      },
-    };
-    idetik.overlays.push(overlay);
-    return () => {
-      const idx = idetik.overlays.indexOf(overlay);
-      if (idx > -1) idetik.overlays.splice(idx, 1);
-    };
+    const overlay = new ScaleBarOverlay(barDivRef, setBarWidth);
+    idetik.overlayManager.add(overlay);
+    return () => idetik.overlayManager.remove(overlay);
   }, [idetik, setBarWidth]);
 
   return (
