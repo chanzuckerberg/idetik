@@ -92,22 +92,10 @@ export class ChunkManagerSource {
     }
   }
 
-  private validateScaleRatios(xIdx: number, yIdx: number): void {
-    const availableScales = this.attrs_.map((attr) => attr.scale);
-    for (let i = 1; i < availableScales.length; i++) {
-      const prev = availableScales[i - 1];
-      const curr = availableScales[i];
-      const rx = curr[xIdx] / prev[xIdx];
-      const ry = curr[yIdx] / prev[yIdx];
-
-      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
-        throw new Error(
-          `Scales must be separated by factors of 2. Got ratio (${rx}, ${ry}) between scales ${prev} and ${curr}`
-        );
-      }
-    }
-  }
-
+  /**
+   * Returns all chunks at the current LOD that are both visible and fully loaded.
+   * These are the chunks that are ready to be rendered in the current view.
+   */
   public getVisibleChunks(): ImageChunk[] {
     return this.chunks_.filter(
       (chunk) =>
@@ -117,20 +105,13 @@ export class ChunkManagerSource {
     );
   }
 
-  public setLOD(lodFactor: number): void {
-    const maxLOD = this.attrs_.length - 1;
-    const targetLOD = Math.max(
-      0,
-      Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
-    );
-
-    if (targetLOD !== this.currentLOD_) {
-      console.debug(`LOD changed from ${this.currentLOD_} to ${targetLOD}`);
-      this.currentLOD_ = targetLOD;
-    }
-  }
-
-  public async updateChunks(visibleBounds: Bounds) {
+  /**
+   * Loads any currently visible chunks that are not yet loaded.
+   * Recomputes visibility if the visible bounds have changed since the last update.
+   *
+   * @param visibleBounds - The virtual-space bounding box of the current camera view.
+   */
+  public updateChunks(visibleBounds: Bounds) {
     if (this.hasVisibleBoundsChanged(visibleBounds)) {
       this.updateVisibleChunks(visibleBounds);
       this.lastVisibleBounds_ = {
@@ -156,9 +137,34 @@ export class ChunkManagerSource {
     }
   }
 
+  /**
+   * Updates the current level-of-detail (LOD) based on a continuous LOD factor,
+   * and recalculates chunk visibility for the given view bounds.
+   *
+   * @param lodFactor - A continuous value used to select the LOD level (higher = coarser).
+   * @param visibleBounds - The virtual-space bounds used to determine chunk visibility.
+   */
+  public updateLODAndVisibility(lodFactor: number, visibleBounds: Bounds) {
+    this.setLOD(lodFactor);
+    this.updateVisibleChunks(visibleBounds);
+    return this.updateChunks(visibleBounds);
+  }
+
+  private setLOD(lodFactor: number): void {
+    const maxLOD = this.attrs_.length - 1;
+    const targetLOD = Math.max(
+      0,
+      Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
+    );
+
+    if (targetLOD !== this.currentLOD_) {
+      console.debug(`LOD changed from ${this.currentLOD_} to ${targetLOD}`);
+      this.currentLOD_ = targetLOD;
+    }
+  }
+
   private updateVisibleChunks(visibleBounds: Bounds): void {
     if (this.chunks_.length === 0) return;
-
     const firstChunkAtLOD = this.chunks_.find(
       (chunk) => chunk.lod === this.currentLOD_
     );
@@ -176,6 +182,12 @@ export class ChunkManagerSource {
 
     // Reset visibility and set visible chunks based on index range in a single pass
     for (const chunk of this.chunks_) {
+      // exit early if chunks are not at the current LOD
+      if (chunk.lod !== this.currentLOD_) {
+        chunk.visible = false;
+        continue;
+      }
+
       chunk.visible = false;
       if (chunk.chunkIndex) {
         const { x, y } = chunk.chunkIndex;
@@ -187,6 +199,22 @@ export class ChunkManagerSource {
         ) {
           chunk.visible = true;
         }
+      }
+    }
+  }
+
+  private validateScaleRatios(xIdx: number, yIdx: number): void {
+    const availableScales = this.attrs_.map((attr) => attr.scale);
+    for (let i = 1; i < availableScales.length; i++) {
+      const prev = availableScales[i - 1];
+      const curr = availableScales[i];
+      const rx = curr[xIdx] / prev[xIdx];
+      const ry = curr[yIdx] / prev[yIdx];
+
+      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
+        throw new Error(
+          `Scales must be separated by factors of 2. Got ratio (${rx}, ${ry}) between scales ${prev} and ${curr}`
+        );
       }
     }
   }
@@ -226,8 +254,10 @@ export class ChunkManager {
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     for (const [_, chunkManagerSource] of this.sources_) {
-      chunkManagerSource.setLOD(lodFactor);
-      chunkManagerSource.updateChunks(visibleBounds);
+      return chunkManagerSource.updateLODAndVisibility(
+        lodFactor,
+        visibleBounds
+      );
     }
   }
 
