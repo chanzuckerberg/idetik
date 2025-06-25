@@ -191,9 +191,9 @@ export function useOmeZarrViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
   }, [source, sourceUrl, region, seriesDimensionName, shouldAutoLoadAllSlices]);
 
-  // Fetch Z range from metadata
+  // Fetch metadata including Z range
   useEffect(() => {
-    const fetchZRange = async () => {
+    const fetchMetadata = async () => {
       if (!source) {
         console.warn("No source available, returning early on fetchZRange");
         return;
@@ -202,15 +202,12 @@ export function useOmeZarrViewer({
       const attributes = await loader.loadAttributes();
       const attributesForLOD = attributes[lod];
 
-      // TODO: this does not fit here, but is here because we have the result
-      // of loadAttributes. We also assume that the last dimension will give
-      // us the x-unit, which currently holds with idetik but is fragile.
+      // TODO: We assume that the last dimension will give us the x-unit,
+      // which currently holds with idetik but is fragile.
       const dimensionUnits = attributesForLOD.dimensionUnits;
       const xUnit = dimensionUnits[dimensionUnits.length - 1];
       if (xUnit === undefined) {
-        console.warn(
-          "No x-unit found in attributes, setting unit to undefined"
-        );
+        console.warn("No x-unit found in attributes.");
       }
       setUnit(xUnit);
 
@@ -285,7 +282,7 @@ export function useOmeZarrViewer({
 
       setZRange([min, max]);
     };
-    fetchZRange();
+    fetchMetadata();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Dependencies that affect z range.
   }, [source, seriesDimensionName, sourceUrl, initialIndex]);
 
