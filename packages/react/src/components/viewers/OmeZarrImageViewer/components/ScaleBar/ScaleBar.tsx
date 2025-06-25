@@ -33,7 +33,7 @@ class ScaleBarOverlay {
     this.setBarWidth_ = setBarWidth;
   }
 
-  update(idetik: Idetik) {
+  update(idetik: Idetik, _timestamp: DOMHighResTimeStamp) {
     const barDiv = this.barDivRef_.current;
     if (barDiv === null) return;
     const camera = idetik.camera;

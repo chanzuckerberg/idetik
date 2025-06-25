@@ -89,7 +89,7 @@ export class Idetik {
       );
       this.renderer_.render(this.layerManager, this.camera);
       for (const overlay of this.overlayManager.overlays) {
-        overlay.update(this);
+        overlay.update(this, performance.now());
       }
       this.lastAnimationId_ = requestAnimationFrame(render);
     };
