@@ -111,9 +111,9 @@ export class ChunkManagerSource {
    *
    * @param visibleBounds - The virtual-space bounding box of the current camera view.
    */
-  public updateChunks(visibleBounds: Bounds) {
+  public loadVisibleChunks(visibleBounds: Bounds) {
     if (this.hasVisibleBoundsChanged(visibleBounds)) {
-      this.updateVisibleChunks(visibleBounds);
+      this.updateChunkVisibility(visibleBounds);
       this.lastVisibleBounds_ = {
         min: vec2.clone(visibleBounds.min),
         max: vec2.clone(visibleBounds.max),
@@ -144,10 +144,10 @@ export class ChunkManagerSource {
    * @param lodFactor - A continuous value used to select the LOD level (higher = coarser).
    * @param visibleBounds - The virtual-space bounds used to determine chunk visibility.
    */
-  public updateLODAndVisibility(lodFactor: number, visibleBounds: Bounds) {
+  public refreshViewState(lodFactor: number, visibleBounds: Bounds) {
     this.setLOD(lodFactor);
-    this.updateVisibleChunks(visibleBounds);
-    return this.updateChunks(visibleBounds);
+    this.updateChunkVisibility(visibleBounds);
+    return this.loadVisibleChunks(visibleBounds);
   }
 
   private setLOD(lodFactor: number): void {
@@ -163,7 +163,7 @@ export class ChunkManagerSource {
     }
   }
 
-  private updateVisibleChunks(visibleBounds: Bounds): void {
+  private updateChunkVisibility(visibleBounds: Bounds): void {
     if (this.chunks_.length === 0) return;
     const firstChunkAtLOD = this.chunks_.find(
       (chunk) => chunk.lod === this.currentLOD_
@@ -254,10 +254,7 @@ export class ChunkManager {
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     for (const [_, chunkManagerSource] of this.sources_) {
-      return chunkManagerSource.updateLODAndVisibility(
-        lodFactor,
-        visibleBounds
-      );
+      return chunkManagerSource.refreshViewState(lodFactor, visibleBounds);
     }
   }
 
