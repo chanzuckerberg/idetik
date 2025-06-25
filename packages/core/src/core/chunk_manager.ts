@@ -8,6 +8,7 @@ import { Region } from "../data/region";
 import { Camera } from "../objects/cameras/camera";
 import { vec2, vec4, mat4 } from "gl-matrix";
 import { almostEqual } from "../utilities/almost_equal";
+import { Logger } from "../utilities/logger";
 
 type Bounds = { min: vec2; max: vec2 };
 
@@ -92,62 +93,53 @@ export class ChunkManagerSource {
     }
   }
 
-  /**
-   * Returns all chunks at the current LOD that are both visible and fully loaded.
-   * These are the chunks that are ready to be rendered in the current view.
-   */
-  public getVisibleChunks(): ImageChunk[] {
-    return this.chunks_.filter(
+  public getChunks(): ImageChunk[] {
+    const chunks = this.chunks_.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
         chunk.visible &&
         chunk.state === "loaded"
     );
+    console.debug(chunks);
+    return chunks;
   }
 
-  /**
-   * Loads any currently visible chunks that are not yet loaded.
-   * Recomputes visibility if the visible bounds have changed since the last update.
-   *
-   * @param visibleBounds - The virtual-space bounding box of the current camera view.
-   */
-  public loadVisibleChunks(visibleBounds: Bounds) {
-    if (this.hasVisibleBoundsChanged(visibleBounds)) {
+  public loadVisibleChunks() {
+    for (const chunk of this.chunks_) {
+      this.processChunkData(chunk);
+    }
+  }
+
+  public update(lodFactor: number, visibleBounds: Bounds) {
+    this.setLOD(lodFactor);
+
+    if (visibleBounds !== this.lastVisibleBounds_) {
       this.updateChunkVisibility(visibleBounds);
       this.lastVisibleBounds_ = {
         min: vec2.clone(visibleBounds.min),
         max: vec2.clone(visibleBounds.max),
       };
     }
-    for (const chunk of this.chunks_) {
-      if (chunk.visible && chunk.state === "unloaded") {
-        chunk.state = "loading";
-        this.loader_
-          .loadChunkDataFromRegion(chunk, this.region_)
-          .then(() => {
-            chunk.state = "loaded";
-          })
-          .catch((error) => {
-            console.error(
-              `Error loading chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`
-            );
-            chunk.state = "unloaded";
-          });
-      }
-    }
+
+    this.loadVisibleChunks();
   }
 
-  /**
-   * Updates the current level-of-detail (LOD) based on a continuous LOD factor,
-   * and recalculates chunk visibility for the given view bounds.
-   *
-   * @param lodFactor - A continuous value used to select the LOD level (higher = coarser).
-   * @param visibleBounds - The virtual-space bounds used to determine chunk visibility.
-   */
-  public refreshViewState(lodFactor: number, visibleBounds: Bounds) {
-    this.setLOD(lodFactor);
-    this.updateChunkVisibility(visibleBounds);
-    return this.loadVisibleChunks(visibleBounds);
+  private processChunkData(chunk: ImageChunk): void {
+    if (!chunk.visible || chunk.state !== "unloaded") return;
+
+    chunk.state = "loading";
+    this.loader_
+      .loadChunkDataFromRegion(chunk, this.region_)
+      .then(() => {
+        chunk.state = "loaded";
+      })
+      .catch((error) => {
+        Logger.error(
+          "ChunkManager",
+          `Error loading chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`
+        );
+        chunk.state = "unloaded";
+      });
   }
 
   private setLOD(lodFactor: number): void {
@@ -218,19 +210,6 @@ export class ChunkManagerSource {
       }
     }
   }
-
-  private hasVisibleBoundsChanged(visibleBounds: Bounds): boolean {
-    if (!this.lastVisibleBounds_) {
-      return true;
-    }
-
-    return (
-      !almostEqual(visibleBounds.min[0], this.lastVisibleBounds_.min[0]) ||
-      !almostEqual(visibleBounds.min[1], this.lastVisibleBounds_.min[1]) ||
-      !almostEqual(visibleBounds.max[0], this.lastVisibleBounds_.max[0]) ||
-      !almostEqual(visibleBounds.max[1], this.lastVisibleBounds_.max[1])
-    );
-  }
 }
 
 export class ChunkManager {
@@ -254,7 +233,7 @@ export class ChunkManager {
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     for (const [_, chunkManagerSource] of this.sources_) {
-      return chunkManagerSource.refreshViewState(lodFactor, visibleBounds);
+      chunkManagerSource.update(lodFactor, visibleBounds);
     }
   }
 

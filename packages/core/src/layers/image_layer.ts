@@ -87,7 +87,7 @@ export class ImageLayer extends Layer {
       }
     });
 
-    this.chunkManagerSource_.getVisibleChunks().forEach((chunk) => {
+    this.chunkManagerSource_.getChunks().forEach((chunk) => {
       if (chunk.state === "loaded" && !this.visibleChunks_.has(chunk)) {
         const image = this.createImage(chunk, this.channelProps);
         this.visibleChunks_.set(chunk, image);
