@@ -10,6 +10,7 @@ export class OrthographicCamera extends Camera {
   private width_: number = DEFAULT_WIDTH;
   private height_: number = DEFAULT_HEIGHT;
   private viewportAspectRatio_: number = DEFAULT_ASPECT_RATIO;
+  private viewportSize_: [number, number] = [DEFAULT_WIDTH, DEFAULT_HEIGHT];
 
   constructor(
     left: number,
@@ -24,6 +25,10 @@ export class OrthographicCamera extends Camera {
     this.far_ = far;
     this.setFrame(left, right, bottom, top);
     this.updateProjectionMatrix();
+  }
+
+  public get viewportSize() {
+    return this.viewportSize_;
   }
 
   public setAspectRatio(aspectRatio: number) {
@@ -72,6 +77,10 @@ export class OrthographicCamera extends Camera {
     } else {
       viewportHalfHeight *= frameAspectRatio / this.viewportAspectRatio_;
     }
+    this.viewportSize_ = [
+      2 * viewportHalfWidth,
+      2 * viewportHalfHeight,
+    ];
     // Center the camera frame in the padded viewport frame.
     mat4.ortho(
       this.projectionMatrix_,
