@@ -94,7 +94,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   // Create Image Layer
   useEffect(() => {
     if (!source || !contextValue.isReady) return;
-    
+
     const runtime = contextValue.runtime;
 
     const createLayer = async () => {
