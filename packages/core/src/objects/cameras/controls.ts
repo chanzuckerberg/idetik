@@ -43,9 +43,9 @@ export class PanZoomControls implements CameraControls {
         (event: Event) => this.wheel(event as WheelEvent, clientToWorld),
       ],
       [
-        "mousedown",
+        "pointerdown",
         (event: Event) =>
-          this.mousedown(event as MouseEvent, target, clientToWorld),
+          this.pointerdown(event as PointerEvent, target, clientToWorld),
       ],
     ];
   }
@@ -66,17 +66,23 @@ export class PanZoomControls implements CameraControls {
     this.pan(deltaWorld);
   }
 
-  private mousedown(
-    event: MouseEvent,
+  private pointerdown(
+    event: PointerEvent,
     target: EventTarget,
     clientToWorld: ClientToWorld
   ) {
     const clientStart = vec2.fromValues(event.clientX, event.clientY);
     const worldStart = clientToWorld(clientStart, this.clipDepth);
+    const pointerId = event.pointerId;
 
-    const onMouseMove = (event: Event) => {
-      if (!(event instanceof MouseEvent)) {
-        throw new Error("Expected MouseEvent");
+    // capture the pointer to ensure we receive events even when outside the element
+    if (target instanceof Element) {
+      target.setPointerCapture(pointerId);
+    }
+
+    const onPointerMove = (event: Event) => {
+      if (!(event instanceof PointerEvent) || event.pointerId !== pointerId) {
+        return;
       }
       const clientPos = vec2.fromValues(event.clientX, event.clientY);
       const worldPos = clientToWorld(clientPos, this.clipDepth);
@@ -84,13 +90,22 @@ export class PanZoomControls implements CameraControls {
       this.pan(deltaWorld);
     };
 
-    const onMouseUp = () => {
-      target.removeEventListener("mousemove", onMouseMove);
-      target.removeEventListener("mouseup", onMouseUp);
+    const onPointerUp = (event: Event) => {
+      if (!(event instanceof PointerEvent) || event.pointerId !== pointerId) {
+        return;
+      }
+      target.removeEventListener("pointermove", onPointerMove);
+      target.removeEventListener("pointerup", onPointerUp);
+      target.removeEventListener("pointercancel", onPointerUp);
+
+      if (target instanceof Element) {
+        target.releasePointerCapture(pointerId);
+      }
     };
 
-    target.addEventListener("mousemove", onMouseMove);
-    target.addEventListener("mouseup", onMouseUp);
+    target.addEventListener("pointermove", onPointerMove);
+    target.addEventListener("pointerup", onPointerUp);
+    target.addEventListener("pointercancel", onPointerUp);
   }
 
   private pan(deltaWorld: vec3) {
