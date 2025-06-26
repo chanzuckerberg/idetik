@@ -25,7 +25,7 @@ export class ScaleBarOverlay {
     const orthoCamera = camera as OrthographicCamera;
     const cameraWidth =
       orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
-    const barWidth = (this.barDiv_.offsetWidth / idetik.width) * cameraWidth;
+    const barWidth = (this.barDiv_.offsetWidth / idetik.width * window.devicePixelRatio) * cameraWidth;
     this.textDiv_.textContent = `${barWidth.toFixed(2)} ${this.unit_}`;
   }
 }
