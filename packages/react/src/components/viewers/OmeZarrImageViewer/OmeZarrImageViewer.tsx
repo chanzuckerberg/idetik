@@ -71,7 +71,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     indexIndicatorText,
   } = props;
 
-  const { isReady: runtimeIsReady, methods, runtime } = useIdetik();
+  const contextValue = useIdetik();
 
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
@@ -93,7 +93,9 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
 
   // Create Image Layer
   useEffect(() => {
-    if (!source || !runtimeIsReady) return;
+    if (!source || !contextValue.isReady) return;
+    
+    const runtime = contextValue.runtime;
 
     const createLayer = async () => {
       setLoading(true);
@@ -123,6 +125,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           region,
           seriesDimensionName,
           channelProps,
+          lod: resolutionLevel,
         });
         imageLayerRef.current = layer;
 
@@ -131,7 +134,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
         const onFirstLoad = async () => {
           if (imageLayerRef.current !== layer) return;
 
-          methods.addLayer(layer);
+          runtime.layerManager.add(layer);
           imageLayerRef.current = layer;
 
           // Set camera frame from layer extent like in App.tsx
@@ -172,9 +175,9 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     return () => {
       if (
         imageLayerRef.current &&
-        methods.isLayerActive(imageLayerRef.current)
+        runtime.layerManager.layers.includes(imageLayerRef.current)
       ) {
-        methods.removeLayer(imageLayerRef.current);
+        runtime.layerManager.remove(imageLayerRef.current);
         imageLayerRef.current = null;
       }
     };
@@ -184,14 +187,13 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     region,
     seriesDimensionName,
     shouldAutoLoadAllSlices,
-    runtimeIsReady,
-    methods,
-    runtime,
+    contextValue,
     fallbackContrastLimits,
     onLayerCreated,
     onFirstSliceLoaded,
     onAllSlicesLoaded,
     onLoadAllSlicesAborted,
+    resolutionLevel,
   ]);
 
   // Fetch Z range from metadata
