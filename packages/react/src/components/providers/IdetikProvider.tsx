@@ -2,7 +2,7 @@
 
 import { Idetik, OrthographicCamera, PanZoomControls } from "@idetik/core";
 import { PropsWithChildren, useState, useEffect } from "react";
-import { IdetikContext, IdetikContextValue } from "../hooks/useIdetik";
+import { IdetikContext, IdetikContextValue } from "../../hooks/useIdetik";
 
 /** Global Idetik state provider that you must wrap your application in. */
 export const IdetikProvider = ({ children }: PropsWithChildren) => {

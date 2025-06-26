@@ -16,11 +16,12 @@ export const IdetikContext = createContext<IdetikContextValue | undefined>(
   undefined
 );
 
-/** Gives you access to Idetik global state to write our own custom components. */
+/** Gives access to Idetik global state to write our own custom components. */
 export function useIdetik(): IdetikContextValue {
   const contextValue = useContext(IdetikContext);
-  if (!contextValue) {
-    throw new Error("useIdetik must be used within an IdetikProvider");
+  if (contextValue === undefined) {
+    throw new Error("You must wrap your application in <IdetikProvider>.");
   }
+
   return contextValue;
 }

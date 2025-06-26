@@ -10,7 +10,7 @@ import {
   loadOmeroDefaultZ,
   OmeroChannel,
 } from "@idetik/core";
-import { useIdetik } from "../../hooks/useIdetik";
+import { useIdetik } from "../../../hooks/useIdetik";
 import { IdetikCanvas } from "../../IdetikCanvas";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
@@ -311,21 +311,27 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   }, [zValue, zRange]);
 
   const loadAllSlicesCallback = useCallback(async () => {
-    if (!imageLayerRef.current) return;
+    const currentImageLayer = imageLayerRef.current;
+    if (!currentImageLayer) return;
     onLoadAllSlicesClicked?.();
     setLoading(true);
     try {
-      await imageLayerRef.current.preloadSeries();
+      await currentImageLayer.preloadSeries();
     } catch (err) {
       console.info("load all slices failed or was aborted", err);
       onLoadAllSlicesAborted?.();
       return;
     } finally {
-      setLoading(false);
+      if (imageLayerRef.current === currentImageLayer) {
+        setLoading(false);
+      }
     }
-    onAllSlicesLoaded?.();
-    setAllSlicesLoaded(true);
+    if (imageLayerRef.current == currentImageLayer) {
+      onAllSlicesLoaded?.();
+      setAllSlicesLoaded(true);
+    }
   }, [onLoadAllSlicesClicked, onAllSlicesLoaded, onLoadAllSlicesAborted]);
+
   // Compute zIndex for display
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   return (

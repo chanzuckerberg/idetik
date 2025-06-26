@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useIdetik } from "./hooks/useIdetik";
+import { useIdetik } from "../hooks/useIdetik";
 
 interface IdetikCanvasProps {
   canvasId?: string;

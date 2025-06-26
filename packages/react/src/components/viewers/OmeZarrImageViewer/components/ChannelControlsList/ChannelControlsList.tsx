@@ -7,7 +7,7 @@ import {
 import cns from "classnames";
 import { ChannelControl } from "./components/ChannelControl";
 import { ChannelProps, ColorLike, ImageSeriesLayer } from "@idetik/core";
-import { useIdetik } from "../../../../hooks";
+import { useIdetik } from "../../../../../hooks";
 import { useSyncExternalStore } from "react";
 import { ExtraControlProps } from "../../utils";
 
@@ -111,7 +111,6 @@ export function ChannelControlsList({
                   `Contrast limits not defined for channel ${index}`
                 );
               }
-              // FIXME: create an input prop for contrastRange
               const contrastRange = extraControlProps[index].contrastRange;
               if (contrastRange === undefined) {
                 throw new Error(
