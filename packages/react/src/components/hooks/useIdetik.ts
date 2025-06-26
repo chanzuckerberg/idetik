@@ -1,30 +1,26 @@
-import { ChannelProps, Idetik } from "@idetik/core";
+import { Idetik, Layer } from "@idetik/core";
 import { createContext, useContext } from "react";
 
-export interface ChannelControl {
-  label: string;
-  contrastRange: [number, number];
-}
-
-export type IdetikContextValue = (
+export type IdetikContextValue =
   | {
-      isInitialized: true;
-      idetik: Idetik;
+      isReady: true;
+      activeLayers: Layer[];
+      methods: {
+        addLayer: (layer: Layer) => void;
+        removeLayer: (layer: Layer) => void;
+        isLayerActive: (layer: Layer) => boolean;
+      };
+      canvas: HTMLCanvasElement;
+      runtime: Idetik;
     }
   | {
-      isInitialized: false;
-      idetik: undefined;
-    }
-) & {
-  // TODO: Refactor into 1 array that lives in each layer.
-  channels: ChannelProps[];
-  channelControls: ChannelControl[]; // Same order as channels.
-  // TODO: Remove need to integrator to set Idetik.
-  setIdetik: (idetik: Idetik) => void;
-  setChannelControls: React.Dispatch<
-    React.SetStateAction<Array<ChannelControl>>
-  >;
-};
+      isReady: false;
+      activeLayers: [];
+      methods: null;
+      runtime: null;
+      canvas: null;
+      initializeWithCanvas: (canvas: HTMLCanvasElement) => void;
+    };
 
 export const IdetikContext = createContext<IdetikContextValue | undefined>(
   undefined
@@ -33,9 +29,8 @@ export const IdetikContext = createContext<IdetikContextValue | undefined>(
 /** Gives you access to Idetik global state to write our own custom components. */
 export function useIdetik(): IdetikContextValue {
   const contextValue = useContext(IdetikContext);
-  if (contextValue === undefined) {
-    throw new Error("You must wrap your application in <IdetikProvider>.");
+  if (!contextValue) {
+    throw new Error("useIdetik must be used within an IdetikProvider");
   }
-
   return contextValue;
 }

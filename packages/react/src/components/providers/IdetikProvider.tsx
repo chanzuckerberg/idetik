@@ -1,61 +1,112 @@
 "use client";
 
-import { Idetik, ImageSeriesLayer } from "@idetik/core";
+import {
+  Idetik,
+  Layer,
+  OrthographicCamera,
+  PanZoomControls,
+} from "@idetik/core";
 import {
   PropsWithChildren,
-  useMemo,
   useState,
+  useEffect,
+  useCallback,
   useSyncExternalStore,
+  useMemo,
 } from "react";
-import {
-  ChannelControl,
-  IdetikContext,
-  IdetikContextValue,
-} from "../hooks/useIdetik";
+import { IdetikContext, IdetikContextValue } from "../hooks/useIdetik";
 
-// When the layer is not initialized yet, we can't instantiate a new (unstable) [] every render b/c
-// it will cause useSyncExternalStore() to re-render, resulting in another [] instance, which will
-// cause React to re-render again, resulting in an infinite loop.
-const EMPTY_ARRAY: never[] = [];
+// Stable empty array reference to avoid infinite renders
+const EMPTY_LAYERS: Layer[] = [];
 
 /** Global Idetik state provider that you must wrap your application in. */
 export const IdetikProvider = ({ children }: PropsWithChildren) => {
-  const [idetik, setIdetik] = useState<Idetik | undefined>(undefined);
-  const imageSeriesLayer = idetik?.layerManager.layers[0] as
-    | ImageSeriesLayer
-    | undefined;
-  const channels = useSyncExternalStore(
-    imageSeriesLayer?.addChannelChangeCallback ?? (() => () => {}),
-    () => imageSeriesLayer?.channelProps ?? EMPTY_ARRAY,
-    () => EMPTY_ARRAY // Doesn't render anything on SSR
+  const [camera] = useState<OrthographicCamera>(
+    // default camera frame
+    new OrthographicCamera(-1, 1, 1, -1, -1000, 1000)
   );
-  const [channelControls, setChannelControls] = useState<Array<ChannelControl>>(
-    []
+  const [controls] = useState<PanZoomControls>(
+    new PanZoomControls(camera, camera.position)
+  );
+  const [idetik, setIdetik] = useState<Idetik | null>(null);
+  const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
+
+  // Initialize Idetik when canvas becomes available
+  useEffect(() => {
+    if (canvasRef && !idetik) {
+      const newIdetik = new Idetik({
+        canvas: canvasRef,
+        camera,
+        controls,
+      });
+      newIdetik.start();
+      setIdetik(newIdetik);
+    }
+  }, [canvasRef, camera, controls, idetik]);
+
+  const addLayer = useCallback(
+    (layer: Layer) => {
+      idetik?.layerManager.add(layer);
+    },
+    [idetik]
   );
 
-  const contextValue = useMemo<IdetikContextValue>(
-    () =>
-      idetik !== undefined
-        ? {
-            isInitialized: true,
-            idetik,
-            channels,
-            channelControls,
-            setIdetik,
-            setChannelControls,
-          }
-        : {
-            isInitialized: false,
-            channels,
-            channelControls,
-            setIdetik,
-            setChannelControls,
-          },
-    [channels, idetik, channelControls]
+  const removeLayer = useCallback(
+    (layer: Layer) => {
+      idetik?.layerManager.remove(layer);
+    },
+    [idetik]
   );
+
+  const isLayerActive = useCallback(
+    (layer: Layer) => {
+      if (!idetik) return false;
+      return idetik.layerManager.layers.includes(layer);
+    },
+    [idetik]
+  );
+
+  const activeLayers = useSyncExternalStore(
+    (callback) => {
+      if (!idetik) return () => {};
+      return idetik.layerManager.addCallback(callback);
+    },
+    () => {
+      if (!idetik) return EMPTY_LAYERS;
+      return idetik.layerManager.getSnapshot();
+    },
+    // fallback for SSR/initial render
+    () => EMPTY_LAYERS
+  );
+
+  const methods = useMemo(
+    () => ({
+      addLayer,
+      removeLayer,
+      isLayerActive,
+    }),
+    [addLayer, removeLayer, isLayerActive]
+  );
+
+  const idetikContext: IdetikContextValue = idetik
+    ? {
+        isReady: true,
+        activeLayers,
+        methods,
+        runtime: idetik,
+        canvas: canvasRef!,
+      }
+    : {
+        isReady: false,
+        activeLayers: [],
+        methods: null,
+        runtime: null,
+        canvas: null,
+        initializeWithCanvas: setCanvasRef,
+      };
 
   return (
-    <IdetikContext.Provider value={contextValue}>
+    <IdetikContext.Provider value={idetikContext}>
       {children}
     </IdetikContext.Provider>
   );
