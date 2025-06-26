@@ -9,6 +9,8 @@ export type IdetikContextValue =
     }
   | {
       isReady: false;
+      runtime: null;
+      canvas: null;
       initializeWithCanvas: (canvas: HTMLCanvasElement) => void;
     };
 

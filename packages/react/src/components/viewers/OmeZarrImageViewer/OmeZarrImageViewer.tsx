@@ -71,7 +71,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     indexIndicatorText,
   } = props;
 
-  const contextValue = useIdetik();
+  const { isReady: runtimeIsReady, runtime } = useIdetik();
 
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
@@ -93,9 +93,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
 
   // Create Image Layer
   useEffect(() => {
-    if (!source || !contextValue.isReady) return;
-
-    const runtime = contextValue.runtime;
+    if (!source || !runtimeIsReady) return;
 
     const createLayer = async () => {
       setLoading(true);
@@ -187,7 +185,8 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     region,
     seriesDimensionName,
     shouldAutoLoadAllSlices,
-    contextValue,
+    runtimeIsReady,
+    runtime,
     fallbackContrastLimits,
     onLayerCreated,
     onFirstSliceLoaded,

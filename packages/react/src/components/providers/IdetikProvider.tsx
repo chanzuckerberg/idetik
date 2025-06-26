@@ -37,6 +37,8 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
       }
     : {
         isReady: false,
+        runtime: null,
+        canvas: null,
         initializeWithCanvas: setCanvasRef,
       };
 
