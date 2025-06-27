@@ -22,6 +22,7 @@ function getUnitAbbreviation(unit: string | undefined): string {
 
 type ScaleBarProps = {
   unit?: string;
+  classNames?: string;
 };
 
 export function ScaleBar(props: ScaleBarProps) {
@@ -55,7 +56,7 @@ export function ScaleBar(props: ScaleBarProps) {
         "rounded-sds-m",
         "shadow-sds-m",
         "w-1/4",
-        "bgcolor-transparent"
+        props.classNames
       )}
     >
       <div

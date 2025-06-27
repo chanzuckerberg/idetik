@@ -30,6 +30,7 @@ export interface OmeZarrImageViewerProps {
     sliceIndicator?: string;
     load3dButton?: string;
     sliceSliderContainer?: string;
+    scaleBar?: string;
   };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;

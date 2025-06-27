@@ -37,7 +37,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           "gap-sds-l"
         )}
       >
-        <ScaleBar unit={unit} />
+        <ScaleBar unit={unit} classNames={props.classNames?.scaleBar} />
         <div
           className={cns(
             "flex",
