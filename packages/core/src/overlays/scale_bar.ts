@@ -1,4 +1,5 @@
-import { Idetik, OrthographicCamera } from "@";
+import { Camera } from "../objects/cameras/camera";
+import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 
 export type ScaleBarProps = {
   textDiv: HTMLDivElement;
@@ -17,8 +18,7 @@ export class ScaleBar {
     this.unit_ = props.unit ?? "";
   }
 
-  public update(idetik: Idetik, _timestamp: DOMHighResTimeStamp): void {
-    const camera = idetik.camera;
+  public update(canvasWidth: number, camera: Camera): void {
     if (camera.type !== "OrthographicCamera") {
       throw new Error("ScaleBar can only be used with OrthographicCamera");
     }
@@ -28,7 +28,7 @@ export class ScaleBar {
     // TODO: assert that neither the barDiv nor idetik's canvas has padding,
     // which is included in clientWidth.
     const barWidth =
-      ((this.barDiv_.clientWidth * window.devicePixelRatio) / idetik.width) *
+      ((this.barDiv_.clientWidth * window.devicePixelRatio) / canvasWidth) *
       cameraWidth;
     this.textDiv_.textContent = `${barWidth.toFixed(2)} ${this.unit_}`;
   }

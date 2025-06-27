@@ -113,7 +113,7 @@ export class Idetik {
         this.renderer_.height
       );
       this.renderer_.render(this.layerManager, this.camera);
-      this.scaleBar_?.update(this, performance.now());
+      this.scaleBar_?.update(this.width, this.camera);
       this.lastAnimationId_ = requestAnimationFrame(render);
     };
     render();
