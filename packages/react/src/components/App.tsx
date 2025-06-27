@@ -1,5 +1,5 @@
 import { Region } from "@idetik/core";
-import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer/OmeZarrImageViewer";
+import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
 
 const sourceUrl =

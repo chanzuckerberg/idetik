@@ -8,7 +8,6 @@ import {
   Region,
   loadOmeroChannels,
   loadOmeroDefaultZ,
-  OmeroChannel,
 } from "@idetik/core";
 import { useIdetik } from "../../../hooks/useIdetik";
 import { IdetikCanvas } from "../../IdetikCanvas";
@@ -78,7 +77,6 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   const [zValue, setZValue] = useState(0.5);
   const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
-  const [omeroChannels, setOmeroChannels] = useState<OmeroChannel[]>([]);
   const [extraControlProps, setExtraControlProps] = useState<
     ExtraControlProps[]
   >([]);
@@ -100,7 +98,6 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
 
       try {
         const loadedOmeroChannels = await loadOmeroChannels(sourceUrl);
-        setOmeroChannels(loadedOmeroChannels);
         let channelProps;
 
         if (loadedOmeroChannels.length === 0) {
@@ -336,7 +333,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
       <IdetikCanvas />
-      {imageLayerRef.current && omeroChannels.length > 0 && (
+      {imageLayerRef.current && (
         <ChannelControlsList
           layer={imageLayerRef.current}
           extraControlProps={extraControlProps}

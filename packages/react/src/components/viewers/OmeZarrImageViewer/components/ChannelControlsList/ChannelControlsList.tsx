@@ -7,7 +7,6 @@ import {
 import cns from "classnames";
 import { ChannelControl } from "./components/ChannelControl";
 import { ChannelProps, ColorLike, ImageSeriesLayer } from "@idetik/core";
-import { useIdetik } from "../../../../../hooks";
 import { useSyncExternalStore } from "react";
 import { ExtraControlProps } from "../../utils";
 
@@ -29,8 +28,6 @@ export function ChannelControlsList({
   extraControlProps,
   classNames,
 }: ChannelControlsListProps) {
-  const { isReady: idetikIsReady } = useIdetik();
-
   const channels = useSyncExternalStore(
     (callback) => {
       layer.addChannelChangeCallback(callback);
@@ -47,9 +44,6 @@ export function ChannelControlsList({
       contrastLimits: [number, number];
     }>
   ) => {
-    if (!idetikIsReady) {
-      return;
-    }
     const updatedChannels = [...channels];
     updatedChannels[index] = {
       ...channels[index],

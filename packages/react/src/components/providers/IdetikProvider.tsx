@@ -6,19 +6,14 @@ import { IdetikContext, IdetikContextValue } from "../../hooks/useIdetik";
 
 /** Global Idetik state provider that you must wrap your application in. */
 export const IdetikProvider = ({ children }: PropsWithChildren) => {
-  const [camera] = useState<OrthographicCamera>(
-    // default camera frame
-    new OrthographicCamera(0, 128, 0, 128, -1000, 1000)
-  );
-  const [controls] = useState<PanZoomControls>(
-    new PanZoomControls(camera, camera.position)
-  );
   const [idetik, setIdetik] = useState<Idetik | null>(null);
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
 
   // Initialize Idetik when canvas becomes available
   useEffect(() => {
     if (canvasRef && !idetik) {
+      const camera = new OrthographicCamera(0, 128, 0, 128, -1000, 1000);
+      const controls = new PanZoomControls(camera, camera.position);
       const newIdetik = new Idetik({
         canvas: canvasRef,
         camera,
@@ -27,7 +22,7 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
       newIdetik.start();
       setIdetik(newIdetik);
     }
-  }, [canvasRef, camera, controls, idetik]);
+  }, [canvasRef, idetik]);
 
   const idetikContext: IdetikContextValue = idetik
     ? {
