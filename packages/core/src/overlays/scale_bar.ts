@@ -1,17 +1,17 @@
 import { Idetik, OrthographicCamera } from "@";
 
-type ScaleBarOverlayProps = {
+export type ScaleBarProps = {
   textDiv: HTMLDivElement;
   barDiv: HTMLDivElement;
   unit?: string;
 };
 
-export class ScaleBarOverlay {
+export class ScaleBar {
   private textDiv_: HTMLDivElement;
   private barDiv_: HTMLDivElement;
   private unit_: string;
 
-  constructor(props: ScaleBarOverlayProps) {
+  constructor(props: ScaleBarProps) {
     this.textDiv_ = props.textDiv;
     this.barDiv_ = props.barDiv;
     this.unit_ = props.unit ?? "";
@@ -27,7 +27,9 @@ export class ScaleBarOverlay {
       orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
     // TODO: assert that neither the barDiv nor idetik's canvas has padding,
     // which is included in clientWidth.
-    const barWidth = (this.barDiv_.clientWidth * window.devicePixelRatio / idetik.width) * cameraWidth;
+    const barWidth =
+      ((this.barDiv_.clientWidth * window.devicePixelRatio) / idetik.width) *
+      cameraWidth;
     this.textDiv_.textContent = `${barWidth.toFixed(2)} ${this.unit_}`;
   }
 }

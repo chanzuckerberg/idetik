@@ -1,13 +1,12 @@
 import { Camera } from "./objects/cameras/camera";
 import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
-import { Overlay } from "./core/overlay";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
-import { OverlayManager } from "./core/overlay_manager";
 import { vec2, vec3 } from "gl-matrix";
+import { ScaleBar, ScaleBarProps } from "./overlays/scale_bar";
 
 type IdetikParams = {
   canvas?: HTMLCanvasElement;
@@ -15,7 +14,7 @@ type IdetikParams = {
   camera: Camera;
   controls?: CameraControls;
   layers?: Layer[];
-  overlays?: Overlay[];
+  scaleBar?: ScaleBarProps;
 };
 
 export type IdetikContext = {
@@ -25,12 +24,12 @@ export type IdetikContext = {
 export class Idetik {
   public layerManager: LayerManager;
   public camera: Camera;
-  public overlayManager: OverlayManager;
   public readonly canvas: HTMLCanvasElement;
 
   private readonly renderer_: WebGLRenderer;
   private readonly context_: IdetikContext;
   private readonly chunkManager_: ChunkManager;
+  private scaleBar_?: ScaleBar;
   private lastAnimationId_?: number;
 
   constructor(params: IdetikParams) {
@@ -58,8 +57,6 @@ export class Idetik {
 
     this.layerManager = new LayerManager(this.context_);
 
-    this.overlayManager = new OverlayManager();
-
     if (params.controls) {
       // TODO: move controls to the idetik class
       this.renderer_.setControls(params.controls);
@@ -71,8 +68,8 @@ export class Idetik {
       }
     }
 
-    for (const overlay of params.overlays ?? []) {
-      this.overlayManager.add(overlay);
+    if (params.scaleBar) {
+      this.scaleBar_ = new ScaleBar(params.scaleBar);
     }
   }
 
@@ -82,6 +79,10 @@ export class Idetik {
 
   public get height() {
     return this.renderer_.height;
+  }
+
+  public setScaleBar(scaleBarProps?: ScaleBarProps) {
+    this.scaleBar_ = scaleBarProps ? new ScaleBar(scaleBarProps) : undefined;
   }
 
   // TODO: this should be modified once the controls are moved to the idetik class
@@ -112,9 +113,7 @@ export class Idetik {
         this.renderer_.height
       );
       this.renderer_.render(this.layerManager, this.camera);
-      for (const overlay of this.overlayManager.overlays) {
-        overlay.update(this, performance.now());
-      }
+      this.scaleBar_?.update(this, performance.now());
       this.lastAnimationId_ = requestAnimationFrame(render);
     };
     render();

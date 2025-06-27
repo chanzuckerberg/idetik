@@ -7,8 +7,6 @@ import {
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { ScaleBarOverlay } from "./scale_bar_overlay";
-import { FpsOverlay } from "./fps_overlay";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -32,20 +30,16 @@ const layer = new ImageLayer({ source, region, channelProps });
 const axes = new AxesLayer({ length: 2000, width: 0.01 });
 const camera = new OrthographicCamera(left, right, top, bottom);
 
-const scaleBar = new ScaleBarOverlay({
+const scaleBar = {
   textDiv: document.querySelector("#scale-bar-text") as HTMLDivElement,
   barDiv: document.querySelector("#scale-bar-line") as HTMLDivElement,
   unit: "μm",
-});
-
-const fpsOverlay = new FpsOverlay({
-  fpsDiv: document.querySelector("#fps-box") as HTMLDivElement,
-});
+};
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   controls: new PanZoomControls(camera, camera.position),
   layers: [layer, axes],
-  overlays: [scaleBar, fpsOverlay],
+  scaleBar: scaleBar,
 }).start();
