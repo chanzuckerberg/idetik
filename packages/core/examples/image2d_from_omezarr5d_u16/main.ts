@@ -43,7 +43,7 @@ const fpsOverlay = new FpsOverlay({
 });
 
 new Idetik({
-  canvasSelector: "canvas",
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   controls: new PanZoomControls(camera, camera.position),
   layers: [layer, axes],

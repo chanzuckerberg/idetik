@@ -17,7 +17,7 @@ import {
   getGrayscaleChannelProp,
   defaultGreyscaleChannel,
 } from "../viewers/OmeZarrImageViewer/utils";
-import { useIdetik } from ".";
+import { useIdetik } from "./useIdetik";
 
 export interface OmeZarrImageViewerProps {
   sourceUrl: string;
@@ -186,7 +186,7 @@ export function useOmeZarrViewer({
 
     return () => {
       shouldSetLayer = false;
-      idetik?.layerManager.remove(0);
+      idetik?.layerManager.removeByIndex(0);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Deps that trigger layer creation.
   }, [source, sourceUrl, region, seriesDimensionName, shouldAutoLoadAllSlices]);

@@ -17,6 +17,8 @@ export type ImageLayerProps = LayerOptions & {
 
 // Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer {
+  public readonly type = "ImageLayer";
+
   private readonly source_: ImageChunkSource;
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/idetik/issues/33
@@ -87,7 +89,7 @@ export class ImageLayer extends Layer {
       }
     });
 
-    this.chunkManagerSource_.getVisibleChunks().forEach((chunk) => {
+    this.chunkManagerSource_.getChunks().forEach((chunk) => {
       if (chunk.state === "loaded" && !this.visibleChunks_.has(chunk)) {
         const image = this.createImage(chunk, this.channelProps);
         this.visibleChunks_.set(chunk, image);

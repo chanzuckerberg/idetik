@@ -31,7 +31,7 @@ const axesLayer = new AxesLayer({ length: 1500, width: 0.01 });
 const camera = new OrthographicCamera(left, right, top, bottom);
 
 new Idetik({
-  canvasSelector: "canvas",
+  canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
   controls: new PanZoomControls(camera, camera.position),
   layers: [imageLayer, axesLayer],

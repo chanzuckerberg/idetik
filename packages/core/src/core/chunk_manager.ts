@@ -3,11 +3,12 @@ import {
   ImageChunkLoader,
   ImageChunkSource,
   LoaderAttributes,
-} from "@/data/image_chunk";
+} from "../data/image_chunk";
 import { Region } from "../data/region";
 import { Camera } from "../objects/cameras/camera";
 import { vec2, vec4, mat4 } from "gl-matrix";
 import { almostEqual } from "../utilities/almost_equal";
+import { Logger } from "../utilities/logger";
 
 type Bounds = { min: vec2; max: vec2 };
 
@@ -20,6 +21,7 @@ export class ChunkManagerSource {
   private readonly xIdx_: number;
   private readonly yIdx_: number;
   private readonly channelIdx_: number;
+  private lastVisibleBounds_: Bounds | null = null;
 
   constructor(
     loader: ImageChunkLoader,
@@ -68,7 +70,7 @@ export class ChunkManagerSource {
           this.chunks_.push({
             state: "unloaded",
             lod,
-            visible: true, // TODO:(shlomnissan) should be set to false
+            visible: false,
             shape: {
               x: chunkWidth,
               y: chunkHeight,
@@ -91,29 +93,54 @@ export class ChunkManagerSource {
     }
   }
 
-  private validateScaleRatios(xIdx: number, yIdx: number): void {
-    const availableScales = this.attrs_.map((attr) => attr.scale);
-    for (let i = 1; i < availableScales.length; i++) {
-      const prev = availableScales[i - 1];
-      const curr = availableScales[i];
-      const rx = curr[xIdx] / prev[xIdx];
-      const ry = curr[yIdx] / prev[yIdx];
-
-      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
-        throw new Error(
-          `Scales must be separated by factors of 2. Got ratio (${rx}, ${ry}) between scales ${prev} and ${curr}`
-        );
-      }
-    }
-  }
-
-  public getVisibleChunks(): ImageChunk[] {
+  public getChunks(): ImageChunk[] {
     return this.chunks_.filter(
-      (chunk) => chunk.lod === this.currentLOD_ && chunk.visible
+      (chunk) =>
+        chunk.lod === this.currentLOD_ &&
+        chunk.visible &&
+        chunk.state === "loaded"
     );
   }
 
-  public setLOD(lodFactor: number): void {
+  public loadVisibleChunks() {
+    for (const chunk of this.chunks_) {
+      this.processChunkData(chunk);
+    }
+  }
+
+  public update(lodFactor: number, visibleBounds: Bounds) {
+    this.setLOD(lodFactor);
+
+    if (visibleBounds !== this.lastVisibleBounds_) {
+      this.updateChunkVisibility(visibleBounds);
+      this.lastVisibleBounds_ = {
+        min: vec2.clone(visibleBounds.min),
+        max: vec2.clone(visibleBounds.max),
+      };
+    }
+
+    this.loadVisibleChunks();
+  }
+
+  private processChunkData(chunk: ImageChunk): void {
+    if (!chunk.visible || chunk.state !== "unloaded") return;
+
+    chunk.state = "loading";
+    this.loader_
+      .loadChunkDataFromRegion(chunk, this.region_)
+      .then(() => {
+        chunk.state = "loaded";
+      })
+      .catch((error) => {
+        Logger.error(
+          "ChunkManager",
+          `Error loading chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`
+        );
+        chunk.state = "unloaded";
+      });
+  }
+
+  private setLOD(lodFactor: number): void {
     const maxLOD = this.attrs_.length - 1;
     const targetLOD = Math.max(
       0,
@@ -126,15 +153,58 @@ export class ChunkManagerSource {
     }
   }
 
-  public async updateChunks(_: Bounds) {
-    // TODO: map the LOD factor from the chunk manager to an available LOD in image space
-    // TODO: replace the following block with loading based on intersection tests
+  private updateChunkVisibility(visibleBounds: Bounds): void {
+    if (this.chunks_.length === 0) {
+      Logger.warn(
+        "ChunkManager",
+        "updateChunkVisibility called with no chunks initialized"
+      );
+      return;
+    }
+
     for (const chunk of this.chunks_) {
-      if (chunk.state === "unloaded") {
-        chunk.state = "loading";
-        this.loader_.loadChunkDataFromRegion(chunk, this.region_).then(() => {
-          chunk.state = "loaded";
-        });
+      if (!chunk.chunkIndex) {
+        chunk.visible = false;
+        continue;
+      }
+
+      const chunkVirtualWidth = chunk.shape.x * chunk.scale.x;
+      const chunkVirtualHeight = chunk.shape.y * chunk.scale.y;
+
+      const minChunkIndexX = Math.floor(
+        visibleBounds.min[0] / chunkVirtualWidth
+      );
+      const maxChunkIndexX = Math.ceil(
+        visibleBounds.max[0] / chunkVirtualWidth
+      );
+      const minChunkIndexY = Math.floor(
+        visibleBounds.min[1] / chunkVirtualHeight
+      );
+      const maxChunkIndexY = Math.ceil(
+        visibleBounds.max[1] / chunkVirtualHeight
+      );
+
+      const { x, y } = chunk.chunkIndex;
+      chunk.visible =
+        x >= minChunkIndexX &&
+        x <= maxChunkIndexX &&
+        y >= minChunkIndexY &&
+        y <= maxChunkIndexY;
+    }
+  }
+
+  private validateScaleRatios(xIdx: number, yIdx: number): void {
+    const availableScales = this.attrs_.map((attr) => attr.scale);
+    for (let i = 1; i < availableScales.length; i++) {
+      const prev = availableScales[i - 1];
+      const curr = availableScales[i];
+      const rx = curr[xIdx] / prev[xIdx];
+      const ry = curr[yIdx] / prev[yIdx];
+
+      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
+        throw new Error(
+          `Scales must be separated by factors of 2. Got ratio (${rx}, ${ry}) between scales ${prev} and ${curr}`
+        );
       }
     }
   }
@@ -161,14 +231,13 @@ export class ChunkManager {
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     for (const [_, chunkManagerSource] of this.sources_) {
-      chunkManagerSource.setLOD(lodFactor);
-      chunkManagerSource.updateChunks(visibleBounds);
+      chunkManagerSource.update(lodFactor, visibleBounds);
     }
   }
 
   private computeVisibleBounds(camera: Camera): Bounds {
-    let topLeft = vec4.fromValues(-1.0, 1.0, 0.0, 1.0);
-    let bottomRight = vec4.fromValues(1.0, -1.0, 0.0, 1.0);
+    let topLeft = vec4.fromValues(-1.0, -1.0, 0.0, 1.0);
+    let bottomRight = vec4.fromValues(1.0, 1.0, 0.0, 1.0);
 
     const viewProjection = mat4.multiply(
       mat4.create(),

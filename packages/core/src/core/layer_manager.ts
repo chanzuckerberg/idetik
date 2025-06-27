@@ -2,7 +2,8 @@ import { Layer } from "./layer";
 import { IdetikContext } from "../idetik";
 
 export class LayerManager {
-  private readonly layers_: Layer[] = [];
+  private layers_: ReadonlyArray<Layer> = [];
+  private callbacks_: Array<() => void> = [];
 
   // TODO: Make this non-optional when react components use the Idetik Runtime
   private readonly context_?: IdetikContext;
@@ -30,20 +31,53 @@ export class LayerManager {
   }
 
   public add(layer: Layer) {
-    this.layers_.push(layer);
+    this.layers_ = [...this.layers_, layer];
     if (this.context_) {
       layer.onAttached(this.context_);
     }
+    this.notifyLayersChanged();
   }
-  public remove(index: number) {
-    this.layers_.splice(index, 1);
+
+  public remove(layer: Layer) {
+    const index = this.layers_.indexOf(layer);
+    if (index === -1) {
+      throw new Error(`Layer to remove not found: ${layer}`);
+    }
+    this.removeByIndex(index);
+  }
+
+  public removeByIndex(index: number) {
+    this.layers_ = this.layers_.filter((_, i) => i !== index);
+    this.notifyLayersChanged();
   }
 
   public removeAll() {
-    this.layers_.length = 0;
+    this.layers_ = [];
+    this.notifyLayersChanged();
   }
 
   public get layers(): readonly Layer[] {
     return this.layers_;
+  }
+
+  private notifyLayersChanged(): void {
+    for (const callback of this.callbacks_) {
+      callback();
+    }
+  }
+
+  public addLayersChangeCallback(callback: () => void): () => void {
+    this.callbacks_.push(callback);
+    return () => {
+      this.removeLayersChangeCallback(callback);
+    };
+  }
+
+  public removeLayersChangeCallback(callback: () => void): void {
+    const index = this.callbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove not found: ${callback}`);
+    }
+    this.callbacks_.splice(index, 1);
   }
 }
