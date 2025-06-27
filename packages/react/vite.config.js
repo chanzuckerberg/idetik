@@ -50,7 +50,6 @@ export default defineConfig(() => {
           '@idetik/core',
         ],
         output: {
-          banner: '"use client";\n',  // library is intended for client-side use for now
           globals: {
             'react': 'React',
             'react-dom': 'ReactDOM',
