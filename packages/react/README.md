@@ -65,39 +65,33 @@ import { ImageSeriesLayer, OmeZarrImageSource } from "@idetik/core";
 import { useState, useEffect, useSyncExternalStore } from "react";
 
 function CustomViewer({ sourceUrl }: { sourceUrl: string }) {
-  const contextValue = useIdetik();
   const [layer, setLayer] = useState<ImageSeriesLayer | null>(null);
+  const { isReady, runtime } = useIdetik();
 
   // Get active layers using useSyncExternalStore
   const activeLayers = useSyncExternalStore(
     (callback) => {
-      if (!contextValue.isReady) return () => {};
+      if (!isReady) return () => {};
       return contextValue.runtime.layerManager.addLayersChangeCallback(callback);
     },
     () => {
-      if (!contextValue.isReady) return [];
+      if (!isReady) return [];
       return contextValue.runtime.layerManager.layers;
     }
   );
 
   useEffect(() => {
-    if (!contextValue.isReady) return;
+    if (!isReady) return;
 
-    const runtime = contextValue.runtime;
-
-    const createLayer = async () => {
-      const source = new OmeZarrImageSource(sourceUrl);
-      const newLayer = new ImageSeriesLayer({
-        source,
-        region: yourRegion,
-        seriesDimensionName: "Z"
-      });
-      // Add layer to the runtime
-      runtime.layerManager.add(newLayer);
-      setLayer(newLayer);
-    };
-
-    createLayer();
+    const source = new OmeZarrImageSource(sourceUrl);
+    const newLayer = new ImageSeriesLayer({
+      source,
+      region: yourRegion,
+      seriesDimensionName: "Z"
+    });
+    // Add layer to the runtime
+    runtime.layerManager.add(newLayer);
+    setLayer(newLayer);
 
     return () => {
       if (layer && runtime.layerManager.layers.includes(layer)) {
@@ -135,7 +129,7 @@ export function App() {
 
 **useIdetik Hook**: Provides access to the runtime state:
 - When `isReady: false`: Provides `initializeWithCanvas(canvas)` function
-- When `isReady: true`: Provides `runtime` (Idetik instance) and `canvas` (HTMLCanvasElement)
+- When `isReady: true`: Provides `runtime` (Idetik instance)
 
 **Layer Management**: Use `runtime.layerManager` directly:
 - `runtime.layerManager.add(layer)` - Add a layer

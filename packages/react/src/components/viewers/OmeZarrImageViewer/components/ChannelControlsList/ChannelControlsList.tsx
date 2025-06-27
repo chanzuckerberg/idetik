@@ -119,7 +119,7 @@ export function ChannelControlsList({
                   label={extraControlProps[index].label}
                   color={props.color}
                   contrastLimits={props.contrastLimits}
-                  contrastRange={contrastRange as [number, number]}
+                  contrastRange={contrastRange}
                   visible={props.visible === undefined ? true : props.visible}
                   onVisibilityChange={(visible) =>
                     updateChannel(index, { visible })

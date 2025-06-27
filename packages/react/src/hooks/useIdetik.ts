@@ -4,13 +4,11 @@ import { createContext, useContext } from "react";
 export type IdetikContextValue =
   | {
       isReady: true;
-      canvas: HTMLCanvasElement;
       runtime: Idetik;
     }
   | {
       isReady: false;
       runtime: null;
-      canvas: null;
       initializeWithCanvas: (canvas: HTMLCanvasElement) => void;
     };
 
