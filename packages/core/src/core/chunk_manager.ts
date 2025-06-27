@@ -22,6 +22,7 @@ export class ChunkManagerSource {
   private readonly yIdx_: number;
   private readonly channelIdx_: number;
   private lastVisibleBounds_: Bounds | null = null;
+  private backgroundLODLoaded_: boolean = false;
 
   constructor(
     loader: ImageChunkLoader,
@@ -94,18 +95,71 @@ export class ChunkManagerSource {
   }
 
   public getChunks(): ImageChunk[] {
-    return this.chunks_.filter(
+    const currentLODChunks = this.chunks_.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
         chunk.visible &&
         chunk.state === "loaded"
     );
+
+    const fallbackChunks = this.getFallbackChunks();
+
+    // Return both current LOD chunks and fallbacks
+    // Rendering layer should handle z-ordering (current LOD on top)
+    console.debug("fallbackChunks", fallbackChunks);
+    console.debug("currentLODChunks", currentLODChunks);
+    return [...fallbackChunks, ...currentLODChunks];
   }
 
   public loadVisibleChunks() {
+    // Load background LOD (lowest resolution) first if not already started
+    if (!this.backgroundLODLoaded_) {
+      this.loadBackgroundLOD();
+    }
+
+    // Load visible chunks for current LOD
     for (const chunk of this.chunks_) {
       this.processChunkData(chunk);
     }
+  }
+
+  private getFallbackChunks(): ImageChunk[] {
+    // Only use the lowest resolution LOD (highest LOD number) as fallback
+    const lowestResLOD = this.attrs_.length - 1;
+
+    return this.chunks_.filter(
+      (chunk) =>
+        chunk.lod === lowestResLOD &&
+        chunk.visible &&
+        chunk.state === "loaded"
+    );
+  }
+
+  private loadBackgroundLOD(): void {
+    const lowestResLOD = this.attrs_.length - 1;
+    const backgroundChunks = this.chunks_.filter(chunk => chunk.lod === lowestResLOD);
+
+    for (const chunk of backgroundChunks) {
+      if (chunk.state === "unloaded") {
+        chunk.state = "loading";
+        this.loader_
+          .loadChunkDataFromRegion(chunk, this.region_)
+          .then(() => {
+            chunk.state = "loaded";
+          })
+          .catch((error) => {
+            Logger.error(
+              "ChunkManager",
+              `Error loading background chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`
+            );
+            chunk.state = "unloaded";
+          });
+      }
+    }
+
+    // Mark as started (we don't need to wait for completion)
+    this.backgroundLODLoaded_ = true;
+    Logger.debug("ChunkManager", `Started loading background LOD ${lowestResLOD}`);
   }
 
   public update(lodFactor: number, visibleBounds: Bounds) {
