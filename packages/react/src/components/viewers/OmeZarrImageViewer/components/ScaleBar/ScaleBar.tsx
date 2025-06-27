@@ -43,7 +43,9 @@ class ScaleBarOverlay {
     const orthoCamera = camera as OrthographicCamera;
     const cameraWidth =
       orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
-    const barWidth = (barDiv.offsetWidth / idetik.width * window.devicePixelRatio) * cameraWidth;
+    // TODO: assert that neither the barDiv nor idetik's canvas has padding,
+    // which is included in clientWidth.
+    const barWidth = (barDiv.clientWidth * window.devicePixelRatio / idetik.width) * cameraWidth;
     this.setBarWidth_(barWidth);
   }
 }
