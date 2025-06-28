@@ -68,7 +68,6 @@ function CustomViewer({ sourceUrl }: { sourceUrl: string }) {
   const [layer, setLayer] = useState<ImageSeriesLayer | null>(null);
   const { isReady, runtime } = useIdetik();
 
-  // Get active layers using useSyncExternalStore
   const activeLayers = useSyncExternalStore(
     (callback) => {
       if (!isReady) return () => {};
@@ -89,7 +88,6 @@ function CustomViewer({ sourceUrl }: { sourceUrl: string }) {
       region: yourRegion,
       seriesDimensionName: "Z"
     });
-    // Add layer to the runtime
     runtime.layerManager.add(newLayer);
     setLayer(newLayer);
 
