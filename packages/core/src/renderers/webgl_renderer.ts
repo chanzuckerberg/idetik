@@ -125,10 +125,10 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
-    this.bindings_.bind(object);
+    this.bindings_.bindObject(object);
 
     object.textures.forEach((texture) => {
-      this.textures_.bind(texture);
+      this.textures_.bindTexture(texture);
     });
 
     const primitive = this.getShaderPrimitive(object.primitive);
