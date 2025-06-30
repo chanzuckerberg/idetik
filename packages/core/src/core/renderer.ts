@@ -20,11 +20,10 @@ export abstract class Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas_ = canvas;
-    this.updateRendererSize();
-    window.addEventListener("resize", () => {
+    new ResizeObserver(() => {
       this.updateRendererSize();
       this.resize(this.width_, this.height_);
-    });
+    }).observe(canvas);
   }
 
   protected set activeCamera(camera: Camera) {
