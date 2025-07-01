@@ -1,8 +1,6 @@
 import { Camera } from "../objects/cameras/camera";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 
-// type Behavior = "FixedLength" | "RoundedPhysicalLength" | "TargetPhysicalLength";
-
 export type ScaleBarProps = {
   containerDiv: HTMLDivElement;
   textDiv: HTMLDivElement;
@@ -15,7 +13,7 @@ export class ScaleBar {
   private readonly textDiv_: HTMLDivElement;
   private readonly lineDiv_: HTMLDivElement;
   private readonly unit_: string;
-  private lastCameraWidth_?: number;
+  private lastMaxLineWidthWorld_?: number;
 
   constructor(props: ScaleBarProps) {
     this.containerDiv_ = props.containerDiv;
@@ -29,20 +27,19 @@ export class ScaleBar {
       throw new Error("ScaleBar can only be used with OrthographicCamera");
     }
     const orthoCamera = camera as OrthographicCamera;
-    const cameraWidth =
+    const cameraWidthWorld =
       orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
-    if (cameraWidth !== this.lastCameraWidth_) {
-      this.lastCameraWidth_ = cameraWidth;
-
-      // TODO: assert that neither the container div, line div, nor idetik's canvas
-      // has padding or border which affects the width calculation here.
-      const maxLineWidth = this.containerDiv_.clientWidth * window.devicePixelRatio;
-      const maxLineWidthWorld = (maxLineWidth / canvasWidth) * cameraWidth;
+    const unitPerCanvasPixel = cameraWidthWorld / canvasWidth;
+    // TODO: assert that neither the container div, line div, nor idetik's canvas
+    // has padding or border which affects the width calculation here.
+    const maxLineWidth =
+      this.containerDiv_.clientWidth * window.devicePixelRatio;
+    const maxLineWidthWorld = maxLineWidth * unitPerCanvasPixel;
+    if (maxLineWidthWorld !== this.lastMaxLineWidthWorld_) {
+      this.lastMaxLineWidthWorld_ = maxLineWidthWorld;
       const lineWidthWorld = scientificFloor(maxLineWidthWorld);
-      
       const lineProportion = lineWidthWorld.value / maxLineWidthWorld;
       this.lineDiv_.style.width = `${lineProportion * 100}%`;
-
       const numDecimalPlaces = Math.max(0, -lineWidthWorld.exponent);
       this.textDiv_.textContent = `${lineWidthWorld.value.toFixed(numDecimalPlaces)} ${this.unit_}`;
     }

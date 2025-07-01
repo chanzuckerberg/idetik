@@ -49,10 +49,10 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
             "shadow-sds-m",
             "w-1/5",
             "select-none",
-            props.classNames
+            props.classNames?.scaleBar
           )}
         >
-          <ScaleBar unit={unit} classNames={props.classNames?.scaleBar} />
+          <ScaleBar unit={unit} />
         </div>
         <div
           className={cns(

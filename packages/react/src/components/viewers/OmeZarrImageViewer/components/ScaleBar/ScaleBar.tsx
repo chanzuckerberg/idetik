@@ -22,7 +22,6 @@ function getUnitAbbreviation(unit: string | undefined): string {
 
 type ScaleBarProps = {
   unit?: string;
-  classNames?: string;
 };
 
 export function ScaleBar(props: ScaleBarProps) {
@@ -48,7 +47,7 @@ export function ScaleBar(props: ScaleBarProps) {
       className={cns(
         "flex",
         "flex-col",
-        "items-start",
+        "items-center",
         "w-full",
         "h-full",
         "gap-sds-xs",
@@ -57,7 +56,7 @@ export function ScaleBar(props: ScaleBarProps) {
     >
       <div
         ref={textDivRef}
-        className={cns("text-white", "text-sm", "text-align-start")}
+        className={cns("text-white", "text-sm", "text-align-center")}
       ></div>
       <div
         ref={lineDivRef}
