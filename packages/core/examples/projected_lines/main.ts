@@ -20,7 +20,7 @@ const layer = new ProjectedLineLayer([
 ]);
 
 new Idetik({
-  canvasSelector: "canvas",
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera: new PerspectiveCamera({ fov: 60 }),
   layers: [layer],
 }).start();

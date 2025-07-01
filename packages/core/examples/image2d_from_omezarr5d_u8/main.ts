@@ -40,7 +40,7 @@ const orthoCamControls = new PanZoomControls(orthoCam);
 const perspectiveCamControls = new PanZoomControls(perspectiveCam);
 
 const app = new Idetik({
-  canvasSelector: "canvas",
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera: perspectiveCam,
   controls: perspectiveCamControls,
   layers: [layer, axes],

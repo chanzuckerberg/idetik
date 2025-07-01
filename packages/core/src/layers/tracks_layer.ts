@@ -12,6 +12,8 @@ type TrackParameters = {
 };
 
 export class TracksLayer extends Layer {
+  public readonly type = "TracksLayer";
+
   private tracks_: TrackParameters[] = [];
 
   constructor(tracks: TrackParameters[] = []) {

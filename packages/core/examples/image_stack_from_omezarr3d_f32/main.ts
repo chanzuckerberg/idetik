@@ -76,7 +76,7 @@ zSlider.addEventListener("input", (event) => {
 
 const camera = new OrthographicCamera(0, 128, 0, 128);
 const app = new Idetik({
-  canvasSelector: "canvas",
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   layers: [layer],
 }).start();

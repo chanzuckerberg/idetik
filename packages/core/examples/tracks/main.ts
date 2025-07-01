@@ -117,7 +117,7 @@ const camera = new OrthographicCamera(left, right, top, bottom);
 camera.zoom(0.5);
 
 new Idetik({
-  canvasSelector: "canvas",
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   controls: new PanZoomControls(camera, camera.position),
   layers: [imageSeriesLayer, lineLayer],
