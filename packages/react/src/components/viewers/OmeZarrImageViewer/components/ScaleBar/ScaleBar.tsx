@@ -21,6 +21,11 @@ function getUnitAbbreviation(unit: string | undefined): string {
 }
 
 type ScaleBarProps = {
+  textColor?: string;
+  textSize?: "text-xs" | "text-sm" | "text-base" | "text-lg" | "text-xl";
+  lineColor?: string;
+  lineHeight?: string;
+  align?: "start" | "center" | "end";
   unit?: string;
 };
 
@@ -41,13 +46,19 @@ export function ScaleBar(props: ScaleBarProps) {
     return () => idetik.setScaleBar(undefined);
   }, [idetik, props.unit]);
 
+  const textColor = props.textColor ?? "text-white";
+  const textSize = props.textSize ?? "text-base";
+  const lineColor = props.lineColor ?? "bg-white";
+  const lineHeight = props.lineHeight ?? "h-sds-m";
+  const align = props.align ?? "start";
+
   return (
     <div
       ref={containerDivRef}
       className={cns(
         "flex",
         "flex-col",
-        "items-center",
+        `items-${align}`,
         "w-full",
         "h-full",
         "gap-sds-xs",
@@ -56,11 +67,11 @@ export function ScaleBar(props: ScaleBarProps) {
     >
       <div
         ref={textDivRef}
-        className={cns("text-white", "text-sm", "text-align-center")}
+        className={cns(textColor, textSize, `text-align-${align}`)}
       ></div>
       <div
         ref={lineDivRef}
-        className={cns("bg-white", "h-sds-m", "w-full")}
+        className={cns(lineColor, lineHeight, "w-full")}
       ></div>
     </div>
   );
