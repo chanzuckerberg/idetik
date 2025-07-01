@@ -20,7 +20,8 @@ type Module =
   | "WebGLShaderProgram"
   | "Idetik"
   | "ImageLayer"
-  | "ChunkManager";
+  | "ChunkManager"
+  | "WebGLTexture";
 
 export class Logger {
   private static logLevel_: LogLevel =

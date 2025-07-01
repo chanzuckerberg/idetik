@@ -12,6 +12,19 @@ type GeometryAttributeType =
   | "size"
   | "marker";
 
+export const GeometryAttributeIndex: Record<GeometryAttributeType, number> = {
+  position: 0,
+  normal: 1,
+  uv: 2,
+  next_position: 3,
+  previous_position: 4,
+  direction: 5,
+  path_proportion: 6,
+  color: 7,
+  size: 8,
+  marker: 9,
+};
+
 type GeometryAttribute = {
   type: GeometryAttributeType;
   itemSize: number;
@@ -21,7 +34,7 @@ type GeometryAttribute = {
 export class Geometry extends Node {
   protected vertexData_: Float32Array;
   protected indexData_: Uint32Array;
-  private attributes_: GeometryAttribute[];
+  private readonly attributes_: GeometryAttribute[];
 
   constructor(vertexData: number[] = [], indexData: number[] = []) {
     super();
