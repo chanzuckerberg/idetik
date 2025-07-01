@@ -23,6 +23,9 @@ export interface ChannelControlsListProps {
   };
 }
 
+// stable empty array to prevent unnecessary re-renders
+const EMPTY_PROPS: ChannelProps[] = [];
+
 export function ChannelControlsList({
   layer,
   extraControlProps,
@@ -33,9 +36,9 @@ export function ChannelControlsList({
       layer.addChannelChangeCallback(callback);
       return () => layer.removeChannelChangeCallback(callback);
     },
-    () => layer.channelProps ?? [],
+    () => layer.channelProps ?? EMPTY_PROPS,
     // fallback to empty array for SSR, which we don't support at this time
-    () => []
+    () => EMPTY_PROPS
   );
 
   const updateChannel = (
