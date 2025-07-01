@@ -7,16 +7,39 @@ import {
 import cns from "classnames";
 import { ChannelControl } from "./components/ChannelControl";
 import { ChannelProps, ColorLike, ImageSeriesLayer } from "@idetik/core";
-import { useIdetik } from "../../../../hooks";
+import { useSyncExternalStore } from "react";
+import { ExtraControlProps } from "../../utils";
 
 export interface ChannelControlsListProps {
+  // TODO: make this work with ImageLayer as well - need to refactor to add
+  // useSyncExternalStore-compatible methods to ImageLayer
+  layer: ImageSeriesLayer;
+  // TODO: it's awkward to have labels and contrastRanges as separate props
+  // but they're not needed for *rendering* so they don't belong in the library
+  // - one option is to add a way to store related additional properties in the library
+  extraControlProps: ExtraControlProps[];
   classNames?: {
     root?: string;
   };
 }
 
-export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
-  const { idetik, isInitialized, channels, channelControls } = useIdetik();
+// stable empty array to prevent unnecessary re-renders
+const EMPTY_PROPS: ChannelProps[] = [];
+
+export function ChannelControlsList({
+  layer,
+  extraControlProps,
+  classNames,
+}: ChannelControlsListProps) {
+  const channels = useSyncExternalStore(
+    (callback) => {
+      layer.addChannelChangeCallback(callback);
+      return () => layer.removeChannelChangeCallback(callback);
+    },
+    () => layer.channelProps ?? EMPTY_PROPS,
+    // fallback to empty array for SSR, which we don't support at this time
+    () => EMPTY_PROPS
+  );
 
   const updateChannel = (
     index: number,
@@ -26,22 +49,13 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
       contrastLimits: [number, number];
     }>
   ) => {
-    if (!isInitialized) {
-      return;
-    }
     const updatedChannels = [...channels];
     updatedChannels[index] = {
       ...channels[index],
       ...updates,
     };
-    (idetik.layerManager.layers[0] as ImageSeriesLayer)?.setChannelProps(
-      updatedChannels
-    );
+    layer.setChannelProps(updatedChannels);
   };
-
-  if (!isInitialized) {
-    return null;
-  }
 
   return (
     <div
@@ -96,8 +110,7 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
                   `Contrast limits not defined for channel ${index}`
                 );
               }
-              const contrastRange = (channelControls[index]?.contrastRange ??
-                props.contrastLimits)!;
+              const contrastRange = extraControlProps[index].contrastRange;
               if (contrastRange === undefined) {
                 throw new Error(
                   `Contrast range not defined for channel ${index}`
@@ -108,7 +121,7 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
                 <ChannelControl
                   key={index}
                   channelIndex={index}
-                  label={channelControls[index]?.label ?? `Channel ${index}`}
+                  label={extraControlProps[index].label}
                   color={props.color}
                   contrastLimits={props.contrastLimits}
                   contrastRange={contrastRange}
@@ -130,11 +143,7 @@ export function ChannelControlsList({ classNames }: ChannelControlsListProps) {
               sdsType="primary"
               // Force dark mode styles on hover
               className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
-              onClick={() => {
-                (
-                  idetik.layerManager.layers[0] as ImageSeriesLayer
-                ).resetChannelProps();
-              }}
+              onClick={layer.resetChannelProps.bind(layer)}
             >
               Reset channels
             </Button>
