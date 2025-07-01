@@ -77,13 +77,16 @@ export class ImageLayer extends Layer {
 
     // TODO:(shlomnissan) Reuse images instead of deleting and creating new ones.
     //
-    // This loop removes image renderables for chunks that are no longer visible.
+    // This loop removes image renderables for chunks that are no longer visible
+    // or no longer returned by getChunks() (e.g., due to LOD changes).
     // While this approach works for now, it may be more efficient in the future
     // to reuse renderables by updating their underlying data instead of repeatedly
     // creating new texture objects. Note: GPU resources are not currently being
     // released, so this will also need to be addressed soon.
+    const currentChunks = new Set(this.chunkManagerSource_.getChunks());
     this.visibleChunks_.forEach((image, chunk) => {
-      if (!chunk.visible) {
+      if (!chunk.visible || !currentChunks.has(chunk)) {
+        console.debug(`[ImageLayer] Removing chunk LOD ${chunk.lod} at (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}) - visible: ${chunk.visible}, inCurrentChunks: ${currentChunks.has(chunk)}`);
         this.removeObject(image);
         this.visibleChunks_.delete(chunk); // safe
       }
