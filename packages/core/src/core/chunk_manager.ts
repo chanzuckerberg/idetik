@@ -117,8 +117,12 @@ export class ChunkManagerSource {
   public loadVisibleChunks() {
     // Load background LOD (lowest resolution) first if not already started
     const lowestResLOD = this.attrs_.length - 1;
-    const backgroundChunks = this.chunks_.filter(chunk => chunk.lod === lowestResLOD);
-    const allLoaded = backgroundChunks.every(chunk => chunk.state === "loaded");
+    const backgroundChunks = this.chunks_.filter(
+      (chunk) => chunk.lod === lowestResLOD
+    );
+    const allLoaded = backgroundChunks.every(
+      (chunk) => chunk.state === "loaded"
+    );
 
     if (!allLoaded) {
       this.loadBackgroundLOD();
@@ -138,16 +142,24 @@ export class ChunkManagerSource {
     // Only use the lowest resolution LOD (highest LOD number) as fallback
     const lowestResLOD = this.attrs_.length - 1;
 
-    const allLowestResChunks = this.chunks_.filter(chunk => chunk.lod === lowestResLOD);
-    const visibleLowestResChunks = allLowestResChunks.filter(chunk => chunk.visible);
-    const loadedLowestResChunks = visibleLowestResChunks.filter(chunk => chunk.state === "loaded");
+    const allLowestResChunks = this.chunks_.filter(
+      (chunk) => chunk.lod === lowestResLOD
+    );
+    const visibleLowestResChunks = allLowestResChunks.filter(
+      (chunk) => chunk.visible
+    );
+    const loadedLowestResChunks = visibleLowestResChunks.filter(
+      (chunk) => chunk.state === "loaded"
+    );
 
     return loadedLowestResChunks;
   }
 
   private loadBackgroundLOD(): void {
     const lowestResLOD = this.attrs_.length - 1;
-    const backgroundChunks = this.chunks_.filter(chunk => chunk.lod === lowestResLOD);
+    const backgroundChunks = this.chunks_.filter(
+      (chunk) => chunk.lod === lowestResLOD
+    );
 
     for (const chunk of backgroundChunks) {
       if (chunk.state === "unloaded") {
@@ -208,7 +220,6 @@ export class ChunkManagerSource {
     );
 
     if (targetLOD !== this.currentLOD_) {
-
       this.currentLOD_ = targetLOD;
 
       // Unload chunks from all LODs except current and background
@@ -218,17 +229,17 @@ export class ChunkManagerSource {
 
   private unloadUnneededLODs(): void {
     const lowestResLOD = this.attrs_.length - 1;
-    const chunksToUnload = this.chunks_.filter(chunk =>
-      chunk.lod !== this.currentLOD_ &&
-      chunk.lod !== lowestResLOD &&
-      chunk.state === "loaded"
+    const chunksToUnload = this.chunks_.filter(
+      (chunk) =>
+        chunk.lod !== this.currentLOD_ &&
+        chunk.lod !== lowestResLOD &&
+        chunk.state === "loaded"
     );
 
     for (const chunk of chunksToUnload) {
       chunk.state = "unloaded";
       chunk.data = undefined;
     }
-
   }
 
   private updateChunkVisibility(visibleBounds: Bounds): void {
