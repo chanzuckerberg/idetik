@@ -86,7 +86,6 @@ export class ImageLayer extends Layer {
     const currentChunks = new Set(this.chunkManagerSource_.getChunks());
     this.visibleChunks_.forEach((image, chunk) => {
       if (!chunk.visible || !currentChunks.has(chunk)) {
-        console.debug(`[ImageLayer] Removing chunk LOD ${chunk.lod} at (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}) - visible: ${chunk.visible}, inCurrentChunks: ${currentChunks.has(chunk)}`);
         this.removeObject(image);
         this.visibleChunks_.delete(chunk); // safe
       }

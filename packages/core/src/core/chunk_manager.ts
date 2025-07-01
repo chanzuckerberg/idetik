@@ -22,7 +22,6 @@ export class ChunkManagerSource {
   private readonly yIdx_: number;
   private readonly channelIdx_: number;
   private lastVisibleBounds_: Bounds | null = null;
-  private backgroundLODLoaded_: boolean = false;
 
   constructor(
     loader: ImageChunkLoader,
@@ -117,13 +116,15 @@ export class ChunkManagerSource {
 
   public loadVisibleChunks() {
     // Load background LOD (lowest resolution) first if not already started
-    if (!this.backgroundLODLoaded_) {
+    const lowestResLOD = this.attrs_.length - 1;
+    const backgroundChunks = this.chunks_.filter(chunk => chunk.lod === lowestResLOD);
+    const allLoaded = backgroundChunks.every(chunk => chunk.state === "loaded");
+
+    if (!allLoaded) {
       this.loadBackgroundLOD();
     }
 
     // Load chunks for both current LOD and background LOD in parallel
-    const lowestResLOD = this.attrs_.length - 1;
-
     // Load visible chunks only for current LOD and background LOD
     for (const chunk of this.chunks_) {
       // Only load chunks for current LOD or background LOD
@@ -146,11 +147,9 @@ export class ChunkManagerSource {
 
   private loadBackgroundLOD(): void {
     const lowestResLOD = this.attrs_.length - 1;
-    const visibleBackgroundChunks = this.chunks_.filter(
-      chunk => chunk.lod === lowestResLOD && chunk.visible
-    );
+    const backgroundChunks = this.chunks_.filter(chunk => chunk.lod === lowestResLOD);
 
-    for (const chunk of visibleBackgroundChunks) {
+    for (const chunk of backgroundChunks) {
       if (chunk.state === "unloaded") {
         chunk.state = "loading";
         this.loader_
@@ -167,9 +166,6 @@ export class ChunkManagerSource {
           });
       }
     }
-
-    // Mark as started (we don't need to wait for completion)
-    this.backgroundLODLoaded_ = true;
   }
 
   public update(lodFactor: number, visibleBounds: Bounds) {
