@@ -221,21 +221,13 @@ export class OmeZarrImageLoader {
     region.forEach((entry, dimIdx) => {
       if (entry.dimension.toLowerCase() === "x") {
         const value = 0; // not used for x dimension
-        output.set("x", {
-          dimIdx,
-          chunkIdx: chunk.chunkIndex.x,
-          value,
-        });
+        output.set("x", { dimIdx, chunkIdx: chunk.chunkIndex.x, value });
         return;
       }
 
       if (entry.dimension.toLowerCase() === "y") {
         const value = 0; // not used for y dimension
-        output.set("y", {
-          dimIdx,
-          chunkIdx: chunk.chunkIndex.y,
-          value,
-        });
+        output.set("y", { dimIdx, chunkIdx: chunk.chunkIndex.y, value });
         return;
       }
 
