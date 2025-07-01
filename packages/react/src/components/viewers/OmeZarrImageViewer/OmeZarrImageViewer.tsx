@@ -37,7 +37,23 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           "gap-sds-l"
         )}
       >
-        <ScaleBar unit={unit} classNames={props.classNames?.scaleBar} />
+        <div
+          className={cns(
+            "flex",
+            "flex-col",
+            "m-sds-l",
+            "p-sds-xs",
+            "bg-black/75",
+            "backdrop-blur-md",
+            "rounded-sds-m",
+            "shadow-sds-m",
+            "w-1/5",
+            "select-none",
+            props.classNames
+          )}
+        >
+          <ScaleBar unit={unit} classNames={props.classNames?.scaleBar} />
+        </div>
         <div
           className={cns(
             "flex",

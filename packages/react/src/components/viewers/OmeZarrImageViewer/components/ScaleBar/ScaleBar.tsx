@@ -27,14 +27,16 @@ type ScaleBarProps = {
 
 export function ScaleBar(props: ScaleBarProps) {
   const { idetik } = useIdetik();
+  const containerDivRef = useRef<HTMLDivElement>(null);
   const textDivRef = useRef<HTMLDivElement>(null);
-  const barDivRef = useRef<HTMLDivElement>(null);
+  const lineDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!idetik) return;
     idetik.setScaleBar({
+      containerDiv: containerDivRef.current!,
       textDiv: textDivRef.current!,
-      barDiv: barDivRef.current!,
+      lineDiv: lineDivRef.current!,
       unit: getUnitAbbreviation(props.unit),
     });
     return () => idetik.setScaleBar(undefined);
@@ -42,29 +44,23 @@ export function ScaleBar(props: ScaleBarProps) {
 
   return (
     <div
+      ref={containerDivRef}
       className={cns(
         "flex",
         "flex-col",
-        "justify-center",
-        "items-center",
-        "m-sds-l",
+        "items-start",
+        "w-full",
+        "h-full",
         "gap-sds-xs",
-        "p-sds-xs",
-        "select-none",
-        "bg-black/75",
-        "backdrop-blur-md",
-        "rounded-sds-m",
-        "shadow-sds-m",
-        "w-1/4",
-        props.classNames
+        "select-none"
       )}
     >
       <div
         ref={textDivRef}
-        className={cns("text-white", "text-sm", "text-align-center")}
+        className={cns("text-white", "text-sm", "text-align-start")}
       ></div>
       <div
-        ref={barDivRef}
+        ref={lineDivRef}
         className={cns("bg-white", "h-sds-m", "w-full")}
       ></div>
     </div>

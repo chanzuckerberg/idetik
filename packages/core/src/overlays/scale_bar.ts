@@ -1,20 +1,26 @@
 import { Camera } from "../objects/cameras/camera";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 
+// type Behavior = "FixedLength" | "RoundedPhysicalLength" | "TargetPhysicalLength";
+
 export type ScaleBarProps = {
+  containerDiv: HTMLDivElement;
   textDiv: HTMLDivElement;
-  barDiv: HTMLDivElement;
+  lineDiv: HTMLDivElement;
   unit?: string;
 };
 
 export class ScaleBar {
-  private textDiv_: HTMLDivElement;
-  private barDiv_: HTMLDivElement;
-  private unit_: string;
+  private readonly containerDiv_: HTMLDivElement;
+  private readonly textDiv_: HTMLDivElement;
+  private readonly lineDiv_: HTMLDivElement;
+  private readonly unit_: string;
+  private lastCameraWidth_?: number;
 
   constructor(props: ScaleBarProps) {
+    this.containerDiv_ = props.containerDiv;
     this.textDiv_ = props.textDiv;
-    this.barDiv_ = props.barDiv;
+    this.lineDiv_ = props.lineDiv;
     this.unit_ = props.unit ?? "";
   }
 
@@ -25,11 +31,38 @@ export class ScaleBar {
     const orthoCamera = camera as OrthographicCamera;
     const cameraWidth =
       orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
-    // TODO: assert that neither the barDiv nor idetik's canvas has padding,
-    // which is included in clientWidth.
-    const barWidth =
-      ((this.barDiv_.clientWidth * window.devicePixelRatio) / canvasWidth) *
-      cameraWidth;
-    this.textDiv_.textContent = `${barWidth.toFixed(2)} ${this.unit_}`;
+    if (cameraWidth !== this.lastCameraWidth_) {
+      this.lastCameraWidth_ = cameraWidth;
+
+      // TODO: assert that neither the container div, line div, nor idetik's canvas
+      // has padding or border which affects the width calculation here.
+      const maxLineWidth = this.containerDiv_.clientWidth * window.devicePixelRatio;
+      const maxLineWidthWorld = (maxLineWidth / canvasWidth) * cameraWidth;
+      const lineWidthWorld = scientificFloor(maxLineWidthWorld);
+      
+      const lineProportion = lineWidthWorld.value / maxLineWidthWorld;
+      this.lineDiv_.style.width = `${lineProportion * 100}%`;
+
+      const numDecimalPlaces = Math.max(0, -lineWidthWorld.exponent);
+      this.textDiv_.textContent = `${lineWidthWorld.value.toFixed(numDecimalPlaces)} ${this.unit_}`;
+    }
   }
+}
+
+// Converts the given number to the greatest value of the form x = y 10^z
+// that is less than or equal to the given number, where y is a positive integer
+// and z is an integer.
+function scientificFloor(x: number): {
+  value: number;
+  coefficient: number;
+  exponent: number;
+} {
+  const z = Math.floor(Math.log10(Math.abs(x)));
+  const base = Math.pow(10, z);
+  const y = Math.floor(x / base);
+  return {
+    value: y * base,
+    coefficient: y,
+    exponent: z,
+  };
 }

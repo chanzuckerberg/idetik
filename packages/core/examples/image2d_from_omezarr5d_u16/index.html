@@ -21,20 +21,23 @@
         position: absolute;
         bottom: 1em;
         left: 1em;
-        width: 25%;
+        width: 20%;
         margin: 1em;
         padding: 1em;
         display: flex;
-        flex-direction: column;
-        gap: 0.5em;
-        justify-content: center;
-        align-items: center;
         background-color: rgba(0, 0, 0, 0.5);
+      }
+      #scale-bar-container {
+        display: flex;
+        flex-direction: column;
+        align-items: start;
+        width: 100%;
+        height: 100%;
+        gap: 0.5em;
         user-select: none;
       }
       #scale-bar-text {
         color: white;
-        text-align: center;
       }
       #scale-bar-line {
         width: 100%;
@@ -46,8 +49,10 @@
   <body>
     <canvas id="canvas"></canvas>
     <div id="scale-bar-box">
-      <div id="scale-bar-text">unknown</div>
-      <div id="scale-bar-line"></div>
+      <div id="scale-bar-container">
+        <div id="scale-bar-text">unknown</div>
+        <div id="scale-bar-line"></div>
+      </div>
     </div>
     <script type="module" src="./main.ts"></script>
   </body>
