@@ -5,12 +5,12 @@ import { useIdetik } from "../hooks/useIdetik";
 
 interface IdetikCanvasProps {
   canvasId?: string;
-  style?: React.CSSProperties;
+  classNames?: string;
 }
 
 export function IdetikCanvas({
   canvasId = "idetik-canvas",
-  style = { width: "100%", height: "100%" },
+  classNames = "w-full h-full",
 }: IdetikCanvasProps) {
   const contextValue = useIdetik();
 
@@ -24,11 +24,6 @@ export function IdetikCanvas({
   );
 
   return (
-    <canvas
-      ref={canvasCallbackRef}
-      id={canvasId}
-      className="idetik-canvas"
-      style={style}
-    />
+    <canvas ref={canvasCallbackRef} id={canvasId} className={classNames} />
   );
 }

@@ -33,7 +33,9 @@ export function ChannelControlsList({
       layer.addChannelChangeCallback(callback);
       return () => layer.removeChannelChangeCallback(callback);
     },
-    () => layer.channelProps ?? []
+    () => layer.channelProps ?? [],
+    // fallback to empty array for SSR, which we don't support at this time
+    () => []
   );
 
   const updateChannel = (
