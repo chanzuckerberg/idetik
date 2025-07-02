@@ -29,12 +29,12 @@ export class ScaleBar {
       orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
     const unitPerCanvasPixel = cameraWidthWorld / idetik.width;
 
-    // The use of clientWidth assumes that the barDiv has no padding,
+    // The use of clientWidth assumes that the lineDiv has no padding,
     // which is true in this example. If similar code is used elsewhere,
     // the lack of padding should be asserted and or enforced.
-    const barWidth = this.lineDiv_.clientWidth * window.devicePixelRatio;
-    const barWidthWorld = barWidth * unitPerCanvasPixel;
+    const lineWidth = this.lineDiv_.clientWidth * window.devicePixelRatio;
+    const lineWidthWorld = lineWidth * unitPerCanvasPixel;
 
-    this.textDiv_.textContent = `${barWidthWorld.toFixed(2)} ${this.unit_}`;
+    this.textDiv_.textContent = `${lineWidthWorld.toFixed(2)} ${this.unit_}`;
   }
 }
