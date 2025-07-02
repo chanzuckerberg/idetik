@@ -20,26 +20,51 @@ function getUnitAbbreviation(unit: string | undefined): string {
   }
 }
 
+// Converts the given number to the greatest value of the form x = y 10^z
+// that is less than or equal to the given number, where y is a positive integer
+// and z is an integer.
+function scientificFloor(x: number): {
+  value: number;
+  coefficient: number;
+  exponent: number;
+} {
+  const z = Math.floor(Math.log10(Math.abs(x)));
+  const base = Math.pow(10, z);
+  const y = Math.floor(x / base);
+  return {
+    value: y * base,
+    coefficient: y,
+    exponent: z,
+  };
+}
+
 class ScaleBarOverlay {
-  private lineDivRef_: React.RefObject<HTMLDivElement>;
-  private textDivRef_: React.RefObject<HTMLDivElement>;
-  private unit_: string;
+  private readonly containerDivRef_: React.RefObject<HTMLDivElement>;
+  private readonly lineDivRef_: React.RefObject<HTMLDivElement>;
+  private readonly textDivRef_: React.RefObject<HTMLDivElement>;
+  private readonly unit_: string;
+  private containerWidthWorld_?: number;
 
   constructor(
+    containerDivRef: React.RefObject<HTMLDivElement>,
     lineDivRef: React.RefObject<HTMLDivElement>,
     textDivRef: React.RefObject<HTMLDivElement>,
     unit?: string
   ) {
+    this.containerDivRef_ = containerDivRef;
     this.lineDivRef_ = lineDivRef;
     this.textDivRef_ = textDivRef;
     this.unit_ = getUnitAbbreviation(unit);
   }
 
   update(idetik: Idetik, _timestamp: DOMHighResTimeStamp) {
+    const containerDiv = this.containerDivRef_.current;
+    if (containerDiv === null) return;
     const lineDiv = this.lineDivRef_.current;
     if (lineDiv === null) return;
-    const textDiv_ = this.textDivRef_.current;
-    if (textDiv_ === null) return;
+    const textDiv = this.textDivRef_.current;
+    if (textDiv === null) return;
+
     const camera = idetik.camera;
     if (camera.type !== "OrthographicCamera") {
       throw new Error("ScaleBar can only be used with OrthographicCamera");
@@ -53,10 +78,17 @@ class ScaleBarOverlay {
     // The use of clientWidth assumes that the barDiv has no padding,
     // which is true in this example. If similar code is used elsewhere,
     // the lack of padding should be asserted and or enforced.
-    const lineWidth = lineDiv.clientWidth * window.devicePixelRatio;
-    const lineWidthWorld = lineWidth * unitPerCanvasPixel;
+    const containerWidth = containerDiv.clientWidth * window.devicePixelRatio;
+    const containerWidthWorld = containerWidth * unitPerCanvasPixel;
 
-    textDiv_.textContent = `${lineWidthWorld.toFixed(2)} ${this.unit_}`;
+    if (containerWidthWorld !== this.containerWidthWorld_) {
+      this.containerWidthWorld_ = containerWidthWorld;
+      const lineWidthWorld = scientificFloor(containerWidthWorld);
+      const lineProportion = lineWidthWorld.value / containerWidthWorld;
+      lineDiv.style.width = `${lineProportion * 100}%`;
+      const numDecimalPlaces = Math.max(0, -lineWidthWorld.exponent);
+      textDiv.textContent = `${lineWidthWorld.value.toFixed(numDecimalPlaces)} ${this.unit_}`;
+    }
   }
 }
 
@@ -71,13 +103,19 @@ type ScaleBarProps = {
 };
 
 export function ScaleBar(props: ScaleBarProps) {
+  const containerDivRef = useRef<HTMLDivElement>(null);
   const textDivRef = useRef<HTMLDivElement>(null);
   const lineDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const idetik = props.idetik;
     if (!idetik) return;
-    const overlay = new ScaleBarOverlay(lineDivRef, textDivRef, props.unit);
+    const overlay = new ScaleBarOverlay(
+      containerDivRef,
+      lineDivRef,
+      textDivRef,
+      props.unit
+    );
     idetik.overlays.push(overlay);
     return () => {
       const index = idetik.overlays.indexOf(overlay);
@@ -93,6 +131,7 @@ export function ScaleBar(props: ScaleBarProps) {
 
   return (
     <div
+      ref={containerDivRef}
       className={cns(
         "flex",
         "flex-col",

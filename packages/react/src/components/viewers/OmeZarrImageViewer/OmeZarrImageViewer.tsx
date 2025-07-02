@@ -373,7 +373,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
             "shadow-sds-m",
             "w-1/5",
             "select-none",
-            props.classNames?.scaleBarContainer,
+            props.classNames?.scaleBarContainer
           )}
         >
           <ScaleBar idetik={runtime} unit={unit} />
