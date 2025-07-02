@@ -118,17 +118,17 @@ export class ChunkManagerSource {
     const backgroundChunks = this.chunks_.filter(
       (chunk) => chunk.lod === this.lowestResLOD_
     );
-    const allLoaded = backgroundChunks.every(
+    const allVisibleBackgroundLoaded = backgroundChunks.every(
       (chunk) => chunk.state === "loaded"
     );
 
-    if (!allLoaded) {
+    if (!allVisibleBackgroundLoaded) {
       this.loadBackgroundLOD();
     }
 
     for (const chunk of this.chunks_) {
-      // Only load chunks for current LOD or background LOD
-      if (chunk.lod === this.currentLOD_ || chunk.lod === this.lowestResLOD_) {
+      // Only load chunks for current LOD
+      if (chunk.lod === this.currentLOD_ && chunk.state === "unloaded") {
         this.processChunkData(chunk);
       }
     }
@@ -183,8 +183,6 @@ export class ChunkManagerSource {
   }
 
   private processChunkData(chunk: ImageChunk): void {
-    if (!chunk.visible || chunk.state !== "unloaded") return;
-
     chunk.state = "loading";
     this.loader_
       .loadChunkDataFromRegion(chunk, this.region_)
