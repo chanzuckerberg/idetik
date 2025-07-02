@@ -98,7 +98,7 @@ export class Geometry extends Node {
       return;
     }
 
-    const edgeSet = new Set<string>();
+    const edgeSet = new Set<{ i0: number; i1: number }>();
     const wireframeIndices: number[] = [];
     const addEdge = (a: number, b: number) => {
       // Normalize edge order and use a set to deduplicate,
@@ -106,9 +106,8 @@ export class Geometry extends Node {
       // be added multiple times.
       const i0 = Math.min(a, b);
       const i1 = Math.max(a, b);
-      const key = `${i0},${i1}`;
-      if (!edgeSet.has(key)) {
-        edgeSet.add(key);
+      if (!edgeSet.has({ i0, i1 })) {
+        edgeSet.add({ i0, i1 });
         wireframeIndices.push(i0, i1);
       }
     };

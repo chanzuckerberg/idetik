@@ -93,31 +93,6 @@ export class WebGLRenderer extends Renderer {
     // TODO: If "wireframe on shaded" call draw object with different parameters
   }
 
-  protected resize(width: number, height: number) {
-    this.gl.viewport(0, 0, width, height);
-  }
-
-  protected clear() {
-    this.gl.clearColor(...this.backgroundColor.rgba);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-    this.state_.setDepthTesting(true);
-    this.gl.depthFunc(this.gl.LEQUAL);
-  }
-
-  private getShaderProgram(type: Shader) {
-    if (!this.shaders_.has(type)) {
-      this.shaders_.set(
-        type,
-        new WebGLShaderProgram(
-          this.gl,
-          shaderCode[type].vertex,
-          shaderCode[type].fragment
-        )
-      );
-    }
-    return this.shaders_.get(type)!;
-  }
-
   private drawObject(
     layer: Layer,
     object: RenderableObject,
@@ -177,6 +152,31 @@ export class WebGLRenderer extends Renderer {
         throw new Error(`Unknown Primitive type: ${exhaustiveCheck}`);
       }
     }
+  }
+
+  protected resize(width: number, height: number) {
+    this.gl.viewport(0, 0, width, height);
+  }
+
+  protected clear() {
+    this.gl.clearColor(...this.backgroundColor.rgba);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    this.state_.setDepthTesting(true);
+    this.gl.depthFunc(this.gl.LEQUAL);
+  }
+
+  private getShaderProgram(type: Shader) {
+    if (!this.shaders_.has(type)) {
+      this.shaders_.set(
+        type,
+        new WebGLShaderProgram(
+          this.gl,
+          shaderCode[type].vertex,
+          shaderCode[type].fragment
+        )
+      );
+    }
+    return this.shaders_.get(type)!;
   }
 
   private get gl() {

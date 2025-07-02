@@ -13,7 +13,7 @@ export abstract class RenderableObject extends Node {
   private geometry_ = new Geometry();
   private programName_: Shader | null = null;
   private primitive_: Primitive = "triangles";
-  private wireframeOnShaded_ = false;
+  private wireframeEnabled_ = false;
 
   public addTexture(texture: Texture) {
     this.textures_.push(texture);
@@ -33,15 +33,15 @@ export abstract class RenderableObject extends Node {
 
   public set geometry(geometry: Geometry) {
     this.geometry_ = geometry;
-    if (this.wireframeOnShaded_) {
-      this.generateWireframeIndicesIfNeeded(true);
+    if (this.wireframeEnabled_) {
+      this.generateWireframeIndicesIfNeeded();
     }
   }
 
   public set wireframeOnShaded(enabled: boolean) {
-    this.wireframeOnShaded_ = enabled;
-    if (this.wireframeOnShaded_) {
-      this.generateWireframeIndicesIfNeeded(false);
+    this.wireframeEnabled_ = enabled;
+    if (this.wireframeEnabled_) {
+      this.generateWireframeIndicesIfNeeded();
     }
   }
 
@@ -64,10 +64,10 @@ export abstract class RenderableObject extends Node {
     this.primitive_ = primitive;
   }
 
-  private generateWireframeIndicesIfNeeded(forced: boolean) {
+  private generateWireframeIndicesIfNeeded() {
     const hasIndexData = this.geometry_.indexData.length > 0;
     const hasWireframeIndexData = this.geometry_.wireframeIndexData.length > 0;
-    if (hasIndexData && (!hasWireframeIndexData || forced)) {
+    if (hasIndexData && !hasWireframeIndexData) {
       this.geometry_.generateWireframeIndexData();
     }
   }
