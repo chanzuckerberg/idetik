@@ -16,6 +16,7 @@ import { parseOmeNgffImage } from "../data/ome_zarr_hcs_metadata_loader";
 type ImageAttributes = {
   image: OmeNgffImage["multiscales"][number];
   dimensionNames: string[];
+  dimensionUnits: (string | undefined)[];
   datasetPath: string;
   scale: number[];
   translation: number[];
@@ -172,6 +173,7 @@ export class OmeZarrImageLoader {
       const image = this.metadata_.multiscales[0];
       const axes = image.axes;
       const dimensionNames = image.axes.map((axis) => axis.name);
+      const dimensionUnits = image.axes.map((axis) => axis.unit);
       const dataset = image.datasets[i];
       const datasetPath = dataset.path;
       const scale = dataset.coordinateTransformations[0].scale;
@@ -180,7 +182,14 @@ export class OmeZarrImageLoader {
           ? dataset.coordinateTransformations[1].translation
           : new Array(axes.length).fill(0);
 
-      output.push({ image, dimensionNames, datasetPath, scale, translation });
+      output.push({
+        image,
+        dimensionNames,
+        dimensionUnits,
+        datasetPath,
+        scale,
+        translation,
+      });
     }
 
     return output;
@@ -199,6 +208,7 @@ export class OmeZarrImageLoader {
         return {
           chunks: zarrArray.chunks,
           dimensionNames: attr.dimensionNames,
+          dimensionUnits: attr.dimensionUnits,
           shape: zarrArray.shape,
           scale: attr.scale,
         };
