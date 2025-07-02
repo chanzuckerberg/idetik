@@ -108,7 +108,6 @@ export class ChunkManagerSource {
       return currentLODChunks;
     }
 
-    // Use all fallback chunks for now (disable overlap filtering to prevent gaps)
     const fallbackChunks = this.getFallbackChunks();
 
     return [...fallbackChunks, ...currentLODChunks];
@@ -127,7 +126,6 @@ export class ChunkManagerSource {
       this.loadBackgroundLOD();
     }
 
-    // Load visible chunks only for current LOD and background LOD
     for (const chunk of this.chunks_) {
       // Only load chunks for current LOD or background LOD
       if (chunk.lod === this.currentLOD_ || chunk.lod === this.lowestResLOD_) {
@@ -138,17 +136,12 @@ export class ChunkManagerSource {
 
   private getFallbackChunks(): ImageChunk[] {
     // Only use the lowest resolution LOD (highest LOD number) as fallback
-    const allLowestResChunks = this.chunks_.filter(
-      (chunk) => chunk.lod === this.lowestResLOD_
+    return this.chunks_.filter(
+      (chunk) =>
+        chunk.lod === this.lowestResLOD_ &&
+        chunk.visible &&
+        chunk.state === "loaded"
     );
-    const visibleLowestResChunks = allLowestResChunks.filter(
-      (chunk) => chunk.visible
-    );
-    const loadedLowestResChunks = visibleLowestResChunks.filter(
-      (chunk) => chunk.state === "loaded"
-    );
-
-    return loadedLowestResChunks;
   }
 
   private loadBackgroundLOD(): void {
