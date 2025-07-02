@@ -1,12 +1,15 @@
 import { Camera } from "./objects/cameras/camera";
 import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
-import { Overlay } from "./core/overlay";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
 import { vec2, vec3 } from "gl-matrix";
+
+type Overlay = {
+  update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
+};
 
 type IdetikParams = {
   canvas?: HTMLCanvasElement;
