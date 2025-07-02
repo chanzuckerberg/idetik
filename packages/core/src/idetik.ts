@@ -25,7 +25,7 @@ export class Idetik {
   public layerManager: LayerManager;
   public camera: Camera;
   public readonly canvas: HTMLCanvasElement;
-  public overlays?: Overlay[];
+  public readonly overlays: Overlay[];
 
   private readonly renderer_: WebGLRenderer;
   private readonly context_: IdetikContext;
@@ -107,7 +107,7 @@ export class Idetik {
         this.renderer_.height
       );
       this.renderer_.render(this.layerManager, this.camera);
-      for (const overlay of this.overlays ?? []) {
+      for (const overlay of this.overlays) {
         overlay.update(this, timestamp);
       }
       this.lastAnimationId_ = requestAnimationFrame(render);
