@@ -114,11 +114,29 @@ export class ImageRenderable extends RenderableObject {
     if (!texture) {
       throw new Error("un-textured image not implemented");
     } else if (texture.type == "Texture2D") {
-      this.programName =
-        texture.dataType == "float" ? "floatImage" : "uintImage";
+      if (texture.dataType == "byte") {
+        this.programName = "intImage";
+      } else if (
+        texture.dataType == "unsigned_byte" ||
+        texture.dataType == "unsigned_int" ||
+        texture.dataType == "unsigned_short"
+      ) {
+        this.programName = "uintImage";
+      } else {
+        this.programName = "floatImage";
+      }
     } else if (texture.type == "Texture2DArray") {
-      this.programName =
-        texture.dataType == "float" ? "floatImageArray" : "uintImageArray";
+      if (texture.dataType == "byte") {
+        this.programName = "intImageArray";
+      } else if (
+        texture.dataType == "unsigned_byte" ||
+        texture.dataType == "unsigned_int" ||
+        texture.dataType == "unsigned_short"
+      ) {
+        this.programName = "uintImageArray";
+      } else {
+        this.programName = "floatImageArray";
+      }
     }
   }
 }

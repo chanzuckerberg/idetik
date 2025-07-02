@@ -224,6 +224,12 @@ export class WebGLTextures {
     }
     if (format === "scalar") {
       switch (type) {
+        case "byte":
+          return {
+            internalFormat: this.gl_.R8I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.BYTE,
+          };
         case "unsigned_byte":
           return {
             internalFormat: this.gl_.R8UI,

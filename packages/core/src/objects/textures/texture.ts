@@ -7,6 +7,7 @@ export type TextureWrapMode = "repeat" | "clamp_to_edge";
 export type TextureDataFormat = "scalar" | "rgb" | "rgba";
 
 export type TextureDataType =
+  | "byte"
   | "unsigned_byte"
   | "unsigned_short"
   | "unsigned_int"
@@ -15,6 +16,7 @@ export type TextureDataType =
 export type TextureUnpackRowAlignment = 1 | 2 | 4 | 8;
 
 export type DataTextureTypedArray =
+  | Int8Array
   | Uint8Array
   | Uint16Array
   | Uint32Array
@@ -29,7 +31,9 @@ export function isTextureUnpackRowAlignment(
 export function bufferToDataType(
   buffer: DataTextureTypedArray
 ): TextureDataType {
-  if (buffer instanceof Uint8Array) {
+  if (buffer instanceof Int8Array) {
+    return "byte";
+  } else if (buffer instanceof Uint8Array) {
     return "unsigned_byte";
   } else if (buffer instanceof Uint16Array) {
     return "unsigned_short";

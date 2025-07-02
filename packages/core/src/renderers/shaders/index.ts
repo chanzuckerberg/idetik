@@ -3,6 +3,8 @@ import projectedLineFragmentShader from "./projected_line_frag.glsl";
 import meshVertexShader from "./mesh_vert.glsl";
 import floatImageFragmentShader from "./float_image_frag.glsl";
 import floatImageArrayFragmentShader from "./float_image_array_frag.glsl";
+import intImageFragmentShader from "./int_image_frag.glsl";
+import intImageArrayFragmentShader from "./int_image_array_frag.glsl";
 import uintImageFragmentShader from "./uint_image_frag.glsl";
 import uintImageArrayFragmentShader from "./uint_image_array_frag.glsl";
 import pointsVertexShader from "./points_vert.glsl";
@@ -13,6 +15,8 @@ export type Shader =
   | "points"
   | "floatImage"
   | "floatImageArray"
+  | "intImage"
+  | "intImageArray"
   | "uintImage"
   | "uintImageArray";
 
@@ -34,6 +38,14 @@ export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
     floatImageArray: {
       vertex: meshVertexShader,
       fragment: floatImageArrayFragmentShader,
+    },
+    intImage: {
+      vertex: meshVertexShader,
+      fragment: intImageFragmentShader,
+    },
+    intImageArray: {
+      vertex: meshVertexShader,
+      fragment: intImageArrayFragmentShader,
     },
     uintImage: {
       vertex: meshVertexShader,

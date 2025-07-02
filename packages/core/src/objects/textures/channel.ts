@@ -69,6 +69,8 @@ function contrastLimitsFromTexture(texture: Texture): [number, number] {
     return [0, 1];
   }
   switch (texture.dataType) {
+    case "byte":
+      return [-128, 127];
     case "unsigned_byte":
       return [0, 255];
     case "unsigned_short":

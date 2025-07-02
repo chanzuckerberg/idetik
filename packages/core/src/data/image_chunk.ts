@@ -3,6 +3,7 @@ import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
 const imageChunkDataTypes = [
+  Int8Array,
   Uint8Array,
   Uint16Array,
   Uint32Array,
