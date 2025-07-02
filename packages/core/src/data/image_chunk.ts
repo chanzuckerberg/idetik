@@ -2,7 +2,12 @@ import { Region } from "../data/region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-const imageChunkDataTypes = [Uint8Array, Uint16Array, Float32Array] as const;
+const imageChunkDataTypes = [
+  Uint8Array,
+  Uint16Array,
+  Uint32Array,
+  Float32Array,
+] as const;
 type ImageChunkData = InstanceType<(typeof imageChunkDataTypes)[number]>;
 
 export function isImageChunkData(value: unknown): value is ImageChunkData {

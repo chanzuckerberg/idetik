@@ -6,11 +6,19 @@ export type TextureWrapMode = "repeat" | "clamp_to_edge";
 
 export type TextureDataFormat = "scalar" | "rgb" | "rgba";
 
-export type TextureDataType = "unsigned_byte" | "unsigned_short" | "float";
+export type TextureDataType =
+  | "unsigned_byte"
+  | "unsigned_short"
+  | "unsigned_int"
+  | "float";
 
 export type TextureUnpackRowAlignment = 1 | 2 | 4 | 8;
 
-export type DataTextureTypedArray = Uint8Array | Uint16Array | Float32Array;
+export type DataTextureTypedArray =
+  | Uint8Array
+  | Uint16Array
+  | Uint32Array
+  | Float32Array;
 
 export function isTextureUnpackRowAlignment(
   value: number
@@ -24,6 +32,8 @@ export function bufferToDataType(
   if (buffer instanceof Uint8Array) {
     return "unsigned_byte";
   } else if (buffer instanceof Uint16Array) {
+    return "unsigned_short";
+  } else if (buffer instanceof Uint32Array) {
     return "unsigned_short";
   } else if (buffer instanceof Float32Array) {
     return "float";

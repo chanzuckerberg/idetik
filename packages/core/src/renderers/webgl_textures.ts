@@ -236,6 +236,12 @@ export class WebGLTextures {
             format: this.gl_.RED_INTEGER,
             type: this.gl_.UNSIGNED_SHORT,
           };
+        case "unsigned_int":
+          return {
+            internalFormat: this.gl_.R32UI,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.UNSIGNED_INT,
+          };
         case "float":
           return {
             internalFormat: this.gl_.R32F,

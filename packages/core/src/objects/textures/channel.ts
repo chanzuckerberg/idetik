@@ -73,6 +73,8 @@ function contrastLimitsFromTexture(texture: Texture): [number, number] {
       return [0, 255];
     case "unsigned_short":
       return [0, 65535];
+    case "unsigned_int":
+      return [0, 4294967295];
     case "float":
       return [0, 1];
   }
