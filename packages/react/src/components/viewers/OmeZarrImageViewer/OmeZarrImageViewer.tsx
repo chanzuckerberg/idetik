@@ -43,6 +43,7 @@ interface OmeZarrImageViewerProps {
     sliceIndicator?: string;
     load3dButton?: string;
     sliceSliderContainer?: string;
+    scaleBarContainer?: string;
   };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
@@ -355,10 +356,28 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           "absolute",
           "bottom-0",
           "w-full",
+          "items-end",
+          "justify-between",
           "gap-sds-l"
         )}
       >
-        <ScaleBar idetik={runtime} unit={unit} />
+        <div
+          className={cns(
+            "flex",
+            "flex-col",
+            "m-sds-l",
+            "p-sds-xs",
+            "bg-black/75",
+            "backdrop-blur-md",
+            "rounded-sds-m",
+            "shadow-sds-m",
+            "w-1/5",
+            "select-none",
+            props.classNames?.scaleBarContainer,
+          )}
+        >
+          <ScaleBar idetik={runtime} unit={unit} />
+        </div>
         <div
           className={cns(
             "flex",

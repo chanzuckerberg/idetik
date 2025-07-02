@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Idetik, OrthographicCamera } from "@idetik/core";
 import cns from "classnames";
 
@@ -21,20 +21,25 @@ function getUnitAbbreviation(unit: string | undefined): string {
 }
 
 class ScaleBarOverlay {
-  private barDivRef_: React.RefObject<HTMLDivElement>;
-  private setBarWidth_: React.Dispatch<React.SetStateAction<number>>;
+  private lineDivRef_: React.RefObject<HTMLDivElement>;
+  private textDivRef_: React.RefObject<HTMLDivElement>;
+  private unit_: string;
 
   constructor(
-    barDivRef: React.RefObject<HTMLDivElement>,
-    setBarWidth: React.Dispatch<React.SetStateAction<number>>
+    lineDivRef: React.RefObject<HTMLDivElement>,
+    textDivRef: React.RefObject<HTMLDivElement>,
+    unit?: string
   ) {
-    this.barDivRef_ = barDivRef;
-    this.setBarWidth_ = setBarWidth;
+    this.lineDivRef_ = lineDivRef;
+    this.textDivRef_ = textDivRef;
+    this.unit_ = getUnitAbbreviation(unit);
   }
 
   update(idetik: Idetik, _timestamp: DOMHighResTimeStamp) {
-    const barDiv = this.barDivRef_.current;
-    if (barDiv === null) return;
+    const lineDiv = this.lineDivRef_.current;
+    if (lineDiv === null) return;
+    const textDiv_ = this.textDivRef_.current;
+    if (textDiv_ === null) return;
     const camera = idetik.camera;
     if (camera.type !== "OrthographicCamera") {
       throw new Error("ScaleBar can only be used with OrthographicCamera");
@@ -48,60 +53,63 @@ class ScaleBarOverlay {
     // The use of clientWidth assumes that the barDiv has no padding,
     // which is true in this example. If similar code is used elsewhere,
     // the lack of padding should be asserted and or enforced.
-    const barWidth = barDiv.clientWidth * window.devicePixelRatio;
-    const barWidthWorld = barWidth * unitPerCanvasPixel;
+    const lineWidth = lineDiv.clientWidth * window.devicePixelRatio;
+    const lineWidthWorld = lineWidth * unitPerCanvasPixel;
 
-    this.setBarWidth_(barWidthWorld);
+    textDiv_.textContent = `${lineWidthWorld.toFixed(2)} ${this.unit_}`;
   }
 }
 
 type ScaleBarProps = {
   idetik: Idetik | null;
+  textColor?: string;
+  textSize?: "text-xs" | "text-sm" | "text-base" | "text-lg" | "text-xl";
+  lineColor?: string;
+  lineHeight?: string;
+  align?: "start" | "center" | "end";
   unit?: string;
 };
 
 export function ScaleBar(props: ScaleBarProps) {
-  const barDivRef = useRef<HTMLDivElement>(null);
-  const [barWidth, setBarWidth] = useState<number>(0);
+  const textDivRef = useRef<HTMLDivElement>(null);
+  const lineDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const idetik = props.idetik;
-    if (idetik === null) return;
-    const overlay = new ScaleBarOverlay(barDivRef, setBarWidth);
+    if (!idetik) return;
+    const overlay = new ScaleBarOverlay(lineDivRef, textDivRef, props.unit);
     idetik.overlays.push(overlay);
     return () => {
       const index = idetik.overlays.indexOf(overlay);
       idetik.overlays.splice(index);
     };
-  }, [props.idetik, setBarWidth]);
+  }, [props.idetik, props.unit]);
+
+  const textColor = props.textColor ?? "text-white";
+  const textSize = props.textSize ?? "text-base";
+  const lineColor = props.lineColor ?? "bg-white";
+  const lineHeight = props.lineHeight ?? "h-sds-m";
+  const align = props.align ?? "start";
 
   return (
     <div
       className={cns(
         "flex",
         "flex-col",
-        "shrink",
-        "w-1/4",
-        "m-sds-l",
+        `items-${align}`,
+        "w-full",
+        "h-full",
         "gap-sds-xs",
-        "p-sds-xs",
-        "justify-center",
-        "items-center",
-        "bg-black/75",
-        "backdrop-blur-md",
-        "rounded-sds-m",
-        "shadow-sds-m",
-        "text-white",
-        "text-base",
-        "text-align-center",
         "select-none"
       )}
     >
-      {barWidth > 0 &&
-        `${barWidth.toFixed(2)} ${getUnitAbbreviation(props.unit)}`}
       <div
-        ref={barDivRef}
-        className={cns("bg-white", "h-sds-m", "w-full")}
+        ref={textDivRef}
+        className={cns(textColor, textSize, `text-align-${align}`)}
+      ></div>
+      <div
+        ref={lineDivRef}
+        className={cns(lineColor, lineHeight, "w-full")}
       ></div>
     </div>
   );
