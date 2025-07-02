@@ -17,6 +17,7 @@ export class ChunkManagerSource {
   private readonly loader_;
   private readonly region_;
   private readonly attrs_: LoaderAttributes[];
+  private readonly lowestResLOD_: number;
   private currentLOD_: number = 0;
   private readonly xIdx_: number;
   private readonly yIdx_: number;
@@ -31,6 +32,7 @@ export class ChunkManagerSource {
     this.loader_ = loader;
     this.region_ = region;
     this.attrs_ = attrs;
+    this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
     this.xIdx_ = region.findIndex(
@@ -101,10 +103,8 @@ export class ChunkManagerSource {
         chunk.state === "loaded"
     );
 
-    const lowestResLOD = this.attrs_.length - 1;
-
     // If we're at the lowest resolution LOD, only return current LOD chunks
-    if (this.currentLOD_ === lowestResLOD) {
+    if (this.currentLOD_ === this.lowestResLOD_) {
       return currentLODChunks;
     }
 
@@ -116,9 +116,8 @@ export class ChunkManagerSource {
 
   public loadVisibleChunks() {
     // Load background LOD (lowest resolution) first if not already started
-    const lowestResLOD = this.attrs_.length - 1;
     const backgroundChunks = this.chunks_.filter(
-      (chunk) => chunk.lod === lowestResLOD
+      (chunk) => chunk.lod === this.lowestResLOD_
     );
     const allLoaded = backgroundChunks.every(
       (chunk) => chunk.state === "loaded"
@@ -128,11 +127,10 @@ export class ChunkManagerSource {
       this.loadBackgroundLOD();
     }
 
-    // Load chunks for both current LOD and background LOD in parallel
     // Load visible chunks only for current LOD and background LOD
     for (const chunk of this.chunks_) {
       // Only load chunks for current LOD or background LOD
-      if (chunk.lod === this.currentLOD_ || chunk.lod === lowestResLOD) {
+      if (chunk.lod === this.currentLOD_ || chunk.lod === this.lowestResLOD_) {
         this.processChunkData(chunk);
       }
     }
@@ -140,10 +138,8 @@ export class ChunkManagerSource {
 
   private getFallbackChunks(): ImageChunk[] {
     // Only use the lowest resolution LOD (highest LOD number) as fallback
-    const lowestResLOD = this.attrs_.length - 1;
-
     const allLowestResChunks = this.chunks_.filter(
-      (chunk) => chunk.lod === lowestResLOD
+      (chunk) => chunk.lod === this.lowestResLOD_
     );
     const visibleLowestResChunks = allLowestResChunks.filter(
       (chunk) => chunk.visible
@@ -156,9 +152,8 @@ export class ChunkManagerSource {
   }
 
   private loadBackgroundLOD(): void {
-    const lowestResLOD = this.attrs_.length - 1;
     const backgroundChunks = this.chunks_.filter(
-      (chunk) => chunk.lod === lowestResLOD
+      (chunk) => chunk.lod === this.lowestResLOD_
     );
 
     for (const chunk of backgroundChunks) {
@@ -228,11 +223,10 @@ export class ChunkManagerSource {
   }
 
   private unloadUnneededLODs(): void {
-    const lowestResLOD = this.attrs_.length - 1;
     const chunksToUnload = this.chunks_.filter(
       (chunk) =>
         chunk.lod !== this.currentLOD_ &&
-        chunk.lod !== lowestResLOD &&
+        chunk.lod !== this.lowestResLOD_ &&
         chunk.state === "loaded"
     );
 
