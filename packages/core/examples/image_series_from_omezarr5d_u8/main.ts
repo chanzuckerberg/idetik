@@ -47,7 +47,8 @@ const layer = new ImageSeriesLayer({
   channelProps,
 });
 
-const slider = document.querySelector<HTMLInputElement>("#slider")!;
+const slider = document.querySelector<HTMLInputElement>("#slider");
+if (slider === null) throw new Error("Time slider not found.");
 slider.min = `${timeInterval.start}`;
 slider.max = `${timeInterval.stop - 1}`;
 

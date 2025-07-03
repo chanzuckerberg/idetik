@@ -68,8 +68,7 @@ const maskLayer = new ImageSeriesLayer({
 
 const layers = [imageLayer, maskLayer];
 
-const slider = document.querySelector<HTMLInputElement>("#slider");
-if (slider === null) throw new Error("Depth slider not found.");
+const slider = document.querySelector<HTMLInputElement>("#slider")!;
 slider.min = zMin.toString();
 slider.max = (zMax - zScale).toString();
 slider.step = zScale.toString();
