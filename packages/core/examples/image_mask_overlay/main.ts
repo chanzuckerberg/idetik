@@ -1,13 +1,11 @@
 import {
   Idetik,
-  LayerState,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
   Color,
   ImageSeriesLayer,
 } from "@";
-import { PanZoomControls } from "@/objects/cameras/controls";
 
 const imageUrl =
   "https://files.cryoetdataportal.cziscience.com/10000/TS_041/Reconstructions/VoxelSpacing13.480/Tomograms/100/TS_041.zarr";
@@ -26,11 +24,13 @@ const zDimName = "z";
 const zAxisIndex = attributesForLastLod.dimensionNames.findIndex(
   (dim) => dim === zDimName
 );
-const zMin = 0;
-const zMax = attributesForLastLod.shape[zAxisIndex];
+const zScale = attributesForLastLod.scale[zAxisIndex];
+const zMin = 50 * zScale;
+const zMax = 75 * zScale;
 
+const zInterval = { start: zMin, stop: zMax };
 const region: Region = [
-  { dimension: zDimName, index: { type: "full" } },
+  { dimension: zDimName, index: { type: "interval", ...zInterval } },
   { dimension: "x", index: { type: "full" } },
   { dimension: "y", index: { type: "full" } },
 ];
@@ -46,9 +46,10 @@ const imageLayer = new ImageSeriesLayer({
       contrastLimits: [-10, 10],
     },
   ],
+  lod: lods - 1,
 });
 
-const labelsLayer = new ImageSeriesLayer({
+const maskLayer = new ImageSeriesLayer({
   source: labelsSource,
   region,
   seriesDimensionName: zDimName,
@@ -62,78 +63,34 @@ const labelsLayer = new ImageSeriesLayer({
   transparent: true,
   opacity: 0.5,
   blendMode: "normal",
+  lod: lods - 1,
 });
 
-imageLayer.addStateChangeCallback((newState: LayerState) => {
-  stateEl!.textContent = newState;
-});
+const layers = [imageLayer, maskLayer];
 
-const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
-const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
-const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total")!;
-const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
-const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all")!;
+const slider = document.querySelector<HTMLInputElement>("#slider");
+if (slider === null) throw new Error("Depth slider not found.");
+slider.min = zMin.toString();
+slider.max = (zMax - zScale).toString();
+slider.step = zScale.toString();
+slider.value = zMin.toString();
 
-// Initialize sliders
-zSlider.min = `${zMin}`;
-zSlider.max = `${zMax - 1}`;
-zSlider.value = "0";
-zTotalEl.textContent = `${zMax - zMin - 1}`;
-
-// set up event handler with debouncing
-let debounce: ReturnType<typeof setTimeout>;
-zSlider.addEventListener("input", (event) => {
-  clearTimeout(debounce);
+slider.addEventListener("input", (event) => {
   const value = (event.target as HTMLInputElement).valueAsNumber;
-  debounce = setTimeout(() => {
-    setLayerIndex(value);
-  }, 20);
+  for (const layer of layers) {
+    layer.setPosition(value);
+  }
 });
 
-const camera = new OrthographicCamera(0, 128, 0, 128);
-const app = new Idetik({
-  canvasSelector: "canvas",
+for (const layer of layers) {
+  layer.preloadSeries();
+  layer.setPosition(slider.valueAsNumber);
+}
+
+const camera = new OrthographicCamera(0, 12941.76, 0, 12510.368);
+
+new Idetik({
+  canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
-  layers: [imageLayer, labelsLayer],
+  layers: layers,
 }).start();
-
-imageLayer.setIndex(zSlider.valueAsNumber);
-labelsLayer.setIndex(zSlider.valueAsNumber);
-const setCameraFrame = (newState: LayerState) => {
-  if (newState === "ready" && imageLayer.extent !== undefined) {
-    camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
-    app.setControls(new PanZoomControls(camera, camera.position));
-    camera.update();
-    // remove the callback to only set the camera frame once
-    imageLayer.removeStateChangeCallback(setCameraFrame);
-  }
-};
-imageLayer.addStateChangeCallback(setCameraFrame);
-setLayerIndex(zSlider.valueAsNumber);
-
-loadAllButton.addEventListener("click", () => {
-  try {
-    preloadAllSlices();
-  } catch (error) {
-    console.error("Error preloading slices:", error);
-    loadAllButton.value = "Error loading slices";
-  }
-});
-
-async function preloadAllSlices() {
-  console.log("loading all slices");
-  loadAllButton.disabled = true;
-  loadAllButton.value = "Loading all slices...";
-  await imageLayer.preloadSeries();
-  await labelsLayer.preloadSeries();
-  loadAllButton.value = "Loaded all slices";
-}
-
-async function setLayerIndex(index: number) {
-  zIndexEl!.textContent = "...";
-  const imageResult = await imageLayer.setIndex(index);
-  const labelsResult = await labelsLayer.setIndex(index);
-  if (imageResult.success && labelsResult.success) {
-    zIndexEl!.textContent = `${index}`;
-  }
-}
