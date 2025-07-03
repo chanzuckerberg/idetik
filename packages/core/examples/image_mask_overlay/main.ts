@@ -87,7 +87,7 @@ for (const layer of layers) {
   layer.setPosition(slider.valueAsNumber);
 }
 
-const camera = new OrthographicCamera(0, 12941.76, 0, 12510.368);
+const camera = new OrthographicCamera(0, 240 * zScale, 0, 232 * zScale);
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
