@@ -22,12 +22,12 @@ export abstract class Renderer {
     this.canvas_ = canvas;
     this.updateRendererSize();
     // ResizeObserver executes its callback immediately, before subclass is necessarily initialized
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       new ResizeObserver(() => {
         this.updateRendererSize();
         this.resize(this.width_, this.height_);
       }).observe(canvas);
-    });
+    }, 0);
   }
 
   protected set activeCamera(camera: Camera) {
