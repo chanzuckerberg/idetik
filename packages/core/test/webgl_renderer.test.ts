@@ -1,6 +1,10 @@
-import { expect, test } from "vitest";
+import { beforeAll, expect, test, vi } from "vitest";
 
 import { WebGLRenderer } from "@";
+
+beforeAll(() => {
+  vi.useRealTimers();
+});
 
 test("Instantiate WebGLRenderer", () => {
   document.body.innerHTML = '<canvas id="canvas"></canvas>';
