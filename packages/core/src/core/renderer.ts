@@ -20,10 +20,14 @@ export abstract class Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas_ = canvas;
-    new ResizeObserver(() => {
-      this.updateRendererSize();
-      this.resize(this.width_, this.height_);
-    }).observe(canvas);
+    this.updateRendererSize();
+    // ResizeObserver executes its callback immediately, before subclass is necessarily initialized
+    requestAnimationFrame(() => {
+      new ResizeObserver(() => {
+        this.updateRendererSize();
+        this.resize(this.width_, this.height_);
+      }).observe(canvas);
+    });
   }
 
   protected set activeCamera(camera: Camera) {
