@@ -1,10 +1,6 @@
-import { beforeAll, expect, test, vi } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import { WebGLRenderer } from "@";
-
-beforeAll(() => {
-  vi.useFakeTimers();
-});
 
 test("Instantiate WebGLRenderer", () => {
   document.body.innerHTML = '<canvas id="canvas"></canvas>';
@@ -14,6 +10,10 @@ test("Instantiate WebGLRenderer", () => {
 });
 
 test("Instantiate WebGLRenderer with no WebGL context", () => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    vi.fn(() => ({ observe: () => {} }))
+  );
   document.body.innerHTML = '<canvas id="canvas"></canvas>';
   const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
   canvas.getContext = () => null;
