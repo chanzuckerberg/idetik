@@ -230,6 +230,18 @@ export class WebGLTextures {
             format: this.gl_.RED_INTEGER,
             type: this.gl_.BYTE,
           };
+        case "short":
+          return {
+            internalFormat: this.gl_.R16I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.SHORT,
+          };
+        case "int":
+          return {
+            internalFormat: this.gl_.R32I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.INT,
+          };
         case "unsigned_byte":
           return {
             internalFormat: this.gl_.R8UI,

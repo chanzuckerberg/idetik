@@ -4,6 +4,8 @@ import { PromiseScheduler } from "./promise_scheduler";
 
 const imageChunkDataTypes = [
   Int8Array,
+  Int16Array,
+  Int32Array,
   Uint8Array,
   Uint16Array,
   Uint32Array,

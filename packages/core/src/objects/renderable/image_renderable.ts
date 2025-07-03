@@ -114,7 +114,11 @@ export class ImageRenderable extends RenderableObject {
     if (!texture) {
       throw new Error("un-textured image not implemented");
     } else if (texture.type == "Texture2D") {
-      if (texture.dataType == "byte") {
+      if (
+        texture.dataType == "byte" ||
+        texture.dataType == "int" ||
+        texture.dataType == "short"
+      ) {
         this.programName = "intImage";
       } else if (
         texture.dataType == "unsigned_byte" ||
@@ -126,7 +130,11 @@ export class ImageRenderable extends RenderableObject {
         this.programName = "floatImage";
       }
     } else if (texture.type == "Texture2DArray") {
-      if (texture.dataType == "byte") {
+      if (
+        texture.dataType == "byte" ||
+        texture.dataType == "int" ||
+        texture.dataType == "short"
+      ) {
         this.programName = "intImageArray";
       } else if (
         texture.dataType == "unsigned_byte" ||
