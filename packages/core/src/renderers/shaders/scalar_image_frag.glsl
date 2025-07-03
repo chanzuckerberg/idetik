@@ -19,5 +19,5 @@ in vec2 TexCoords;
 void main() {
     float texel = float(texture(texture0, TexCoords).r);
     float value = (texel + ValueOffset) * ValueScale;
-    fragColor = vec4(value * Color.rgb, u_opacity);
+    fragColor = vec4(value * Color, u_opacity);
 }

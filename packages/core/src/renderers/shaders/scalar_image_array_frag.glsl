@@ -27,7 +27,7 @@ void main() {
         // clamp to [0, 1] because contrast limits may put values out of this range,
         // which distorts colors in other channels
         value = clamp(value, 0.0, 1.0);
-        rgbColor += value * Color[i].rgb;
+        rgbColor += value * Color[i];
     }
-    fragColor = vec4(rgbColor.rgb, u_opacity);
+    fragColor = vec4(rgbColor, u_opacity);
 }
