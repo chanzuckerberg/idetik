@@ -17,7 +17,8 @@ export class WebGLShaderProgram {
   constructor(
     gl: WebGL2RenderingContext,
     vertexShaderSource: string,
-    fragmentShaderSource: string
+    fragmentShaderSource: string,
+    fragmentShaderDefines?: Map<string, string>
   ) {
     this.gl_ = gl;
 
@@ -27,9 +28,25 @@ export class WebGLShaderProgram {
     }
     this.program_ = program;
 
+    fragmentShaderSource = this.replaceSourceDefines(
+      fragmentShaderSource,
+      fragmentShaderDefines
+    );
+
     this.addShader(vertexShaderSource, gl.VERTEX_SHADER);
     this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
     this.link();
+  }
+
+  private replaceSourceDefines(
+    source: string,
+    defines?: Map<string, string>
+  ): string {
+    if (!defines) return source;
+    for (const [key, value] of defines) {
+      source = source.replace(key, value);
+    }
+    return source;
   }
 
   public setUniform(name: string, value: unknown) {

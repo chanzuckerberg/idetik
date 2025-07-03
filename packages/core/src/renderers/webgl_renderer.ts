@@ -158,7 +158,8 @@ export class WebGLRenderer extends Renderer {
         new WebGLShaderProgram(
           this.gl,
           shaderCode[type].vertex,
-          shaderCode[type].fragment
+          shaderCode[type].fragment,
+          shaderCode[type].fragmentDefines
         )
       );
     }
