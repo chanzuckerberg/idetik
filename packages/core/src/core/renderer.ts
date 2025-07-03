@@ -27,7 +27,6 @@ export abstract class Renderer {
       if (now - this.lastResizeTimeMs_ < 100) {
         return;
       }
-      console.log(Date.now());
       this.lastResizeTimeMs_ = now;
       this.updateRendererSize();
       this.resize(this.width_, this.height_);
