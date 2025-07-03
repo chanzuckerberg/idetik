@@ -2,9 +2,7 @@ import projectedLineVertexShader from "./projected_line_vert.glsl";
 import projectedLineFragmentShader from "./projected_line_frag.glsl";
 import meshVertexShader from "./mesh_vert.glsl";
 import scalarImageFragmentShader from "./scalar_image_frag.glsl";
-import floatImageArrayFragmentShader from "./float_image_array_frag.glsl";
-import intImageArrayFragmentShader from "./int_image_array_frag.glsl";
-import uintImageArrayFragmentShader from "./uint_image_array_frag.glsl";
+import scalarImageArrayFragmentShader from "./scalar_image_array_frag.glsl";
 import pointsVertexShader from "./points_vert.glsl";
 import pointsFragmentShader from "./points_frag.glsl";
 
@@ -38,7 +36,10 @@ export const shaderCode: Record<
   },
   floatImageArray: {
     vertex: meshVertexShader,
-    fragment: floatImageArrayFragmentShader,
+    fragment: scalarImageArrayFragmentShader,
+    fragmentDefines: new Map<string, string>([
+      ["SAMPLER_TYPE", "sampler2DArray"],
+    ]),
   },
   intImage: {
     vertex: meshVertexShader,
@@ -47,7 +48,10 @@ export const shaderCode: Record<
   },
   intImageArray: {
     vertex: meshVertexShader,
-    fragment: intImageArrayFragmentShader,
+    fragment: scalarImageArrayFragmentShader,
+    fragmentDefines: new Map<string, string>([
+      ["SAMPLER_TYPE", "isampler2DArray"],
+    ]),
   },
   uintImage: {
     vertex: meshVertexShader,
@@ -56,6 +60,9 @@ export const shaderCode: Record<
   },
   uintImageArray: {
     vertex: meshVertexShader,
-    fragment: uintImageArrayFragmentShader,
+    fragment: scalarImageArrayFragmentShader,
+    fragmentDefines: new Map<string, string>([
+      ["SAMPLER_TYPE", "usampler2DArray"],
+    ]),
   },
 };

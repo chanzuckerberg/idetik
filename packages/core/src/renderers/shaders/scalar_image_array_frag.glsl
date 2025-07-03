@@ -1,10 +1,13 @@
 #version 300 es
 
+// These must be defined by the application before compilation.
+// #define SAMPLER_TYPE <samplerType> 
+
 precision mediump float;
 
 layout (location = 0) out vec4 fragColor;
 
-uniform mediump sampler2DArray texture0;
+uniform mediump SAMPLER_TYPE texture0;
 // Define a maximum number of channels
 #define MAX_CHANNELS 32
 uniform bool Visible[MAX_CHANNELS];
@@ -19,7 +22,7 @@ void main() {
     vec3 rgbColor = vec3(0, 0, 0);
     for (int i = 0; i < MAX_CHANNELS; i++) {
         if (!Visible[i]) continue;
-        float texel = texture(texture0, vec3(TexCoords, i)).r;
+        float texel = float(texture(texture0, vec3(TexCoords, i)).r);
         float value = (texel + ValueOffset[i]) * ValueScale[i];
         // clamp to [0, 1] because contrast limits may put values out of this range,
         // which distorts colors in other channels

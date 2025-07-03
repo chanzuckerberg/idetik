@@ -17,7 +17,7 @@ uniform float u_opacity;
 in vec2 TexCoords;
 
 void main() {
-    float texel = texture(texture0, TexCoords).r;
+    float texel = float(texture(texture0, TexCoords).r);
     float value = (texel + ValueOffset) * ValueScale;
     fragColor = vec4(value * Color.rgb, u_opacity);
 }
