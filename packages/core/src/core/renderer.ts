@@ -20,6 +20,7 @@ export abstract class Renderer {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas_ = canvas;
+    this.updateRendererSize();
     new ResizeObserver(() => {
       this.updateRendererSize();
       this.resize(this.width_, this.height_);
