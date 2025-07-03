@@ -1,12 +1,10 @@
 #version 300 es
 
-// These must be defined by the application before compilation.
-// #define SAMPLER_TYPE <samplerType> 
-
 precision mediump float;
 
 layout (location = 0) out vec4 fragColor;
 
+// SAMPLER_TYPE must be defined by the application using this shader.
 uniform mediump SAMPLER_TYPE texture0;
 
 uniform vec3 Color;
