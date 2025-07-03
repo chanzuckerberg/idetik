@@ -1,6 +1,16 @@
-import { expect, test, vi } from "vitest";
+import { afterAll, beforeAll, expect, test, vi } from "vitest";
 
 import { WebGLRenderer } from "@";
+
+beforeAll(() => {
+  vi.stubGlobal(
+    "ResizeObserver",
+    vi.fn(() => ({ observe: () => {} }))
+  );
+});
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 test("Instantiate WebGLRenderer", () => {
   document.body.innerHTML = '<canvas id="canvas"></canvas>';
@@ -10,10 +20,6 @@ test("Instantiate WebGLRenderer", () => {
 });
 
 test("Instantiate WebGLRenderer with no WebGL context", () => {
-  vi.stubGlobal(
-    "ResizeObserver",
-    vi.fn(() => ({ observe: () => {} }))
-  );
   document.body.innerHTML = '<canvas id="canvas"></canvas>';
   const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
   canvas.getContext = () => null;
