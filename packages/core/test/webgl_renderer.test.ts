@@ -3,7 +3,7 @@ import { beforeAll, expect, test, vi } from "vitest";
 import { WebGLRenderer } from "@";
 
 beforeAll(() => {
-  vi.useRealTimers();
+  vi.useFakeTimers();
 });
 
 test("Instantiate WebGLRenderer", () => {
