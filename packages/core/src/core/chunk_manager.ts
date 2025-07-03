@@ -151,19 +151,7 @@ export class ChunkManagerSource {
 
     for (const chunk of backgroundChunks) {
       if (chunk.state === "unloaded") {
-        chunk.state = "loading";
-        this.loader_
-          .loadChunkDataFromRegion(chunk, this.region_)
-          .then(() => {
-            chunk.state = "loaded";
-          })
-          .catch((error) => {
-            Logger.error(
-              "ChunkManager",
-              `Error loading background chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`
-            );
-            chunk.state = "unloaded";
-          });
+        this.processChunkData(chunk);
       }
     }
   }
