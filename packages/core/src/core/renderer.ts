@@ -22,8 +22,10 @@ export abstract class Renderer {
     this.canvas_ = canvas;
     this.updateRendererSize();
     new ResizeObserver(() => {
-      this.updateRendererSize();
-      this.resize(this.width_, this.height_);
+      setTimeout(() => {
+        this.updateRendererSize();
+        this.resize(this.width_, this.height_);
+      }, 0);
     }).observe(canvas);
   }
 
