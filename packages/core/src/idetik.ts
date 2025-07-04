@@ -109,6 +109,9 @@ export class Idetik {
         this.renderer_.width,
         this.renderer_.height
       );
+      if (this.renderer_.hasSizeChanged) {
+        this.renderer_.updateSize();
+      }
       this.renderer_.render(this.layerManager, this.camera);
       for (const overlay of this.overlays) {
         overlay.update(this, timestamp);
