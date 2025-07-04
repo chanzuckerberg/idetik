@@ -24,10 +24,6 @@ export abstract class Renderer {
     this.updateRendererSize();
     new ResizeObserver(() => {
       this.hasSizeChanged_ = true;
-      // setTimeout(() => {
-      //   this.updateRendererSize();
-      //   this.resize(this.width_, this.height_);
-      // }, 0);
     }).observe(canvas);
   }
 
