@@ -13,7 +13,6 @@ export abstract class Renderer {
   private activeCamera_: Camera | null = null;
   private controls_: CameraControls = new NullControls();
   private controlCallbacks_: [string, (event: Event) => void][] = [];
-  private lastResizeTimeMs_ = 0;
 
   protected abstract resize(width: number, height: number): void;
   protected abstract renderObject(layer: Layer, objectIndex: number): void;
@@ -23,11 +22,6 @@ export abstract class Renderer {
     this.canvas_ = canvas;
     this.updateRendererSize();
     new ResizeObserver(() => {
-      const now = Date.now();
-      if (now - this.lastResizeTimeMs_ < 100) {
-        return;
-      }
-      this.lastResizeTimeMs_ = now;
       this.updateRendererSize();
       this.resize(this.width_, this.height_);
     }).observe(canvas);
