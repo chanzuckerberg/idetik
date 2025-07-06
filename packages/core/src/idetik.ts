@@ -113,6 +113,7 @@ export class Idetik {
         this.renderer_.width,
         this.renderer_.height
       );
+      // Must resize before render b/c changing canvas coordinate space clears it.
       if (this.needsResize_) {
         this.renderer_.updateSize();
         this.needsResize_ = false;
