@@ -13,7 +13,6 @@ export abstract class Renderer {
   private activeCamera_: Camera | null = null;
   private controls_: CameraControls = new NullControls();
   private controlCallbacks_: [string, (event: Event) => void][] = [];
-  private hasSizeChanged_ = false;
 
   protected abstract resize(width: number, height: number): void;
   protected abstract renderObject(layer: Layer, objectIndex: number): void;
@@ -22,9 +21,6 @@ export abstract class Renderer {
   constructor(canvas: HTMLCanvasElement) {
     this.canvas_ = canvas;
     this.updateRendererSize();
-    new ResizeObserver(() => {
-      this.hasSizeChanged_ = true;
-    }).observe(canvas);
   }
 
   protected set activeCamera(camera: Camera) {
@@ -39,7 +35,6 @@ export abstract class Renderer {
   public updateSize(): void {
     this.updateRendererSize();
     this.resize(this.width_, this.height_);
-    this.hasSizeChanged_ = false;
   }
 
   public setControls(controls: CameraControls) {
@@ -93,10 +88,6 @@ export abstract class Renderer {
 
   public get height() {
     return this.height_;
-  }
-
-  public get hasSizeChanged() {
-    return this.hasSizeChanged_;
   }
 
   public get backgroundColor(): Color {
