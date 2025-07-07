@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef } from "react";
 import { Idetik, OrthographicCamera } from "@idetik/core";
 import cns from "classnames";
