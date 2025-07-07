@@ -4,17 +4,61 @@ import cns from "classnames";
 
 function getUnitAbbreviation(unit: string | undefined): string {
   if (unit === undefined) return "";
+  // From OME-NGFF v0.4 specification:
+  // https://ngff.openmicroscopy.org/0.4/#axes-md
   switch (unit.toLowerCase()) {
-    case "nanometer":
-      return "nm";
-    case "micrometer":
-      return "µm";
-    case "millimeter":
-      return "mm";
+    case "angstrom":
+      return "Å";
+    case "attometer":
+      return "am";
     case "centimeter":
       return "cm";
+    case "decimeter":
+      return "dm";
+    case "exameter":
+      return "Em";
+    case "femtometer":
+      return "fm";
+    case "foot":
+      return "ft";
+    case "gigameter":
+      return "Gm";
+    case "hectometer":
+      return "hm";
+    case "inch":
+      return "in";
+    case "kilometer":
+      return "km";
+    case "megameter":
+      return "Mm";
     case "meter":
       return "m";
+    case "micrometer":
+      return "µm";
+    case "mile":
+      return "mi";
+    case "millimeter":
+      return "mm";
+    case "nanometer":
+      return "nm";
+    case "parsec":
+      return "pc";
+    case "petameter":
+      return "Pm";
+    case "picometer":
+      return "pm";
+    case "terameter":
+      return "Tm";
+    case "yard":
+      return "yd";
+    case "yoctometer":
+      return "ym";
+    case "yottameter":
+      return "Ym";
+    case "zeptometer":
+      return "zm";
+    case "zettameter":
+      return "Zm";
     default:
       return unit;
   }
