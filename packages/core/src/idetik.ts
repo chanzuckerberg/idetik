@@ -7,12 +7,17 @@ import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
 import { vec2, vec3 } from "gl-matrix";
 
+type Overlay = {
+  update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
+};
+
 type IdetikParams = {
   canvas?: HTMLCanvasElement;
   canvasSelector?: string;
   camera: Camera;
   controls?: CameraControls;
   layers?: Layer[];
+  overlays?: Overlay[];
 };
 
 export type IdetikContext = {
@@ -23,6 +28,7 @@ export class Idetik {
   public layerManager: LayerManager;
   public camera: Camera;
   public readonly canvas: HTMLCanvasElement;
+  public readonly overlays: Overlay[];
 
   private readonly renderer_: WebGLRenderer;
   private readonly context_: IdetikContext;
@@ -64,6 +70,8 @@ export class Idetik {
         this.layerManager.add(layer);
       }
     }
+
+    this.overlays = params.overlays ?? [];
   }
 
   public get width() {
@@ -88,7 +96,7 @@ export class Idetik {
 
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
-    const render = () => {
+    const render = (timestamp?: DOMHighResTimeStamp) => {
       if (!this.camera) {
         Logger.warn(
           "Idetik",
@@ -102,6 +110,9 @@ export class Idetik {
         this.renderer_.height
       );
       this.renderer_.render(this.layerManager, this.camera);
+      for (const overlay of this.overlays) {
+        overlay.update(this, timestamp);
+      }
       this.lastAnimationId_ = requestAnimationFrame(render);
     };
     render();
