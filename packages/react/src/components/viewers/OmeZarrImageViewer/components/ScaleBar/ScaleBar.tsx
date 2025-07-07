@@ -111,7 +111,8 @@ class ScaleBarOverlay {
 
     const camera = idetik.camera;
     if (camera.type !== "OrthographicCamera") {
-      throw new Error("ScaleBar can only be used with OrthographicCamera");
+      console.error("ScaleBar can only be used with OrthographicCamera");
+      return;
     }
     const orthoCamera = camera as OrthographicCamera;
 
