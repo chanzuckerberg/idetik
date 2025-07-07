@@ -4,7 +4,7 @@ type FpsOverlayProps = {
 
 export class FpsOverlay {
   textDiv_: HTMLDivElement;
-  msSinceLastUpdate_: number = 0;
+  msSinceLastUpdate_ = 0;
   lastTimestamp_?: DOMHighResTimeStamp;
 
   constructor(props: FpsOverlayProps) {
