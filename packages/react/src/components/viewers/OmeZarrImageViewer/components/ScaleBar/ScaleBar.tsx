@@ -163,7 +163,9 @@ export function ScaleBar(props: ScaleBarProps) {
     idetik.overlays.push(overlay);
     return () => {
       const index = idetik.overlays.indexOf(overlay);
-      idetik.overlays.splice(index);
+      if (index === -1) {
+        idetik.overlays.splice(index);
+      }
     };
   }, [props.idetik, props.unit]);
 
