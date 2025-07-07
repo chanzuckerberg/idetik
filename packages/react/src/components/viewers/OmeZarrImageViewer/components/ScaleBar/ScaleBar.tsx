@@ -122,8 +122,8 @@ class ScaleBarOverlay {
       orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
     const unitPerCanvasPixel = cameraWidthWorld / idetik.width;
 
-    // The use of clientWidth assumes that the barDiv has no padding,
-    // which is true in this example. If similar code is used elsewhere,
+    // The use of clientWidth assumes that containerDiv has no padding,
+    // which is true in this case. If similar code is used elsewhere,
     // the lack of padding should be asserted and or enforced.
     const containerWidth = containerDiv.clientWidth * window.devicePixelRatio;
     const containerWidthWorld = containerWidth * unitPerCanvasPixel;
@@ -187,8 +187,7 @@ export function ScaleBar(props: ScaleBarProps) {
         `items-${align}`,
         "w-full",
         "h-full",
-        "gap-sds-xs",
-        "select-none"
+        "gap-sds-xs"
       )}
     >
       <div
@@ -197,7 +196,7 @@ export function ScaleBar(props: ScaleBarProps) {
       ></div>
       <div
         ref={lineDivRef}
-        className={cns(lineColor, lineHeight, "w-full")}
+        className={cns(lineColor, lineHeight)}
       ></div>
     </div>
   );
