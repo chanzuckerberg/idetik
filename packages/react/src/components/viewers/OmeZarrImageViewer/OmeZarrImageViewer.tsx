@@ -373,7 +373,6 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
             // "rounded-sds-m",
             // "shadow-sds-m",
             "w-1/5",
-            "box-border",
             "select-none",
             props.classNames?.scaleBarContainer
           )}
