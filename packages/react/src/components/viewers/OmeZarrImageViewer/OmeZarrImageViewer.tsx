@@ -76,7 +76,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     scaleBar = {
       visible: true,
       align: "start",
-    }
+    },
   } = props;
 
   const { isReady: runtimeIsReady, runtime } = useIdetik();
@@ -368,17 +368,19 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           "gap-sds-l"
         )}
       >
-        {scaleBar.visible && <div
-          className={cns(
-            "flex",
-            "flex-col",
-            "m-sds-l",
-            "w-1/5",
-            "select-none"
-          )}
-        >
-          <ScaleBar unit={unit} align={"start"} />
-        </div>}
+        {scaleBar.visible && (
+          <div
+            className={cns(
+              "flex",
+              "flex-col",
+              "m-sds-l",
+              "w-1/5",
+              "select-none"
+            )}
+          >
+            <ScaleBar unit={unit} align={scaleBar.align} />
+          </div>
+        )}
         <div
           className={cns(
             "flex",
