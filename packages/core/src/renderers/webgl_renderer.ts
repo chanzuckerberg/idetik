@@ -36,7 +36,10 @@ export class WebGLRenderer extends Renderer {
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
 
-    this.gl_ = this.canvas.getContext("webgl2", { depth: true });
+    this.gl_ = this.canvas.getContext("webgl2", {
+      depth: true,
+      antialias: false,
+    });
     if (!this.gl_) {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
