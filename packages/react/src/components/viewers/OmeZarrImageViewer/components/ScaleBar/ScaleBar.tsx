@@ -196,10 +196,7 @@ export function ScaleBar(props: ScaleBarProps) {
         ref={textDivRef}
         className={cns(textColor, textSize, textFont, `text-align-${align}`)}
       ></div>
-      <div
-        ref={lineDivRef}
-        className={cns(lineColor, lineHeight)}
-      ></div>
+      <div ref={lineDivRef} className={cns(lineColor, lineHeight)}></div>
     </div>
   );
 }
