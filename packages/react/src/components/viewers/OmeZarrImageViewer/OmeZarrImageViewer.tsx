@@ -366,18 +366,12 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
             "flex",
             "flex-col",
             "m-sds-l",
-            "p-sds-xs",
-            // TODO: decide if style should match others.
-            // "bg-black/75",
-            // "backdrop-blur-md",
-            // "rounded-sds-m",
-            // "shadow-sds-m",
             "w-1/5",
             "select-none",
             props.classNames?.scaleBarContainer
           )}
         >
-          <ScaleBar idetik={runtime} unit={unit} />
+          <ScaleBar unit={unit} align={"start"} />
         </div>
         <div
           className={cns(

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Idetik, OrthographicCamera } from "@idetik/core";
 import cns from "classnames";
+import { useIdetik } from "hooks";
 
 function getUnitAbbreviation(unit: string | undefined): string {
   if (unit === undefined) return "";
@@ -140,24 +141,19 @@ class ScaleBarOverlay {
 }
 
 type ScaleBarProps = {
-  idetik: Idetik | null;
-  textColor?: string;
-  textSize?: "text-xs" | "text-sm" | "text-base" | "text-lg" | "text-xl";
-  textFont?: string;
-  lineColor?: string;
-  lineHeight?: string;
-  align?: "start" | "center" | "end";
   unit?: string;
+  align?: "start" | "center" | "end";
 };
 
 export function ScaleBar(props: ScaleBarProps) {
+  const idetikContext = useIdetik();
   const containerDivRef = useRef<HTMLDivElement>(null);
   const textDivRef = useRef<HTMLDivElement>(null);
   const lineDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const idetik = props.idetik;
-    if (!idetik) return;
+    if (!idetikContext.isReady) return;
+    const idetik = idetikContext.runtime;
     const overlay = new ScaleBarOverlay(
       containerDivRef,
       lineDivRef,
@@ -171,13 +167,8 @@ export function ScaleBar(props: ScaleBarProps) {
         idetik.overlays.splice(index);
       }
     };
-  }, [props.idetik, props.unit]);
+  }, [idetikContext, props.unit]);
 
-  const textColor = props.textColor ?? "text-white";
-  const textSize = props.textSize ?? "text-base";
-  const textFont = props.textFont ?? "font-sds-code";
-  const lineColor = props.lineColor ?? "bg-white";
-  const lineHeight = props.lineHeight ?? "h-sds-m";
   const align = props.align ?? "start";
 
   return (
@@ -194,9 +185,24 @@ export function ScaleBar(props: ScaleBarProps) {
     >
       <div
         ref={textDivRef}
-        className={cns(textColor, textSize, textFont, `text-align-${align}`)}
+        className={cns(
+          "text-white",
+          "text-base",
+          "font-sds-code",
+          `text-align-${align}`
+        )}
+        style={{
+          textShadow:
+            "black 1px 1px 1px, black -1px -1px 1px, black 1px -1px 1px, black -1px 1px 1px",
+        }}
       ></div>
-      <div ref={lineDivRef} className={cns(lineColor, lineHeight)}></div>
+      <div
+        ref={lineDivRef}
+        className={cns("bg-white", "h-sds-m")}
+        style={{
+          border: "thin solid black",
+        }}
+      ></div>
     </div>
   );
 }
