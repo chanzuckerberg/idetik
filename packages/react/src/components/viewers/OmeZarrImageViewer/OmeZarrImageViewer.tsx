@@ -43,7 +43,10 @@ interface OmeZarrImageViewerProps {
     sliceIndicator?: string;
     load3dButton?: string;
     sliceSliderContainer?: string;
-    scaleBarContainer?: string;
+  };
+  scaleBar?: {
+    visible?: boolean;
+    align?: "start" | "end" | "center";
   };
   onLayerCreated?: () => void;
   onFirstSliceLoaded?: () => void;
@@ -70,6 +73,10 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
     initialIndex = "omeroDefaultZ",
     loadAllButtonText,
     indexIndicatorText,
+    scaleBar = {
+      visible: true,
+      align: "start",
+    }
   } = props;
 
   const { isReady: runtimeIsReady, runtime } = useIdetik();
@@ -361,18 +368,17 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           "gap-sds-l"
         )}
       >
-        <div
+        {scaleBar.visible && <div
           className={cns(
             "flex",
             "flex-col",
             "m-sds-l",
             "w-1/5",
-            "select-none",
-            props.classNames?.scaleBarContainer
+            "select-none"
           )}
         >
           <ScaleBar unit={unit} align={"start"} />
-        </div>
+        </div>}
         <div
           className={cns(
             "flex",
