@@ -367,11 +367,13 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
             "flex-col",
             "m-sds-l",
             "p-sds-xs",
-            "bg-black/75",
-            "backdrop-blur-md",
-            "rounded-sds-m",
-            "shadow-sds-m",
+            // TODO: decide if style should match others.
+            // "bg-black/75",
+            // "backdrop-blur-md",
+            // "rounded-sds-m",
+            // "shadow-sds-m",
             "w-1/5",
+            "box-border",
             "select-none",
             props.classNames?.scaleBarContainer
           )}

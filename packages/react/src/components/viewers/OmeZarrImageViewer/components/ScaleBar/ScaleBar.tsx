@@ -143,6 +143,7 @@ type ScaleBarProps = {
   idetik: Idetik | null;
   textColor?: string;
   textSize?: "text-xs" | "text-sm" | "text-base" | "text-lg" | "text-xl";
+  textFont?: string;
   lineColor?: string;
   lineHeight?: string;
   align?: "start" | "center" | "end";
@@ -174,6 +175,7 @@ export function ScaleBar(props: ScaleBarProps) {
 
   const textColor = props.textColor ?? "text-white";
   const textSize = props.textSize ?? "text-base";
+  const textFont = props.textFont ?? "font-sds-code";
   const lineColor = props.lineColor ?? "bg-white";
   const lineHeight = props.lineHeight ?? "h-sds-m";
   const align = props.align ?? "start";
@@ -192,7 +194,7 @@ export function ScaleBar(props: ScaleBarProps) {
     >
       <div
         ref={textDivRef}
-        className={cns(textColor, textSize, `text-align-${align}`)}
+        className={cns(textColor, textSize, textFont, `text-align-${align}`)}
       ></div>
       <div
         ref={lineDivRef}
