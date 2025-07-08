@@ -7,6 +7,7 @@ import {
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
+import { ScaleBar } from "./scale_bar";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -29,10 +30,16 @@ const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
 const layer = new ImageLayer({ source, region, channelProps });
 const axes = new AxesLayer({ length: 2000, width: 0.01 });
 const camera = new OrthographicCamera(left, right, top, bottom);
+const scaleBar = new ScaleBar({
+  textDiv: document.querySelector<HTMLDivElement>("#scale-bar-text")!,
+  lineDiv: document.querySelector<HTMLDivElement>("#scale-bar-line")!,
+  unit: "μm",
+});
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   controls: new PanZoomControls(camera, camera.position),
   layers: [layer, axes],
+  overlays: [scaleBar],
 }).start();

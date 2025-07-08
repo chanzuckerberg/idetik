@@ -1,0 +1,1 @@
+export { useIdetik } from "./useIdetik";

@@ -10,7 +10,7 @@ import { Layer } from "../core/layer";
 import { LayerManager } from "../core/layer_manager";
 import { Camera } from "../objects/cameras/camera";
 import { WebGLState } from "./WebGLState";
-import { Primitive } from "../core/renderable_object";
+import { Primitive, RenderableObject } from "../core/renderable_object";
 
 import { mat4 } from "gl-matrix";
 
@@ -52,16 +52,6 @@ export class WebGLRenderer extends Renderer {
     this.state_ = new WebGLState(this.gl);
   }
 
-  private renderLayer(layer: Layer) {
-    // Set blending mode once per layer
-    if (layer.transparent) {
-      this.state_.setBlendingMode(layer.blendMode);
-    } else {
-      this.state_.setBlendingMode("none");
-    }
-    layer.objects.forEach((_, i) => this.renderObject(layer, i));
-  }
-
   public render(layerManager: LayerManager, camera: Camera) {
     this.clear();
     this.activeCamera = camera;
@@ -85,10 +75,29 @@ export class WebGLRenderer extends Renderer {
     this.state_.setDepthMask(true);
   }
 
+  private renderLayer(layer: Layer) {
+    this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
+    layer.objects.forEach((_, i) => this.renderObject(layer, i));
+  }
+
   protected renderObject(layer: Layer, objectIndex: number) {
     const object = layer.objects[objectIndex];
-    const program = this.getShaderProgram(object.programName).use();
+    this.bindings_.bindObject(object);
+    object.textures.forEach((texture) => {
+      this.textures_.bindTexture(texture);
+    });
 
+    const program = this.getShaderProgram(object.programName).use();
+    this.drawObject(layer, object, program);
+
+    // TODO: If "wireframe on shaded" call draw object with different parameters
+  }
+
+  private drawObject(
+    layer: Layer,
+    object: RenderableObject,
+    program: WebGLShaderProgram
+  ) {
     const modelView = mat4.multiply(
       mat4.create(),
       this.activeCamera.viewMatrix,
@@ -104,7 +113,6 @@ export class WebGLRenderer extends Renderer {
     const objectUniforms = object.getUniforms();
     for (const uniformName of program.uniformNames) {
       switch (uniformName) {
-        // Set common uniforms with renderer data
         case "ModelView":
           program.setUniform(uniformName, modelView);
           break;
@@ -118,25 +126,31 @@ export class WebGLRenderer extends Renderer {
           program.setUniform(uniformName, layer.opacity);
           break;
         default:
-          // Get uniforms from the renderable object
           if (uniformName in objectUniforms) {
             program.setUniform(uniformName, objectUniforms[uniformName]);
           }
       }
     }
 
-    this.bindings_.bind(object);
-
-    object.textures.forEach((texture) => {
-      this.textures_.bind(texture);
-    });
-
-    const primitive = this.getShaderPrimitive(object.primitive);
+    const primitive = this.getGLPrimitve(object.primitive);
     const index = object.geometry.indexData;
     if (index.length) {
       this.gl.drawElements(primitive, index.length, this.gl.UNSIGNED_INT, 0);
     } else {
       this.gl.drawArrays(primitive, 0, object.geometry.vertexCount);
+    }
+  }
+
+  private getGLPrimitve(type: Primitive) {
+    switch (type) {
+      case "points":
+        return this.gl.POINTS;
+      case "triangles":
+        return this.gl.TRIANGLES;
+      default: {
+        const exhaustiveCheck: never = type;
+        throw new Error(`Unknown Primitive type: ${exhaustiveCheck}`);
+      }
     }
   }
 
@@ -163,19 +177,6 @@ export class WebGLRenderer extends Renderer {
       );
     }
     return this.shaders_.get(type)!;
-  }
-
-  private getShaderPrimitive(type: Primitive) {
-    switch (type) {
-      case "points":
-        return this.gl.POINTS;
-      case "triangles":
-        return this.gl.TRIANGLES;
-      default: {
-        const exhaustiveCheck: never = type;
-        throw new Error(`Unknown Primitive type: ${exhaustiveCheck}`);
-      }
-    }
   }
 
   private get gl() {

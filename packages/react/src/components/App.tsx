@@ -1,7 +1,6 @@
 import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
-import { ChannelControlsList } from "./viewers/OmeZarrImageViewer/components/ChannelControlsList";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
@@ -86,9 +85,6 @@ export default function App() {
         onAllSlicesLoaded={handleAllSlicesLoaded}
         onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
       />
-      <div className="absolute top-0 left-0 w-full md:!w-[400px]">
-        <ChannelControlsList />
-      </div>
       <input
         type="button"
         value="Next Image"
