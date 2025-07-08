@@ -7,6 +7,7 @@ import {
   Region,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
+import { FpsOverlay } from "./fps_overlay";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -29,10 +30,14 @@ const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
 const imageLayer = new ImageLayer({ source, region, channelProps });
 const axesLayer = new AxesLayer({ length: 1500, width: 0.01 });
 const camera = new OrthographicCamera(left, right, top, bottom);
+const fpsOverlay = new FpsOverlay({
+  textDiv: document.querySelector<HTMLDivElement>("#fps-text")!,
+});
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
   controls: new PanZoomControls(camera, camera.position),
   layers: [imageLayer, axesLayer],
+  overlays: [fpsOverlay],
 }).start();

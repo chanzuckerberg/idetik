@@ -1,5 +1,12 @@
 import { OmeroChannel, ChannelProps, Color } from "@idetik/core";
-import { ChannelControl } from "../../hooks/useIdetik";
+
+// these are the "extra" properties we need for rendering
+// the *control* that core does not track
+// (because they're not used for rendering the *image*)
+export type ExtraControlProps = {
+  label: string;
+  contrastRange: [number, number];
+};
 
 // TODO: the limits/range from the omero channels should possibly be reversed
 // (start/end for limits, min/max for range) but the organelle box data works better this way
@@ -19,15 +26,15 @@ export const omeroToChannelProps = (
 
 export const defaultGreyscaleChannel = (
   contrastLimits: [number, number] = [0, 1]
-): ChannelControl => ({
+): ExtraControlProps => ({
   label: "Greyscale",
   contrastRange: contrastLimits,
 });
 
 export const omeroToChannelControls = (
   omeroChannels: OmeroChannel[] | undefined,
-  defaultChannel?: ChannelControl
-): ChannelControl[] => {
+  defaultChannel?: ExtraControlProps
+): ExtraControlProps[] => {
   if (!omeroChannels || omeroChannels.length === 0) {
     // No OMERO channels, return the default greyscale channel if provided
     return defaultChannel ? [defaultChannel] : [];

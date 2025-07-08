@@ -16,11 +16,13 @@ const Colors = {
 
 // Add new module names here as needed to represent different parts of the application
 type Module =
-  | "WebGLRenderer"
-  | "WebGLShaderProgram"
+  | "ChunkManager"
+  | "Geometry"
   | "Idetik"
   | "ImageLayer"
-  | "ChunkManager";
+  | "WebGLRenderer"
+  | "WebGLShaderProgram"
+  | "WebGLTexture";
 
 export class Logger {
   private static logLevel_: LogLevel =

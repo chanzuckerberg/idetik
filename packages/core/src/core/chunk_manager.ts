@@ -179,6 +179,10 @@ export class ChunkManagerSource {
     );
 
     if (targetLOD !== this.currentLOD_) {
+      Logger.debug(
+        "ChunkManager",
+        `LOD changed from ${this.currentLOD_} to ${targetLOD}`
+      );
       this.currentLOD_ = targetLOD;
     }
   }

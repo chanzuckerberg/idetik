@@ -1,7 +1,6 @@
 import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "../../src/components/viewers/OmeZarrImageViewer";
 import { useState } from "react";
-import { ChannelControlsList } from "../../src/components/viewers/OmeZarrImageViewer/components/ChannelControlsList";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_cropped.zarr";
@@ -38,9 +37,6 @@ export default function App() {
           `${Math.floor(currentIndex / 60)}m${currentIndex % 60}s of ${Math.floor(totalIndexes / 60)}m${totalIndexes % 60}s`
         }
       />
-      <div className="absolute top-0 left-0 w-full md:!w-[400px]">
-        <ChannelControlsList />
-      </div>
       <input
         type="button"
         value="Next Image"
