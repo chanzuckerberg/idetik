@@ -359,7 +359,6 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
       <div
         className={cns(
           "flex",
-          "flex-row",
           "absolute",
           "bottom-0",
           "w-full",
