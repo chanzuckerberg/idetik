@@ -120,14 +120,13 @@ type ScaleBarProps = {
 };
 
 export function ScaleBar(props: ScaleBarProps) {
-  const idetikContext = useIdetik();
+  const { runtime: idetik } = useIdetik();
   const containerDivRef = useRef<HTMLDivElement>(null);
   const textDivRef = useRef<HTMLDivElement>(null);
   const lineDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!idetikContext.isReady) return;
-    const idetik = idetikContext.runtime;
+    if (idetik === null) return;
     const overlay = new ScaleBarOverlay(
       containerDivRef,
       lineDivRef,
@@ -141,7 +140,7 @@ export function ScaleBar(props: ScaleBarProps) {
         idetik.overlays.splice(index);
       }
     };
-  }, [idetikContext, props.unit]);
+  }, [idetik, props.unit]);
 
   const align = props.align ?? "start";
 
