@@ -5,66 +5,40 @@ import { Idetik, OrthographicCamera } from "@idetik/core";
 import cns from "classnames";
 import { useIdetik } from "hooks";
 
+// From OME-NGFF v0.4 specification:
+// https://ngff.openmicroscopy.org/0.4/#axes-md
+const unitAbbreviations: Map<string, string> = new Map([
+  ["angstrom", "Å"],
+  ["attometer", "am"],
+  ["centimeter", "cm"],
+  ["decimeter", "dm"],
+  ["exameter", "Em"],
+  ["femtometer", "fm"],
+  ["foot", "ft"],
+  ["gigameter", "Gm"],
+  ["hectometer", "hm"],
+  ["inch", "in"],
+  ["kilometer", "km"],
+  ["megameter", "Mm"],
+  ["meter", "m"],
+  ["micrometer", "µm"],
+  ["mile", "mi"],
+  ["millimeter", "mm"],
+  ["nanometer", "nm"],
+  ["parsec", "pc"],
+  ["petameter", "Pm"],
+  ["picometer", "pm"],
+  ["terameter", "Tm"],
+  ["yard", "yd"],
+  ["yoctometer", "ym"],
+  ["yottameter", "Ym"],
+  ["zeptometer", "zm"],
+  ["zettameter", "Zm"],
+]);
+
 function getUnitAbbreviation(unit: string | undefined): string {
   if (unit === undefined) return "";
-  // From OME-NGFF v0.4 specification:
-  // https://ngff.openmicroscopy.org/0.4/#axes-md
-  switch (unit.toLowerCase()) {
-    case "angstrom":
-      return "Å";
-    case "attometer":
-      return "am";
-    case "centimeter":
-      return "cm";
-    case "decimeter":
-      return "dm";
-    case "exameter":
-      return "Em";
-    case "femtometer":
-      return "fm";
-    case "foot":
-      return "ft";
-    case "gigameter":
-      return "Gm";
-    case "hectometer":
-      return "hm";
-    case "inch":
-      return "in";
-    case "kilometer":
-      return "km";
-    case "megameter":
-      return "Mm";
-    case "meter":
-      return "m";
-    case "micrometer":
-      return "µm";
-    case "mile":
-      return "mi";
-    case "millimeter":
-      return "mm";
-    case "nanometer":
-      return "nm";
-    case "parsec":
-      return "pc";
-    case "petameter":
-      return "Pm";
-    case "picometer":
-      return "pm";
-    case "terameter":
-      return "Tm";
-    case "yard":
-      return "yd";
-    case "yoctometer":
-      return "ym";
-    case "yottameter":
-      return "Ym";
-    case "zeptometer":
-      return "zm";
-    case "zettameter":
-      return "Zm";
-    default:
-      return unit;
-  }
+  return unitAbbreviations.get(unit.toLowerCase()) ?? unit;
 }
 
 // Converts the given number to the greatest value of the form x = y 10^z
