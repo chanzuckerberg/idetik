@@ -34,6 +34,7 @@ export class Idetik {
   private readonly context_: IdetikContext;
   private readonly chunkManager_: ChunkManager;
   private lastAnimationId_?: number;
+  private needsResize_ = false;
 
   constructor(params: IdetikParams) {
     if (!params.canvas && !params.canvasSelector) {
@@ -96,6 +97,9 @@ export class Idetik {
 
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
+    new ResizeObserver(() => {
+      this.needsResize_ = true;
+    }).observe(this.canvas);
     const render = (timestamp?: DOMHighResTimeStamp) => {
       if (!this.camera) {
         Logger.warn(
@@ -109,6 +113,11 @@ export class Idetik {
         this.renderer_.width,
         this.renderer_.height
       );
+      // Must resize before render b/c changing canvas coordinate space clears it.
+      if (this.needsResize_) {
+        this.renderer_.updateSize();
+        this.needsResize_ = false;
+      }
       this.renderer_.render(this.layerManager, this.camera);
       for (const overlay of this.overlays) {
         overlay.update(this, timestamp);

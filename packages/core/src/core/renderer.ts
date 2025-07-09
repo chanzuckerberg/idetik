@@ -21,10 +21,6 @@ export abstract class Renderer {
   constructor(canvas: HTMLCanvasElement) {
     this.canvas_ = canvas;
     this.updateRendererSize();
-    window.addEventListener("resize", () => {
-      this.updateRendererSize();
-      this.resize(this.width_, this.height_);
-    });
   }
 
   protected set activeCamera(camera: Camera) {
@@ -35,6 +31,11 @@ export abstract class Renderer {
   }
 
   public abstract render(layerManager: LayerManager, camera: Camera): void;
+
+  public updateSize(): void {
+    this.updateRendererSize();
+    this.resize(this.width_, this.height_);
+  }
 
   public setControls(controls: CameraControls) {
     this.unbindControls();
