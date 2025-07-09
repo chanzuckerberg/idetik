@@ -188,13 +188,10 @@ export function ScaleBar(props: ScaleBarProps) {
         className={cns(
           "text-white",
           "text-base",
+          "[text-shadow:black_1px_1px_1px,black_-1px_-1px_1px,black_1px_-1px_1px,black_-1px_1px_1px]",
           "font-sds-code",
           `text-align-${align}`
         )}
-        style={{
-          textShadow:
-            "black 1px 1px 1px, black -1px -1px 1px, black 1px -1px 1px, black -1px 1px 1px",
-        }}
       ></div>
       <div
         ref={lineDivRef}
