@@ -117,6 +117,14 @@ export class ChunkManagerSource {
     return [...fallbackChunks, ...currentLODChunks];
   }
 
+  public get allChunks(): ImageChunk[] {
+    return this.chunks_;
+  }
+
+  public get currentLOD(): number {
+    return this.currentLOD_;
+  }
+
   private loadVisibleChunks() {
     // Load background LOD (lowest resolution) first if not already started
     this.loadBackgroundLOD();

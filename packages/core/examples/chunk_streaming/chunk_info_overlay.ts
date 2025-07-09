@@ -1,6 +1,5 @@
 import { Idetik } from "../../src/idetik";
 import { ImageLayer } from "../../src/layers/image_layer";
-import { ChunkManagerSource } from "../../src/core/chunk_manager";
 import { ImageChunk } from "../../src/data/image_chunk";
 
 export interface ChunkInfoOverlayOptions {
@@ -19,11 +18,7 @@ export class ChunkInfoOverlay {
 
   public update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
     // Access the chunk manager source through the image layer
-    const chunkManagerSource = (
-      this.imageLayer_ as unknown as {
-        chunkManagerSource_?: ChunkManagerSource;
-      }
-    ).chunkManagerSource_;
+    const chunkManagerSource = this.imageLayer_.chunkManagerSource;
 
     if (!chunkManagerSource) {
       this.textDiv_.textContent = "No chunk manager source";
@@ -31,9 +26,7 @@ export class ChunkInfoOverlay {
     }
 
     const visibleChunks = chunkManagerSource.getChunks();
-    const allChunks = (
-      chunkManagerSource as unknown as { chunks_: ImageChunk[] }
-    ).chunks_;
+    const allChunks = chunkManagerSource.allChunks;
 
     if (!allChunks) {
       this.textDiv_.textContent = "No chunks available";
@@ -46,9 +39,7 @@ export class ChunkInfoOverlay {
     const chunkDetails: string[] = [];
 
     // Get the actual current LOD from the chunk manager source
-    const currentLOD = (
-      chunkManagerSource as unknown as { currentLOD_: number }
-    ).currentLOD_;
+    const currentLOD = chunkManagerSource.currentLOD;
 
     // Count chunks by state
     allChunks.forEach((chunk: ImageChunk) => {
