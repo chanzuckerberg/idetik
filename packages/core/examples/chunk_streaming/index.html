@@ -28,11 +28,25 @@
         background-color: rgba(0, 0, 0, 0.5);
         user-select: none;
       }
+      #chunk-info {
+        position: absolute;
+        top: 1em;
+        right: 1em;
+        width: 20%;
+        margin: 1em;
+        padding: 1em;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.5);
+        user-select: none;
+        font-family: monospace;
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
     <div id="fps-text">FPS: unknown</div>
+    <div id="chunk-info">Chunks: Loading...</div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
