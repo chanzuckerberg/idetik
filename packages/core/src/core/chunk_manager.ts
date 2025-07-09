@@ -134,14 +134,12 @@ export class ChunkManagerSource {
   }
 
   private loadBackgroundLOD(): void {
-    const backgroundChunks = this.chunks_.filter(
-      (chunk) => chunk.lod === this.lowestResLOD_
-    );
-
-    for (const chunk of backgroundChunks) {
-      if (chunk.state === "unloaded") {
+    for (const chunk of this.chunks_) {
+      if (chunk.lod === this.lowestResLOD_ && chunk.state === "unloaded") {
         this.processChunkData(chunk);
       }
+    }
+  }
     }
   }
 
