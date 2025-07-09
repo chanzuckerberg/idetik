@@ -118,7 +118,6 @@ export class ChunkManagerSource {
   }
 
   private loadVisibleChunks() {
-    // Load background LOD (lowest resolution) first if not already started
     this.loadLowResChunks();
 
     for (const chunk of this.chunks_) {
