@@ -85,7 +85,7 @@ export class ImageLayer extends Layer {
     // released, so this will also need to be addressed soon.
     const currentChunks = new Set(this.chunkManagerSource_.getChunks());
     this.visibleChunks_.forEach((image, chunk) => {
-      if (!chunk.visible || !currentChunks.has(chunk)) {
+      if (!currentChunks.has(chunk)) {
         this.removeObject(image);
         this.visibleChunks_.delete(chunk); // safe
       }

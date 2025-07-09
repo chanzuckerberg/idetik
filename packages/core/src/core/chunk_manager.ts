@@ -123,7 +123,11 @@ export class ChunkManagerSource {
 
     for (const chunk of this.chunks_) {
       // Only load chunks for current LOD
-      if (chunk.lod === this.currentLOD_ && chunk.state === "unloaded") {
+      if (
+        chunk.lod === this.currentLOD_ &&
+        chunk.state === "unloaded" &&
+        chunk.visible
+      ) {
         this.processChunkData(chunk);
       }
     }
