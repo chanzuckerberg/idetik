@@ -198,10 +198,13 @@ export function ScaleBar(props: ScaleBarProps) {
       ></div>
       <div
         ref={lineDivRef}
-        className={cns("bg-white", "h-sds-m")}
-        style={{
-          border: "thin solid black",
-        }}
+        className={cns(
+          "bg-white",
+          "h-sds-m",
+          "border-[thin]",
+          "border-solid",
+          "border-black"
+        )}
       ></div>
     </div>
   );
