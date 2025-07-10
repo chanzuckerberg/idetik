@@ -65,6 +65,7 @@ export type ImageChunkSource = {
 export type LoaderAttributes = {
   chunks: readonly number[];
   dimensionNames: string[];
+  dimensionUnits: (string | undefined)[];
   shape: readonly number[];
   scale: readonly number[];
 };

@@ -17,6 +17,7 @@ export class ChunkManagerSource {
   private readonly loader_;
   private readonly region_;
   private readonly attrs_: LoaderAttributes[];
+  private readonly lowestResLOD_: number;
   private currentLOD_: number = 0;
   private readonly xIdx_: number;
   private readonly yIdx_: number;
@@ -31,6 +32,7 @@ export class ChunkManagerSource {
     this.loader_ = loader;
     this.region_ = region;
     this.attrs_ = attrs;
+    this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
     this.xIdx_ = region.findIndex(
@@ -94,17 +96,47 @@ export class ChunkManagerSource {
   }
 
   public getChunks(): ImageChunk[] {
-    return this.chunks_.filter(
+    const currentLODChunks = this.chunks_.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
         chunk.visible &&
         chunk.state === "loaded"
     );
+
+    // If we're at the lowest resolution LOD, only return current LOD chunks
+    if (this.currentLOD_ === this.lowestResLOD_) {
+      return currentLODChunks;
+    }
+
+    const lowResChunks = this.chunks_.filter(
+      (chunk) =>
+        chunk.lod === this.lowestResLOD_ &&
+        chunk.visible &&
+        chunk.state === "loaded"
+    );
+    return [...lowResChunks, ...currentLODChunks];
   }
 
-  public loadVisibleChunks() {
+  private loadVisibleChunks() {
+    this.loadLowResChunks();
+
     for (const chunk of this.chunks_) {
-      this.processChunkData(chunk);
+      // Only load chunks for current LOD
+      if (
+        chunk.lod === this.currentLOD_ &&
+        chunk.state === "unloaded" &&
+        chunk.visible
+      ) {
+        this.processChunkData(chunk);
+      }
+    }
+  }
+
+  private loadLowResChunks(): void {
+    for (const chunk of this.chunks_) {
+      if (chunk.lod === this.lowestResLOD_ && chunk.state === "unloaded") {
+        this.processChunkData(chunk);
+      }
     }
   }
 
@@ -123,8 +155,6 @@ export class ChunkManagerSource {
   }
 
   private processChunkData(chunk: ImageChunk): void {
-    if (!chunk.visible || chunk.state !== "unloaded") return;
-
     chunk.state = "loading";
     this.loader_
       .loadChunkDataFromRegion(chunk, this.region_)
@@ -148,7 +178,10 @@ export class ChunkManagerSource {
     );
 
     if (targetLOD !== this.currentLOD_) {
-      console.debug(`LOD changed from ${this.currentLOD_} to ${targetLOD}`);
+      Logger.debug(
+        "ChunkManager",
+        `LOD changed from ${this.currentLOD_} to ${targetLOD}`
+      );
       this.currentLOD_ = targetLOD;
     }
   }
