@@ -5,6 +5,7 @@ import scalarImageFragmentShader from "./scalar_image_frag.glsl";
 import scalarImageArrayFragmentShader from "./scalar_image_array_frag.glsl";
 import pointsVertexShader from "./points_vert.glsl";
 import pointsFragmentShader from "./points_frag.glsl";
+import labelImageFragmentShader from "./label_image_frag.glsl";
 
 export type Shader =
   | "projectedLine"
@@ -14,7 +15,8 @@ export type Shader =
   | "intImage"
   | "intImageArray"
   | "uintImage"
-  | "uintImageArray";
+  | "uintImageArray"
+  | "labelImage";
 
 export const shaderCode: Record<
   Shader,
@@ -64,5 +66,9 @@ export const shaderCode: Record<
     fragmentDefines: new Map<string, string>([
       ["SAMPLER_TYPE", "usampler2DArray"],
     ]),
+  },
+  labelImage: {
+    vertex: meshVertexShader,
+    fragment: labelImageFragmentShader,
   },
 };

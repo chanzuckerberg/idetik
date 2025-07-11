@@ -6,6 +6,7 @@ import {
   Region,
   Color,
   ImageSeriesLayer,
+  LabelSeriesLayer,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
@@ -54,17 +55,10 @@ const labelsRegion: Region = [
   { dimension: "x", index: { type: "full" } },
 ];
 
-const labelsLayer = new ImageSeriesLayer({
+const labelsLayer = new LabelSeriesLayer({
   source: labelsSource,
   region: labelsRegion,
   seriesDimensionName: zDimName,
-  channelProps: [
-    {
-      visible: true,
-      color: Color.RED,
-      contrastLimits: [0, 1],
-    },
-  ],
   transparent: true,
   opacity: 0.5,
   blendMode: "normal",
