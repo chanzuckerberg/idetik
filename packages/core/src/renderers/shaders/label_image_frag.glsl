@@ -5,15 +5,9 @@ precision mediump float;
 layout (location = 0) out vec4 fragColor;
 
 uniform mediump usampler2D texture0;
-#define MAX_COLORS 6u
-const vec3 Colors[MAX_COLORS] = vec3[MAX_COLORS](
-vec3( 1.0, 0.5, 0.5 ),
-vec3( 0.5, 1.0, 0.5 ),
-vec3( 0.5, 0.5, 1.0 ),
-vec3( 0.5, 1.0, 1.0 ),
-vec3( 1.0, 0.5, 1.0 ),
-vec3( 1.0, 1.0, 0.5 )
-);
+#define MAX_COLORS 32u
+uniform vec3 ColorCycle[MAX_COLORS];
+uniform uint ColorCycleLength;
 
 uniform float u_opacity;
 
@@ -24,7 +18,8 @@ void main() {
     if (texel == 0u) {
         fragColor = vec4(0.0, 0.0, 0.0, 0.0);
     } else {
-        vec3 color = Colors[(texel - 1u) % MAX_COLORS];
+        uint index = (texel - 1u) % ColorCycleLength;
+        vec3 color = ColorCycle[index];
         fragColor = vec4(color, u_opacity);
     }
 }

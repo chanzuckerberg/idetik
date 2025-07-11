@@ -64,6 +64,11 @@ const labelsLayer = new LabelSeriesLayer({
   opacity: 0.25,
   blendMode: "normal",
   lod,
+  colorCycle: [
+    Color.RED,
+    Color.GREEN,
+    Color.BLUE,
+  ]
 });
 
 imageLayer.addStateChangeCallback((newState: LayerState) => {

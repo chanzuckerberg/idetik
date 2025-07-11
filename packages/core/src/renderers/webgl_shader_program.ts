@@ -68,6 +68,9 @@ export class WebGLShaderProgram {
           this.gl_.uniform1fv(location, value as Iterable<number>);
         }
         break;
+      case this.gl_.UNSIGNED_INT:
+        this.gl_.uniform1ui(location, value as number);
+        break;
       case this.gl_.FLOAT_VEC2:
         this.gl_.uniform2fv(location, value as vec2);
         break;
@@ -206,6 +209,7 @@ const SUPPORTED_UNIFORM_TYPES_ =
         WebGL2RenderingContext.FLOAT_VEC2,
         WebGL2RenderingContext.FLOAT_VEC3,
         WebGL2RenderingContext.FLOAT_MAT4,
+        WebGL2RenderingContext.UNSIGNED_INT,
       ]
     : [];
 type SupportedUniformType = (typeof SUPPORTED_UNIFORM_TYPES_)[GLenum];

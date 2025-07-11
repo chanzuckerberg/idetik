@@ -9,11 +9,14 @@ import { Texture2D } from "../objects/textures/texture_2d";
 import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
 import { LabelRenderable } from "../objects/renderable/label_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
+import { Color, ColorLike } from "../core/color";
 
 export type LabelSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   seriesDimensionName: string;
+  colorCycle?: ColorLike[];
+  colorOverrides?: Map<number, ColorLike>;
 };
 
 export type SeriesAttributes = {
@@ -33,6 +36,15 @@ type SetIndexResult = {
   reason?: "duplicate" | "canceled";
 };
 
+const DEFAULT_COLOR_CYCLE: ColorLike[] = [
+    [ 1.0, 0.5, 0.5 ],
+    [ 0.5, 1.0, 0.5 ],
+    [ 0.5, 0.5, 1.0 ],
+    [ 0.5, 1.0, 1.0 ],
+    [ 1.0, 0.5, 1.0 ],
+    [ 1.0, 1.0, 0.5 ]
+];
+
 export class LabelSeriesLayer extends Layer {
   public readonly type = "LabelSeriesLayer";
 
@@ -41,6 +53,7 @@ export class LabelSeriesLayer extends Layer {
   private readonly seriesDimensionName_: string;
   private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
+  private readonly colorCycle_: Color[];
   private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
@@ -56,6 +69,7 @@ export class LabelSeriesLayer extends Layer {
     source,
     region,
     seriesDimensionName,
+    colorCycle = DEFAULT_COLOR_CYCLE,
     lod,
     ...layerOptions
   }: LabelSeriesLayerProps) {
@@ -79,6 +93,7 @@ export class LabelSeriesLayer extends Layer {
       );
     }
     this.seriesIndex_ = seriesDimensionalIndex.index;
+    this.colorCycle_ = colorCycle.map(Color.from);
   }
 
   public update() {
@@ -247,7 +262,7 @@ export class LabelSeriesLayer extends Layer {
     texture: Texture2D,
   ) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-    const image = new LabelRenderable(geometry, texture);
+    const image = new LabelRenderable(geometry, texture, this.colorCycle_);
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
