@@ -46,7 +46,7 @@ export function bufferToDataType(
   } else if (buffer instanceof Uint16Array) {
     return "unsigned_short";
   } else if (buffer instanceof Uint32Array) {
-    return "unsigned_short";
+    return "unsigned_int";
   } else if (buffer instanceof Float32Array) {
     return "float";
   }
