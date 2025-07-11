@@ -10,6 +10,7 @@ import {
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
+// From: https://zenodo.org/records/7144919
 const imageUrl = "http://127.0.0.1:8080/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0";
 const labelsUrl = "http://127.0.0.1:8080/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0/labels/nuclei";
 
@@ -60,7 +61,7 @@ const labelsLayer = new LabelSeriesLayer({
   region: labelsRegion,
   seriesDimensionName: zDimName,
   transparent: true,
-  opacity: 0.5,
+  opacity: 0.25,
   blendMode: "normal",
   lod,
 });
