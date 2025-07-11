@@ -20,7 +20,7 @@ uniform float u_opacity;
 in vec2 TexCoords;
 
 void main() {
-    uint texel = uint(texture(texture0, vec3(TexCoords, 0)));
+    uint texel = texture(texture0, TexCoords).r;
     if (texel == 0u) {
         fragColor = vec4(0.0, 0.0, 0.0, 0.0);
     } else {
