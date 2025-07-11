@@ -1,4 +1,4 @@
-import { mat4, vec2, vec3 } from "gl-matrix";
+import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 
 type ShaderMap = {
   [type: number]: {
@@ -69,13 +69,20 @@ export class WebGLShaderProgram {
         }
         break;
       case this.gl_.UNSIGNED_INT:
-        this.gl_.uniform1ui(location, value as number);
+        if (typeof value === "number") {
+          this.gl_.uniform1ui(location, value);
+        } else {
+          this.gl_.uniform1uiv(location, value as Iterable<number>);
+        }
         break;
       case this.gl_.FLOAT_VEC2:
         this.gl_.uniform2fv(location, value as vec2);
         break;
       case this.gl_.FLOAT_VEC3:
         this.gl_.uniform3fv(location, value as vec3);
+        break;
+      case this.gl_.FLOAT_VEC4:
+        this.gl_.uniform4fv(location, value as vec4);
         break;
       case this.gl_.FLOAT_MAT4:
         this.gl_.uniformMatrix4fv(location, false, value as mat4);
@@ -208,6 +215,7 @@ const SUPPORTED_UNIFORM_TYPES_ =
         WebGL2RenderingContext.FLOAT,
         WebGL2RenderingContext.FLOAT_VEC2,
         WebGL2RenderingContext.FLOAT_VEC3,
+        WebGL2RenderingContext.FLOAT_VEC4,
         WebGL2RenderingContext.FLOAT_MAT4,
         WebGL2RenderingContext.UNSIGNED_INT,
       ]

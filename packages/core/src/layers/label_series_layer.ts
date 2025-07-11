@@ -37,13 +37,17 @@ type SetIndexResult = {
 };
 
 const DEFAULT_COLOR_CYCLE: ColorLike[] = [
-    [ 1.0, 0.5, 0.5 ],
-    [ 0.5, 1.0, 0.5 ],
-    [ 0.5, 0.5, 1.0 ],
-    [ 0.5, 1.0, 1.0 ],
-    [ 1.0, 0.5, 1.0 ],
-    [ 1.0, 1.0, 0.5 ]
+  [1.0, 0.5, 0.5],
+  [0.5, 1.0, 0.5],
+  [0.5, 0.5, 1.0],
+  [0.5, 1.0, 1.0],
+  [1.0, 0.5, 1.0],
+  [1.0, 1.0, 0.5],
 ];
+
+const DEFAULT_COLOR_OVERRIDES: Map<number, ColorLike> = new Map([
+  [0, [0, 0, 0, 0]],
+]);
 
 export class LabelSeriesLayer extends Layer {
   public readonly type = "LabelSeriesLayer";
@@ -54,6 +58,7 @@ export class LabelSeriesLayer extends Layer {
   private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
   private readonly colorCycle_: Color[];
+  private readonly colorOverrides_: Map<number, Color>;
   private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
@@ -70,6 +75,7 @@ export class LabelSeriesLayer extends Layer {
     region,
     seriesDimensionName,
     colorCycle = DEFAULT_COLOR_CYCLE,
+    colorOverrides = DEFAULT_COLOR_OVERRIDES,
     lod,
     ...layerOptions
   }: LabelSeriesLayerProps) {
@@ -94,6 +100,12 @@ export class LabelSeriesLayer extends Layer {
     }
     this.seriesIndex_ = seriesDimensionalIndex.index;
     this.colorCycle_ = colorCycle.map(Color.from);
+    this.colorOverrides_ = new Map(
+      Array.from(colorOverrides.entries()).map(([key, value]) => [
+        key,
+        Color.from(value),
+      ])
+    );
   }
 
   public update() {
@@ -257,12 +269,14 @@ export class LabelSeriesLayer extends Layer {
     return this.loader_;
   }
 
-  private createLabelImage(
-    chunk: ImageChunk,
-    texture: Texture2D,
-  ) {
+  private createLabelImage(chunk: ImageChunk, texture: Texture2D) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-    const image = new LabelRenderable(geometry, texture, this.colorCycle_);
+    const image = new LabelRenderable(
+      geometry,
+      texture,
+      this.colorCycle_,
+      this.colorOverrides_
+    );
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;

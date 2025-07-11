@@ -11,8 +11,10 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 // From: https://zenodo.org/records/7144919
-const imageUrl = "http://127.0.0.1:8080/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0";
-const labelsUrl = "http://127.0.0.1:8080/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0/labels/nuclei";
+const imageUrl =
+  "http://127.0.0.1:8080/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0";
+const labelsUrl =
+  "http://127.0.0.1:8080/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0/labels/nuclei";
 
 const imageSource = new OmeZarrImageSource(imageUrl);
 const labelsSource = new OmeZarrImageSource(labelsUrl);
@@ -64,11 +66,11 @@ const labelsLayer = new LabelSeriesLayer({
   opacity: 0.25,
   blendMode: "normal",
   lod,
-  colorCycle: [
-    Color.RED,
-    Color.GREEN,
-    Color.BLUE,
-  ]
+  colorCycle: [Color.RED, Color.GREEN, Color.BLUE],
+  colorOverrides: new Map([
+    [0, [0, 0, 0, 0]],
+    [303, [1, 1, 0, 1]],
+  ]),
 });
 
 imageLayer.addStateChangeCallback((newState: LayerState) => {
@@ -143,4 +145,4 @@ async function setLayerIndex(index: number) {
   if (imageResult.success && labelsResult.success) {
     zIndexEl!.textContent = `${index}`;
   }
-} 
+}
