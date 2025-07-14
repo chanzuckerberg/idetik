@@ -5,14 +5,11 @@ import { TrsTransform } from "../core/transforms";
 
 import { Shader } from "../renderers/shaders";
 
-export type Primitive = "triangles" | "points";
-
 export abstract class RenderableObject extends Node {
   private readonly textures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();
   private geometry_ = new Geometry();
   private programName_: Shader | null = null;
-  private primitive_: Primitive = "triangles";
   private wireframeEnabled_ = false;
 
   public addTexture(texture: Texture) {
@@ -54,14 +51,6 @@ export abstract class RenderableObject extends Node {
 
   protected set programName(programName: Shader) {
     this.programName_ = programName;
-  }
-
-  public get primitive(): Primitive {
-    return this.primitive_;
-  }
-
-  protected set primitive(primitive: Primitive) {
-    this.primitive_ = primitive;
   }
 
   private generateWireframeIndicesIfNeeded() {

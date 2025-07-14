@@ -1,6 +1,8 @@
 import { Node } from "./node";
 import { Logger } from "../utilities/logger";
 
+export type Primitive = "triangles" | "points";
+
 type GeometryAttributeType =
   | "position"
   | "normal"
@@ -33,6 +35,8 @@ type GeometryAttribute = {
 };
 
 export class Geometry extends Node {
+  public primitive: Primitive = "triangles";
+
   private readonly attributes_: GeometryAttribute[];
   protected vertexData_: Float32Array;
   protected indexData_: Uint32Array;

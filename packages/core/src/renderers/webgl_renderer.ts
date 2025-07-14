@@ -10,7 +10,8 @@ import { Layer } from "../core/layer";
 import { LayerManager } from "../core/layer_manager";
 import { Camera } from "../objects/cameras/camera";
 import { WebGLState } from "./WebGLState";
-import { Primitive, RenderableObject } from "../core/renderable_object";
+import { RenderableObject } from "../core/renderable_object";
+import { Primitive } from "../core/geometry";
 
 import { mat4 } from "gl-matrix";
 
@@ -135,7 +136,7 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
-    const primitive = this.getGLPrimitve(object.primitive);
+    const primitive = this.getGLPrimitve(object.geometry.primitive);
     const index = object.geometry.indexData;
     if (index.length) {
       this.gl.drawElements(primitive, index.length, this.gl.UNSIGNED_INT, 0);

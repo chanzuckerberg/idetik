@@ -19,7 +19,6 @@ export class Points extends RenderableObject {
   constructor(points: PointProperties[], markerAtlas: Texture2DArray) {
     super();
     this.programName = "points";
-    this.primitive = "points";
     this.atlas_ = markerAtlas;
 
     points.forEach((point) => {
@@ -63,6 +62,8 @@ export class Points extends RenderableObject {
       itemSize: 1,
       offset: geometry.stride,
     });
+
+    geometry.primitive = "points";
 
     this.geometry = geometry;
     this.addTexture(this.atlas_);
