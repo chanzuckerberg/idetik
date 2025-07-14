@@ -47,22 +47,24 @@ const imageLayer = new ImageSeriesLayer({
   region: imageRegion,
   seriesDimensionName: tDimName,
   transparent: true,
-  opacity: 1.0,
   channelProps: [
     {
       visible: true,
+      // Phase with contrast limits chosen somewhat arbitrarily.
       color: Color.WHITE,
-      contrastLimits: [0, 255],
+      contrastLimits: [0, 200],
     },
     {
       visible: true,
+      // GFP with contrast limits chosen somewhat arbitrarily.
       color: Color.GREEN,
-      contrastLimits: [0, 255],
+      contrastLimits: [0, 200],
     },
     {
       visible: true,
-      color: Color.BLUE,
-      contrastLimits: [0, 255],
+      // mCherry with contrast limits chosen somewhat arbitrarily.
+      color: Color.RED,
+      contrastLimits: [0, 200],
     },
   ],
   lod,
@@ -91,7 +93,8 @@ const labelsLayer = new LabelSeriesLayer({
   ],
   colorOverrides: new Map([
     [0, [0, 0, 0, 0]],
-    [1, [1, 0, 0, 1]],
+    // Arbitrarily pick segment 1 to be blue.
+    [1, [0, 0, 1, 1]],
   ]),
 });
 

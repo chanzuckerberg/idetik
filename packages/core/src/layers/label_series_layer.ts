@@ -10,6 +10,7 @@ import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
 import { LabelRenderable } from "../objects/renderable/label_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Color, ColorLike } from "../core/color";
+import { Logger } from "../utilities/logger";
 
 export type LabelSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -126,10 +127,14 @@ export class LabelSeriesLayer extends Layer {
     const token = this.loadingToken_;
     if (token) {
       if (token.index === index && !token.canceled) {
-        console.debug("Ignoring duplicate active setIndex request");
+        Logger.debug(
+          "LabelsSeriesLayer",
+          "Ignoring duplicate active setIndex request"
+        );
         return { success: false, reason: "duplicate" };
       } else {
-        console.debug(
+        Logger.debug(
+          "LabelsSeriesLayer",
           `Cancelling setIndex request for index ${token.index}, new requested index is ${index}`
         );
         token.canceled = true;
@@ -151,7 +156,6 @@ export class LabelSeriesLayer extends Layer {
   private setData(chunk: ImageChunk) {
     if (!this.texture_ || !this.labelImage_) {
       this.texture_ = Texture2D.createWithImageChunk(chunk);
-      console.debug("texture", this.texture_);
       this.labelImage_ = this.createLabelImage(chunk, this.texture_);
       this.addObject(this.labelImage_);
 

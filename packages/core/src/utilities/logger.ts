@@ -20,6 +20,7 @@ type Module =
   | "Geometry"
   | "Idetik"
   | "ImageLayer"
+  | "LabelsSeriesLayer"
   | "WebGLRenderer"
   | "WebGLShaderProgram"
   | "WebGLTexture";
