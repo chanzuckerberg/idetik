@@ -13,8 +13,10 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 // These roughly correspond in terms of content and the number of time-points.
 // But the image is smaller in XY than the labels, and has a Z-stack, so it
 // is unclear which Z-slice the labels correspond to (if any particular one)
-const imageUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_cropped.zarr/B/3/000000";
-const labelsUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_tracking.zarr/B/3/000000";
+const imageUrl =
+  "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_cropped.zarr/B/3/000000";
+const labelsUrl =
+  "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_tracking.zarr/B/3/000000";
 
 const imageSource = new OmeZarrImageSource(imageUrl);
 const labelsSource = new OmeZarrImageSource(labelsUrl);
@@ -32,7 +34,7 @@ const tMin = 0;
 const tMax = attributesForLastLod.shape[tAxisIndex];
 
 const imageRegion: Region = [
-  { dimension: tDimName, index: { type: "full"} },
+  { dimension: tDimName, index: { type: "full" } },
   { dimension: "C", index: { type: "full" } },
   // Mid-slice in Z.
   { dimension: "Z", index: { type: "point", value: 0.1494 * 4 } },
@@ -165,4 +167,4 @@ async function setLayerIndex(index: number) {
   if (imageResult.success && labelsResult.success) {
     tIndexEl!.textContent = `${index}`;
   }
-} 
+}
