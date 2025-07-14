@@ -10,11 +10,11 @@ import {
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
-// From: https://zenodo.org/records/7144919
-const imageUrl =
-  "http://127.0.0.1:8080/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0";
-const labelsUrl =
-  "http://127.0.0.1:8080/20200812-CardiomyocyteDifferentiation14-Cycle1.zarr/B/03/0/labels/nuclei";
+// These roughly correspond in terms of content and the number of time-points.
+// But the image is smaller in XY than the labels, and has a Z-stack, so it
+// is unclear which Z-slice the labels correspond to (if any particular one)
+const imageUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_cropped.zarr/B/3/000000";
+const labelsUrl = "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV_tracking.zarr/B/3/000000";
 
 const imageSource = new OmeZarrImageSource(imageUrl);
 const labelsSource = new OmeZarrImageSource(labelsUrl);
@@ -24,52 +24,72 @@ const attributes = await loader.loadAttributes();
 const lod = 0;
 const attributesForLastLod = attributes[lod];
 
-const zDimName = "z";
-const zAxisIndex = attributesForLastLod.dimensionNames.findIndex(
-  (dim) => dim === zDimName
+const tDimName = "T";
+const tAxisIndex = attributesForLastLod.dimensionNames.findIndex(
+  (dim) => dim === tDimName
 );
-const zMin = 0;
-const zMax = attributesForLastLod.shape[zAxisIndex];
+const tMin = 0;
+const tMax = attributesForLastLod.shape[tAxisIndex];
 
 const imageRegion: Region = [
-  { dimension: "c", index: { type: "point", value: 0 } },
-  { dimension: zDimName, index: { type: "full" } },
-  { dimension: "y", index: { type: "full" } },
-  { dimension: "x", index: { type: "full" } },
+  { dimension: tDimName, index: { type: "full"} },
+  { dimension: "C", index: { type: "full" } },
+  // Mid-slice in Z.
+  { dimension: "Z", index: { type: "point", value: 0.1494 * 4 } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
 ];
 
 const imageLayer = new ImageSeriesLayer({
   source: imageSource,
   region: imageRegion,
-  seriesDimensionName: zDimName,
+  seriesDimensionName: tDimName,
+  transparent: true,
+  opacity: 1.0,
   channelProps: [
     {
       visible: true,
       color: Color.WHITE,
-      contrastLimits: [0, 500],
+      contrastLimits: [0, 255],
+    },
+    {
+      visible: true,
+      color: Color.GREEN,
+      contrastLimits: [0, 255],
+    },
+    {
+      visible: true,
+      color: Color.BLUE,
+      contrastLimits: [0, 255],
     },
   ],
   lod,
 });
 
 const labelsRegion: Region = [
-  { dimension: zDimName, index: { type: "full" } },
-  { dimension: "y", index: { type: "full" } },
-  { dimension: "x", index: { type: "full" } },
+  { dimension: "T", index: { type: "full" } },
+  { dimension: "C", index: { type: "point", value: 0 } },
+  { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
 ];
 
 const labelsLayer = new LabelSeriesLayer({
   source: labelsSource,
   region: labelsRegion,
-  seriesDimensionName: zDimName,
+  seriesDimensionName: tDimName,
   transparent: true,
   opacity: 0.25,
   blendMode: "normal",
   lod,
-  colorCycle: [Color.RED, Color.GREEN, Color.BLUE],
+  colorCycle: [
+    [1, 1, 0, 1],
+    [0, 1, 1, 1],
+    [1, 0, 1, 1],
+  ],
   colorOverrides: new Map([
     [0, [0, 0, 0, 0]],
-    [303, [1, 1, 0, 1]],
+    [1, [1, 0, 0, 1]],
   ]),
 });
 
@@ -77,26 +97,26 @@ imageLayer.addStateChangeCallback((newState: LayerState) => {
   stateEl!.textContent = newState;
 });
 
-const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
-const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
-const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total")!;
+const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;
+const tIndexEl = document.querySelector<HTMLSpanElement>("#t-index")!;
+const tTotalEl = document.querySelector<HTMLSpanElement>("#t-total")!;
 const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
 const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all")!;
 
 // Initialize sliders
-zSlider.min = `${zMin}`;
-zSlider.max = `${zMax - 1}`;
-zSlider.value = "0";
-zTotalEl.textContent = `${zMax - zMin - 1}`;
+tSlider.min = `${tMin}`;
+tSlider.max = `${tMax - 1}`;
+tSlider.value = "0";
+tTotalEl.textContent = `${tMax - tMin - 1}`;
 
 // set up event handler with debouncing
 let debounce: ReturnType<typeof setTimeout>;
-zSlider.addEventListener("input", (event) => {
+tSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(() => {
     setLayerIndex(value);
-  }, 20);
+  }, 10);
 });
 
 const camera = new OrthographicCamera(0, 128, 0, 128);
@@ -106,8 +126,8 @@ const app = new Idetik({
   layers: [imageLayer, labelsLayer],
 }).start();
 
-imageLayer.setIndex(zSlider.valueAsNumber);
-labelsLayer.setIndex(zSlider.valueAsNumber);
+imageLayer.setIndex(tSlider.valueAsNumber);
+labelsLayer.setIndex(tSlider.valueAsNumber);
 const setCameraFrame = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
     camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
@@ -118,7 +138,7 @@ const setCameraFrame = (newState: LayerState) => {
   }
 };
 imageLayer.addStateChangeCallback(setCameraFrame);
-setLayerIndex(zSlider.valueAsNumber);
+setLayerIndex(tSlider.valueAsNumber);
 
 loadAllButton.addEventListener("click", () => {
   try {
@@ -139,10 +159,10 @@ async function preloadAllSlices() {
 }
 
 async function setLayerIndex(index: number) {
-  zIndexEl!.textContent = "...";
+  tIndexEl!.textContent = "...";
   const imageResult = await imageLayer.setIndex(index);
   const labelsResult = await labelsLayer.setIndex(index);
   if (imageResult.success && labelsResult.success) {
-    zIndexEl!.textContent = `${index}`;
+    tIndexEl!.textContent = `${index}`;
   }
-}
+} 
