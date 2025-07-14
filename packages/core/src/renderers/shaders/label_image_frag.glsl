@@ -4,7 +4,9 @@ precision mediump float;
 
 layout (location = 0) out vec4 fragColor;
 
-uniform mediump usampler2D texture0;
+// SAMPLER_TYPE must be defined by the application using this shader.
+uniform mediump SAMPLER_TYPE texture0;
+
 #define MAX_COLORS 32u
 uniform vec4 ColorCycle[MAX_COLORS];
 uniform uint ColorCycleLength;
@@ -16,8 +18,16 @@ uniform float u_opacity;
 
 in vec2 TexCoords;
 
+uint castToUint(uint value) {
+    return value;
+}
+
+uint castToUint(int value) {
+    return uint(abs(value));
+}
+
 void main() {
-    uint texel = texture(texture0, TexCoords).r;
+    uint texel = castToUint(texture(texture0, TexCoords).r);
     for (uint i = 0u; i < ColorOverridesLength; ++i) {
         if (texel == ColorOverridesKeys[i]) {
             fragColor = vec4(ColorOverridesValues[i].rgb, u_opacity * ColorOverridesValues[i].a);

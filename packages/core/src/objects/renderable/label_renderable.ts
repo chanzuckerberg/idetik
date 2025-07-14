@@ -2,6 +2,17 @@ import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
 import { Texture } from "../../objects/textures/texture";
 import { Color } from "../../core/color";
+import { Shader } from "../../renderers/shaders";
+import { TextureDataType } from "../textures/texture";
+
+const dataTypeToProgramName: Map<TextureDataType, Shader> = new Map([
+  ["byte", "intLabelImage"],
+  ["int", "intLabelImage"],
+  ["short", "intLabelImage"],
+  ["unsigned_byte", "uintLabelImage"],
+  ["unsigned_int", "uintLabelImage"],
+  ["unsigned_short", "uintLabelImage"],
+]);
 
 export class LabelRenderable extends RenderableObject {
   private readonly colorCycle_: Color[];
@@ -21,13 +32,16 @@ export class LabelRenderable extends RenderableObject {
       this.addTexture(texture);
     }
     this.colorCycle_ = colorCycle;
-    console.debug("colorOverrides", colorOverrides);
     this.colorOverrides_ = colorOverrides;
-    this.programName = "labelImage";
   }
 
   public get type() {
     return "LabelRenderable";
+  }
+
+  public addTexture(texture: Texture) {
+    super.addTexture(texture);
+    this.setProgramName();
   }
 
   public getUniforms() {
@@ -41,5 +55,19 @@ export class LabelRenderable extends RenderableObject {
         .flat(),
       ColorOverridesLength: this.colorOverrides_.size,
     };
+  }
+
+  private setProgramName() {
+    const texture = this.textures[0];
+    if (!texture) {
+      throw new Error("un-textured label image not implemented");
+    }
+    const programName = dataTypeToProgramName.get(texture.dataType);
+    if (programName === undefined) {
+      throw new Error(
+        `Unsupported label texture data type: ${texture.dataType}.`
+      );
+    }
+    this.programName = programName;
   }
 }

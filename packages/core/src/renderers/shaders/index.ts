@@ -16,7 +16,8 @@ export type Shader =
   | "intImageArray"
   | "uintImage"
   | "uintImageArray"
-  | "labelImage";
+  | "intLabelImage"
+  | "uintLabelImage";
 
 export const shaderCode: Record<
   Shader,
@@ -67,8 +68,14 @@ export const shaderCode: Record<
       ["SAMPLER_TYPE", "usampler2DArray"],
     ]),
   },
-  labelImage: {
+  intLabelImage: {
     vertex: meshVertexShader,
     fragment: labelImageFragmentShader,
+    fragmentDefines: new Map<string, string>([["SAMPLER_TYPE", "isampler2D"]]),
+  },
+  uintLabelImage: {
+    vertex: meshVertexShader,
+    fragment: labelImageFragmentShader,
+    fragmentDefines: new Map<string, string>([["SAMPLER_TYPE", "usampler2D"]]),
   },
 };
