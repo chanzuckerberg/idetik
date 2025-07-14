@@ -114,7 +114,16 @@ export class ChunkManagerSource {
         chunk.visible &&
         chunk.state === "loaded"
     );
+
     return [...lowResChunks, ...currentLODChunks];
+  }
+
+  public get allChunks(): ImageChunk[] {
+    return this.chunks_;
+  }
+
+  public get currentLOD(): number {
+    return this.currentLOD_;
   }
 
   private loadVisibleChunks() {

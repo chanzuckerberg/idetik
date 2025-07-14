@@ -8,6 +8,7 @@ import {
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { FpsOverlay } from "./fps_overlay";
+import { ChunkInfoOverlay } from "./chunk_info_overlay";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -33,11 +34,15 @@ const camera = new OrthographicCamera(left, right, top, bottom);
 const fpsOverlay = new FpsOverlay({
   textDiv: document.querySelector<HTMLDivElement>("#fps-text")!,
 });
+const chunkInfoOverlay = new ChunkInfoOverlay({
+  textDiv: document.querySelector<HTMLDivElement>("#chunk-info")!,
+  imageLayer: imageLayer,
+});
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
   controls: new PanZoomControls(camera, camera.position),
   layers: [imageLayer, axesLayer],
-  overlays: [fpsOverlay],
+  overlays: [fpsOverlay, chunkInfoOverlay],
 }).start();
