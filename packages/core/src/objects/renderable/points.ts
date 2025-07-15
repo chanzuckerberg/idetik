@@ -40,7 +40,7 @@ export class Points extends RenderableObject {
       point.size,
       point.markerIndex,
     ]);
-    const geometry = new Geometry(vertexData);
+    const geometry = new Geometry(vertexData, [], "points");
 
     geometry.addAttribute({
       type: "position",
@@ -62,8 +62,6 @@ export class Points extends RenderableObject {
       itemSize: 1,
       offset: geometry.stride,
     });
-
-    geometry.primitive = "points";
 
     this.geometry = geometry;
     this.addTexture(this.atlas_);
