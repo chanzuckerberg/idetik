@@ -1,6 +1,8 @@
 import { Node } from "./node";
 import { Logger } from "../utilities/logger";
 
+export type Primitive = "triangles" | "points";
+
 type GeometryAttributeType =
   | "position"
   | "normal"
@@ -34,14 +36,20 @@ type GeometryAttribute = {
 
 export class Geometry extends Node {
   private readonly attributes_: GeometryAttribute[];
+  private readonly primitive_: Primitive;
   protected vertexData_: Float32Array;
   protected indexData_: Uint32Array;
   private wireframeIndexData_: Uint32Array;
 
-  constructor(vertexData: number[] = [], indexData: number[] = []) {
+  constructor(
+    vertexData: number[] = [],
+    indexData: number[] = [],
+    primitive: Primitive = "triangles"
+  ) {
     super();
     this.vertexData_ = new Float32Array(vertexData);
     this.indexData_ = new Uint32Array(indexData);
+    this.primitive_ = primitive;
     this.wireframeIndexData_ = new Uint32Array();
     this.attributes_ = [];
   }
@@ -60,6 +68,10 @@ export class Geometry extends Node {
         return acc + curr.itemSize;
       }, 0) * Float32Array.BYTES_PER_ELEMENT
     );
+  }
+
+  public get primitive() {
+    return this.primitive_;
   }
 
   public get vertexData() {
