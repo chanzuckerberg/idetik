@@ -32,8 +32,7 @@ export class ScaleBar {
     // The use of clientWidth assumes that the lineDiv has no padding,
     // which is true in this example. If similar code is used elsewhere,
     // the lack of padding should be asserted and or enforced.
-    const lineWidth = this.lineDiv_.clientWidth;
-    const lineWidthWorld = lineWidth * unitPerCanvasPixel;
+    const lineWidthWorld = this.lineDiv_.clientWidth * unitPerCanvasPixel;
 
     this.textDiv_.textContent = `${lineWidthWorld.toFixed(2)} ${this.unit_}`;
   }
