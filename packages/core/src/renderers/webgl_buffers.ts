@@ -1,5 +1,4 @@
-import { RenderableObject } from "../core/renderable_object";
-import { GeometryAttributeIndex } from "../core/geometry";
+import { Geometry, GeometryAttributeIndex } from "../core/geometry";
 
 type BufferHandles = {
   vao: WebGLVertexArrayObject;
@@ -9,31 +8,31 @@ type BufferHandles = {
 
 export class WebGLBuffers {
   private readonly gl_: WebGL2RenderingContext;
-  private readonly buffers_: Map<RenderableObject, BufferHandles> = new Map();
-  private currentObject_: RenderableObject | null = null;
+  private readonly buffers_: Map<Geometry, BufferHandles> = new Map();
+  private currentGeometry_: Geometry | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
   }
 
-  public bindObject(object: RenderableObject) {
-    if (this.alreadyActive(object)) return;
+  public bindObject(geometry: Geometry) {
+    if (this.alreadyActive(geometry)) return;
 
-    if (!this.buffers_.has(object)) {
-      this.generateBuffers(object);
+    if (!this.buffers_.has(geometry)) {
+      this.generateBuffers(geometry);
     }
 
-    const buffers = this.buffers_.get(object);
+    const buffers = this.buffers_.get(geometry);
     if (!buffers) {
       throw new Error("Failed to retrieve buffer handles for object");
     }
 
     this.gl_.bindVertexArray(buffers.vao);
-    this.currentObject_ = object;
+    this.currentGeometry_ = geometry;
   }
 
-  public disposeObject(object: RenderableObject) {
-    const buffers = this.buffers_.get(object);
+  public disposeObject(geometry: Geometry) {
+    const buffers = this.buffers_.get(geometry);
     if (!buffers) return;
 
     this.gl_.deleteVertexArray(buffers.vao);
@@ -41,23 +40,23 @@ export class WebGLBuffers {
 
     if (buffers.ebo) this.gl_.deleteBuffer(buffers.ebo);
 
-    this.buffers_.delete(object);
-    if (this.currentObject_ === object) {
-      this.currentObject_ = null;
+    this.buffers_.delete(geometry);
+    if (this.currentGeometry_ === geometry) {
+      this.currentGeometry_ = null;
     }
   }
 
   public disposeAll() {
-    for (const object of this.buffers_.keys()) {
-      this.disposeObject(object);
+    for (const geometry of this.buffers_.keys()) {
+      this.disposeObject(geometry);
     }
   }
 
-  private alreadyActive(object: RenderableObject) {
-    return this.currentObject_ === object;
+  private alreadyActive(geometry: Geometry) {
+    return this.currentGeometry_ === geometry;
   }
 
-  private generateBuffers(object: RenderableObject) {
+  private generateBuffers(geometry: Geometry) {
     const vao = this.gl_.createVertexArray();
     if (!vao) {
       throw new Error("Failed to create vertex array object (VAO)");
@@ -65,7 +64,7 @@ export class WebGLBuffers {
 
     this.gl_.bindVertexArray(vao);
 
-    const { vertexData } = object.geometry;
+    const { vertexData } = geometry;
     const vboType = this.gl_.ARRAY_BUFFER;
     const vbo = this.gl_.createBuffer();
     if (!vbo) throw new Error("Failed to create vertex buffer (VBO)");
@@ -73,7 +72,7 @@ export class WebGLBuffers {
     this.gl_.bindBuffer(vboType, vbo);
     this.gl_.bufferData(vboType, vertexData, this.gl_.STATIC_DRAW);
 
-    const { attributes, stride } = object.geometry;
+    const { attributes, stride } = geometry;
     attributes.forEach((attr) => {
       const idx = GeometryAttributeIndex[attr.type];
       this.gl_.vertexAttribPointer(
@@ -89,7 +88,7 @@ export class WebGLBuffers {
 
     const buffers: BufferHandles = { vao, vbo };
 
-    const { indexData } = object.geometry;
+    const { indexData } = geometry;
     if (indexData.length) {
       const eboType = this.gl_.ELEMENT_ARRAY_BUFFER;
       const ebo = this.gl_.createBuffer();
@@ -100,7 +99,7 @@ export class WebGLBuffers {
       buffers.ebo = ebo;
     }
 
-    this.buffers_.set(object, buffers);
+    this.buffers_.set(geometry, buffers);
     this.gl_.bindVertexArray(null);
   }
 }
