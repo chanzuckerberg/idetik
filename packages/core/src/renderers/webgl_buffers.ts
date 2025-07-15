@@ -15,7 +15,7 @@ export class WebGLBuffers {
     this.gl_ = gl;
   }
 
-  public bindObject(geometry: Geometry) {
+  public bindGeometry(geometry: Geometry) {
     if (this.alreadyActive(geometry)) return;
 
     if (!this.buffers_.has(geometry)) {
