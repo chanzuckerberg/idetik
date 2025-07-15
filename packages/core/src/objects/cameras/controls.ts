@@ -71,6 +71,10 @@ export class PanZoomControls implements CameraControls {
     target: EventTarget,
     clientToWorld: ClientToWorld
   ) {
+    if (event.button !== 0) {
+      return;
+    }
+
     const clientStart = vec2.fromValues(event.clientX, event.clientY);
     const worldStart = clientToWorld(clientStart, this.clipDepth);
     const pointerId = event.pointerId;
