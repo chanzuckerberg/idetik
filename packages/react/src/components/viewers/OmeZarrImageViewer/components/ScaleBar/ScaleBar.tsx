@@ -95,13 +95,12 @@ class ScaleBarOverlay {
 
     const cameraWidthWorld =
       orthoCamera.transform.scale[0] * orthoCamera.viewportSize[0];
-    const unitPerCanvasPixel = cameraWidthWorld / idetik.width;
+    const unitPerCanvasPixel = cameraWidthWorld / idetik.canvas.clientWidth;
 
     // The use of clientWidth assumes that containerDiv has no padding,
     // which is true in this case. If similar code is used elsewhere,
     // the lack of padding should be asserted and or enforced.
-    const containerWidth = containerDiv.clientWidth * window.devicePixelRatio;
-    const containerWidthWorld = containerWidth * unitPerCanvasPixel;
+    const containerWidthWorld = containerDiv.clientWidth * unitPerCanvasPixel;
 
     if (containerWidthWorld !== this.containerWidthWorld_) {
       this.containerWidthWorld_ = containerWidthWorld;
