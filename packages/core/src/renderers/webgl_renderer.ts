@@ -96,7 +96,9 @@ export class WebGLRenderer extends Renderer {
 
     if (object.wireframeEnabled) {
       this.bindings_.bindGeometry(object.wireframeGeometry);
-      const wireframeProgram = this.getShaderProgram({name: "wireframe"}).use();
+      const wireframeProgram = this.getShaderProgram({
+        name: "wireframe",
+      }).use();
       this.drawGeometry(
         object.wireframeGeometry,
         object,

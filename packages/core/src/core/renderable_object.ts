@@ -9,7 +9,7 @@ import { Shader } from "../renderers/shaders";
 export type ProgramProps = {
   name: Shader;
   fragmentDefines?: [string, string][];
-}
+};
 
 export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
@@ -45,7 +45,7 @@ export abstract class RenderableObject extends Node {
     this.wireframeGeometry_ = null;
   }
 
-  public get programProps(): ProgramProps{
+  public get programProps(): ProgramProps {
     if (this.programProps_ === null) {
       throw new Error("Program props not set");
     }

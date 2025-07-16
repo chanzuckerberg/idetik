@@ -12,7 +12,7 @@ type WebGLShaderProgramProps = {
   vertexShaderSource: string;
   fragmentShaderSource: string;
   fragmentShaderDefines?: [string, string][];
-}
+};
 
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
@@ -45,9 +45,7 @@ export class WebGLShaderProgram {
     defines?: [string, string][]
   ): string {
     const definesSource = defines
-      ? defines
-          .map(([key, value]) => `#define ${key} ${value}`)
-          .join("\n")
+      ? defines.map(([key, value]) => `#define ${key} ${value}`).join("\n")
       : "";
     return source.replace("#pragma inject_defines", definesSource);
   }

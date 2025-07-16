@@ -15,25 +15,26 @@ export type Shader =
   | "scalarImage"
   | "scalarImageArray";
 
-export const shaderCode: Record<Shader, { vertex: string; fragment: string; }> = {
-  projectedLine: {
-    vertex: projectedLineVertexShader,
-    fragment: projectedLineFragmentShader,
-  },
-  points: {
-    vertex: pointsVertexShader,
-    fragment: pointsFragmentShader,
-  },
-  wireframe: {
+export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
+  {
+    projectedLine: {
+      vertex: projectedLineVertexShader,
+      fragment: projectedLineFragmentShader,
+    },
+    points: {
+      vertex: pointsVertexShader,
+      fragment: pointsFragmentShader,
+    },
+    wireframe: {
       vertex: wireframeVertexShader,
       fragment: wireframeFragmentShader,
     },
-  scalarImage: {
-    vertex: meshVertexShader,
-    fragment: scalarImageFragmentShader,
-  },
-  scalarImageArray: {
-    vertex: meshVertexShader,
-    fragment: scalarImageArrayFragmentShader,
-  },
-};
+    scalarImage: {
+      vertex: meshVertexShader,
+      fragment: scalarImageFragmentShader,
+    },
+    scalarImageArray: {
+      vertex: meshVertexShader,
+      fragment: scalarImageArrayFragmentShader,
+    },
+  };
