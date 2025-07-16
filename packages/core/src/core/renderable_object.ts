@@ -8,7 +8,7 @@ import { Shader } from "../renderers/shaders";
 
 export type ProgramProps = {
   name: Shader;
-  fragmentDefines?: [string, string][];
+  fragmentDefines?: ReadonlyArray<[string, string]>;
 };
 
 export abstract class RenderableObject extends Node {
