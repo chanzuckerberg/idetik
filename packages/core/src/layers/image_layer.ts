@@ -156,6 +156,10 @@ export class ImageLayer extends Layer {
     return this.extent_;
   }
 
+  public get chunkManagerSource(): ChunkManagerSource | undefined {
+    return this.chunkManagerSource_;
+  }
+
   private createImage(chunk: ImageChunk, channelProps?: ChannelProps[]) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 

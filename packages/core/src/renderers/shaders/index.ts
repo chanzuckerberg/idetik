@@ -5,10 +5,13 @@ import scalarImageFragmentShader from "./scalar_image_frag.glsl";
 import scalarImageArrayFragmentShader from "./scalar_image_array_frag.glsl";
 import pointsVertexShader from "./points_vert.glsl";
 import pointsFragmentShader from "./points_frag.glsl";
+import wireframeVertexShader from "./wireframe_vert.glsl";
+import wireframeFragmentShader from "./wireframe_frag.glsl";
 
 export type Shader =
   | "projectedLine"
   | "points"
+  | "wireframe"
   | "floatImage"
   | "floatImageArray"
   | "intImage"
@@ -28,6 +31,10 @@ export const shaderCode: Record<
     vertex: pointsVertexShader,
     fragment: pointsFragmentShader,
   },
+  wireframe: {
+      vertex: wireframeVertexShader,
+      fragment: wireframeFragmentShader,
+    },
   // TODO: consolidate image shaders
   floatImage: {
     vertex: meshVertexShader,
