@@ -1,18 +1,20 @@
+import { ImageRenderableBase } from "./image_renderable_base";
+import { ScalarImageRenderable } from "./scalar_image_renderable";
+import { ArrayImageRenderable } from "./array_image_renderable";
+
 import { ImageChunk } from "../../data/image_chunk";
 import { PlaneGeometry } from "../geometry/plane_geometry";
 import { ChannelProps } from "../textures/channel";
 import { Texture2D } from "../textures/texture_2d";
 import { Texture2DArray } from "../textures/texture_2d_array";
-import { ArrayImageRenderable } from "./array_image_renderable";
-import { ScalarImageRenderable } from "./scalar_image_renderable";
 
 export function imageRenderableFromChunk(
   chunk: ImageChunk,
   channelProps?: ChannelProps[]
-) {
+): ImageRenderableBase {
   const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
-  let image: ScalarImageRenderable | ArrayImageRenderable;
+  let image: ImageRenderableBase;
 
   if (chunk.shape.c === 1) {
     const texture = Texture2D.createWithImageChunk(chunk);

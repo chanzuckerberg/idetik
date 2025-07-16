@@ -1,4 +1,4 @@
-import { RenderableObject } from "../../core/renderable_object";
+import { ImageRenderableBase } from "./image_renderable_base";
 import { Geometry } from "../../core/geometry";
 import { Texture2D } from "../../objects/textures/texture_2d";
 import {
@@ -7,7 +7,7 @@ import {
   validateChannel,
 } from "../../objects/textures/channel";
 
-export class ScalarImageRenderable extends RenderableObject {
+export class ScalarImageRenderable extends ImageRenderableBase {
   private channel_: Required<Channel>;
 
   constructor(

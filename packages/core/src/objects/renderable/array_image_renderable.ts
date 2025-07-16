@@ -1,4 +1,4 @@
-import { RenderableObject } from "../../core/renderable_object";
+import { ImageRenderableBase } from "./image_renderable_base";
 import { Geometry } from "../../core/geometry";
 import { Texture2DArray } from "../../objects/textures/texture_2d_array";
 import {
@@ -8,7 +8,7 @@ import {
   validateChannels,
 } from "../../objects/textures/channel";
 
-export class ArrayImageRenderable extends RenderableObject {
+export class ArrayImageRenderable extends ImageRenderableBase {
   private channels_: Required<Channel>[];
 
   constructor(

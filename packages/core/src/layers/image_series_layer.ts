@@ -9,9 +9,8 @@ import { Texture2D } from "../objects/textures/texture_2d";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
 import { ChannelProps } from "../objects/textures/channel";
-import { ScalarImageRenderable } from "../objects/renderable/scalar_image_renderable";
-import { ArrayImageRenderable } from "../objects/renderable/array_image_renderable";
-import { imageRenderableFromChunk } from "@/objects/renderable/image_renderable";
+import { imageRenderableFromChunk } from "../objects/renderable/image_renderable";
+import { ImageRenderableBase } from "../objects/renderable/image_renderable_base";
 
 export type ImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -54,7 +53,7 @@ export class ImageSeriesLayer extends Layer {
   private texture_: Texture2D | Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private channelProps_?: ChannelProps[];
-  private image_?: ScalarImageRenderable | ArrayImageRenderable;
+  private image_?: ImageRenderableBase;
   private extent_?: { x: number; y: number };
 
   // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default

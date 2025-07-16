@@ -5,8 +5,7 @@ import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps } from "../objects/textures/channel";
 import { imageRenderableFromChunk } from "../objects/renderable/image_renderable";
-import { ScalarImageRenderable } from "../objects/renderable/scalar_image_renderable";
-import { ArrayImageRenderable } from "../objects/renderable/array_image_renderable";
+import { ImageRenderableBase } from "../objects/renderable/image_renderable_base";
 import { Logger } from "../utilities/logger";
 
 export type ImageLayerProps = LayerOptions & {
@@ -26,12 +25,9 @@ export class ImageLayer extends Layer {
   private useChunkManager_: boolean;
   private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
-  private image_?: ScalarImageRenderable | ArrayImageRenderable;
+  private image_?: ImageRenderableBase;
   private extent_?: { x: number; y: number };
-  private visibleChunks_: Map<
-    ImageChunk,
-    ScalarImageRenderable | ArrayImageRenderable
-  > = new Map();
+  private visibleChunks_: Map<ImageChunk, ImageRenderableBase> = new Map();
   private readonly lod_?: number;
 
   // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
