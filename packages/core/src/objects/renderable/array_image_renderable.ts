@@ -9,6 +9,7 @@ import {
 } from "../../objects/textures/channel";
 
 export class ArrayImageRenderable extends ImageRenderableBase {
+  private texture_: Texture2DArray;
   private channels_: Required<Channel>[];
 
   constructor(
@@ -17,29 +18,20 @@ export class ArrayImageRenderable extends ImageRenderableBase {
     channels: ChannelProps[] = []
   ) {
     super();
-    if (geometry) {
-      this.geometry = geometry;
-    }
-    if (texture) {
-      this.addTexture(texture);
-    }
+    this.geometry = geometry;
+    this.texture_ = texture;
+    this.addTexture(texture);
     this.channels_ = validateChannels(texture, channels);
+    this.programName =
+      texture.dataType === "float" ? "floatImageArray" : "uintImageArray";
   }
 
   public get type() {
     return "ArrayImageRenderable";
   }
 
-  public addTexture(texture: Texture2DArray) {
-    super.addTexture(texture);
-    this.setProgramName();
-  }
-
   public setChannelProps(channels: ChannelProps[]) {
-    this.channels_ = validateChannels(
-      this.textures[0] as Texture2DArray,
-      channels
-    );
+    this.channels_ = validateChannels(this.texture_, channels);
   }
 
   public setChannelProperty<K extends keyof ChannelProps>(
@@ -47,7 +39,7 @@ export class ArrayImageRenderable extends ImageRenderableBase {
     property: K,
     value: Required<ChannelProps>[K]
   ) {
-    const newChannel = validateChannel(this.textures[0] as Texture2DArray, {
+    const newChannel = validateChannel(this.texture_, {
       ...this.channels_[channelIndex],
       [property]: value,
     });
@@ -55,10 +47,6 @@ export class ArrayImageRenderable extends ImageRenderableBase {
   }
 
   public override getUniforms() {
-    const texture = this.textures[0] as Texture2DArray;
-    if (!texture) {
-      throw new Error("No texture set");
-    }
     const visible: boolean[] = [];
     const color: number[] = [];
     const valueOffset: number[] = [];
@@ -79,14 +67,5 @@ export class ArrayImageRenderable extends ImageRenderableBase {
       "ValueOffset[0]": valueOffset,
       "ValueScale[0]": valueScale,
     };
-  }
-
-  private setProgramName() {
-    const texture = this.textures[0] as Texture2DArray;
-    if (!texture) {
-      throw new Error("un-textured image not implemented");
-    }
-    this.programName =
-      texture.dataType === "float" ? "floatImageArray" : "uintImageArray";
   }
 }

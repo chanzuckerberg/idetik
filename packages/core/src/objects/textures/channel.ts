@@ -17,7 +17,7 @@ export type ChannelProps = {
 };
 
 export function validateChannel(
-  texture: Texture | null,
+  texture: Texture,
   { visible, color, contrastLimits }: ChannelProps
 ): Channel {
   if (visible === undefined) {
@@ -28,15 +28,7 @@ export function validateChannel(
   } else {
     color = Color.from(color);
   }
-
-  if (texture !== null) {
-    contrastLimits = validateContrastLimits(contrastLimits, texture);
-  } else if (contrastLimits === undefined) {
-    console.debug(
-      "No texture provided, defaulting channel contrast limits to [0, 1]."
-    );
-    contrastLimits = [0, 1];
-  }
+  contrastLimits = validateContrastLimits(contrastLimits, texture);
   return {
     visible,
     color,
@@ -45,20 +37,18 @@ export function validateChannel(
 }
 
 export function validateChannels(
-  texture: Texture | null,
+  texture: Texture2DArray,
   channelProps: ChannelProps[]
 ): Channel[] {
   if (channelProps.length > MAX_CHANNELS) {
     throw new Error(`Maximum number of channels is ${MAX_CHANNELS}`);
   }
 
-  if (texture?.type === "Texture2DArray") {
-    const depth = (texture as Texture2DArray).depth;
-    if (channelProps.length !== depth) {
-      throw new Error(
-        `Number of channels (${channelProps.length}) must match depth of texture (${depth}).`
-      );
-    }
+  const depth = texture.depth;
+  if (channelProps.length !== depth) {
+    throw new Error(
+      `Number of channels (${channelProps.length}) must match depth of texture (${depth}).`
+    );
   }
 
   return channelProps.map((props) => validateChannel(texture, props));
