@@ -19,8 +19,8 @@ export class ArrayImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
 
   constructor(
-    geometry: Geometry | null,
-    texture: Texture2DArray | null = null,
+    geometry: Geometry,
+    texture: Texture2DArray,
     channels: ChannelProps[] = []
   ) {
     super();
@@ -46,7 +46,10 @@ export class ArrayImageRenderable extends RenderableObject {
   }
 
   public setChannelProps(channels: ChannelProps[]) {
-    this.channels_ = validateChannels(this.textures[0] as Texture2DArray, channels);
+    this.channels_ = validateChannels(
+      this.textures[0] as Texture2DArray,
+      channels
+    );
   }
 
   public setChannelProperty<K extends keyof ChannelProps>(
@@ -96,7 +99,7 @@ export class ArrayImageRenderable extends RenderableObject {
     if (!texture) {
       throw new Error("un-textured image not implemented");
     }
-    
+
     this.programName =
       texture.dataType === "float" ? "floatImageArray" : "uintImageArray";
   }

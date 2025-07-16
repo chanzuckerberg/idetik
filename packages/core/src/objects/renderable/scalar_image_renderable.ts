@@ -18,8 +18,8 @@ export class ScalarImageRenderable extends RenderableObject {
   private channel_: Required<Channel>;
 
   constructor(
-    geometry: Geometry | null,
-    texture: Texture2D | null = null,
+    geometry: Geometry,
+    texture: Texture2D,
     channelProps: ChannelProps = {}
   ) {
     super();
@@ -45,7 +45,10 @@ export class ScalarImageRenderable extends RenderableObject {
   }
 
   public setChannelProps(channelProps: ChannelProps) {
-    this.channel_ = validateChannel(this.textures[0] as Texture2D, channelProps);
+    this.channel_ = validateChannel(
+      this.textures[0] as Texture2D,
+      channelProps
+    );
   }
 
   public setChannelProperty<K extends keyof ChannelProps>(
@@ -79,7 +82,7 @@ export class ScalarImageRenderable extends RenderableObject {
     if (!texture) {
       throw new Error("un-textured image not implemented");
     }
-    
+
     this.programName =
       texture.dataType === "float" ? "floatImage" : "uintImage";
   }

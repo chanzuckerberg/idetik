@@ -4,11 +4,9 @@ import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps } from "../objects/textures/channel";
+import { imageRenderableFromChunk } from "../objects/renderable/image_renderable";
 import { ScalarImageRenderable } from "../objects/renderable/scalar_image_renderable";
 import { ArrayImageRenderable } from "../objects/renderable/array_image_renderable";
-import { Texture2D } from "../objects/textures/texture_2d";
-import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Logger } from "../utilities/logger";
 
 export type ImageLayerProps = LayerOptions & {
@@ -30,7 +28,10 @@ export class ImageLayer extends Layer {
   private channelProps_?: ChannelProps[];
   private image_?: ScalarImageRenderable | ArrayImageRenderable;
   private extent_?: { x: number; y: number };
-  private visibleChunks_: Map<ImageChunk, ScalarImageRenderable | ArrayImageRenderable> = new Map();
+  private visibleChunks_: Map<
+    ImageChunk,
+    ScalarImageRenderable | ArrayImageRenderable
+  > = new Map();
   private readonly lod_?: number;
 
   // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
@@ -95,7 +96,7 @@ export class ImageLayer extends Layer {
 
     currentChunks.forEach((chunk) => {
       if (chunk.state === "loaded" && !this.visibleChunks_.has(chunk)) {
-        const image = this.createImage(chunk, this.channelProps);
+        const image = imageRenderableFromChunk(chunk, this.channelProps);
         this.visibleChunks_.set(chunk, image);
         this.addObject(image);
       }
@@ -146,7 +147,7 @@ export class ImageLayer extends Layer {
       y: chunk.shape.y * chunk.scale.y,
     };
 
-    this.image_ = this.createImage(chunk, this.channelProps_);
+    this.image_ = imageRenderableFromChunk(chunk, this.channelProps_);
     this.addObject(this.image_);
 
     this.setState("ready");
@@ -160,23 +161,5 @@ export class ImageLayer extends Layer {
 
   public get chunkManagerSource(): ChunkManagerSource | undefined {
     return this.chunkManagerSource_;
-  }
-
-  private createImage(chunk: ImageChunk, channelProps?: ChannelProps[]) {
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-
-    let image: ScalarImageRenderable | ArrayImageRenderable;
-    
-    if (chunk.shape.c === 1) {
-      const texture = Texture2D.createWithImageChunk(chunk);
-      image = new ScalarImageRenderable(geometry, texture, channelProps?.[0]);
-    } else {
-      const texture = Texture2DArray.createWithImageChunk(chunk);
-      image = new ArrayImageRenderable(geometry, texture, channelProps);
-    }
-
-    image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
-    image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
-    return image;
   }
 }
