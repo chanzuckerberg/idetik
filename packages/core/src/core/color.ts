@@ -24,6 +24,17 @@ export class Color {
     return this.rgba_;
   }
 
+  public toPacked(): number {
+    const [r, g, b, a] = this.rgba_;
+    return (
+      ((Math.round(r * 255) << 24) |
+        (Math.round(g * 255) << 16) |
+        (Math.round(b * 255) << 8) |
+        Math.round(a * 255)) >>>
+      0
+    );
+  }
+
   public get r(): number {
     return this.rgba_[0];
   }

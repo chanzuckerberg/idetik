@@ -2,17 +2,18 @@
 
 precision mediump float;
 
+precision highp int;
+
 layout (location = 0) out vec4 fragColor;
 
 // SAMPLER_TYPE must be defined by the application using this shader.
-uniform mediump SAMPLER_TYPE texture0;
+uniform highp SAMPLER_TYPE texture0;
+
+uniform highp usampler2D texture1;
 
 #define MAX_COLORS 32u
 uniform vec4 ColorCycle[MAX_COLORS];
 uniform uint ColorCycleLength;
-uniform uint ColorOverridesKeys[MAX_COLORS];
-uniform vec4 ColorOverridesValues[MAX_COLORS];
-uniform uint ColorOverridesLength;
 
 uniform float u_opacity;
 
@@ -26,11 +27,23 @@ uint castToUint(int value) {
     return uint(abs(value));
 }
 
+vec4 unpackRgba(uint packed) {
+    uint r = (packed >> 24u) & 0xFFu;
+    uint g = (packed >> 16u) & 0xFFu;
+    uint b = (packed >> 8u) & 0xFFu;
+    uint a = packed & 0xFFu;
+    return vec4(0.0, 0.0, float(b), float(a)) / 255.0;
+}
+
 void main() {
     uint texel = castToUint(texture(texture0, TexCoords).r);
-    for (uint i = 0u; i < ColorOverridesLength; ++i) {
-        if (texel == ColorOverridesKeys[i]) {
-            fragColor = vec4(ColorOverridesValues[i].rgb, u_opacity * ColorOverridesValues[i].a);
+    uint numColors = uint(textureSize(texture1, 0).x);
+    for (uint i = 0u; i < numColors; ++i) {
+        uint key = texelFetch(texture1, ivec2(i, 0), 0).r;
+        if (texel == key) {
+            uint value = texelFetch(texture1, ivec2(i, 1), 0).r;
+            vec4 color = unpackRgba(value);
+            fragColor = vec4(color.rgb, u_opacity * color.a);
             return;
         }
     }

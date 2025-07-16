@@ -68,6 +68,11 @@ export class WebGLShaderProgram {
           this.gl_.uniform1fv(location, value as Iterable<number>);
         }
         break;
+      case this.gl_.SAMPLER_2D:
+      case this.gl_.INT_SAMPLER_2D:
+      case this.gl_.UNSIGNED_INT_SAMPLER_2D:
+        this.gl_.uniform1i(location, value as number);
+        break;
       case this.gl_.UNSIGNED_INT:
         if (typeof value === "number") {
           this.gl_.uniform1ui(location, value);
@@ -102,12 +107,10 @@ export class WebGLShaderProgram {
     for (let i = 0; i < numUniforms; i++) {
       const info = this.gl_.getActiveUniform(this.program_, i);
       if (info) {
-        if (SAMPLER_TYPES.has(info.type)) {
-          // texture samplers are also uniforms, but they are handled separately
-          continue;
-        }
-
-        if (!SUPPORTED_UNIFORM_TYPES.has(info.type)) {
+        if (
+          !SAMPLER_TYPES.has(info.type) &&
+          !SUPPORTED_UNIFORM_TYPES.has(info.type)
+        ) {
           throw new Error(
             `Unsupported uniform type "${info.type}" (GLenum) found in shader program for uniform "${info.name}"`
           );
@@ -218,6 +221,9 @@ const SUPPORTED_UNIFORM_TYPES_ =
         WebGL2RenderingContext.FLOAT_VEC4,
         WebGL2RenderingContext.FLOAT_MAT4,
         WebGL2RenderingContext.UNSIGNED_INT,
+        WebGL2RenderingContext.SAMPLER_2D,
+        WebGL2RenderingContext.INT_SAMPLER_2D,
+        WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D,
       ]
     : [];
 type SupportedUniformType = (typeof SUPPORTED_UNIFORM_TYPES_)[GLenum];

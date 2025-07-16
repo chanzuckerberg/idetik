@@ -23,13 +23,19 @@ export class WebGLTextures {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
+    console.log(
+      "WebGLTextures initialized with WebGL2 context:",
+      gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS
+    );
   }
 
-  public bindTexture(texture: Texture) {
+  public bindTexture(texture: Texture, index: number = 0) {
     if (this.alreadyActive(texture)) return;
 
     const textureType = this.getTextureType(texture);
     const info = this.getDataFormatInfo(texture.dataFormat, texture.dataType);
+
+    this.gl_.activeTexture(this.gl_.TEXTURE0 + index);
 
     if (!this.textures_.has(texture)) {
       this.generateTexture(texture, info, textureType);
