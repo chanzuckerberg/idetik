@@ -1,6 +1,6 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
-import { Texture } from "../../objects/textures/texture";
+import { Texture, TextureDataType } from "../../objects/textures/texture";
 import {
   Channel,
   ChannelProps,
@@ -21,6 +21,15 @@ type ArrayUniformValues = {
   "ValueOffset[0]": number[];
   "ValueScale[0]": number[];
 };
+
+const dataTypeToFragmentDefines: Map<TextureDataType, [string, string][]> = new Map([
+  ["byte", [["SCALAR_TYPE_INT", "1"]]],
+  ["int", [["SCALAR_TYPE_INT", "1"]]],
+  ["short", [["SCALAR_TYPE_INT", "1"]]],
+  ["unsigned_byte", [["SCALAR_TYPE_UINT", "1"]]],
+  ["unsigned_int", [["SCALAR_TYPE_UINT", "1"]]],
+  ["unsigned_short", [["SCALAR_TYPE_UINT", "1"]]],
+]);
 
 export class ImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
@@ -49,7 +58,7 @@ export class ImageRenderable extends RenderableObject {
 
   public addTexture(texture: Texture) {
     super.addTexture(texture);
-    this.setProgramName();
+    this.updateProgramProps();
   }
 
   public setChannelProps(channels: ChannelProps[]) {
@@ -109,42 +118,13 @@ export class ImageRenderable extends RenderableObject {
     }
   }
 
-  private setProgramName() {
+  private updateProgramProps() {
     const texture = this.textures[0];
     if (!texture) {
       throw new Error("un-textured image not implemented");
-    } else if (texture.type == "Texture2D") {
-      if (
-        texture.dataType == "byte" ||
-        texture.dataType == "int" ||
-        texture.dataType == "short"
-      ) {
-        this.programName = "intImage";
-      } else if (
-        texture.dataType == "unsigned_byte" ||
-        texture.dataType == "unsigned_int" ||
-        texture.dataType == "unsigned_short"
-      ) {
-        this.programName = "uintImage";
-      } else {
-        this.programName = "floatImage";
-      }
-    } else if (texture.type == "Texture2DArray") {
-      if (
-        texture.dataType == "byte" ||
-        texture.dataType == "int" ||
-        texture.dataType == "short"
-      ) {
-        this.programName = "intImageArray";
-      } else if (
-        texture.dataType == "unsigned_byte" ||
-        texture.dataType == "unsigned_int" ||
-        texture.dataType == "unsigned_short"
-      ) {
-        this.programName = "uintImageArray";
-      } else {
-        this.programName = "floatImageArray";
-      }
     }
+    const name = texture.type === "Texture2D" ? "scalarImage" : "scalarImageArray";
+    const fragmentDefines = dataTypeToFragmentDefines.get(texture.dataType) ?? [];
+    this.programProps = {name, fragmentDefines};
   }
 }

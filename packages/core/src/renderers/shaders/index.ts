@@ -12,17 +12,10 @@ export type Shader =
   | "projectedLine"
   | "points"
   | "wireframe"
-  | "floatImage"
-  | "floatImageArray"
-  | "intImage"
-  | "intImageArray"
-  | "uintImage"
-  | "uintImageArray";
+  | "scalarImage"
+  | "scalarImageArray";
 
-export const shaderCode: Record<
-  Shader,
-  { vertex: string; fragment: string; fragmentDefines?: Map<string, string> }
-> = {
+export const shaderCode: Record<Shader, { vertex: string; fragment: string; }> = {
   projectedLine: {
     vertex: projectedLineVertexShader,
     fragment: projectedLineFragmentShader,
@@ -35,33 +28,12 @@ export const shaderCode: Record<
       vertex: wireframeVertexShader,
       fragment: wireframeFragmentShader,
     },
-  // TODO: consolidate image shaders
-  floatImage: {
+  scalarImage: {
     vertex: meshVertexShader,
     fragment: scalarImageFragmentShader,
   },
-  floatImageArray: {
+  scalarImageArray: {
     vertex: meshVertexShader,
     fragment: scalarImageArrayFragmentShader,
-  },
-  intImage: {
-    vertex: meshVertexShader,
-    fragment: scalarImageFragmentShader,
-    fragmentDefines: new Map<string, string>([["SCALAR_TYPE_INT", "1"]]),
-  },
-  intImageArray: {
-    vertex: meshVertexShader,
-    fragment: scalarImageArrayFragmentShader,
-    fragmentDefines: new Map<string, string>([["SCALAR_TYPE_INT", "1"]]),
-  },
-  uintImage: {
-    vertex: meshVertexShader,
-    fragment: scalarImageFragmentShader,
-    fragmentDefines: new Map<string, string>([["SCALAR_TYPE_UINT", "1"]]),
-  },
-  uintImageArray: {
-    vertex: meshVertexShader,
-    fragment: scalarImageArrayFragmentShader,
-    fragmentDefines: new Map<string, string>([["SCALAR_TYPE_UINT", "1"]]),
   },
 };

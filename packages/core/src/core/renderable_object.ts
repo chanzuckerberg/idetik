@@ -6,13 +6,18 @@ import { TrsTransform } from "../core/transforms";
 
 import { Shader } from "../renderers/shaders";
 
+export type ProgramProps = {
+  name: Shader;
+  fragmentDefines?: [string, string][];
+}
+
 export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
   private readonly textures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();
   private geometry_ = new Geometry();
   private wireframeGeometry_: WireframeGeometry | null = null;
-  private programName_: Shader | null = null;
+  private programProps_: ProgramProps | null = null;
 
   public addTexture(texture: Texture) {
     this.textures_.push(texture);
@@ -40,15 +45,15 @@ export abstract class RenderableObject extends Node {
     this.wireframeGeometry_ = null;
   }
 
-  public get programName(): Shader {
-    if (this.programName_ === null) {
-      throw new Error("Program name not set");
+  public get programProps(): ProgramProps{
+    if (this.programProps_ === null) {
+      throw new Error("Program props not set");
     }
-    return this.programName_;
+    return this.programProps_;
   }
 
-  protected set programName(programName: Shader) {
-    this.programName_ = programName;
+  protected set programProps(programProps: ProgramProps) {
+    this.programProps_ = programProps;
   }
 
   /**

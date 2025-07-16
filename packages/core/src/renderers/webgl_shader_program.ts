@@ -7,6 +7,13 @@ type ShaderMap = {
   };
 };
 
+type WebGLShaderProgramProps = {
+  gl: WebGL2RenderingContext;
+  vertexShaderSource: string;
+  fragmentShaderSource: string;
+  fragmentShaderDefines?: [string, string][];
+}
+
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
   private readonly program_: WebGLProgram;
@@ -14,36 +21,31 @@ export class WebGLShaderProgram {
     new Map();
   private shaders_: ShaderMap = {};
 
-  constructor(
-    gl: WebGL2RenderingContext,
-    vertexShaderSource: string,
-    fragmentShaderSource: string,
-    fragmentShaderDefines?: Map<string, string>
-  ) {
-    this.gl_ = gl;
+  constructor(props: WebGLShaderProgramProps) {
+    this.gl_ = props.gl;
 
-    const program = gl.createProgram();
+    const program = this.gl_.createProgram();
     if (!program) {
       throw new Error(`Failed to create WebGL shader program`);
     }
     this.program_ = program;
 
-    fragmentShaderSource = this.replaceSourceDefines(
-      fragmentShaderSource,
-      fragmentShaderDefines
+    const fragmentShaderSource = this.replaceSourceDefines(
+      props.fragmentShaderSource,
+      props.fragmentShaderDefines
     );
 
-    this.addShader(vertexShaderSource, gl.VERTEX_SHADER);
-    this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
+    this.addShader(props.vertexShaderSource, this.gl_.VERTEX_SHADER);
+    this.addShader(fragmentShaderSource, this.gl_.FRAGMENT_SHADER);
     this.link();
   }
 
   private replaceSourceDefines(
     source: string,
-    defines?: Map<string, string>
+    defines?: [string, string][]
   ): string {
     const definesSource = defines
-      ? Array.from(defines.entries())
+      ? defines
           .map(([key, value]) => `#define ${key} ${value}`)
           .join("\n")
       : "";
