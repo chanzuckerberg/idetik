@@ -11,7 +11,7 @@ type WebGLShaderProgramProps = {
   gl: WebGL2RenderingContext;
   vertexShaderSource: string;
   fragmentShaderSource: string;
-  fragmentShaderDefines?: [string, string][];
+  fragmentShaderDefines?: ReadonlyArray<[string, string]>;
 };
 
 export class WebGLShaderProgram {
@@ -42,7 +42,7 @@ export class WebGLShaderProgram {
 
   private replaceSourceDefines(
     source: string,
-    defines?: [string, string][]
+    defines?: ReadonlyArray<[string, string]>
   ): string {
     const definesSource = defines
       ? defines.map(([key, value]) => `#define ${key} ${value}`).join("\n")
