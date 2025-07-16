@@ -10,10 +10,7 @@ layout (location = 0) out vec4 fragColor;
 uniform highp SAMPLER_TYPE texture0;
 
 uniform highp usampler2D texture1;
-
-#define MAX_COLORS 32u
-uniform vec4 ColorCycle[MAX_COLORS];
-uniform uint ColorCycleLength;
+uniform highp usampler2D texture2;
 
 uniform float u_opacity;
 
@@ -32,11 +29,14 @@ vec4 unpackRgba(uint packed) {
     uint g = (packed >> 16u) & 0xFFu;
     uint b = (packed >> 8u) & 0xFFu;
     uint a = packed & 0xFFu;
-    return vec4(0.0, 0.0, float(b), float(a)) / 255.0;
+    return vec4(r, g, float(b), float(a)) / 255.0;
 }
 
 void main() {
+    // TODO: actually support signed integers...
     uint texel = castToUint(texture(texture0, TexCoords).r);
+
+    // Check for color overrides
     uint numColors = uint(textureSize(texture1, 0).x);
     for (uint i = 0u; i < numColors; ++i) {
         uint key = texelFetch(texture1, ivec2(i, 0), 0).r;
@@ -47,7 +47,12 @@ void main() {
             return;
         }
     }
-    uint index = (texel - 1u) % ColorCycleLength;
-    vec4 color = ColorCycle[index];
+    
+    // Otherwise, use the color cycle
+    uint cycleLength = uint(textureSize(texture2, 0).x);
+    uint index = (texel - 1u) % cycleLength;
+    uint value = texelFetch(texture2, ivec2(index, 0), 0).r;
+    vec4 color = unpackRgba(value);
     fragColor = vec4(color.rgb, u_opacity * color.a);
+    // fragColor = vec4(1.0, 0.0, 0.0, u_opacity);
 }

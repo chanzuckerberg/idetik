@@ -16,10 +16,6 @@ const dataTypeToProgramName: Map<TextureDataType, Shader> = new Map([
 ]);
 
 export class LabelRenderable extends RenderableObject {
-  private readonly colorCycle_: Color[];
-  private readonly colorOverrides_: Map<number, Color>;
-  private colorOverridesTexture_: Texture2D;
-
   constructor(
     geometry: Geometry,
     texture: Texture,
@@ -29,10 +25,10 @@ export class LabelRenderable extends RenderableObject {
     super();
     this.geometry = geometry;
     this.addTexture(texture);
-    this.colorCycle_ = colorCycle;
-    this.colorOverrides_ = colorOverrides;
-    this.colorOverridesTexture_ = this.makeColorOverrideTexture();
-    this.addTexture(this.colorOverridesTexture_);
+    const colorOverridesTexture = this.makeColorOverrideTexture(colorOverrides);
+    this.addTexture(colorOverridesTexture);
+    const colorCycleTexture = this.makeColorCycleTexture(colorCycle);
+    this.addTexture(colorCycleTexture);
   }
 
   public get type() {
@@ -45,34 +41,39 @@ export class LabelRenderable extends RenderableObject {
   }
 
   public getUniforms() {
-    // TODO: assert that color arrays does not exceed max allowed length;
     return {
       texture0: 0,
       texture1: 1,
-      "ColorCycle[0]": this.colorCycle_.map((c) => c.rgba).flat(),
-      ColorCycleLength: this.colorCycle_.length,
+      texture2: 2,
     };
   }
 
-  private makeColorOverrideTexture() {
-    const keys = Array.from(this.colorOverrides_.keys());
-    const values = Array.from(this.colorOverrides_.values()).map((c) =>
-      c.toPacked()
-    );
-    console.log("keys:", keys);
-    console.log("values:", values);
-    const numColors = this.colorOverrides_.size;
+  private makeColorCycleTexture(colorCycle: Color[]) {
+    const data = new Uint32Array(colorCycle.map((c) => c.toPacked()));
+    const texture = new Texture2D(data, data.length, 1);
+    texture.unpackRowLength = data.length;
+    texture.unpackAlignment = 4;
+    texture.wrapR = "repeat";
+    texture.wrapS = "repeat";
+    texture.wrapT = "repeat";
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  private makeColorOverrideTexture(colorOverrides: Map<number, Color>) {
+    const keys = Array.from(colorOverrides.keys());
+    const values = Array.from(colorOverrides.values()).map((c) => c.toPacked());
+    const numColors = colorOverrides.size;
     const data = new Uint32Array(numColors * 2);
     data.set(keys, 0);
     data.set(values, numColors);
     const texture = new Texture2D(data, numColors, 2);
     texture.unpackRowLength = numColors;
-    texture.unpackAlignment = 1;
+    texture.unpackAlignment = 4;
     texture.wrapR = "clamp_to_edge";
     texture.wrapS = "clamp_to_edge";
     texture.wrapT = "clamp_to_edge";
     texture.needsUpdate = true;
-    console.log("texture:", texture);
     return texture;
   }
 
