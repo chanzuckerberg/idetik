@@ -5,10 +5,12 @@ import {
   ImageChunkLoader,
   ImageChunkSource,
 } from "../data/image_chunk";
+import { Texture2D } from "../objects/textures/texture_2d";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
 import { ChannelProps } from "../objects/textures/channel";
-import { ImageRenderable } from "../objects/renderable/image_renderable";
+import { ScalarImageRenderable } from "../objects/renderable/scalar_image_renderable";
+import { ArrayImageRenderable } from "../objects/renderable/array_image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 
 export type ImageSeriesLayerProps = LayerOptions & {
@@ -49,10 +51,10 @@ export class ImageSeriesLayer extends Layer {
   private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
-  private texture_: Texture2DArray | null = null;
+  private texture_: Texture2D | Texture2DArray | null = null;
   private dataChunks_: ImageChunk[] = [];
   private channelProps_?: ChannelProps[];
-  private image_?: ImageRenderable;
+  private image_?: ScalarImageRenderable | ArrayImageRenderable;
   private extent_?: { x: number; y: number };
 
   // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
@@ -163,8 +165,13 @@ export class ImageSeriesLayer extends Layer {
 
   private setData(chunk: ImageChunk) {
     if (!this.texture_ || !this.image_) {
-      this.texture_ = Texture2DArray.createWithImageChunk(chunk);
-      this.image_ = this.createImage(chunk, this.texture_, this.channelProps_);
+      if (chunk.shape.c === 1) {
+        this.texture_ = Texture2D.createWithImageChunk(chunk);
+        this.image_ = this.createImage(chunk, this.texture_, this.channelProps_);
+      } else {
+        this.texture_ = Texture2DArray.createWithImageChunk(chunk);
+        this.image_ = this.createImage(chunk, this.texture_, this.channelProps_);
+      }
       this.addObject(this.image_);
 
       // extent does not change after renderable creation
@@ -283,11 +290,18 @@ export class ImageSeriesLayer extends Layer {
 
   private createImage(
     chunk: ImageChunk,
-    texture: Texture2DArray,
+    texture: Texture2D | Texture2DArray,
     channelProps?: ChannelProps[]
   ) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-    const image = new ImageRenderable(geometry, texture, channelProps);
+    
+    let image: ScalarImageRenderable | ArrayImageRenderable;
+    if (texture.type === "Texture2D") {
+      image = new ScalarImageRenderable(geometry, texture as Texture2D, channelProps?.[0]);
+    } else {
+      image = new ArrayImageRenderable(geometry, texture as Texture2DArray, channelProps);
+    }
+    
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
