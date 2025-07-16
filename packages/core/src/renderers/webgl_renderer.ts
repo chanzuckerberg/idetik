@@ -11,7 +11,7 @@ import { LayerManager } from "../core/layer_manager";
 import { Camera } from "../objects/cameras/camera";
 import { WebGLState } from "./WebGLState";
 import { RenderableObject } from "../core/renderable_object";
-import { Primitive } from "../core/geometry";
+import { Geometry, Primitive } from "../core/geometry";
 
 import { mat4 } from "gl-matrix";
 
@@ -92,14 +92,24 @@ export class WebGLRenderer extends Renderer {
     });
 
     const program = this.getShaderProgram(object.programName).use();
-    this.drawObject(layer, object, program);
+    this.drawGeometry(object.geometry, object, layer, program);
 
-    // TODO: If "wireframe on shaded" call draw object with different parameters
+    if (object.wireframeEnabled) {
+      this.bindings_.bindGeometry(object.wireframeGeometry);
+      const wireframeProgram = this.getShaderProgram("wireframe").use();
+      this.drawGeometry(
+        object.wireframeGeometry,
+        object,
+        layer,
+        wireframeProgram
+      );
+    }
   }
 
-  private drawObject(
-    layer: Layer,
+  private drawGeometry(
+    geometry: Geometry,
     object: RenderableObject,
+    layer: Layer,
     program: WebGLShaderProgram
   ) {
     const modelView = mat4.multiply(
@@ -136,21 +146,23 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
-    const primitive = this.getGLPrimitve(object.geometry.primitive);
-    const index = object.geometry.indexData;
+    const primitive = this.glGetPrimitive(geometry.primitive);
+    const index = geometry.indexData;
     if (index.length) {
       this.gl.drawElements(primitive, index.length, this.gl.UNSIGNED_INT, 0);
     } else {
-      this.gl.drawArrays(primitive, 0, object.geometry.vertexCount);
+      this.gl.drawArrays(primitive, 0, geometry.vertexCount);
     }
   }
 
-  private getGLPrimitve(type: Primitive) {
+  private glGetPrimitive(type: Primitive) {
     switch (type) {
       case "points":
         return this.gl.POINTS;
       case "triangles":
         return this.gl.TRIANGLES;
+      case "lines":
+        return this.gl.LINES;
       default: {
         const exhaustiveCheck: never = type;
         throw new Error(`Unknown Primitive type: ${exhaustiveCheck}`);

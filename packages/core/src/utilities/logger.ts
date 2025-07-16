@@ -17,7 +17,7 @@ const Colors = {
 // Add new module names here as needed to represent different parts of the application
 type Module =
   | "ChunkManager"
-  | "Geometry"
+  | "WireframeGeometry"
   | "Idetik"
   | "ImageLayer"
   | "WebGLRenderer"
