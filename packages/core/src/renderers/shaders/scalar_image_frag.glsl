@@ -1,11 +1,17 @@
 #version 300 es
+#pragma inject_defines
 
 precision mediump float;
 
 layout (location = 0) out vec4 fragColor;
 
-// SAMPLER_TYPE must be defined by the application using this shader.
-uniform mediump SAMPLER_TYPE texture0;
+#if defined SCALAR_TYPE_INT
+uniform mediump isampler2D texture0;
+#elif defined SCALAR_TYPE_UINT
+uniform mediump usampler2D texture0;
+#else
+uniform mediump sampler2D texture0;
+#endif
 
 uniform vec3 Color;
 uniform float ValueOffset;

@@ -42,11 +42,12 @@ export class WebGLShaderProgram {
     source: string,
     defines?: Map<string, string>
   ): string {
-    if (!defines) return source;
-    for (const [key, value] of defines) {
-      source = source.replace(key, value);
-    }
-    return source;
+    const definesSource = defines
+      ? Array.from(defines.entries())
+          .map(([key, value]) => `#define ${key} ${value}`)
+          .join("\n")
+      : "";
+    return source.replace("#pragma inject_defines", definesSource);
   }
 
   public setUniform(name: string, value: unknown) {

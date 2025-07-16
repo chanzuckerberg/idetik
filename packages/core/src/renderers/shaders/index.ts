@@ -32,37 +32,29 @@ export const shaderCode: Record<
   floatImage: {
     vertex: meshVertexShader,
     fragment: scalarImageFragmentShader,
-    fragmentDefines: new Map<string, string>([["SAMPLER_TYPE", "sampler2D"]]),
   },
   floatImageArray: {
     vertex: meshVertexShader,
     fragment: scalarImageArrayFragmentShader,
-    fragmentDefines: new Map<string, string>([
-      ["SAMPLER_TYPE", "sampler2DArray"],
-    ]),
   },
   intImage: {
     vertex: meshVertexShader,
     fragment: scalarImageFragmentShader,
-    fragmentDefines: new Map<string, string>([["SAMPLER_TYPE", "isampler2D"]]),
+    fragmentDefines: new Map<string, string>([["SCALAR_TYPE_INT", "1"]]),
   },
   intImageArray: {
     vertex: meshVertexShader,
     fragment: scalarImageArrayFragmentShader,
-    fragmentDefines: new Map<string, string>([
-      ["SAMPLER_TYPE", "isampler2DArray"],
-    ]),
+    fragmentDefines: new Map<string, string>([["SCALAR_TYPE_INT", "1"]]),
   },
   uintImage: {
     vertex: meshVertexShader,
     fragment: scalarImageFragmentShader,
-    fragmentDefines: new Map<string, string>([["SAMPLER_TYPE", "usampler2D"]]),
+    fragmentDefines: new Map<string, string>([["SCALAR_TYPE_UINT", "1"]]),
   },
   uintImageArray: {
     vertex: meshVertexShader,
     fragment: scalarImageArrayFragmentShader,
-    fragmentDefines: new Map<string, string>([
-      ["SAMPLER_TYPE", "usampler2DArray"],
-    ]),
+    fragmentDefines: new Map<string, string>([["SCALAR_TYPE_UINT", "1"]]),
   },
 };
