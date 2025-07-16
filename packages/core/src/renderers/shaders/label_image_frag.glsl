@@ -50,8 +50,9 @@ void main() {
     
     // Otherwise, use the color cycle
     uint cycleLength = uint(textureSize(texture2, 0).x);
-    uint index = (texel - 1u) % cycleLength;
-    uint value = texelFetch(texture2, ivec2(index, 0), 0).r;
+    // Add 0.5 to define a centered coordinate.
+    float coord = (float(texel) + 0.5) / float(cycleLength);
+    uint value = texture(texture2, vec2(coord, 0.5)).r;
     vec4 color = unpackRgba(value);
     fragColor = vec4(color.rgb, u_opacity * color.a);
     // fragColor = vec4(1.0, 0.0, 0.0, u_opacity);
