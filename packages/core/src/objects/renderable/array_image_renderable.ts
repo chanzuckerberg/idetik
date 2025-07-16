@@ -8,13 +8,6 @@ import {
   validateChannels,
 } from "../../objects/textures/channel";
 
-type ArrayUniformValues = {
-  "Visible[0]": boolean[];
-  "Color[0]": number[];
-  "ValueOffset[0]": number[];
-  "ValueScale[0]": number[];
-};
-
 export class ArrayImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
 
@@ -24,15 +17,12 @@ export class ArrayImageRenderable extends RenderableObject {
     channels: ChannelProps[] = []
   ) {
     super();
-
     if (geometry) {
       this.geometry = geometry;
     }
-
     if (texture) {
       this.addTexture(texture);
     }
-
     this.channels_ = validateChannels(texture, channels);
   }
 
@@ -61,22 +51,19 @@ export class ArrayImageRenderable extends RenderableObject {
       ...this.channels_[channelIndex],
       [property]: value,
     });
-
     this.channels_[channelIndex] = newChannel;
   }
 
-  public override getUniforms(): ArrayUniformValues {
+  public override getUniforms() {
     const texture = this.textures[0] as Texture2DArray;
     if (!texture) {
       throw new Error("No texture set");
     }
-
     const visible: boolean[] = [];
     const color: number[] = [];
     const valueOffset: number[] = [];
     const valueScale: number[] = [];
 
-    // All channels (including defaults) are already in this.channels_
     this.channels_.forEach((channel) => {
       visible.push(channel.visible);
       color.push(...channel.color.rgb);
@@ -99,7 +86,6 @@ export class ArrayImageRenderable extends RenderableObject {
     if (!texture) {
       throw new Error("un-textured image not implemented");
     }
-
     this.programName =
       texture.dataType === "float" ? "floatImageArray" : "uintImageArray";
   }

@@ -6,13 +6,6 @@ import {
   ChannelProps,
   validateChannel,
 } from "../../objects/textures/channel";
-import { vec3 } from "gl-matrix";
-
-type SingleUniformValues = {
-  Color: vec3;
-  ValueOffset: number;
-  ValueScale: number;
-};
 
 export class ScalarImageRenderable extends RenderableObject {
   private channel_: Required<Channel>;
@@ -23,15 +16,12 @@ export class ScalarImageRenderable extends RenderableObject {
     channelProps: ChannelProps = {}
   ) {
     super();
-
     if (geometry) {
       this.geometry = geometry;
     }
-
     if (texture) {
       this.addTexture(texture);
     }
-
     this.channel_ = validateChannel(texture, channelProps);
   }
 
@@ -59,16 +49,14 @@ export class ScalarImageRenderable extends RenderableObject {
       ...this.channel_,
       [property]: value,
     });
-
     this.channel_ = newChannel;
   }
 
-  public override getUniforms(): SingleUniformValues {
+  public override getUniforms() {
     const texture = this.textures[0] as Texture2D;
     if (!texture) {
       throw new Error("No texture set");
     }
-
     const { color, contrastLimits } = this.channel_;
     return {
       Color: color.rgb,
@@ -82,7 +70,6 @@ export class ScalarImageRenderable extends RenderableObject {
     if (!texture) {
       throw new Error("un-textured image not implemented");
     }
-
     this.programName =
       texture.dataType === "float" ? "floatImage" : "uintImage";
   }
