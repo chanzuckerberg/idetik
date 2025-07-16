@@ -55,5 +55,4 @@ void main() {
     uint value = texture(texture2, vec2(coord, 0.5)).r;
     vec4 color = unpackRgba(value);
     fragColor = vec4(color.rgb, u_opacity * color.a);
-    // fragColor = vec4(1.0, 0.0, 0.0, u_opacity);
 }
