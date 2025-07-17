@@ -4,6 +4,7 @@ import { Color } from "../../core/color";
 import { RenderableObject } from "../../core/renderable_object";
 import { Texture2DArray } from "../textures/texture_2d_array";
 import { Geometry } from "../../core/geometry";
+import { Program } from "../../renderers/shaders";
 
 // TODO: add a border (or "secondary") color to improve contrast against background
 type PointProperties = {
@@ -18,7 +19,7 @@ export class Points extends RenderableObject {
 
   constructor(points: PointProperties[], markerAtlas: Texture2DArray) {
     super();
-    this.programProps = { name: "points" };
+    this.program = new Program({ name: "points" });
     this.atlas_ = markerAtlas;
 
     points.forEach((point) => {

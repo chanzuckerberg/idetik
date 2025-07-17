@@ -1,6 +1,6 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
-import { Texture, TextureDataType } from "../../objects/textures/texture";
+import { Texture } from "../../objects/textures/texture";
 import {
   Channel,
   ChannelProps,
@@ -8,6 +8,7 @@ import {
   validateChannels,
 } from "../../objects/textures/channel";
 import { vec3 } from "gl-matrix";
+import { Program } from "@/renderers/shaders";
 
 type SingleUniformValues = {
   Color: vec3;
@@ -21,18 +22,6 @@ type ArrayUniformValues = {
   "ValueOffset[0]": number[];
   "ValueScale[0]": number[];
 };
-
-const dataTypeToFragmentDefines: ReadonlyMap<
-  TextureDataType,
-  ReadonlyArray<[string, string]>
-> = new Map([
-  ["byte", [["SCALAR_TYPE_INT", "1"]]],
-  ["int", [["SCALAR_TYPE_INT", "1"]]],
-  ["short", [["SCALAR_TYPE_INT", "1"]]],
-  ["unsigned_byte", [["SCALAR_TYPE_UINT", "1"]]],
-  ["unsigned_int", [["SCALAR_TYPE_UINT", "1"]]],
-  ["unsigned_short", [["SCALAR_TYPE_UINT", "1"]]],
-]);
 
 export class ImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
@@ -126,9 +115,9 @@ export class ImageRenderable extends RenderableObject {
     if (!texture) {
       throw new Error("un-textured image not implemented");
     }
-    const name =
-      texture.type === "Texture2D" ? "scalarImage" : "scalarImageArray";
-    const fragmentDefines = dataTypeToFragmentDefines.get(texture.dataType);
-    this.programProps = { name, fragmentDefines };
+    this.program = new Program({
+      name: texture.type === "Texture2D" ? "scalarImage" : "scalarImageArray",
+      textureDataType: texture.dataType,
+    });
   }
 }

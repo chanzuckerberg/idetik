@@ -1,19 +1,9 @@
-import { ProgramProps, shaderCode } from "./shaders";
+import { Program, ProgramDefine, shaderCode } from "./shaders";
 import { WebGLShaderProgram } from "./webgl_shader_program";
-
-function programKey(props: ProgramProps): string {
-  const vertexDefines = props.vertexDefines
-    ? props.vertexDefines.join(",")
-    : "";
-  const fragmentDefines = props.fragmentDefines
-    ? props.fragmentDefines.join(",")
-    : "";
-  return `${props.name}:${vertexDefines}:${fragmentDefines}`;
-}
 
 function replaceSourceDefines(
   source: string,
-  defines?: ReadonlyArray<[string, string]>
+  defines?: ReadonlyArray<[ProgramDefine, string]>
 ): string {
   const definesSource = defines
     ? defines.map(([key, value]) => `#define ${key} ${value}`).join("\n")
@@ -29,18 +19,18 @@ export class WebGLShaderPrograms {
     this.gl_ = gl;
   }
 
-  public get(props: ProgramProps): WebGLShaderProgram {
-    const key = programKey(props);
+  public get(p: Program): WebGLShaderProgram {
+    const key = p.key();
     let program = this.programs_.get(key);
     if (program === undefined) {
-      const code = shaderCode[props.name];
+      const code = shaderCode[p.name];
       const vertexShaderSource = replaceSourceDefines(
         code.vertex,
-        props.vertexDefines
+        p.defines,
       );
       const fragmentShaderSource = replaceSourceDefines(
         code.fragment,
-        props.fragmentDefines
+        p.defines,
       );
       program = new WebGLShaderProgram(
         this.gl_,

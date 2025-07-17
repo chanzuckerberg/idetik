@@ -14,6 +14,7 @@ import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
 
 import { mat4 } from "gl-matrix";
+import { Program } from "./shaders";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -91,15 +92,15 @@ export class WebGLRenderer extends Renderer {
       this.textures_.bindTexture(texture);
     });
 
-    const program = this.programs_.get(object.programProps).use();
+    const program = this.programs_.get(object.program).use();
     this.drawGeometry(object.geometry, object, layer, program);
 
     if (object.wireframeEnabled) {
       this.bindings_.bindGeometry(object.wireframeGeometry);
       const wireframeProgram = this.programs_
-        .get({
+        .get(new Program({
           name: "wireframe",
-        })
+        }))
         .use();
       this.drawGeometry(
         object.wireframeGeometry,

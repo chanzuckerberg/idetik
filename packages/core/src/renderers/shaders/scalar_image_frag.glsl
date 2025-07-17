@@ -5,9 +5,9 @@ precision mediump float;
 
 layout (location = 0) out vec4 fragColor;
 
-#if defined SCALAR_TYPE_INT
+#if defined TEXTURE_DATA_TYPE_INT
 uniform mediump isampler2D texture0;
-#elif defined SCALAR_TYPE_UINT
+#elif defined TEXTURE_DATA_TYPE_UINT
 uniform mediump usampler2D texture0;
 #else
 uniform mediump sampler2D texture0;
