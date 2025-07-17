@@ -1,20 +1,22 @@
 import {
   Idetik,
+  LayerState,
+  ImageSeriesLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
+  ChannelProps,
   Color,
-  ImageSeriesLayer,
 } from "@";
+import { PanZoomControls } from "@/objects/cameras/controls";
 
 const baseUrl =
-  "https://files.cryoetdataportal.cziscience.com/10000/TS_041/Reconstructions/VoxelSpacing13.480";
-const imageUrl = `${baseUrl}/Tomograms/100/TS_041.zarr`;
-const labelsUrl = `${baseUrl}/Annotations/114/membrane-1.0_segmentationmask.zarr`;
+  "https://files.cryoetdataportal.cziscience.com/10444/24apr23a_Position_12/Reconstructions/VoxelSpacing4.990";
+const imageUrl = `${baseUrl}/Tomograms/100/24apr23a_Position_12.zarr`;
+const maskUrl = `${baseUrl}/Annotations/100/membrane-1.0_segmentationmask.zarr`;
 
+// Source is 3D with axes (z, y, x), so we provide an interval in z
 const imageSource = new OmeZarrImageSource(imageUrl);
-const labelsSource = new OmeZarrImageSource(labelsUrl);
-
 const loader = await imageSource.open();
 const attributes = await loader.loadAttributes();
 const lods = attributes.length;
@@ -24,33 +26,37 @@ const zDimName = "z";
 const zAxisIndex = attributesForLastLod.dimensionNames.findIndex(
   (dim) => dim === zDimName
 );
-const zScale = attributesForLastLod.scale[zAxisIndex];
-const zMin = 50 * zScale;
-const zMax = 75 * zScale;
-
-const zInterval = { start: zMin, stop: zMax };
+const zMin = 0;
+const zMax = attributesForLastLod.shape[zAxisIndex];
 const region: Region = [
-  { dimension: zDimName, index: { type: "interval", ...zInterval } },
+  { dimension: zDimName, index: { type: "full" } },
   { dimension: "x", index: { type: "full" } },
   { dimension: "y", index: { type: "full" } },
+];
+
+// This dataset is grayscale electron microscopy data
+const channelProps: ChannelProps[] = [
+  {
+    visible: true,
+    color: Color.WHITE,
+    contrastLimits: [-0.00001, 0.00001],
+  },
 ];
 
 const imageLayer = new ImageSeriesLayer({
   source: imageSource,
   region,
   seriesDimensionName: zDimName,
-  channelProps: [
-    {
-      visible: true,
-      color: Color.WHITE,
-      contrastLimits: [-10, 10],
-    },
-  ],
-  lod: lods - 1,
+  channelProps,
 });
 
+imageLayer.addStateChangeCallback((newState: LayerState) => {
+  stateEl!.textContent = newState;
+});
+
+const maskSource = new OmeZarrImageSource(maskUrl);
 const maskLayer = new ImageSeriesLayer({
-  source: labelsSource,
+  source: maskSource,
   region,
   seriesDimensionName: zDimName,
   channelProps: [
@@ -62,34 +68,73 @@ const maskLayer = new ImageSeriesLayer({
   ],
   transparent: true,
   opacity: 0.5,
-  blendMode: "normal",
-  lod: lods - 1,
 });
 
-const layers = [imageLayer, maskLayer];
+const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
+const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
+const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total")!;
+const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
+const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all")!;
 
-const slider = document.querySelector<HTMLInputElement>("#slider")!;
-slider.min = zMin.toString();
-slider.max = (zMax - zScale).toString();
-slider.step = zScale.toString();
-slider.value = zMin.toString();
+// Initialize sliders
+zSlider.min = `${zMin}`;
+zSlider.max = `${zMax - 1}`;
+zSlider.value = "0";
+zTotalEl.textContent = `${zMax - zMin - 1}`;
 
-slider.addEventListener("input", (event) => {
+// set up event handler with debouncing
+let debounce: ReturnType<typeof setTimeout>;
+zSlider.addEventListener("input", (event) => {
+  clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
-  for (const layer of layers) {
-    layer.setPosition(value);
+  debounce = setTimeout(() => {
+    setLayerIndex(value);
+  }, 20);
+});
+
+const camera = new OrthographicCamera(0, 128, 0, 128);
+const app = new Idetik({
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
+  camera,
+  layers: [imageLayer, maskLayer],
+}).start();
+
+imageLayer.setIndex(zSlider.valueAsNumber);
+const setCameraFrame = (newState: LayerState) => {
+  if (newState === "ready" && imageLayer.extent !== undefined) {
+    camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
+    app.setControls(new PanZoomControls(camera, camera.position));
+    camera.update();
+    // remove the callback to only set the camera frame once
+    imageLayer.removeStateChangeCallback(setCameraFrame);
+  }
+};
+imageLayer.addStateChangeCallback(setCameraFrame);
+setLayerIndex(zSlider.valueAsNumber);
+
+loadAllButton.addEventListener("click", () => {
+  try {
+    preloadAllSlices();
+  } catch (error) {
+    console.error("Error preloading slices:", error);
+    loadAllButton.value = "Error loading slices";
   }
 });
 
-for (const layer of layers) {
-  layer.preloadSeries();
-  layer.setPosition(slider.valueAsNumber);
+async function preloadAllSlices() {
+  console.log("loading all slices");
+  loadAllButton.disabled = true;
+  loadAllButton.value = "Loading all slices...";
+  await imageLayer.preloadSeries();
+  await maskLayer.preloadSeries();
+  loadAllButton.value = "Loaded all slices";
 }
 
-const camera = new OrthographicCamera(0, 240 * zScale, 0, 232 * zScale);
-
-new Idetik({
-  canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
-  camera,
-  layers: layers,
-}).start();
+async function setLayerIndex(index: number) {
+  zIndexEl!.textContent = "...";
+  const imageResult = await imageLayer.setIndex(index);
+  const maskResult = await maskLayer.setIndex(index);
+  if (imageResult.success && maskResult.success) {
+    zIndexEl!.textContent = `${index}`;
+  }
+}
