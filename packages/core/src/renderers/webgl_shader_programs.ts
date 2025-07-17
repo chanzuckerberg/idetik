@@ -1,16 +1,6 @@
 import { Shader, shaderCode } from "./shaders";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
-function replaceSourceDefines(
-  source: string,
-  defines?: ReadonlyArray<[string, string]>
-): string {
-  const definesSource = defines
-    ? defines.map(([key, value]) => `#define ${key} ${value}`).join("\n")
-    : "";
-  return source.replace("#pragma inject_defines", definesSource);
-}
-
 export class WebGLShaderPrograms {
   private gl_: WebGL2RenderingContext;
   private programs_: Map<Shader, WebGLShaderProgram> = new Map();
@@ -23,7 +13,10 @@ export class WebGLShaderPrograms {
     let program = this.programs_.get(shader);
     if (program === undefined) {
       const code = shaderCode[shader];
-      const vertexShaderSource = code.vertex;
+      const vertexShaderSource = replaceSourceDefines(
+        code.vertex,
+        code.vertexDefines
+      );
       const fragmentShaderSource = replaceSourceDefines(
         code.fragment,
         code.fragmentDefines
@@ -37,4 +30,14 @@ export class WebGLShaderPrograms {
     }
     return program;
   }
+}
+
+function replaceSourceDefines(
+  source: string,
+  defines?: ReadonlyArray<[string, string]>
+): string {
+  const definesSource = defines
+    ? defines.map(([key, value]) => `#define ${key} ${value}`).join("\n")
+    : "";
+  return source.replace("#pragma inject_defines", definesSource);
 }

@@ -21,6 +21,7 @@ export type Shader =
 
 type ShaderCode = {
   vertex: string;
+  vertexDefines?: ReadonlyArray<[string, string]>;
   fragment: string;
   fragmentDefines?: ReadonlyArray<[string, string]>;
 };

@@ -18,8 +18,8 @@ export class Points extends RenderableObject {
 
   constructor(points: PointProperties[], markerAtlas: Texture2DArray) {
     super();
-    this.atlas_ = markerAtlas;
     this.programName = "points";
+    this.atlas_ = markerAtlas;
 
     points.forEach((point) => {
       const marker = point.markerIndex;
