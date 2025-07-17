@@ -1,6 +1,6 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
-import { Texture } from "../../objects/textures/texture";
+import { Texture, TextureDataType } from "../../objects/textures/texture";
 import {
   Channel,
   ChannelProps,
@@ -8,7 +8,7 @@ import {
   validateChannels,
 } from "../../objects/textures/channel";
 import { vec3 } from "gl-matrix";
-import { Program } from "../../renderers/shaders";
+import { Shader } from "../../renderers/shaders";
 
 type SingleUniformValues = {
   Color: vec3;
@@ -31,14 +31,11 @@ export class ImageRenderable extends RenderableObject {
     texture: Texture,
     channels: ChannelProps[] = []
   ) {
-    const program = new Program({
-      name: texture.type === "Texture2D" ? "scalarImage" : "scalarImageArray",
-      textureDataType: texture.dataType,
-    });
-    super(program);
+    super();
     this.geometry = geometry;
     this.addTexture(texture);
     this.channels_ = validateChannels(texture, channels);
+    this.programName = textureToShader(texture);
   }
 
   public get type() {
@@ -100,5 +97,44 @@ export class ImageRenderable extends RenderableObject {
         "ValueScale[0]": valueScale,
       };
     }
+  }
+}
+
+function textureToShader(texture: Texture) {
+  if (texture.type === "Texture2D") {
+    return dataTypeToScalarImageShader(texture.dataType);
+  } else if (texture.type === "Texture2DArray") {
+    return dataTypeToArrayImageShader(texture.dataType);
+  }
+  throw new Error(`Unsupported image texture type: ${texture.type}`);
+}
+
+function dataTypeToScalarImageShader(dataType: TextureDataType): Shader {
+  switch (dataType) {
+    case "byte":
+    case "int":
+    case "short":
+      return "intScalarImage";
+    case "unsigned_short":
+    case "unsigned_byte":
+    case "unsigned_int":
+      return "uintScalarImage";
+    case "float":
+      return "floatScalarImage";
+  }
+}
+
+function dataTypeToArrayImageShader(dataType: TextureDataType): Shader {
+  switch (dataType) {
+    case "byte":
+    case "int":
+    case "short":
+      return "intScalarImageArray";
+    case "unsigned_short":
+    case "unsigned_byte":
+    case "unsigned_int":
+      return "uintScalarImageArray";
+    case "float":
+      return "floatScalarImageArray";
   }
 }

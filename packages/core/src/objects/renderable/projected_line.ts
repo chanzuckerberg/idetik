@@ -1,7 +1,6 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { ProjectedLineGeometry } from "../../objects/geometry/projected_line_geometry";
 import { Color, ColorLike } from "../../core/color";
-import { Program } from "../../renderers/shaders";
 
 type LineParameters = {
   geometry: ProjectedLineGeometry;
@@ -24,13 +23,13 @@ export class ProjectedLine extends RenderableObject {
     taperOffset,
     taperPower,
   }: LineParameters) {
-    const program = new Program({ name: "projectedLine" });
-    super(program);
+    super();
     this.geometry = geometry;
     this.color_ = Color.from(color);
     this.width_ = width;
     this.taperOffset_ = taperOffset ?? this.taperOffset_;
     this.taperPower_ = taperPower ?? this.taperPower_;
+    this.programName = "projectedLine";
   }
 
   public get type() {
