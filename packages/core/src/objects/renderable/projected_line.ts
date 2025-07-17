@@ -24,8 +24,8 @@ export class ProjectedLine extends RenderableObject {
     taperOffset,
     taperPower,
   }: LineParameters) {
-    const program = new Program({ name: "projectedLine" });
-    super(program);
+    super();
+    this.program = new Program({ name: "projectedLine" });
     this.geometry = geometry;
     this.color_ = Color.from(color);
     this.width_ = width;

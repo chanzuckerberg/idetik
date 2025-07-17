@@ -11,12 +11,7 @@ export abstract class RenderableObject extends Node {
   private readonly transform_ = new TrsTransform();
   private geometry_ = new Geometry();
   private wireframeGeometry_: WireframeGeometry | null = null;
-  public readonly program: Program;
-
-  constructor(program: Program) {
-    super();
-    this.program = program;
-  }
+  private program_: Program | null = null;
 
   public addTexture(texture: Texture) {
     this.textures_.push(texture);
@@ -42,6 +37,17 @@ export abstract class RenderableObject extends Node {
   public set geometry(geometry: Geometry) {
     this.geometry_ = geometry;
     this.wireframeGeometry_ = null;
+  }
+
+  public get program() {
+    if (!this.program_) {
+      throw new Error("Program not set");
+    }
+    return this.program_;
+  }
+
+  public set program(program: Program) {
+    this.program_ = program;
   }
 
   /**

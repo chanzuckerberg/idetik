@@ -31,11 +31,11 @@ export class ImageRenderable extends RenderableObject {
     texture: Texture,
     channels: ChannelProps[] = []
   ) {
-    const program = new Program({
+    super();
+    this.program = new Program({
       name: texture.type === "Texture2D" ? "scalarImage" : "scalarImageArray",
       textureDataType: texture.dataType,
     });
-    super(program);
     this.geometry = geometry;
     this.addTexture(texture);
     this.channels_ = validateChannels(texture, channels);
