@@ -53,6 +53,28 @@ export function bufferToDataType(
   throw new Error("Unsupported buffer type.");
 }
 
+export function textureDefaultValueRange(texture: Texture): [number, number] {
+  if (texture.dataFormat === "rgb" || texture.dataFormat === "rgba") {
+    return [0, 1];
+  }
+  switch (texture.dataType) {
+    case "byte":
+      return [-128, 127];
+    case "short":
+      return [-32768, 32767];
+    case "int":
+      return [-2147483648, 2147483647];
+    case "unsigned_byte":
+      return [0, 255];
+    case "unsigned_short":
+      return [0, 65535];
+    case "unsigned_int":
+      return [0, 4294967295];
+    case "float":
+      return [0, 1];
+  }
+}
+
 export abstract class Texture extends Node {
   public dataFormat: TextureDataFormat = "rgba";
   public dataType: TextureDataType = "unsigned_byte";
