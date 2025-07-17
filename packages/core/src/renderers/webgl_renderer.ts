@@ -1,8 +1,8 @@
 import { Renderer } from "../core/renderer";
 import { WebGLShaderProgram } from "./webgl_shader_program";
+import { WebGLShaderPrograms } from "./webgl_shader_programs";
 import { Logger } from "../utilities/logger";
 
-import { shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
@@ -10,7 +10,7 @@ import { Layer } from "../core/layer";
 import { LayerManager } from "../core/layer_manager";
 import { Camera } from "../objects/cameras/camera";
 import { WebGLState } from "./WebGLState";
-import { ProgramProps, RenderableObject } from "../core/renderable_object";
+import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
 
 import { mat4 } from "gl-matrix";
@@ -29,7 +29,7 @@ const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
-  private readonly shaders_: Map<ProgramProps, WebGLShaderProgram>;
+  private readonly programs_: WebGLShaderPrograms;
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
@@ -49,7 +49,7 @@ export class WebGLRenderer extends Renderer {
       `WebGL version ${this.gl.getParameter(this.gl.VERSION)}`
     );
 
-    this.shaders_ = new Map<ProgramProps, WebGLShaderProgram>();
+    this.programs_ = new WebGLShaderPrograms(this.gl);
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
     this.resize(this.canvas.width, this.canvas.height);
@@ -91,14 +91,16 @@ export class WebGLRenderer extends Renderer {
       this.textures_.bindTexture(texture);
     });
 
-    const program = this.getShaderProgram(object.programProps).use();
+    const program = this.programs_.get(object.programProps).use();
     this.drawGeometry(object.geometry, object, layer, program);
 
     if (object.wireframeEnabled) {
       this.bindings_.bindGeometry(object.wireframeGeometry);
-      const wireframeProgram = this.getShaderProgram({
-        name: "wireframe",
-      }).use();
+      const wireframeProgram = this.programs_
+        .get({
+          name: "wireframe",
+        })
+        .use();
       this.drawGeometry(
         object.wireframeGeometry,
         object,
@@ -181,22 +183,6 @@ export class WebGLRenderer extends Renderer {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.state_.setDepthTesting(true);
     this.gl.depthFunc(this.gl.LEQUAL);
-  }
-
-  private getShaderProgram(props: ProgramProps) {
-    if (!this.shaders_.has(props)) {
-      const source = shaderCode[props.name];
-      this.shaders_.set(
-        props,
-        new WebGLShaderProgram({
-          gl: this.gl,
-          vertexShaderSource: source.vertex,
-          fragmentShaderSource: source.fragment,
-          fragmentShaderDefines: props.fragmentDefines,
-        })
-      );
-    }
-    return this.shaders_.get(props)!;
   }
 
   private get gl() {

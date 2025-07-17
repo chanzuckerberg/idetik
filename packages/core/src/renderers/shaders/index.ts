@@ -15,6 +15,12 @@ export type Shader =
   | "scalarImage"
   | "scalarImageArray";
 
+export type ProgramProps = {
+  name: Shader;
+  vertexDefines?: ReadonlyArray<[string, string]>;
+  fragmentDefines?: ReadonlyArray<[string, string]>;
+};
+
 export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
   {
     projectedLine: {

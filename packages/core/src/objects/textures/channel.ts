@@ -1,6 +1,9 @@
 // TODO: move this file out of `textures`
 import { Color, ColorLike } from "../../core/color";
-import { Texture, textureDefaultValueRange } from "../../objects/textures/texture";
+import {
+  Texture,
+  textureDefaultValueRange,
+} from "../../objects/textures/texture";
 import { MAX_CHANNELS } from "../../core/constants";
 import { Texture2DArray } from "./texture_2d_array";
 

@@ -7,13 +7,6 @@ type ShaderMap = {
   };
 };
 
-type WebGLShaderProgramProps = {
-  gl: WebGL2RenderingContext;
-  vertexShaderSource: string;
-  fragmentShaderSource: string;
-  fragmentShaderDefines?: ReadonlyArray<[string, string]>;
-};
-
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
   private readonly program_: WebGLProgram;
@@ -21,8 +14,12 @@ export class WebGLShaderProgram {
     new Map();
   private shaders_: ShaderMap = {};
 
-  constructor(props: WebGLShaderProgramProps) {
-    this.gl_ = props.gl;
+  constructor(
+    gl: WebGL2RenderingContext,
+    vertexShaderSource: string,
+    fragmentShaderSource: string
+  ) {
+    this.gl_ = gl;
 
     const program = this.gl_.createProgram();
     if (!program) {
@@ -30,24 +27,9 @@ export class WebGLShaderProgram {
     }
     this.program_ = program;
 
-    const fragmentShaderSource = this.replaceSourceDefines(
-      props.fragmentShaderSource,
-      props.fragmentShaderDefines
-    );
-
-    this.addShader(props.vertexShaderSource, this.gl_.VERTEX_SHADER);
+    this.addShader(vertexShaderSource, this.gl_.VERTEX_SHADER);
     this.addShader(fragmentShaderSource, this.gl_.FRAGMENT_SHADER);
     this.link();
-  }
-
-  private replaceSourceDefines(
-    source: string,
-    defines?: ReadonlyArray<[string, string]>
-  ): string {
-    const definesSource = defines
-      ? defines.map(([key, value]) => `#define ${key} ${value}`).join("\n")
-      : "";
-    return source.replace("#pragma inject_defines", definesSource);
   }
 
   public setUniform(name: string, value: unknown) {
