@@ -20,7 +20,6 @@ export class Points extends RenderableObject {
     super();
     this.programName = "points";
     this.atlas_ = markerAtlas;
-    this.program = new Program({ name: "points" });
 
     points.forEach((point) => {
       const marker = point.markerIndex;
