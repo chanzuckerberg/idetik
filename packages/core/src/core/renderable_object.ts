@@ -3,7 +3,8 @@ import { Geometry } from "../core/geometry";
 import { WireframeGeometry } from "../core/wireframe_geometry";
 import { Texture } from "../objects/textures/texture";
 import { TrsTransform } from "../core/transforms";
-import { Program } from "../renderers/shaders";
+
+import { Shader } from "../renderers/shaders";
 
 export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
@@ -11,7 +12,7 @@ export abstract class RenderableObject extends Node {
   private readonly transform_ = new TrsTransform();
   private geometry_ = new Geometry();
   private wireframeGeometry_: WireframeGeometry | null = null;
-  private program_: Program | null = null;
+  private programName_: Shader | null = null;
 
   public addTexture(texture: Texture) {
     this.textures_.push(texture);
@@ -39,15 +40,15 @@ export abstract class RenderableObject extends Node {
     this.wireframeGeometry_ = null;
   }
 
-  public get program() {
-    if (!this.program_) {
-      throw new Error("Program not set");
+  public get programName(): Shader {
+    if (this.programName_ === null) {
+      throw new Error("Program name not set");
     }
-    return this.program_;
+    return this.programName_;
   }
 
-  public set program(program: Program) {
-    this.program_ = program;
+  protected set programName(programName: Shader) {
+    this.programName_ = programName;
   }
 
   /**
