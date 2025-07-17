@@ -31,7 +31,8 @@ export class WebGLShaderPrograms {
 
   public get(props: ProgramProps): WebGLShaderProgram {
     const key = programKey(props);
-    if (!this.programs_.has(key)) {
+    let program = this.programs_.get(key);
+    if (program === undefined) {
       const code = shaderCode[props.name];
       const vertexShaderSource = replaceSourceDefines(
         code.vertex,
@@ -41,13 +42,13 @@ export class WebGLShaderPrograms {
         code.fragment,
         props.fragmentDefines
       );
-      const program = new WebGLShaderProgram(
+      program = new WebGLShaderProgram(
         this.gl_,
         vertexShaderSource,
         fragmentShaderSource
       );
       this.programs_.set(key, program);
     }
-    return this.programs_.get(key)!;
+    return program;
   }
 }

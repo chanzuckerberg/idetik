@@ -21,14 +21,14 @@ export class WebGLShaderProgram {
   ) {
     this.gl_ = gl;
 
-    const program = this.gl_.createProgram();
+    const program = gl.createProgram();
     if (!program) {
       throw new Error(`Failed to create WebGL shader program`);
     }
     this.program_ = program;
 
-    this.addShader(vertexShaderSource, this.gl_.VERTEX_SHADER);
-    this.addShader(fragmentShaderSource, this.gl_.FRAGMENT_SHADER);
+    this.addShader(vertexShaderSource, gl.VERTEX_SHADER);
+    this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
     this.link();
   }
 
