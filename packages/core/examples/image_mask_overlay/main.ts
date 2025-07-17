@@ -51,7 +51,7 @@ const imageLayer = new ImageSeriesLayer({
 });
 
 imageLayer.addStateChangeCallback((newState: LayerState) => {
-  stateEl!.textContent = newState;
+  stateEl.textContent = newState;
 });
 
 const maskSource = new OmeZarrImageSource(maskUrl);
