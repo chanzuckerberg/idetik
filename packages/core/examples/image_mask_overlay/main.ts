@@ -7,10 +7,10 @@ import {
   ImageSeriesLayer,
 } from "@";
 
-const imageUrl =
-  "https://files.cryoetdataportal.cziscience.com/10000/TS_041/Reconstructions/VoxelSpacing13.480/Tomograms/100/TS_041.zarr";
-const labelsUrl =
-  "https://files.cryoetdataportal.cziscience.com/10000/TS_041/Reconstructions/VoxelSpacing13.480/Annotations/114/membrane-1.0_segmentationmask.zarr";
+const baseUrl =
+  "https://files.cryoetdataportal.cziscience.com/10000/TS_041/Reconstructions/VoxelSpacing13.480";
+const imageUrl = `${baseUrl}/Tomograms/100/TS_041.zarr`;
+const labelsUrl = `${baseUrl}/Annotations/114/membrane-1.0_segmentationmask.zarr`;
 
 const imageSource = new OmeZarrImageSource(imageUrl);
 const labelsSource = new OmeZarrImageSource(labelsUrl);
