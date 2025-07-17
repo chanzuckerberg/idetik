@@ -24,13 +24,13 @@ export class ProjectedLine extends RenderableObject {
     taperOffset,
     taperPower,
   }: LineParameters) {
-    super();
+    const program = new Program({ name: "projectedLine" });
+    super(program);
     this.geometry = geometry;
     this.color_ = Color.from(color);
     this.width_ = width;
     this.taperOffset_ = taperOffset ?? this.taperOffset_;
     this.taperPower_ = taperPower ?? this.taperPower_;
-    this.program = new Program({ name: "projectedLine" });
   }
 
   public get type() {
