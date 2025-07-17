@@ -16,9 +16,7 @@ export type Shader =
   | "scalarImage"
   | "scalarImageArray";
 
-export type ProgramDefine = 
-  "TEXTURE_DATA_TYPE_INT" |
-  "TEXTURE_DATA_TYPE_UINT";
+export type ProgramDefine = "TEXTURE_DATA_TYPE_INT" | "TEXTURE_DATA_TYPE_UINT";
 
 type ProgramProps = {
   name: Shader;
@@ -38,7 +36,7 @@ export class Program {
 
   private getDefines(): ReadonlyArray<[ProgramDefine, string]> {
     const defines: Array<[ProgramDefine, string]> = [];
-    
+
     switch (this.textureDataType) {
       case "byte":
       case "int":
@@ -59,7 +57,7 @@ export class Program {
   public key() {
     return `${this.name}${this.textureDataType}`;
   }
-};
+}
 
 export const shaderCode: Record<Shader, { vertex: string; fragment: string }> =
   {

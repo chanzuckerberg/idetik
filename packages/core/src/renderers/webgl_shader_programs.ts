@@ -24,13 +24,10 @@ export class WebGLShaderPrograms {
     let program = this.programs_.get(key);
     if (program === undefined) {
       const code = shaderCode[p.name];
-      const vertexShaderSource = replaceSourceDefines(
-        code.vertex,
-        p.defines,
-      );
+      const vertexShaderSource = replaceSourceDefines(code.vertex, p.defines);
       const fragmentShaderSource = replaceSourceDefines(
         code.fragment,
-        p.defines,
+        p.defines
       );
       program = new WebGLShaderProgram(
         this.gl_,
