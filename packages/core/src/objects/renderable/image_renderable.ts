@@ -8,7 +8,7 @@ import {
   validateChannels,
 } from "../../objects/textures/channel";
 import { vec3 } from "gl-matrix";
-import { Program } from "@/renderers/shaders";
+import { Program } from "../../renderers/shaders";
 
 type SingleUniformValues = {
   Color: vec3;
@@ -50,7 +50,7 @@ export class ImageRenderable extends RenderableObject {
 
   public addTexture(texture: Texture) {
     super.addTexture(texture);
-    this.updateProgramProps();
+    this.updateProgram();
   }
 
   public setChannelProps(channels: ChannelProps[]) {
@@ -110,7 +110,7 @@ export class ImageRenderable extends RenderableObject {
     }
   }
 
-  private updateProgramProps() {
+  private updateProgram() {
     const texture = this.textures[0];
     if (!texture) {
       throw new Error("un-textured image not implemented");
