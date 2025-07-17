@@ -49,6 +49,7 @@ export class Program {
         defines.push(["TEXTURE_DATA_TYPE_UINT", "1"]);
         break;
       case "float":
+      case undefined:
     }
 
     return defines;
