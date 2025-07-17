@@ -3,6 +3,7 @@ import { Geometry } from "../core/geometry";
 import { WireframeGeometry } from "../core/wireframe_geometry";
 import { Texture } from "../objects/textures/texture";
 import { TrsTransform } from "../core/transforms";
+
 import { Shader } from "../renderers/shaders";
 
 export abstract class RenderableObject extends Node {
