@@ -27,30 +27,22 @@ export class ImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
 
   constructor(
-    geometry: Geometry | null,
-    texture: Texture | null = null,
+    geometry: Geometry,
+    texture: Texture,
     channels: ChannelProps[] = []
   ) {
     super();
-
-    if (geometry) {
-      this.geometry = geometry;
-    }
-
-    if (texture) {
-      this.addTexture(texture);
-    }
-
+    this.geometry = geometry;
+    this.addTexture(texture);
     this.channels_ = validateChannels(texture, channels);
+    this.program = new Program({
+      name: texture.type === "Texture2D" ? "scalarImage" : "scalarImageArray",
+      textureDataType: texture.dataType,
+    });
   }
 
   public get type() {
     return "ImageRenderable";
-  }
-
-  public addTexture(texture: Texture) {
-    super.addTexture(texture);
-    this.updateProgram();
   }
 
   public setChannelProps(channels: ChannelProps[]) {
@@ -108,16 +100,5 @@ export class ImageRenderable extends RenderableObject {
         "ValueScale[0]": valueScale,
       };
     }
-  }
-
-  private updateProgram() {
-    const texture = this.textures[0];
-    if (!texture) {
-      throw new Error("un-textured image not implemented");
-    }
-    this.program = new Program({
-      name: texture.type === "Texture2D" ? "scalarImage" : "scalarImageArray",
-      textureDataType: texture.dataType,
-    });
   }
 }
