@@ -1,7 +1,7 @@
 import { Shader, shaderCode } from "./shaders";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
-const PRAGMA_INJECT_DEFINES = "#pragma inject_defines";
+const pragmaInjectDefines = "#pragma inject_defines";
 
 export class WebGLShaderPrograms {
   private gl_: WebGL2RenderingContext;
@@ -42,10 +42,10 @@ function replaceSourceDefines(
   const definesSource = defines
     .map(([key, value]) => `#define ${key} ${value}`)
     .join("\n");
-  if (!source.includes(PRAGMA_INJECT_DEFINES)) {
+  if (!source.includes(pragmaInjectDefines)) {
     throw new Error(
-      `Shader source does not contain "${PRAGMA_INJECT_DEFINES}" directive`
+      `Shader source does not contain "${pragmaInjectDefines}" directive`
     );
   }
-  return source.replace(PRAGMA_INJECT_DEFINES, definesSource);
+  return source.replace(pragmaInjectDefines, definesSource);
 }
