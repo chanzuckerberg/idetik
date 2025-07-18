@@ -11,7 +11,7 @@ export class OmeZarrImageSource {
 
   async open(): Promise<OmeZarrImageLoader> {
     const store = new zarr.FetchStore(this.url_);
-    const root = await zarr.open.v2(store, { kind: "group" });
+    const root = await zarr.open(store, { kind: "group" });
     return new OmeZarrImageLoader(root);
   }
 }

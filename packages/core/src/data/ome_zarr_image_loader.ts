@@ -10,11 +10,11 @@ import {
 import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-import { Image as OmeNgffImage } from "../data/ome_ngff/0.4/image";
+import { Image as OmeNgffImage } from "../data/ome_ngff/0.5/image";
 import { parseOmeNgffImage } from "../data/ome_zarr_hcs_metadata_loader";
 
 type ImageAttributes = {
-  image: OmeNgffImage["multiscales"][number];
+  image: OmeNgffImage["ome"]["multiscales"][number];
   dimensionNames: string[];
   dimensionUnits: (string | undefined)[];
   datasetPath: string;
@@ -51,20 +51,19 @@ export class OmeZarrImageLoader {
   constructor(root: zarr.Group<zarr.FetchStore>) {
     this.root_ = root;
     this.metadata_ = parseOmeNgffImage(this.root_);
-    if (this.metadata_.multiscales.length !== 1) {
+    if (this.metadata_.ome.multiscales.length !== 1) {
       throw new Error(
-        `Can only handle one multiscale image. Found ${this.metadata_.multiscales.length}`
+        `Can only handle one multiscale image. Found ${this.metadata_.ome.multiscales.length}`
       );
     }
 
-    this.lods_ = this.metadata_.multiscales[0].datasets.length;
+    this.lods_ = this.metadata_.ome.multiscales[0].datasets.length;
   }
 
   public async loadChunkDataFromRegion(chunk: ImageChunk, region: Region) {
     const attrs = this.getImageAttributes()[chunk.lod];
-    const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
+    const array = await zarr.open(this.root_.resolve(attrs.datasetPath), {
       kind: "array",
-      attrs: false,
     });
 
     const dimInfo = await this.getDimInfoMap(region, chunk, attrs);
@@ -107,9 +106,8 @@ export class OmeZarrImageLoader {
     const indices = this.regionToIndices(region, attributes);
     const { datasetPath, scale, translation } = attributes;
 
-    const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
+    const array = await zarr.open(this.root_.resolve(datasetPath), {
       kind: "array",
-      attrs: false,
     });
     let options = {};
     if (scheduler !== undefined) {
@@ -170,7 +168,7 @@ export class OmeZarrImageLoader {
     const output: ImageAttributes[] = [];
 
     for (let i = 0; i < this.lods_; ++i) {
-      const image = this.metadata_.multiscales[0];
+      const image = this.metadata_.ome.multiscales[0];
       const axes = image.axes;
       const dimensionNames = image.axes.map((axis) => axis.name);
       const dimensionUnits = image.axes.map((axis) => axis.unit);
@@ -198,11 +196,10 @@ export class OmeZarrImageLoader {
   public async loadAttributes(): Promise<LoaderAttributes[]> {
     return await Promise.all(
       this.getImageAttributes().map(async (attr) => {
-        const zarrArray = await zarr.open.v2(
+        const zarrArray = await zarr.open(
           this.root_.resolve(attr.datasetPath),
           {
             kind: "array",
-            attrs: false,
           }
         );
         return {
@@ -222,9 +219,8 @@ export class OmeZarrImageLoader {
     attrs: ImageAttributes
   ) {
     const indices = this.regionToIndices(region, attrs);
-    const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
+    const array = await zarr.open(this.root_.resolve(attrs.datasetPath), {
       kind: "array",
-      attrs: false,
     });
 
     const output = new Map();
