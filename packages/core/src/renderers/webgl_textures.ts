@@ -224,6 +224,24 @@ export class WebGLTextures {
     }
     if (format === "scalar") {
       switch (type) {
+        case "byte":
+          return {
+            internalFormat: this.gl_.R8I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.BYTE,
+          };
+        case "short":
+          return {
+            internalFormat: this.gl_.R16I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.SHORT,
+          };
+        case "int":
+          return {
+            internalFormat: this.gl_.R32I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.INT,
+          };
         case "unsigned_byte":
           return {
             internalFormat: this.gl_.R8UI,
@@ -235,6 +253,12 @@ export class WebGLTextures {
             internalFormat: this.gl_.R16UI,
             format: this.gl_.RED_INTEGER,
             type: this.gl_.UNSIGNED_SHORT,
+          };
+        case "unsigned_int":
+          return {
+            internalFormat: this.gl_.R32UI,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.UNSIGNED_INT,
           };
         case "float":
           return {
