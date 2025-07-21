@@ -71,6 +71,7 @@ export class ImageRenderable extends RenderableObject {
       const { color, contrastLimits } =
         this.channels_[0] ?? validateChannel(texture, {});
       return {
+        ImageData: 0,
         Color: color.rgb,
         ValueOffset: -contrastLimits[0],
         ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
@@ -93,6 +94,7 @@ export class ImageRenderable extends RenderableObject {
       });
 
       return {
+        ImageData: 0,
         "Visible[0]": visible,
         "Color[0]": color,
         "ValueOffset[0]": valueOffset,
