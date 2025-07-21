@@ -14,7 +14,7 @@ import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 export type ImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
-  seriesDimensionName: string;
+  seriesDimensionName?: string;
   channelProps?: ChannelProps[];
 };
 
@@ -41,8 +41,8 @@ export class ImageSeriesLayer extends Layer {
 
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
-  private readonly seriesDimensionName_: string;
-  private readonly seriesIndex_: Interval | Full;
+  private readonly seriesDimensionName_?: string;
+  private readonly seriesIndex_?: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: Array<() => void> = [];
@@ -72,20 +72,24 @@ export class ImageSeriesLayer extends Layer {
     this.region_ = region;
     this.lod_ = lod;
     this.seriesDimensionName_ = seriesDimensionName;
-    const seriesDimensionalIndex = region.find(
-      (x) => x.dimension == seriesDimensionName
-    );
-    if (seriesDimensionalIndex === undefined) {
-      throw new Error(
-        `Series dimension '${seriesDimensionName}' not in region ${JSON.stringify(region)}`
+
+    if (seriesDimensionName) {
+      const seriesDimensionalIndex = region.find(
+        (x) => x.dimension == seriesDimensionName
       );
+      if (seriesDimensionalIndex === undefined) {
+        throw new Error(
+          `Series dimension '${seriesDimensionName}' not in region ${JSON.stringify(region)}`
+        );
+      }
+      if (seriesDimensionalIndex.index.type === "point") {
+        throw new Error(
+          "Series dimension index in region must be an interval or 'full', not a point value"
+        );
+      }
+      this.seriesIndex_ = seriesDimensionalIndex.index;
     }
-    if (seriesDimensionalIndex.index.type === "point") {
-      throw new Error(
-        "Series dimension index in region must be an interval or 'full', not a point value"
-      );
-    }
-    this.seriesIndex_ = seriesDimensionalIndex.index;
+
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
   }
@@ -123,12 +127,24 @@ export class ImageSeriesLayer extends Layer {
 
   public update() {
     if (this.state === "initialized") {
-      this.loadSeriesAttributes();
+      if (this.seriesDimensionName_) {
+        this.loadSeriesAttributes();
+      } else {
+        // For 2D images, directly load the single frame
+        // this.load2DImage();
+      }
     }
   }
 
   public async setPosition(position: number): Promise<SetIndexResult> {
+    if (!this.seriesDimensionName_) {
+      // await this.load2DImage();
+      return { success: true };
+    }
     const seriesAttributes = await this.loadSeriesAttributes();
+    if (seriesAttributes === undefined) {
+      return Promise.resolve({ success: true });
+    }
     const index = Math.round(
       (position - seriesAttributes.start) / seriesAttributes.scale
     );
@@ -182,6 +198,12 @@ export class ImageSeriesLayer extends Layer {
   }
 
   private async loadSeriesAttributes() {
+    if (
+      this.seriesIndex_ === undefined ||
+      this.seriesDimensionName_ === undefined
+    ) {
+      return;
+    }
     if (this.seriesAttributes_) {
       return this.seriesAttributes_;
     }
@@ -220,6 +242,12 @@ export class ImageSeriesLayer extends Layer {
 
   private async loadAndSetIndex(index: number, token?: LoadingToken) {
     const seriesAttributes = await this.loadSeriesAttributes();
+    if (
+      seriesAttributes === undefined ||
+      this.seriesDimensionName_ === undefined
+    ) {
+      return await this.load2DImage();
+    }
     if (index < 0 || index >= seriesAttributes.length) {
       throw new Error(
         `Requested index ${index} is out of bounds [0, ${seriesAttributes.length - 1}]`
@@ -251,7 +279,15 @@ export class ImageSeriesLayer extends Layer {
   }
 
   public async preloadSeries() {
-    const { length } = await this.loadSeriesAttributes();
+    if (!this.seriesDimensionName_) {
+      // For 2D images, there's no series to preload
+      return;
+    }
+
+    const seriesAttributes = await this.loadSeriesAttributes();
+    if (seriesAttributes == undefined) {
+      return;
+    }
     // Load remaining slices concurrently, exclude the token so they don't get set
     const loadPromises = [];
     for (let index = 0; index < length; index++) {
@@ -274,6 +310,21 @@ export class ImageSeriesLayer extends Layer {
 
   public get extent(): { x: number; y: number } | undefined {
     return this.extent_;
+  }
+
+  private async load2DImage() {
+    try {
+      const loader = await this.getLoader();
+      const attributes = await loader.loadAttributes();
+      const lod = this.lod_ ?? attributes.length - 1;
+
+      // For 2D images, load the entire region as-is
+      const chunk = await loader.loadRegion(this.region_, lod, this.scheduler_);
+      this.setData(chunk);
+      this.setState("ready");
+    } catch (error) {
+      console.error("Failed to load 2D image:", error);
+    }
   }
 
   private async getLoader() {
