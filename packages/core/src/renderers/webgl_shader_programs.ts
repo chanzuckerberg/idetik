@@ -48,8 +48,8 @@ function replaceSourceDefines(
     .map(([key, value]) => `#define ${key} ${value}`)
     .join("\n");
   // Offset the line number so that the original source file line
-  // are interpretable. The +1 accounts for the #pragma directive to
-  // be replaced.
+  // numbers are interpretable. The +1 accounts for the #pragma directive
+  // to be replaced.
   const lineNumberOffset = 1 - defines.size;
   const nextLineNumber = `#line __LINE__ + ${lineNumberOffset}`;
   const sourceToInject = `${definesSource}\n${nextLineNumber}`;
