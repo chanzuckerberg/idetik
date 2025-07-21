@@ -11,12 +11,14 @@ import { vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 
 type SingleUniformValues = {
+  ImageData: number;
   Color: vec3;
   ValueOffset: number;
   ValueScale: number;
 };
 
 type ArrayUniformValues = {
+  ImageData: number;
   "Visible[0]": boolean[];
   "Color[0]": number[];
   "ValueOffset[0]": number[];
