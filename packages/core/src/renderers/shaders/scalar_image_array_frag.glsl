@@ -12,7 +12,6 @@ uniform mediump usampler2DArray texture0;
 #else
 uniform mediump sampler2DArray texture0;
 #endif
-
 // Define a maximum number of channels
 #define MAX_CHANNELS 32
 uniform bool Visible[MAX_CHANNELS];

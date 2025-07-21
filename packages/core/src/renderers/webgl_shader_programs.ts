@@ -38,14 +38,20 @@ function replaceSourceDefines(
   source: string,
   defines?: ReadonlyArray<[string, string]>
 ): string {
-  if (defines === undefined) return source;
-  const definesSource = defines
-    .map(([key, value]) => `#define ${key} ${value}`)
-    .join("\n");
+  if (defines === undefined || defines.length == 0) return source;
   if (!source.includes(pragmaInjectDefines)) {
     throw new Error(
       `Shader source does not contain "${pragmaInjectDefines}" directive`
     );
   }
-  return source.replace(pragmaInjectDefines, definesSource);
+  const definesSource = defines
+    .map(([key, value]) => `#define ${key} ${value}`)
+    .join("\n");
+  // Offset the line number so that the original source file line
+  // are interpretable. The +1 accounts for the #pragma directive to
+  // be replaced.
+  const lineNumberOffset = 1 - defines.length;
+  const nextLineNumber = `#line __LINE__ + ${lineNumberOffset}`;
+  const sourceToInject = `${definesSource}\n${nextLineNumber}`;
+  return source.replace(pragmaInjectDefines, sourceToInject);
 }
