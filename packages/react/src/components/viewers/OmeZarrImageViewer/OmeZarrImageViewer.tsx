@@ -31,7 +31,7 @@ export interface OmeZarrImageViewerProps {
     path?: `/${string}`;
   };
   region: Region;
-  seriesDimensionName: string;
+  seriesDimensionName?: string;
   fallbackContrastLimits?: [number, number];
   resolutionLevel?: number;
   shouldAutoLoadAllSlices?: boolean;
@@ -224,6 +224,25 @@ export function OmeZarrImageViewer({
         console.warn("No source available, returning early on fetchZRange");
         return;
       }
+
+      // For 2D images without series dimension, set default values
+      if (!seriesDimensionName) {
+        const loader = await source.open();
+        const attrs = await loader.loadAttributes();
+        const attrsForLevel = attrs[resolutionLevel];
+
+        // TODO: We assume that the last dimension will give us the x-unit,
+        // which currently holds with idetik but is fragile.
+        const dimensionUnits = attrsForLevel.dimensionUnits;
+        const xUnit = dimensionUnits[dimensionUnits.length - 1];
+        setUnit(xUnit);
+
+        // For 2D images, there's no series to navigate
+        setZRange([0, 0]);
+        setZValue(0);
+        return;
+      }
+
       const loader = await source.open();
       const attrs = await loader.loadAttributes();
       const attrsForLevel = attrs[resolutionLevel];
@@ -335,7 +354,7 @@ export function OmeZarrImageViewer({
     };
 
     updateIndex();
-  }, [zValue, zRange]);
+  }, [zValue, zRange, seriesDimensionName]);
 
   const loadAllSlicesCallback = useCallback(async () => {
     const currentImageLayer = imageLayerRef.current;
