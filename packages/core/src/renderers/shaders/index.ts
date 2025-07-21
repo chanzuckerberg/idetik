@@ -21,9 +21,9 @@ export type Shader =
 
 type ShaderCode = {
   vertex: string;
-  vertexDefines?: ReadonlyArray<[string, string]>;
+  vertexDefines?: ReadonlyMap<string, string>;
   fragment: string;
-  fragmentDefines?: ReadonlyArray<[string, string]>;
+  fragmentDefines?: ReadonlyMap<string, string>;
 };
 
 export const shaderCode: Record<Shader, ShaderCode> = {
@@ -50,21 +50,21 @@ export const shaderCode: Record<Shader, ShaderCode> = {
   intScalarImage: {
     vertex: meshVertexShader,
     fragment: scalarImageFragmentShader,
-    fragmentDefines: [["TEXTURE_DATA_TYPE_INT", "1"]],
+    fragmentDefines: new Map([["TEXTURE_DATA_TYPE_INT", "1"]]),
   },
   intScalarImageArray: {
     vertex: meshVertexShader,
     fragment: scalarImageArrayFragmentShader,
-    fragmentDefines: [["TEXTURE_DATA_TYPE_INT", "1"]],
+    fragmentDefines: new Map([["TEXTURE_DATA_TYPE_INT", "1"]]),
   },
   uintScalarImage: {
     vertex: meshVertexShader,
     fragment: scalarImageFragmentShader,
-    fragmentDefines: [["TEXTURE_DATA_TYPE_UINT", "1"]],
+    fragmentDefines: new Map([["TEXTURE_DATA_TYPE_UINT", "1"]]),
   },
   uintScalarImageArray: {
     vertex: meshVertexShader,
     fragment: scalarImageArrayFragmentShader,
-    fragmentDefines: [["TEXTURE_DATA_TYPE_UINT", "1"]],
+    fragmentDefines: new Map([["TEXTURE_DATA_TYPE_UINT", "1"]]),
   },
 };
