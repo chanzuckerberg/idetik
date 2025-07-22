@@ -12,14 +12,6 @@ uniform float u_opacity;
 
 in vec2 TexCoords;
 
-vec4 unpackRgba(uint packed) {
-    uint r = (packed >> 24u) & 0xFFu;
-    uint g = (packed >> 16u) & 0xFFu;
-    uint b = (packed >> 8u) & 0xFFu;
-    uint a = packed & 0xFFu;
-    return vec4(float(r), float(g), float(b), float(a)) / 255.0;
-}
-
 void main() {
     uint texel = texture(ImageData, TexCoords).r;
     if (texel == 0u) {
