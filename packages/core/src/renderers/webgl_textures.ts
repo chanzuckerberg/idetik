@@ -283,7 +283,7 @@ export class WebGLTextures {
   }
 
   private isTexture2D(texture: Texture): texture is Texture2D {
-    return texture.type === "Texture2D";
+    return texture.type === "Texture2D" || texture.type === "TextureRgba";
   }
 
   private isTexture2DArray(texture: Texture): texture is Texture2DArray {

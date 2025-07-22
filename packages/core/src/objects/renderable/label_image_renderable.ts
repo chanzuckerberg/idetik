@@ -2,7 +2,7 @@ import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
 import { Texture } from "../../objects/textures/texture";
 import { Color } from "../../core/color";
-import { Texture2D } from "../textures/texture_2d";
+import { TextureRgba } from "../textures/texture_rgba";
 
 type LabelImageRenderableProps = {
   geometry: Geometry;
@@ -28,10 +28,9 @@ export class LabelImageRenderable extends RenderableObject {
     const data = new Uint8Array(
       colorCycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
     );
-    const texture = new Texture2D(data, colorCycle.length, 1);
-    texture.dataFormat = "rgba";
+    const texture = new TextureRgba(data, colorCycle.length, 1);
     texture.unpackRowLength = data.length;
-    texture.unpackAlignment = 1;
+    texture.unpackAlignment = 4;
     texture.wrapR = "repeat";
     texture.wrapS = "repeat";
     texture.wrapT = "repeat";
