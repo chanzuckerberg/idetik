@@ -40,8 +40,9 @@ export class WebGLShaderPrograms {
       }
       program.validate();
       this.programs_.set(shader, program);
+    } else {
+      program.use();
     }
-    program.use();
     return program;
   }
 }
