@@ -27,11 +27,8 @@ void main() {
         return;
     }
     uint cycleLength = uint(textureSize(ColorCycle, 0).x);
-    float coord = (float(texel) + 0.5) / float(cycleLength);
-    uint value = texture(ColorCycle, vec2(coord, 0.5)).r;
+    uint index = uint(texel - 1u) % cycleLength;
+    uint value = texelFetch(ColorCycle, ivec2(index, 0), 0).r;
     vec4 color = unpackRgba(value);
-    // uint index = uint(texel - 1u) % cycleLength;
-    // uint value = texelFetch(ColorCycle, ivec2(index, 0));
-    // vec4 color = unpackRgba(value);
     fragColor = vec4(color.rgb, u_opacity * color.a);
 }
