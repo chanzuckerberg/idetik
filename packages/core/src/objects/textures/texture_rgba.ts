@@ -1,7 +1,7 @@
 import { TextureData, Texture } from "../../objects/textures/texture";
 
 export class TextureRgba extends Texture {
-  private data_: TexImageSource | ArrayBufferView;
+  private data_: TextureData;
   private readonly width_: number;
   private readonly height_: number;
 
