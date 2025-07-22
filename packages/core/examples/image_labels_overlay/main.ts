@@ -25,7 +25,7 @@ const loader = await imageSource.open();
 const attributes = await loader.loadAttributes();
 const attributesAtLod = attributes[lod];
 
-// Phase contrast limits are chosen to some contrast.
+// Phase contrast limits were chosen qualitatively.
 const phaseChannelIndex = 0;
 const phaseContrastLimits: [number, number] = [20, 200];
 
@@ -67,7 +67,7 @@ const imageLayer = new ImageLayer({
       contrastLimits: phaseContrastLimits,
     },
   ],
-  lod: 0,
+  lod,
 });
 
 // Labels provide C and Z dimensions, but they are unitary.
@@ -85,7 +85,7 @@ const labelsLayer = new LabelImageLayer({
   transparent: true,
   opacity: 0.25,
   blendMode: "normal",
-  lod: 0,
+  lod,
 });
 
 const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
