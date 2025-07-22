@@ -8,7 +8,7 @@ import { Color } from "../core/color";
 
 export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
-  public wireframeColor = new Color();
+  public wireframeColor = Color.WHITE;
   private readonly textures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();
   private geometry_ = new Geometry();

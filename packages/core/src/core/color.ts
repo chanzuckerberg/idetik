@@ -3,10 +3,16 @@ import { vec3, vec4 } from "gl-matrix";
 export type ColorLike = Color | vec3 | vec4;
 
 export class Color {
+  public static readonly RED: Color = new Color(1.0, 0.0, 0.0);
+  public static readonly GREEN: Color = new Color(0.0, 1.0, 0.0);
+  public static readonly BLUE: Color = new Color(0.0, 0.0, 1.0);
+  public static readonly BLACK: Color = new Color(0.0, 0.0, 0.0);
+  public static readonly WHITE: Color = new Color(1.0, 1.0, 1.0);
+
   // RGBA color values in the range [0, 1]
   private readonly rgba_: readonly [number, number, number, number];
 
-  constructor(r: number = 1.0, g: number = 1.0, b: number = 1.0, a?: number) {
+  constructor(r: number, g: number, b: number, a?: number) {
     if (r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1) {
       throw new Error("RGB values must be in the range [0, 1]");
     }
@@ -68,12 +74,6 @@ export class Color {
       1.0
     );
   }
-
-  public static RED: Color = new Color(1.0, 0.0, 0.0);
-  public static GREEN: Color = new Color(0.0, 1.0, 0.0);
-  public static BLUE: Color = new Color(0.0, 0.0, 1.0);
-  public static BLACK: Color = new Color(0.0, 0.0, 0.0);
-  public static WHITE: Color = new Color(1.0, 1.0, 1.0);
 
   private toHexComponent(value: number): string {
     const hex = Math.round(value * 255)

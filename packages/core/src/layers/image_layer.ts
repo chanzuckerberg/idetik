@@ -179,7 +179,8 @@ export class ImageLayer extends Layer {
 
     if (this.debugMode) {
       image.wireframeEnabled = true;
-      image.wireframeColor = this.wireframeColors_[chunk.lod];
+      image.wireframeColor =
+        this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
     }
 
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);

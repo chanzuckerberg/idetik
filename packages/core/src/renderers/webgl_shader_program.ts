@@ -10,8 +10,10 @@ type ShaderMap = {
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
   private readonly program_: WebGLProgram;
-  private uniformInfo_: Map<string, [WebGLUniformLocation, WebGLActiveInfo]> =
-    new Map();
+  private readonly uniformInfo_: Map<
+    string,
+    [WebGLUniformLocation, WebGLActiveInfo]
+  > = new Map();
   private shaders_: ShaderMap = {};
 
   constructor(
@@ -30,9 +32,9 @@ export class WebGLShaderProgram {
     this.addShader(vertexShaderSource, gl.VERTEX_SHADER);
     this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
     this.link();
-    this.validateProgram();
-    this.preprocessUniformLocations();
     this.deleteShaders();
+    this.validate();
+    this.preprocessUniformLocations();
   }
 
   public setUniform(name: string, value: unknown) {
@@ -124,7 +126,7 @@ export class WebGLShaderProgram {
     }
   }
 
-  private validateProgram() {
+  private validate() {
     this.gl_.validateProgram(this.program_);
     if (!this.getParameter(this.gl_.VALIDATE_STATUS)) {
       this.deleteShaders();
