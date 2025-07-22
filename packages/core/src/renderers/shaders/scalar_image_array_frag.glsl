@@ -6,11 +6,11 @@ precision mediump float;
 layout (location = 0) out vec4 fragColor;
 
 #if defined TEXTURE_DATA_TYPE_INT
-uniform mediump isampler2DArray ImageData;
+uniform mediump isampler2DArray ImageSampler;
 #elif defined TEXTURE_DATA_TYPE_UINT
-uniform mediump usampler2DArray ImageData;
+uniform mediump usampler2DArray ImageSampler;
 #else
-uniform mediump sampler2DArray ImageData;
+uniform mediump sampler2DArray ImageSampler;
 #endif
 // Define a maximum number of channels
 #define MAX_CHANNELS 32
@@ -26,7 +26,7 @@ void main() {
     vec3 rgbColor = vec3(0, 0, 0);
     for (int i = 0; i < MAX_CHANNELS; i++) {
         if (!Visible[i]) continue;
-        float texel = float(texture(ImageData, vec3(TexCoords, i)).r);
+        float texel = float(texture(ImageSampler, vec3(TexCoords, i)).r);
         float value = (texel + ValueOffset[i]) * ValueScale[i];
         // clamp to [0, 1] because contrast limits may put values out of this range,
         // which distorts colors in other channels
