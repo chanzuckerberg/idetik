@@ -27,10 +27,9 @@ export class LabelImageLayer extends Layer {
 
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
-  private colorCycle_: ReadonlyArray<Color>;
-  private image_?: LabelImageRenderable;
-  private extent_?: { x: number; y: number };
   private readonly lod_?: number;
+  private readonly colorCycle_: ReadonlyArray<Color>;
+  private image_?: LabelImageRenderable;
 
   constructor({
     source,
@@ -74,34 +73,19 @@ export class LabelImageLayer extends Layer {
     const loader = await this.source_.open();
     const attributes = await loader.loadAttributes();
     const lod = this.lod_ ?? attributes.length - 1;
-
     const chunk = await loader.loadRegion(region, lod);
-    this.extent_ = {
-      x: chunk.shape.x * chunk.scale.x,
-      y: chunk.shape.y * chunk.scale.y,
-    };
-
     this.image_ = this.createImage(chunk);
     this.addObject(this.image_);
-
     this.setState("ready");
-  }
-
-  // TODO: we probably want something like this, but it should be unified across layers
-  // see TracksLayer for another example
-  public get extent(): { x: number; y: number } | undefined {
-    return this.extent_;
   }
 
   private createImage(chunk: ImageChunk) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-
     const image = new LabelImageRenderable({
       geometry,
-      texture: Texture2D.createWithImageChunk(chunk),
+      imageData: Texture2D.createWithImageChunk(chunk),
       colorCycle: this.colorCycle_,
     });
-
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;

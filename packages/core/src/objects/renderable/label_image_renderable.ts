@@ -6,7 +6,7 @@ import { TextureRgba } from "../textures/texture_rgba";
 
 type LabelImageRenderableProps = {
   geometry: Geometry;
-  texture: Texture;
+  imageData: Texture;
   colorCycle: ReadonlyArray<Color>;
 };
 
@@ -14,7 +14,7 @@ export class LabelImageRenderable extends RenderableObject {
   constructor(props: LabelImageRenderableProps) {
     super();
     this.geometry = props.geometry;
-    this.addTexture(props.texture);
+    this.addTexture(props.imageData);
     const colorCycleTexture = this.makeColorCycleTexture(props.colorCycle);
     this.addTexture(colorCycleTexture);
     this.programName = "labelImage";
