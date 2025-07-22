@@ -1,6 +1,5 @@
 import {
   Idetik,
-  AxesLayer,
   ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
@@ -28,12 +27,14 @@ const region: Region = [
   { dimension: "x", index: { type: "full" } },
 ];
 const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
-const imageLayer = new ImageLayer({ source, region, channelProps });
-const axesLayer = new AxesLayer({ length: 1500, width: 0.01 });
 const camera = new OrthographicCamera(left, right, top, bottom);
 const fpsOverlay = new FpsOverlay({
   textDiv: document.querySelector<HTMLDivElement>("#fps-text")!,
 });
+
+const imageLayer = new ImageLayer({ source, region, channelProps });
+imageLayer.debugMode = true;
+
 const chunkInfoOverlay = new ChunkInfoOverlay({
   textDiv: document.querySelector<HTMLDivElement>("#chunk-info")!,
   imageLayer: imageLayer,
@@ -43,6 +44,6 @@ new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
   controls: new PanZoomControls(camera, camera.position),
-  layers: [imageLayer, axesLayer],
+  layers: [imageLayer],
   overlays: [fpsOverlay, chunkInfoOverlay],
 }).start();

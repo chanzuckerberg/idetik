@@ -10,8 +10,10 @@ type ShaderMap = {
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
   private readonly program_: WebGLProgram;
-  private uniformInfo_: Map<string, [WebGLUniformLocation, WebGLActiveInfo]> =
-    new Map();
+  private readonly uniformInfo_: Map<
+    string,
+    [WebGLUniformLocation, WebGLActiveInfo]
+  > = new Map();
   private shaders_: ShaderMap = {};
 
   constructor(
@@ -30,6 +32,9 @@ export class WebGLShaderProgram {
     this.addShader(vertexShaderSource, gl.VERTEX_SHADER);
     this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
     this.link();
+    this.deleteShaders();
+    this.validate();
+    this.preprocessUniformLocations();
   }
 
   public setUniform(name: string, value: unknown) {
@@ -37,7 +42,6 @@ export class WebGLShaderProgram {
     if (!location || !info) {
       throw new Error(`Uniform "${name}" not found in shader program`);
     }
-
     const type = info.type as SupportedUniformType;
     switch (type) {
       // There is no dedicated uniform1b in WebGL, but passing through
@@ -120,16 +124,15 @@ export class WebGLShaderProgram {
       const message = this.gl_.getProgramInfoLog(this.program_);
       throw new Error(`Error linking program: ${message}`);
     }
+  }
 
+  private validate() {
     this.gl_.validateProgram(this.program_);
     if (!this.getParameter(this.gl_.VALIDATE_STATUS)) {
       this.deleteShaders();
       const message = this.gl_.getProgramInfoLog(this.program_);
       throw new Error(`Error validating program: ${message}`);
     }
-
-    this.preprocessUniformLocations();
-    this.deleteShaders();
   }
 
   public use() {
