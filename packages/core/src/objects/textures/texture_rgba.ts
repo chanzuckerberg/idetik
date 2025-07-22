@@ -10,8 +10,6 @@ export class TextureRgba extends Texture {
     this.data_ = data;
     this.width_ = width;
     this.height_ = height;
-    this.dataFormat = "rgba";
-    this.dataType = "unsigned_byte";
   }
 
   public set data(data: TextureData) {
