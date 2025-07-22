@@ -61,10 +61,6 @@ export class LabelImageLayer extends Layer {
     }
   }
 
-  public get colorCycle() {
-    return this.colorCycle_;
-  }
-
   private async load(region: Region) {
     if (this.state !== "initialized") {
       throw new Error(`Trying to load chunks more than once.`);
