@@ -24,7 +24,7 @@ export class WebGLTextures {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
-    this.maxTextureUnits_ = gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+    this.maxTextureUnits_ = gl.MAX_TEXTURE_IMAGE_UNITS;
   }
 
   public bindTexture(texture: Texture, index: number) {
