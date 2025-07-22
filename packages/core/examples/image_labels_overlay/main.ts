@@ -22,7 +22,7 @@ const labelsSource = new OmeZarrImageSource(labelsUrl);
 
 const imageRegion: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
-  // Chunk manager does not support multi-channel images.
+  // Chunk manager does not support multi-channel images?
   { dimension: "C", index: { type: "point", value: 0 } },
   // Mid-slice in Z.
   { dimension: "Z", index: { type: "point", value: 0.1494 * 4 } },
@@ -41,18 +41,6 @@ const imageLayer = new ImageLayer({
       color: Color.WHITE,
       contrastLimits: [0, 200],
     },
-    //   {
-    //     visible: true,
-    //     // GFP with contrast limits chosen somewhat arbitrarily.
-    //     color: Color.GREEN,
-    //     contrastLimits: [0, 200],
-    //   },
-    //   {
-    //     visible: true,
-    //     // mCherry with contrast limits chosen somewhat arbitrarily.
-    //     color: Color.RED,
-    //     contrastLimits: [0, 200],
-    //   },
   ],
   lod: 0,
 });
