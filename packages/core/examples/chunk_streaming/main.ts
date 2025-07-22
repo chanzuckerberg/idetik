@@ -39,6 +39,8 @@ const chunkInfoOverlay = new ChunkInfoOverlay({
   imageLayer: imageLayer,
 });
 
+imageLayer.debugMode = true;
+
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,

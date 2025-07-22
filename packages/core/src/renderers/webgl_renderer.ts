@@ -97,6 +97,7 @@ export class WebGLRenderer extends Renderer {
     if (object.wireframeEnabled) {
       this.bindings_.bindGeometry(object.wireframeGeometry);
       const wireframeProgram = this.programs_.get("wireframe").use();
+      wireframeProgram.setUniform("u_color", object.wireframeColor.rgb);
       this.drawGeometry(
         object.wireframeGeometry,
         object,

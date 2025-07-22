@@ -6,7 +6,7 @@ export class Color {
   // RGBA color values in the range [0, 1]
   private readonly rgba_: readonly [number, number, number, number];
 
-  constructor(r: number, g: number, b: number, a?: number) {
+  constructor(r: number = 1.0, g: number = 1.0, b: number = 1.0, a?: number) {
     if (r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1) {
       throw new Error("RGB values must be in the range [0, 1]");
     }
