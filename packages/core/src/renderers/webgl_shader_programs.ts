@@ -33,7 +33,11 @@ export class WebGLShaderPrograms {
       if (error !== this.gl_.NO_ERROR) {
         throw new Error(`Error using WebGL program: ${error}`);
       }
-      // TODO: Any sampler uniform targets should be set here.
+      if (code.samplerBindings) {
+        for (const [name, value] of Object.entries(code.samplerBindings)) {
+          program.setUniform(name, value);
+        }
+      }
       program.validate();
       this.programs_.set(shader, program);
     } else {

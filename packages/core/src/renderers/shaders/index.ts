@@ -24,6 +24,7 @@ type ShaderCode = {
   vertexDefines?: ReadonlyMap<string, string>;
   fragment: string;
   fragmentDefines?: ReadonlyMap<string, string>;
+  samplerBindings?: Record<string, number>;
 };
 
 export const shaderCode: Record<Shader, ShaderCode> = {
