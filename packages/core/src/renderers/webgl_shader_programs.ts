@@ -11,7 +11,7 @@ export class WebGLShaderPrograms {
     this.gl_ = gl;
   }
 
-  public get(shader: Shader): WebGLShaderProgram {
+  public use(shader: Shader): WebGLShaderProgram {
     let program = this.programs_.get(shader);
     if (program === undefined) {
       const code = shaderCode[shader];
