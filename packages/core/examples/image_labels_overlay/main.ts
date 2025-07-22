@@ -12,20 +12,46 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 // These roughly correspond in terms of content and the number of time-points.
 // But the image is smaller in XY than the labels, and has a Z-stack, so it
 // is unclear which Z-slice the labels correspond to (if any particular one)
-const baseUrl =
-  "https://public.czbiohub.org/organelle_box/datasets/A549/2024_11_07_A549_SEC61_DENV";
-const imageUrl = `${baseUrl}_cropped.zarr/B/3/000000`;
-const labelsUrl = `${baseUrl}_tracking.zarr/B/3/000000`;
+const baseUrl = "https://public.czbiohub.org/organelle_box/datasets/A549";
+const fovName = "B/3/000000";
+const imageUrl = `${baseUrl}/2024_11_07_A549_SEC61_DENV_cropped.zarr/${fovName}`;
+const labelsUrl = `${baseUrl}/2024_11_07_A549_SEC61_DENV_tracking.zarr/${fovName}`;
 
 const imageSource = new OmeZarrImageSource(imageUrl);
 const labelsSource = new OmeZarrImageSource(labelsUrl);
 
+const lod = 0;
+const loader = await imageSource.open();
+const attributes = await loader.loadAttributes();
+const attributesAtLod = attributes[lod];
+
+// Phase contrast limits are chosen to some contrast.
+const phaseChannelIndex = 0;
+const phaseContrastLimits: [number, number] = [20, 200];
+
+const tStartPoint = 0;
+
+const dimensionExtent = (dimensionName: string) => {
+  const index = attributesAtLod.dimensionNames.findIndex(
+    (d) => d === dimensionName
+  );
+  return {
+    size: attributesAtLod.shape[index],
+    scale: attributesAtLod.scale[index],
+  };
+};
+
+const zExtent = dimensionExtent("Z");
+const zMidPoint = 0.5 * zExtent.size * zExtent.scale;
+const xExtent = dimensionExtent("X");
+const xStopPoint = xExtent.size * xExtent.scale;
+const yExtent = dimensionExtent("Y");
+const yStopPoint = yExtent.size * yExtent.scale;
+
 const imageRegion: Region = [
-  { dimension: "T", index: { type: "point", value: 0 } },
-  // Chunk manager does not support multi-channel images?
-  { dimension: "C", index: { type: "point", value: 0 } },
-  // Mid-slice in Z.
-  { dimension: "Z", index: { type: "point", value: 0.1494 * 4 } },
+  { dimension: "T", index: { type: "point", value: tStartPoint } },
+  { dimension: "C", index: { type: "point", value: phaseChannelIndex } },
+  { dimension: "Z", index: { type: "point", value: zMidPoint } },
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },
 ];
@@ -37,16 +63,16 @@ const imageLayer = new ImageLayer({
   channelProps: [
     {
       visible: true,
-      // Phase with contrast limits chosen somewhat arbitrarily.
       color: Color.WHITE,
-      contrastLimits: [0, 200],
+      contrastLimits: phaseContrastLimits,
     },
   ],
   lod: 0,
 });
 
+// Labels provide C and Z dimensions, but they are unitary.
 const labelsRegion: Region = [
-  { dimension: "T", index: { type: "point", value: 0 } },
+  { dimension: "T", index: { type: "point", value: tStartPoint } },
   { dimension: "C", index: { type: "point", value: 0 } },
   { dimension: "Z", index: { type: "point", value: 0 } },
   { dimension: "Y", index: { type: "full" } },
@@ -62,7 +88,7 @@ const labelsLayer = new LabelImageLayer({
   lod: 0,
 });
 
-const camera = new OrthographicCamera(0, 128, 0, 128);
+const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
 new Idetik({
   canvasSelector: "canvas",
   camera,
