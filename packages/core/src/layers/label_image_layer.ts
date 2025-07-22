@@ -21,7 +21,6 @@ const DEFAULT_COLOR_CYCLE: ColorLike[] = [
   [1.0, 1.0, 0.5],
 ];
 
-// Loads data from an image source into renderable objects.
 export class LabelImageLayer extends Layer {
   public readonly type = "LabelImageLayer";
 
