@@ -76,6 +76,7 @@ export class WebGLShaderProgram {
       case this.gl_.UNSIGNED_INT_SAMPLER_3D:
       case this.gl_.UNSIGNED_INT_SAMPLER_CUBE:
       case this.gl_.UNSIGNED_INT_SAMPLER_2D_ARRAY:
+        // console.debug("setting sampler uniform", this, name, value);
         this.gl_.uniform1i(location, value as number);
         break;
       default: {

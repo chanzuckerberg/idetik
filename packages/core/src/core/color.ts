@@ -44,6 +44,17 @@ export class Color {
     return `#${this.toHexComponent(this.r)}${this.toHexComponent(this.g)}${this.toHexComponent(this.b)}`;
   }
 
+  public get packed(): number {
+    const [r, g, b, a] = this.rgba_;
+    return (
+      ((Math.round(r * 255) << 24) |
+        (Math.round(g * 255) << 16) |
+        (Math.round(b * 255) << 8) |
+        Math.round(a * 255)) >>>
+      0
+    );
+  }
+
   public static from(colorLike: ColorLike): Color {
     if (colorLike instanceof Color) {
       return colorLike;

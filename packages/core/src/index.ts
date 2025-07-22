@@ -14,6 +14,7 @@ export { AxesLayer } from "./layers/axes_layer";
 export { ProjectedLineLayer } from "./layers/projected_line_layer";
 export { TracksLayer } from "./layers/tracks_layer";
 export { ImageLayer } from "./layers/image_layer";
+export { LabelImageLayer } from "./layers/label_image_layer";
 export { ImageSeriesLayer } from "./layers/image_series_layer";
 export { OmeZarrImageSource } from "./data/ome_zarr_image_source";
 
