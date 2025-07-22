@@ -26,6 +26,7 @@ type ShaderCode = {
   vertexDefines?: ReadonlyMap<string, string>;
   fragment: string;
   fragmentDefines?: ReadonlyMap<string, string>;
+  samplerBindings?: Record<string, number>;
 };
 
 export const shaderCode: Record<Shader, ShaderCode> = {
@@ -72,5 +73,9 @@ export const shaderCode: Record<Shader, ShaderCode> = {
   labelImage: {
     vertex: meshVertexShader,
     fragment: labelImage,
+    samplerBindings: {
+      ImageData: 0,
+      ColorCycle: 1,
+    },
   },
 };

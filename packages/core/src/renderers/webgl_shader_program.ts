@@ -1,18 +1,10 @@
 import { mat4, vec2, vec3 } from "gl-matrix";
 
-type ShaderMap = {
-  [type: number]: {
-    shader: WebGLShader;
-    source: string;
-  };
-};
-
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
   private readonly program_: WebGLProgram;
   private uniformInfo_: Map<string, [WebGLUniformLocation, WebGLActiveInfo]> =
     new Map();
-  private shaders_: ShaderMap = {};
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -27,9 +19,34 @@ export class WebGLShaderProgram {
     }
     this.program_ = program;
 
-    this.addShader(vertexShaderSource, gl.VERTEX_SHADER);
-    this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
-    this.link();
+    const shaders = [];
+    shaders.push(this.addShader(vertexShaderSource, gl.VERTEX_SHADER));
+    shaders.push(this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER));
+    this.gl_.linkProgram(this.program_);
+    if (!this.getParameter(this.gl_.LINK_STATUS)) {
+      shaders.forEach((shader) => this.gl_.deleteShader(shader));
+      const message = this.gl_.getProgramInfoLog(this.program_);
+      throw new Error(`Error linking program: ${message}`);
+    }
+    shaders.forEach((shader) => this.gl_.deleteShader(shader));
+
+    this.preprocessUniformLocations();
+  }
+
+  public use() {
+    this.gl_.useProgram(this.program_);
+  }
+
+  public validate() {
+    this.gl_.validateProgram(this.program_);
+    if (!this.getParameter(this.gl_.VALIDATE_STATUS)) {
+      const message = this.gl_.getProgramInfoLog(this.program_);
+      throw new Error(`Error validating program: ${message}`);
+    }
+  }
+
+  public get uniformNames(): string[] {
+    return Array.from(this.uniformInfo_.keys());
   }
 
   public setUniform(name: string, value: unknown) {
@@ -76,7 +93,6 @@ export class WebGLShaderProgram {
       case this.gl_.UNSIGNED_INT_SAMPLER_3D:
       case this.gl_.UNSIGNED_INT_SAMPLER_CUBE:
       case this.gl_.UNSIGNED_INT_SAMPLER_2D_ARRAY:
-        // console.debug("setting sampler uniform", this, name, value);
         this.gl_.uniform1i(location, value as number);
         break;
       default: {
@@ -124,50 +140,11 @@ export class WebGLShaderProgram {
     }
 
     this.gl_.attachShader(this.program_, shader);
-    this.shaders_[type] = { shader: shader, source };
-  }
-
-  private link() {
-    this.gl_.linkProgram(this.program_);
-    if (!this.getParameter(this.gl_.LINK_STATUS)) {
-      this.deleteShaders();
-      const message = this.gl_.getProgramInfoLog(this.program_);
-      throw new Error(`Error linking program: ${message}`);
-    }
-
-    this.gl_.validateProgram(this.program_);
-    if (!this.getParameter(this.gl_.VALIDATE_STATUS)) {
-      this.deleteShaders();
-      const message = this.gl_.getProgramInfoLog(this.program_);
-      throw new Error(`Error validating program: ${message}`);
-    }
-
-    this.preprocessUniformLocations();
-    this.deleteShaders();
-  }
-
-  public use() {
-    this.gl_.useProgram(this.program_);
-    const error = this.gl_.getError();
-    if (error !== this.gl_.NO_ERROR) {
-      throw new Error(`Error using WebGL program: ${error}`);
-    }
-    return this;
+    return shader;
   }
 
   private getParameter(parameter: number) {
     return this.gl_.getProgramParameter(this.program_, parameter);
-  }
-
-  private deleteShaders() {
-    for (const idx in this.shaders_) {
-      this.gl_.deleteShader(this.shaders_[idx].shader);
-    }
-    this.shaders_ = {};
-  }
-
-  public get uniformNames(): string[] {
-    return Array.from(this.uniformInfo_.keys());
   }
 }
 

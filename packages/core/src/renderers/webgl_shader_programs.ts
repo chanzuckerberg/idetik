@@ -28,8 +28,20 @@ export class WebGLShaderPrograms {
         vertexShaderSource,
         fragmentShaderSource
       );
+      program.use();
+      const error = this.gl_.getError();
+      if (error !== this.gl_.NO_ERROR) {
+        throw new Error(`Error using WebGL program: ${error}`);
+      }
+      if (code.samplerBindings) {
+        for (const [name, value] of Object.entries(code.samplerBindings)) {
+          program.setUniform(name, value);
+        }
+      }
+      program.validate();
       this.programs_.set(shader, program);
     }
+    program.use();
     return program;
   }
 }

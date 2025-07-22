@@ -24,25 +24,14 @@ export class LabelImageRenderable extends RenderableObject {
     return "LabelImageRenderable";
   }
 
-  public getUniforms() {
-    return {
-      ImageData: 0,
-      ColorCycle: 1,
-    };
-  }
-
   private makeColorCycleTexture(colorCycle: ReadonlyArray<Color>) {
-    const data = new Uint32Array(colorCycle.map((c) => c.packed));
-    const texture = new Texture2D(data, data.length, 1);
+    const data = new Uint8Array(
+      colorCycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
+    );
+    const texture = new Texture2D(data, colorCycle.length, 1);
+    texture.dataFormat = "rgba";
     texture.unpackRowLength = data.length;
-    texture.unpackAlignment = 4;
-    // const data = new Uint8Array(
-    //   colorCycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
-    // );
-    // const texture = new Texture2D(data, colorCycle.length, 1);
-    // texture.dataFormat = "rgba";
-    // texture.unpackRowLength = data.length;
-    // texture.unpackAlignment = 1;
+    texture.unpackAlignment = 1;
     texture.wrapR = "repeat";
     texture.wrapS = "repeat";
     texture.wrapT = "repeat";

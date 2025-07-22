@@ -91,12 +91,12 @@ export class WebGLRenderer extends Renderer {
       this.textures_.bindTexture(texture, index);
     });
 
-    const program = this.programs_.get(object.programName).use();
+    const program = this.programs_.get(object.programName);
     this.drawGeometry(object.geometry, object, layer, program);
 
     if (object.wireframeEnabled) {
       this.bindings_.bindGeometry(object.wireframeGeometry);
-      const wireframeProgram = this.programs_.get("wireframe").use();
+      const wireframeProgram = this.programs_.get("wireframe");
       this.drawGeometry(
         object.wireframeGeometry,
         object,

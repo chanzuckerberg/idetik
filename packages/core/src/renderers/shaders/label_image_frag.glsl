@@ -6,7 +6,7 @@ precision highp int;
 layout (location = 0) out vec4 fragColor;
 
 uniform highp usampler2D ImageData;
-uniform highp usampler2D ColorCycle;
+uniform mediump sampler2D ColorCycle;
 
 uniform float u_opacity;
 
@@ -28,7 +28,6 @@ void main() {
     }
     uint cycleLength = uint(textureSize(ColorCycle, 0).x);
     uint index = uint(texel - 1u) % cycleLength;
-    uint value = texelFetch(ColorCycle, ivec2(index, 0), 0).r;
-    vec4 color = unpackRgba(value);
+    vec4 color = texelFetch(ColorCycle, ivec2(index, 0), 0);
     fragColor = vec4(color.rgb, u_opacity * color.a);
 }
