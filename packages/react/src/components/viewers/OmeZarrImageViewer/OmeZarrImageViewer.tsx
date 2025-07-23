@@ -24,8 +24,20 @@ import {
 import { ChannelControlsList } from "./components/ChannelControlsList";
 import { ScaleBar } from "./components/ScaleBar/ScaleBar";
 
-interface OmeZarrImageViewerProps {
+type HttpSource = {
   sourceUrl: string;
+  sourceLocalDirectory?: never;
+};
+type LocalSource = {
+  sourceUrl?: never;
+  sourceLocalDirectory: {
+    directory: FileSystemDirectoryHandle;
+    path?: `/${string}`;
+  };
+};
+type Source = HttpSource | LocalSource;
+
+export type OmeZarrImageViewerProps = Source & {
   region: Region;
   seriesDimensionName: string;
   fallbackContrastLimits?: [number, number];
@@ -53,32 +65,31 @@ interface OmeZarrImageViewerProps {
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
-}
+};
 
-export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
-  const {
-    sourceUrl,
-    region,
-    seriesDimensionName,
-    fallbackContrastLimits,
-    classNames,
-    onLayerCreated,
-    onFirstSliceLoaded,
-    onLoadAllSlicesClicked,
-    onAllSlicesLoaded,
-    onLoadAllSlicesAborted,
-    resolutionLevel = 0,
-    shouldAutoLoadAllSlices = false,
-    shouldLoadMiddleZ = false,
-    initialIndex = "omeroDefaultZ",
-    loadAllButtonText,
-    indexIndicatorText,
-    scaleBar = {
-      visible: true,
-      align: "start",
-    },
-  } = props;
-
+export function OmeZarrImageViewer({
+  sourceUrl,
+  sourceLocalDirectory,
+  region,
+  seriesDimensionName,
+  fallbackContrastLimits,
+  classNames,
+  onLayerCreated,
+  onFirstSliceLoaded,
+  onLoadAllSlicesClicked,
+  onAllSlicesLoaded,
+  onLoadAllSlicesAborted,
+  resolutionLevel = 0,
+  shouldAutoLoadAllSlices = false,
+  shouldLoadMiddleZ = false,
+  initialIndex = "omeroDefaultZ",
+  loadAllButtonText,
+  indexIndicatorText,
+  scaleBar = {
+    visible: true,
+    align: "start",
+  },
+}: OmeZarrImageViewerProps) {
   const { isReady: runtimeIsReady, runtime } = useIdetik();
 
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
@@ -94,10 +105,21 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
 
   // Create source when URL or resolution changes
   useEffect(() => {
-    const newSource = new OmeZarrImageSource(sourceUrl);
+    const newSource =
+      sourceUrl !== undefined
+        ? new OmeZarrImageSource(sourceUrl)
+        : new OmeZarrImageSource(
+            sourceLocalDirectory.directory,
+            sourceLocalDirectory.path
+          );
     setSource(newSource);
     setAllSlicesLoaded(false);
-  }, [sourceUrl, resolutionLevel]);
+  }, [
+    sourceUrl,
+    sourceLocalDirectory?.directory,
+    sourceLocalDirectory?.path,
+    resolutionLevel,
+  ]);
 
   // Create Image Layer
   useEffect(() => {
@@ -107,7 +129,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
       setLoading(true);
 
       try {
-        const loadedOmeroChannels = await loadOmeroChannels(sourceUrl);
+        const loadedOmeroChannels = await loadOmeroChannels(source);
         let channelProps;
 
         if (loadedOmeroChannels.length === 0) {
@@ -251,7 +273,7 @@ export function OmeZarrImageViewer(props: OmeZarrImageViewerProps) {
           const zShape = attrsForLevel.shape[zIdx];
           initialZ = zShape - 1;
         } else {
-          initialZ = await loadOmeroDefaultZ(sourceUrl);
+          initialZ = await loadOmeroDefaultZ(source);
         }
       } else if (zRegion) {
         switch (zRegion.index?.type) {
