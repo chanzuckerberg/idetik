@@ -1,5 +1,5 @@
 import { Location, open as zarritaOpen } from "@zarrita/core";
-import { AbsolutePath, FetchStore } from "@zarrita/storage";
+import FetchStore from "@zarrita/storage/fetch";
 import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
 import WebFileSystemStore from "./zarrita/web_file_system_store";
 
@@ -17,8 +17,8 @@ export class OmeZarrImageSource {
    * @param path path to image, beginning with "/". This argument allows the application to only
    *    ask the user once for permission to the root directory
    */
-  constructor(directory: FileSystemDirectoryHandle, path?: AbsolutePath);
-  constructor(source: string | FileSystemDirectoryHandle, path?: AbsolutePath) {
+  constructor(directory: FileSystemDirectoryHandle, path?: `/${string}`);
+  constructor(source: string | FileSystemDirectoryHandle, path?: `/${string}`) {
     this.location_ =
       typeof source === "string"
         ? new Location(new FetchStore(source))
