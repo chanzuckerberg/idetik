@@ -128,7 +128,7 @@ export class WebGLShaderProgram {
     return shader;
   }
 
-  private link(): void {
+  private link() {
     this.gl_.linkProgram(this.program_);
     if (!this.getParameter(this.gl_.LINK_STATUS)) {
       const message = this.gl_.getProgramInfoLog(this.program_);
