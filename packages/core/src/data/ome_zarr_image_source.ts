@@ -14,7 +14,8 @@ export class OmeZarrImageSource {
   /**
    * @param directory return value of `window.showDirectoryPicker()` which gives the browser
    *    permission to access a directory (only works in Chrome/Edge)
-   * @param path path to image (begins with "/")
+   * @param path path to image, beginning with "/". This argument allows the application to only
+   *    ask the user once for permission to the root directory
    */
   constructor(directory: FileSystemDirectoryHandle, path?: AbsolutePath);
   constructor(source: string | FileSystemDirectoryHandle, path?: AbsolutePath) {
