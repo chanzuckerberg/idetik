@@ -3,11 +3,12 @@ import { Geometry } from "../core/geometry";
 import { WireframeGeometry } from "../core/wireframe_geometry";
 import { Texture } from "../objects/textures/texture";
 import { TrsTransform } from "../core/transforms";
-
 import { Shader } from "../renderers/shaders";
+import { Color } from "../core/color";
 
 export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
+  public wireframeColor = Color.WHITE;
   private readonly textures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();
   private geometry_ = new Geometry();
