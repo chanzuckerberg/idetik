@@ -2,6 +2,7 @@ import * as zarr from "zarrita";
 import { Plate } from "../data/ome_ngff/0.4/plate";
 import { Well } from "../data/ome_ngff/0.4/well";
 import { Image } from "../data/ome_ngff/0.4/image";
+import WebFileSystemStore from "./zarrita/web_file_system_store";
 
 export async function loadOmeZarrPlate(url: string): Promise<Plate> {
   const store = new zarr.FetchStore(url);
@@ -37,7 +38,9 @@ export async function loadOmeroDefaultZ(url: string): Promise<number> {
   return group.attrs?.omero?.rdefs?.defaultZ ?? 0;
 }
 
-export function parseOmeNgffImage(group: zarr.Group<zarr.FetchStore>): Image {
+export function parseOmeNgffImage(
+  group: zarr.Group<zarr.FetchStore | WebFileSystemStore>
+): Image {
   // copy attrs to avoid mutating the original
   const attrs = { ...group.attrs };
   // TODO: silly fix for removing top-level identity transform,
