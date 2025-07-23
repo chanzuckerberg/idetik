@@ -22,6 +22,7 @@ export interface LayerOptions {
 
 export abstract class Layer {
   public abstract readonly type: string;
+  public debugMode = false;
 
   private objects_: RenderableObject[] = [];
   private state_: LayerState = "initialized";
