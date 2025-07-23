@@ -56,7 +56,6 @@ export class WebGLShaderProgram {
     if (!location || !info) {
       throw new Error(`Uniform "${name}" not found in shader program`);
     }
-
     const type = info.type as SupportedUniformType;
     switch (type) {
       // There is no dedicated uniform1b in WebGL, but passing through
