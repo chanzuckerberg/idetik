@@ -1,4 +1,4 @@
-// This file is copied from https://github.com/manzt/zarrita.js/pull/161
+// This file is almost a direct copy of https://github.com/manzt/zarrita.js/pull/161
 
 import type { AbsolutePath, AsyncReadable } from "@zarrita/storage";
 
