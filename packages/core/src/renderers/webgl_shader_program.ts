@@ -22,33 +22,17 @@ export class WebGLShaderProgram {
     this.program_ = program;
 
     const shaders = [];
-    shaders.push(this.addShader(vertexShaderSource, gl.VERTEX_SHADER));
-    shaders.push(this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER));
-    this.gl_.linkProgram(this.program_);
-    if (!this.getParameter(this.gl_.LINK_STATUS)) {
+    try {
+      shaders.push(this.addShader(vertexShaderSource, gl.VERTEX_SHADER));
+      shaders.push(this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER));
+      this.link();
+      this.preprocessUniformLocations();
+    } catch (error) {
+      gl.deleteProgram(program);
+      throw error;
+    } finally {
       shaders.forEach((shader) => this.gl_.deleteShader(shader));
-      const message = this.gl_.getProgramInfoLog(this.program_);
-      throw new Error(`Error linking program: ${message}`);
     }
-    shaders.forEach((shader) => this.gl_.deleteShader(shader));
-
-    this.preprocessUniformLocations();
-  }
-
-  public use() {
-    this.gl_.useProgram(this.program_);
-  }
-
-  public validate() {
-    this.gl_.validateProgram(this.program_);
-    if (!this.getParameter(this.gl_.VALIDATE_STATUS)) {
-      const message = this.gl_.getProgramInfoLog(this.program_);
-      throw new Error(`Error validating program: ${message}`);
-    }
-  }
-
-  public get uniformNames(): string[] {
-    return Array.from(this.uniformInfo_.keys());
   }
 
   public setUniform(name: string, value: unknown) {
@@ -144,8 +128,24 @@ export class WebGLShaderProgram {
     return shader;
   }
 
+  private link(): void {
+    this.gl_.linkProgram(this.program_);
+    if (!this.getParameter(this.gl_.LINK_STATUS)) {
+      const message = this.gl_.getProgramInfoLog(this.program_);
+      throw new Error(`Error linking program: ${message}`);
+    }
+  }
+
+  public use() {
+    this.gl_.useProgram(this.program_);
+  }
+
   private getParameter(parameter: number) {
     return this.gl_.getProgramParameter(this.program_, parameter);
+  }
+
+  public get uniformNames(): string[] {
+    return Array.from(this.uniformInfo_.keys());
   }
 }
 
