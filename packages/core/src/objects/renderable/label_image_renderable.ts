@@ -24,6 +24,13 @@ export class LabelImageRenderable extends RenderableObject {
     return "LabelImageRenderable";
   }
 
+  public getUniforms() {
+    return {
+      ImageSampler: 0,
+      ColorCycleSampler: 1,
+    };
+  }
+
   private makeColorCycleTexture(colorCycle: ReadonlyArray<Color>) {
     const data = new Uint8Array(
       colorCycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
