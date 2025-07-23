@@ -12,8 +12,6 @@ import {
  * Example Zarr:
  *
  * aws s3 --no-sign-request sync s3://cryoet-data-portal-public/10446/TS_101_9/Reconstructions/VoxelSpacing10.012/Tomograms/103/TS_101_9.zarr TS_101_9.zarr
- *
- * TODO(bchu): Make demo generic to any Zarr.
  */
 
 document.getElementById("button")!.addEventListener("click", async () => {
@@ -43,6 +41,8 @@ document.getElementById("button")!.addEventListener("click", async () => {
 
   const slider = document.querySelector<HTMLInputElement>("#slider");
   if (slider === null) throw new Error("Time slider not found.");
+  slider.min = "0";
+  slider.max = "46";
   slider.addEventListener("input", (event) => {
     const value = (event.target as HTMLInputElement).valueAsNumber;
     const index = value;
