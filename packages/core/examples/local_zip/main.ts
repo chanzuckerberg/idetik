@@ -7,115 +7,55 @@ import {
   OrthographicCamera,
   Region,
 } from "@";
-import { blendMode } from "@/core/layer";
-import { loadOmeroDefaultZ } from "data/ome_zarr_hcs_metadata_loader";
 
-document.getElementById("button")?.addEventListener("click", async () => {
+/**
+ * Example Zarr:
+ *
+ * aws s3 --no-sign-request sync s3://cryoet-data-portal-public/10446/TS_101_9/Reconstructions/VoxelSpacing10.012/Tomograms/103/TS_101_9.zarr TS_101_9.zarr
+ */
+
+document.getElementById("button")!.addEventListener("click", async () => {
   // @ts-expect-error -- Method not in types
   const directory = await window.showDirectoryPicker();
 
-  // Source is 5D, so provide an interval in T a scalar index in Z
-  // (first of only depth) to get a 2D image series.
   const source = new OmeZarrImageSource(directory);
 
-  // Get the default Z index from the zattrs
-  let zIndex = 0;
-  (async () => {
-    try {
-      zIndex = await loadOmeroDefaultZ(url);
-    } catch (error) {
-      console.error("Error loading default Z index:", error);
-    }
-  })();
-
-  const timeInterval = { start: 100, stop: 120 };
   const region: Region = [
-    { dimension: "T", index: { type: "interval", ...timeInterval } },
-    { dimension: "C", index: { type: "full" } },
-    { dimension: "Z", index: { type: "point", value: zIndex } },
-    { dimension: "Y", index: { type: "full" } },
-    { dimension: "X", index: { type: "full" } },
+    { dimension: "z", index: { type: "full" } },
+    { dimension: "y", index: { type: "full" } },
+    { dimension: "x", index: { type: "full" } },
   ];
-  // Raise the contrast limits for the blue channel because there is
-  // a lot of low signal that washes everything else out.
   const channelProps: ChannelProps[] = [
     {
-      visible: false,
-      color: Color.RED,
-      contrastLimits: [0, 255],
-    },
-    {
       visible: true,
-      color: Color.BLUE,
-      contrastLimits: [0, 255],
-    },
-    {
-      visible: true,
-      color: Color.GREEN,
-      contrastLimits: [128, 255],
+      color: Color.WHITE,
+      contrastLimits: [-0.00001, 0.00001],
     },
   ];
   const layer = new ImageSeriesLayer({
     source,
     region,
-    seriesDimensionName: "T",
+    seriesDimensionName: "z",
     channelProps,
-  });
-
-  const overlayChannelProps = structuredClone(channelProps);
-  overlayChannelProps[0].visible = true;
-  overlayChannelProps[0].color = new Color(1, 1, 0); // yellow-ish red+green
-  overlayChannelProps[1].visible = false;
-  overlayChannelProps[1].color = Color.BLUE;
-  overlayChannelProps[2].visible = false;
-  overlayChannelProps[2].color = Color.GREEN;
-
-  const overlayLayer = new ImageSeriesLayer({
-    source,
-    region,
-    seriesDimensionName: "T",
-    channelProps: overlayChannelProps,
-    transparent: true,
-    opacity: 0.5,
-    blendMode: "normal", // just for now; you can try "additive", etc. later
-  });
-
-  const blendSelect = document.querySelector<HTMLSelectElement>("#blendMode");
-  blendSelect?.addEventListener("change", (e) => {
-    overlayLayer.blendMode = (e.target as HTMLSelectElement).value as blendMode;
   });
 
   const slider = document.querySelector<HTMLInputElement>("#slider");
   if (slider === null) throw new Error("Time slider not found.");
-  slider.min = `${timeInterval.start}`;
-  slider.max = `${timeInterval.stop - 1}`;
-
-  const opacitySlider =
-    document.querySelector<HTMLInputElement>("#opacitySlider");
-  if (!opacitySlider) throw new Error("Opacity slider not found.");
-
-  opacitySlider.addEventListener("input", (event) => {
-    const value = (event.target as HTMLInputElement).valueAsNumber;
-    overlayLayer.opacity = value;
-  });
-
+  slider.min = "0";
+  slider.max = "46";
   slider.addEventListener("input", (event) => {
     const value = (event.target as HTMLInputElement).valueAsNumber;
-    const index = value - timeInterval.start;
+    const index = value;
     layer.setIndex(index);
-    overlayLayer.setIndex(index);
   });
 
-  layer.setIndex(slider.valueAsNumber - timeInterval.start);
-  overlayLayer.setIndex(slider.valueAsNumber - timeInterval.start);
-
+  layer.setIndex(0);
   layer.preloadSeries();
-  overlayLayer.preloadSeries();
 
-  const camera = new OrthographicCamera(0, 1920, 0, 1440);
+  const camera = new OrthographicCamera(0, 6327, 0, 6327);
   new Idetik({
     canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
     camera,
-    layers: [layer, overlayLayer],
+    layers: [layer],
   }).start();
 });
