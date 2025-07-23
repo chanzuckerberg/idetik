@@ -41,8 +41,6 @@ document.getElementById("button")!.addEventListener("click", async () => {
 
   const slider = document.querySelector<HTMLInputElement>("#slider");
   if (slider === null) throw new Error("Time slider not found.");
-  slider.min = "0";
-  slider.max = "46";
   slider.addEventListener("input", (event) => {
     const value = (event.target as HTMLInputElement).valueAsNumber;
     const index = value;
