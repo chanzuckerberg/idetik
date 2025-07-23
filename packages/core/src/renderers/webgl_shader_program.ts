@@ -3,8 +3,10 @@ import { mat4, vec2, vec3 } from "gl-matrix";
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
   private readonly program_: WebGLProgram;
-  private uniformInfo_: Map<string, [WebGLUniformLocation, WebGLActiveInfo]> =
-    new Map();
+  private readonly uniformInfo_: Map<
+    string,
+    [WebGLUniformLocation, WebGLActiveInfo]
+  > = new Map();
 
   constructor(
     gl: WebGL2RenderingContext,
