@@ -72,9 +72,5 @@ export const shaderCode: Record<Shader, ShaderCode> = {
   labelImage: {
     vertex: meshVertexShader,
     fragment: labelImage,
-    samplerBindings: {
-      ImageSampler: 0,
-      ColorCycleSampler: 1,
-    },
   },
 };
