@@ -92,7 +92,7 @@ export function OmeZarrImageViewer({
   const [unit, setUnit] = useState<string>();
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
   const [extraControlProps, setExtraControlProps] = useState<
     ExtraControlProps[]
@@ -112,7 +112,6 @@ export function OmeZarrImageViewer({
     } else {
       return;
     }
-    setLoading(true);
     setSource(newSource);
     setAllSlicesLoaded(false);
     // eslint-disable-next-line -- Don't care if sourceLocalDirectory changes, only its properties

@@ -25,6 +25,8 @@ export default function App() {
         seriesDimensionName="z"
         initialIndex="middle"
         loadAllButtonText="Load all"
+        shouldAutoLoadAllSlices
+        resolutionLevel={2}
         classNames={{
           root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
         }}
