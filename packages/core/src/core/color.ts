@@ -6,6 +6,9 @@ export class Color {
   public static readonly RED: Color = new Color(1.0, 0.0, 0.0);
   public static readonly GREEN: Color = new Color(0.0, 1.0, 0.0);
   public static readonly BLUE: Color = new Color(0.0, 0.0, 1.0);
+  public static readonly YELLOW: Color = new Color(1.0, 1.0, 0.0);
+  public static readonly MAGENTA: Color = new Color(1.0, 0.0, 1.0);
+  public static readonly CYAN: Color = new Color(0.0, 1.0, 1.0);
   public static readonly BLACK: Color = new Color(0.0, 0.0, 0.0);
   public static readonly WHITE: Color = new Color(1.0, 1.0, 1.0);
 
