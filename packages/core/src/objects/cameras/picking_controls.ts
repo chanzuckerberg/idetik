@@ -7,15 +7,17 @@ import { RenderableObject } from "../../core/renderable_object";
 
 type ClientToClip = (clientPos: vec2, depth: number) => vec3;
 
-export interface SegmentationPicking {
-  getSegmentIdAtWorld(world: vec3): number | null;
-  getSegmentIdAtPixel(x: number, y: number): number | null;
+export interface PointPicking {
+  getValueAtWorld(world: vec3): unknown | null;
+  getValueAtPixel(x: number, y: number): unknown | null;
   getImageRenderable(): RenderableObject | undefined;
 }
 
-function isPickableLayer(layer: Layer): layer is Layer & SegmentationPicking {
-  return 'getSegmentIdAtWorld' in layer && 
-         typeof (layer as Layer & SegmentationPicking).getSegmentIdAtWorld === 'function';
+function isPickableLayer(layer: Layer): layer is Layer & PointPicking {
+  return (
+    "getValueAtWorld" in layer &&
+    typeof (layer as Layer & PointPicking).getValueAtWorld === "function"
+  );
 }
 
 export class PickingControls extends PanZoomControls {
@@ -26,10 +28,10 @@ export class PickingControls extends PanZoomControls {
     camera: Camera,
     _canvas: HTMLCanvasElement,
     private readonly layerManager: LayerManager,
-    private readonly onPickSegment_?: (info: {
+    private readonly onPickValue_?: (info: {
       client: vec2;
       world: vec3;
-      segmentId: number | null;
+      value: unknown | null;
       layer: Layer | null;
     }) => void
   ) {
@@ -44,14 +46,20 @@ export class PickingControls extends PanZoomControls {
 
     const onPointerDown = (event: Event) => {
       const pointerEvent = event as PointerEvent;
-      this.dragStart_ = vec2.fromValues(pointerEvent.clientX, pointerEvent.clientY);
+      this.dragStart_ = vec2.fromValues(
+        pointerEvent.clientX,
+        pointerEvent.clientY
+      );
     };
 
     const onPointerMove = (event: Event) => {
       const pointerEvent = event as PointerEvent;
       if (!this.dragStart_) return;
 
-      const currentPos = vec2.fromValues(pointerEvent.clientX, pointerEvent.clientY);
+      const currentPos = vec2.fromValues(
+        pointerEvent.clientX,
+        pointerEvent.clientY
+      );
       const dist = vec2.distance(currentPos, this.dragStart_);
 
       if (dist > this.dragThreshold_) {
@@ -67,22 +75,24 @@ export class PickingControls extends PanZoomControls {
     const onClick = (event: Event) => {
       const mouseEvent = event as MouseEvent;
       const client = vec2.fromValues(mouseEvent.clientX, mouseEvent.clientY);
-      const world = this.camera_.clipToWorld(clientToClip(client, this.clipDepth));
+      const world = this.camera_.clipToWorld(
+        clientToClip(client, this.clipDepth)
+      );
 
-      let segmentId: number | null = null;
+      let value: unknown | null = null;
       let pickedLayer: Layer | null = null;
 
       for (const layer of this.layerManager.getLayers()) {
         if (isPickableLayer(layer)) {
-          segmentId = layer.getSegmentIdAtWorld(world);
-          if (segmentId !== null) {
+          value = layer.getValueAtWorld(world);
+          if (value !== null) {
             pickedLayer = layer;
             break;
           }
         }
       }
 
-      this.onPickSegment_?.({ client, world, segmentId, layer: pickedLayer });
+      this.onPickValue_?.({ client, world, value, layer: pickedLayer });
     };
 
     return [
@@ -100,8 +110,12 @@ export class PickingControls extends PanZoomControls {
     end: vec2,
     clientToClip: ClientToClip
   ) {
-    const worldStart = this.camera_.clipToWorld(clientToClip(start, this.clipDepth));
-    const worldEnd = this.camera_.clipToWorld(clientToClip(end, this.clipDepth));
+    const worldStart = this.camera_.clipToWorld(
+      clientToClip(start, this.clipDepth)
+    );
+    const worldEnd = this.camera_.clipToWorld(
+      clientToClip(end, this.clipDepth)
+    );
     const delta = vec3.sub(vec3.create(), worldStart, worldEnd);
 
     this.camera_.pan(delta);

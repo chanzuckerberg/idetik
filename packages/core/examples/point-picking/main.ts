@@ -46,14 +46,14 @@ const pickingControls = new PickingControls(
   camera,
   canvas,
   idetik.layerManager,
-  // Callback for when a segment is picked
+  // Callback for when a value is picked
   (info) => {
-    const { client, world, segmentId, layer } = info;
+    const { client, world, value, layer } = info;
     pickInfoDiv.innerHTML = `
       <strong>Pick Result:</strong><br/>
       Client: (${client[0].toFixed(1)}, ${client[1].toFixed(1)})<br/>
       World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
-      Segment ID: ${segmentId ?? "null"}<br/>
+      Value: ${value ?? "null"}<br/>
       Layer: ${layer?.type ?? "none"}
     `;
   }
