@@ -15,8 +15,6 @@ import { parseOmeNgffImage } from "../data/ome_zarr_hcs_metadata_loader";
 
 import { Readable } from "@zarrita/storage";
 
-import { Readable } from "@zarrita/storage";
-
 type ImageAttributes = {
   image: OmeNgffImage["multiscales"][number];
   dimensionNames: string[];
