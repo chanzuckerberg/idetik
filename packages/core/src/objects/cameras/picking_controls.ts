@@ -3,9 +3,15 @@ import { Camera } from "./camera";
 import { PanZoomControls } from "./controls";
 import { LayerManager } from "../../core/layer_manager";
 import { Layer } from "../../core/layer";
-import { SegmentationPicking } from "../../interfaces/segmentation_picking";
+import { RenderableObject } from "../../core/renderable_object";
 
 type ClientToClip = (clientPos: vec2, depth: number) => vec3;
+
+export interface SegmentationPicking {
+  getSegmentIdAtWorld(world: vec3): number | null;
+  getSegmentIdAtPixel(x: number, y: number): number | null;
+  getImageRenderable(): RenderableObject | undefined;
+}
 
 export class PickingControls extends PanZoomControls {
   private dragStart_: vec2 | null = null;
