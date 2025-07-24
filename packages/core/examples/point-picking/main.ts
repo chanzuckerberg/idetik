@@ -56,13 +56,6 @@ const pickingControls = new PickingControls(
       Segment ID: ${segmentId ?? "null"}<br/>
       Layer: ${layer?.type ?? "none"}
     `;
-    
-    console.log("Pick result:", {
-      client: Array.from(client),
-      world: Array.from(world),
-      segmentId,
-      layerType: layer?.type
-    });
   }
 );
 

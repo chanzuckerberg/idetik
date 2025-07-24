@@ -13,6 +13,11 @@ export interface SegmentationPicking {
   getImageRenderable(): RenderableObject | undefined;
 }
 
+function isPickableLayer(layer: Layer): layer is Layer & SegmentationPicking {
+  return 'getSegmentIdAtWorld' in layer && 
+         typeof (layer as Layer & SegmentationPicking).getSegmentIdAtWorld === 'function';
+}
+
 export class PickingControls extends PanZoomControls {
   private dragStart_: vec2 | null = null;
   private readonly dragThreshold_ = 3;
@@ -68,8 +73,8 @@ export class PickingControls extends PanZoomControls {
       let pickedLayer: Layer | null = null;
 
       for (const layer of this.layerManager.getLayers()) {
-        if ("getSegmentIdAtWorld" in layer) {
-          segmentId = (layer as Layer & SegmentationPicking).getSegmentIdAtWorld(world);
+        if (isPickableLayer(layer)) {
+          segmentId = layer.getSegmentIdAtWorld(world);
           if (segmentId !== null) {
             pickedLayer = layer;
             break;
