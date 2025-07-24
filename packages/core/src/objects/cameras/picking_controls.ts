@@ -1,0 +1,99 @@
+import { vec2, vec3 } from "gl-matrix";
+import { Camera } from "./camera";
+import { PanZoomControls } from "./controls";
+import { LayerManager } from "../../core/layer_manager";
+import { Layer } from "../../core/layer";
+import { SegmentationPicking } from "../../interfaces/segmentation_picking";
+
+type ClientToClip = (clientPos: vec2, depth: number) => vec3;
+
+export class PickingControls extends PanZoomControls {
+  private dragStart_: vec2 | null = null;
+  private readonly dragThreshold_ = 3;
+
+  constructor(
+    camera: Camera,
+    _canvas: HTMLCanvasElement,
+    private readonly layerManager: LayerManager,
+    private readonly onPickSegment_?: (info: {
+      client: vec2;
+      world: vec3;
+      segmentId: number | null;
+      layer: Layer | null;
+    }) => void
+  ) {
+    super(camera);
+  }
+
+  public override callbacks(
+    target: EventTarget,
+    clientToClip: ClientToClip
+  ): [string, EventListener][] {
+    const base = super.callbacks(target, clientToClip);
+
+    const onPointerDown = (event: Event) => {
+      const pointerEvent = event as PointerEvent;
+      this.dragStart_ = vec2.fromValues(pointerEvent.clientX, pointerEvent.clientY);
+    };
+
+    const onPointerMove = (event: Event) => {
+      const pointerEvent = event as PointerEvent;
+      if (!this.dragStart_) return;
+
+      const currentPos = vec2.fromValues(pointerEvent.clientX, pointerEvent.clientY);
+      const dist = vec2.distance(currentPos, this.dragStart_);
+
+      if (dist > this.dragThreshold_) {
+        this.applyPanFromClientDelta(this.dragStart_, currentPos, clientToClip);
+        this.dragStart_ = currentPos;
+      }
+    };
+
+    const onPointerUpOrCancel = (_event: Event) => {
+      this.dragStart_ = null;
+    };
+
+    const onClick = (event: Event) => {
+      const mouseEvent = event as MouseEvent;
+      const client = vec2.fromValues(mouseEvent.clientX, mouseEvent.clientY);
+      const world = this.camera_.clipToWorld(clientToClip(client, this.clipDepth));
+
+      let segmentId: number | null = null;
+      let pickedLayer: Layer | null = null;
+
+      for (const layer of this.layerManager.getLayers()) {
+        if ("getSegmentIdAtWorld" in layer) {
+          segmentId = (layer as Layer & SegmentationPicking).getSegmentIdAtWorld(world);
+          if (segmentId !== null) {
+            pickedLayer = layer;
+            break;
+          }
+        }
+      }
+
+      this.onPickSegment_?.({ client, world, segmentId, layer: pickedLayer });
+    };
+
+    return [
+      ...base,
+      ["pointerdown", onPointerDown],
+      ["pointermove", onPointerMove],
+      ["pointerup", onPointerUpOrCancel],
+      ["pointercancel", onPointerUpOrCancel],
+      ["click", onClick],
+    ];
+  }
+
+  protected applyPanFromClientDelta(
+    start: vec2,
+    end: vec2,
+    clientToClip: ClientToClip
+  ) {
+    const worldStart = this.camera_.clipToWorld(clientToClip(start, this.clipDepth));
+    const worldEnd = this.camera_.clipToWorld(clientToClip(end, this.clipDepth));
+    const delta = vec3.sub(vec3.create(), worldStart, worldEnd);
+
+    this.camera_.pan(delta);
+    this.updatePanTarget(delta);
+  }
+}

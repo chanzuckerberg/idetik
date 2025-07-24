@@ -21,7 +21,7 @@ export class NullControls implements CameraControls {
 }
 
 export class PanZoomControls implements CameraControls {
-  private camera_: Camera;
+  protected camera_: Camera;
   private panTarget_: vec3;
 
   constructor(camera: Camera, panTarget: vec3 = vec3.fromValues(0, 0, 0)) {
@@ -117,11 +117,15 @@ export class PanZoomControls implements CameraControls {
     vec3.add(this.panTarget_, this.panTarget_, deltaWorld);
   }
 
+  protected updatePanTarget(delta: vec3) {
+    vec3.add(this.panTarget_, this.panTarget_, delta);
+  }
+
   public set panTarget(panTarget: vec3) {
     this.panTarget_ = panTarget;
   }
 
-  private get clipDepth() {
+  protected get clipDepth() {
     const targetToPosition = vec3.sub(
       vec3.create(),
       this.panTarget_,
