@@ -20,13 +20,22 @@ export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
   private readonly textures_: Map<Texture, WebGLTexture> = new Map();
   private currentTexture_: Texture | null = null;
+  private readonly maxTextureUnits_: number;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
+    this.maxTextureUnits_ = gl.MAX_TEXTURE_IMAGE_UNITS;
   }
 
-  public bindTexture(texture: Texture) {
+  public bindTexture(texture: Texture, index: number) {
     if (this.alreadyActive(texture)) return;
+
+    if (index < 0 || index >= this.maxTextureUnits_) {
+      throw new Error(
+        `Texture index ${index} must be in [0, ${this.maxTextureUnits_ - 1}]`
+      );
+    }
+    this.gl_.activeTexture(this.gl_.TEXTURE0 + index);
 
     const textureType = this.getTextureType(texture);
     const info = this.getDataFormatInfo(texture.dataFormat, texture.dataType);

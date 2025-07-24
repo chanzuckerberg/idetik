@@ -11,7 +11,7 @@ export class WebGLShaderPrograms {
     this.gl_ = gl;
   }
 
-  public get(shader: Shader): WebGLShaderProgram {
+  public use(shader: Shader): WebGLShaderProgram {
     let program = this.programs_.get(shader);
     if (program === undefined) {
       const code = shaderCode[shader];
@@ -28,7 +28,14 @@ export class WebGLShaderPrograms {
         vertexShaderSource,
         fragmentShaderSource
       );
+      program.use();
+      const error = this.gl_.getError();
+      if (error !== this.gl_.NO_ERROR) {
+        throw new Error(`Error using WebGL program: ${error}`);
+      }
       this.programs_.set(shader, program);
+    } else {
+      program.use();
     }
     return program;
   }
