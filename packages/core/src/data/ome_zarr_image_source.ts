@@ -2,10 +2,11 @@ import { Location, open as zarritaOpen } from "@zarrita/core";
 import FetchStore from "@zarrita/storage/fetch";
 import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
 import WebFileSystemStore from "./zarrita/web_file_system_store";
+import { Readable } from "@zarrita/storage";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
-  private readonly location_: Location<FetchStore | WebFileSystemStore>;
+  private readonly location_: Location<Readable>;
 
   /**
    * @param url URL of Zarr root
