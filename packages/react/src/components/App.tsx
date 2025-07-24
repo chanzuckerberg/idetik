@@ -79,7 +79,6 @@ export default function App() {
           root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
         }}
         loadAllButtonText="Load 3D high-res (250MB)"
-        shouldAutoLoadAllSlices
         onLayerCreated={handleLayerCreated}
         onFirstSliceLoaded={handleFirstSliceLoaded}
         onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
