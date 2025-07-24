@@ -24,20 +24,12 @@ import {
 import { ChannelControlsList } from "./components/ChannelControlsList";
 import { ScaleBar } from "./components/ScaleBar/ScaleBar";
 
-type HttpSource = {
-  sourceUrl: string;
-  sourceLocalDirectory?: never;
-};
-type LocalSource = {
-  sourceUrl?: never;
-  sourceLocalDirectory: {
+export interface OmeZarrImageViewerProps {
+  sourceUrl?: string;
+  sourceLocalDirectory?: {
     directory: FileSystemDirectoryHandle;
     path?: `/${string}`;
   };
-};
-type Source = HttpSource | LocalSource;
-
-export type OmeZarrImageViewerProps = Source & {
   region: Region;
   seriesDimensionName: string;
   fallbackContrastLimits?: [number, number];
@@ -65,7 +57,7 @@ export type OmeZarrImageViewerProps = Source & {
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
   onLoadAllSlicesAborted?: () => void;
-};
+}
 
 export function OmeZarrImageViewer({
   sourceUrl,
@@ -90,30 +82,40 @@ export function OmeZarrImageViewer({
     align: "start",
   },
 }: OmeZarrImageViewerProps) {
+  if (sourceUrl !== undefined && sourceLocalDirectory !== undefined) {
+    throw new Error("Cannot set both sourceUrl and sourceLocalDirectory.");
+  }
+
   const { isReady: runtimeIsReady, runtime } = useIdetik();
 
   const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [unit, setUnit] = useState<string>();
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [allSlicesLoaded, setAllSlicesLoaded] = useState(false);
   const [extraControlProps, setExtraControlProps] = useState<
     ExtraControlProps[]
   >([]);
   const imageLayerRef = useRef<ImageSeriesLayer | null>(null);
 
-  // Create source when URL or resolution changes
+  // Create source when URL/file or resolution changes
   useEffect(() => {
-    const newSource =
-      sourceUrl !== undefined
-        ? new OmeZarrImageSource(sourceUrl)
-        : new OmeZarrImageSource(
-            sourceLocalDirectory.directory,
-            sourceLocalDirectory.path
-          );
+    let newSource;
+    if (sourceUrl !== undefined) {
+      newSource = new OmeZarrImageSource(sourceUrl);
+    } else if (sourceLocalDirectory !== undefined) {
+      newSource = new OmeZarrImageSource(
+        sourceLocalDirectory.directory,
+        sourceLocalDirectory.path
+      );
+    } else {
+      return;
+    }
+    setLoading(true);
     setSource(newSource);
     setAllSlicesLoaded(false);
+    // eslint-disable-next-line -- Don't care if sourceLocalDirectory changes, only its properties
   }, [
     sourceUrl,
     sourceLocalDirectory?.directory,
@@ -378,107 +380,109 @@ export function OmeZarrImageViewer({
           classNames={{ root: "absolute top-0 left-0 z-10" }}
         />
       )}
-      <div
-        className={cns(
-          "flex",
-          "absolute",
-          "bottom-0",
-          "w-full",
-          "items-end",
-          "justify-between",
-          "gap-sds-l"
-        )}
-      >
-        {scaleBar.visible && (
+      {source && (
+        <div
+          className={cns(
+            "flex",
+            "absolute",
+            "bottom-0",
+            "w-full",
+            "items-end",
+            "justify-between",
+            "gap-sds-l"
+          )}
+        >
+          {scaleBar.visible && (
+            <div
+              className={cns(
+                "flex",
+                "flex-col",
+                "m-sds-l",
+                "w-1/5",
+                "select-none"
+              )}
+            >
+              <ScaleBar unit={unit} align={scaleBar.align} />
+            </div>
+          )}
           <div
             className={cns(
               "flex",
               "flex-col",
-              "m-sds-l",
-              "w-1/5",
-              "select-none"
+              "grow",
+              "items-end",
+              "p-sds-l",
+              "gap-sds-l",
+              classNames?.sliceMetadataContainer
             )}
           >
-            <ScaleBar unit={unit} align={scaleBar.align} />
+            {!loading ? (
+              <div
+                // These share styles with ChannelControlsList
+                className={cns(
+                  "text-white",
+                  "text-sm",
+                  "bg-black/75",
+                  "backdrop-blur-md",
+                  "p-sds-xs",
+                  "rounded-sds-m",
+                  "shadow-sds-m",
+                  "font-sds-code",
+                  "select-none",
+                  classNames?.sliceIndicator
+                )}
+              >
+                {typeof indexIndicatorText === "string" && indexIndicatorText}
+                {typeof indexIndicatorText === "function" &&
+                  indexIndicatorText(zIndex, zRange[1] - zRange[0])}
+                {typeof indexIndicatorText === "undefined" &&
+                  `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
+              </div>
+            ) : (
+              <LoadingIndicator sdsStyle="tag" />
+            )}
+            {!allSlicesLoaded ? (
+              <Button
+                sdsType="primary"
+                sdsStyle="square"
+                size="small"
+                disabled={loading}
+                onClick={loadAllSlicesCallback}
+                className={cns("shadow-sds-m", classNames?.load3dButton)}
+              >
+                {typeof loadAllButtonText === "string" && loadAllButtonText}
+                {typeof loadAllButtonText === "function" && loadAllButtonText()}
+                {typeof loadAllButtonText === "undefined" && "Load 3D high-res"}
+              </Button>
+            ) : (
+              <div
+                className={cns(
+                  "w-full md:w-[200px]",
+                  "flex",
+                  "bg-black/75",
+                  "backdrop-blur-md",
+                  "rounded-sds-m",
+                  "shadow-sds-m",
+                  "py-sds-xs",
+                  "px-sds-m",
+                  classNames?.sliceSliderContainer
+                )}
+              >
+                <InputSlider
+                  min={0}
+                  max={1}
+                  step={1 / (zRange[1] - zRange[0])}
+                  value={zValue}
+                  {...MODIFIED_SLIDER_STYLES}
+                  onChange={(_, val: number | number[]) => {
+                    if (typeof val === "number") setZValue(val);
+                  }}
+                />
+              </div>
+            )}
           </div>
-        )}
-        <div
-          className={cns(
-            "flex",
-            "flex-col",
-            "grow",
-            "items-end",
-            "p-sds-l",
-            "gap-sds-l",
-            classNames?.sliceMetadataContainer
-          )}
-        >
-          {!loading ? (
-            <div
-              // These share styles with ChannelControlsList
-              className={cns(
-                "text-white",
-                "text-sm",
-                "bg-black/75",
-                "backdrop-blur-md",
-                "p-sds-xs",
-                "rounded-sds-m",
-                "shadow-sds-m",
-                "font-sds-code",
-                "select-none",
-                classNames?.sliceIndicator
-              )}
-            >
-              {typeof indexIndicatorText === "string" && indexIndicatorText}
-              {typeof indexIndicatorText === "function" &&
-                indexIndicatorText(zIndex, zRange[1] - zRange[0])}
-              {typeof indexIndicatorText === "undefined" &&
-                `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
-            </div>
-          ) : (
-            <LoadingIndicator sdsStyle="tag" />
-          )}
-          {!allSlicesLoaded ? (
-            <Button
-              sdsType="primary"
-              sdsStyle="square"
-              size="small"
-              disabled={loading}
-              onClick={loadAllSlicesCallback}
-              className={cns("shadow-sds-m", classNames?.load3dButton)}
-            >
-              {typeof loadAllButtonText === "string" && loadAllButtonText}
-              {typeof loadAllButtonText === "function" && loadAllButtonText()}
-              {typeof loadAllButtonText === "undefined" && "Load 3D high-res"}
-            </Button>
-          ) : (
-            <div
-              className={cns(
-                "w-full md:w-[200px]",
-                "flex",
-                "bg-black/75",
-                "backdrop-blur-md",
-                "rounded-sds-m",
-                "shadow-sds-m",
-                "py-sds-xs",
-                "px-sds-m",
-                classNames?.sliceSliderContainer
-              )}
-            >
-              <InputSlider
-                min={0}
-                max={1}
-                step={1 / (zRange[1] - zRange[0])}
-                value={zValue}
-                {...MODIFIED_SLIDER_STYLES}
-                onChange={(_, val: number | number[]) => {
-                  if (typeof val === "number") setZValue(val);
-                }}
-              />
-            </div>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
