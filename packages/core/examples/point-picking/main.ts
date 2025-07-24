@@ -7,7 +7,6 @@ import {
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PickingControls } from "@/objects/cameras/picking_controls";
-import { ScaleBar } from "./scale_bar";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -31,11 +30,6 @@ const layer = new ImageLayer({ source, region, channelProps });
 const axes = new AxesLayer({ length: 2000, width: 0.01 });
 const camera = new OrthographicCamera(left, right, top, bottom);
 const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
-const scaleBar = new ScaleBar({
-  textDiv: document.querySelector<HTMLDivElement>("#scale-bar-text")!,
-  lineDiv: document.querySelector<HTMLDivElement>("#scale-bar-line")!,
-  unit: "μm",
-});
 
 // Get the info div for displaying pick results
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
@@ -45,7 +39,6 @@ const idetik = new Idetik({
   canvas,
   camera,
   layers: [layer, axes],
-  overlays: [scaleBar],
 });
 
 // Create picking controls with proper layer manager reference
