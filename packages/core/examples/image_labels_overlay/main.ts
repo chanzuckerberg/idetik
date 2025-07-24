@@ -87,6 +87,7 @@ const labelsLayer = new LabelImageLayer({
   blendMode: "normal",
   lod,
   colorCycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
+  colorMap: new Map([[103, Color.GREEN]]),
 });
 
 const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);

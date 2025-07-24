@@ -11,6 +11,7 @@ export class Color {
   public static readonly CYAN: Color = new Color(0.0, 1.0, 1.0);
   public static readonly BLACK: Color = new Color(0.0, 0.0, 0.0);
   public static readonly WHITE: Color = new Color(1.0, 1.0, 1.0);
+  public static readonly TRANSPARENT: Color = new Color(0.0, 0.0, 0.0, 0.0);
 
   // RGBA color values in the range [0, 1]
   private readonly rgba_: readonly [number, number, number, number];
@@ -51,6 +52,17 @@ export class Color {
 
   public get rgbHex(): string {
     return `#${this.toHexComponent(this.r)}${this.toHexComponent(this.g)}${this.toHexComponent(this.b)}`;
+  }
+
+  public get packed(): number {
+    const [r, g, b, a] = this.rgba_;
+    return (
+      ((Math.round(r * 255) << 24) |
+        (Math.round(g * 255) << 16) |
+        (Math.round(b * 255) << 8) |
+        Math.round(a * 255)) >>>
+      0
+    );
   }
 
   public static from(colorLike: ColorLike): Color {
