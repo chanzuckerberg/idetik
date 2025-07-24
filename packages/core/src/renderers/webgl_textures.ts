@@ -9,6 +9,7 @@ import {
 
 import { Texture2D } from "../objects/textures/texture_2d";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
+import { TextureRgba } from "../objects/textures/texture_rgba";
 
 type TextureFormatInfo = {
   internalFormat: number;
@@ -282,7 +283,7 @@ export class WebGLTextures {
     throw new Error(`Unsupported format/type: ${format}/${type}`);
   }
 
-  private isTexture2D(texture: Texture): texture is Texture2D {
+  private isTexture2D(texture: Texture): texture is Texture2D | TextureRgba {
     return texture.type === "Texture2D" || texture.type === "TextureRgba";
   }
 
