@@ -14,7 +14,7 @@ import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 export type ImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
-  seriesDimensionName?: string;
+  seriesDimensionName: string;
   channelProps?: ChannelProps[];
 };
 
@@ -41,8 +41,8 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
 
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
-  private readonly seriesDimensionName_?: string;
-  private readonly seriesIndex_?: Interval | Full;
+  private readonly seriesDimensionName_: string;
+  private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: Array<() => void> = [];
@@ -71,25 +71,23 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
     this.source_ = source;
     this.region_ = region;
     this.lod_ = lod;
+    this.seriesDimensionName_ = seriesDimensionName;
+    const seriesDimensionalIndex = region.find(
+      (x) => x.dimension == seriesDimensionName
+    );
+    if (seriesDimensionalIndex === undefined) {
+      throw new Error(
+        `Series dimension '${seriesDimensionName}' not in region ${JSON.stringify(region)}`
+      );
+    }
+    if (seriesDimensionalIndex.index.type === "point") {
+      throw new Error(
+        "Series dimension index in region must be an interval or 'full', not a point value"
+      );
+    }
+    this.seriesIndex_ = seriesDimensionalIndex.index;
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
-    if (seriesDimensionName !== undefined) {
-      this.seriesDimensionName_ = seriesDimensionName;
-      const seriesDimensionalIndex = region.find(
-        (x) => x.dimension == seriesDimensionName
-      );
-      if (seriesDimensionalIndex === undefined) {
-        throw new Error(
-          `Series dimension '${seriesDimensionName}' not in region ${JSON.stringify(region)}`
-        );
-      }
-      if (seriesDimensionalIndex.index.type === "point") {
-        throw new Error(
-          "Series dimension index in region must be an interval or 'full', not a point value"
-        );
-      }
-      this.seriesIndex_ = seriesDimensionalIndex.index;
-    }
   }
 
   public get channelProps(): ChannelProps[] | undefined {
