@@ -8,6 +8,7 @@ import {
   Region,
   loadOmeroChannels,
   loadOmeroDefaultZ,
+  ImageLayer,
 } from "@idetik/core";
 import { useIdetik } from "../../../hooks/useIdetik";
 import { IdetikCanvas } from "../../IdetikCanvas";
@@ -31,7 +32,7 @@ export interface OmeZarrImageViewerProps {
     path?: `/${string}`;
   };
   region: Region;
-  seriesDimensionName: string;
+  seriesDimensionName?: string;
   fallbackContrastLimits?: [number, number];
   resolutionLevel?: number;
   shouldAutoLoadAllSlices?: boolean;
@@ -97,7 +98,7 @@ export function OmeZarrImageViewer({
   const [extraControlProps, setExtraControlProps] = useState<
     ExtraControlProps[]
   >([]);
-  const imageLayerRef = useRef<ImageSeriesLayer | null>(null);
+  const imageLayerRef = useRef<ImageLayer | ImageSeriesLayer>();
 
   // Create source when URL/file or resolution changes
   const { directory, path } = sourceLocalDirectory ?? {};
@@ -140,13 +141,20 @@ export function OmeZarrImageViewer({
         );
         setExtraControlProps(extraControlProps);
 
-        const layer = new ImageSeriesLayer({
-          source,
-          region,
-          seriesDimensionName,
-          channelProps,
-          lod: resolutionLevel,
-        });
+        const layer =
+          seriesDimensionName !== undefined
+            ? new ImageSeriesLayer({
+                source,
+                region,
+                seriesDimensionName,
+                channelProps,
+                lod: resolutionLevel,
+              })
+            : new ImageLayer({
+                source,
+                region,
+                channelProps,
+              });
         imageLayerRef.current = layer;
 
         onLayerCreated?.();
@@ -198,7 +206,7 @@ export function OmeZarrImageViewer({
         runtime.layerManager.layers.includes(imageLayerRef.current)
       ) {
         runtime.layerManager.remove(imageLayerRef.current);
-        imageLayerRef.current = null;
+        imageLayerRef.current = undefined;
       }
     };
   }, [
