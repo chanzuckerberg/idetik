@@ -3,6 +3,7 @@ import { Plate } from "../data/ome_ngff/0.4/plate";
 import { Well } from "../data/ome_ngff/0.4/well";
 import { Image } from "../data/ome_ngff/0.4/image";
 import { Readable } from "@zarrita/storage";
+import { OmeZarrImageSource } from "./ome_zarr_image_source";
 
 export async function loadOmeZarrPlate(url: string): Promise<Plate> {
   const store = new zarr.FetchStore(url);
@@ -24,16 +25,18 @@ export async function loadOmeZarrWell(
 export type OmeroMetadata = NonNullable<Image["omero"]>;
 export type OmeroChannel = OmeroMetadata["channels"][number];
 
-export async function loadOmeroChannels(url: string): Promise<OmeroChannel[]> {
-  const store = new zarr.FetchStore(url);
-  const group = await zarr.open.v2(store, { kind: "group" });
+export async function loadOmeroChannels(
+  source: OmeZarrImageSource
+): Promise<OmeroChannel[]> {
+  const group = await zarr.open.v2(source.location, { kind: "group" });
   const metadata = parseOmeNgffImage(group);
   return metadata.omero?.channels ?? [];
 }
 
-export async function loadOmeroDefaultZ(url: string): Promise<number> {
-  const store = new zarr.FetchStore(url);
-  const group = await zarr.open.v2(store, { kind: "group" });
+export async function loadOmeroDefaultZ(
+  source: OmeZarrImageSource
+): Promise<number> {
+  const group = await zarr.open.v2(source.location, { kind: "group" });
   // @ts-expect-error rdefs is not in the provided schema
   return group.attrs?.omero?.rdefs?.defaultZ ?? 0;
 }
