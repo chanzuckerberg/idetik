@@ -55,6 +55,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.source_ = source;
     this.region_ = region;
     this.channelProps_ = channelProps;
+    this.initialChannelProps_ = channelProps;
     this.lod_ = lod;
 
     const x = region.find((r) => r.dimension.toLowerCase() === "x");
