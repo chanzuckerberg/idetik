@@ -7,7 +7,7 @@ export { NullControls, PanZoomControls } from "./objects/cameras/controls";
 export type { CameraControls } from "./objects/cameras/controls";
 
 export { Layer } from "./core/layer";
-export type { LayerState } from "./core/layer";
+export type { ChannelsEnabled, LayerState } from "./core/layer";
 export { LayerManager } from "./core/layer_manager";
 
 export { AxesLayer } from "./layers/axes_layer";

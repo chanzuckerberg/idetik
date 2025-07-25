@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { ChannelsEnabled, Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
@@ -17,7 +17,7 @@ export type ImageLayerProps = LayerOptions & {
 };
 
 // Loads data from an image source into renderable objects.
-export class ImageLayer extends Layer {
+export class ImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageLayer";
 
   private readonly source_: ImageChunkSource;
@@ -25,11 +25,13 @@ export class ImageLayer extends Layer {
   // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
   private readonly useChunkManager_: boolean;
+  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channelChangeCallbacks_: Array<() => void> = [];
+  private readonly visibleChunks_: Map<ImageChunk, ImageRenderable> = new Map();
   private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
-  private readonly visibleChunks_: Map<ImageChunk, ImageRenderable> = new Map();
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
@@ -131,10 +133,28 @@ export class ImageLayer extends Layer {
     // TODO: should this return Channel[] instead of ChannelProps[]?
     return this.channelProps_;
   }
-
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
+    });
+  }
+  public resetChannelProps(): void {
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
+    }
+  }
+
+  public addChannelChangeCallback(callback: () => void): void {
+    this.channelChangeCallbacks_.push(callback);
+  }
+  public removeChannelChangeCallback(callback: () => void): void {
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.channelChangeCallbacks_.splice(index, 1);
   }
 
   private async load(region: Region) {

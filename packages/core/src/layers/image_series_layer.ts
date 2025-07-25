@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { ChannelsEnabled, Layer, LayerOptions } from "../core/layer";
 import { Full, Interval, Region } from "../data/region";
 import {
   ImageChunk,
@@ -36,7 +36,7 @@ type SetIndexResult = {
 };
 
 // Loads 2D+z image data (Z-stack) from an image source into renderable objects.
-export class ImageSeriesLayer extends Layer {
+export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageSeriesLayer";
 
   private readonly source_: ImageChunkSource;
@@ -106,13 +106,9 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
-  /** useSyncExternalStore() compatible subscribe function. */
-  addChannelChangeCallback = (callback: () => void): (() => void) => {
+  public addChannelChangeCallback(callback: () => void): void {
     this.channelChangeCallbacks_.push(callback);
-    return () => {
-      this.removeChannelChangeCallback(callback);
-    };
-  };
+  }
   public removeChannelChangeCallback(callback: () => void): void {
     const index = this.channelChangeCallbacks_.indexOf(callback);
     if (index === undefined) {
