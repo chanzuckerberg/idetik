@@ -1,8 +1,7 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
-import { Texture } from "../../objects/textures/texture";
+import { Texture, TextureDataType } from "../../objects/textures/texture";
 import { Color } from "../../core/color";
-import { TextureRgba } from "../textures/texture_rgba";
 import { Texture2D } from "../textures/texture_2d";
 
 type LabelImageRenderableProps = {
@@ -12,11 +11,31 @@ type LabelImageRenderableProps = {
   colorMap?: ReadonlyMap<number, Color>;
 };
 
+const supportedDataTypes = new Set<TextureDataType>([
+  "unsigned_byte",
+  "unsigned_short",
+  "unsigned_int",
+]);
+
+function validateImageData(imageData: Texture) {
+  if (imageData.dataFormat !== "scalar") {
+    throw new Error(
+      `Image data format must be scalar, instead found: ${imageData.dataFormat}`
+    );
+  }
+  if (!supportedDataTypes.has(imageData.dataType)) {
+    throw new Error(
+      `Image data type must be unsigned, instead found: ${imageData.dataType}`
+    );
+  }
+  return imageData;
+}
+
 export class LabelImageRenderable extends RenderableObject {
   constructor(props: LabelImageRenderableProps) {
     super();
     this.geometry = props.geometry;
-    this.addTexture(props.imageData);
+    this.addTexture(validateImageData(props.imageData));
     const colorCycleTexture = this.makeColorCycleTexture(props.colorCycle);
     this.addTexture(colorCycleTexture);
     const colorMapTexture = this.makeColorMapTexture(props.colorMap);
@@ -40,7 +59,9 @@ export class LabelImageRenderable extends RenderableObject {
     const data = new Uint8Array(
       colorCycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
     );
-    return new TextureRgba(data, colorCycle.length, 1);
+    const texture = new Texture2D(data, colorCycle.length, 1);
+    texture.dataFormat = "rgba";
+    return texture;
   }
 
   private makeColorMapTexture(colorMap?: ReadonlyMap<number, Color>) {
