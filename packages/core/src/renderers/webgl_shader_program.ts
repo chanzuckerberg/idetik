@@ -1,12 +1,5 @@
 import { mat4, vec2, vec3 } from "gl-matrix";
 
-type ShaderMap = {
-  [type: number]: {
-    shader: WebGLShader;
-    source: string;
-  };
-};
-
 export class WebGLShaderProgram {
   private readonly gl_: WebGL2RenderingContext;
   private readonly program_: WebGLProgram;
@@ -14,7 +7,6 @@ export class WebGLShaderProgram {
     string,
     [WebGLUniformLocation, WebGLActiveInfo]
   > = new Map();
-  private shaders_: ShaderMap = {};
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -29,12 +21,18 @@ export class WebGLShaderProgram {
     }
     this.program_ = program;
 
-    this.addShader(vertexShaderSource, gl.VERTEX_SHADER);
-    this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
-    this.link();
-    this.deleteShaders();
-    this.validate();
-    this.preprocessUniformLocations();
+    const shaders = [];
+    try {
+      shaders.push(this.addShader(vertexShaderSource, gl.VERTEX_SHADER));
+      shaders.push(this.addShader(fragmentShaderSource, gl.FRAGMENT_SHADER));
+      this.link();
+      this.preprocessUniformLocations();
+    } catch (error) {
+      gl.deleteProgram(program);
+      throw error;
+    } finally {
+      shaders.forEach((shader) => this.gl_.deleteShader(shader));
+    }
   }
 
   public setUniform(name: string, value: unknown) {
@@ -64,6 +62,24 @@ export class WebGLShaderProgram {
       case this.gl_.FLOAT_MAT4:
         this.gl_.uniformMatrix4fv(location, false, value as mat4);
         break;
+      // For samplers, the value is the texture index.
+      case this.gl_.SAMPLER_2D:
+      case this.gl_.SAMPLER_CUBE:
+      case this.gl_.SAMPLER_3D:
+      case this.gl_.SAMPLER_2D_ARRAY:
+      case this.gl_.SAMPLER_2D_SHADOW:
+      case this.gl_.SAMPLER_CUBE_SHADOW:
+      case this.gl_.SAMPLER_2D_ARRAY_SHADOW:
+      case this.gl_.INT_SAMPLER_2D:
+      case this.gl_.INT_SAMPLER_3D:
+      case this.gl_.INT_SAMPLER_CUBE:
+      case this.gl_.INT_SAMPLER_2D_ARRAY:
+      case this.gl_.UNSIGNED_INT_SAMPLER_2D:
+      case this.gl_.UNSIGNED_INT_SAMPLER_3D:
+      case this.gl_.UNSIGNED_INT_SAMPLER_CUBE:
+      case this.gl_.UNSIGNED_INT_SAMPLER_2D_ARRAY:
+        this.gl_.uniform1i(location, value as number);
+        break;
       default: {
         const exhaustiveCheck: never = type;
         throw new Error(`Unhandled uniform type: ${exhaustiveCheck}`);
@@ -79,11 +95,6 @@ export class WebGLShaderProgram {
     for (let i = 0; i < numUniforms; i++) {
       const info = this.gl_.getActiveUniform(this.program_, i);
       if (info) {
-        if (SAMPLER_TYPES.has(info.type)) {
-          // texture samplers are also uniforms, but they are handled separately
-          continue;
-        }
-
         if (!SUPPORTED_UNIFORM_TYPES.has(info.type)) {
           throw new Error(
             `Unsupported uniform type "${info.type}" (GLenum) found in shader program for uniform "${info.name}"`
@@ -114,45 +125,23 @@ export class WebGLShaderProgram {
     }
 
     this.gl_.attachShader(this.program_, shader);
-    this.shaders_[type] = { shader: shader, source };
+    return shader;
   }
 
   private link() {
     this.gl_.linkProgram(this.program_);
     if (!this.getParameter(this.gl_.LINK_STATUS)) {
-      this.deleteShaders();
       const message = this.gl_.getProgramInfoLog(this.program_);
       throw new Error(`Error linking program: ${message}`);
     }
   }
 
-  private validate() {
-    this.gl_.validateProgram(this.program_);
-    if (!this.getParameter(this.gl_.VALIDATE_STATUS)) {
-      this.deleteShaders();
-      const message = this.gl_.getProgramInfoLog(this.program_);
-      throw new Error(`Error validating program: ${message}`);
-    }
-  }
-
   public use() {
     this.gl_.useProgram(this.program_);
-    const error = this.gl_.getError();
-    if (error !== this.gl_.NO_ERROR) {
-      throw new Error(`Error using WebGL program: ${error}`);
-    }
-    return this;
   }
 
   private getParameter(parameter: number) {
     return this.gl_.getProgramParameter(this.program_, parameter);
-  }
-
-  private deleteShaders() {
-    for (const idx in this.shaders_) {
-      this.gl_.deleteShader(this.shaders_[idx].shader);
-    }
-    this.shaders_ = {};
   }
 
   public get uniformNames(): string[] {
@@ -160,9 +149,15 @@ export class WebGLShaderProgram {
   }
 }
 
-const SAMPLER_TYPES: ReadonlySet<GLenum> =
+// using an array and converting to a set allows us to also create a type here
+const SUPPORTED_UNIFORM_TYPES_ =
   typeof window !== "undefined" // Don't error in SSR contexts.
-    ? new Set<GLenum>([
+    ? [
+        WebGL2RenderingContext.BOOL,
+        WebGL2RenderingContext.FLOAT,
+        WebGL2RenderingContext.FLOAT_VEC2,
+        WebGL2RenderingContext.FLOAT_VEC3,
+        WebGL2RenderingContext.FLOAT_MAT4,
         WebGL2RenderingContext.SAMPLER_2D,
         WebGL2RenderingContext.SAMPLER_CUBE,
         WebGL2RenderingContext.SAMPLER_3D,
@@ -178,20 +173,6 @@ const SAMPLER_TYPES: ReadonlySet<GLenum> =
         WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_3D,
         WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_CUBE,
         WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D_ARRAY,
-        WebGL2RenderingContext.MAX_SAMPLES,
-        WebGL2RenderingContext.SAMPLER_BINDING,
-      ])
-    : new Set();
-
-// using an array and converting to a set allows us to also create a type here
-const SUPPORTED_UNIFORM_TYPES_ =
-  typeof window !== "undefined" // Don't error in SSR contexts.
-    ? [
-        WebGL2RenderingContext.BOOL,
-        WebGL2RenderingContext.FLOAT,
-        WebGL2RenderingContext.FLOAT_VEC2,
-        WebGL2RenderingContext.FLOAT_VEC3,
-        WebGL2RenderingContext.FLOAT_MAT4,
       ]
     : [];
 type SupportedUniformType = (typeof SUPPORTED_UNIFORM_TYPES_)[GLenum];
