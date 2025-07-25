@@ -62,27 +62,9 @@ type ConformedImage = {
 export function parseOmeNgffImage(
   group: zarr.Group<zarr.FetchStore>
 ): ConformedImage {
-  // copy attrs to avoid mutating the original
-  const attrs = { ...group.attrs };
-
-  const v05Attrs = conformToV05(attrs);
-
-  // TODO: silly fix for removing top-level identity transform,
-  // which is not allowed by spec but may have been written by
-  // some writers.
-  // This may need to be done for top-level `coordinateTransformations` as well.
-  // https://github.com/ome/ngff/pull/152
-  if (
-    Array.isArray(v05Attrs.ome.multiscales) &&
-    Array.isArray(v05Attrs.ome.multiscales[0]?.coordinateTransformations) &&
-    v05Attrs.ome.multiscales[0].coordinateTransformations[0]?.type ===
-      "identity"
-  ) {
-    delete v05Attrs.ome.multiscales[0].coordinateTransformations;
-  }
-
+  const v05Attrs = conformToV05(group.attrs);
   return {
     metadata: ImageV05.parse(v05Attrs),
-    originalVersion: attrs === v05Attrs ? "0.5" : "0.4",
+    originalVersion: group.attrs === v05Attrs ? "0.5" : "0.4",
   };
 }
