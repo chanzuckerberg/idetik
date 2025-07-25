@@ -97,6 +97,13 @@ export const Image = z
                 .array(
                   z.any().superRefine((x, ctx) => {
                     const schemas = [
+                      // My reading of the spec is that while identity is a valid
+                      // transformation, it cannot be used in an image.
+                      // However, some writers write it, so we allow it.
+                      // https://github.com/ome/ngff/pull/152
+                      z.object({
+                        type: z.literal("identity"),
+                      }),
                       z.object({
                         type: z.literal("scale"),
                         scale: z.array(z.number()).min(2),
