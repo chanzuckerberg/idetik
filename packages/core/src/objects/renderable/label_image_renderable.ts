@@ -1,6 +1,6 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
-import { Texture } from "../../objects/textures/texture";
+import { Texture, TextureDataType } from "../../objects/textures/texture";
 import { Color } from "../../core/color";
 import { TextureRgba } from "../textures/texture_rgba";
 
@@ -10,11 +10,31 @@ type LabelImageRenderableProps = {
   colorCycle: ReadonlyArray<Color>;
 };
 
+const supportedDataTypes = new Set<TextureDataType>([
+  "unsigned_byte",
+  "unsigned_short",
+  "unsigned_int",
+]);
+
+function validateImageData(imageData: Texture) {
+  if (imageData.dataFormat !== "scalar") {
+    throw new Error(
+      `Image data format must be scalar, instead found: ${imageData.dataFormat}`
+    );
+  }
+  if (!supportedDataTypes.has(imageData.dataType)) {
+    throw new Error(
+      `Image data type must be unsigned, instead found: ${imageData.dataType}`
+    );
+  }
+  return imageData;
+}
+
 export class LabelImageRenderable extends RenderableObject {
   constructor(props: LabelImageRenderableProps) {
     super();
     this.geometry = props.geometry;
-    this.addTexture(props.imageData);
+    this.addTexture(validateImageData(props.imageData));
     const colorCycleTexture = this.makeColorCycleTexture(props.colorCycle);
     this.addTexture(colorCycleTexture);
     this.programName = "labelImage";
