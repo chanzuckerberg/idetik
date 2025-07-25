@@ -100,27 +100,19 @@ export function OmeZarrImageViewer({
   const imageLayerRef = useRef<ImageSeriesLayer | null>(null);
 
   // Create source when URL/file or resolution changes
+  const { directory, path } = sourceLocalDirectory ?? {};
   useEffect(() => {
     let newSource;
     if (sourceUrl !== undefined) {
       newSource = new OmeZarrImageSource(sourceUrl);
-    } else if (sourceLocalDirectory !== undefined) {
-      newSource = new OmeZarrImageSource(
-        sourceLocalDirectory.directory,
-        sourceLocalDirectory.path
-      );
+    } else if (directory !== undefined) {
+      newSource = new OmeZarrImageSource(directory, path);
     } else {
       return;
     }
     setSource(newSource);
     setAllSlicesLoaded(false);
-    // eslint-disable-next-line -- Don't care if sourceLocalDirectory changes, only its properties
-  }, [
-    sourceUrl,
-    sourceLocalDirectory?.directory,
-    sourceLocalDirectory?.path,
-    resolutionLevel,
-  ]);
+  }, [sourceUrl, directory, path, resolutionLevel]);
 
   // Create Image Layer
   useEffect(() => {
