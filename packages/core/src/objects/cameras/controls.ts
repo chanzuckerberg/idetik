@@ -112,14 +112,11 @@ export class PanZoomControls implements CameraControls {
     target.addEventListener("pointercancel", onPointerUp);
   }
 
-  private pan(deltaWorld: vec3) {
+  protected pan(deltaWorld: vec3) {
     this.camera_.pan(deltaWorld);
     vec3.add(this.panTarget_, this.panTarget_, deltaWorld);
   }
 
-  protected updatePanTarget(delta: vec3) {
-    vec3.add(this.panTarget_, this.panTarget_, delta);
-  }
 
   public set panTarget(panTarget: vec3) {
     this.panTarget_ = panTarget;

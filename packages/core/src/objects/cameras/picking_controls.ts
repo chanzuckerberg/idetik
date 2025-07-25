@@ -8,16 +8,14 @@ import { RenderableObject } from "../../core/renderable_object";
 type ClientToClip = (clientPos: vec2, depth: number) => vec3;
 
 export interface PointPicking {
+  readonly isPickable: true;
   getValueAtWorld(world: vec3): unknown | null;
   getValueAtPixel(x: number, y: number): unknown | null;
   getImageRenderable(): RenderableObject | undefined;
 }
 
 function isPickableLayer(layer: Layer): layer is Layer & PointPicking {
-  return (
-    "getValueAtWorld" in layer &&
-    typeof (layer as Layer & PointPicking).getValueAtWorld === "function"
-  );
+  return (layer as Layer & PointPicking).isPickable === true;
 }
 
 export class PickingControls extends PanZoomControls {
@@ -118,7 +116,6 @@ export class PickingControls extends PanZoomControls {
     );
     const delta = vec3.sub(vec3.create(), worldStart, worldEnd);
 
-    this.camera_.pan(delta);
-    this.updatePanTarget(delta);
+    this.pan(delta);
   }
 }
