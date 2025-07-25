@@ -55,12 +55,11 @@ export class Color {
   }
 
   public get packed(): number {
-    const [r, g, b, a] = this.rgba_;
     return (
-      (Math.round(r * 255) << 24) |
-      (Math.round(g * 255) << 16) |
-      (Math.round(b * 255) << 8) |
-      Math.round(a * 255)
+      (Math.round(this.r * 255) << 24) |
+      (Math.round(this.g * 255) << 16) |
+      (Math.round(this.b * 255) << 8) |
+      Math.round(this.a * 255)
     );
   }
 
