@@ -10,7 +10,7 @@ export type LabelImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   colorCycle?: ColorLike[];
-  colorMap?: ReadonlyMap<number, Color>;
+  colorMap?: ReadonlyMap<number, ColorLike>;
 };
 
 const DEFAULT_COLOR_CYCLE: ColorLike[] = [
@@ -45,7 +45,12 @@ export class LabelImageLayer extends Layer {
     this.source_ = source;
     this.region_ = region;
     this.colorCycle_ = colorCycle.map(Color.from);
-    this.colorMap_ = colorMap;
+    this.colorMap_ = new Map(
+      Array.from(colorMap.entries()).map(([key, value]) => [
+        key,
+        Color.from(value),
+      ])
+    );
     this.lod_ = lod;
   }
 
