@@ -1,7 +1,5 @@
 import { Node } from "../../core/node";
 
-export type TextureData = TexImageSource | ArrayBufferView;
-
 export type TextureFilter = "nearest" | "linear";
 
 export type TextureWrapMode = "repeat" | "clamp_to_edge";
@@ -92,7 +90,7 @@ export abstract class Texture extends Node {
 
   public abstract get width(): number;
   public abstract get height(): number;
-  public abstract get data(): TextureData | null;
+  public abstract get data(): TexImageSource | ArrayBufferView | null;
 
   public get type() {
     return "Texture";
