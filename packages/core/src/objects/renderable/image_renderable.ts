@@ -11,12 +11,14 @@ import { vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 
 type SingleUniformValues = {
+  ImageSampler: number;
   Color: vec3;
   ValueOffset: number;
   ValueScale: number;
 };
 
 type ArrayUniformValues = {
+  ImageSampler: number;
   "Visible[0]": boolean[];
   "Color[0]": number[];
   "ValueOffset[0]": number[];
@@ -69,6 +71,7 @@ export class ImageRenderable extends RenderableObject {
       const { color, contrastLimits } =
         this.channels_[0] ?? validateChannel(texture, {});
       return {
+        ImageSampler: 0,
         Color: color.rgb,
         ValueOffset: -contrastLimits[0],
         ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
@@ -91,6 +94,7 @@ export class ImageRenderable extends RenderableObject {
       });
 
       return {
+        ImageSampler: 0,
         "Visible[0]": visible,
         "Color[0]": color,
         "ValueOffset[0]": valueOffset,
