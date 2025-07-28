@@ -12,7 +12,10 @@ export const Bf2raw = z
           .describe(
             "The top-level identifier metadata added by bioformats2raw"
           ),
-        version: z.any(),
+        /**The version of the OME-Zarr Metadata*/
+        version: z
+          .literal("0.5")
+          .describe("The version of the OME-Zarr Metadata"),
       })
       .describe("The versioned OME-Zarr Metadata namespace"),
   })

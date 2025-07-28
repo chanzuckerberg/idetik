@@ -12,7 +12,10 @@ export const Ome = z
           .describe(
             "An array of the same length and the same order as the images defined in the OME-XML"
           ),
-        version: z.any(),
+        /**The version of the OME-Zarr Metadata*/
+        version: z
+          .literal("0.5")
+          .describe("The version of the OME-Zarr Metadata"),
       })
       .describe("The versioned OME-Zarr Metadata namespace"),
   })

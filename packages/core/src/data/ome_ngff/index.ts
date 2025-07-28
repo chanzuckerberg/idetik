@@ -44,7 +44,7 @@ const versions = ["0.4", "0.5"] as const;
 type Version = (typeof versions)[number];
 
 type attrsWithVersion = {
-    version: Version;
+  version: Version;
 };
 
 function hasVersion(ome: object): ome is attrsWithVersion {
@@ -64,8 +64,8 @@ function isImageV04(image: object): image is ImageV04 {
 }
 
 type imageWithOmeObject = {
-    ome: object;
-}
+  ome: object;
+};
 
 function hasOmeObject(image: object): image is imageWithOmeObject {
   return "ome" in image && typeof image.ome === "object";
@@ -89,7 +89,7 @@ function adaptImageV04(imagev04: ImageV04): Image {
       multiscales: imagev04.multiscales,
       omero: imagev04.omero,
       version: "0.5",
-    }
+    },
   };
 }
 
@@ -99,19 +99,19 @@ type NormalizedImage = {
 };
 
 function normalizeImage(image: object): NormalizedImage {
-    if (isImageV04(image)) {
-        return {
-            image: adaptImageV04(image),
-            originalVersion: "0.4",
-        };
-    }
-    if (isImageV05(image)) {
-        return {
-            image,
-            originalVersion: "0.5",
-        };
-    }
-    throw new Error("Unknown image version");
+  if (isImageV04(image)) {
+    return {
+      image: adaptImageV04(image),
+      originalVersion: "0.4",
+    };
+  }
+  if (isImageV05(image)) {
+    return {
+      image,
+      originalVersion: "0.5",
+    };
+  }
+  throw new Error("Unknown image version");
 }
 
 export function parseOmeNgffImage(
@@ -120,7 +120,7 @@ export function parseOmeNgffImage(
   // copy attrs to avoid mutating the original
   const attrs = { ...group.attrs };
 
-  const {image, originalVersion} = normalizeImage(attrs);
+  const { image, originalVersion } = normalizeImage(attrs);
 
   // TODO: silly fix for removing top-level identity transform,
   // which is not allowed by spec but may have been written by
@@ -130,8 +130,7 @@ export function parseOmeNgffImage(
   if (
     Array.isArray(image.ome.multiscales) &&
     Array.isArray(image.ome.multiscales[0]?.coordinateTransformations) &&
-    image.ome.multiscales[0].coordinateTransformations[0]?.type ===
-      "identity"
+    image.ome.multiscales[0].coordinateTransformations[0]?.type === "identity"
   ) {
     delete image.ome.multiscales[0].coordinateTransformations;
   }

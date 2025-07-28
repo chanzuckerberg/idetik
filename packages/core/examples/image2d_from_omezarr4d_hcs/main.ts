@@ -20,10 +20,10 @@ const HIGH_RES_NUM_SLICES = 38;
 
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
-if (plate.plate === undefined) {
+if (plate === undefined) {
   throw new Error(`No plate found: ${plate}`);
 }
-const wellPaths = plate.plate.wells.map((well) => well.path);
+const wellPaths = plate.wells.map((well) => well.path);
 const wellSelector = document.querySelector("#well") as HTMLSelectElement;
 wellPaths.forEach((path) => {
   const option = document.createElement("option");
@@ -67,8 +67,8 @@ const onImageChange = async () => {
   };
   const omeroChannels = await loadOmeroChannels(imageUrl);
   const contrastLimits: [number, number][] = [
-    [omeroChannels[1].window.start, omeroChannels[1].window.end],
-    [omeroChannels[2].window.start, omeroChannels[2].window.end],
+    [omeroChannels[1].window!.start, omeroChannels[1].window!.end],
+    [omeroChannels[2].window!.start, omeroChannels[2].window!.end],
   ];
   const newLayer = new ImageLayer({
     source,
@@ -95,10 +95,10 @@ const onWellChange = async () => {
   const path = wellSelector.value;
   const well = await loadOmeZarrWell(plateUrl, path);
   console.debug("well", well);
-  if (well.well === undefined) {
+  if (well === undefined) {
     throw new Error(`No well found: ${well}`);
   }
-  const imagePaths = well.well.images.map((image) => image.path);
+  const imagePaths = well.images.map((image) => image.path);
   imageSelector.innerHTML = "";
   imagePaths.forEach((path) => {
     const option = document.createElement("option");

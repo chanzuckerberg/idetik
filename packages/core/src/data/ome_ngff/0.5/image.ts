@@ -99,7 +99,7 @@ export const Image = z
                     const schemas = [
                       // My reading of the spec is that while identity is a valid
                       // transformation, it cannot be used in an image.
-                      // However, some writers write it, so we allow it.
+                      // However, some writers write it (e.g. iohub), so we allow it.
                       // https://github.com/ome/ngff/pull/152
                       z.object({
                         type: z.literal("identity"),
@@ -157,7 +157,10 @@ export const Image = z
             ),
           })
           .optional(),
-        version: z.any(),
+        /**The version of the OME-Zarr Metadata*/
+        version: z
+          .literal("0.5")
+          .describe("The version of the OME-Zarr Metadata"),
       })
       .describe("The versioned OME-Zarr Metadata namespace"),
   })

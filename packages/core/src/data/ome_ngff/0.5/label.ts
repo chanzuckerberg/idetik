@@ -47,7 +47,10 @@ export const Label = z
             .describe("The source of this label image")
             .optional(),
         }),
-        version: z.any(),
+        /**The version of the OME-Zarr Metadata*/
+        version: z
+          .literal("0.5")
+          .describe("The version of the OME-Zarr Metadata"),
       })
       .describe("The versioned OME-Zarr Metadata namespace"),
   })

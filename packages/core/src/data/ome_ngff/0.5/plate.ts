@@ -121,7 +121,10 @@ export const Plate = z
             .min(1)
             .describe("The wells of the plate"),
         }),
-        version: z.any(),
+        /**The version of the OME-Zarr Metadata*/
+        version: z
+          .literal("0.5")
+          .describe("The version of the OME-Zarr Metadata"),
       })
       .describe("The versioned OME-Zarr Metadata namespace"),
   })

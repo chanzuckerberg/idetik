@@ -10,7 +10,7 @@ if (!url) {
 
 async function resolveSchema() {
   try {
-    let schema = await $RefParser.bundle(url);
+    let schema = await $RefParser.dereference(url);
     console.log(JSON.stringify(schema, null, 2));
   } catch(err) {
     console.error("Error:", err);
