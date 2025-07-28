@@ -1,4 +1,4 @@
-import { ChannelsEnabled, Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerOptions } from "../core/layer";
 import { Full, Interval, Region } from "../data/region";
 import {
   ImageChunk,
@@ -7,7 +7,7 @@ import {
 } from "../data/image_chunk";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
-import { ChannelProps } from "../objects/textures/channel";
+import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 

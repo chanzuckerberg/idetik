@@ -1,9 +1,9 @@
-import { ChannelsEnabled, Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
-import { ChannelProps } from "../objects/textures/channel";
+import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";

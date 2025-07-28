@@ -7,7 +7,7 @@ export { NullControls, PanZoomControls } from "./objects/cameras/controls";
 export type { CameraControls } from "./objects/cameras/controls";
 
 export { Layer } from "./core/layer";
-export type { ChannelsEnabled, LayerState } from "./core/layer";
+export type { LayerState } from "./core/layer";
 export { LayerManager } from "./core/layer_manager";
 
 export { AxesLayer } from "./layers/axes_layer";
@@ -33,7 +33,7 @@ export type {
 
 export { Color } from "./core/color";
 export type { ColorLike } from "./core/color";
-export type { ChannelProps } from "./objects/textures/channel";
+export type { ChannelProps, ChannelsEnabled } from "./objects/textures/channel";
 
 export { Points } from "./objects/renderable/points";
 export { Texture2DArray } from "./objects/textures/texture_2d_array";
