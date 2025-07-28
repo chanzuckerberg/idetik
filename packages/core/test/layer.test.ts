@@ -1,11 +1,13 @@
 import { expect, test, vi } from "vitest";
 
-import { Layer } from "@";
+import { Layer, EventContext } from "@";
 
 class TestLayer extends Layer {
   public readonly type = "TestLayer";
 
   public update() {}
+
+  public onEvent(_: EventContext) {}
 
   public setStateReady() {
     this.setState("ready");

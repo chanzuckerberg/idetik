@@ -9,6 +9,7 @@ import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
+import { EventContext } from "../core/event_dispatcher";
 
 export type ImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -129,6 +130,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       }
     }
   }
+
+  public onEvent(_: EventContext) {}
 
   public get channelProps(): ChannelProps[] | undefined {
     // TODO: should this return Channel[] instead of ChannelProps[]?

@@ -1,6 +1,7 @@
 import { Camera } from "./objects/cameras/camera";
 import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
+import { EventContext, EventDispatcher } from "./core/event_dispatcher";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
@@ -29,7 +30,7 @@ export class Idetik {
   public camera: Camera;
   public readonly canvas: HTMLCanvasElement;
   public readonly overlays: Overlay[];
-
+  private readonly eventDispatcher_: EventDispatcher;
   private readonly renderer_: WebGLRenderer;
   private readonly context_: IdetikContext;
   private readonly chunkManager_: ChunkManager;
@@ -54,11 +55,9 @@ export class Idetik {
     this.canvas = canvas;
     this.renderer_ = new WebGLRenderer(canvas);
     this.chunkManager_ = new ChunkManager();
-
     this.context_ = {
       chunkManager: this.chunkManager_,
     };
-
     this.layerManager = new LayerManager(this.context_);
 
     if (params.controls) {
@@ -73,6 +72,15 @@ export class Idetik {
     }
 
     this.overlays = params.overlays ?? [];
+
+    this.eventDispatcher_ = new EventDispatcher(canvas);
+    this.eventDispatcher_.onEvent((event: EventContext) => {
+      for (const layer of this.layerManager.layers) {
+        layer.onEvent(event);
+        if (event.propagationStopped) return;
+      }
+      // TODO: pass event to camera controls if needed
+    });
   }
 
   public get width() {
