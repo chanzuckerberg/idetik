@@ -14,6 +14,7 @@ export { AxesLayer } from "./layers/axes_layer";
 export { ProjectedLineLayer } from "./layers/projected_line_layer";
 export { TracksLayer } from "./layers/tracks_layer";
 export { ImageLayer } from "./layers/image_layer";
+export { LabelImageLayer } from "./layers/label_image_layer";
 export { ImageSeriesLayer } from "./layers/image_series_layer";
 export { OmeZarrImageSource } from "./data/ome_zarr_image_source";
 
@@ -32,7 +33,7 @@ export type {
 
 export { Color } from "./core/color";
 export type { ColorLike } from "./core/color";
-export type { ChannelProps } from "./objects/textures/channel";
+export type { ChannelProps, ChannelsEnabled } from "./objects/textures/channel";
 
 export { Points } from "./objects/renderable/points";
 export { Texture2DArray } from "./objects/textures/texture_2d_array";

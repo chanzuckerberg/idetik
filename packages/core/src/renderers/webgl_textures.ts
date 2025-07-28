@@ -20,13 +20,22 @@ export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
   private readonly textures_: Map<Texture, WebGLTexture> = new Map();
   private currentTexture_: Texture | null = null;
+  private readonly maxTextureUnits_: number;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
+    this.maxTextureUnits_ = gl.MAX_TEXTURE_IMAGE_UNITS;
   }
 
-  public bindTexture(texture: Texture) {
+  public bindTexture(texture: Texture, index: number) {
     if (this.alreadyActive(texture)) return;
+
+    if (index < 0 || index >= this.maxTextureUnits_) {
+      throw new Error(
+        `Texture index ${index} must be in [0, ${this.maxTextureUnits_ - 1}]`
+      );
+    }
+    this.gl_.activeTexture(this.gl_.TEXTURE0 + index);
 
     const textureType = this.getTextureType(texture);
     const info = this.getDataFormatInfo(texture.dataFormat, texture.dataType);
@@ -224,6 +233,24 @@ export class WebGLTextures {
     }
     if (format === "scalar") {
       switch (type) {
+        case "byte":
+          return {
+            internalFormat: this.gl_.R8I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.BYTE,
+          };
+        case "short":
+          return {
+            internalFormat: this.gl_.R16I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.SHORT,
+          };
+        case "int":
+          return {
+            internalFormat: this.gl_.R32I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.INT,
+          };
         case "unsigned_byte":
           return {
             internalFormat: this.gl_.R8UI,
@@ -235,6 +262,12 @@ export class WebGLTextures {
             internalFormat: this.gl_.R16UI,
             format: this.gl_.RED_INTEGER,
             type: this.gl_.UNSIGNED_SHORT,
+          };
+        case "unsigned_int":
+          return {
+            internalFormat: this.gl_.R32UI,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.UNSIGNED_INT,
           };
         case "float":
           return {

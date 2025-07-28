@@ -7,7 +7,7 @@ import {
 } from "../data/image_chunk";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
-import { ChannelProps } from "../objects/textures/channel";
+import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 
@@ -36,7 +36,7 @@ type SetIndexResult = {
 };
 
 // Loads 2D+z image data (Z-stack) from an image source into renderable objects.
-export class ImageSeriesLayer extends Layer {
+export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageSeriesLayer";
 
   private readonly source_: ImageChunkSource;
@@ -106,13 +106,9 @@ export class ImageSeriesLayer extends Layer {
     }
   }
 
-  /** useSyncExternalStore() compatible subscribe function. */
-  addChannelChangeCallback = (callback: () => void): (() => void) => {
+  public addChannelChangeCallback(callback: () => void): void {
     this.channelChangeCallbacks_.push(callback);
-    return () => {
-      this.removeChannelChangeCallback(callback);
-    };
-  };
+  }
   public removeChannelChangeCallback(callback: () => void): void {
     const index = this.channelChangeCallbacks_.indexOf(callback);
     if (index === undefined) {

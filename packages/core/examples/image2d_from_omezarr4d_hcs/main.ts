@@ -57,7 +57,7 @@ const onImageChange = async () => {
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl);
-  const omeroDefaultZ = await loadOmeroDefaultZ(imageUrl);
+  const omeroDefaultZ = await loadOmeroDefaultZ(source);
   region[2] = {
     dimension: "Z",
     index: {
@@ -65,7 +65,7 @@ const onImageChange = async () => {
       value: (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE,
     },
   };
-  const omeroChannels = await loadOmeroChannels(imageUrl);
+  const omeroChannels = await loadOmeroChannels(source);
   const contrastLimits: [number, number][] = [
     [omeroChannels[1].window!.start, omeroChannels[1].window!.end],
     [omeroChannels[2].window!.start, omeroChannels[2].window!.end],

@@ -5,8 +5,12 @@ import { Well } from "../data/ome_ngff/0.5/well";
 import { Well as WellV04 } from "../data/ome_ngff/0.4/well";
 import { Image } from "../data/ome_ngff/0.5/image";
 import { Image as ImageV04 } from "../data/ome_ngff/0.4/image";
+import { Readable } from "@zarrita/storage";
+import { OmeZarrImageSource } from "./ome_zarr_image_source";
 
-export async function loadOmeZarrPlate(url: string): Promise<Plate["ome"]["plate"]> {
+export async function loadOmeZarrPlate(
+  url: string
+): Promise<Plate["ome"]["plate"]> {
   const store = new zarr.FetchStore(url);
   const group = await zarr.open(store, { kind: "group" });
   const attrs = conformPlate(group.attrs);
@@ -28,16 +32,18 @@ export async function loadOmeZarrWell(
 export type OmeroMetadata = NonNullable<Image["ome"]["omero"]>;
 export type OmeroChannel = OmeroMetadata["channels"][number];
 
-export async function loadOmeroChannels(url: string): Promise<OmeroChannel[]> {
-  const store = new zarr.FetchStore(url);
-  const group = await zarr.open(store, { kind: "group" });
+export async function loadOmeroChannels(
+  source: OmeZarrImageSource
+): Promise<OmeroChannel[]> {
+  const group = await zarr.open(source.location, { kind: "group" });
   const image = parseOmeNgffImage(group);
   return image.metadata.ome.omero?.channels ?? [];
 }
 
-export async function loadOmeroDefaultZ(url: string): Promise<number> {
-  const store = new zarr.FetchStore(url);
-  const group = await zarr.open(store, { kind: "group" });
+export async function loadOmeroDefaultZ(
+  source: OmeZarrImageSource
+): Promise<number> {
+  const group = await zarr.open(source.location, { kind: "group" });
   // @ts-expect-error rdefs is not in the provided schema
   return group.attrs?.omero?.rdefs?.defaultZ ?? 0;
 }
@@ -91,9 +97,7 @@ type ConformedImage = {
   originalVersion: "0.4" | "0.5";
 };
 
-export function parseOmeNgffImage(
-  group: zarr.Group<zarr.FetchStore>
-): ConformedImage {
+export function parseOmeNgffImage(group: zarr.Group<Readable>): ConformedImage {
   const v05Attrs = conformImage(group.attrs);
   return {
     metadata: Image.parse(v05Attrs),

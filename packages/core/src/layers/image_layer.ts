@@ -3,11 +3,12 @@ import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
-import { ChannelProps } from "../objects/textures/channel";
+import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Logger } from "../utilities/logger";
+import { Color } from "../core/color";
 
 export type ImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -16,22 +17,31 @@ export type ImageLayerProps = LayerOptions & {
 };
 
 // Loads data from an image source into renderable objects.
-export class ImageLayer extends Layer {
+export class ImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageLayer";
 
   private readonly source_: ImageChunkSource;
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
-  private useChunkManager_: boolean;
+  private readonly useChunkManager_: boolean;
+  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channelChangeCallbacks_: Array<() => void> = [];
+  private readonly visibleChunks_: Map<ImageChunk, ImageRenderable> = new Map();
   private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
-  private visibleChunks_: Map<ImageChunk, ImageRenderable> = new Map();
-  private readonly lod_?: number;
+
+  private readonly wireframeColors_ = [
+    new Color(0.6, 0.3, 0.3),
+    new Color(0.3, 0.6, 0.4),
+    new Color(0.4, 0.4, 0.7),
+    new Color(0.6, 0.5, 0.3),
+  ];
 
   // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
+  private readonly lod_?: number;
 
   constructor({
     source,
@@ -45,6 +55,7 @@ export class ImageLayer extends Layer {
     this.source_ = source;
     this.region_ = region;
     this.channelProps_ = channelProps;
+    this.initialChannelProps_ = channelProps;
     this.lod_ = lod;
 
     const x = region.find((r) => r.dimension.toLowerCase() === "x");
@@ -123,10 +134,28 @@ export class ImageLayer extends Layer {
     // TODO: should this return Channel[] instead of ChannelProps[]?
     return this.channelProps_;
   }
-
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
+    });
+  }
+  public resetChannelProps(): void {
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
+    }
+  }
+
+  public addChannelChangeCallback(callback: () => void): void {
+    this.channelChangeCallbacks_.push(callback);
+  }
+  public removeChannelChangeCallback(callback: () => void): void {
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.channelChangeCallbacks_.splice(index, 1);
   }
 
   private async load(region: Region) {
@@ -168,6 +197,12 @@ export class ImageLayer extends Layer {
       Texture2DArray.createWithImageChunk(chunk),
       channelProps
     );
+
+    if (this.debugMode) {
+      image.wireframeEnabled = true;
+      image.wireframeColor =
+        this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
+    }
 
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);

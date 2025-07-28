@@ -3,6 +3,15 @@ import { vec3, vec4 } from "gl-matrix";
 export type ColorLike = Color | vec3 | vec4;
 
 export class Color {
+  public static readonly RED: Color = new Color(1.0, 0.0, 0.0);
+  public static readonly GREEN: Color = new Color(0.0, 1.0, 0.0);
+  public static readonly BLUE: Color = new Color(0.0, 0.0, 1.0);
+  public static readonly YELLOW: Color = new Color(1.0, 1.0, 0.0);
+  public static readonly MAGENTA: Color = new Color(1.0, 0.0, 1.0);
+  public static readonly CYAN: Color = new Color(0.0, 1.0, 1.0);
+  public static readonly BLACK: Color = new Color(0.0, 0.0, 0.0);
+  public static readonly WHITE: Color = new Color(1.0, 1.0, 1.0);
+
   // RGBA color values in the range [0, 1]
   private readonly rgba_: readonly [number, number, number, number];
 
@@ -68,12 +77,6 @@ export class Color {
       1.0
     );
   }
-
-  public static RED: Color = new Color(1.0, 0.0, 0.0);
-  public static GREEN: Color = new Color(0.0, 1.0, 0.0);
-  public static BLUE: Color = new Color(0.0, 0.0, 1.0);
-  public static BLACK: Color = new Color(0.0, 0.0, 0.0);
-  public static WHITE: Color = new Color(1.0, 1.0, 1.0);
 
   private toHexComponent(value: number): string {
     const hex = Math.round(value * 255)

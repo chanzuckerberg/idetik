@@ -21,7 +21,7 @@ const source = new OmeZarrImageSource(url);
 let zIndex = 0;
 (async () => {
   try {
-    zIndex = await loadOmeroDefaultZ(url);
+    zIndex = await loadOmeroDefaultZ(source);
   } catch (error) {
     console.error("Error loading default Z index:", error);
   }

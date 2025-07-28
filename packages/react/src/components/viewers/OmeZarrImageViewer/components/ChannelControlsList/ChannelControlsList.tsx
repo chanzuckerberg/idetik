@@ -6,14 +6,12 @@ import {
 } from "@czi-sds/components";
 import cns from "classnames";
 import { ChannelControl } from "./components/ChannelControl";
-import { ChannelProps, ColorLike, ImageSeriesLayer } from "@idetik/core";
+import { ChannelProps, ColorLike, ChannelsEnabled } from "@idetik/core";
 import { useSyncExternalStore } from "react";
 import { ExtraControlProps } from "../../utils";
 
 export interface ChannelControlsListProps {
-  // TODO: make this work with ImageLayer as well - need to refactor to add
-  // useSyncExternalStore-compatible methods to ImageLayer
-  layer: ImageSeriesLayer;
+  layer: ChannelsEnabled;
   // TODO: it's awkward to have labels and contrastRanges as separate props
   // but they're not needed for *rendering* so they don't belong in the library
   // - one option is to add a way to store related additional properties in the library

@@ -1,6 +1,6 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
-import { Texture } from "../../objects/textures/texture";
+import { Texture, TextureDataType } from "../../objects/textures/texture";
 import {
   Channel,
   ChannelProps,
@@ -8,14 +8,17 @@ import {
   validateChannels,
 } from "../../objects/textures/channel";
 import { vec3 } from "gl-matrix";
+import { Shader } from "../../renderers/shaders";
 
 type SingleUniformValues = {
+  ImageSampler: number;
   Color: vec3;
   ValueOffset: number;
   ValueScale: number;
 };
 
 type ArrayUniformValues = {
+  ImageSampler: number;
   "Visible[0]": boolean[];
   "Color[0]": number[];
   "ValueOffset[0]": number[];
@@ -26,30 +29,19 @@ export class ImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
 
   constructor(
-    geometry: Geometry | null,
-    texture: Texture | null = null,
+    geometry: Geometry,
+    texture: Texture,
     channels: ChannelProps[] = []
   ) {
     super();
-
-    if (geometry) {
-      this.geometry = geometry;
-    }
-
-    if (texture) {
-      this.addTexture(texture);
-    }
-
+    this.geometry = geometry;
+    this.addTexture(texture);
     this.channels_ = validateChannels(texture, channels);
+    this.programName = textureToShader(texture);
   }
 
   public get type() {
     return "ImageRenderable";
-  }
-
-  public addTexture(texture: Texture) {
-    super.addTexture(texture);
-    this.setProgramName();
   }
 
   public setChannelProps(channels: ChannelProps[]) {
@@ -79,6 +71,7 @@ export class ImageRenderable extends RenderableObject {
       const { color, contrastLimits } =
         this.channels_[0] ?? validateChannel(texture, {});
       return {
+        ImageSampler: 0,
         Color: color.rgb,
         ValueOffset: -contrastLimits[0],
         ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
@@ -101,6 +94,7 @@ export class ImageRenderable extends RenderableObject {
       });
 
       return {
+        ImageSampler: 0,
         "Visible[0]": visible,
         "Color[0]": color,
         "ValueOffset[0]": valueOffset,
@@ -108,17 +102,43 @@ export class ImageRenderable extends RenderableObject {
       };
     }
   }
+}
 
-  private setProgramName() {
-    const texture = this.textures[0];
-    if (!texture) {
-      throw new Error("un-textured image not implemented");
-    } else if (texture.type == "Texture2D") {
-      this.programName =
-        texture.dataType == "float" ? "floatImage" : "uintImage";
-    } else if (texture.type == "Texture2DArray") {
-      this.programName =
-        texture.dataType == "float" ? "floatImageArray" : "uintImageArray";
-    }
+function textureToShader(texture: Texture) {
+  if (texture.type === "Texture2D") {
+    return dataTypeToScalarImageShader(texture.dataType);
+  } else if (texture.type === "Texture2DArray") {
+    return dataTypeToArrayImageShader(texture.dataType);
+  }
+  throw new Error(`Unsupported image texture type: ${texture.type}`);
+}
+
+function dataTypeToScalarImageShader(dataType: TextureDataType): Shader {
+  switch (dataType) {
+    case "byte":
+    case "int":
+    case "short":
+      return "intScalarImage";
+    case "unsigned_short":
+    case "unsigned_byte":
+    case "unsigned_int":
+      return "uintScalarImage";
+    case "float":
+      return "floatScalarImage";
+  }
+}
+
+function dataTypeToArrayImageShader(dataType: TextureDataType): Shader {
+  switch (dataType) {
+    case "byte":
+    case "int":
+    case "short":
+      return "intScalarImageArray";
+    case "unsigned_short":
+    case "unsigned_byte":
+    case "unsigned_int":
+      return "uintScalarImageArray";
+    case "float":
+      return "floatScalarImageArray";
   }
 }

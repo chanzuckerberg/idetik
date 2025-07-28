@@ -13,6 +13,8 @@ import { PromiseScheduler } from "./promise_scheduler";
 import { Image as OmeNgffImage } from "../data/ome_ngff/0.5/image";
 import { parseOmeNgffImage } from "../data/ome_zarr_hcs_metadata_loader";
 
+import { Readable } from "@zarrita/storage";
+
 type ImageAttributes = {
   image: OmeNgffImage["ome"]["multiscales"][number];
   dimensionNames: string[];
@@ -44,12 +46,12 @@ export class PromiseQueue<T> {
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
-  private readonly root_: zarr.Group<zarr.FetchStore>;
+  private readonly root_: zarr.Group<Readable>;
   private readonly metadata_: OmeNgffImage;
   private readonly originalVersion_: "0.4" | "0.5";
   private readonly lods_: number;
 
-  constructor(root: zarr.Group<zarr.FetchStore>) {
+  constructor(root: zarr.Group<Readable>) {
     this.root_ = root;
     const { metadata, originalVersion } = parseOmeNgffImage(this.root_);
     this.metadata_ = metadata;
