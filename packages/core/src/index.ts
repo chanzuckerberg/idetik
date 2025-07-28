@@ -33,7 +33,7 @@ export type {
 
 export { Color } from "./core/color";
 export type { ColorLike } from "./core/color";
-export type { ChannelProps } from "./objects/textures/channel";
+export type { ChannelProps, ChannelsEnabled } from "./objects/textures/channel";
 
 export { Points } from "./objects/renderable/points";
 export { Texture2DArray } from "./objects/textures/texture_2d_array";
