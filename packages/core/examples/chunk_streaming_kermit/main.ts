@@ -11,6 +11,7 @@ import { FpsOverlay } from "./fps_overlay";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 
 const url = "http://127.0.0.1:8080/kermit-momo-like-0_5.zarr/";
+// const url = "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/64x2/engine.ome.zarr";
 const left = 0;
 const right = 3024;
 const top = 0;
@@ -29,6 +30,7 @@ const channelProps = [
   },
 ];
 const imageLayer = new ImageLayer({ source, region, channelProps });
+imageLayer.debugMode = true;
 const camera = new OrthographicCamera(left, right, top, bottom);
 const fpsOverlay = new FpsOverlay({
   textDiv: document.querySelector<HTMLDivElement>("#fps-text")!,

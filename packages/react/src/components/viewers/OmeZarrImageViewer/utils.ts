@@ -15,10 +15,14 @@ export const omeroToChannelProps = (
   omeroChannels: OmeroChannel[]
 ): ChannelProps[] => {
   return omeroChannels.map((channel) => {
+    if (!channel.window) {
+      return {} as ChannelProps;
+    }
     const { start, end, min, max } = channel.window;
+    const color = channel.color;
     return {
       visible: channel.active,
-      color: Color.fromRgbHex(channel.color),
+      color: color === undefined ? undefined : Color.fromRgbHex(color),
       contrastLimits: [Math.max(start, min), Math.min(end, max)],
     };
   });
@@ -42,9 +46,16 @@ export const omeroToChannelControls = (
   return omeroChannels.map((channel, index) => {
     // remove prefix (number + hyphen) from label if present (seen in organelle box data)
     const label = (channel.label ?? `Ch${index}`).replace(/^\d+-/, "");
+    const window = channel.window;
+    if (window === undefined) {
+      return {
+        label,
+        contrastRange: [0, 1],
+      };
+    }
     return {
       label,
-      contrastRange: [0.5 * channel.window.start, 1.1 * channel.window.end],
+      contrastRange: [0.5 * window.start, 1.1 * window.end],
     };
   });
 };

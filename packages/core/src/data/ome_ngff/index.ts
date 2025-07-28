@@ -1,7 +1,7 @@
 import * as zarr from "zarrita";
 import { Image as ImageV04 } from "./0.4/image";
-import { Plate as PlateV04 } from "./0.4/plate";
-import { Well as WellV04 } from "./0.4/well";
+// import { Plate as PlateV04 } from "./0.4/plate";
+// import { Well as WellV04 } from "./0.4/well";
 import { Image } from "./0.5/image";
 import { Plate } from "./0.5/plate";
 import { Well } from "./0.5/well";
