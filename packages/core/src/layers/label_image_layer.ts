@@ -5,6 +5,7 @@ import { Texture2D } from "../objects/textures/texture_2d";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Color, ColorLike } from "../core/color";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
+import { EventContext } from "../core/event_dispatcher";
 
 export type LabelImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -67,6 +68,10 @@ export class LabelImageLayer extends Layer {
         throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
       }
     }
+  }
+
+  public onEvent(_: EventContext) {
+    // TODO: implement segment selection
   }
 
   private async load(region: Region) {

@@ -19,6 +19,15 @@ export type ChannelProps = {
   contrastLimits?: [number, number];
 };
 
+/** Layer that exposes channel controls. */
+export interface ChannelsEnabled {
+  channelProps: ChannelProps[] | undefined;
+  setChannelProps(channelProps: ChannelProps[]): void;
+  resetChannelProps(): void;
+  addChannelChangeCallback(callback: () => void): void;
+  removeChannelChangeCallback(callback: () => void): void;
+}
+
 export function validateChannel(
   texture: Texture | null,
   { visible, color, contrastLimits }: ChannelProps
