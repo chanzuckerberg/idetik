@@ -151,14 +151,7 @@ export function OmeZarrImageViewer({
       setLoading(false);
       onFirstSliceLoaded?.();
       if (shouldAutoLoadAllSlices) {
-        setLoading(true);
-        await autoLoadAllSlices(
-          layer,
-          onAllSlicesLoaded,
-          onLoadAllSlicesAborted
-        );
-        setAllSlicesLoaded(true);
-        setLoading(false);
+        loadAllSlicesCallback();
       }
     };
     initialize();
@@ -212,27 +205,32 @@ export function OmeZarrImageViewer({
     }
   };
 
-  const loadAllSlicesCallback = useCallback(async () => {
-    const currentImageLayer = imageLayerRef.current;
-    if (!currentImageLayer) return;
-    onLoadAllSlicesClicked?.();
-    setLoading(true);
-    try {
-      await currentImageLayer.preloadSeries();
-    } catch (err) {
-      console.info("load all slices failed or was aborted", err);
-      onLoadAllSlicesAborted?.();
-      return;
-    } finally {
-      if (imageLayerRef.current === currentImageLayer) {
-        setLoading(false);
+  const loadAllSlicesCallback = useCallback(
+    async (event?: React.MouseEvent) => {
+      const currentImageLayer = imageLayerRef.current;
+      if (!currentImageLayer) return;
+      if (event !== undefined) {
+        onLoadAllSlicesClicked?.();
       }
-    }
-    if (imageLayerRef.current == currentImageLayer) {
-      onAllSlicesLoaded?.();
-      setAllSlicesLoaded(true);
-    }
-  }, [onLoadAllSlicesClicked, onAllSlicesLoaded, onLoadAllSlicesAborted]);
+      setLoading(true);
+      try {
+        await currentImageLayer.preloadSeries();
+      } catch (err) {
+        console.info("load all slices failed or was aborted", err);
+        onLoadAllSlicesAborted?.();
+        return;
+      } finally {
+        if (imageLayerRef.current === currentImageLayer) {
+          setLoading(false);
+        }
+      }
+      if (imageLayerRef.current == currentImageLayer) {
+        onAllSlicesLoaded?.();
+        setAllSlicesLoaded(true);
+      }
+    },
+    [onLoadAllSlicesClicked, onAllSlicesLoaded, onLoadAllSlicesAborted]
+  );
 
   const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
   // #region DOM
@@ -524,19 +522,5 @@ function setCameraFrame(layer: ImageSeriesLayer, runtime: Idetik) {
     const { x, y } = layer.extent;
     const camera = runtime.camera as OrthographicCamera;
     camera?.setFrame(0, x, y, 0);
-  }
-}
-
-async function autoLoadAllSlices(
-  layer: ImageSeriesLayer,
-  onAllSlicesLoaded?: () => void,
-  onLoadAllSlicesAborted?: () => void
-): Promise<void> {
-  try {
-    await layer.preloadSeries();
-    onAllSlicesLoaded?.();
-  } catch (err) {
-    console.warn("Auto-load all slices failed or was aborted", err);
-    onLoadAllSlicesAborted?.();
   }
 }
