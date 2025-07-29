@@ -266,89 +266,86 @@ export function OmeZarrImageViewer({
               <ScaleBar unit={unit} align={scaleBar.align} />
             </div>
           )}
-          {imageLayerRef.current instanceof ImageSeriesLayer && (
-            <div
-              className={cns(
-                "flex",
-                "flex-col",
-                "grow",
-                "items-end",
-                "p-sds-l",
-                "gap-sds-l",
-                classNames?.sliceMetadataContainer
-              )}
-            >
-              {!loading ? (
-                <div
-                  // These share styles with ChannelControlsList
-                  className={cns(
-                    "text-white",
-                    "text-sm",
-                    "bg-black/75",
-                    "backdrop-blur-md",
-                    "p-sds-xs",
-                    "rounded-sds-m",
-                    "shadow-sds-m",
-                    "font-sds-code",
-                    "select-none",
-                    classNames?.sliceIndicator
-                  )}
-                >
-                  {typeof indexIndicatorText === "string" && indexIndicatorText}
-                  {typeof indexIndicatorText === "function" &&
-                    indexIndicatorText(zIndex, zRange[1] - zRange[0])}
-                  {typeof indexIndicatorText === "undefined" &&
-                    `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
-                </div>
-              ) : (
-                <LoadingIndicator sdsStyle="tag" />
-              )}
-              {!allSlicesLoaded ? (
-                <Button
-                  sdsType="primary"
-                  sdsStyle="square"
-                  size="small"
-                  disabled={loading}
-                  onClick={loadAllSlicesCallback}
-                  className={cns("shadow-sds-m", classNames?.load3dButton)}
-                >
-                  {typeof loadAllButtonText === "string" && loadAllButtonText}
-                  {typeof loadAllButtonText === "function" &&
-                    loadAllButtonText()}
-                  {typeof loadAllButtonText === "undefined" &&
-                    "Load 3D high-res"}
-                </Button>
-              ) : (
-                <div
-                  className={cns(
-                    "w-full md:w-[200px]",
-                    "flex",
-                    "bg-black/75",
-                    "backdrop-blur-md",
-                    "rounded-sds-m",
-                    "shadow-sds-m",
-                    "py-sds-xs",
-                    "px-sds-m",
-                    classNames?.sliceSliderContainer
-                  )}
-                >
-                  <InputSlider
-                    min={0}
-                    max={1}
-                    step={1 / (zRange[1] - zRange[0])}
-                    value={zValue}
-                    {...MODIFIED_SLIDER_STYLES}
-                    onChange={(_, val: number | number[]) => {
-                      if (typeof val === "number") {
-                        setZValue(val);
-                        updateSeriesIndex(val);
-                      }
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+
+          <div
+            className={cns(
+              "flex",
+              "flex-col",
+              "grow",
+              "items-end",
+              "p-sds-l",
+              "gap-sds-l",
+              classNames?.sliceMetadataContainer
+            )}
+          >
+            {!loading ? (
+              <div
+                // These share styles with ChannelControlsList
+                className={cns(
+                  "text-white",
+                  "text-sm",
+                  "bg-black/75",
+                  "backdrop-blur-md",
+                  "p-sds-xs",
+                  "rounded-sds-m",
+                  "shadow-sds-m",
+                  "font-sds-code",
+                  "select-none",
+                  classNames?.sliceIndicator
+                )}
+              >
+                {typeof indexIndicatorText === "string" && indexIndicatorText}
+                {typeof indexIndicatorText === "function" &&
+                  indexIndicatorText(zIndex, zRange[1] - zRange[0])}
+                {typeof indexIndicatorText === "undefined" &&
+                  `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
+              </div>
+            ) : (
+              <LoadingIndicator sdsStyle="tag" />
+            )}
+            {!allSlicesLoaded ? (
+              <Button
+                sdsType="primary"
+                sdsStyle="square"
+                size="small"
+                disabled={loading}
+                onClick={loadAllSlicesCallback}
+                className={cns("shadow-sds-m", classNames?.load3dButton)}
+              >
+                {typeof loadAllButtonText === "string" && loadAllButtonText}
+                {typeof loadAllButtonText === "function" && loadAllButtonText()}
+                {typeof loadAllButtonText === "undefined" && "Load 3D high-res"}
+              </Button>
+            ) : (
+              <div
+                className={cns(
+                  "w-full md:w-[200px]",
+                  "flex",
+                  "bg-black/75",
+                  "backdrop-blur-md",
+                  "rounded-sds-m",
+                  "shadow-sds-m",
+                  "py-sds-xs",
+                  "px-sds-m",
+                  classNames?.sliceSliderContainer
+                )}
+              >
+                <InputSlider
+                  min={0}
+                  max={1}
+                  step={1 / (zRange[1] - zRange[0])}
+                  value={zValue}
+                  {...MODIFIED_SLIDER_STYLES}
+                  onChange={(_, val: number | number[]) => {
+                    if (typeof val === "number") {
+                      setZValue(val);
+                      updateSeriesIndex(val);
+                    }
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
