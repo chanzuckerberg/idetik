@@ -90,7 +90,6 @@ export function OmeZarrImageViewer({
 
   const { isReady: runtimeIsReady, runtime } = useIdetik();
 
-  const [source, setSource] = useState<OmeZarrImageSource | null>(null);
   const [unit, setUnit] = useState<string>();
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
   const [zValue, setZValue] = useState(0.5);
@@ -99,6 +98,7 @@ export function OmeZarrImageViewer({
   const [extraControlProps, setExtraControlProps] = useState<
     ExtraControlProps[]
   >([]);
+  const sourceRef = useRef<OmeZarrImageSource | null>(null);
   const imageLayerRef = useRef<ImageSeriesLayer | null>(null);
 
   // #region Initialization
@@ -110,7 +110,7 @@ export function OmeZarrImageViewer({
       if (source === undefined) {
         return;
       }
-      setSource(source);
+      sourceRef.current = source;
       setAllSlicesLoaded(false);
       setLoading(true);
       const loadChannelMetadataPromise = loadChannelMetadata(
@@ -128,6 +128,9 @@ export function OmeZarrImageViewer({
       const { channelProps, extraControlProps } =
         await loadChannelMetadataPromise;
       const { xUnit, zRange, zValue } = await loadImageMetadataPromise;
+      if (sourceRef.current !== source) {
+        return;
+      }
       setExtraControlProps(extraControlProps);
       setUnit(xUnit);
       setZRange(zRange);
@@ -142,11 +145,10 @@ export function OmeZarrImageViewer({
       imageLayerRef.current = layer;
       onLayerCreated?.();
       await updateSeriesIndex(zValue);
-      if (imageLayerRef.current !== layer) {
+      if (sourceRef.current !== source) {
         return;
       }
       runtime.layerManager.add(layer);
-      imageLayerRef.current = layer;
       setCameraFrame(layer, runtime);
       setLoading(false);
       onFirstSliceLoaded?.();
@@ -191,7 +193,7 @@ export function OmeZarrImageViewer({
     }, 50);
     try {
       const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
-      await imageLayerRef.current?.setIndex(zIndex);
+      await imageLayerRef.current.setIndex(zIndex);
     } catch (err) {
       console.debug("Z index load aborted", err);
     } finally {
@@ -204,6 +206,7 @@ export function OmeZarrImageViewer({
 
   const loadAllSlicesCallback = useCallback(
     async (event?: React.MouseEvent) => {
+      const currentSource = sourceRef.current;
       const currentImageLayer = imageLayerRef.current;
       if (!currentImageLayer) return;
       if (event !== undefined) {
@@ -217,13 +220,11 @@ export function OmeZarrImageViewer({
         onLoadAllSlicesAborted?.();
         return;
       } finally {
-        if (imageLayerRef.current === currentImageLayer) {
+        if (sourceRef.current === currentSource) {
           setLoading(false);
+          onAllSlicesLoaded?.();
+          setAllSlicesLoaded(true);
         }
-      }
-      if (imageLayerRef.current == currentImageLayer) {
-        onAllSlicesLoaded?.();
-        setAllSlicesLoaded(true);
       }
     },
     [onLoadAllSlicesClicked, onAllSlicesLoaded, onLoadAllSlicesAborted]
@@ -241,7 +242,7 @@ export function OmeZarrImageViewer({
           classNames={{ root: "absolute top-0 left-0 z-10" }}
         />
       )}
-      {source && (
+      {sourceRef.current && (
         <div
           className={cns(
             "flex",
