@@ -93,9 +93,9 @@ const labelsLayer = new LabelImageSeriesLayer({
   colorMap: new Map([[103, Color.GREEN]]),
 });
 
-const tSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
-const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
-const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total")!;
+const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;
+const tIndexEl = document.querySelector<HTMLSpanElement>("#t-index")!;
+const tTotalEl = document.querySelector<HTMLSpanElement>("#t-total")!;
 const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
 const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all")!;
 
@@ -103,7 +103,7 @@ const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all")!;
 tSlider.min = `${tMin}`;
 tSlider.max = `${tMax - 1}`;
 tSlider.value = "0";
-zTotalEl.textContent = `${tMax - tMin - 1}`;
+tTotalEl.textContent = `${tMax - tMin - 1}`;
 
 // set up event handler with debouncing
 let debounce: ReturnType<typeof setTimeout>;
@@ -154,10 +154,10 @@ async function preloadAllSlices() {
 }
 
 async function setLayerIndex(index: number) {
-  zIndexEl!.textContent = "...";
+  tIndexEl!.textContent = "...";
   const imageResult = await imageLayer.setIndex(index);
   const labelsResult = await labelsLayer.setIndex(index);
   if (imageResult.success && labelsResult.success) {
-    zIndexEl!.textContent = `${index}`;
+    tIndexEl!.textContent = `${index}`;
   }
 }
