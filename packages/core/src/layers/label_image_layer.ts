@@ -3,25 +3,15 @@ import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { Color, ColorLike } from "../core/color";
+import { LabelColorMap } from "../core/color";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { EventContext } from "../core/event_dispatcher";
 
 export type LabelImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
-  colorCycle?: ColorLike[];
-  colorMap?: ReadonlyMap<number, ColorLike>;
+  colorMap?: LabelColorMap;
 };
-
-const DEFAULT_COLOR_CYCLE: ColorLike[] = [
-  [1.0, 0.5, 0.5],
-  [0.5, 1.0, 0.5],
-  [0.5, 0.5, 1.0],
-  [0.5, 1.0, 1.0],
-  [1.0, 0.5, 1.0],
-  [1.0, 1.0, 0.5],
-];
 
 export class LabelImageLayer extends Layer {
   public readonly type = "LabelImageLayer";
@@ -29,15 +19,13 @@ export class LabelImageLayer extends Layer {
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
   private readonly lod_?: number;
-  private readonly colorCycle_: ReadonlyArray<Color>;
-  private readonly colorMap_: ReadonlyMap<number, Color>;
+  private readonly colorMap_: LabelColorMap;
   private image_?: LabelImageRenderable;
 
   constructor({
     source,
     region,
-    colorCycle = DEFAULT_COLOR_CYCLE,
-    colorMap = new Map(),
+    colorMap = new LabelColorMap(),
     lod,
     ...layerOptions
   }: LabelImageLayerProps) {
@@ -45,13 +33,7 @@ export class LabelImageLayer extends Layer {
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-    this.colorCycle_ = colorCycle.map(Color.from);
-    this.colorMap_ = new Map(
-      Array.from(colorMap.entries()).map(([key, value]) => [
-        key,
-        Color.from(value),
-      ])
-    );
+    this.colorMap_ = colorMap;
     this.lod_ = lod;
   }
 
@@ -93,7 +75,6 @@ export class LabelImageLayer extends Layer {
     const image = new LabelImageRenderable({
       geometry,
       imageData: Texture2D.createWithImageChunk(chunk),
-      colorCycle: this.colorCycle_,
       colorMap: this.colorMap_,
     });
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);

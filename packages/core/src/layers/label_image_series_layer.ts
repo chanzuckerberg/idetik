@@ -9,23 +9,13 @@ import { Texture2D } from "../objects/textures/texture_2d";
 import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { Color, ColorLike } from "../core/color";
-
-const DEFAULT_COLOR_CYCLE: ColorLike[] = [
-  [1.0, 0.5, 0.5],
-  [0.5, 1.0, 0.5],
-  [0.5, 0.5, 1.0],
-  [0.5, 1.0, 1.0],
-  [1.0, 0.5, 1.0],
-  [1.0, 1.0, 0.5],
-];
+import { LabelColorMap } from "../core/color";
 
 export type LabelImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   seriesDimensionName: string;
-  colorCycle: ColorLike[];
-  colorMap?: ReadonlyMap<number, ColorLike>;
+  colorMap?: LabelColorMap;
 };
 
 export type SeriesAttributes = {
@@ -53,8 +43,7 @@ export class LabelImageSeriesLayer extends Layer {
   private readonly seriesDimensionName_: string;
   private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
-  private readonly colorCycle_: ReadonlyArray<Color>;
-  private readonly colorMap_: ReadonlyMap<number, Color>;
+  private readonly colorMap_: LabelColorMap;
   private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
@@ -70,8 +59,7 @@ export class LabelImageSeriesLayer extends Layer {
     source,
     region,
     seriesDimensionName,
-    colorCycle = DEFAULT_COLOR_CYCLE,
-    colorMap = new Map(),
+    colorMap = new LabelColorMap(),
     lod,
     ...layerOptions
   }: LabelImageSeriesLayerProps) {
@@ -79,13 +67,7 @@ export class LabelImageSeriesLayer extends Layer {
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-    this.colorCycle_ = colorCycle.map(Color.from);
-    this.colorMap_ = new Map(
-      Array.from(colorMap.entries()).map(([key, value]) => [
-        key,
-        Color.from(value),
-      ])
-    );
+    this.colorMap_ = colorMap;
     this.lod_ = lod;
     this.seriesDimensionName_ = seriesDimensionName;
     const seriesDimensionalIndex = region.find(
@@ -269,7 +251,6 @@ export class LabelImageSeriesLayer extends Layer {
     const image = new LabelImageRenderable({
       geometry,
       imageData: texture,
-      colorCycle: this.colorCycle_,
       colorMap: this.colorMap_,
     });
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);

@@ -2,6 +2,46 @@ import { vec3, vec4 } from "gl-matrix";
 
 export type ColorLike = Color | vec3 | vec4;
 
+const defaultColorCycle: ColorLike[] = [
+  [1.0, 0.5, 0.5],
+  [0.5, 1.0, 0.5],
+  [0.5, 0.5, 1.0],
+  [0.5, 1.0, 1.0],
+  [1.0, 0.5, 1.0],
+  [1.0, 1.0, 0.5],
+];
+
+type LabelColorMapProps = {
+  lut?: ReadonlyMap<number, ColorLike>;
+  cycle?: ColorLike[];
+};
+
+export class LabelColorMap {
+  public readonly lut: ReadonlyMap<number, Color>;
+  public readonly cycle: ReadonlyArray<Color>;
+
+  constructor(props: LabelColorMapProps = {}) {
+    this.lut = LabelColorMap.validateColorLut(props.lut);
+    this.cycle = LabelColorMap.validateColorCycle(props.cycle);
+  }
+
+  private static validateColorLut(
+    lut?: ReadonlyMap<number, ColorLike>
+  ): ReadonlyMap<number, Color> {
+    lut = lut ?? new Map();
+    return new Map(
+      Array.from(lut.entries()).map(([key, value]) => [key, Color.from(value)])
+    );
+  }
+
+  private static validateColorCycle(
+    cycle?: ReadonlyArray<ColorLike>
+  ): ReadonlyArray<Color> {
+    cycle = cycle ?? defaultColorCycle;
+    return cycle.map(Color.from);
+  }
+}
+
 export class Color {
   public static readonly RED: Color = new Color(1.0, 0.0, 0.0);
   public static readonly GREEN: Color = new Color(0.0, 1.0, 0.0);

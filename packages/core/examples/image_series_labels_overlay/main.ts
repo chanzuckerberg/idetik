@@ -89,8 +89,10 @@ const labelsLayer = new LabelImageSeriesLayer({
   opacity: 0.25,
   blendMode: "normal",
   lod,
-  colorCycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
-  colorMap: new Map([[103, Color.GREEN]]),
+  colorMap: {
+    cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
+    lut: new Map([[103, Color.GREEN]]),
+  },
 });
 
 const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;

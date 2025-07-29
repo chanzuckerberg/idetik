@@ -1,14 +1,13 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
 import { Texture, TextureDataType } from "../../objects/textures/texture";
-import { Color } from "../../core/color";
+import { Color, LabelColorMap } from "../../core/color";
 import { Texture2D } from "../textures/texture_2d";
 
 type LabelImageRenderableProps = {
   geometry: Geometry;
   imageData: Texture;
-  colorCycle: ReadonlyArray<Color>;
-  colorMap?: ReadonlyMap<number, Color>;
+  colorMap: LabelColorMap;
 };
 
 const supportedDataTypes = new Set<TextureDataType>([
@@ -36,10 +35,10 @@ export class LabelImageRenderable extends RenderableObject {
     super();
     this.geometry = props.geometry;
     this.addTexture(validateImageData(props.imageData));
-    const colorCycleTexture = this.makeColorCycleTexture(props.colorCycle);
+    const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
     this.addTexture(colorCycleTexture);
-    const colorMapTexture = this.makeColorMapTexture(props.colorMap);
-    this.addTexture(colorMapTexture);
+    const colorLutTexture = this.makeColorLutTexture(props.colorMap.lut);
+    this.addTexture(colorLutTexture);
     this.programName = "labelImage";
   }
 
@@ -51,7 +50,7 @@ export class LabelImageRenderable extends RenderableObject {
     return {
       ImageSampler: 0,
       ColorCycleSampler: 1,
-      ColorMapSampler: 2,
+      ColorLutSampler: 2,
     };
   }
 
@@ -64,7 +63,7 @@ export class LabelImageRenderable extends RenderableObject {
     return texture;
   }
 
-  private makeColorMapTexture(colorMap?: ReadonlyMap<number, Color>) {
+  private makeColorLutTexture(colorMap?: ReadonlyMap<number, Color>) {
     if (colorMap === undefined) {
       colorMap = new Map([[0, Color.TRANSPARENT]]);
     } else if (!colorMap.has(0)) {
