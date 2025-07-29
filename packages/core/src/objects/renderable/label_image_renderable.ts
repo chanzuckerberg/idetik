@@ -54,24 +54,24 @@ export class LabelImageRenderable extends RenderableObject {
     };
   }
 
-  private makeColorCycleTexture(colorCycle: ReadonlyArray<Color>) {
+  private makeColorCycleTexture(cycle: ReadonlyArray<Color>) {
     const data = new Uint8Array(
-      colorCycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
+      cycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
     );
-    const texture = new Texture2D(data, colorCycle.length, 1);
+    const texture = new Texture2D(data, cycle.length, 1);
     texture.dataFormat = "rgba";
     return texture;
   }
 
-  private makeColorLutTexture(colorMap?: ReadonlyMap<number, Color>) {
-    if (colorMap === undefined) {
-      colorMap = new Map([[0, Color.TRANSPARENT]]);
-    } else if (!colorMap.has(0)) {
-      colorMap = new Map([[0, Color.TRANSPARENT], ...colorMap]);
+  private makeColorLutTexture(lut?: ReadonlyMap<number, Color>) {
+    if (lut === undefined) {
+      lut = new Map([[0, Color.TRANSPARENT]]);
+    } else if (!lut.has(0)) {
+      lut = new Map([[0, Color.TRANSPARENT], ...lut]);
     }
-    const keys = Array.from(colorMap.keys());
-    const values = Array.from(colorMap.values()).map((c) => c.packed);
-    const numColors = colorMap.size;
+    const keys = Array.from(lut.keys());
+    const values = Array.from(lut.values()).map((c) => c.packed);
+    const numColors = lut.size;
     const data = new Uint32Array(numColors * 2);
     data.set(keys, 0);
     data.set(values, numColors);
