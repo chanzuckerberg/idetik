@@ -171,13 +171,13 @@ export function OmeZarrImageViewer({
         imageLayerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Don't care about updateSeriesIndex()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- These are the only props that matter
   }, [
     sourceUrl,
-    region,
+    region, // TODO: Support region being unstable.
     resolutionLevel,
-    initialIndex,
-    shouldLoadMiddleZ,
+    initialIndex, // TODO: Optimize so doesn't require full reinitialization.
+    shouldLoadMiddleZ, // TODO: Delete this prop.
     seriesDimensionName,
     shouldAutoLoadAllSlices,
     fallbackContrastLimits,
@@ -214,9 +214,7 @@ export function OmeZarrImageViewer({
 
   const loadAllSlicesCallback = useCallback(async () => {
     const currentImageLayer = imageLayerRef.current;
-    if (!(currentImageLayer instanceof ImageSeriesLayer)) {
-      return;
-    }
+    if (!currentImageLayer) return;
     onLoadAllSlicesClicked?.();
     setLoading(true);
     try {
