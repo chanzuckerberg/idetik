@@ -266,7 +266,6 @@ export function OmeZarrImageViewer({
               <ScaleBar unit={unit} align={scaleBar.align} />
             </div>
           )}
-
           <div
             className={cns(
               "flex",
