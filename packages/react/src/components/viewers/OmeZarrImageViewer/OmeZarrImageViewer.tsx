@@ -183,15 +183,12 @@ export function OmeZarrImageViewer({
   // #region Callbacks
 
   const updateSeriesIndex = async (zValue: number) => {
-    if (!(imageLayerRef.current instanceof ImageSeriesLayer)) {
-      return;
-    }
+    if (!imageLayerRef.current) return;
     let didSetLoadingTrue = false;
     const t = setTimeout(() => {
       setLoading(true);
       didSetLoadingTrue = true;
     }, 50);
-
     try {
       const zIndex = Math.round(zValue * (zRange[1] - zRange[0]) + zRange[0]);
       await imageLayerRef.current?.setIndex(zIndex);
