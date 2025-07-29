@@ -11,7 +11,6 @@ import {
   LayerState,
   ImageSeriesLayer,
   Color,
-  EventContext,
 } from "@";
 
 import { vec3 } from "gl-matrix";
@@ -88,8 +87,6 @@ class Particles extends Layer {
     this.refreshPointsRenderable();
     this.needsUpdate_ = false;
   }
-
-  public onEvent(_: EventContext) {}
 
   private refreshPointsRenderable() {
     // TODO: change this to not re-create the renderable object

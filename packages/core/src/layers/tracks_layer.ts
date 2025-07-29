@@ -2,7 +2,6 @@ import { vec3 } from "gl-matrix";
 import { Layer } from "../core/layer";
 import { ProjectedLine } from "../objects/renderable/projected_line";
 import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
-import { EventContext } from "../core/event_dispatcher";
 
 type TrackParameters = {
   path: vec3[];
@@ -65,8 +64,6 @@ export class TracksLayer extends Layer {
   }
 
   public update() {}
-
-  public onEvent(_: EventContext) {}
 
   // TODO: this is temporary - we may want to generalize this to all layers
   // for now it is used to set the initial camera position to be centered on the tracks

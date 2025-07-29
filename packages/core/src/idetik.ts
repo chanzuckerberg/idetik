@@ -74,7 +74,7 @@ export class Idetik {
     this.overlays = params.overlays ?? [];
 
     this.eventDispatcher_ = new EventDispatcher(canvas);
-    this.eventDispatcher_.onEvent((event: EventContext) => {
+    this.eventDispatcher_.addEventListener((event: EventContext) => {
       for (const layer of this.layerManager.layers) {
         layer.onEvent(event);
         if (event.propagationStopped) return;

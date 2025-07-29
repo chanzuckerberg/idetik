@@ -10,7 +10,6 @@ import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { EventContext } from "../core/event_dispatcher";
 
 export type ImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -123,8 +122,6 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
       this.loadSeriesAttributes();
     }
   }
-
-  public onEvent(_: EventContext) {}
 
   public async setPosition(position: number): Promise<SetIndexResult> {
     const seriesAttributes = await this.loadSeriesAttributes();

@@ -1,7 +1,6 @@
 import { Layer } from "../core/layer";
 import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
 import { ProjectedLine } from "../objects/renderable/projected_line";
-import { EventContext } from "../core/event_dispatcher";
 
 export class AxesLayer extends Layer {
   public readonly type = "AxesLayer";
@@ -34,8 +33,6 @@ export class AxesLayer extends Layer {
   }
 
   public update() {}
-
-  public onEvent(_: EventContext) {}
 }
 
 function makeAxis(params: {

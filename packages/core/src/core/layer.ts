@@ -61,7 +61,7 @@ export abstract class Layer {
 
   public abstract update(): void;
 
-  public abstract onEvent(event: EventContext): void;
+  public onEvent(_: EventContext): void {}
 
   // TODO: Consider making this an abstract method once chunk manager
   // integration is finalized. Most layers will likely need access to the chunk
