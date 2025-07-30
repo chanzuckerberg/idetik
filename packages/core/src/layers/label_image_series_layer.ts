@@ -50,6 +50,7 @@ export class LabelImageSeriesLayer extends Layer {
 
   public update() {
     if (this.state === "initialized") {
+      this.setState("loading");
       this.seriesLoader_.loadSeriesAttributes();
     }
   }
@@ -65,7 +66,6 @@ export class LabelImageSeriesLayer extends Layer {
 
   public async setIndex(index: number): Promise<SetIndexResult> {
     const result = await this.seriesLoader_.setIndex(index);
-    console.debug("setIndex result:", result);
     if (result.chunk) {
       this.setData(result.chunk);
       this.setState("ready");
