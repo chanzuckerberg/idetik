@@ -87,11 +87,11 @@ export class ImageSeriesLoader {
         token.canceled = true;
       }
     }
-    const chunk = this.dataChunks_[index];
+    let chunk = this.dataChunks_[index];
     if (chunk === undefined) {
       const newToken = { canceled: false, index: index };
       this.loadingToken_ = newToken;
-      await this.loadAndSetIndex(index, newToken);
+      chunk = await this.loadAndSetIndex(index, newToken);
       if (newToken.canceled) return { success: false, reason: "canceled" };
     }
     return { success: true, chunk };
@@ -161,9 +161,10 @@ export class ImageSeriesLoader {
     const lod = this.lod_ ?? attributes.length - 1;
 
     const chunk = await loader.loadRegion(pointRegion, lod, this.scheduler_);
-    
+    this.dataChunks_[index] = chunk;
+
     if (token && token.canceled) {
-        this.loadingToken_ = null;
+      this.loadingToken_ = null;
     }
     return chunk;
   }

@@ -1,9 +1,6 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { Region } from "../data/region";
-import {
-  ImageChunk,
-  ImageChunkSource,
-} from "../data/image_chunk";
+import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
@@ -61,14 +58,17 @@ export class LabelImageSeriesLayer extends Layer {
     const result = await this.seriesLoader_.setPosition(position);
     if (result.chunk) {
       this.setData(result.chunk);
+      this.setState("ready");
     }
     return result;
   }
 
   public async setIndex(index: number): Promise<SetIndexResult> {
     const result = await this.seriesLoader_.setIndex(index);
+    console.debug("setIndex result:", result);
     if (result.chunk) {
       this.setData(result.chunk);
+      this.setState("ready");
     }
     return result;
   }
