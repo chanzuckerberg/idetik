@@ -77,6 +77,12 @@ export class LabelImageLayer extends Layer {
     this.camera_ = camera;
     this.clientToClip_ = clientToClip;
     this.lod_ = lod;
+
+    if (this.onPickValue_ && (!this.camera_ || !this.clientToClip_)) {
+      throw new Error(
+        "camera and clientToClip are required when onPickValue is provided"
+      );
+    }
   }
 
   public update() {
@@ -95,7 +101,7 @@ export class LabelImageLayer extends Layer {
   }
 
   public onEvent(event: EventContext) {
-    if (!this.onPickValue_ || !this.camera_ || !this.clientToClip_) return;
+    if (!this.onPickValue_) return;
 
     switch (event.type) {
       case "pointerdown": {
@@ -162,8 +168,8 @@ export class LabelImageLayer extends Layer {
     return image;
   }
 
-  public getValueAtWorld(world: vec3): unknown | null {
+  public getValueAtWorld(world: vec3): vec3 /* TODO: label value */ | null {
     // TODO: replace with actual sampling from renderable data (e.g. texture buffer)
-    return world; // stub
+    return world; // stub - currently returns world coordinates instead of label value
   }
 }
