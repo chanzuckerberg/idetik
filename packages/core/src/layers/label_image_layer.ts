@@ -121,8 +121,8 @@ export class LabelImageLayer extends Layer {
 
         if (dist < this.dragThreshold_) {
           const client = pointerUpPos;
-          const clipPos = this.clientToClip_(client, 0);
-          const world = this.camera_.clipToWorld(clipPos);
+          const clipPos = this.clientToClip_!(client, 0);
+          const world = this.camera_!.clipToWorld(clipPos);
           const value = this.getValueAtWorld(world);
 
           if (value !== null) {
