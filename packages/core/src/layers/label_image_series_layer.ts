@@ -56,16 +56,18 @@ export class LabelImageSeriesLayer extends Layer {
   }
 
   public async setPosition(position: number): Promise<SetIndexResult> {
-    const result = await this.seriesLoader_.setPosition(position);
-    if (result.chunk) {
-      this.setData(result.chunk);
-      this.setState("ready");
-    }
-    return result;
+    return await this.seriesLoader_
+      .setPosition(position)
+      .then((r) => this.processIndexResult(r));
   }
 
   public async setIndex(index: number): Promise<SetIndexResult> {
-    const result = await this.seriesLoader_.setIndex(index);
+    return await this.seriesLoader_
+      .setIndex(index)
+      .then((r) => this.processIndexResult(r));
+  }
+
+  private processIndexResult(result: SetIndexResult) {
     if (result.chunk) {
       this.setData(result.chunk);
       this.setState("ready");

@@ -37,13 +37,11 @@ export class ImageSeriesLoader {
   private readonly seriesDimensionName_: string;
   private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
+  private readonly lod_?: number;
   private loader_: ImageChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
   public dataChunks_: ImageChunk[] = [];
-
-  // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
-  private readonly lod_?: number;
 
   constructor(props: ImageSeriesLoaderProps) {
     this.source_ = props.source;
