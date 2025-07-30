@@ -1,15 +1,14 @@
 import { Layer, LayerOptions } from "../core/layer";
-import { Full, Interval, Region } from "../data/region";
+import { Region } from "../data/region";
 import {
   ImageChunk,
-  ImageChunkLoader,
   ImageChunkSource,
 } from "../data/image_chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
-import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { LabelColorMap } from "../core/color";
+import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
 export type LabelImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
@@ -25,35 +24,13 @@ export type SeriesAttributes = {
   length: number;
 };
 
-type LoadingToken = {
-  canceled: boolean;
-  index: number;
-};
-
-type SetIndexResult = {
-  success: boolean;
-  reason?: "duplicate" | "canceled";
-};
-
 export class LabelImageSeriesLayer extends Layer {
   public readonly type = "LabelImageSeriesLayer";
-
-  private readonly source_: ImageChunkSource;
-  private readonly region_: Region;
-  private readonly seriesDimensionName_: string;
-  private readonly seriesIndex_: Interval | Full;
-  private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
+  private readonly seriesLoader_: ImageSeriesLoader;
   private readonly colorMap_: LabelColorMap;
-  private loader_: ImageChunkLoader | null = null;
-  private seriesAttributes_?: SeriesAttributes;
-  private loadingToken_: LoadingToken | null = null;
   private texture_: Texture2D | null = null;
-  private dataChunks_: ImageChunk[] = [];
   private image_?: LabelImageRenderable;
   private extent_?: { x: number; y: number };
-
-  // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
-  private readonly lod_?: number;
 
   constructor({
     source,
@@ -65,65 +42,47 @@ export class LabelImageSeriesLayer extends Layer {
   }: LabelImageSeriesLayerProps) {
     super(layerOptions);
     this.setState("initialized");
-    this.source_ = source;
-    this.region_ = region;
     this.colorMap_ = colorMap;
-    this.lod_ = lod;
-    this.seriesDimensionName_ = seriesDimensionName;
-    const seriesDimensionalIndex = region.find(
-      (x) => x.dimension == seriesDimensionName
-    );
-    if (seriesDimensionalIndex === undefined) {
-      throw new Error(
-        `Series dimension '${seriesDimensionName}' not in region ${JSON.stringify(region)}`
-      );
-    }
-    if (seriesDimensionalIndex.index.type === "point") {
-      throw new Error(
-        "Series dimension index in region must be an interval or 'full', not a point value"
-      );
-    }
-    this.seriesIndex_ = seriesDimensionalIndex.index;
+    this.seriesLoader_ = new ImageSeriesLoader({
+      source,
+      region,
+      seriesDimensionName,
+      lod,
+    });
   }
 
   public update() {
     if (this.state === "initialized") {
-      this.loadSeriesAttributes();
+      this.seriesLoader_.loadSeriesAttributes();
     }
   }
 
   public async setPosition(position: number): Promise<SetIndexResult> {
-    const seriesAttributes = await this.loadSeriesAttributes();
-    const index = Math.round(
-      (position - seriesAttributes.start) / seriesAttributes.scale
-    );
-    return await this.setIndex(index);
+    const result = await this.seriesLoader_.setPosition(position);
+    if (result.chunk) {
+      this.setData(result.chunk);
+    }
+    return result;
   }
 
   public async setIndex(index: number): Promise<SetIndexResult> {
-    const token = this.loadingToken_;
-    if (token) {
-      if (token.index === index && !token.canceled) {
-        console.debug("Ignoring duplicate active setIndex request");
-        return { success: false, reason: "duplicate" };
-      } else {
-        console.debug(
-          `Cancelling setIndex request for index ${token.index}, new requested index is ${index}`
-        );
-        token.canceled = true;
-      }
+    const result = await this.seriesLoader_.setIndex(index);
+    if (result.chunk) {
+      this.setData(result.chunk);
     }
+    return result;
+  }
 
-    const chunk = this.dataChunks_[index];
-    if (chunk === undefined) {
-      const newToken = { canceled: false, index: index };
-      this.loadingToken_ = newToken;
-      await this.loadAndSetIndex(index, newToken);
-      if (newToken.canceled) return { success: false, reason: "canceled" };
-    } else {
-      this.setData(chunk);
-    }
-    return { success: true };
+  public close() {
+    this.seriesLoader_.shutdown();
+  }
+
+  public async preloadSeries() {
+    this.seriesLoader_.preloadSeries();
+  }
+
+  public get extent(): { x: number; y: number } | undefined {
+    return this.extent_;
   }
 
   private setData(chunk: ImageChunk) {
@@ -140,110 +99,6 @@ export class LabelImageSeriesLayer extends Layer {
     } else if (chunk.data) {
       this.texture_.data = chunk.data;
     }
-  }
-
-  public close() {
-    this.scheduler_.shutdown();
-  }
-
-  private async loadSeriesAttributes() {
-    if (this.seriesAttributes_) {
-      return this.seriesAttributes_;
-    }
-    const loader = await this.getLoader();
-    const attributes = await loader.loadAttributes();
-    const attributesForLOD = attributes[this.lod_ ?? attributes.length - 1];
-
-    const seriesIndex = attributesForLOD.dimensionNames.findIndex(
-      (dim) => dim === this.seriesDimensionName_
-    );
-    if (seriesIndex === -1) {
-      throw new Error(
-        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${attributesForLOD.dimensionNames}`
-      );
-    }
-    const seriesDimScale = attributesForLOD.scale[seriesIndex];
-    const seriesMax = attributesForLOD.shape[seriesIndex] * seriesDimScale;
-
-    const indexIsFull = this.seriesIndex_.type === "full";
-    const seriesStart = indexIsFull ? 0 : this.seriesIndex_.start;
-    const seriesStop = indexIsFull ? seriesMax : this.seriesIndex_.stop;
-
-    const seriesLength = Math.round(
-      (seriesStop - seriesStart) / seriesDimScale
-    );
-    this.dataChunks_ = new Array(seriesLength);
-
-    this.seriesAttributes_ = {
-      start: seriesStart,
-      stop: seriesStop,
-      scale: seriesDimScale,
-      length: seriesLength,
-    };
-    return this.seriesAttributes_;
-  }
-
-  private async loadAndSetIndex(index: number, token?: LoadingToken) {
-    const seriesAttributes = await this.loadSeriesAttributes();
-    if (index < 0 || index >= seriesAttributes.length) {
-      throw new Error(
-        `Requested index ${index} is out of bounds [0, ${seriesAttributes.length - 1}]`
-      );
-    }
-
-    // replace the series region with a point region for the requested index
-    const position = seriesAttributes.start + index * seriesAttributes.scale;
-    const pointRegion = this.region_.filter(
-      (dimIndex) => dimIndex.dimension !== this.seriesDimensionName_
-    );
-    pointRegion.push({
-      dimension: this.seriesDimensionName_,
-      index: { type: "point", value: position },
-    });
-
-    const loader = await this.getLoader();
-    const attributes = await loader.loadAttributes();
-    const lod = this.lod_ ?? attributes.length - 1;
-
-    const chunk = await loader.loadRegion(pointRegion, lod, this.scheduler_);
-    this.dataChunks_[index] = chunk;
-
-    if (token && !token.canceled) {
-      this.loadingToken_ = null;
-      this.setData(chunk);
-      this.setState("ready");
-    }
-  }
-
-  public async preloadSeries() {
-    const { length } = await this.loadSeriesAttributes();
-    // Load remaining slices concurrently, exclude the token so they don't get set
-    const loadPromises = [];
-    for (let index = 0; index < length; index++) {
-      loadPromises.push(this.loadAndSetIndex(index));
-    }
-
-    // Wait for all slices to finish loading
-    const results = await Promise.allSettled(loadPromises);
-    for (const result of results) {
-      if (result.status === "rejected") {
-        if (result.reason instanceof AbortError) {
-          // reject the promise because this means the layer was closed
-          return Promise.reject(result.reason);
-        } else {
-          console.error(`Error loading slice: ${result.reason}`);
-        }
-      }
-    }
-  }
-
-  public get extent(): { x: number; y: number } | undefined {
-    return this.extent_;
-  }
-
-  private async getLoader() {
-    this.loader_ ??= await this.source_.open();
-    return this.loader_;
   }
 
   private createImage(chunk: ImageChunk, texture: Texture2D) {
