@@ -87,7 +87,7 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   }
 
   public async setIndex(index: number): Promise<SetIndexResult> {
-    const result = await this.seriesLoader_.setPosition(index);
+    const result = await this.seriesLoader_.setIndex(index);
     return this.processIndexResult(result);
   }
 

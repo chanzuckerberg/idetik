@@ -6,7 +6,7 @@ import {
 } from "../data/image_chunk";
 import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
 
-export type SeriesAttributes = {
+type SeriesAttributes = {
   start: number;
   stop: number;
   scale: number;
