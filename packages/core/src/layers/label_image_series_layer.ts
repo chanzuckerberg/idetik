@@ -14,13 +14,6 @@ export type LabelImageSeriesLayerProps = LayerOptions & {
   colorMap?: LabelColorMap;
 };
 
-export type SeriesAttributes = {
-  start: number;
-  stop: number;
-  scale: number;
-  length: number;
-};
-
 export class LabelImageSeriesLayer extends Layer {
   public readonly type = "LabelImageSeriesLayer";
   private readonly seriesLoader_: ImageSeriesLoader;
