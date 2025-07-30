@@ -149,7 +149,7 @@ export function OmeZarrImageViewer({
         return;
       }
       runtime.layerManager.add(layer);
-      setCameraFrame(layer, runtime);
+      zoomToFit(layer, runtime);
       setLoading(false);
       onFirstSliceLoaded?.();
       if (shouldAutoLoadAllSlices) {
@@ -166,7 +166,7 @@ export function OmeZarrImageViewer({
         imageLayerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- These are the only props that matter
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only props that trigger reinitialize
   }, [
     sourceUrl,
     region, // TODO: Support region being unstable.
@@ -511,7 +511,7 @@ function createLayer(
   });
 }
 
-function setCameraFrame(layer: ImageSeriesLayer, runtime: Idetik) {
+function zoomToFit(layer: ImageSeriesLayer, runtime: Idetik) {
   if (layer.extent) {
     const { x, y } = layer.extent;
     const camera = runtime.camera as OrthographicCamera;
