@@ -60,10 +60,6 @@ export class LayerManager {
     return this.layers_;
   }
 
-  public getLayers(): readonly Layer[] {
-    return this.layers_;
-  }
-
   private notifyLayersChanged(): void {
     for (const callback of this.callbacks_) {
       callback();
