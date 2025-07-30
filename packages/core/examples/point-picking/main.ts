@@ -89,6 +89,14 @@ const imageLayer = new ImageLayer({
   lod,
 });
 
+// Create Idetik instance
+const idetik = new Idetik({
+  canvas,
+  camera,
+  layers: [imageLayer],
+  controls: new PanZoomControls(camera),
+});
+
 // Create label image layer with picking functionality
 const labelsLayer = new LabelImageLayer({
   source: labelsSource,
@@ -99,6 +107,8 @@ const labelsLayer = new LabelImageLayer({
   lod,
   colorCycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
   colorMap: new Map([[103, Color.GREEN]]),
+  camera,
+  clientToClip: idetik.clientToClip.bind(idetik),
   onPickValue: (info: PointPickingResult) => {
     const { client, world, value, layer } = info;
     pickInfoDiv.innerHTML = `
@@ -111,17 +121,7 @@ const labelsLayer = new LabelImageLayer({
   },
 });
 
-// Create Idetik instance
-const idetik = new Idetik({
-  canvas,
-  camera,
-  layers: [imageLayer, labelsLayer],
-  controls: new PanZoomControls(camera),
-});
-
-// Set up coordinate transformation for the picking layer
-labelsLayer.setClientToClip((clientPos, depth) =>
-  idetik.clientToClip(clientPos, depth)
-);
+// Add the labels layer after creating the Idetik instance
+idetik.layerManager.add(labelsLayer);
 
 idetik.start();
