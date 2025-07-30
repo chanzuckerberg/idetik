@@ -1,6 +1,7 @@
 import { IdetikContext } from "../idetik";
 import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
+import { EventContext } from "./event_dispatcher";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
@@ -59,6 +60,8 @@ export abstract class Layer {
   }
 
   public abstract update(): void;
+
+  public onEvent(_: EventContext): void {}
 
   // TODO: Consider making this an abstract method once chunk manager
   // integration is finalized. Most layers will likely need access to the chunk

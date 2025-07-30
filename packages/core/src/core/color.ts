@@ -6,8 +6,12 @@ export class Color {
   public static readonly RED: Color = new Color(1.0, 0.0, 0.0);
   public static readonly GREEN: Color = new Color(0.0, 1.0, 0.0);
   public static readonly BLUE: Color = new Color(0.0, 0.0, 1.0);
+  public static readonly YELLOW: Color = new Color(1.0, 1.0, 0.0);
+  public static readonly MAGENTA: Color = new Color(1.0, 0.0, 1.0);
+  public static readonly CYAN: Color = new Color(0.0, 1.0, 1.0);
   public static readonly BLACK: Color = new Color(0.0, 0.0, 0.0);
   public static readonly WHITE: Color = new Color(1.0, 1.0, 1.0);
+  public static readonly TRANSPARENT: Color = new Color(0.0, 0.0, 0.0, 0.0);
 
   // RGBA color values in the range [0, 1]
   private readonly rgba_: readonly [number, number, number, number];
@@ -48,6 +52,15 @@ export class Color {
 
   public get rgbHex(): string {
     return `#${this.toHexComponent(this.r)}${this.toHexComponent(this.g)}${this.toHexComponent(this.b)}`;
+  }
+
+  public get packed(): number {
+    return (
+      (Math.round(this.r * 255) << 24) |
+      (Math.round(this.g * 255) << 16) |
+      (Math.round(this.b * 255) << 8) |
+      Math.round(this.a * 255)
+    );
   }
 
   public static from(colorLike: ColorLike): Color {

@@ -6,7 +6,7 @@ import { Readable } from "@zarrita/storage";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
-  private readonly location_: Location<Readable>;
+  readonly location: Location<Readable>;
 
   /**
    * @param url URL of Zarr root
@@ -20,14 +20,14 @@ export class OmeZarrImageSource {
    */
   constructor(directory: FileSystemDirectoryHandle, path?: `/${string}`);
   constructor(source: string | FileSystemDirectoryHandle, path?: `/${string}`) {
-    this.location_ =
+    this.location =
       typeof source === "string"
         ? new Location(new FetchStore(source))
         : new Location(new WebFileSystemStore(source), path);
   }
 
   async open(): Promise<OmeZarrImageLoader> {
-    const root = await zarritaOpen.v2(this.location_, { kind: "group" });
+    const root = await zarritaOpen.v2(this.location, { kind: "group" });
     return new OmeZarrImageLoader(root);
   }
 }
