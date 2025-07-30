@@ -11,6 +11,7 @@ export type LabelImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   colorCycle?: ColorLike[];
+  colorMap?: ReadonlyMap<number, ColorLike>;
 };
 
 const DEFAULT_COLOR_CYCLE: ColorLike[] = [
@@ -29,12 +30,14 @@ export class LabelImageLayer extends Layer {
   private readonly region_: Region;
   private readonly lod_?: number;
   private readonly colorCycle_: ReadonlyArray<Color>;
+  private readonly colorMap_: ReadonlyMap<number, Color>;
   private image_?: LabelImageRenderable;
 
   constructor({
     source,
     region,
     colorCycle = DEFAULT_COLOR_CYCLE,
+    colorMap = new Map(),
     lod,
     ...layerOptions
   }: LabelImageLayerProps) {
@@ -43,6 +46,12 @@ export class LabelImageLayer extends Layer {
     this.source_ = source;
     this.region_ = region;
     this.colorCycle_ = colorCycle.map(Color.from);
+    this.colorMap_ = new Map(
+      Array.from(colorMap.entries()).map(([key, value]) => [
+        key,
+        Color.from(value),
+      ])
+    );
     this.lod_ = lod;
   }
 
@@ -85,6 +94,7 @@ export class LabelImageLayer extends Layer {
       geometry,
       imageData: Texture2D.createWithImageChunk(chunk),
       colorCycle: this.colorCycle_,
+      colorMap: this.colorMap_,
     });
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
