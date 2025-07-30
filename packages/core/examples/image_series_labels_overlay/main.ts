@@ -90,8 +90,8 @@ const labelsLayer = new LabelImageSeriesLayer({
   blendMode: "normal",
   lod,
   colorMap: {
+    lookUpTable: new Map([[103, Color.GREEN]]),
     cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
-    lut: new Map([[103, Color.GREEN]]),
   },
 });
 

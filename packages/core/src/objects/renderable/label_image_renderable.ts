@@ -38,7 +38,9 @@ export class LabelImageRenderable extends RenderableObject {
     this.addTexture(validateImageData(props.imageData));
     const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
     this.addTexture(colorCycleTexture);
-    const colorLutTexture = this.makeColorLutTexture(props.colorMap.lut);
+    const colorLutTexture = this.makeColorLookUpTableTexture(
+      props.colorMap.lookUpTable
+    );
     this.addTexture(colorLutTexture);
     this.programName = "labelImage";
   }
@@ -51,7 +53,7 @@ export class LabelImageRenderable extends RenderableObject {
     return {
       ImageSampler: 0,
       ColorCycleSampler: 1,
-      ColorLutSampler: 2,
+      ColorLookUpTableSampler: 2,
     };
   }
 
@@ -64,7 +66,7 @@ export class LabelImageRenderable extends RenderableObject {
     return texture;
   }
 
-  private makeColorLutTexture(lut?: ReadonlyMap<number, Color>) {
+  private makeColorLookUpTableTexture(lut?: ReadonlyMap<number, Color>) {
     if (lut === undefined) {
       lut = new Map([[0, Color.TRANSPARENT]]);
     } else if (!lut.has(0)) {
