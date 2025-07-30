@@ -117,7 +117,6 @@ export class PanZoomControls implements CameraControls {
     vec3.add(this.panTarget_, this.panTarget_, deltaWorld);
   }
 
-
   public set panTarget(panTarget: vec3) {
     this.panTarget_ = panTarget;
   }
