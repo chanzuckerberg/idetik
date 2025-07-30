@@ -167,7 +167,7 @@ export class ImageSeriesLoader {
     return chunk;
   }
 
-  public async preloadSeries() {
+  public async preloadAllChunks() {
     const { length } = await this.loadSeriesAttributes();
     // Load remaining slices concurrently, exclude the token so they don't get set
     const loadPromises = [];

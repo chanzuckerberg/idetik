@@ -63,7 +63,7 @@ export class LabelImageSeriesLayer extends Layer {
   }
 
   public async preloadSeries() {
-    this.seriesLoader_.preloadSeries();
+    this.seriesLoader_.preloadAllChunks();
   }
 
   public get extent(): { x: number; y: number } | undefined {
