@@ -228,13 +228,13 @@ export class LabelImageLayer extends Layer {
     return vec2.fromValues(x, y);
   }
 
-  private getPixelValue(imagePos: vec2): number | null {
+  private getPixelValue(imagePos: vec2): [number, number] {
     // This would need to sample from the actual image data
     // For now, return a placeholder value
     const x = Math.floor(imagePos[0]);
     const y = Math.floor(imagePos[1]);
 
-    // Return coordinates as value for demonstration
-    return x >= 0 && y >= 0 ? x + y * 1000 : null;
+    // Return coordinates as stubbed value for demonstration
+    return [x, y];
   }
 }
