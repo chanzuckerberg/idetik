@@ -89,7 +89,7 @@ export class ImageSeriesLoader {
     if (chunk === undefined) {
       const newToken = { canceled: false, index: index };
       this.loadingToken_ = newToken;
-      chunk = await this.loadAndSetIndex(index, newToken);
+      chunk = await this.loadChunkAtIndex(index, newToken);
       if (newToken.canceled) return { success: false, reason: "canceled" };
     }
     return { success: true, chunk };
@@ -136,7 +136,7 @@ export class ImageSeriesLoader {
     return this.seriesAttributes_;
   }
 
-  public async loadAndSetIndex(index: number, token?: LoadingToken) {
+  public async loadChunkAtIndex(index: number, token?: LoadingToken) {
     const seriesAttributes = await this.loadSeriesAttributes();
     if (index < 0 || index >= seriesAttributes.length) {
       throw new Error(
@@ -172,7 +172,7 @@ export class ImageSeriesLoader {
     // Load remaining slices concurrently, exclude the token so they don't get set
     const loadPromises = [];
     for (let index = 0; index < length; index++) {
-      loadPromises.push(this.loadAndSetIndex(index));
+      loadPromises.push(this.loadChunkAtIndex(index));
     }
 
     // Wait for all slices to finish loading

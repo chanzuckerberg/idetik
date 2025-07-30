@@ -4,7 +4,7 @@ import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { LabelColorMap } from "../core/color";
+import { LabelColorMap } from "../objects/renderable/label_color_map";
 import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
 export type LabelImageSeriesLayerProps = LayerOptions & {

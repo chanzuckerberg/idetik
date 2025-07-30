@@ -1,8 +1,9 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { Geometry } from "../../core/geometry";
 import { Texture, TextureDataType } from "../../objects/textures/texture";
-import { Color, LabelColorMap } from "../../core/color";
+import { Color } from "../../core/color";
 import { Texture2D } from "../textures/texture_2d";
+import { LabelColorMap } from "./label_color_map";
 
 type LabelImageRenderableProps = {
   geometry: Geometry;
