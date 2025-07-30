@@ -8,6 +8,7 @@ import { LabelImageRenderable } from "../objects/renderable/label_image_renderab
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { Camera } from "../objects/cameras/camera";
+import { ClientToClip } from "../core/types";
 
 export interface PointPickingResult {
   client: vec2;
@@ -15,8 +16,6 @@ export interface PointPickingResult {
   value: unknown | null;
   layer: LabelImageLayer | null;
 }
-
-type ClientToClip = (clientPos: vec2, depth?: number) => vec3;
 
 export type LabelImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
