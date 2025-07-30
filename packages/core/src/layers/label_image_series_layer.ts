@@ -56,23 +56,13 @@ export class LabelImageSeriesLayer extends Layer {
   }
 
   public async setPosition(position: number): Promise<SetIndexResult> {
-    return await this.seriesLoader_
-      .setPosition(position)
-      .then((r) => this.processIndexResult(r));
+    const result = await this.seriesLoader_.setPosition(position);
+    return this.processIndexResult(result);
   }
 
   public async setIndex(index: number): Promise<SetIndexResult> {
-    return await this.seriesLoader_
-      .setIndex(index)
-      .then((r) => this.processIndexResult(r));
-  }
-
-  private processIndexResult(result: SetIndexResult) {
-    if (result.chunk) {
-      this.setData(result.chunk);
-      this.setState("ready");
-    }
-    return result;
+    const result = await this.seriesLoader_.setPosition(index);
+    return this.processIndexResult(result);
   }
 
   public close() {
@@ -85,6 +75,14 @@ export class LabelImageSeriesLayer extends Layer {
 
   public get extent(): { x: number; y: number } | undefined {
     return this.extent_;
+  }
+
+  private processIndexResult(result: SetIndexResult) {
+    if (result.chunk) {
+      this.setData(result.chunk);
+      this.setState("ready");
+    }
+    return result;
   }
 
   private setData(chunk: ImageChunk) {

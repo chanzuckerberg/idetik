@@ -19,8 +19,8 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   private readonly seriesLoader_: ImageSeriesLoader;
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: Array<() => void> = [];
-  private texture_: Texture2DArray | null = null;
   private channelProps_?: ChannelProps[];
+  private texture_: Texture2DArray | null = null;
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
@@ -82,23 +82,13 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   }
 
   public async setPosition(position: number): Promise<SetIndexResult> {
-    return await this.seriesLoader_
-      .setPosition(position)
-      .then((r) => this.processIndexResult(r));
+    const result = await this.seriesLoader_.setPosition(position);
+    return this.processIndexResult(result);
   }
 
   public async setIndex(index: number): Promise<SetIndexResult> {
-    return await this.seriesLoader_
-      .setIndex(index)
-      .then((r) => this.processIndexResult(r));
-  }
-
-  private processIndexResult(result: SetIndexResult) {
-    if (result.chunk) {
-      this.setData(result.chunk);
-      this.setState("ready");
-    }
-    return result;
+    const result = await this.seriesLoader_.setPosition(index);
+    return this.processIndexResult(result);
   }
 
   public close() {
@@ -111,6 +101,14 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
 
   public get extent(): { x: number; y: number } | undefined {
     return this.extent_;
+  }
+
+  private processIndexResult(result: SetIndexResult) {
+    if (result.chunk) {
+      this.setData(result.chunk);
+      this.setState("ready");
+    }
+    return result;
   }
 
   private setData(chunk: ImageChunk) {
