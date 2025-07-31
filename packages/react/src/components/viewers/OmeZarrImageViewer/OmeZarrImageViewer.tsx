@@ -128,7 +128,8 @@ export function OmeZarrImageViewer({
       );
       const { channelProps, extraControlProps } =
         await loadChannelMetadataPromise;
-      const { xUnit, zRange, zValue } = await loadImageMetadataPromise;
+      const { xUnit, zValue, zRange, yCoordRange, xCoordRange } =
+        await loadImageMetadataPromise;
       if (sourceRef.current !== source) {
         return;
       }
@@ -150,7 +151,7 @@ export function OmeZarrImageViewer({
         return;
       }
       runtime.layerManager.add(layer);
-      zoomToFit(layer, runtime);
+      zoomToFit(xCoordRange, yCoordRange, runtime);
       setLoading(false);
       onFirstSliceLoaded?.();
       if (shouldAutoLoadAllSlices) {
@@ -415,8 +416,8 @@ async function loadImageMetadata(
   xUnit?: string;
   zValue: number;
   zRange: [number, number];
-  yRange: [number, number];
-  xRange: [number, number];
+  yCoordRange: [number, number];
+  xCoordRange: [number, number];
 }> {
   const loader = await source.open();
   const attrs = await loader.loadAttributes();
@@ -426,30 +427,45 @@ async function loadImageMetadata(
   // which currently holds with idetik but is fragile.
   const dimensionUnits = attrsForLevel.dimensionUnits;
   const xUnit = dimensionUnits[dimensionUnits.length - 1];
-  
-  const zIdx = attrsForLevel.dimensionNames.findIndex(
-    (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
+
+  const yIdx = attrsForLevel.dimensionNames.findIndex(
+    (d: string) => d.toUpperCase() === "Y"
   );
-  const xRange = [0, attrsForLevel.chunks[]]
-  const yRange = []
+  const xIdx = attrsForLevel.dimensionNames.findIndex(
+    (d: string) => d.toUpperCase() === "X"
+  );
+  const yCoordRange: [number, number] = [
+    0,
+    attrsForLevel.shape[yIdx] * attrsForLevel.scale[xIdx],
+  ];
+  const xCoordRange: [number, number] = [
+    0,
+    attrsForLevel.shape[yIdx] * attrsForLevel.scale[xIdx],
+  ];
 
   if (seriesDimensionName === undefined) {
     return {
       xUnit,
       zValue: 0,
       zRange: [0, 0],
+      yCoordRange,
+      xCoordRange,
     };
   }
 
-
+  const zIdx = attrsForLevel.dimensionNames.findIndex(
+    (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
+  );
   const min = 0;
   const max = attrsForLevel.shape[zIdx] - 1;
 
   if (max - min <= 0) {
     return {
       xUnit,
-      zRange: [0, 0],
       zValue: 0,
+      zRange: [0, 0],
+      yCoordRange,
+      xCoordRange,
     };
   }
 
@@ -506,8 +522,10 @@ async function loadImageMetadata(
 
   return {
     xUnit,
-    zRange: [min, max],
     zValue,
+    zRange: [min, max],
+    yCoordRange,
+    xCoordRange,
   };
 }
 
@@ -534,10 +552,11 @@ function createLayer(
       });
 }
 
-function zoomToFit(layer: ImageLayer | ImageSeriesLayer, runtime: Idetik) {
-  if (layer.extent) {
-    const { x, y } = layer.extent;
-    const camera = runtime.camera as OrthographicCamera;
-    camera?.setFrame(0, x, y, 0);
-  }
+function zoomToFit(
+  xRange: [number, number],
+  yRange: [number, number],
+  runtime: Idetik
+) {
+  const camera = runtime.camera as OrthographicCamera;
+  camera?.setFrame(xRange[0], xRange[1], yRange[1], yRange[0]);
 }
