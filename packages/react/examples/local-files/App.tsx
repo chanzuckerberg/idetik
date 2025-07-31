@@ -3,7 +3,7 @@ import { OmeZarrImageViewer } from "../../src/components/viewers/OmeZarrImageVie
 import { useState } from "react";
 
 const region: Region = [
-  // { dimension: "z", index: { type: "full" } },
+  { dimension: "z", index: { type: "full" } },
   { dimension: "y", index: { type: "full" } },
   { dimension: "x", index: { type: "full" } },
 ];
@@ -22,7 +22,7 @@ export default function App() {
       <OmeZarrImageViewer
         sourceLocalDirectory={directory && { directory }}
         region={region}
-        // seriesDimensionName="z"
+        seriesDimensionName="z"
         fallbackContrastLimits={[0, 1]}
         initialIndex="middle"
         loadAllButtonText="Load all"
