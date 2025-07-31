@@ -102,7 +102,7 @@ const labelsLayer = new LabelImageLayer({
   source: labelsSource,
   region: labelsRegion,
   transparent: true,
-  opacity: 0.5,
+  opacity: 0.25,
   blendMode: "normal",
   lod,
   colorCycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
