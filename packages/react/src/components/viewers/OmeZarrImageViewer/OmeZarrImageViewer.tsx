@@ -436,11 +436,11 @@ async function loadImageMetadata(
   );
   const yCoordRange: [number, number] = [
     0,
-    attrsForLevel.shape[yIdx] * attrsForLevel.scale[xIdx],
+    attrsForLevel.shape[yIdx] * attrsForLevel.scale[yIdx],
   ];
   const xCoordRange: [number, number] = [
     0,
-    attrsForLevel.shape[yIdx] * attrsForLevel.scale[xIdx],
+    attrsForLevel.shape[xIdx] * attrsForLevel.scale[xIdx],
   ];
 
   if (seriesDimensionName === undefined) {
