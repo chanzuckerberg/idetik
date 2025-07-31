@@ -456,6 +456,7 @@ async function loadImageMetadata(
   const zIdx = attrsForLevel.dimensionNames.findIndex(
     (d: string) => d.toUpperCase() === seriesDimensionName.toUpperCase()
   );
+
   const min = 0;
   const max = attrsForLevel.shape[zIdx] - 1;
 
