@@ -10,15 +10,31 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 import { FpsOverlay } from "./fps_overlay";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 
-const url = "http://127.0.0.1:8080/kermit-momo-like-0_5.zarr/";
-// const url = "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/64x2/engine.ome.zarr";
-const left = 0;
-const right = 3024;
-const top = 0;
-const bottom = 4032;
+const url = "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
+const shape = {
+  x: 1024,
+  y: 1024,
+  z: 314,
+};
+const scale = {
+  x: 0.497,
+  y: 0.497,
+  z: 1.5,
+};
+const offset = {
+  x: -254.464,
+  y: -254.464,
+  z: -235.5,
+};
+const left = offset.x;
+const right = offset.x + shape.x * scale.x;
+const top = offset.y;
+const bottom = offset.y + shape.y * scale.y;
+const zMid = offset.z + 0.5 * shape.z * scale.z;
 
 const source = new OmeZarrImageSource(url);
 const region: Region = [
+  { dimension: "z", index: { type: "point", value: zMid } },
   { dimension: "y", index: { type: "full" } },
   { dimension: "x", index: { type: "full" } },
 ];

@@ -68,6 +68,7 @@ export type LoaderAttributes = {
   dimensionUnits: (string | undefined)[];
   shape: readonly number[];
   scale: readonly number[];
+  translation: readonly number[];
 };
 
 export type ImageChunkLoader = {

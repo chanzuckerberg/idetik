@@ -67,6 +67,8 @@ export class ChunkManagerSource {
         this.attrs_[lod].shape.length === 3
           ? this.attrs_[lod].shape[this.channelIdx_]
           : 1;
+      const scale = this.attrs_[lod].scale;
+      const translation = this.attrs_[lod].translation;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
           this.chunks_.push({
@@ -82,12 +84,12 @@ export class ChunkManagerSource {
             rowAlignmentBytes: 1,
             chunkIndex: { x, y },
             scale: {
-              x: this.attrs_[lod].scale[this.xIdx_],
-              y: this.attrs_[lod].scale[this.yIdx_],
+              x: scale[this.xIdx_],
+              y: scale[this.yIdx_],
             },
             offset: {
-              x: x * chunkWidth * this.attrs_[lod].scale[this.xIdx_],
-              y: y * chunkHeight * this.attrs_[lod].scale[this.yIdx_],
+              x: translation[this.xIdx_] + (x * chunkWidth * scale[this.xIdx_]),
+              y: translation[this.yIdx_] + (y * chunkHeight * scale[this.yIdx_]),
             },
           });
         }
@@ -204,34 +206,27 @@ export class ChunkManagerSource {
       return;
     }
 
+    const boundsMinX = visibleBounds.min[0];
+    const boundsMaxX = visibleBounds.max[0];
+    const boundsMinY = visibleBounds.min[1];
+    const boundsMaxY = visibleBounds.max[1];
+
     for (const chunk of this.chunks_) {
       if (!chunk.chunkIndex) {
         chunk.visible = false;
         continue;
       }
 
-      const chunkVirtualWidth = chunk.shape.x * chunk.scale.x;
-      const chunkVirtualHeight = chunk.shape.y * chunk.scale.y;
+      const minX = chunk.offset.x;
+      const maxX = minX + chunk.shape.x * chunk.scale.x;
+      const minY = chunk.offset.y;
+      const maxY = minY + chunk.shape.y * chunk.scale.y;
 
-      const minChunkIndexX = Math.floor(
-        visibleBounds.min[0] / chunkVirtualWidth
-      );
-      const maxChunkIndexX = Math.ceil(
-        visibleBounds.max[0] / chunkVirtualWidth
-      );
-      const minChunkIndexY = Math.floor(
-        visibleBounds.min[1] / chunkVirtualHeight
-      );
-      const maxChunkIndexY = Math.ceil(
-        visibleBounds.max[1] / chunkVirtualHeight
-      );
-
-      const { x, y } = chunk.chunkIndex;
       chunk.visible =
-        x >= minChunkIndexX &&
-        x <= maxChunkIndexX &&
-        y >= minChunkIndexY &&
-        y <= maxChunkIndexY;
+        minX <= boundsMaxX &&
+        maxX >= boundsMinX &&
+        minY <= boundsMaxY &&
+        maxY >= boundsMinY;
     }
   }
 
