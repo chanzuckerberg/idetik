@@ -107,13 +107,10 @@ const labelsLayer = new LabelImageLayer({
   lod,
   colorCycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
   colorMap: new Map([[103, Color.GREEN]]),
-  camera,
-  clientToClip: idetik.clientToClip.bind(idetik),
   onPickValue: (info: PointPickingResult) => {
-    const { client, world, value, layer } = info;
+    const { world, value, layer } = info;
     pickInfoDiv.innerHTML = `
       <strong>Pick Result:</strong><br/>
-      Client: (${client[0].toFixed(1)}, ${client[1].toFixed(1)})<br/>
       World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
       Value: ${value ?? "null"}<br/>
       Layer: ${layer?.type ?? "none"}
@@ -121,7 +118,6 @@ const labelsLayer = new LabelImageLayer({
   },
 });
 
-// Add the labels layer after creating the Idetik instance
 idetik.layerManager.add(labelsLayer);
 
 idetik.start();

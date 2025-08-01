@@ -7,11 +7,8 @@ import { Color, ColorLike } from "../core/color";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
-import { Camera } from "../objects/cameras/camera";
-import { ClientToClip } from "../core/transforms";
 
 export interface PointPickingResult {
-  client: vec3;
   world: vec3;
   value: unknown | null;
   layer: LabelImageLayer | null;
@@ -23,8 +20,6 @@ export type LabelImageLayerProps = LayerOptions & {
   colorCycle?: ColorLike[];
   colorMap?: ReadonlyMap<number, ColorLike>;
   onPickValue?: (info: PointPickingResult) => void;
-  camera?: Camera;
-  clientToClip?: ClientToClip;
 };
 
 const DEFAULT_COLOR_CYCLE: ColorLike[] = [
@@ -45,8 +40,6 @@ export class LabelImageLayer extends Layer {
   private readonly colorCycle_: ReadonlyArray<Color>;
   private readonly colorMap_: ReadonlyMap<number, Color>;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
-  private readonly camera_?: Camera;
-  private readonly clientToClip_?: ClientToClip;
   private image_?: LabelImageRenderable;
   private pointerDownPos_: vec2 | null = null;
   private readonly dragThreshold_ = 3;
@@ -57,8 +50,6 @@ export class LabelImageLayer extends Layer {
     colorCycle = DEFAULT_COLOR_CYCLE,
     colorMap = new Map(),
     onPickValue,
-    camera,
-    clientToClip,
     lod,
     ...layerOptions
   }: LabelImageLayerProps) {
@@ -74,15 +65,7 @@ export class LabelImageLayer extends Layer {
       ])
     );
     this.onPickValue_ = onPickValue;
-    this.camera_ = camera;
-    this.clientToClip_ = clientToClip;
     this.lod_ = lod;
-
-    if (this.onPickValue_ && (!this.camera_ || !this.clientToClip_)) {
-      throw new Error(
-        "camera and clientToClip are required when onPickValue is provided"
-      );
-    }
   }
 
   public update() {
@@ -117,20 +100,17 @@ export class LabelImageLayer extends Layer {
         const pointerUpPos = vec2.fromValues(e.clientX, e.clientY);
         const dist = vec2.distance(this.pointerDownPos_, pointerUpPos);
 
-        this.pointerDownPos_ = null;
-
         if (dist < this.dragThreshold_) {
-          const client = event.clipPos;
+          this.pointerDownPos_ = null;
           const world = event.worldPos;
           if (!world) return;
           const value = this.getValueAtWorld(world);
 
-          if (value !== null && client) {
-            this.onPickValue_({ client, world, value, layer: this });
+          if (value !== null) {
+            this.onPickValue_({ world, value, layer: this });
             event.stopPropagation();
           }
         }
-
         break;
       }
 
