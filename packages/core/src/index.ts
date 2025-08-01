@@ -34,7 +34,7 @@ export type {
 
 export { Color } from "./core/color";
 export type { ColorLike } from "./core/color";
-export type { ClientToClip } from "./core/types";
+export type { ClientToClip } from "./core/transforms";
 export type { ChannelProps, ChannelsEnabled } from "./objects/textures/channel";
 
 export { Points } from "./objects/renderable/points";

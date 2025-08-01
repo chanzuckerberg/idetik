@@ -1,6 +1,6 @@
 import { vec2, vec3 } from "gl-matrix";
 import { Camera } from "./camera";
-import { ClientToClip } from "../../core/types";
+import { ClientToClip } from "../../core/transforms";
 
 type ClientToWorld = (clientPos: vec2, depth: number) => vec3;
 
