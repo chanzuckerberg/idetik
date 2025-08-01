@@ -11,7 +11,6 @@ import { vec2, vec3 } from "gl-matrix";
 export interface PointPickingResult {
   world: vec3;
   value: unknown | null;
-  layer: LabelImageLayer | null;
 }
 
 export type LabelImageLayerProps = LayerOptions & {
@@ -107,7 +106,7 @@ export class LabelImageLayer extends Layer {
           const value = this.getValueAtWorld(world);
 
           if (value !== null) {
-            this.onPickValue_({ world, value, layer: this });
+            this.onPickValue_({ world, value });
             event.stopPropagation();
           }
         }
