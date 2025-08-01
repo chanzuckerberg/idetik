@@ -7,8 +7,6 @@ import {
   Region,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { FpsOverlay } from "./fps_overlay";
-import { ChunkInfoOverlay } from "./chunk_info_overlay";
 
 const url =
   "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
@@ -49,18 +47,10 @@ const channelProps = [
 const imageLayer = new ImageLayer({ source, region, channelProps });
 imageLayer.debugMode = true;
 const camera = new OrthographicCamera(left, right, top, bottom);
-const fpsOverlay = new FpsOverlay({
-  textDiv: document.querySelector<HTMLDivElement>("#fps-text")!,
-});
-const chunkInfoOverlay = new ChunkInfoOverlay({
-  textDiv: document.querySelector<HTMLDivElement>("#chunk-info")!,
-  imageLayer: imageLayer,
-});
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
   controls: new PanZoomControls(camera, camera.position),
   layers: [imageLayer],
-  overlays: [fpsOverlay, chunkInfoOverlay],
 }).start();
