@@ -75,6 +75,22 @@ export class Idetik {
 
     this.eventDispatcher_ = new EventDispatcher(canvas);
     this.eventDispatcher_.addEventListener((event: EventContext) => {
+      if (event.event instanceof PointerEvent) {
+        const client = vec2.fromValues(
+          event.event.clientX,
+          event.event.clientY
+        );
+        Object.defineProperties(event, {
+          clipPos: {
+            get: () => this.clientToClip(client, 0),
+            configurable: true,
+          },
+          worldPos: {
+            get: () => this.camera.clipToWorld(this.clientToClip(client, 0)),
+            configurable: true,
+          },
+        });
+      }
       for (const layer of this.layerManager.layers) {
         layer.onEvent(event);
         if (event.propagationStopped) return;

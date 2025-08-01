@@ -11,7 +11,7 @@ import { Camera } from "../objects/cameras/camera";
 import { ClientToClip } from "../core/types";
 
 export interface PointPickingResult {
-  client: vec2;
+  client: vec3;
   world: vec3;
   value: unknown | null;
   layer: LabelImageLayer | null;
@@ -120,12 +120,12 @@ export class LabelImageLayer extends Layer {
         this.pointerDownPos_ = null;
 
         if (dist < this.dragThreshold_) {
-          const client = pointerUpPos;
-          const clipPos = this.clientToClip_!(client, 0);
-          const world = this.camera_!.clipToWorld(clipPos);
+          const client = event.clipPos;
+          const world = event.worldPos;
+          if (!world) return;
           const value = this.getValueAtWorld(world);
 
-          if (value !== null) {
+          if (value !== null && client) {
             this.onPickValue_({ client, world, value, layer: this });
             event.stopPropagation();
           }
