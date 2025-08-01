@@ -88,8 +88,8 @@ export class ChunkManagerSource {
               y: scale[this.yIdx_],
             },
             offset: {
-              x: translation[this.xIdx_] + (x * chunkWidth * scale[this.xIdx_]),
-              y: translation[this.yIdx_] + (y * chunkHeight * scale[this.yIdx_]),
+              x: translation[this.xIdx_] + x * chunkWidth * scale[this.xIdx_],
+              y: translation[this.yIdx_] + y * chunkHeight * scale[this.yIdx_],
             },
           });
         }

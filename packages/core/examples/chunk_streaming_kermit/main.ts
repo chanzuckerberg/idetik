@@ -10,7 +10,8 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 import { FpsOverlay } from "./fps_overlay";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 
-const url = "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
+const url =
+  "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
 const shape = {
   x: 1024,
   y: 1024,
