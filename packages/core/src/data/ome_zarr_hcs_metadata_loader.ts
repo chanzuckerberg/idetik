@@ -1,10 +1,10 @@
 import * as zarr from "zarrita";
-import { Plate } from "../data/ome_ngff/0.5/plate";
-import { Plate as PlateV04 } from "../data/ome_ngff/0.4/plate";
-import { Well } from "../data/ome_ngff/0.5/well";
-import { Well as WellV04 } from "../data/ome_ngff/0.4/well";
-import { Image } from "../data/ome_ngff/0.5/image";
-import { Image as ImageV04 } from "../data/ome_ngff/0.4/image";
+import { Plate } from "./ome_zarr/0.5/plate";
+import { Plate as PlateV04 } from "./ome_zarr/0.4/plate";
+import { Well } from "./ome_zarr/0.5/well";
+import { Well as WellV04 } from "./ome_zarr/0.4/well";
+import { Image } from "./ome_zarr/0.5/image";
+import { Image as ImageV04 } from "./ome_zarr/0.4/image";
 import { Readable } from "@zarrita/storage";
 import { OmeZarrImageSource } from "./ome_zarr_image_source";
 

@@ -10,7 +10,7 @@ import {
 import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-import { Image as OmeNgffImage } from "../data/ome_ngff/0.5/image";
+import { Image as OmeNgffImage } from "./ome_zarr/0.5/image";
 import { parseOmeNgffImage } from "../data/ome_zarr_hcs_metadata_loader";
 
 import { Readable } from "@zarrita/storage";

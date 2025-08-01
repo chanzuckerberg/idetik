@@ -19,7 +19,7 @@ export { ImageSeriesLayer } from "./layers/image_series_layer";
 export { OmeZarrImageSource } from "./data/ome_zarr_image_source";
 
 export type { Region } from "./data/region";
-export type { Image as OmeNgffImage } from "./data/ome_ngff/0.4/image";
+export type { Image as OmeNgffImage } from "./data/ome_zarr/0.4/image";
 export {
   loadOmeroChannels,
   loadOmeroDefaultZ,

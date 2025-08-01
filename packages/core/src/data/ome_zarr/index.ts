@@ -27,8 +27,11 @@ function getVersion(attrs: object): Version {
 export async function loadOmeZarrPlate(url: string): Promise<Plate> {
   const store = new zarr.FetchStore(url);
   const group = await zarr.open(store, { kind: "group" });
-  // Will throw validation exceptions that we can catch if we want.
-  return Plate.parse(group.attrs);
+  try {
+    return Plate.parse(group.attrs);
+  } catch {
+    throw Error(`Failed to parse OME-Zarr plate metadata:\n${JSON.stringify(group.attrs)}`);
+  }
 }
 
 export async function loadOmeZarrWell(
@@ -36,9 +39,12 @@ export async function loadOmeZarrWell(
   path: string
 ): Promise<Well> {
   const store = new zarr.FetchStore(url + "/" + path);
-  const root = await zarr.open(store, { kind: "group" });
-  // Will throw validation exceptions that we can catch if we want.
-  return Well.parse(root.attrs);
+  const group = await zarr.open(store, { kind: "group" });
+  try {
+    return Well.parse(group.attrs);
+  } catch {
+    throw Error(`Failed to parse OME-Zarr well metadata:\n${JSON.stringify(group.attrs)}`);
+  }
 }
 
 export type OmeroMetadata = NonNullable<Image["ome"]["omero"]>;
