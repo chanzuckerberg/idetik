@@ -1,8 +1,6 @@
 import { vec2, vec3 } from "gl-matrix";
 import { Camera } from "./camera";
-import { ClientToClip } from "../../core/transforms";
-
-type ClientToWorld = (clientPos: vec2, depth: number) => vec3;
+import { ClientToClip, ClientToWorld } from "../../core/transforms";
 
 export interface CameraControls {
   callbacks(
