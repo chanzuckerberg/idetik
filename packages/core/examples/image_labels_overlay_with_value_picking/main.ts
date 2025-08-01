@@ -109,7 +109,6 @@ const labelsLayer = new LabelImageLayer({
   },
 });
 
-// Create Idetik instance
 const idetik = new Idetik({
   canvas,
   camera,
