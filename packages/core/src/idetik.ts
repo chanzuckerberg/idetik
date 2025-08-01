@@ -83,7 +83,6 @@ export class Idetik {
         Object.defineProperties(event, {
           worldPos: {
             get: () => this.camera.clipToWorld(this.clientToClip(client, 0)),
-            configurable: true,
           },
         });
       }
