@@ -224,7 +224,7 @@ const app = new Idetik({
 const onFirstImageLoad = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
     camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
-    app.setControls(new PanZoomControls(camera, camera.position));
+    app.cameraControls = new PanZoomControls(camera);
     camera.update();
 
     app.layerManager.add(ribosomes);

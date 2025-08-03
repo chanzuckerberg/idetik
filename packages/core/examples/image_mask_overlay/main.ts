@@ -103,7 +103,7 @@ imageLayer.setIndex(zSlider.valueAsNumber);
 const setCameraFrame = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
     camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
-    app.setControls(new PanZoomControls(camera, camera.position));
+    app.cameraControls = new PanZoomControls(camera);
     camera.update();
     // remove the callback to only set the camera frame once
     imageLayer.removeStateChangeCallback(setCameraFrame);

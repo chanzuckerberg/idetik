@@ -6,8 +6,6 @@ import {
   OrthographicCamera,
   TracksLayer,
   WebGLRenderer,
-  NullControls,
-  PanZoomControls,
 } from "@idetik/core";
 
 // TODO: imageURL should come from the server (probably with each task)
@@ -19,7 +17,6 @@ const canvasId = "canvas";
 
 // TODO: consider useRef for these objects
 const camera = new OrthographicCamera(0, 1920, 0, 1440);
-const controls = new PanZoomControls(camera, camera.position);
 const layerManager = new LayerManager();
 
 export default function Renderer({
@@ -66,7 +63,6 @@ export default function Renderer({
       const extent = tracksLayer.extent;
       camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
       camera.zoom(0.25);
-      controls.panTarget = camera.position;
     };
     if (imageSeriesLayer.state === "ready") {
       onReady();
@@ -90,7 +86,6 @@ export default function Renderer({
     let lastRequestId = 0;
     const canvas = document.querySelector<HTMLCanvasElement>(`#${canvasId}`)!;
     const renderer = new WebGLRenderer(canvas);
-    renderer.setControls(controls);
     function animate() {
       renderer.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
@@ -98,7 +93,6 @@ export default function Renderer({
     animate();
     return () => {
       // TODO: cleanup by disposing objects owned by the renderer and camera.
-      renderer.setControls(new NullControls());
       if (lastRequestId > 0) {
         console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);

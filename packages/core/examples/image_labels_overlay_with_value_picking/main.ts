@@ -113,7 +113,7 @@ const idetik = new Idetik({
   canvas,
   camera,
   layers: [imageLayer, labelsLayer],
-  controls: new PanZoomControls(camera, camera.position),
+  cameraControls: new PanZoomControls(camera),
 });
 
 idetik.start();

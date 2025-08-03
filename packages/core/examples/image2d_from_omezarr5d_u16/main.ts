@@ -39,7 +39,7 @@ const scaleBar = new ScaleBar({
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
-  controls: new PanZoomControls(camera, camera.position),
+  cameraControls: new PanZoomControls(camera),
   layers: [layer, axes],
   overlays: [scaleBar],
 }).start();

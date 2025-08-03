@@ -42,7 +42,7 @@ const perspectiveCamControls = new PanZoomControls(perspectiveCam);
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera: perspectiveCam,
-  controls: perspectiveCamControls,
+  cameraControls: perspectiveCamControls,
   layers: [layer, axes],
 }).start();
 
@@ -53,8 +53,11 @@ document.addEventListener("keydown", (event) => {
 });
 
 function toggleCamera() {
-  app.camera = app.camera === orthoCam ? perspectiveCam : orthoCam;
-  app.setControls(
-    app.camera === orthoCam ? orthoCamControls : perspectiveCamControls
-  );
+  if (app.camera === orthoCam) {
+    app.camera = orthoCam;
+    app.cameraControls = orthoCamControls;
+  } else {
+    app.camera = perspectiveCam;
+    app.cameraControls = perspectiveCamControls;
+  }
 }
