@@ -1,5 +1,4 @@
 import * as zarr from "zarrita";
-import { Slice } from "@zarrita/indexing";
 
 import { Region } from "../region";
 import { ImageChunk, isImageChunkData, LoaderAttributes } from "../image_chunk";
@@ -258,16 +257,16 @@ export class OmeZarrImageLoader {
   private regionToIndices(
     region: Region,
     attributes: ImageAttributes
-  ): Array<Slice | number> {
+  ): Array<zarr.Slice | number> {
     const { dimensionNames, scale, translation } = attributes;
 
-    const indices: Array<Slice | number> = [];
+    const indices: Array<zarr.Slice | number> = [];
     for (const [i, dimName] of dimensionNames.entries()) {
       const match = region.find((s) => s.dimension == dimName);
       if (!match) {
         throw new Error(`Region does not contain a slice for ${dimName}`);
       }
-      let index: Slice | number;
+      let index: zarr.Slice | number;
       const regionIndex = match.index;
       if (regionIndex.type === "full") {
         // null slice is the complete extent of a dimension like Python's `slice(None)`.
