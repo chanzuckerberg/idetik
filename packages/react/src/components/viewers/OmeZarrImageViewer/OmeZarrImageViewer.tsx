@@ -10,6 +10,7 @@ import {
   loadOmeroDefaultZ,
   ChannelProps,
   Idetik,
+  ImageLayer,
 } from "@idetik/core";
 import { useIdetik } from "../../../hooks/useIdetik";
 import { IdetikCanvas } from "../../IdetikCanvas";
@@ -33,7 +34,7 @@ export interface OmeZarrImageViewerProps {
     path?: `/${string}`;
   };
   region: Region;
-  seriesDimensionName: string;
+  seriesDimensionName?: string;
   fallbackContrastLimits?: [number, number];
   resolutionLevel?: number;
   shouldAutoLoadAllSlices?: boolean;
@@ -99,7 +100,7 @@ export function OmeZarrImageViewer({
     ExtraControlProps[]
   >([]);
   const sourceRef = useRef<OmeZarrImageSource | null>(null);
-  const imageLayerRef = useRef<ImageSeriesLayer | null>(null);
+  const imageLayerRef = useRef<ImageLayer | ImageSeriesLayer | null>(null);
 
   // #region Initialization
   const { directory, path } = sourceLocalDirectory ?? {};
@@ -127,7 +128,8 @@ export function OmeZarrImageViewer({
       );
       const { channelProps, extraControlProps } =
         await loadChannelMetadataPromise;
-      const { xUnit, zRange, zValue } = await loadImageMetadataPromise;
+      const { xUnit, zValue, zRange, yCoordRange, xCoordRange } =
+        await loadImageMetadataPromise;
       if (sourceRef.current !== source) {
         return;
       }
@@ -139,17 +141,17 @@ export function OmeZarrImageViewer({
         source,
         region,
         channelProps,
-        seriesDimensionName,
-        resolutionLevel
+        resolutionLevel,
+        seriesDimensionName
       );
       imageLayerRef.current = layer;
       onLayerCreated?.();
-      await updateSeriesIndex(zValue);
+      await updateSeriesIndex(zValue, zRange);
       if (sourceRef.current !== source) {
         return;
       }
       runtime.layerManager.add(layer);
-      zoomToFit(layer, runtime);
+      zoomToFit(xCoordRange, yCoordRange, runtime);
       setLoading(false);
       onFirstSliceLoaded?.();
       if (shouldAutoLoadAllSlices) {
@@ -184,8 +186,13 @@ export function OmeZarrImageViewer({
 
   // #region Callbacks
 
-  const updateSeriesIndex = async (zValue: number) => {
-    if (!imageLayerRef.current) return;
+  const updateSeriesIndex = async (
+    zValue: number,
+    zRange: [number, number]
+  ) => {
+    if (!(imageLayerRef.current instanceof ImageSeriesLayer)) {
+      return;
+    }
     let didSetLoadingTrue = false;
     const t = setTimeout(() => {
       setLoading(true);
@@ -208,7 +215,9 @@ export function OmeZarrImageViewer({
     async (event?: React.MouseEvent) => {
       const currentSource = sourceRef.current;
       const currentImageLayer = imageLayerRef.current;
-      if (!currentImageLayer) return;
+      if (!(currentImageLayer instanceof ImageSeriesLayer)) {
+        return;
+      }
       if (event !== undefined) {
         onLoadAllSlicesClicked?.();
       }
@@ -339,7 +348,7 @@ export function OmeZarrImageViewer({
                   onChange={(_, val: number | number[]) => {
                     if (typeof val === "number") {
                       setZValue(val);
-                      updateSeriesIndex(val);
+                      updateSeriesIndex(val, zRange);
                     }
                   }}
                 />
@@ -403,7 +412,13 @@ async function loadImageMetadata(
   initialIndex: string,
   shouldLoadMiddleZ: boolean,
   seriesDimensionName?: string
-): Promise<{ xUnit?: string; zRange: [number, number]; zValue: number }> {
+): Promise<{
+  xUnit?: string;
+  zValue: number;
+  zRange: [number, number];
+  yCoordRange: [number, number];
+  xCoordRange: [number, number];
+}> {
   const loader = await source.open();
   const attrs = await loader.loadAttributes();
   const attrsForLevel = attrs[resolutionLevel];
@@ -413,11 +428,28 @@ async function loadImageMetadata(
   const dimensionUnits = attrsForLevel.dimensionUnits;
   const xUnit = dimensionUnits[dimensionUnits.length - 1];
 
+  const yIdx = attrsForLevel.dimensionNames.findIndex(
+    (d: string) => d.toUpperCase() === "Y"
+  );
+  const xIdx = attrsForLevel.dimensionNames.findIndex(
+    (d: string) => d.toUpperCase() === "X"
+  );
+  const yCoordRange: [number, number] = [
+    0,
+    attrsForLevel.shape[yIdx] * attrsForLevel.scale[yIdx],
+  ];
+  const xCoordRange: [number, number] = [
+    0,
+    attrsForLevel.shape[xIdx] * attrsForLevel.scale[xIdx],
+  ];
+
   if (seriesDimensionName === undefined) {
     return {
       xUnit,
-      zRange: [0, 0],
       zValue: 0,
+      zRange: [0, 0],
+      yCoordRange,
+      xCoordRange,
     };
   }
 
@@ -431,8 +463,10 @@ async function loadImageMetadata(
   if (max - min <= 0) {
     return {
       xUnit,
-      zRange: [0, 0],
       zValue: 0,
+      zRange: [0, 0],
+      yCoordRange,
+      xCoordRange,
     };
   }
 
@@ -489,8 +523,10 @@ async function loadImageMetadata(
 
   return {
     xUnit,
-    zRange: [min, max],
     zValue,
+    zRange: [min, max],
+    yCoordRange,
+    xCoordRange,
   };
 }
 
@@ -498,23 +534,30 @@ function createLayer(
   source: OmeZarrImageSource,
   region: Region,
   channelProps: ChannelProps[],
-  seriesDimensionName: string,
-  resolutionLevel: number
-): ImageSeriesLayer {
-  // TODO(bchu): Add ImageLayer.
-  return new ImageSeriesLayer({
-    source,
-    region,
-    channelProps,
-    seriesDimensionName,
-    lod: resolutionLevel,
-  });
+  resolutionLevel: number,
+  seriesDimensionName?: string
+): ImageLayer | ImageSeriesLayer {
+  return seriesDimensionName === undefined
+    ? new ImageLayer({
+        source,
+        region,
+        channelProps,
+        lod: resolutionLevel,
+      })
+    : new ImageSeriesLayer({
+        source,
+        region,
+        channelProps,
+        seriesDimensionName,
+        lod: resolutionLevel,
+      });
 }
 
-function zoomToFit(layer: ImageSeriesLayer, runtime: Idetik) {
-  if (layer.extent) {
-    const { x, y } = layer.extent;
-    const camera = runtime.camera as OrthographicCamera;
-    camera?.setFrame(0, x, y, 0);
-  }
+function zoomToFit(
+  xRange: [number, number],
+  yRange: [number, number],
+  runtime: Idetik
+) {
+  const camera = runtime.camera as OrthographicCamera;
+  camera?.setFrame(xRange[0], xRange[1], yRange[1], yRange[0]);
 }
