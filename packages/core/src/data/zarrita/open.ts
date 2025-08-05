@@ -1,86 +1,64 @@
 import * as zarr from "zarrita";
 import { Readable } from "@zarrita/storage";
 
+type Version = "v2" | "v3";
+
+// async function inferVersion(
+//   location: zarr.Location<Readable>
+// ): Promise<Version> {
+//   const locationV2 = location.resolve(".zgroup");
+//   // TODO: passing opts should probably be only done for FetchStore?
+//   const groupV2 = await locationV2.store.get(locationV2.path, { method: "HEAD" });
+//   return groupV2 === undefined ? "v3" : "v2";
+// }
+
 export async function openGroup(
   location: zarr.Location<Readable>,
-  version?: "v2" | "v3"
+  version?: Version
 ): Promise<zarr.Group<Readable>> {
+  //   version = version ?? (await inferVersion(location));
   if (version === "v2") {
-    return await openGroupV2(location);
-  } else if (version === "v3") {
-    return await openGroupV3(location);
+    try {
+      return zarr.open.v2(location, { kind: "group", attrs: true });
+    } catch {
+      throw new Error(`Failed to open Zarr v2 group at ${location}`);
+    }
+  }
+  if (version === "v3") {
+    try {
+      return zarr.open.v3(location, { kind: "group" });
+    } catch {
+      throw new Error(`Failed to open Zarr v3 group at ${location}`);
+    }
   }
   try {
-    return await openGroupV2(location);
+    return zarr.open(location, { kind: "group" });
   } catch {
-    // Intentional fallthrough to v3
+    throw new Error(`Failed to open Zarr group at ${location}`);
   }
-  try {
-    return await openGroupV3(location);
-  } catch {
-    // Intentional fallthrough to error
-  }
-  throw new Error(`Failed to open Zarr group at ${location}`);
-}
-
-async function openGroupV2(
-  location: zarr.Location<Readable>
-): Promise<zarr.Group<Readable>> {
-  try {
-    return await zarr.open.v2(location, { kind: "group", attrs: true });
-  } catch {
-    // Intentional fallthrough to error
-  }
-  throw new Error(`Failed to open Zarr v2 group at ${location}`);
-}
-
-async function openGroupV3(
-  location: zarr.Location<Readable>
-): Promise<zarr.Group<Readable>> {
-  try {
-    return await zarr.open.v3(location, { kind: "group" });
-  } catch {
-    // Intentional fallthrough to error
-  }
-  throw new Error(`Failed to open Zarr v3 group at ${location}`);
 }
 
 export async function openArray(
   location: zarr.Location<Readable>,
-  version?: "v2" | "v3"
+  version?: Version
 ): Promise<zarr.Array<zarr.DataType, Readable>> {
   if (version === "v2") {
-    return await openArrayV2(location);
-  } else if (version === "v3") {
-    return await openArrayV3(location);
+    try {
+      return zarr.open.v2(location, { kind: "array", attrs: false });
+    } catch {
+      throw new Error(`Failed to open Zarr v2 array at ${location}`);
+    }
+  }
+  if (version === "v3") {
+    try {
+      return zarr.open.v3(location, { kind: "array" });
+    } catch {
+      throw new Error(`Failed to open Zarr v3 array at ${location}`);
+    }
   }
   try {
-    return await openArrayV2(location);
+    return zarr.open(location, { kind: "array" });
   } catch {
-    // Intentional fallthrough to v3
+    throw new Error(`Failed to open Zarr array at ${location}`);
   }
-  try {
-    return await openArrayV3(location);
-  } catch {
-    // Intentional fallthrough to error
-  }
-  throw new Error(`Failed to open Zarr array at ${location}`);
-}
-
-async function openArrayV2(location: zarr.Location<Readable>) {
-  try {
-    return await zarr.open.v2(location, { kind: "array", attrs: false });
-  } catch {
-    // Intentional fallthrough to error
-  }
-  throw new Error(`Failed to open Zarr v2 array at ${location}`);
-}
-
-async function openArrayV3(location: zarr.Location<Readable>) {
-  try {
-    return await zarr.open.v3(location, { kind: "array" });
-  } catch {
-    // Intentional fallthrough to error
-  }
-  throw new Error(`Failed to open Zarr v3 array at ${location}`);
 }

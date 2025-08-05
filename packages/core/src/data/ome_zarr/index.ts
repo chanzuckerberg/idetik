@@ -6,6 +6,7 @@ import { Image } from "./0.5/image";
 import { Plate } from "./0.5/plate";
 import { Well } from "./0.5/well";
 import { OmeZarrImageSource } from "./ome_zarr_image_source";
+import { openGroup } from "../zarrita/open";
 
 const versions = ["0.4", "0.5"] as const;
 const versionsSet: ReadonlySet<string> = new Set(versions);
@@ -43,8 +44,8 @@ function removeProperty<O, P extends keyof O>(obj: O, prop: P): Omit<O, P> {
 export async function loadOmeZarrPlate(
   url: string
 ): Promise<AdaptedOme<Plate["ome"]["plate"]>> {
-  const store = new zarr.FetchStore(url);
-  const group = await zarr.open(store, { kind: "group" });
+  const location = new zarr.Location(new zarr.FetchStore(url));
+  const group = await openGroup(location);
   try {
     return parsePlate(group.attrs);
   } catch {
@@ -120,8 +121,8 @@ export async function loadOmeZarrWell(
   url: string,
   path: string
 ): Promise<AdaptedOme<Well["ome"]["well"]>> {
-  const store = new zarr.FetchStore(url + "/" + path);
-  const group = await zarr.open(store, { kind: "group" });
+  const location = new zarr.Location(new zarr.FetchStore(url + "/" + path));
+  const group = await openGroup(location);
   try {
     return parseWell(group.attrs);
   } catch {
@@ -137,7 +138,7 @@ export type OmeroChannel = OmeroMetadata["channels"][number];
 export async function loadOmeroChannels(
   source: OmeZarrImageSource
 ): Promise<OmeroChannel[]> {
-  const group = await zarr.open(source.location, { kind: "group" });
+  const group = await openGroup(source.location);
   const image = parseOmeNgffImage(group.attrs);
   return image.omero?.channels ?? [];
 }
@@ -145,7 +146,7 @@ export async function loadOmeroChannels(
 export async function loadOmeroDefaultZ(
   source: OmeZarrImageSource
 ): Promise<number> {
-  const group = await zarr.open(source.location, { kind: "group" });
+  const group = await openGroup(source.location);
   // @ts-expect-error rdefs is not in the provided schema
   return group.attrs?.omero?.rdefs?.defaultZ ?? 0;
 }
