@@ -8,8 +8,8 @@ export interface ChunkInfoOverlayOptions {
 }
 
 export class ChunkInfoOverlay {
-  private textDiv_: HTMLDivElement;
-  private imageLayer_: ImageLayer;
+  private readonly textDiv_: HTMLDivElement;
+  private readonly imageLayer_: ImageLayer;
 
   constructor({ textDiv, imageLayer }: ChunkInfoOverlayOptions) {
     this.textDiv_ = textDiv;
@@ -17,31 +17,25 @@ export class ChunkInfoOverlay {
   }
 
   public update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
-    // Access the chunk manager source through the image layer
     const chunkManagerSource = this.imageLayer_.chunkManagerSource;
-
     if (!chunkManagerSource) {
       this.textDiv_.textContent = "No chunk manager source";
       return;
     }
 
-    const visibleChunks = chunkManagerSource.getChunks();
-    const allChunks = chunkManagerSource.allChunks;
-
+    const allChunks = chunkManagerSource.chunks;
     if (!allChunks) {
       this.textDiv_.textContent = "No chunks available";
       return;
     }
 
+    const chunkDetails: string[] = [];
+    const currentLOD = chunkManagerSource.currentLOD;
+    const renderedChunks = chunkManagerSource.getChunks();
     const totalChunks = allChunks.length;
+
     let loadedChunks = 0;
     let loadingChunks = 0;
-    const chunkDetails: string[] = [];
-
-    // Get the actual current LOD from the chunk manager source
-    const currentLOD = chunkManagerSource.currentLOD;
-
-    // Count chunks by state
     allChunks.forEach((chunk: ImageChunk) => {
       if (chunk.state === "loaded") {
         loadedChunks++;
@@ -50,54 +44,47 @@ export class ChunkInfoOverlay {
       }
     });
 
-    // Group chunks by LOD and count visible/rendered per LOD
-    const lodStats = new Map<number, { visible: number; rendered: number }>();
+    const lodCounters: {
+      visible: number;
+      rendered: number;
+      prefetched: number;
+    }[] = Array.from({ length: chunkManagerSource.lodCount }, () => ({
+      visible: 0,
+      rendered: 0,
+      prefetched: 0,
+    }));
 
-    // Count visible chunks per LOD
     allChunks.forEach((chunk: ImageChunk) => {
-      if (chunk.visible) {
-        const lod = chunk.lod;
-        if (!lodStats.has(lod)) {
-          lodStats.set(lod, { visible: 0, rendered: 0 });
-        }
-        lodStats.get(lod)!.visible++;
+      if (chunk.visible) lodCounters[chunk.lod].visible++;
+      // Prefetched chunks are only counted for the current LOD,
+      // since higher/lower LODs are not actively rendered.
+      if (chunk.lod === currentLOD && chunk.prefetch) {
+        lodCounters[chunk.lod].prefetched++;
       }
     });
 
-    // Count rendered chunks per LOD
-    visibleChunks.forEach((chunk: ImageChunk) => {
-      const lod = chunk.lod;
-      if (!lodStats.has(lod)) {
-        lodStats.set(lod, { visible: 0, rendered: 0 });
-      }
-      lodStats.get(lod)!.rendered++;
+    renderedChunks.forEach((chunk: ImageChunk) => {
+      lodCounters[chunk.lod].rendered++;
     });
 
-    // Show total rendered chunks
-    if (visibleChunks.length > 0) {
-      chunkDetails.push(`Total rendered: ${visibleChunks.length} chunks`);
+    if (renderedChunks.length > 0) {
+      chunkDetails.push(`Total rendered: ${renderedChunks.length} chunks`);
     }
 
     const status = loadingChunks > 0 ? "Loading..." : "Ready";
     const summary = `Chunks: ${loadedChunks}/${totalChunks} ${status}`;
-
-    // Create per-LOD breakdown
-    const lodBreakdown: string[] = [];
-    const sortedLODs = Array.from(lodStats.keys()).sort((a, b) => a - b);
-
-    for (const lod of sortedLODs) {
-      const stats = lodStats.get(lod)!;
-      const isCurrentLOD = lod === currentLOD;
-      const lodLabel = isCurrentLOD ? `LOD ${lod} (current)` : `LOD ${lod}`;
-      lodBreakdown.push(
-        `${lodLabel}: Visible: ${stats.visible} | Rendered: ${stats.rendered}`
+    const counters: string[] = [];
+    lodCounters.forEach((counter, lod) => {
+      const prefix = lod === currentLOD ? `LOD ${lod} (current)` : `LOD ${lod}`;
+      counters.push(
+        `${prefix}: Visible ${counter.visible} | Rendered ${counter.rendered} | Prefetched ${counter.prefetched}`
       );
-    }
+    });
 
     this.textDiv_.innerHTML = [
       summary,
       "",
-      ...lodBreakdown,
+      ...counters,
       "",
       ...chunkDetails,
     ].join("<br>");
