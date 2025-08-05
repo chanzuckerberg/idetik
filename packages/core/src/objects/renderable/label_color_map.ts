@@ -10,11 +10,14 @@ const defaultColorCycle: ColorLike[] = [
 ];
 
 function validateLookupTable(
-  lut?: ReadonlyMap<number, ColorLike>
+  lookupTable?: ReadonlyMap<number, ColorLike>
 ): ReadonlyMap<number, Color> {
-  lut = lut ?? new Map();
+  lookupTable = lookupTable ?? new Map();
   return new Map(
-    Array.from(lut.entries()).map(([key, value]) => [key, Color.from(value)])
+    Array.from(lookupTable.entries()).map(([key, value]) => [
+      key,
+      Color.from(value),
+    ])
   );
 }
 
@@ -24,16 +27,16 @@ function validateCycle(cycle?: ReadonlyArray<ColorLike>): ReadonlyArray<Color> {
 }
 
 type LabelColorMapProps = {
-  lookUpTable?: ReadonlyMap<number, ColorLike>;
+  lookupTable?: ReadonlyMap<number, ColorLike>;
   cycle?: ColorLike[];
 };
 
 export class LabelColorMap {
-  public readonly lookUpTable: ReadonlyMap<number, Color>;
+  public readonly lookupTable: ReadonlyMap<number, Color>;
   public readonly cycle: ReadonlyArray<Color>;
 
   constructor(props: LabelColorMapProps = {}) {
-    this.lookUpTable = validateLookupTable(props.lookUpTable);
+    this.lookupTable = validateLookupTable(props.lookupTable);
     this.cycle = validateCycle(props.cycle);
   }
 }

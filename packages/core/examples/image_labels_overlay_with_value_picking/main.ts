@@ -98,7 +98,7 @@ const labelsLayer = new LabelImageLayer({
   blendMode: "normal",
   lod,
   colorMap: {
-    lookUpTable: new Map([[103, Color.GREEN]]),
+    lookupTable: new Map([[103, Color.GREEN]]),
     cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
   },
   onPickValue: (info: PointPickingResult) => {

@@ -38,10 +38,10 @@ export class LabelImageRenderable extends RenderableObject {
     this.addTexture(validateImageData(props.imageData));
     const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
     this.addTexture(colorCycleTexture);
-    const colorLutTexture = this.makeColorLookUpTableTexture(
-      props.colorMap.lookUpTable
+    const colorLookupTableTexture = this.makeColorLookupTableTexture(
+      props.colorMap.lookupTable
     );
-    this.addTexture(colorLutTexture);
+    this.addTexture(colorLookupTableTexture);
     this.programName = "labelImage";
   }
 
@@ -53,7 +53,7 @@ export class LabelImageRenderable extends RenderableObject {
     return {
       ImageSampler: 0,
       ColorCycleSampler: 1,
-      ColorLookUpTableSampler: 2,
+      ColorLookupTableSampler: 2,
     };
   }
 
@@ -66,15 +66,17 @@ export class LabelImageRenderable extends RenderableObject {
     return texture;
   }
 
-  private makeColorLookUpTableTexture(lut?: ReadonlyMap<number, Color>) {
-    if (lut === undefined) {
-      lut = new Map([[0, Color.TRANSPARENT]]);
-    } else if (!lut.has(0)) {
-      lut = new Map([[0, Color.TRANSPARENT], ...lut]);
+  private makeColorLookupTableTexture(
+    lookupTable?: ReadonlyMap<number, Color>
+  ) {
+    if (lookupTable === undefined) {
+      lookupTable = new Map([[0, Color.TRANSPARENT]]);
+    } else if (!lookupTable.has(0)) {
+      lookupTable = new Map([[0, Color.TRANSPARENT], ...lookupTable]);
     }
-    const keys = Array.from(lut.keys());
-    const values = Array.from(lut.values()).map((c) => c.packed);
-    const numColors = lut.size;
+    const keys = Array.from(lookupTable.keys());
+    const values = Array.from(lookupTable.values()).map((c) => c.packed);
+    const numColors = lookupTable.size;
     const data = new Uint32Array(numColors * 2);
     data.set(keys, 0);
     data.set(values, numColors);
