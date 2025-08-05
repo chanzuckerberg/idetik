@@ -152,12 +152,8 @@ export class ChunkManagerSource {
   public update(lodFactor: number, visibleBounds: Bounds) {
     this.setLOD(lodFactor);
 
-    if (visibleBounds !== this.lastVisibleBounds_) {
+    if (this.visibleBoundsChanged(visibleBounds)) {
       this.updateChunkVisibility(visibleBounds);
-      this.lastVisibleBounds_ = {
-        min: vec2.clone(visibleBounds.min),
-        max: vec2.clone(visibleBounds.max),
-      };
     }
 
     this.loadVisibleChunks();
@@ -249,6 +245,23 @@ export class ChunkManagerSource {
         );
       }
     }
+  }
+
+  private visibleBoundsChanged(newBounds: Bounds): boolean {
+    const prev = this.lastVisibleBounds_;
+    const changed =
+      prev === null ||
+      !vec2.equals(prev.min, newBounds.min) ||
+      !vec2.equals(prev.max, newBounds.max);
+
+    if (changed) {
+      this.lastVisibleBounds_ = {
+        min: vec2.clone(newBounds.min),
+        max: vec2.clone(newBounds.max),
+      };
+    }
+
+    return changed;
   }
 }
 
