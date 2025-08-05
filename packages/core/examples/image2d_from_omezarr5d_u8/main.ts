@@ -1,4 +1,3 @@
-import { vec3 } from "gl-matrix";
 import {
   ChannelProps,
   Color,
@@ -6,7 +5,6 @@ import {
   ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
-  PerspectiveCamera,
   Region,
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
@@ -14,9 +12,7 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
-const orthoCam = new OrthographicCamera(-2000, 2000, -2000, 2000);
-const cameraPos = vec3.fromValues(0, 0, 5000);
-const perspectiveCam = new PerspectiveCamera({ fov: 60, position: cameraPos });
+const camera = new OrthographicCamera(-2000, 2000, -2000, 2000);
 
 // Source is technically 5D (even though Z is unitary),
 // so provide indices at 3 dimensions to project to 2D.
@@ -36,28 +32,11 @@ const channelProps: ChannelProps[] = [
 ];
 const layer = new ImageLayer({ source, region, channelProps });
 const axes = new AxesLayer({ length: 1920, width: 0.01 });
-const orthoCamControls = new PanZoomControls(orthoCam);
-const perspectiveCamControls = new PanZoomControls(perspectiveCam);
+const cameraControls = new PanZoomControls(camera);
 
-const app = new Idetik({
+new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
-  camera: perspectiveCam,
-  cameraControls: perspectiveCamControls,
+  camera,
+  cameraControls,
   layers: [layer, axes],
 }).start();
-
-document.addEventListener("keydown", (event) => {
-  if (event.key === " ") {
-    toggleCamera();
-  }
-});
-
-function toggleCamera() {
-  if (app.camera === orthoCam) {
-    app.camera = orthoCam;
-    app.cameraControls = orthoCamControls;
-  } else {
-    app.camera = perspectiveCam;
-    app.cameraControls = perspectiveCamControls;
-  }
-}

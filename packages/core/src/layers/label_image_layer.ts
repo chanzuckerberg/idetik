@@ -107,7 +107,6 @@ export class LabelImageLayer extends Layer {
 
           if (value !== null) {
             this.onPickValue_({ world, value });
-            event.stopPropagation();
           }
         }
         break;

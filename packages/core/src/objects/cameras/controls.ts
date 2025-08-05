@@ -1,5 +1,5 @@
 import { vec3 } from "gl-matrix";
-import { Camera } from "./camera";
+import { OrthographicCamera } from "./orthographic_camera";
 import { EventContext } from "../../core/event_dispatcher";
 
 const LEFT_MOUSE_BUTTON = 0;
@@ -9,11 +9,11 @@ export interface CameraControls {
 }
 
 export class PanZoomControls implements CameraControls {
-  private readonly camera_: Camera;
+  private readonly camera_: OrthographicCamera;
   private dragActive_ = false;
   private dragStart_: vec3 = vec3.create();
 
-  constructor(camera: Camera) {
+  constructor(camera: OrthographicCamera) {
     this.camera_ = camera;
   }
 
