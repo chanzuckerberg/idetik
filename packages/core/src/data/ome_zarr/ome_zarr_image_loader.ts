@@ -9,6 +9,7 @@ import { Image as OmeNgffImage } from "./0.5/image";
 import { parseOmeNgffImage } from ".";
 
 import { Readable } from "@zarrita/storage";
+import { openArray } from "../zarrita/open";
 
 type ImageAttributes = {
   image: OmeNgffImage["ome"]["multiscales"][number];
@@ -63,13 +64,8 @@ export class OmeZarrImageLoader {
   }
 
   private async openArray(path: string) {
-    if (this.originalVersion_ === "0.4") {
-      return zarr.open.v2(this.root_.resolve(path), {
-        kind: "array",
-        attrs: false,
-      });
-    }
-    return zarr.open(this.root_.resolve(path), { kind: "array" });
+    const zarrVersion = this.originalVersion_ === "0.4" ? "v2" : "v3";
+    return await openArray(this.root_.resolve(path), zarrVersion);
   }
 
   public async loadChunkDataFromRegion(chunk: ImageChunk, region: Region) {
