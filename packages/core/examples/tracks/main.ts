@@ -119,6 +119,6 @@ camera.zoom(0.5);
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
-  controls: new PanZoomControls(camera, camera.position),
+  cameraControls: new PanZoomControls(camera),
   layers: [imageSeriesLayer, lineLayer],
 }).start();

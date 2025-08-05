@@ -3,7 +3,7 @@ export { Idetik } from "./idetik";
 export { WebGLRenderer } from "./renderers/webgl_renderer";
 export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
-export { NullControls, PanZoomControls } from "./objects/cameras/controls";
+export { PanZoomControls } from "./objects/cameras/controls";
 export type { CameraControls } from "./objects/cameras/controls";
 
 export { Layer } from "./core/layer";
@@ -34,7 +34,6 @@ export type {
 
 export { Color } from "./core/color";
 export type { ColorLike } from "./core/color";
-export type { ClientToClip } from "./core/transforms";
 export type { ChannelProps, ChannelsEnabled } from "./objects/textures/channel";
 
 export { Points } from "./objects/renderable/points";

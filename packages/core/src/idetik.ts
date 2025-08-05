@@ -16,7 +16,7 @@ type IdetikParams = {
   canvas?: HTMLCanvasElement;
   canvasSelector?: string;
   camera: Camera;
-  controls?: CameraControls;
+  cameraControls?: CameraControls;
   layers?: Layer[];
   overlays?: Overlay[];
 };
@@ -28,6 +28,7 @@ export type IdetikContext = {
 export class Idetik {
   public layerManager: LayerManager;
   public camera: Camera;
+  private cameraControls_?: CameraControls;
   public readonly canvas: HTMLCanvasElement;
   public readonly overlays: Overlay[];
   private readonly eventDispatcher_: EventDispatcher;
@@ -46,6 +47,7 @@ export class Idetik {
     }
 
     this.camera = params.camera;
+    this.cameraControls_ = params.cameraControls;
     const canvas =
       params.canvas ??
       document.querySelector<HTMLCanvasElement>(params.canvasSelector!);
@@ -60,11 +62,6 @@ export class Idetik {
     };
     this.layerManager = new LayerManager(this.context_);
 
-    if (params.controls) {
-      // TODO: move controls to the idetik class
-      this.renderer_.setControls(params.controls);
-    }
-
     if (params.layers) {
       for (const layer of params.layers) {
         this.layerManager.add(layer);
@@ -75,22 +72,20 @@ export class Idetik {
 
     this.eventDispatcher_ = new EventDispatcher(canvas);
     this.eventDispatcher_.addEventListener((event: EventContext) => {
-      if (event.event instanceof PointerEvent) {
-        const client = vec2.fromValues(
-          event.event.clientX,
-          event.event.clientY
-        );
-        Object.defineProperties(event, {
-          worldPos: {
-            get: () => this.camera.clipToWorld(this.clientToClip(client, 0)),
-          },
-        });
+      if (
+        event.event instanceof PointerEvent ||
+        event.event instanceof WheelEvent
+      ) {
+        const { clientX, clientY } = event.event;
+        const client = vec2.fromValues(clientX, clientY);
+        event.clipPos = this.clientToClip(client, 0);
+        event.worldPos = this.camera.clipToWorld(event.clipPos);
       }
       for (const layer of this.layerManager.layers) {
         layer.onEvent(event);
         if (event.propagationStopped) return;
       }
-      // TODO: pass event to camera controls if needed
+      this.cameraControls_?.onEvent(event);
     });
   }
 
@@ -102,16 +97,18 @@ export class Idetik {
     return this.renderer_.height;
   }
 
-  // TODO: this should be modified once the controls are moved to the idetik class
-  public setControls(controls: CameraControls) {
-    this.renderer_.setControls(controls);
+  public set cameraControls(controls: CameraControls | undefined) {
+    this.cameraControls_ = controls;
   }
 
-  // TODO: this can be moved directly to this class, but will need access to (and possibly expose)
-  // the canvas element
-  // let's do it at the same time `setControls` is moved to this class
   public clientToClip(position: vec2, depth: number = 0): vec3 {
-    return this.renderer_.clientToClip(position, depth);
+    const [x, y] = position;
+    const rect = this.canvas.getBoundingClientRect();
+    return vec3.fromValues(
+      (2 * (x - rect.x)) / this.canvas.clientWidth - 1,
+      (2 * (y - rect.y)) / this.canvas.clientHeight - 1,
+      depth
+    );
   }
 
   public start() {

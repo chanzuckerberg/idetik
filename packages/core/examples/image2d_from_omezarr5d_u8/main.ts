@@ -52,14 +52,10 @@ const camera = new OrthographicCamera(
   yInfo.offset,
   yInfo.offset + yInfo.scale * yInfo.size,
 );
-const controls = new PanZoomControls(camera, camera.position);
-
-console.debug(camera);
-console.debug(xInfo, yInfo, zInfo);
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
-  controls,
+  cameraControls: new PanZoomControls(camera),
   layers: [layer, axes],
-});
+}).start();

@@ -19,6 +19,7 @@ export class EventContext {
   readonly event: Event;
   private propagationStopped_: boolean = false;
   public worldPos?: vec3;
+  public clipPos?: vec3;
 
   constructor(type: EventType, event: Event) {
     this.type = type;

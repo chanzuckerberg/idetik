@@ -1,138 +1,81 @@
-import { vec2, vec3 } from "gl-matrix";
-import { Camera } from "./camera";
-import { ClientToClip, ClientToWorld } from "../../core/transforms";
+import { vec3 } from "gl-matrix";
+import { OrthographicCamera } from "./orthographic_camera";
+import { EventContext } from "../../core/event_dispatcher";
+
+const LEFT_MOUSE_BUTTON = 0;
 
 export interface CameraControls {
-  callbacks(
-    target: EventTarget,
-    clientToClip: ClientToClip
-  ): [string, EventListener][];
-}
-
-export class NullControls implements CameraControls {
-  public callbacks(
-    _target: EventTarget,
-    _clientToClip: ClientToClip
-  ): [string, EventListener][] {
-    return [];
-  }
+  onEvent(event: EventContext): void;
 }
 
 export class PanZoomControls implements CameraControls {
-  private camera_: Camera;
-  private panTarget_: vec3;
+  private readonly camera_: OrthographicCamera;
+  private dragActive_ = false;
+  private dragStart_: vec3 = vec3.create();
 
-  constructor(camera: Camera, panTarget: vec3 = vec3.fromValues(0, 0, 0)) {
+  constructor(camera: OrthographicCamera) {
     this.camera_ = camera;
-    this.panTarget_ = panTarget;
   }
 
-  public callbacks(
-    target: EventTarget,
-    clientToClip: ClientToClip
-  ): [string, EventListener][] {
-    const clientToWorld: ClientToWorld = (clientPos, depth) => {
-      const clipPos = clientToClip(clientPos, depth);
-      return this.camera_.clipToWorld(clipPos);
-    };
-    return [
-      [
-        "wheel",
-        (event: Event) => this.wheel(event as WheelEvent, clientToWorld),
-      ],
-      [
-        "pointerdown",
-        (event: Event) =>
-          this.pointerdown(event as PointerEvent, target, clientToWorld),
-      ],
-    ];
-  }
-
-  private wheel(event: WheelEvent, clientToWorld: ClientToWorld) {
-    event.preventDefault();
-    const clientPos = vec2.fromValues(event.clientX, event.clientY);
-    const preZoomPos = clientToWorld(clientPos, this.clipDepth);
-    const zoomFactor = 1.05;
-    if (event.deltaY < 0) {
-      this.camera_.zoom(zoomFactor);
-    } else {
-      this.camera_.zoom(1.0 / zoomFactor);
-    }
-    // pan to zoom in on the mouse position
-    const postZoomPos = clientToWorld(clientPos, this.clipDepth);
-    const deltaWorld = vec3.sub(vec3.create(), preZoomPos, postZoomPos);
-    this.pan(deltaWorld);
-  }
-
-  private pointerdown(
-    event: PointerEvent,
-    target: EventTarget,
-    clientToWorld: ClientToWorld
-  ) {
-    if (event.button !== 0) {
-      return;
-    }
-
-    const clientStart = vec2.fromValues(event.clientX, event.clientY);
-    const worldStart = clientToWorld(clientStart, this.clipDepth);
-    const pointerId = event.pointerId;
-
-    // capture the pointer to ensure we receive events even when outside the element
-    if (target instanceof Element) {
-      target.setPointerCapture(pointerId);
-    }
-
-    const onPointerMove = (event: Event) => {
-      if (!(event instanceof PointerEvent) || event.pointerId !== pointerId) {
-        return;
+  public onEvent(event: EventContext): void {
+    switch (event.type) {
+      case "wheel":
+        this.onWheel(event);
+        break;
+      case "pointerdown":
+        this.onPointerDown(event);
+        break;
+      case "pointermove":
+        this.onPointerMove(event);
+        break;
+      case "pointerup":
+      case "pointercancel":
+        this.onPointerEnd(event);
+        break;
+      default: {
+        const exhaustiveCheck: never = event.type;
+        throw new Error(`Unknown event type: ${exhaustiveCheck}`);
       }
-      const clientPos = vec2.fromValues(event.clientX, event.clientY);
-      const worldPos = clientToWorld(clientPos, this.clipDepth);
-      const deltaWorld = vec3.sub(vec3.create(), worldStart, worldPos);
-      this.pan(deltaWorld);
-    };
-
-    const onPointerUp = (event: Event) => {
-      if (!(event instanceof PointerEvent) || event.pointerId !== pointerId) {
-        return;
-      }
-      target.removeEventListener("pointermove", onPointerMove);
-      target.removeEventListener("pointerup", onPointerUp);
-      target.removeEventListener("pointercancel", onPointerUp);
-
-      if (target instanceof Element) {
-        target.releasePointerCapture(pointerId);
-      }
-    };
-
-    target.addEventListener("pointermove", onPointerMove);
-    target.addEventListener("pointerup", onPointerUp);
-    target.addEventListener("pointercancel", onPointerUp);
+    }
   }
 
-  private pan(deltaWorld: vec3) {
-    this.camera_.pan(deltaWorld);
-    vec3.add(this.panTarget_, this.panTarget_, deltaWorld);
+  private onWheel(event: EventContext) {
+    if (!event.worldPos || !event.clipPos) return;
+    const e = event.event as WheelEvent;
+
+    const posBeforeZoom = vec3.clone(event.worldPos);
+    const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
+
+    this.camera_.zoom(zoomFactor);
+
+    const posAfterZoom = this.camera_.clipToWorld(event.clipPos);
+    const delta = vec3.sub(vec3.create(), posBeforeZoom, posAfterZoom);
+    this.camera_.pan(delta);
   }
 
-  public set panTarget(panTarget: vec3) {
-    this.panTarget_ = panTarget;
+  private onPointerDown(event: EventContext) {
+    const e = event.event as PointerEvent;
+    if (!event.worldPos || e.button !== LEFT_MOUSE_BUTTON) return;
+
+    this.dragStart_ = vec3.clone(event.worldPos);
+    this.dragActive_ = true;
+
+    (e.target as Element)?.setPointerCapture?.(e.pointerId);
   }
 
-  private get clipDepth() {
-    const targetToPosition = vec3.sub(
-      vec3.create(),
-      this.panTarget_,
-      this.camera_.position
-    );
-    const projectedViewVector = vec3.transformMat4(
-      vec3.create(),
-      targetToPosition,
-      this.camera_.projectionMatrix
-    );
-    // TODO: the distance should be projected onto the camera's view
-    // normal when we start rotating cameras
-    const distance = vec3.length(projectedViewVector);
-    return distance;
+  private onPointerMove(event: EventContext) {
+    if (!this.dragActive_ || !event.worldPos) return;
+
+    const delta = vec3.sub(vec3.create(), this.dragStart_, event.worldPos);
+    this.camera_.pan(delta);
+  }
+
+  private onPointerEnd(event: EventContext) {
+    const e = event.event as PointerEvent;
+    if (!this.dragActive_ || e.button !== LEFT_MOUSE_BUTTON) return;
+
+    this.dragActive_ = false;
+
+    (e.target as Element)?.releasePointerCapture?.(e.pointerId);
   }
 }
