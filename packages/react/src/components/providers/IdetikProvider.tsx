@@ -11,11 +11,11 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
     runtime: null,
     initializeWithCanvas: (canvas: HTMLCanvasElement) => {
       const camera = new OrthographicCamera(0, 128, 0, 128, -1000, 1000);
-      const controls = new PanZoomControls(camera, camera.position);
+      const cameraControls = new PanZoomControls(camera);
       const newIdetik = new Idetik({
         canvas,
         camera,
-        controls,
+        cameraControls,
       });
       newIdetik.start();
       setIdetikContext({

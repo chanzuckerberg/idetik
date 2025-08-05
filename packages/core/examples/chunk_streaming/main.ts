@@ -43,7 +43,7 @@ const chunkInfoOverlay = new ChunkInfoOverlay({
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
-  controls: new PanZoomControls(camera, camera.position),
+  cameraControls: new PanZoomControls(camera),
   layers: [imageLayer],
   overlays: [fpsOverlay, chunkInfoOverlay],
 }).start();
