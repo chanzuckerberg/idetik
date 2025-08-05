@@ -3,12 +3,12 @@ import { Geometry } from "../../core/geometry";
 import { Texture, TextureDataType } from "../../objects/textures/texture";
 import { Color } from "../../core/color";
 import { Texture2D } from "../textures/texture_2d";
+import { LabelColorMap } from "./label_color_map";
 
 type LabelImageRenderableProps = {
   geometry: Geometry;
   imageData: Texture;
-  colorCycle: ReadonlyArray<Color>;
-  colorMap?: ReadonlyMap<number, Color>;
+  colorMap: LabelColorMap;
 };
 
 const supportedDataTypes = new Set<TextureDataType>([
@@ -36,10 +36,12 @@ export class LabelImageRenderable extends RenderableObject {
     super();
     this.geometry = props.geometry;
     this.addTexture(validateImageData(props.imageData));
-    const colorCycleTexture = this.makeColorCycleTexture(props.colorCycle);
+    const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
     this.addTexture(colorCycleTexture);
-    const colorMapTexture = this.makeColorMapTexture(props.colorMap);
-    this.addTexture(colorMapTexture);
+    const colorLookupTableTexture = this.makeColorLookupTableTexture(
+      props.colorMap.lookupTable
+    );
+    this.addTexture(colorLookupTableTexture);
     this.programName = "labelImage";
   }
 
@@ -51,28 +53,30 @@ export class LabelImageRenderable extends RenderableObject {
     return {
       ImageSampler: 0,
       ColorCycleSampler: 1,
-      ColorMapSampler: 2,
+      ColorLookupTableSampler: 2,
     };
   }
 
-  private makeColorCycleTexture(colorCycle: ReadonlyArray<Color>) {
+  private makeColorCycleTexture(cycle: ReadonlyArray<Color>) {
     const data = new Uint8Array(
-      colorCycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
+      cycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
     );
-    const texture = new Texture2D(data, colorCycle.length, 1);
+    const texture = new Texture2D(data, cycle.length, 1);
     texture.dataFormat = "rgba";
     return texture;
   }
 
-  private makeColorMapTexture(colorMap?: ReadonlyMap<number, Color>) {
-    if (colorMap === undefined) {
-      colorMap = new Map([[0, Color.TRANSPARENT]]);
-    } else if (!colorMap.has(0)) {
-      colorMap = new Map([[0, Color.TRANSPARENT], ...colorMap]);
+  private makeColorLookupTableTexture(
+    lookupTable?: ReadonlyMap<number, Color>
+  ) {
+    if (lookupTable === undefined) {
+      lookupTable = new Map([[0, Color.TRANSPARENT]]);
+    } else if (!lookupTable.has(0)) {
+      lookupTable = new Map([[0, Color.TRANSPARENT], ...lookupTable]);
     }
-    const keys = Array.from(colorMap.keys());
-    const values = Array.from(colorMap.values()).map((c) => c.packed);
-    const numColors = colorMap.size;
+    const keys = Array.from(lookupTable.keys());
+    const values = Array.from(lookupTable.values()).map((c) => c.packed);
+    const numColors = lookupTable.size;
     const data = new Uint32Array(numColors * 2);
     data.set(keys, 0);
     data.set(values, numColors);

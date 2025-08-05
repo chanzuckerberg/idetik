@@ -7,7 +7,7 @@ layout (location = 0) out vec4 fragColor;
 
 uniform highp usampler2D ImageSampler;
 uniform mediump sampler2D ColorCycleSampler;
-uniform highp usampler2D ColorMapSampler;
+uniform highp usampler2D ColorLookupTableSampler;
 
 uniform float u_opacity;
 
@@ -24,11 +24,11 @@ vec4 unpackRgba(uint packed) {
 void main() {
     uint texel = texture(ImageSampler, TexCoords).r;
 
-    uint mapLength = uint(textureSize(ColorMapSampler, 0).x);
+    uint mapLength = uint(textureSize(ColorLookupTableSampler, 0).x);
     for (uint i = 0u; i < mapLength; ++i) {
-        uint key = texelFetch(ColorMapSampler, ivec2(i, 0), 0).r;
+        uint key = texelFetch(ColorLookupTableSampler, ivec2(i, 0), 0).r;
         if (texel == key) {
-            uint value = texelFetch(ColorMapSampler, ivec2(i, 1), 0).r;
+            uint value = texelFetch(ColorLookupTableSampler, ivec2(i, 1), 0).r;
             vec4 color = unpackRgba(value);
             fragColor = vec4(color.rgb, u_opacity * color.a);
             return;

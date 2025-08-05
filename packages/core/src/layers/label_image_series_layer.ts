@@ -1,41 +1,38 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
-import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
-import { ImageRenderable } from "../objects/renderable/image_renderable";
+import { Texture2D } from "../objects/textures/texture_2d";
+import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
+import { LabelColorMap } from "../objects/renderable/label_color_map";
 import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
-export type ImageSeriesLayerProps = LayerOptions & {
+export type LabelImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   seriesDimensionName: string;
-  channelProps?: ChannelProps[];
+  colorMap?: LabelColorMap;
 };
 
-export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
-  public readonly type = "ImageSeriesLayer";
+export class LabelImageSeriesLayer extends Layer {
+  public readonly type = "LabelImageSeriesLayer";
   private readonly seriesLoader_: ImageSeriesLoader;
-  private readonly initialChannelProps_?: ChannelProps[];
-  private readonly channelChangeCallbacks_: Array<() => void> = [];
-  private channelProps_?: ChannelProps[];
-  private texture_: Texture2DArray | null = null;
-  private image_?: ImageRenderable;
+  private readonly colorMap_: LabelColorMap;
+  private texture_: Texture2D | null = null;
+  private image_?: LabelImageRenderable;
   private extent_?: { x: number; y: number };
 
   constructor({
     source,
     region,
     seriesDimensionName,
-    channelProps,
+    colorMap = new LabelColorMap(),
     lod,
     ...layerOptions
-  }: ImageSeriesLayerProps) {
+  }: LabelImageSeriesLayerProps) {
     super(layerOptions);
     this.setState("initialized");
-    this.channelProps_ = channelProps;
-    this.initialChannelProps_ = channelProps;
+    this.colorMap_ = colorMap;
     this.seriesLoader_ = new ImageSeriesLoader({
       source,
       region,
@@ -49,36 +46,6 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
       this.setState("loading");
       this.seriesLoader_.loadSeriesAttributes();
     }
-  }
-
-  public get channelProps(): ChannelProps[] | undefined {
-    return this.channelProps_;
-  }
-
-  public setChannelProps(channelProps: ChannelProps[]) {
-    this.channelProps_ = channelProps;
-    this.image_?.setChannelProps(channelProps);
-    this.channelChangeCallbacks_.forEach((callback) => {
-      callback();
-    });
-  }
-
-  public resetChannelProps(): void {
-    if (this.initialChannelProps_ !== undefined) {
-      this.setChannelProps(this.initialChannelProps_);
-    }
-  }
-
-  public addChannelChangeCallback(callback: () => void): void {
-    this.channelChangeCallbacks_.push(callback);
-  }
-
-  public removeChannelChangeCallback(callback: () => void): void {
-    const index = this.channelChangeCallbacks_.indexOf(callback);
-    if (index === undefined) {
-      throw new Error(`Callback to remove could not be found: ${callback}`);
-    }
-    this.channelChangeCallbacks_.splice(index, 1);
   }
 
   public async setPosition(position: number): Promise<SetIndexResult> {
@@ -113,8 +80,8 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
 
   private setData(chunk: ImageChunk) {
     if (!this.texture_ || !this.image_) {
-      this.texture_ = Texture2DArray.createWithImageChunk(chunk);
-      this.image_ = this.createImage(chunk, this.texture_, this.channelProps_);
+      this.texture_ = Texture2D.createWithImageChunk(chunk);
+      this.image_ = this.createImage(chunk, this.texture_);
       this.addObject(this.image_);
 
       // extent does not change after renderable creation
@@ -127,13 +94,13 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  private createImage(
-    chunk: ImageChunk,
-    texture: Texture2DArray,
-    channelProps?: ChannelProps[]
-  ) {
+  private createImage(chunk: ImageChunk, texture: Texture2D) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-    const image = new ImageRenderable(geometry, texture, channelProps);
+    const image = new LabelImageRenderable({
+      geometry,
+      imageData: texture,
+      colorMap: this.colorMap_,
+    });
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;

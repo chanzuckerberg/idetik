@@ -97,8 +97,10 @@ const labelsLayer = new LabelImageLayer({
   opacity: 0.25,
   blendMode: "normal",
   lod,
-  colorCycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
-  colorMap: new Map([[103, Color.GREEN]]),
+  colorMap: {
+    lookupTable: new Map([[103, Color.GREEN]]),
+    cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
+  },
   onPickValue: (info: PointPickingResult) => {
     const { world, value } = info;
     pickInfoDiv.innerHTML = `
