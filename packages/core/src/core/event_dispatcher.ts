@@ -1,3 +1,4 @@
+import { vec3 } from "gl-matrix";
 import { Logger } from "../utilities/logger";
 
 const eventTypes = [
@@ -17,6 +18,7 @@ export class EventContext {
   readonly type: EventType;
   readonly event: Event;
   private propagationStopped_: boolean = false;
+  public worldPos?: vec3;
 
   constructor(type: EventType, event: Event) {
     this.type = type;

@@ -1,4 +1,7 @@
-import { mat4, vec3, quat } from "gl-matrix";
+import { mat4, vec3, quat, vec2 } from "gl-matrix";
+
+export type ClientToClip = (clientPos: vec2, depth?: number) => vec3;
+export type ClientToWorld = (clientPos: vec2, depth?: number) => vec3;
 
 export class TrsTransform {
   private dirty_ = true;

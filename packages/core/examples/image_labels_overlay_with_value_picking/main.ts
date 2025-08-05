@@ -5,8 +5,11 @@ import {
   Region,
   Color,
   ImageLayer,
-  LabelImageLayer,
 } from "@";
+import {
+  LabelImageLayer,
+  PointPickingResult,
+} from "@/layers/label_image_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 // These roughly correspond in terms of content and the number of time-points.
@@ -56,6 +59,22 @@ const imageRegion: Region = [
   { dimension: "X", index: { type: "full" } },
 ];
 
+// Labels provide C and Z dimensions, but they are unitary.
+const labelsRegion: Region = [
+  { dimension: "T", index: { type: "point", value: tStartPoint } },
+  { dimension: "C", index: { type: "point", value: 0 } },
+  { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
+];
+
+const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
+const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
+
+// Get the info div for displaying pick results
+const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
+
+// Create base image layer
 const imageLayer = new ImageLayer({
   source: imageSource,
   region: imageRegion,
@@ -70,15 +89,7 @@ const imageLayer = new ImageLayer({
   lod,
 });
 
-// Labels provide C and Z dimensions, but they are unitary.
-const labelsRegion: Region = [
-  { dimension: "T", index: { type: "point", value: tStartPoint } },
-  { dimension: "C", index: { type: "point", value: 0 } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
-  { dimension: "Y", index: { type: "full" } },
-  { dimension: "X", index: { type: "full" } },
-];
-
+// Create label image layer with picking functionality
 const labelsLayer = new LabelImageLayer({
   source: labelsSource,
   region: labelsRegion,
@@ -90,12 +101,21 @@ const labelsLayer = new LabelImageLayer({
     lookUpTable: new Map([[103, Color.GREEN]]),
     cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
   },
+  onPickValue: (info: PointPickingResult) => {
+    const { world, value } = info;
+    pickInfoDiv.innerHTML = `
+      <strong>Pick Result:</strong><br/>
+      World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
+      Value: ${value ?? "null"}<br/>
+    `;
+  },
 });
 
-const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
-new Idetik({
-  canvasSelector: "canvas",
+const idetik = new Idetik({
+  canvas,
   camera,
   layers: [imageLayer, labelsLayer],
   controls: new PanZoomControls(camera, camera.position),
-}).start();
+});
+
+idetik.start();

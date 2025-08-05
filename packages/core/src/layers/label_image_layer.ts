@@ -6,11 +6,18 @@ import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { LabelColorMap } from "../objects/renderable/label_color_map";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { EventContext } from "../core/event_dispatcher";
+import { vec2, vec3 } from "gl-matrix";
+
+export interface PointPickingResult {
+  world: vec3;
+  value: unknown | null;
+}
 
 export type LabelImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   colorMap?: LabelColorMap;
+  onPickValue?: (info: PointPickingResult) => void;
 };
 
 export class LabelImageLayer extends Layer {
@@ -20,12 +27,16 @@ export class LabelImageLayer extends Layer {
   private readonly region_: Region;
   private readonly lod_?: number;
   private readonly colorMap_: LabelColorMap;
+  private readonly onPickValue_?: (info: PointPickingResult) => void;
   private image_?: LabelImageRenderable;
+  private pointerDownPos_: vec2 | null = null;
+  private readonly dragThreshold_ = 3;
 
   constructor({
     source,
     region,
     colorMap = new LabelColorMap(),
+    onPickValue,
     lod,
     ...layerOptions
   }: LabelImageLayerProps) {
@@ -34,6 +45,7 @@ export class LabelImageLayer extends Layer {
     this.source_ = source;
     this.region_ = region;
     this.colorMap_ = colorMap;
+    this.onPickValue_ = onPickValue;
     this.lod_ = lod;
   }
 
@@ -52,8 +64,42 @@ export class LabelImageLayer extends Layer {
     }
   }
 
-  public onEvent(_: EventContext) {
-    // TODO: implement segment selection
+  public onEvent(event: EventContext) {
+    if (!this.onPickValue_) return;
+
+    switch (event.type) {
+      case "pointerdown": {
+        const e = event.event as PointerEvent;
+        this.pointerDownPos_ = vec2.fromValues(e.clientX, e.clientY);
+        break;
+      }
+
+      case "pointerup": {
+        if (!this.pointerDownPos_) break;
+
+        const e = event.event as PointerEvent;
+        const pointerUpPos = vec2.fromValues(e.clientX, e.clientY);
+        const dist = vec2.distance(this.pointerDownPos_, pointerUpPos);
+
+        if (dist < this.dragThreshold_) {
+          this.pointerDownPos_ = null;
+          const world = event.worldPos;
+          if (!world) return;
+          const value = this.getValueAtWorld(world);
+
+          if (value !== null) {
+            this.onPickValue_({ world, value });
+            event.stopPropagation();
+          }
+        }
+        break;
+      }
+
+      case "pointercancel": {
+        this.pointerDownPos_ = null;
+        break;
+      }
+    }
   }
 
   private async load(region: Region) {
@@ -80,5 +126,10 @@ export class LabelImageLayer extends Layer {
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
+  }
+
+  public getValueAtWorld(world: vec3): vec3 /* TODO: label value */ | null {
+    // TODO: replace with actual sampling from renderable data (e.g. texture buffer)
+    return world; // stub - currently returns world coordinates instead of label value
   }
 }
