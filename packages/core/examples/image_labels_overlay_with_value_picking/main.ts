@@ -110,7 +110,7 @@ const labelsLayer = new LabelImageLayer({
 document.addEventListener("keyup", (event) => {
   if (event.key >= "0" && event.key <= "9") {
     const label = parseInt(event.key, 10) + 100;
-    console.debug(`Setting color for label ${event.key} to GREEN`);
+    console.debug(`Setting color for label ${event.key} to transparent`);
     labelsLayer.setColorMap({
       cycle: Array.from(labelsLayer.colorMap.cycle),
       lookupTable: new Map([[label, Color.TRANSPARENT]]),
