@@ -29,6 +29,7 @@ export class LabelImageLayer extends Layer {
   private readonly colorMap_: LabelColorMap;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private image_?: LabelImageRenderable;
+  private imageChunk_?: ImageChunk;
   private pointerDownPos_: vec2 | null = null;
   private readonly dragThreshold_ = 3;
 
@@ -117,6 +118,7 @@ export class LabelImageLayer extends Layer {
   }
 
   private createImage(chunk: ImageChunk) {
+    this.imageChunk_ = chunk; // Store chunk for value picking
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new LabelImageRenderable({
       geometry,
@@ -128,8 +130,41 @@ export class LabelImageLayer extends Layer {
     return image;
   }
 
-  public getValueAtWorld(world: vec3): vec3 /* TODO: label value */ | null {
-    // TODO: replace with actual sampling from renderable data (e.g. texture buffer)
-    return world; // stub - currently returns world coordinates instead of label value
+  public getValueAtWorld(world: vec3): number | null {
+    if (!this.image_ || !this.imageChunk_?.data) {
+      return null;
+    }
+
+    // Transform world to local texture coordinates using inverse transform
+    const localPos = vec3.transformMat4(
+      vec3.create(),
+      world,
+      this.image_.transform.inverse
+    );
+
+    // Convert to pixel coordinates and bounds check
+    const x = Math.floor(localPos[0]);
+    const y = Math.floor(localPos[1]);
+    if (
+      x < 0 ||
+      x >= this.imageChunk_.shape.x ||
+      y < 0 ||
+      y >= this.imageChunk_.shape.y
+    ) {
+      return null;
+    }
+
+    // Sample pixel value from chunk data
+    const pixelIndex = y * this.imageChunk_.shape.x + x;
+    const data = this.imageChunk_.data;
+
+    if (
+      data instanceof Uint8Array ||
+      data instanceof Uint16Array ||
+      data instanceof Uint32Array
+    ) {
+      return data[pixelIndex];
+    }
+    return null;
   }
 }
