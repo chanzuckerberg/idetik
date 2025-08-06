@@ -154,17 +154,8 @@ export class LabelImageLayer extends Layer {
       return null;
     }
 
-    // Sample pixel value from chunk data
     const pixelIndex = y * this.imageChunk_.shape.x + x;
     const data = this.imageChunk_.data;
-
-    if (
-      data instanceof Uint8Array ||
-      data instanceof Uint16Array ||
-      data instanceof Uint32Array
-    ) {
-      return data[pixelIndex];
-    }
-    return null;
+    return data[pixelIndex];
   }
 }
