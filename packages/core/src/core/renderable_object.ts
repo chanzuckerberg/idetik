@@ -10,6 +10,7 @@ export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
   public wireframeColor = Color.WHITE;
   private readonly textures_: Texture[] = [];
+  private staleTextures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();
   private geometry_ = new Geometry();
   private wireframeGeometry_: WireframeGeometry | null = null;
@@ -17,6 +18,22 @@ export abstract class RenderableObject extends Node {
 
   public addTexture(texture: Texture) {
     this.textures_.push(texture);
+  }
+
+  public setTexture(index: number, texture: Texture) {
+    if (index < 0 || index >= this.textures_.length) {
+      throw new Error(
+        `Texture index out of range: ${index}, number of textures: ${this.textures_.length}`
+      );
+    }
+    this.staleTextures_.push(this.textures_[index]);
+    this.textures_[index] = texture;
+  }
+
+  public popStaleTextures() {
+    const stale = this.staleTextures_;
+    this.staleTextures_ = [];
+    return stale;
   }
 
   public get geometry() {

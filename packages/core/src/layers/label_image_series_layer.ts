@@ -56,7 +56,6 @@ export class LabelImageSeriesLayer extends Layer {
   }
 
   public setColorMap(colorMap: LabelColorMapProps) {
-    // TODO: mark textures to be disposed.
     this.colorMap_ = new LabelColorMap(colorMap);
     if (this.image_) {
       this.image_.setColorMap(this.colorMap_);
