@@ -16,17 +16,11 @@ export abstract class RenderableObject extends Node {
   private wireframeGeometry_: WireframeGeometry | null = null;
   private programName_: Shader | null = null;
 
-  public addTexture(texture: Texture) {
-    this.textures_.push(texture);
-  }
-
   public setTexture(index: number, texture: Texture) {
-    if (index < 0 || index >= this.textures_.length) {
-      throw new Error(
-        `Texture index out of range: ${index}, number of textures: ${this.textures_.length}`
-      );
+    const oldTexture = this.textures_[index];
+    if (oldTexture !== undefined) {
+      this.staleTextures_.push(oldTexture);
     }
-    this.staleTextures_.push(this.textures_[index]);
     this.textures_[index] = texture;
   }
 

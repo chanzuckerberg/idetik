@@ -35,7 +35,7 @@ export class ImageRenderable extends RenderableObject {
   ) {
     super();
     this.geometry = geometry;
-    this.addTexture(texture);
+    this.setTexture(0, texture);
     this.channels_ = validateChannels(texture, channels);
     this.programName = textureToShader(texture);
   }

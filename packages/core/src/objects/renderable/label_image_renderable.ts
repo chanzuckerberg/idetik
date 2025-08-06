@@ -35,13 +35,13 @@ export class LabelImageRenderable extends RenderableObject {
   constructor(props: LabelImageRenderableProps) {
     super();
     this.geometry = props.geometry;
-    this.addTexture(validateImageData(props.imageData));
+    this.setTexture(0, validateImageData(props.imageData));
     const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
-    this.addTexture(colorCycleTexture);
+    this.setTexture(1, colorCycleTexture);
     const colorLookupTableTexture = this.makeColorLookupTableTexture(
       props.colorMap.lookupTable
     );
-    this.addTexture(colorLookupTableTexture);
+    this.setTexture(2, colorLookupTableTexture);
     this.programName = "labelImage";
   }
 
