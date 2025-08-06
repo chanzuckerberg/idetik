@@ -17,7 +17,7 @@ export type LabelImageSeriesLayerProps = LayerOptions & {
 export class LabelImageSeriesLayer extends Layer {
   public readonly type = "LabelImageSeriesLayer";
   private readonly seriesLoader_: ImageSeriesLoader;
-  private readonly colorMap_: LabelColorMap;
+  private colorMap_: LabelColorMap;
   private texture_: Texture2D | null = null;
   private image_?: LabelImageRenderable;
   private extent_?: { x: number; y: number };
@@ -45,6 +45,13 @@ export class LabelImageSeriesLayer extends Layer {
     if (this.state === "initialized") {
       this.setState("loading");
       this.seriesLoader_.loadSeriesAttributes();
+    }
+  }
+
+  public setColorMap(colorMap: LabelColorMap) {
+    this.colorMap_ = colorMap;
+    if (this.image_) {
+      this.image_.setColorMap(colorMap);
     }
   }
 

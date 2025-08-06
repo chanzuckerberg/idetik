@@ -90,6 +90,16 @@ const imageLayer = new ImageLayer({
 });
 
 // Create label image layer with picking functionality
+const colorMaps = [
+  {
+    lookupTable: new Map([[103, Color.GREEN]]),
+    cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
+  },
+  {
+    lookupTable: new Map([[103, Color.YELLOW]]),
+    cycle: [Color.RED, Color.GREEN, Color.BLUE],
+  }
+];
 const labelsLayer = new LabelImageLayer({
   source: labelsSource,
   region: labelsRegion,
@@ -97,10 +107,7 @@ const labelsLayer = new LabelImageLayer({
   opacity: 0.25,
   blendMode: "normal",
   lod,
-  colorMap: {
-    lookupTable: new Map([[103, Color.GREEN]]),
-    cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
-  },
+  colorMap: colorMaps[0],
   onPickValue: (info: PointPickingResult) => {
     const { world, value } = info;
     pickInfoDiv.innerHTML = `
@@ -111,11 +118,17 @@ const labelsLayer = new LabelImageLayer({
   },
 });
 
-const idetik = new Idetik({
+document.addEventListener("keyup", (event) => {
+  if (event.key === "0") {
+    labelsLayer.setColorMap(colorMaps[0])
+  } else if (event.key === "1") {
+    labelsLayer.setColorMap(colorMaps[1])
+  }
+});
+
+new Idetik({
   canvas,
   camera,
   layers: [imageLayer, labelsLayer],
   cameraControls: new PanZoomControls(camera),
-});
-
-idetik.start();
+}).start();

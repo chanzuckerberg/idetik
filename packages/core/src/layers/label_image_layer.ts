@@ -26,7 +26,7 @@ export class LabelImageLayer extends Layer {
   private readonly source_: ImageChunkSource;
   private readonly region_: Region;
   private readonly lod_?: number;
-  private readonly colorMap_: LabelColorMap;
+  private colorMap_: LabelColorMap;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private image_?: LabelImageRenderable;
   private pointerDownPos_: vec2 | null = null;
@@ -61,6 +61,13 @@ export class LabelImageLayer extends Layer {
         const exhaustiveCheck: never = this.state;
         throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
       }
+    }
+  }
+
+  public setColorMap(colorMap: LabelColorMap) {
+    this.colorMap_ = colorMap;
+    if (this.image_) {
+      this.image_.setColorMap(colorMap);
     }
   }
 

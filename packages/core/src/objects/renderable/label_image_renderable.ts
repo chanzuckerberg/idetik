@@ -57,6 +57,11 @@ export class LabelImageRenderable extends RenderableObject {
     };
   }
 
+  public setColorMap(colorMap: LabelColorMap) {
+    this.textures[1] = this.makeColorCycleTexture(colorMap.cycle);
+    this.textures[2] = this.makeColorLookupTableTexture(colorMap.lookupTable);
+  }
+
   private makeColorCycleTexture(cycle: ReadonlyArray<Color>) {
     const data = new Uint8Array(
       cycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
