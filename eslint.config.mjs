@@ -44,7 +44,7 @@ export default [
   },
   {
     files: ["**/*.cjs"],
-    languageOptions: { globals: { ...globals.node } },
+    languageOptions: { globals: globals.node },
     rules: {
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-var-requires": "off",
