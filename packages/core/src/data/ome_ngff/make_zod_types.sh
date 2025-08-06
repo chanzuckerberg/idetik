@@ -2,7 +2,7 @@
 
 if [ "$#" -lt 2 ]; then
     echo "Error: Please provide the version number and at least one schema name." >&2
-    echo "Usage: $0 version [schema1 schema 2...]" >&2
+    echo "Usage: $0 version [schema1 schema2 ...]" >&2
     exit 1
 fi
 
