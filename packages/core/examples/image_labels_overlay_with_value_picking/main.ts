@@ -90,16 +90,6 @@ const imageLayer = new ImageLayer({
 });
 
 // Create label image layer with picking functionality
-const colorMaps = [
-  {
-    lookupTable: new Map([[103, Color.GREEN]]),
-    cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
-  },
-  {
-    lookupTable: new Map([[103, Color.YELLOW]]),
-    cycle: [Color.RED, Color.GREEN, Color.BLUE],
-  },
-];
 const labelsLayer = new LabelImageLayer({
   source: labelsSource,
   region: labelsRegion,
@@ -107,7 +97,6 @@ const labelsLayer = new LabelImageLayer({
   opacity: 0.25,
   blendMode: "normal",
   lod,
-  colorMap: colorMaps[0],
   onPickValue: (info: PointPickingResult) => {
     const { world, value } = info;
     pickInfoDiv.innerHTML = `
@@ -119,10 +108,13 @@ const labelsLayer = new LabelImageLayer({
 });
 
 document.addEventListener("keyup", (event) => {
-  if (event.key === "0") {
-    labelsLayer.setColorMap(colorMaps[0]);
-  } else if (event.key === "1") {
-    labelsLayer.setColorMap(colorMaps[1]);
+  if (event.key >= "0" && event.key <= "9") {
+    const label = parseInt(event.key, 10) + 100;
+    console.debug(`Setting color for label ${event.key} to GREEN`);
+    labelsLayer.setColorMap({
+      cycle: Array.from(labelsLayer.colorMap.cycle),
+      lookupTable: new Map([[label, Color.TRANSPARENT]]),
+    });
   }
 });
 

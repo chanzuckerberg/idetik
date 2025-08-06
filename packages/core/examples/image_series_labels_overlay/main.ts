@@ -170,7 +170,9 @@ document
   .querySelector<HTMLButtonElement>("#color-cycle-cmy")!
   .addEventListener("click", () => {
     console.debug("Resetting color map to CMY cycle");
-    labelsLayer.setColorMap({ cycle: [Color.CYAN, Color.MAGENTA, Color.YELLOW] });
+    labelsLayer.setColorMap({
+      cycle: [Color.CYAN, Color.MAGENTA, Color.YELLOW],
+    });
   });
 document
   .querySelector<HTMLButtonElement>("#color-cycle-rgb")!

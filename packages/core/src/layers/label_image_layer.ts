@@ -67,6 +67,10 @@ export class LabelImageLayer extends Layer {
     }
   }
 
+  public get colorMap(): LabelColorMap {
+    return this.colorMap_;
+  }
+
   public setColorMap(colorMap: LabelColorMapProps) {
     this.colorMap_ = new LabelColorMap(colorMap);
     if (this.image_) {
