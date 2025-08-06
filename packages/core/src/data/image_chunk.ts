@@ -36,6 +36,7 @@ export type ImageChunk = {
   state: "unloaded" | "loading" | "loaded";
   lod: number;
   visible: boolean;
+  prefetch: boolean;
   shape: {
     x: number;
     y: number;

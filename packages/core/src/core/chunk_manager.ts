@@ -12,6 +12,10 @@ import { Logger } from "../utilities/logger";
 
 type Bounds = { min: vec2; max: vec2 };
 
+// Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
+// These additional chunks are prefetched to improve responsiveness when panning.
+const PREFETCH_PADDING_CHUNKS = 1;
+
 export class ChunkManagerSource {
   private readonly chunks_: ImageChunk[];
   private readonly loader_;
@@ -75,6 +79,7 @@ export class ChunkManagerSource {
             state: "unloaded",
             lod,
             visible: false,
+            prefetch: false,
             shape: {
               x: chunkWidth,
               y: chunkHeight,
@@ -120,7 +125,19 @@ export class ChunkManagerSource {
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  public get allChunks(): ImageChunk[] {
+  public update(lodFactor: number, visibleBounds: Bounds) {
+    this.setLOD(lodFactor);
+    if (this.visibleBoundsChanged(visibleBounds)) {
+      this.updateChunkVisibility(visibleBounds);
+    }
+    this.loadPendingChunks();
+  }
+
+  public get lodCount() {
+    return this.lowestResLOD_ + 1;
+  }
+
+  public get chunks(): ImageChunk[] {
     return this.chunks_;
   }
 
@@ -128,17 +145,16 @@ export class ChunkManagerSource {
     return this.currentLOD_;
   }
 
-  private loadVisibleChunks() {
+  private loadPendingChunks() {
     this.loadLowResChunks();
 
     for (const chunk of this.chunks_) {
-      // Only load chunks for current LOD
       if (
         chunk.lod === this.currentLOD_ &&
         chunk.state === "unloaded" &&
-        chunk.visible
+        (chunk.visible || chunk.prefetch)
       ) {
-        this.processChunkData(chunk);
+        this.loadChunkData(chunk);
       }
     }
   }
@@ -146,22 +162,12 @@ export class ChunkManagerSource {
   private loadLowResChunks(): void {
     for (const chunk of this.chunks_) {
       if (chunk.lod === this.lowestResLOD_ && chunk.state === "unloaded") {
-        this.processChunkData(chunk);
+        this.loadChunkData(chunk);
       }
     }
   }
 
-  public update(lodFactor: number, visibleBounds: Bounds) {
-    this.setLOD(lodFactor);
-
-    if (this.visibleBoundsChanged(visibleBounds)) {
-      this.updateChunkVisibility(visibleBounds);
-    }
-
-    this.loadVisibleChunks();
-  }
-
-  private processChunkData(chunk: ImageChunk): void {
+  private loadChunkData(chunk: ImageChunk): void {
     chunk.state = "loading";
     this.loader_
       .loadChunkDataFromRegion(chunk, this.region_)
@@ -171,7 +177,7 @@ export class ChunkManagerSource {
       .catch((error) => {
         Logger.error(
           "ChunkManager",
-          `Error loading chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`
+          `Error loading chunk (${chunk.chunkIndex.x},${chunk.chunkIndex.y}): ${error}`
         );
         chunk.state = "unloaded";
       });
@@ -202,26 +208,13 @@ export class ChunkManagerSource {
       return;
     }
 
-    const boundsMinX = visibleBounds.min[0];
-    const boundsMaxX = visibleBounds.max[0];
-    const boundsMinY = visibleBounds.min[1];
-    const boundsMaxY = visibleBounds.max[1];
-
+    const paddedBounds = this.getPaddedBounds(visibleBounds);
     for (const chunk of this.chunks_) {
-      if (!chunk.chunkIndex) {
-        chunk.visible = false;
-        continue;
+      chunk.prefetch = false;
+      chunk.visible = this.isChunkWithinBounds(chunk, visibleBounds);
+      if (!chunk.visible) {
+        chunk.prefetch = this.isChunkWithinBounds(chunk, paddedBounds);
       }
-      const chunkMinX = chunk.offset.x;
-      const chunkMaxX = chunkMinX + chunk.shape.x * chunk.scale.x;
-      const chunkMinY = chunk.offset.y;
-      const chunkMaxY = chunkMinY + chunk.shape.y * chunk.scale.y;
-
-      chunk.visible =
-        chunkMinX <= boundsMaxX &&
-        chunkMaxX >= boundsMinX &&
-        chunkMinY <= boundsMaxY &&
-        chunkMaxY >= boundsMinY;
     }
   }
 
@@ -241,6 +234,25 @@ export class ChunkManagerSource {
     }
   }
 
+  private isChunkWithinBounds(chunk: ImageChunk, bounds: Bounds): boolean {
+    const boundsMinX = bounds.min[0];
+    const boundsMaxX = bounds.max[0];
+    const boundsMinY = bounds.min[1];
+    const boundsMaxY = bounds.max[1];
+
+    const minX = chunk.offset.x;
+    const maxX = minX + chunk.shape.x * chunk.scale.x;
+    const minY = chunk.offset.y;
+    const maxY = minY + chunk.shape.y * chunk.scale.y;
+
+    return (
+      minX <= boundsMaxX &&
+      maxX >= boundsMinX &&
+      minY <= boundsMaxY &&
+      maxY >= boundsMinY
+    );
+  }
+
   private visibleBoundsChanged(newBounds: Bounds): boolean {
     const prev = this.lastVisibleBounds_;
     const changed =
@@ -256,6 +268,24 @@ export class ChunkManagerSource {
     }
 
     return changed;
+  }
+
+  private getPaddedBounds(bounds: Bounds): Bounds {
+    const chunkWidth =
+      this.attrs_[this.currentLOD_].chunks[this.xIdx_] *
+      this.attrs_[this.currentLOD_].scale[this.xIdx_];
+
+    const chunkHeight =
+      this.attrs_[this.currentLOD_].chunks[this.yIdx_] *
+      this.attrs_[this.currentLOD_].scale[this.yIdx_];
+
+    const padX = chunkWidth * PREFETCH_PADDING_CHUNKS;
+    const padY = chunkHeight * PREFETCH_PADDING_CHUNKS;
+
+    return {
+      min: vec2.fromValues(bounds.min[0] - padX, bounds.min[1] - padY),
+      max: vec2.fromValues(bounds.max[0] + padX, bounds.max[1] + padY),
+    };
   }
 }
 
