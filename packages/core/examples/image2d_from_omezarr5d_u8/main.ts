@@ -11,27 +11,51 @@ import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 const url =
-  "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
-const camera = new OrthographicCamera(-2000, 2000, -2000, 2000);
-
-// Source is technically 5D (even though Z is unitary),
-// so provide indices at 3 dimensions to project to 2D.
+  "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.4/96x0/marmoset_neurons.ome.zarr";
 const source = new OmeZarrImageSource(url);
+const loader = await source.open();
+const attributes = await loader.loadAttributes();
+const attributesAtLod0 = attributes[0];
+
+const dimensionInfo = (dimensionName: string) => {
+  const index = attributesAtLod0.dimensionNames.findIndex(
+    (d) => d === dimensionName
+  );
+  return {
+    size: attributesAtLod0.shape[index],
+    scale: attributesAtLod0.scale[index],
+    offset: attributesAtLod0.translation[index],
+  };
+};
+
+const zInfo = dimensionInfo("z");
+const zMidPoint = zInfo.offset + 0.5 * zInfo.size * zInfo.scale;
+const yInfo = dimensionInfo("y");
+const xInfo = dimensionInfo("x");
+
 const region: Region = [
-  { dimension: "T", index: { type: "point", value: 150 } },
-  { dimension: "C", index: { type: "point", value: 0 } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
-  { dimension: "Y", index: { type: "full" } },
-  { dimension: "X", index: { type: "full" } },
+  { dimension: "z", index: { type: "point", value: zMidPoint } },
+  { dimension: "y", index: { type: "full" } },
+  { dimension: "x", index: { type: "full" } },
 ];
 const channelProps: ChannelProps[] = [
   {
-    color: Color.GREEN,
-    contrastLimits: [0, 128],
+    visible: true,
+    color: Color.WHITE,
+    contrastLimits: [0, 200],
   },
 ];
 const layer = new ImageLayer({ source, region, channelProps });
-const axes = new AxesLayer({ length: 1920, width: 0.01 });
+const axes = new AxesLayer({
+  length: 0.75 * xInfo.scale * xInfo.size,
+  width: 0.01,
+});
+const camera = new OrthographicCamera(
+  xInfo.offset,
+  xInfo.offset + xInfo.scale * xInfo.size,
+  yInfo.offset,
+  yInfo.offset + yInfo.scale * yInfo.size
+);
 const cameraControls = new PanZoomControls(camera);
 
 new Idetik({
