@@ -3,7 +3,10 @@ import { Region } from "../data/region";
 import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { LabelColorMap } from "../objects/renderable/label_color_map";
+import {
+  LabelColorMap,
+  LabelColorMapProps,
+} from "../objects/renderable/label_color_map";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
@@ -16,7 +19,7 @@ export interface PointPickingResult {
 export type LabelImageLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
-  colorMap?: LabelColorMap;
+  colorMap?: LabelColorMapProps;
   onPickValue?: (info: PointPickingResult) => void;
 };
 
@@ -35,7 +38,7 @@ export class LabelImageLayer extends Layer {
   constructor({
     source,
     region,
-    colorMap = new LabelColorMap(),
+    colorMap = {},
     onPickValue,
     lod,
     ...layerOptions
@@ -44,7 +47,7 @@ export class LabelImageLayer extends Layer {
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-    this.colorMap_ = colorMap;
+    this.colorMap_ = new LabelColorMap(colorMap);
     this.onPickValue_ = onPickValue;
     this.lod_ = lod;
   }
@@ -64,10 +67,10 @@ export class LabelImageLayer extends Layer {
     }
   }
 
-  public setColorMap(colorMap: LabelColorMap) {
-    this.colorMap_ = colorMap;
+  public setColorMap(colorMap: LabelColorMapProps) {
+    this.colorMap_ = new LabelColorMap(colorMap);
     if (this.image_) {
-      this.image_.setColorMap(colorMap);
+      this.image_.setColorMap(this.colorMap_);
     }
   }
 

@@ -81,6 +81,8 @@ const labelsRegion: Region = [
   { dimension: "X", index: { type: "full" } },
 ];
 
+const rgbCycle = [Color.RED, Color.GREEN, Color.BLUE];
+const cmyCycle = [Color.CYAN, Color.MAGENTA, Color.YELLOW];
 const labelsLayer = new LabelImageSeriesLayer({
   source: labelsSource,
   region: labelsRegion,
@@ -89,10 +91,6 @@ const labelsLayer = new LabelImageSeriesLayer({
   opacity: 0.25,
   blendMode: "normal",
   lod,
-  colorMap: {
-    lookupTable: new Map([[103, Color.GREEN]]),
-    cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
-  },
 });
 
 const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;
@@ -163,3 +161,22 @@ async function setLayerIndex(index: number) {
     tIndexEl!.textContent = `${index}`;
   }
 }
+
+document
+  .querySelector<HTMLButtonElement>("#color-cycle-default")!
+  .addEventListener("click", () => {
+    console.debug("Resetting color map to default");
+    labelsLayer.setColorMap({});
+  });
+document
+  .querySelector<HTMLButtonElement>("#color-cycle-cmy")!
+  .addEventListener("click", () => {
+    console.debug("Resetting color map to CMY cycle");
+    labelsLayer.setColorMap({ cycle: cmyCycle });
+  });
+document
+  .querySelector<HTMLButtonElement>("#color-cycle-rgb")!
+  .addEventListener("click", () => {
+    console.debug("Resetting color map to RGB cycle");
+    labelsLayer.setColorMap({ cycle: rgbCycle });
+  });

@@ -26,7 +26,7 @@ function validateCycle(cycle?: ReadonlyArray<ColorLike>): ReadonlyArray<Color> {
   return cycle.map(Color.from);
 }
 
-type LabelColorMapProps = {
+export type LabelColorMapProps = {
   lookupTable?: ReadonlyMap<number, ColorLike>;
   cycle?: ColorLike[];
 };

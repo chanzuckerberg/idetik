@@ -4,14 +4,17 @@ import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { LabelColorMap } from "../objects/renderable/label_color_map";
+import {
+  LabelColorMap,
+  LabelColorMapProps,
+} from "../objects/renderable/label_color_map";
 import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
 export type LabelImageSeriesLayerProps = LayerOptions & {
   source: ImageChunkSource;
   region: Region;
   seriesDimensionName: string;
-  colorMap?: LabelColorMap;
+  colorMap?: LabelColorMapProps;
 };
 
 export class LabelImageSeriesLayer extends Layer {
@@ -26,13 +29,13 @@ export class LabelImageSeriesLayer extends Layer {
     source,
     region,
     seriesDimensionName,
-    colorMap = new LabelColorMap(),
+    colorMap = {},
     lod,
     ...layerOptions
   }: LabelImageSeriesLayerProps) {
     super(layerOptions);
     this.setState("initialized");
-    this.colorMap_ = colorMap;
+    this.colorMap_ = new LabelColorMap(colorMap);
     this.seriesLoader_ = new ImageSeriesLoader({
       source,
       region,
@@ -48,10 +51,11 @@ export class LabelImageSeriesLayer extends Layer {
     }
   }
 
-  public setColorMap(colorMap: LabelColorMap) {
-    this.colorMap_ = colorMap;
+  public setColorMap(colorMap: LabelColorMapProps) {
+    // TODO: mark textures to be disposed.
+    this.colorMap_ = new LabelColorMap(colorMap);
     if (this.image_) {
-      this.image_.setColorMap(colorMap);
+      this.image_.setColorMap(this.colorMap_);
     }
   }
 

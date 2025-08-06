@@ -98,7 +98,7 @@ const colorMaps = [
   {
     lookupTable: new Map([[103, Color.YELLOW]]),
     cycle: [Color.RED, Color.GREEN, Color.BLUE],
-  }
+  },
 ];
 const labelsLayer = new LabelImageLayer({
   source: labelsSource,
@@ -120,9 +120,9 @@ const labelsLayer = new LabelImageLayer({
 
 document.addEventListener("keyup", (event) => {
   if (event.key === "0") {
-    labelsLayer.setColorMap(colorMaps[0])
+    labelsLayer.setColorMap(colorMaps[0]);
   } else if (event.key === "1") {
-    labelsLayer.setColorMap(colorMaps[1])
+    labelsLayer.setColorMap(colorMaps[1]);
   }
 });
 
