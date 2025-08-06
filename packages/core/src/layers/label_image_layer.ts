@@ -154,7 +154,7 @@ export class LabelImageLayer extends Layer {
       return null;
     }
 
-    const pixelIndex = y * this.imageChunk_.shape.x + x;
+    const pixelIndex = y * this.imageChunk_.rowStride + x;
     const data = this.imageChunk_.data;
     return data[pixelIndex];
   }
