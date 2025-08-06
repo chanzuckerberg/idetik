@@ -130,7 +130,7 @@ export class ChunkManagerSource {
     if (this.visibleBoundsChanged(visibleBounds)) {
       this.updateChunkVisibility(visibleBounds);
     }
-    this.loadVisibleChunks();
+    this.loadPendingChunks();
   }
 
   public get lodCount() {
@@ -145,7 +145,7 @@ export class ChunkManagerSource {
     return this.currentLOD_;
   }
 
-  private loadVisibleChunks() {
+  private loadPendingChunks() {
     this.loadLowResChunks();
 
     for (const chunk of this.chunks_) {
@@ -154,7 +154,7 @@ export class ChunkManagerSource {
         chunk.state === "unloaded" &&
         (chunk.visible || chunk.prefetch)
       ) {
-        this.processChunkData(chunk);
+        this.loadChunkData(chunk);
       }
     }
   }
@@ -162,12 +162,12 @@ export class ChunkManagerSource {
   private loadLowResChunks(): void {
     for (const chunk of this.chunks_) {
       if (chunk.lod === this.lowestResLOD_ && chunk.state === "unloaded") {
-        this.processChunkData(chunk);
+        this.loadChunkData(chunk);
       }
     }
   }
 
-  private processChunkData(chunk: ImageChunk): void {
+  private loadChunkData(chunk: ImageChunk): void {
     chunk.state = "loading";
     this.loader_
       .loadChunkDataFromRegion(chunk, this.region_)
@@ -177,7 +177,7 @@ export class ChunkManagerSource {
       .catch((error) => {
         Logger.error(
           "ChunkManager",
-          `Error loading chunk (${chunk.chunkIndex?.x},${chunk.chunkIndex?.y}): ${error}`
+          `Error loading chunk (${chunk.chunkIndex.x},${chunk.chunkIndex.y}): ${error}`
         );
         chunk.state = "unloaded";
       });
