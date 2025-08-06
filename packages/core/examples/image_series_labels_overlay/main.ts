@@ -81,8 +81,6 @@ const labelsRegion: Region = [
   { dimension: "X", index: { type: "full" } },
 ];
 
-const rgbCycle = [Color.RED, Color.GREEN, Color.BLUE];
-const cmyCycle = [Color.CYAN, Color.MAGENTA, Color.YELLOW];
 const labelsLayer = new LabelImageSeriesLayer({
   source: labelsSource,
   region: labelsRegion,
@@ -172,11 +170,11 @@ document
   .querySelector<HTMLButtonElement>("#color-cycle-cmy")!
   .addEventListener("click", () => {
     console.debug("Resetting color map to CMY cycle");
-    labelsLayer.setColorMap({ cycle: cmyCycle });
+    labelsLayer.setColorMap({ cycle: [Color.CYAN, Color.MAGENTA, Color.YELLOW] });
   });
 document
   .querySelector<HTMLButtonElement>("#color-cycle-rgb")!
   .addEventListener("click", () => {
     console.debug("Resetting color map to RGB cycle");
-    labelsLayer.setColorMap({ cycle: rgbCycle });
+    labelsLayer.setColorMap({ cycle: [Color.RED, Color.GREEN, Color.BLUE] });
   });
