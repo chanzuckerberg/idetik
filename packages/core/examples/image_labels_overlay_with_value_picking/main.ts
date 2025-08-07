@@ -104,7 +104,6 @@ const labelsLayer = new LabelImageLayer({
       World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
       Label Value: ${value}<br/>
     `;
-    if (typeof value !== "number") return;
     console.debug(`Setting color for label ${value} to transparent`);
     labelsLayer.setColorMap({
       cycle: Array.from(labelsLayer.colorMap.cycle),
