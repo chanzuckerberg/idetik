@@ -15,20 +15,16 @@ if (!url || !className || !outputFile) {
 
 console.log(`Generating Zod type for ${className} from ${url} to ${outputFile}`);
 
-async function makeZodType() {
-  try {
-    const schema = await $RefParser.dereference(url);
-    const zod = $jsonSchemaToZod(schema, {
-      module: "esm",
-      name: className,
-      type: className,
-      withJsdocs: true,
-    });
-    await writeFile(outputFile, zod);
-  } catch (err) {
-    console.error("Error:", err);
-    exit(1);
-  }
-} 
-
-await makeZodType();
+try {
+  const schema = await $RefParser.dereference(url);
+  const zod = $jsonSchemaToZod(schema, {
+    module: "esm",
+    name: className,
+    type: className,
+    withJsdocs: true,
+  });
+  await writeFile(outputFile, zod);
+} catch (err) {
+  console.error("Error:", err);
+  exit(1);
+}
