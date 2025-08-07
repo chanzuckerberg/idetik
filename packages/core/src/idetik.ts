@@ -26,17 +26,17 @@ export type IdetikContext = {
 };
 
 export class Idetik {
-  public layerManager: LayerManager;
-  public camera: Camera;
   private cameraControls_?: CameraControls;
-  public readonly canvas: HTMLCanvasElement;
-  public readonly overlays: Overlay[];
-  private readonly eventDispatcher_: EventDispatcher;
-  private readonly renderer_: WebGLRenderer;
-  private readonly context_: IdetikContext;
-  private readonly chunkManager_: ChunkManager;
   private lastAnimationId_?: number;
   private needsResize_ = false;
+  private readonly chunkManager_: ChunkManager;
+  private readonly context_: IdetikContext;
+  private readonly renderer_: WebGLRenderer;
+  public camera: Camera;
+  public layerManager: LayerManager;
+  public readonly canvas: HTMLCanvasElement;
+  public readonly events: EventDispatcher;
+  public readonly overlays: Overlay[];
 
   constructor(params: IdetikParams) {
     if (!params.canvas && !params.canvasSelector) {
@@ -70,8 +70,8 @@ export class Idetik {
 
     this.overlays = params.overlays ?? [];
 
-    this.eventDispatcher_ = new EventDispatcher(canvas);
-    this.eventDispatcher_.addEventListener((event: EventContext) => {
+    this.events = new EventDispatcher(canvas);
+    this.events.addEventListener((event: EventContext) => {
       if (
         event.event instanceof PointerEvent ||
         event.event instanceof WheelEvent

@@ -32,10 +32,6 @@ export class PanZoomControls implements CameraControls {
       case "pointercancel":
         this.onPointerEnd(event);
         break;
-      default: {
-        const exhaustiveCheck: never = event.type;
-        throw new Error(`Unknown event type: ${exhaustiveCheck}`);
-      }
     }
   }
 

@@ -1,6 +1,6 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { Region } from "../data/region";
-import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
+import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import {
@@ -17,7 +17,7 @@ export interface PointPickingResult {
 }
 
 export type LabelImageLayerProps = LayerOptions & {
-  source: ImageChunkSource;
+  source: ChunkSource;
   region: Region;
   colorMap?: LabelColorMapProps;
   onPickValue?: (info: PointPickingResult) => void;
@@ -26,13 +26,13 @@ export type LabelImageLayerProps = LayerOptions & {
 export class LabelImageLayer extends Layer {
   public readonly type = "LabelImageLayer";
 
-  private readonly source_: ImageChunkSource;
+  private readonly source_: ChunkSource;
   private readonly region_: Region;
   private readonly lod_?: number;
   private colorMap_: LabelColorMap;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private image_?: LabelImageRenderable;
-  private imageChunk_?: ImageChunk;
+  private imageChunk_?: Chunk;
   private pointerDownPos_: vec2 | null = null;
   private readonly dragThreshold_ = 3;
 
@@ -130,12 +130,12 @@ export class LabelImageLayer extends Layer {
     this.setState("ready");
   }
 
-  private createImage(chunk: ImageChunk) {
+  private createImage(chunk: Chunk) {
     this.imageChunk_ = chunk; // Store chunk for value picking
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new LabelImageRenderable({
       geometry,
-      imageData: Texture2D.createWithImageChunk(chunk),
+      imageData: Texture2D.createWithChunk(chunk),
       colorMap: this.colorMap_,
     });
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);

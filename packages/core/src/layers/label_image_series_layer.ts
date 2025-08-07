@@ -1,6 +1,6 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { Region } from "../data/region";
-import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
+import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
@@ -11,7 +11,7 @@ import {
 import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
 export type LabelImageSeriesLayerProps = LayerOptions & {
-  source: ImageChunkSource;
+  source: ChunkSource;
   region: Region;
   seriesDimensionName: string;
   colorMap?: LabelColorMapProps;
@@ -92,9 +92,9 @@ export class LabelImageSeriesLayer extends Layer {
     return result;
   }
 
-  private setData(chunk: ImageChunk) {
+  private setData(chunk: Chunk) {
     if (!this.texture_ || !this.image_) {
-      this.texture_ = Texture2D.createWithImageChunk(chunk);
+      this.texture_ = Texture2D.createWithChunk(chunk);
       this.image_ = this.createImage(chunk, this.texture_);
       this.addObject(this.image_);
 
@@ -108,7 +108,7 @@ export class LabelImageSeriesLayer extends Layer {
     }
   }
 
-  private createImage(chunk: ImageChunk, texture: Texture2D) {
+  private createImage(chunk: Chunk, texture: Texture2D) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new LabelImageRenderable({
       geometry,

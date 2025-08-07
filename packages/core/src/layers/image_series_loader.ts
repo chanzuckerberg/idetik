@@ -1,9 +1,5 @@
 import { Full, Interval, Region } from "../data/region";
-import {
-  ImageChunk,
-  ImageChunkLoader,
-  ImageChunkSource,
-} from "../data/image_chunk";
+import { Chunk, ChunkLoader, ChunkSource } from "../data/chunk";
 import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
 
 type SeriesAttributes = {
@@ -21,27 +17,27 @@ type LoadingToken = {
 export type SetIndexResult = {
   success: boolean;
   reason?: "duplicate" | "canceled";
-  chunk?: ImageChunk;
+  chunk?: Chunk;
 };
 
 type ImageSeriesLoaderProps = {
-  source: ImageChunkSource;
+  source: ChunkSource;
   region: Region;
   seriesDimensionName: string;
   lod?: number;
 };
 
 export class ImageSeriesLoader {
-  private readonly source_: ImageChunkSource;
+  private readonly source_: ChunkSource;
   private readonly region_: Region;
   private readonly seriesDimensionName_: string;
   private readonly seriesIndex_: Interval | Full;
   private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
   private readonly lod_?: number;
-  private loader_: ImageChunkLoader | null = null;
+  private loader_: ChunkLoader | null = null;
   private seriesAttributes_?: SeriesAttributes;
   private loadingToken_: LoadingToken | null = null;
-  public dataChunks_: ImageChunk[] = [];
+  public dataChunks_: Chunk[] = [];
 
   constructor(props: ImageSeriesLoaderProps) {
     this.source_ = props.source;

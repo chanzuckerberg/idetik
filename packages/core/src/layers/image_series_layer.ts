@@ -1,6 +1,6 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { Region } from "../data/region";
-import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
+import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -8,7 +8,7 @@ import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
 export type ImageSeriesLayerProps = LayerOptions & {
-  source: ImageChunkSource;
+  source: ChunkSource;
   region: Region;
   seriesDimensionName: string;
   channelProps?: ChannelProps[];
@@ -111,9 +111,9 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
     return result;
   }
 
-  private setData(chunk: ImageChunk) {
+  private setData(chunk: Chunk) {
     if (!this.texture_ || !this.image_) {
-      this.texture_ = Texture2DArray.createWithImageChunk(chunk);
+      this.texture_ = Texture2DArray.createWithChunk(chunk);
       this.image_ = this.createImage(chunk, this.texture_, this.channelProps_);
       this.addObject(this.image_);
 
@@ -128,7 +128,7 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   }
 
   private createImage(
-    chunk: ImageChunk,
+    chunk: Chunk,
     texture: Texture2DArray,
     channelProps?: ChannelProps[]
   ) {

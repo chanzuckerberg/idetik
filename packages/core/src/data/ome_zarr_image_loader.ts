@@ -2,11 +2,7 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "../data/region";
-import {
-  ImageChunk,
-  isImageChunkData,
-  LoaderAttributes,
-} from "../data/image_chunk";
+import { Chunk, isChunkData, LoaderAttributes } from "./chunk";
 import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
@@ -62,7 +58,7 @@ export class OmeZarrImageLoader {
     this.lods_ = this.metadata_.multiscales[0].datasets.length;
   }
 
-  public async loadChunkDataFromRegion(chunk: ImageChunk, region: Region) {
+  public async loadChunkDataFromRegion(chunk: Chunk, region: Region) {
     const attrs = this.getImageAttributes()[chunk.lod];
     const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
       kind: "array",
@@ -79,7 +75,7 @@ export class OmeZarrImageLoader {
     const subarray = await array.getChunk(chunkCoords);
 
     const data = subarray.data;
-    if (!isImageChunkData(data)) {
+    if (!isChunkData(data)) {
       throw new Error(
         `Subarray has an unsupported data type, data=${data.constructor.name}`
       );
@@ -98,7 +94,7 @@ export class OmeZarrImageLoader {
     region: Region,
     lod: number,
     scheduler?: PromiseScheduler
-  ): Promise<ImageChunk> {
+  ): Promise<Chunk> {
     if (lod >= this.lods_) {
       throw new Error(
         `Invalid LOD index: ${lod}. Only ${this.lods_} lod(s) available`
@@ -122,7 +118,7 @@ export class OmeZarrImageLoader {
     }
     const subarray = await zarr.get(array, indices, options);
 
-    if (!isImageChunkData(subarray.data)) {
+    if (!isChunkData(subarray.data)) {
       throw new Error(
         `Subarray has an unsupported data type, data=${subarray.data.constructor.name}`
       );
@@ -153,7 +149,7 @@ export class OmeZarrImageLoader {
     const xOffset = calculateOffset(indices.length - 1);
     const yOffset = calculateOffset(indices.length - 2);
 
-    const chunk: ImageChunk = {
+    const chunk: Chunk = {
       state: "loaded",
       lod: lod,
       visible: true,
@@ -226,7 +222,7 @@ export class OmeZarrImageLoader {
 
   private async getDimInfoMap(
     region: Region,
-    chunk: ImageChunk,
+    chunk: Chunk,
     attrs: ImageAttributes
   ) {
     const indices = this.regionToIndices(region, attrs);
