@@ -13,7 +13,7 @@ import { vec2, vec3 } from "gl-matrix";
 
 export interface PointPickingResult {
   world: vec3;
-  value: unknown | null;
+  value: number | null;
 }
 
 export type LabelImageLayerProps = LayerOptions & {
