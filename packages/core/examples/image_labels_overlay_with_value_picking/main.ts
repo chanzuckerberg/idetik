@@ -106,7 +106,7 @@ const labelsLayer = new LabelImageLayer({
     pickInfoDiv.innerHTML = `
       <strong>Pick Result:</strong><br/>
       World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
-      Value: ${value ?? "null"}<br/>
+      Label Value: ${value}<br/>
     `;
   },
 });
