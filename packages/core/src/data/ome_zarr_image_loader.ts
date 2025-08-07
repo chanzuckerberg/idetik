@@ -143,7 +143,11 @@ export class OmeZarrImageLoader {
 
     const calculateOffset = (i: number) => {
       const index = indices[i];
-      if (typeof index === "number" || index.start === null) return 0;
+      if (typeof index === "number") {
+        return index * scale[i] + translation[i];
+      } else if (index.start === null) {
+        return translation[i];
+      }
       return index.start * scale[i] + translation[i];
     };
     const xOffset = calculateOffset(indices.length - 1);
@@ -153,6 +157,7 @@ export class OmeZarrImageLoader {
       state: "loaded",
       lod: lod,
       visible: true,
+      prefetch: false,
       data: subarray.data,
       shape: {
         x: subarray.shape[subarray.shape.length - 1],
@@ -213,6 +218,7 @@ export class OmeZarrImageLoader {
           dimensionUnits: attr.dimensionUnits,
           shape: zarrArray.shape,
           scale: attr.scale,
+          translation: attr.translation,
         };
       })
     );
@@ -273,11 +279,11 @@ export class OmeZarrImageLoader {
         // null slice is the complete extent of a dimension like Python's `slice(None)`.
         index = zarr.slice(null);
       } else if (regionIndex.type === "point") {
-        index = Math.round(translation[i] + regionIndex.value / scale[i]);
+        index = Math.round((regionIndex.value - translation[i]) / scale[i]);
       } else {
         index = zarr.slice(
-          Math.floor(translation[i] + regionIndex.start / scale[i]),
-          Math.ceil(translation[i] + regionIndex.stop / scale[i])
+          Math.floor((regionIndex.start - translation[i]) / scale[i]),
+          Math.ceil((regionIndex.stop - translation[i]) / scale[i])
         );
       }
       indices.push(index);

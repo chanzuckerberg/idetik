@@ -36,6 +36,7 @@ export type ImageChunk = {
   state: "unloaded" | "loading" | "loaded";
   lod: number;
   visible: boolean;
+  prefetch: boolean;
   shape: {
     x: number;
     y: number;
@@ -68,6 +69,7 @@ export type LoaderAttributes = {
   dimensionUnits: (string | undefined)[];
   shape: readonly number[];
   scale: readonly number[];
+  translation: readonly number[];
 };
 
 export type ImageChunkLoader = {
