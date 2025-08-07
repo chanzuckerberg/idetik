@@ -9,6 +9,8 @@ uniform mediump sampler2DArray markerAtlas;
 in vec4 color;
 flat in uint marker;
 
+uniform float u_opacity;
+
 
 void main() {
     float alpha = texture(markerAtlas, vec3(gl_PointCoord, marker)).r;
@@ -16,6 +18,6 @@ void main() {
     if (alpha < alpha_threshold) {
         discard;
     }
-    fragColor = vec4(color.rgb, 1.0);
+    fragColor = vec4(color.rgb, u_opacity * alpha * color.a);
 }
 
