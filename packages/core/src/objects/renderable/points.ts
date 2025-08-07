@@ -37,6 +37,7 @@ export class Points extends RenderableObject {
       point.color.r,
       point.color.g,
       point.color.b,
+      point.color.a,
       point.size,
       point.markerIndex,
     ]);
@@ -49,7 +50,7 @@ export class Points extends RenderableObject {
     });
     geometry.addAttribute({
       type: "color",
-      itemSize: 3,
+      itemSize: 4,
       offset: geometry.stride,
     });
     geometry.addAttribute({
