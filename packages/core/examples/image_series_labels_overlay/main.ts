@@ -89,10 +89,6 @@ const labelsLayer = new LabelImageSeriesLayer({
   opacity: 0.25,
   blendMode: "normal",
   lod,
-  colorMap: {
-    lookupTable: new Map([[103, Color.GREEN]]),
-    cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
-  },
 });
 
 const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;
@@ -163,3 +159,24 @@ async function setLayerIndex(index: number) {
     tIndexEl!.textContent = `${index}`;
   }
 }
+
+document
+  .querySelector<HTMLButtonElement>("#color-cycle-default")!
+  .addEventListener("click", () => {
+    console.debug("Resetting color map to default");
+    labelsLayer.setColorMap({});
+  });
+document
+  .querySelector<HTMLButtonElement>("#color-cycle-cmy")!
+  .addEventListener("click", () => {
+    console.debug("Resetting color map to CMY cycle");
+    labelsLayer.setColorMap({
+      cycle: [Color.CYAN, Color.MAGENTA, Color.YELLOW],
+    });
+  });
+document
+  .querySelector<HTMLButtonElement>("#color-cycle-rgb")!
+  .addEventListener("click", () => {
+    console.debug("Resetting color map to RGB cycle");
+    labelsLayer.setColorMap({ cycle: [Color.RED, Color.GREEN, Color.BLUE] });
+  });

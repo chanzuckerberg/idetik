@@ -10,13 +10,24 @@ export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
   public wireframeColor = Color.WHITE;
   private readonly textures_: Texture[] = [];
+  private staleTextures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();
   private geometry_ = new Geometry();
   private wireframeGeometry_: WireframeGeometry | null = null;
   private programName_: Shader | null = null;
 
-  public addTexture(texture: Texture) {
-    this.textures_.push(texture);
+  public setTexture(index: number, texture: Texture) {
+    const oldTexture = this.textures_[index];
+    if (oldTexture !== undefined) {
+      this.staleTextures_.push(oldTexture);
+    }
+    this.textures_[index] = texture;
+  }
+
+  public popStaleTextures() {
+    const stale = this.staleTextures_;
+    this.staleTextures_ = [];
+    return stale;
   }
 
   public get geometry() {

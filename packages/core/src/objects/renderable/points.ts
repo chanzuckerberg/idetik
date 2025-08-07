@@ -65,7 +65,7 @@ export class Points extends RenderableObject {
     });
 
     this.geometry = geometry;
-    this.addTexture(this.atlas_);
+    this.setTexture(0, this.atlas_);
   }
 
   public get type() {

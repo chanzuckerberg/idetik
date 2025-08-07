@@ -97,10 +97,6 @@ const labelsLayer = new LabelImageLayer({
   opacity: 0.25,
   blendMode: "normal",
   lod,
-  colorMap: {
-    lookupTable: new Map([[103, Color.GREEN]]),
-    cycle: [Color.YELLOW, Color.MAGENTA, Color.CYAN],
-  },
   onPickValue: (info: PointPickingResult) => {
     const { world, value } = info;
     pickInfoDiv.innerHTML = `
@@ -108,14 +104,18 @@ const labelsLayer = new LabelImageLayer({
       World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
       Label Value: ${value}<br/>
     `;
+    if (typeof value !== "number") return;
+    console.debug(`Setting color for label ${value} to transparent`);
+    labelsLayer.setColorMap({
+      cycle: Array.from(labelsLayer.colorMap.cycle),
+      lookupTable: new Map([[value, Color.WHITE]]),
+    });
   },
 });
 
-const idetik = new Idetik({
+new Idetik({
   canvas,
   camera,
   layers: [imageLayer, labelsLayer],
   cameraControls: new PanZoomControls(camera),
-});
-
-idetik.start();
+}).start();

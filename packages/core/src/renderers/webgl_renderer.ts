@@ -87,6 +87,9 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(layer: Layer, objectIndex: number) {
     const object = layer.objects[objectIndex];
     this.bindings_.bindGeometry(object.geometry);
+    object.popStaleTextures().forEach((texture) => {
+      this.textures_.disposeTexture(texture);
+    });
     object.textures.forEach((texture, index) => {
       this.textures_.bindTexture(texture, index);
     });
