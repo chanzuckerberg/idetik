@@ -5,16 +5,17 @@ import pluginJs from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 export default [
-  { ignores: ["node_modules", "**/coverage", "**/dist"] },
-  pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
+  { files: ["**/*.{js,mjs,jsx,cjs,ts,tsx}"] },
+  { languageOptions: { globals: globals.browser } },
   {
-    files: ["**/*.{js,mjs,jsx,ts,tsx}"],
-    languageOptions: { globals: globals.browser },
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
-    },
+    }
+  },
+  pluginJs.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
     rules: {
       'no-duplicate-imports': 'error',
       '@typescript-eslint/no-unused-vars': [
@@ -40,14 +41,7 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
-    },
+    }
   },
-  {
-    files: ["**/*.cjs"],
-    languageOptions: { globals: globals.node },
-    rules: {
-      "@typescript-eslint/no-require-imports": "off",
-      "@typescript-eslint/no-var-requires": "off",
-    },
-  },
+  { ignores: ["node_modules", "**/coverage", "**/dist"] },
 ];
