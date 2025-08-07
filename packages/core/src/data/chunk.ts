@@ -1,8 +1,8 @@
-import { Region } from "../data/region";
+import { Region } from "./region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-const imageChunkDataTypes = [
+const chunkDataTypes = [
   Int8Array,
   Int16Array,
   Int32Array,
@@ -11,28 +11,21 @@ const imageChunkDataTypes = [
   Uint32Array,
   Float32Array,
 ] as const;
-type ImageChunkData = InstanceType<(typeof imageChunkDataTypes)[number]>;
+type ChunkData = InstanceType<(typeof chunkDataTypes)[number]>;
 
-export function isImageChunkData(value: unknown): value is ImageChunkData {
-  if (
-    imageChunkDataTypes.some(
-      (ImageChunkData) => value instanceof ImageChunkData
-    )
-  ) {
+export function isChunkData(value: unknown): value is ChunkData {
+  if (chunkDataTypes.some((ChunkData) => value instanceof ChunkData)) {
     return true;
   }
-  const supportedDataTypeNames = imageChunkDataTypes.map((dtype) => dtype.name);
+  const supportedDataTypeNames = chunkDataTypes.map((dtype) => dtype.name);
   console.debug(
-    `Unsupported image chunk data type: ${value}. Supported data types: ${supportedDataTypeNames}`
+    `Unsupported chunk data type: ${value}. Supported data types: ${supportedDataTypeNames}`
   );
   return false;
 }
 
-// One 2D chunk of n-dimensional image data.
-// TODO: include the region of this chunk.
-// https://github.com/chanzuckerberg/idetik/issues/34
-export type ImageChunk = {
-  data?: ImageChunkData;
+export type Chunk = {
+  data?: ChunkData;
   state: "unloaded" | "loading" | "loaded";
   lod: number;
   visible: boolean;
@@ -58,11 +51,10 @@ export type ImageChunk = {
   };
 };
 
-export type ImageChunkSource = {
-  open(): Promise<ImageChunkLoader>;
+export type ChunkSource = {
+  open(): Promise<ChunkLoader>;
 };
 
-// TODO: we should make this more comprehensive, such as for multiscale images, etc.
 export type LoaderAttributes = {
   chunks: readonly number[];
   dimensionNames: string[];
@@ -72,14 +64,14 @@ export type LoaderAttributes = {
   translation: readonly number[];
 };
 
-export type ImageChunkLoader = {
+export type ChunkLoader = {
   loadRegion(
     input: Region,
     lod: number,
     scheduler?: PromiseScheduler
-  ): Promise<ImageChunk>;
+  ): Promise<Chunk>;
 
-  loadChunkDataFromRegion(chunk: ImageChunk, region: Region): Promise<void>;
+  loadChunkDataFromRegion(chunk: Chunk, region: Region): Promise<void>;
 
   loadAttributes(): Promise<LoaderAttributes[]>;
 };

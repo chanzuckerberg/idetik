@@ -1,6 +1,6 @@
 import { Idetik } from "../../src/idetik";
 import { ImageLayer } from "../../src/layers/image_layer";
-import { ImageChunk } from "../../src/data/image_chunk";
+import { Chunk } from "../../src/data/chunk";
 
 export interface ChunkInfoOverlayOptions {
   textDiv: HTMLDivElement;
@@ -36,7 +36,7 @@ export class ChunkInfoOverlay {
 
     let loadedChunks = 0;
     let loadingChunks = 0;
-    allChunks.forEach((chunk: ImageChunk) => {
+    allChunks.forEach((chunk: Chunk) => {
       if (chunk.state === "loaded") {
         loadedChunks++;
       } else if (chunk.state === "loading") {
@@ -54,7 +54,7 @@ export class ChunkInfoOverlay {
       prefetched: 0,
     }));
 
-    allChunks.forEach((chunk: ImageChunk) => {
+    allChunks.forEach((chunk: Chunk) => {
       if (chunk.visible) lodCounters[chunk.lod].visible++;
       // Prefetched chunks are only counted for the current LOD,
       // since higher/lower LODs are not actively rendered.
@@ -63,7 +63,7 @@ export class ChunkInfoOverlay {
       }
     });
 
-    renderedChunks.forEach((chunk: ImageChunk) => {
+    renderedChunks.forEach((chunk: Chunk) => {
       lodCounters[chunk.lod].rendered++;
     });
 

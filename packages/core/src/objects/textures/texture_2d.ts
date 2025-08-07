@@ -3,7 +3,7 @@ import {
   Texture,
   bufferToDataType,
 } from "../../objects/textures/texture";
-import { ImageChunk } from "../../data/image_chunk";
+import { Chunk } from "../../data/chunk";
 
 export class Texture2D extends Texture {
   private data_: DataTextureTypedArray;
@@ -41,7 +41,7 @@ export class Texture2D extends Texture {
     return this.height_;
   }
 
-  public static createWithImageChunk(chunk: ImageChunk) {
+  public static createWithChunk(chunk: Chunk) {
     if (!chunk.data) {
       throw new Error(
         "Unabled to create texture, chunk data is not initialized."

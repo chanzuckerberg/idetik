@@ -15,13 +15,13 @@ function isEventType(type: string): type is EventType {
 }
 
 export class EventContext {
-  readonly type: EventType;
-  readonly event: Event;
   private propagationStopped_: boolean = false;
+  public readonly type: EventType;
+  public readonly event?: Event;
   public worldPos?: vec3;
   public clipPos?: vec3;
 
-  constructor(type: EventType, event: Event) {
+  constructor(type: EventType, event?: Event) {
     this.type = type;
     this.event = event;
   }

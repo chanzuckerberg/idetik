@@ -1,7 +1,7 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
-import { ImageChunk, ImageChunkSource } from "../data/image_chunk";
+import { Chunk, ChunkSource } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -11,7 +11,7 @@ import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 
 export type ImageLayerProps = LayerOptions & {
-  source: ImageChunkSource;
+  source: ChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
 };
@@ -20,14 +20,14 @@ export type ImageLayerProps = LayerOptions & {
 export class ImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageLayer";
 
-  private readonly source_: ImageChunkSource;
+  private readonly source_: ChunkSource;
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
   private readonly useChunkManager_: boolean;
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: Array<() => void> = [];
-  private readonly visibleChunks_: Map<ImageChunk, ImageRenderable> = new Map();
+  private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
   private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
@@ -189,12 +189,12 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     return this.chunkManagerSource_;
   }
 
-  private createImage(chunk: ImageChunk, channelProps?: ChannelProps[]) {
+  private createImage(chunk: Chunk, channelProps?: ChannelProps[]) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
     const image = new ImageRenderable(
       geometry,
-      Texture2DArray.createWithImageChunk(chunk),
+      Texture2DArray.createWithChunk(chunk),
       channelProps
     );
 

@@ -1,9 +1,9 @@
 import {
-  ImageChunk,
-  ImageChunkLoader,
-  ImageChunkSource,
+  Chunk,
+  ChunkLoader,
+  ChunkSource,
   LoaderAttributes,
-} from "../data/image_chunk";
+} from "../data/chunk";
 import { Region } from "../data/region";
 import { Camera } from "../objects/cameras/camera";
 import { vec2, vec4, mat4 } from "gl-matrix";
@@ -17,7 +17,7 @@ type Bounds = { min: vec2; max: vec2 };
 const PREFETCH_PADDING_CHUNKS = 1;
 
 export class ChunkManagerSource {
-  private readonly chunks_: ImageChunk[];
+  private readonly chunks_: Chunk[];
   private readonly loader_;
   private readonly region_;
   private readonly attrs_: LoaderAttributes[];
@@ -28,11 +28,7 @@ export class ChunkManagerSource {
   private readonly channelIdx_: number;
   private lastVisibleBounds_: Bounds | null = null;
 
-  constructor(
-    loader: ImageChunkLoader,
-    attrs: LoaderAttributes[],
-    region: Region
-  ) {
+  constructor(loader: ChunkLoader, attrs: LoaderAttributes[], region: Region) {
     this.loader_ = loader;
     this.region_ = region;
     this.attrs_ = attrs;
@@ -102,7 +98,7 @@ export class ChunkManagerSource {
     }
   }
 
-  public getChunks(): ImageChunk[] {
+  public getChunks(): Chunk[] {
     const currentLODChunks = this.chunks_.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
@@ -137,7 +133,7 @@ export class ChunkManagerSource {
     return this.lowestResLOD_ + 1;
   }
 
-  public get chunks(): ImageChunk[] {
+  public get chunks(): Chunk[] {
     return this.chunks_;
   }
 
@@ -167,7 +163,7 @@ export class ChunkManagerSource {
     }
   }
 
-  private loadChunkData(chunk: ImageChunk): void {
+  private loadChunkData(chunk: Chunk): void {
     chunk.state = "loading";
     this.loader_
       .loadChunkDataFromRegion(chunk, this.region_)
@@ -234,7 +230,7 @@ export class ChunkManagerSource {
     }
   }
 
-  private isChunkWithinBounds(chunk: ImageChunk, bounds: Bounds): boolean {
+  private isChunkWithinBounds(chunk: Chunk, bounds: Bounds): boolean {
     const boundsMinX = bounds.min[0];
     const boundsMaxX = bounds.max[0];
     const boundsMinY = bounds.min[1];
@@ -290,9 +286,9 @@ export class ChunkManagerSource {
 }
 
 export class ChunkManager {
-  private readonly sources_ = new Map<ImageChunkSource, ChunkManagerSource>();
+  private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
 
-  public async addSource(source: ImageChunkSource, region: Region) {
+  public async addSource(source: ChunkSource, region: Region) {
     let existing = this.sources_.get(source);
     if (!existing) {
       const loader = await source.open();
