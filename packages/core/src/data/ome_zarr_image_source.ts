@@ -1,8 +1,8 @@
-import { Location, open as zarritaOpen } from "@zarrita/core";
-import FetchStore from "@zarrita/storage/fetch";
-import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
+import { Location } from "@zarrita/core";
+import { FetchStore, Readable } from "@zarrita/storage";
+import { openGroup } from "./zarrita/open";
 import WebFileSystemStore from "./zarrita/web_file_system_store";
-import { Readable } from "@zarrita/storage";
+import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
@@ -27,7 +27,7 @@ export class OmeZarrImageSource {
   }
 
   async open(): Promise<OmeZarrImageLoader> {
-    const root = await zarritaOpen.v2(this.location, { kind: "group" });
+    const root = await openGroup(this.location);
     return new OmeZarrImageLoader(root);
   }
 }

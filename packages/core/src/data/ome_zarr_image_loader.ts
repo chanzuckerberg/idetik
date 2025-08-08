@@ -6,12 +6,17 @@ import { Chunk, isChunkData, LoaderAttributes } from "./chunk";
 import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-import { Image as OmeNgffImage } from "../data/ome_ngff/0.4/image";
+import { Image as OmeNgffImage } from "../data/ome_ngff/0.5/image";
 
 import { Readable } from "@zarrita/storage";
+import {
+  Version as OmeZarrVersion,
+  parseOmeNgffImage,
+} from "./ome_zarr_hcs_metadata_loader";
+import { openArray } from "./zarrita/open";
 
 type ImageAttributes = {
-  image: OmeNgffImage["multiscales"][number];
+  image: OmeNgffImage["ome"]["multiscales"][number];
   dimensionNames: string[];
   dimensionUnits: (string | undefined)[];
   datasetPath: string;
@@ -42,12 +47,15 @@ export class PromiseQueue<T> {
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
   private readonly root_: zarr.Group<Readable>;
-  private readonly metadata_: OmeNgffImage;
+  private readonly metadata_: OmeNgffImage["ome"];
+  private readonly omeVersion_: OmeZarrVersion;
   private readonly lods_: number;
 
   constructor(root: zarr.Group<Readable>) {
     this.root_ = root;
-    this.metadata_ = OmeNgffImage.parse(this.root_.attrs);
+    const adaptedOmeImage = parseOmeNgffImage(this.root_.attrs);
+    this.metadata_ = adaptedOmeImage;
+    this.omeVersion_ = adaptedOmeImage.originalVersion;
     if (this.metadata_.multiscales.length !== 1) {
       throw new Error(
         `Can only handle one multiscale image. Found ${this.metadata_.multiscales.length}`
@@ -59,10 +67,7 @@ export class OmeZarrImageLoader {
 
   public async loadChunkDataFromRegion(chunk: Chunk, region: Region) {
     const attrs = this.getImageAttributes()[chunk.lod];
-    const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
-      kind: "array",
-      attrs: false,
-    });
+    const array = await this.openArray(attrs.datasetPath);
 
     const dimInfo = await this.getDimInfoMap(region, chunk, attrs);
     if (!dimInfo.has("x") || !dimInfo.has("y")) {
@@ -89,6 +94,11 @@ export class OmeZarrImageLoader {
     chunk.data = data.slice(zOffset, zOffset + sliceSize);
   }
 
+  private async openArray(path: string) {
+    const zarrVersion = this.omeVersion_ === "0.4" ? "v2" : "v3";
+    return openArray(this.root_.resolve(path), zarrVersion);
+  }
+
   async loadRegion(
     region: Region,
     lod: number,
@@ -104,10 +114,8 @@ export class OmeZarrImageLoader {
     const indices = this.regionToIndices(region, attributes);
     const { datasetPath, scale, translation } = attributes;
 
-    const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
-      kind: "array",
-      attrs: false,
-    });
+    const array = await this.openArray(datasetPath);
+
     let options = {};
     if (scheduler !== undefined) {
       options = {
@@ -200,13 +208,7 @@ export class OmeZarrImageLoader {
   public async loadAttributes(): Promise<LoaderAttributes[]> {
     return await Promise.all(
       this.getImageAttributes().map(async (attr) => {
-        const zarrArray = await zarr.open.v2(
-          this.root_.resolve(attr.datasetPath),
-          {
-            kind: "array",
-            attrs: false,
-          }
-        );
+        const zarrArray = await this.openArray(attr.datasetPath);
         return {
           chunks: zarrArray.chunks,
           dimensionNames: attr.dimensionNames,
@@ -225,10 +227,7 @@ export class OmeZarrImageLoader {
     attrs: ImageAttributes
   ) {
     const indices = this.regionToIndices(region, attrs);
-    const array = await zarr.open.v2(this.root_.resolve(attrs.datasetPath), {
-      kind: "array",
-      attrs: false,
-    });
+    const array = await this.openArray(attrs.datasetPath);
 
     const output = new Map();
     region.forEach((entry, dimIdx) => {
