@@ -101,6 +101,16 @@ export const Image = z
                     type: z.literal("translation"),
                     translation: z.array(z.number()).min(2),
                   }),
+                  // The JSON schema and my reading of the spec is that while
+                  // identity is a valid transformation, it cannot be used here.
+                  // However, some writers write it (e.g iohub), and it has no
+                  // effect on the overall transformation, so we manually added
+                  // after generation from the schema.
+                  // See the following PR for more context:
+                  // https://github.com/ome/ngff/pull/152
+                  z.object({
+                    type: z.literal("identity"),
+                  }),
                 ];
                 const errors = schemas.reduce<z.ZodError[]>(
                   (errors, schema) =>
