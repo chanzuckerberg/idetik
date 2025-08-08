@@ -152,6 +152,19 @@ export const Image = z
             active: z.boolean().optional(),
           })
         ),
+        // The rdefs are not in the JSON schema and are not particularly well
+        // described by the specification, but are written by some tools
+        // (e.g. iohub), so we manually add them.
+        // See the OMERO docs for more information:
+        // https://docs.openmicroscopy.org/omero/5.6.1/developers/Web/WebGateway.html#rendering-settings
+        rdefs: z
+          .object({
+            defaultT: z.number().optional(),
+            defaultZ: z.number().optional(),
+            color: z.enum(["color", "greyscale"]).optional(),
+            projection: z.string().optional(),
+          })
+          .optional(),
       })
       .optional(),
   })

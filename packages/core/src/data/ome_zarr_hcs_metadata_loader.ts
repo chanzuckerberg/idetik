@@ -36,6 +36,6 @@ export async function loadOmeroDefaultZ(
   source: OmeZarrImageSource
 ): Promise<number> {
   const group = await zarr.open.v2(source.location, { kind: "group" });
-  // @ts-expect-error rdefs is not in the provided schema
-  return group.attrs?.omero?.rdefs?.defaultZ ?? 0;
+  const metadata = Image.parse(group.attrs);
+  return metadata.omero?.rdefs?.defaultZ ?? 0;
 }
