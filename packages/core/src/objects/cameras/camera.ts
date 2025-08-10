@@ -1,6 +1,8 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { mat4, vec3, vec4 } from "gl-matrix";
 
+export type CameraType = "Orthographic" | "Perspective";
+
 export abstract class Camera extends RenderableObject {
   protected projectionMatrix_ = mat4.create();
   protected near_ = 0;
@@ -8,9 +10,7 @@ export abstract class Camera extends RenderableObject {
 
   protected abstract updateProjectionMatrix(): void;
 
-  public get type() {
-    return "Camera";
-  }
+  public abstract get type(): CameraType;
 
   public update() {
     this.updateProjectionMatrix();

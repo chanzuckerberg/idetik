@@ -5,12 +5,11 @@ import {
   LoaderAttributes,
 } from "../data/chunk";
 import { Region } from "../data/region";
-import { Camera } from "../objects/cameras/camera";
-import { vec2, vec4, mat4 } from "gl-matrix";
+import { vec2 } from "gl-matrix";
+import { Box2 } from "../math/box2";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
-
-type Bounds = { min: vec2; max: vec2 };
+import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -26,7 +25,7 @@ export class ChunkManagerSource {
   private readonly xIdx_: number;
   private readonly yIdx_: number;
   private readonly channelIdx_: number;
-  private lastVisibleBounds_: Bounds | null = null;
+  private lastVisibleBounds_: Box2 | null = null;
 
   constructor(loader: ChunkLoader, attrs: LoaderAttributes[], region: Region) {
     this.loader_ = loader;
@@ -121,7 +120,7 @@ export class ChunkManagerSource {
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  public update(lodFactor: number, visibleBounds: Bounds) {
+  public update(lodFactor: number, visibleBounds: Box2) {
     this.setLOD(lodFactor);
     if (this.visibleBoundsChanged(visibleBounds)) {
       this.updateChunkVisibility(visibleBounds);
@@ -195,7 +194,7 @@ export class ChunkManagerSource {
     }
   }
 
-  private updateChunkVisibility(visibleBounds: Bounds): void {
+  private updateChunkVisibility(visibleBounds: Box2): void {
     if (this.chunks_.length === 0) {
       Logger.warn(
         "ChunkManager",
@@ -230,26 +229,18 @@ export class ChunkManagerSource {
     }
   }
 
-  private isChunkWithinBounds(chunk: Chunk, bounds: Bounds): boolean {
-    const boundsMinX = bounds.min[0];
-    const boundsMaxX = bounds.max[0];
-    const boundsMinY = bounds.min[1];
-    const boundsMaxY = bounds.max[1];
-
-    const minX = chunk.offset.x;
-    const maxX = minX + chunk.shape.x * chunk.scale.x;
-    const minY = chunk.offset.y;
-    const maxY = minY + chunk.shape.y * chunk.scale.y;
-
-    return (
-      minX <= boundsMaxX &&
-      maxX >= boundsMinX &&
-      minY <= boundsMaxY &&
-      maxY >= boundsMinY
+  private isChunkWithinBounds(chunk: Chunk, bounds: Box2): boolean {
+    const chunkBounds = new Box2(
+      vec2.fromValues(chunk.offset.x, chunk.offset.y),
+      vec2.fromValues(
+        chunk.offset.x + chunk.shape.x * chunk.scale.x,
+        chunk.offset.y + chunk.shape.y * chunk.scale.y
+      )
     );
+    return Box2.intersects(chunkBounds, bounds);
   }
 
-  private visibleBoundsChanged(newBounds: Bounds): boolean {
+  private visibleBoundsChanged(newBounds: Box2): boolean {
     const prev = this.lastVisibleBounds_;
     const changed =
       prev === null ||
@@ -257,16 +248,16 @@ export class ChunkManagerSource {
       !vec2.equals(prev.max, newBounds.max);
 
     if (changed) {
-      this.lastVisibleBounds_ = {
-        min: vec2.clone(newBounds.min),
-        max: vec2.clone(newBounds.max),
-      };
+      this.lastVisibleBounds_ = new Box2(
+        vec2.clone(newBounds.min),
+        vec2.clone(newBounds.max)
+      );
     }
 
     return changed;
   }
 
-  private getPaddedBounds(bounds: Bounds): Bounds {
+  private getPaddedBounds(bounds: Box2): Box2 {
     const chunkWidth =
       this.attrs_[this.currentLOD_].chunks[this.xIdx_] *
       this.attrs_[this.currentLOD_].scale[this.xIdx_];
@@ -278,10 +269,10 @@ export class ChunkManagerSource {
     const padX = chunkWidth * PREFETCH_PADDING_CHUNKS;
     const padY = chunkHeight * PREFETCH_PADDING_CHUNKS;
 
-    return {
-      min: vec2.fromValues(bounds.min[0] - padX, bounds.min[1] - padY),
-      max: vec2.fromValues(bounds.max[0] + padX, bounds.max[1] + padY),
-    };
+    return new Box2(
+      vec2.fromValues(bounds.min[0] - padX, bounds.min[1] - padY),
+      vec2.fromValues(bounds.max[0] + padX, bounds.max[1] + padY)
+    );
   }
 }
 
@@ -299,34 +290,18 @@ export class ChunkManager {
     return existing;
   }
 
-  public update(camera: Camera, _bufferWidth: number, _bufferHeight: number) {
-    const visibleBounds = this.computeVisibleBounds(camera);
+  public update(camera: OrthographicCamera, bufferWidth: number) {
+    if (camera.type !== "Orthographic") {
+      throw new Error("");
+    }
+
+    const visibleBounds = camera.getWorldViewRect2D();
     const virtualWidth = Math.abs(visibleBounds.max[0] - visibleBounds.min[0]);
-    const virtualUnitsPerScreenPixel = virtualWidth / _bufferWidth;
+    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     for (const [_, chunkManagerSource] of this.sources_) {
       chunkManagerSource.update(lodFactor, visibleBounds);
     }
-  }
-
-  private computeVisibleBounds(camera: Camera): Bounds {
-    let topLeft = vec4.fromValues(-1.0, -1.0, 0.0, 1.0);
-    let bottomRight = vec4.fromValues(1.0, 1.0, 0.0, 1.0);
-
-    const viewProjection = mat4.multiply(
-      mat4.create(),
-      camera.projectionMatrix,
-      camera.viewMatrix
-    );
-
-    const inv = mat4.invert(mat4.create(), viewProjection);
-    topLeft = vec4.transformMat4(vec4.create(), topLeft, inv);
-    bottomRight = vec4.transformMat4(vec4.create(), bottomRight, inv);
-
-    return {
-      min: vec2.fromValues(topLeft[0], topLeft[1]),
-      max: vec2.fromValues(bottomRight[0], bottomRight[1]),
-    };
   }
 }

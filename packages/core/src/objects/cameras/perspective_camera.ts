@@ -1,4 +1,4 @@
-import { Camera } from "./camera";
+import { Camera, CameraType } from "./camera";
 import { glMatrix, mat4, vec3 } from "gl-matrix";
 
 const DEFAULT_FOV = 60; // degrees
@@ -48,8 +48,8 @@ export class PerspectiveCamera extends Camera {
     this.updateProjectionMatrix();
   }
 
-  public get type() {
-    return "PerspectiveCamera";
+  public get type(): CameraType {
+    return "Perspective";
   }
 
   public get fov() {

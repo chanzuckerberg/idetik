@@ -19,7 +19,7 @@ export class ScaleBar {
 
   public update(idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
     const camera = idetik.camera;
-    if (camera.type !== "OrthographicCamera") {
+    if (camera.type !== "Orthographic") {
       console.error("ScaleBar can only be used with OrthographicCamera");
       return;
     }

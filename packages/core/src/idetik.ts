@@ -7,6 +7,7 @@ import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
 import { vec2, vec3 } from "gl-matrix";
+import { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
@@ -124,11 +125,19 @@ export class Idetik {
         );
         return;
       }
-      this.chunkManager_.update(
-        this.camera,
-        this.renderer_.width,
-        this.renderer_.height
-      );
+
+      if (this.camera.type === "Orthographic") {
+        this.chunkManager_.update(
+          this.camera as OrthographicCamera,
+          this.renderer_.width
+        );
+      } else {
+        throw new Error(
+          "ChunkManager currently supports only orthographic cameras. " +
+            "Update the implementation before using a perspective camera."
+        );
+      }
+
       // Must resize before render b/c changing canvas coordinate space clears it.
       if (this.needsResize_) {
         this.renderer_.updateSize();
