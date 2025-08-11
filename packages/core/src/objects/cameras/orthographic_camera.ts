@@ -49,7 +49,7 @@ export class OrthographicCamera extends Camera {
   }
 
   public get type(): CameraType {
-    return "Orthographic";
+    return "OrthographicCamera";
   }
 
   public zoom(factor: number) {

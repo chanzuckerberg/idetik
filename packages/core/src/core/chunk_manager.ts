@@ -291,8 +291,11 @@ export class ChunkManager {
   }
 
   public update(camera: OrthographicCamera, bufferWidth: number) {
-    if (camera.type !== "Orthographic") {
-      throw new Error("");
+    if (camera.type !== "OrthographicCamera") {
+      throw new Error(
+        "ChunkManager currently supports only orthographic cameras. " +
+          "Update the implementation before using a perspective camera."
+      );
     }
 
     const visibleBounds = camera.getWorldViewRect2D();

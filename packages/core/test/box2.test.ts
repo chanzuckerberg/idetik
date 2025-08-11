@@ -13,7 +13,7 @@ test("non-empty when min <= max on both axes", () => {
   expect(b.isEmpty()).toBe(false);
 });
 
-test("isEmtpy detects inverted bounds", () => {
+test("isEmpty detects inverted bounds", () => {
   const b = new Box2(vec2.fromValues(1, 1), vec2.fromValues(0, 0));
   expect(b.isEmpty()).toBe(true);
 });
@@ -40,7 +40,7 @@ test("intersects: touching edges count as intersecting", () => {
   expect(Box2.intersects(a, c)).toBe(true);
 });
 
-test("intersects: empty boxes never intersect", () => {
+test("intersects: empty and non-empty box do not intersect", () => {
   const a = new Box2(); // empty
   const b = new Box2(vec2.fromValues(0, 0), vec2.fromValues(1, 1));
   expect(a.isEmpty()).toBe(true);

@@ -4,6 +4,13 @@ export class Box2 {
   public min: vec2;
   public max: vec2;
 
+  /**
+   * Initializes as an empty box if no values are provided using the
+   * "empty-by-sentinel" pattern: min = +Infinity, max = -Infinity.
+   * This allows expansion functions to work without special-casing
+   * the first element, and avoids biasing toward (0,0). This pattern
+   * is common in geometry/math libraries.
+   */
   constructor(min?: vec2, max?: vec2) {
     this.min = min ? vec2.clone(min) : vec2.fromValues(+Infinity, +Infinity);
     this.max = max ? vec2.clone(max) : vec2.fromValues(-Infinity, -Infinity);

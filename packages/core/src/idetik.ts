@@ -126,17 +126,10 @@ export class Idetik {
         return;
       }
 
-      if (this.camera.type === "Orthographic") {
-        this.chunkManager_.update(
-          this.camera as OrthographicCamera,
-          this.renderer_.width
-        );
-      } else {
-        throw new Error(
-          "ChunkManager currently supports only orthographic cameras. " +
-            "Update the implementation before using a perspective camera."
-        );
-      }
+      this.chunkManager_.update(
+        this.camera as OrthographicCamera,
+        this.renderer_.width
+      );
 
       // Must resize before render b/c changing canvas coordinate space clears it.
       if (this.needsResize_) {

@@ -49,7 +49,7 @@ export class PerspectiveCamera extends Camera {
   }
 
   public get type(): CameraType {
-    return "Perspective";
+    return "PerspectiveCamera";
   }
 
   public get fov() {
