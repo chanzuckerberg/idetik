@@ -10,11 +10,8 @@ import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
-import { vec3 } from "gl-matrix";
-import {
-  handlePointPickingEvent,
-  PointPickingState,
-} from "../utilities/point_picking";
+import { vec2, vec3 } from "gl-matrix";
+import { handlePointPickingEvent } from "../utilities/point_picking";
 
 export interface ImagePointPickingResult {
   world: vec3;
@@ -45,10 +42,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
-  private readonly pointPickingState_: PointPickingState = {
-    pointerDownPos: null,
-    dragThreshold: 3,
-  };
+  private pointerDownPos_: vec2 | null = null;
+  private readonly dragThreshold_ = 3;
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
@@ -152,9 +147,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   public onEvent(event: EventContext) {
     if (!this.onPickValue_) return;
 
-    handlePointPickingEvent(
+    this.pointerDownPos_ = handlePointPickingEvent(
       event,
-      this.pointPickingState_,
+      this.pointerDownPos_,
+      this.dragThreshold_,
       (world) => this.getValueAtWorld(world),
       (info) => this.onPickValue_!(info)
     );
