@@ -10,7 +10,11 @@ import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
-import { vec2, vec3 } from "gl-matrix";
+import { vec3 } from "gl-matrix";
+import {
+  handlePointPickingEvent,
+  PointPickingState,
+} from "../utilities/point_picking";
 
 export interface ImagePointPickingResult {
   world: vec3;
@@ -41,8 +45,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
-  private pointerDownPos_: vec2 | null = null;
-  private readonly dragThreshold_ = 3;
+  private readonly pointPickingState_: PointPickingState = {
+    pointerDownPos: null,
+    dragThreshold: 3,
+  };
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
@@ -145,38 +151,13 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
   public onEvent(event: EventContext) {
     if (!this.onPickValue_) return;
-    switch (event.type) {
-      case "pointerdown": {
-        const e = event.event as PointerEvent;
-        this.pointerDownPos_ = vec2.fromValues(e.clientX, e.clientY);
-        break;
-      }
 
-      case "pointerup": {
-        if (!this.pointerDownPos_) break;
-
-        const e = event.event as PointerEvent;
-        const pointerUpPos = vec2.fromValues(e.clientX, e.clientY);
-        const dist = vec2.distance(this.pointerDownPos_, pointerUpPos);
-
-        if (dist < this.dragThreshold_) {
-          this.pointerDownPos_ = null;
-          const world = event.worldPos;
-          if (!world) return;
-          const value = this.getValueAtWorld(world);
-
-          if (value !== null) {
-            this.onPickValue_({ world, value });
-          }
-        }
-        break;
-      }
-
-      case "pointercancel": {
-        this.pointerDownPos_ = null;
-        break;
-      }
-    }
+    handlePointPickingEvent(
+      event,
+      this.pointPickingState_,
+      (world) => this.getValueAtWorld(world),
+      (info) => this.onPickValue_!(info)
+    );
   }
 
   public get channelProps(): ChannelProps[] | undefined {
