@@ -145,7 +145,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
   public onEvent(event: EventContext) {
     if (!this.onPickValue_) return;
-    // console.log("onEvent", event);
     switch (event.type) {
       case "pointerdown": {
         const e = event.event as PointerEvent;
@@ -263,7 +262,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     // Iterate through all visible chunks to find the one containing the world position
     for (const [chunk, image] of this.visibleChunks_) {
       if (!chunk.data) continue;
-
       const localPos = vec3.transformMat4(
         vec3.create(),
         world,
@@ -278,8 +276,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
         const pixelIndex = y * chunk.rowStride + x;
         const data = chunk.data;
 
-        // For multi-channel images, take the first channel value (planar format)
-        // In planar format: RRR...GGG...BBB... so first channel data comes first
+        // For multi-channel images, take the first channel value
         return data[pixelIndex];
       }
     }

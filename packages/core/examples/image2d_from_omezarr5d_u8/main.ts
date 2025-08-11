@@ -47,7 +47,6 @@ const channelProps: ChannelProps[] = [
   },
 ];
 
-// Get the info div for displaying pick results
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
 
 const onPickValue = (info: ImagePointPickingResult) => {
@@ -57,10 +56,6 @@ const onPickValue = (info: ImagePointPickingResult) => {
     World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
     Pixel Value: ${value}<br/>
   `;
-  console.log(
-    `Picked value at world position [${world[0].toFixed(2)}, ${world[1].toFixed(2)}]:`,
-    value
-  );
 };
 
 const layer = new ImageLayer({ source, region, channelProps, onPickValue });
