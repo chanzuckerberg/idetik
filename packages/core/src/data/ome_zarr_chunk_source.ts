@@ -63,6 +63,7 @@ export class OmeZarrChunkSource {
     return this.dimensions_;
   }
 
+  // This is similar to OmeZarrImageLoader.loadChunk
   public async loadMetaChunk(camera: VirtualCamera2D) {
     const lod = camera.lod ?? 0;
     const array = await openZarr.v2(
@@ -127,6 +128,8 @@ export class OmeZarrChunkSource {
     return chunks;
   }
 
+
+  // This is similar to OmeZarrImageLoader.loadChunkDataFromRegion
   public async loadChunkData(chunk: Chunk, camera: VirtualCamera2D) {
     const lod = chunk.lod;
     const dataset = this.datasets_[lod];
