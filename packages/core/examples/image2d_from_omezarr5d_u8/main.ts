@@ -6,6 +6,7 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
+  ImagePointPickingResult,
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
@@ -45,7 +46,24 @@ const channelProps: ChannelProps[] = [
     contrastLimits: [0, 200],
   },
 ];
-const layer = new ImageLayer({ source, region, channelProps });
+
+// Get the info div for displaying pick results
+const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
+
+const onPickValue = (info: ImagePointPickingResult) => {
+  const { world, value } = info;
+  pickInfoDiv.innerHTML = `
+    <strong>Pick Result:</strong><br/>
+    World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
+    Pixel Value: ${value}<br/>
+  `;
+  console.log(
+    `Picked value at world position [${world[0].toFixed(2)}, ${world[1].toFixed(2)}]:`,
+    value
+  );
+};
+
+const layer = new ImageLayer({ source, region, channelProps, onPickValue });
 const axes = new AxesLayer({
   length: 0.75 * xInfo.scale * xInfo.size,
   width: 0.01,
