@@ -87,7 +87,7 @@ class ScaleBarOverlay {
     if (textDiv === null) return;
 
     const camera = idetik.camera;
-    if (camera.type !== "Orthographic") {
+    if (camera.type !== "OrthographicCamera") {
       console.error("ScaleBar can only be used with OrthographicCamera");
       return;
     }
