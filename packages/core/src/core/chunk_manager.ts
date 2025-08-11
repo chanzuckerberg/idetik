@@ -24,6 +24,7 @@ export class ChunkManagerSource {
   private currentLOD_: number = 0;
   private readonly xIdx_: number;
   private readonly yIdx_: number;
+  private readonly zIdx_: number;
   private readonly channelIdx_: number;
   private lastVisibleBounds_: Box2 | null = null;
 
@@ -40,58 +41,71 @@ export class ChunkManagerSource {
     this.yIdx_ = region.findIndex(
       (entry) => entry.dimension.toLocaleLowerCase() === "y"
     );
-    if (this.xIdx_ === -1 || this.yIdx_ === -1) {
-      throw new Error("Missing required spatial axis x/y");
-    }
-    this.validateScaleRatios(this.xIdx_, this.yIdx_);
-    let channelIdx = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "c"
+    this.zIdx_ = region.findIndex(
+      (entry) => entry.dimension.toLocaleLowerCase() === "z"
     );
-    if (channelIdx === -1) {
-      channelIdx = 0;
+    this.channelIdx_ = region.findIndex(
+      (entry) => entry.dimension.toLocaleLowerCase() === "c"
+    );
+
+    if (this.xIdx_ === -1 || this.yIdx_ === -1 || this.zIdx_ === -1) {
+      throw new Error("Missing required spatial axis x/y/z");
     }
-    this.channelIdx_ = channelIdx;
+
+    this.validateScaleRatios(this.xIdx_, this.yIdx_, this.zIdx_);
+
     // generate chunks for each LOD without loading data
     this.chunks_ = [];
     for (let lod = 0; lod < this.attrs_.length; ++lod) {
       const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
       const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
+      const chunkDepth = this.attrs_[lod].chunks[this.zIdx_];
+
       const chunksX = Math.ceil(
         this.attrs_[lod].shape[this.xIdx_] / chunkWidth
       );
       const chunksY = Math.ceil(
         this.attrs_[lod].shape[this.yIdx_] / chunkHeight
       );
+      const chunksZ = Math.ceil(
+        this.attrs_[lod].shape[this.zIdx_] / chunkDepth
+      );
+
       const channels =
-        this.attrs_[lod].shape.length === 3
-          ? this.attrs_[lod].shape[this.channelIdx_]
-          : 1;
+        this.channelIdx_ >= 0 ? this.attrs_[lod].shape[this.channelIdx_] : 1;
+
       const scale = this.attrs_[lod].scale;
       const translation = this.attrs_[lod].translation;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
-          this.chunks_.push({
-            state: "unloaded",
-            lod,
-            visible: false,
-            prefetch: false,
-            shape: {
-              x: chunkWidth,
-              y: chunkHeight,
-              c: channels,
-            },
-            rowStride: chunkWidth,
-            rowAlignmentBytes: 1,
-            chunkIndex: { x, y },
-            scale: {
-              x: scale[this.xIdx_],
-              y: scale[this.yIdx_],
-            },
-            offset: {
-              x: translation[this.xIdx_] + x * chunkWidth * scale[this.xIdx_],
-              y: translation[this.yIdx_] + y * chunkHeight * scale[this.yIdx_],
-            },
-          });
+          for (let z = 0; z < chunksZ; ++z) {
+            this.chunks_.push({
+              state: "unloaded",
+              lod,
+              visible: false,
+              prefetch: false,
+              shape: {
+                x: chunkWidth,
+                y: chunkHeight,
+                z: chunkDepth,
+                c: channels,
+              },
+              rowStride: chunkWidth,
+              rowAlignmentBytes: 1,
+              chunkIndex: { x, y, z },
+              scale: {
+                x: scale[this.xIdx_],
+                y: scale[this.yIdx_],
+                z: scale[this.zIdx_],
+              },
+              offset: {
+                x: translation[this.xIdx_] + x * chunkWidth * scale[this.xIdx_],
+                y:
+                  translation[this.yIdx_] + y * chunkHeight * scale[this.yIdx_],
+                z: translation[this.zIdx_] + z * chunkDepth * scale[this.zIdx_],
+              },
+            });
+          }
         }
       }
     }
@@ -156,9 +170,14 @@ export class ChunkManagerSource {
 
   private loadLowResChunks(): void {
     for (const chunk of this.chunks_) {
-      if (chunk.lod === this.lowestResLOD_ && chunk.state === "unloaded") {
-        this.loadChunkData(chunk);
-      }
+      if (chunk.lod !== this.lowestResLOD_ || chunk.state !== "unloaded")
+        continue;
+
+      // TEMP: visibility is 2D (Box2). Ignore nonzero Z until Box3 intersects() exists.
+      // In this case, changes to loadChunkDataFromRegion are also needed.
+      if (chunk.chunkIndex.z !== 0) continue;
+
+      this.loadChunkData(chunk);
     }
   }
 
@@ -172,7 +191,7 @@ export class ChunkManagerSource {
       .catch((error) => {
         Logger.error(
           "ChunkManager",
-          `Error loading chunk (${chunk.chunkIndex.x},${chunk.chunkIndex.y}): ${error}`
+          `Error loading chunk (${chunk.chunkIndex.x},${chunk.chunkIndex.y},${chunk.chunkIndex.z}): ${error}`
         );
         chunk.state = "unloaded";
       });
@@ -205,6 +224,9 @@ export class ChunkManagerSource {
 
     const paddedBounds = this.getPaddedBounds(visibleBounds);
     for (const chunk of this.chunks_) {
+      // TEMP: visibility is 2D (Box2). Ignore nonzero Z until Box3 intersects() exists.
+      if (chunk.chunkIndex.z !== 0) continue;
+
       chunk.prefetch = false;
       chunk.visible = this.isChunkWithinBounds(chunk, visibleBounds);
       if (!chunk.visible) {
@@ -213,17 +235,21 @@ export class ChunkManagerSource {
     }
   }
 
-  private validateScaleRatios(xIdx: number, yIdx: number): void {
+  private validateScaleRatios(xIdx: number, yIdx: number, zIdx: number): void {
     const availableScales = this.attrs_.map((attr) => attr.scale);
     for (let i = 1; i < availableScales.length; i++) {
       const prev = availableScales[i - 1];
       const curr = availableScales[i];
       const rx = curr[xIdx] / prev[xIdx];
       const ry = curr[yIdx] / prev[yIdx];
+      const rz = curr[zIdx] / prev[zIdx];
 
-      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
+      if (!almostEqual(rx, 2) || !almostEqual(ry, 2) || !almostEqual(rz, 2)) {
         throw new Error(
-          `Scales must be separated by factors of 2. Got ratio (${rx}, ${ry}) between scales ${prev} and ${curr}`
+          `Invalid scale ratio between LOD ${i - 1} and LOD ${i}: ` +
+            `expected (2, 2, 2), got ` +
+            `(${rx.toFixed(2)}, ${ry.toFixed(2)}, ${rz.toFixed(2)}) ` +
+            `from scales [${prev.join(", ")}] → [${curr.join(", ")}]`
         );
       }
     }
@@ -298,7 +324,7 @@ export class ChunkManager {
       );
     }
 
-    const visibleBounds = camera.getWorldViewRect2D();
+    const visibleBounds = camera.getWorldViewRect();
     const virtualWidth = Math.abs(visibleBounds.max[0] - visibleBounds.min[0]);
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);

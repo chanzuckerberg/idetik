@@ -148,6 +148,7 @@ export class OmeZarrImageLoader {
     };
     const xOffset = calculateOffset(indices.length - 1);
     const yOffset = calculateOffset(indices.length - 2);
+    const zOffset = calculateOffset(indices.length - 3);
 
     const chunk: Chunk = {
       state: "loaded",
@@ -158,13 +159,18 @@ export class OmeZarrImageLoader {
       shape: {
         x: subarray.shape[subarray.shape.length - 1],
         y: subarray.shape[subarray.shape.length - 2],
+        z: subarray.shape[subarray.shape.length - 3],
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
-      chunkIndex: { x: 0, y: 0 },
+      chunkIndex: { x: 0, y: 0, z: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
-      scale: { x: scale[indices.length - 1], y: scale[indices.length - 2] },
-      offset: { x: xOffset, y: yOffset },
+      scale: {
+        x: scale[indices.length - 1],
+        y: scale[indices.length - 2],
+        z: scale[indices.length - 3],
+      },
+      offset: { x: xOffset, y: yOffset, z: zOffset },
     };
     return chunk;
   }
