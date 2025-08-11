@@ -7,7 +7,6 @@ import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
 import { Image as OmeNgffImage } from "../data/ome_ngff/0.4/image";
-import { parseOmeNgffImage } from "../data/ome_zarr_hcs_metadata_loader";
 
 import { Readable } from "@zarrita/storage";
 
@@ -48,7 +47,7 @@ export class OmeZarrImageLoader {
 
   constructor(root: zarr.Group<Readable>) {
     this.root_ = root;
-    this.metadata_ = parseOmeNgffImage(this.root_);
+    this.metadata_ = OmeNgffImage.parse(this.root_.attrs);
     if (this.metadata_.multiscales.length !== 1) {
       throw new Error(
         `Can only handle one multiscale image. Found ${this.metadata_.multiscales.length}`

@@ -101,6 +101,16 @@ export const Image = z
                     type: z.literal("translation"),
                     translation: z.array(z.number()).min(2),
                   }),
+                  // The JSON schema and my reading of the spec is that while
+                  // identity is a valid transformation, it cannot be used here.
+                  // However, some writers write it (e.g iohub), and it has no
+                  // effect on the overall transformation, so we manually added
+                  // after generation from the schema.
+                  // See the following PR for more context:
+                  // https://github.com/ome/ngff/pull/152
+                  z.object({
+                    type: z.literal("identity"),
+                  }),
                 ];
                 const errors = schemas.reduce<z.ZodError[]>(
                   (errors, schema) =>
@@ -142,6 +152,19 @@ export const Image = z
             active: z.boolean().optional(),
           })
         ),
+        // The rdefs are not in the JSON schema and are not particularly well
+        // described by the specification, but are written by some tools
+        // (e.g. iohub), so we manually add them.
+        // See the OMERO docs for more information:
+        // https://docs.openmicroscopy.org/omero/5.6.1/developers/Web/WebGateway.html#rendering-settings
+        rdefs: z
+          .object({
+            defaultT: z.number().optional(),
+            defaultZ: z.number().optional(),
+            color: z.enum(["color", "greyscale"]).optional(),
+            projection: z.string().optional(),
+          })
+          .optional(),
       })
       .optional(),
   })
