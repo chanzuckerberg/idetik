@@ -145,14 +145,12 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public onEvent(event: EventContext) {
-    if (!this.onPickValue_) return;
-
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
       this.pointerDownPos_,
       this.dragThreshold_,
       (world) => this.getValueAtWorld(world),
-      (info) => this.onPickValue_!(info)
+      this.onPickValue_
     );
   }
 
