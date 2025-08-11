@@ -12,15 +12,28 @@ type OmeZarrChunkSourceProps = {
   dimensions: DimensionMapping;
 };
 
+type DatasetAttributes = {
+    path: string;
+    scale: number[];
+    translation: number[];
+};
+
 export class OmeZarrChunkSource {
   private readonly group_: Group<Readable>;
-  private readonly metadata_: OmeZarrImage["multiscales"];
+  private readonly metadata_: OmeZarrImage["multiscales"][number];
+  // Maps from a dimension name to its index in a dataset array.
   private readonly dimensions_: DimensionMapping;
+  private readonly datasetAttributes_: ReadonlyArray<DatasetAttributes>;
 
   private constructor(props: OmeZarrChunkSourceProps) {
     this.group_ = props.group;
-    this.metadata_ = parseOmeNgffImage(this.group_).multiscales;
+    const images = parseOmeNgffImage(this.group_).multiscales;
+    if (images.length > 1) {
+        throw new Error(`Currently only a single multiscale image is supported. Found ${images.length} images.`);
+    }
+    this.metadata_ = images[0];
     this.dimensions_ = props.dimensions;
+    this.datasetAttributes_ = getDatasetAttributes(this.metadata_);
   }
 
   public get dimensions() {
@@ -30,7 +43,7 @@ export class OmeZarrChunkSource {
   public async loadChunk(camera: VirtualCamera2D) {
     const lod = camera.lod ?? 0;
     const array = await openZarr.v2(
-      this.group_.resolve(this.metadata_[0].datasets[lod].path),
+      this.group_.resolve(this.metadata_.datasets[lod].path),
       { kind: "array", attrs: false }
     );
     const indices = this.getArrayIndices(camera);
@@ -45,7 +58,7 @@ export class OmeZarrChunkSource {
   public async loadChunks(camera: VirtualCamera2D) {
     const lod = camera.lod ?? 0;
     const array = await openZarr.v2(
-      this.group_.resolve(this.metadata_[0].datasets[lod].path),
+      this.group_.resolve(this.metadata_.datasets[lod].path),
       { kind: "array", attrs: false }
     );
     const indices = this.getChunkIndices(camera); 
@@ -62,37 +75,51 @@ export class OmeZarrChunkSource {
     const numDimensions = Object.keys(this.dimensions_).length;
     const indices: Array<Slice | number> = new Array(numDimensions).fill(zarr.slice(null));
     
-    // TODO: store translation and scale for each dimension and lod on construction.
-    const xTranslation = 0;
-    const xScale = 1;
+    const lod = camera.lod ?? 0;
+    const datasetAttrs = this.datasetAttributes_[lod];
+    const translation = datasetAttrs.translation;
+    const scale = datasetAttrs.scale;
+    
+    const xTranslation = translation[this.dimensions_.x.index];
+    const xScale = scale[this.dimensions_.x.index];
     const xStart = Math.floor((camera.x.start - xTranslation) / xScale);
     const xEnd = Math.ceil((camera.x.end - xTranslation) / xScale);
     const xIndex = zarr.slice(xStart, xEnd);
     indices[this.dimensions_.x.index] = xIndex;
 
-    const yTranslation = 0;
-    const yScale = 1;
+    const yTranslation = translation[this.dimensions_.y.index];
+    const yScale = scale[this.dimensions_.y.index];
     const yStart = Math.floor((camera.y.start - yTranslation) / yScale);
     const yEnd = Math.ceil((camera.y.end - yTranslation) / yScale);
     const yIndex = zarr.slice(yStart, yEnd);
     indices[this.dimensions_.y.index] = yIndex;
 
-    if (camera.z) {
-        const zTranslation = 0;
-        const zScale = 1;
+    if (this.dimensions_.z) {
+        // TODO: should fail earlier if z dimension is present but not provided.
+        if (camera.z === undefined) {
+            throw new Error("Camera must specify z coordinate when z dimension is present.");
+        }
+        const zTranslation = translation[this.dimensions_.z.index];
+        const zScale = scale[this.dimensions_.z.index];
         const zIndex = Math.round((camera.z - zTranslation) / zScale);
-        indices[this.dimensions_.z!.index] = zIndex;
+        indices[this.dimensions_.z.index] = zIndex;
     }
 
-    if (camera.c) {
-        indices[this.dimensions_.c!.index] = camera.c;
+    if (this.dimensions_.c) {
+        if (camera.c === undefined) {
+            throw new Error("Camera must specify c coordinate when c dimension is present.");
+        }
+        indices[this.dimensions_.c.index] = camera.c;
     }
 
-    if (camera.t) {
-        const tTranslation = 0;
-        const tScale = 1;
+    if (this.dimensions_.t) {
+        if (camera.t === undefined) {
+            throw new Error("Camera must specify t coordinate when t dimension is present.");
+        }
+        const tTranslation = translation[this.dimensions_.t.index];
+        const tScale = scale[this.dimensions_.t.index];
         const tIndex = Math.round((camera.t - tTranslation) / tScale);
-        indices[this.dimensions_.t!.index] = tIndex;
+        indices[this.dimensions_.t.index] = tIndex;
     }
 
     return indices;
@@ -101,8 +128,11 @@ export class OmeZarrChunkSource {
   public static async fromUrl(url: string, dimensionProps: DimensionMappingProps): Promise<OmeZarrChunkSource> {
     const store = new FetchStore(url);
     const group = await openZarr.v2(new Location(store), { kind: "group" });
-    const metadata = parseOmeNgffImage(group).multiscales;
-    const image = metadata[0];
+    const images = parseOmeNgffImage(group).multiscales;
+    if (images.length > 1) {
+        throw new Error(`Currently only a single multiscale image is supported. Found ${images.length} images.`);
+    }
+    const image = images[0];
     const dataset = image.datasets[0];
     const axes = image.axes;
     const array = await openZarr.v2(group.resolve(dataset.path), { kind: "array", attrs: false });
@@ -175,3 +205,23 @@ function findDimension(
     unit: axes[index].unit,
   };
 }
+
+  function getDatasetAttributes(image: OmeZarrImage["multiscales"][number]) {
+    const output: DatasetAttributes[] = [];
+    const numAxes = image.axes.length;
+    for (const dataset of image.datasets) {
+      const path = dataset.path;
+      const scale = dataset.coordinateTransformations[0].scale;
+      const translation =
+        dataset.coordinateTransformations.length === 2
+          ? dataset.coordinateTransformations[1].translation
+          : new Array(numAxes).fill(0);
+      output.push({
+        path,
+        scale,
+        translation,
+      });
+    }
+    return output;
+  }
+
