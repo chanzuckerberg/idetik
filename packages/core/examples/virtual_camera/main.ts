@@ -25,8 +25,12 @@ const camera: VirtualCamera2D = {
     t: 400,
 };
 
-const chunk = await source.loadChunk(camera);
-console.log("Loaded chunk:", chunk);
+const metaChunk = await source.loadMetaChunk(camera);
+console.log("Loaded chunk:", metaChunk);
 
-const chunks = await source.loadChunks(camera);
-console.log("Loaded chunks:", chunks);
+const allChunks = await source.getAllChunks();
+console.log("Initialized all chunks:", allChunks);
+
+const chunk = allChunks[0];
+await source.loadChunkData(chunk, camera);
+console.log("Loaded chunk:", chunk);
