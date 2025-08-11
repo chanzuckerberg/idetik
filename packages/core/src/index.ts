@@ -21,6 +21,8 @@ export { OmeZarrImageSource } from "./data/ome_zarr_image_source";
 export { OmeZarrChunkSource } from "./data/ome_zarr_chunk_source";
 export type {Dimension, DimensionMapping, DimensionMappingProps, VirtualCamera2D} from "./data/dimensions";
 
+export { Box2 } from "./math/box2";
+
 export type { Region } from "./data/region";
 export type { Image as OmeNgffImage } from "./data/ome_ngff/0.4/image";
 export {
