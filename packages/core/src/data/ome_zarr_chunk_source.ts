@@ -17,6 +17,14 @@ type OmeZarrChunkSourceProps = {
   group: Group<Readable>;
   metadata: OmeZarrImage["multiscales"][number];
   dimensions: DimensionMapping;
+  array0: zarr.Array<zarr.DataType, Readable>;
+};
+
+type Extent = {
+  x: { start: number; end: number };
+  y: { start: number; end: number };
+  z?: { start: number; end: number };
+  t?: { start: number; end: number };
 };
 
 type Dataset = {
@@ -32,12 +40,14 @@ export class OmeZarrChunkSource {
   private readonly dimensions_: DimensionMapping;
   private readonly datasets_: ReadonlyArray<Dataset>;
   private readonly arrays_: zarr.Array<zarr.DataType, Readable>[] = [];
+  private readonly extent_: Extent;
 
   private constructor(props: OmeZarrChunkSourceProps) {
     this.group_ = props.group;
     this.metadata_ = props.metadata;
     this.dimensions_ = props.dimensions;
     this.datasets_ = getDatasetAttributes(this.metadata_);
+    this.extent_ = getExtent(this.dimensions_, this.datasets_[0], props.array0);
   }
 
   private async getArray(lod: number) {
@@ -52,6 +62,10 @@ export class OmeZarrChunkSource {
 
   public get dimensions() {
     return this.dimensions_;
+  }
+
+  public get extent() {
+    return this.extent_;
   }
 
   // This is similar to OmeZarrImageLoader.loadChunk
@@ -319,21 +333,26 @@ export class OmeZarrChunkSource {
     const image = images[0];
     const dataset = image.datasets[0];
     const axes = image.axes;
-    const array = await openZarr.v2(group.resolve(dataset.path), {
+    const array0 = await openZarr.v2(group.resolve(dataset.path), {
       kind: "array",
       attrs: false,
     });
-    const shape = array.shape;
+    const shape = array0.shape;
     if (axes.length !== shape.length) {
       throw new Error(
-        `Mismatch between number of axes (${axes.length}) and array shape (${array.shape.length})`
+        `Mismatch between number of axes (${axes.length}) and array shape (${array0.shape.length})`
       );
     }
     const dimensions =
       dimensionProps === undefined
         ? inferDimensionMapping(axes, shape)
         : validateDimensionMappingProps(axes, shape, dimensionProps);
-    return new OmeZarrChunkSource({ group, metadata: image, dimensions });
+    return new OmeZarrChunkSource({
+      group,
+      metadata: image,
+      dimensions,
+      array0: array0,
+    });
   }
 }
 
@@ -457,6 +476,46 @@ function getDatasetAttributes(image: OmeZarrImage["multiscales"][number]) {
     });
   }
   return output;
+}
+
+function getExtent(
+  dimensions: DimensionMapping,
+  dataset: Dataset,
+  array: zarr.Array<zarr.DataType, Readable>
+): Extent {
+  const shape = array.shape;
+  const scale = dataset.scale;
+  const translation = dataset.translation;
+  const xIndex = dimensions.x.index;
+  const yIndex = dimensions.y.index;
+  const zIndex = dimensions.z?.index;
+  const tIndex = dimensions.t?.index;
+  let z;
+  if (zIndex !== undefined) {
+    z = {
+      start: translation[zIndex],
+      end: translation[zIndex] + shape[zIndex] * scale[zIndex],
+    };
+  }
+  let t;
+  if (tIndex !== undefined) {
+    t = {
+      start: translation[tIndex],
+      end: translation[tIndex] + shape[tIndex] * scale[tIndex],
+    };
+  }
+  return {
+    x: {
+      start: translation[xIndex],
+      end: translation[xIndex] + shape[xIndex] * scale[xIndex],
+    },
+    y: {
+      start: translation[yIndex],
+      end: translation[yIndex] + shape[yIndex] * scale[yIndex],
+    },
+    z,
+    t,
+  };
 }
 
 function toSlice(
