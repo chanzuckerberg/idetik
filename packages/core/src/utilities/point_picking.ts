@@ -1,15 +1,11 @@
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
-import { Logger } from "./logger";
-
-type LoggerModule = "ImageLayer" | "LabelImageLayer";
 
 export function handlePointPickingEvent<T>(
   event: EventContext,
   pointerDownPos: vec2 | null,
   dragThreshold: number,
   getValueAtWorld: (world: vec3) => T | null,
-  layerName: LoggerModule,
   onPickValue?: (info: { world: vec3; value: T }) => void
 ): vec2 | null {
   switch (event.type) {
@@ -26,18 +22,13 @@ export function handlePointPickingEvent<T>(
       const dist = vec2.distance(pointerDownPos, pointerUpPos);
 
       if (dist < dragThreshold) {
+        if (!onPickValue) return null;
+
         const world = event.worldPos;
         if (world) {
           const value = getValueAtWorld(world);
           if (value !== null) {
-            if (onPickValue) {
-              onPickValue({ world, value });
-            } else {
-              Logger.warn(
-                layerName,
-                "Point picking attempted but no onPickValue callback provided"
-              );
-            }
+            onPickValue({ world, value });
           }
         }
         return null;

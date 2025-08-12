@@ -150,7 +150,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       this.pointerDownPos_,
       this.dragThreshold_,
       (world) => this.getValueAtWorld(world),
-      "ImageLayer",
       this.onPickValue_
     );
   }
