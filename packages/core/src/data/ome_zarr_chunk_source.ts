@@ -64,6 +64,19 @@ export class OmeZarrChunkSource {
         "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
       );
     }
+
+    const scale = this.datasets_[lod].scale;
+    const translation = this.datasets_[lod].translation;
+    const calculateOffset = (i: number) => {
+      const index = indices[i];
+      if (typeof index === "number") {
+        return index * scale[i] + translation[i];
+      } else if (index.start === null) {
+        return translation[i];
+      }
+      return index.start * scale[i] + translation[i];
+    };
+
     return {
       data,
       state: "loaded",
@@ -78,18 +91,16 @@ export class OmeZarrChunkSource {
             ? 1
             : subarray.shape[this.dimensions_.c.index],
       },
-      // TODO: maybe this should be undefined?
       chunkIndex: { x: 0, y: 0 },
       rowStride: subarray.stride[this.dimensions_.y.index],
       rowAlignmentBytes,
       scale: {
-        x: this.datasets_[lod].scale[this.dimensions_.x.index],
-        y: this.datasets_[lod].scale[this.dimensions_.y.index],
+        x: scale[this.dimensions_.x.index],
+        y: scale[this.dimensions_.y.index],
       },
-      // TODO: calc offset
       offset: {
-        x: 0,
-        y: 0,
+        x: calculateOffset(this.dimensions_.x.index),
+        y: calculateOffset(this.dimensions_.y.index),
       },
     };
   }
