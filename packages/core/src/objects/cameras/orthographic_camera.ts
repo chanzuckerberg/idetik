@@ -60,7 +60,7 @@ export class OrthographicCamera extends Camera {
     this.transform.addScale([inverseFactor, inverseFactor, 1.0]);
   }
 
-  public getWorldViewRect2D(): Box2 {
+  public getWorldViewRect(): Box2 {
     let topLeft = vec4.fromValues(-1.0, -1.0, 0.0, 1.0);
     let bottomRight = vec4.fromValues(1.0, 1.0, 0.0, 1.0);
 

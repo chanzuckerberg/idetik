@@ -33,6 +33,7 @@ export type Chunk = {
   shape: {
     x: number;
     y: number;
+    z: number;
     c: number;
   };
   rowStride: number;
@@ -40,14 +41,17 @@ export type Chunk = {
   chunkIndex: {
     x: number;
     y: number;
+    z: number;
   };
   scale: {
     x: number;
     y: number;
+    z: number;
   };
   offset: {
     x: number;
     y: number;
+    z: number;
   };
 };
 
