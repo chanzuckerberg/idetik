@@ -128,7 +128,6 @@ export class OmeZarrChunkSource {
     return chunks;
   }
 
-
   // This is similar to OmeZarrImageLoader.loadChunkDataFromRegion
   public async loadChunkData(chunk: Chunk, camera: VirtualCamera2D) {
     const lod = chunk.lod;
@@ -263,7 +262,7 @@ export class OmeZarrChunkSource {
 
   public static async fromUrl(
     url: string,
-    dimensionProps: DimensionMappingProps
+    dimensionProps?: DimensionMappingProps
   ): Promise<OmeZarrChunkSource> {
     const store = new FetchStore(url);
     const group = await openZarr.v2(new Location(store), { kind: "group" });
@@ -286,64 +285,109 @@ export class OmeZarrChunkSource {
         `Mismatch between number of axes (${axes.length}) and array shape (${array.shape.length})`
       );
     }
-
-    const x = findDimension(axes, shape, dimensionProps.x.name);
-    if (x.index !== axes.length - 1) {
-      throw new Error(`X axis must be the last axis in the data.
-        Found at index ${x.index} of ${axes.length}`);
-    }
-
-    const y = findDimension(axes, shape, dimensionProps.y.name);
-    if (y.index !== axes.length - 2) {
-      throw new Error(`Y axis must be the second to last axis in the data.
-        Found at index ${y.index} of ${axes.length}`);
-    }
-
-    let z;
-    if (dimensionProps.z) {
-      z = findDimension(axes, shape, dimensionProps.z.name);
-      if (z.index !== axes.length - 3) {
-        throw new Error(`Z axis must be the third to last axis in the data.
-          Found at index ${z.index} of ${axes.length}`);
-      }
-    }
-
-    let t;
-    if (dimensionProps.t) {
-      t = findDimension(axes, shape, dimensionProps.t.name);
-      if (t.index !== 0) {
-        throw new Error(`T axis must be the first axis in the data.
-          Found at index ${t.index} of ${axes.length}`);
-      }
-    }
-
-    let c;
-    if (dimensionProps.c) {
-      c = findDimension(axes, shape, dimensionProps.c.name);
-      if (t && c.index !== 1) {
-        throw new Error(`When T is present C axis must be the second axis in the data.
-          Found at index ${c.index} of ${axes.length}`);
-      }
-      if (!t && c.index !== 0) {
-        throw new Error(`When T is not present C axis must be the first axis in the data.
-          Found at index ${c.index} of ${axes.length}`);
-      }
-    }
-
-    const dimensions = { x, y, z, c, t };
+    const dimensions =
+      dimensionProps === undefined
+        ? inferDimensionMapping(axes, shape)
+        : validateDimensionMappingProps(axes, shape, dimensionProps);
     return new OmeZarrChunkSource({ group, metadata: image, dimensions });
   }
+}
+
+function inferDimensionMapping(
+  axes: OmeZarrImage["multiscales"][number]["axes"],
+  shape: number[]
+): DimensionMapping {
+  const x = findDimension(axes, shape, "x", false);
+  if (x === undefined) {
+    throw new Error('Could not find "x" axis');
+  }
+  const y = findDimension(axes, shape, "y", false);
+  if (y === undefined) {
+    throw new Error('Could not find "y" axis');
+  }
+  const z = findDimension(axes, shape, "z", false);
+  const c = findDimension(axes, shape, "c", false);
+  const t = findDimension(axes, shape, "t", false);
+  return { x, y, z, t, c };
+}
+
+function validateDimensionMappingProps(
+  axes: OmeZarrImage["multiscales"][number]["axes"],
+  shape: number[],
+  dimensionProps: DimensionMappingProps
+): DimensionMapping {
+  const x = findDimension(axes, shape, dimensionProps.x.name);
+  if (x === undefined) {
+    throw new Error(`Could not find "${dimensionProps.x.name}" axis`);
+  }
+  if (x.index !== axes.length - 1) {
+    throw new Error(`X axis must be the last axis in the data.
+        Found at index ${x.index} of ${axes.length}`);
+  }
+
+  const y = findDimension(axes, shape, dimensionProps.y.name);
+  if (y === undefined) {
+    throw new Error(`Could not find "${dimensionProps.y.name}" axis`);
+  }
+  if (y.index !== axes.length - 2) {
+    throw new Error(`Y axis must be the second to last axis in the data.
+        Found at index ${y.index} of ${axes.length}`);
+  }
+
+  let z;
+  if (dimensionProps.z) {
+    z = findDimension(axes, shape, dimensionProps.z.name);
+    if (z === undefined) {
+      throw new Error(`Could not find "${dimensionProps.z.name}" axis`);
+    }
+    if (z.index !== axes.length - 3) {
+      throw new Error(`Z axis must be the third to last axis in the data.
+          Found at index ${z.index} of ${axes.length}`);
+    }
+  }
+
+  let t;
+  if (dimensionProps.t) {
+    t = findDimension(axes, shape, dimensionProps.t.name);
+    if (t === undefined) {
+      throw new Error(`Could not find "${dimensionProps.t.name}" axis`);
+    }
+    if (t.index !== 0) {
+      throw new Error(`T axis must be the first axis in the data.
+          Found at index ${t.index} of ${axes.length}`);
+    }
+  }
+
+  let c;
+  if (dimensionProps.c) {
+    c = findDimension(axes, shape, dimensionProps.c.name);
+    if (c === undefined) {
+      throw new Error(`Could not find "${dimensionProps.c.name}" axis`);
+    }
+    if (t && c.index !== 1) {
+      throw new Error(`When T is present C axis must be the second axis in the data.
+          Found at index ${c.index} of ${axes.length}`);
+    }
+    if (!t && c.index !== 0) {
+      throw new Error(`When T is not present C axis must be the first axis in the data.
+          Found at index ${c.index} of ${axes.length}`);
+    }
+  }
+  return { x, y, z, c, t };
 }
 
 function findDimension(
   axes: OmeZarrImage["multiscales"][number]["axes"],
   shape: number[],
-  name: string
-): Dimension {
-  const index = axes.findIndex((a) => a.name === name);
-  if (index === -1) {
-    throw new Error(`Could not find axis named "${name}"`);
-  }
+  name: string,
+  caseSensitive: boolean = true
+): Dimension | undefined {
+  const index = axes.findIndex((a) => {
+    const axisName = caseSensitive ? a.name : a.name.toLowerCase();
+    const targetName = caseSensitive ? name : name.toLowerCase();
+    return axisName === targetName;
+  });
+  if (index === -1) return;
   return {
     name,
     index,
