@@ -20,6 +20,8 @@ console.log("Loaded chunk:", metaChunk);
 const allChunks = await source.initAllChunks();
 console.log("Initialized all chunks:", allChunks);
 
-const chunk = allChunks[0];
-await source.loadChunkData(chunk, camera);
-console.log("Loaded chunk:", chunk);
+for (const chunk of allChunks) {
+  if (chunk.lod !== camera.lod) continue;
+  await source.loadChunkData(chunk, camera);
+  console.log("Loaded chunk:", chunk);
+}

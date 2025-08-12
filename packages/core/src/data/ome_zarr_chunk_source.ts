@@ -92,15 +92,15 @@ export class OmeZarrChunkSource {
       visible: true,
       prefetch: false,
       shape: {
-        x: subarray.shape[this.dimensions_.x.index],
-        y: subarray.shape[this.dimensions_.y.index],
+        x: subarray.shape[subarray.shape.length - 1],
+        y: subarray.shape[subarray.shape.length - 2],
         c:
           this.dimensions_.c === undefined
             ? 1
-            : subarray.shape[this.dimensions_.c.index],
+            : subarray.shape[subarray.shape.length - 3],
       },
       chunkIndex: { x: 0, y: 0 },
-      rowStride: subarray.stride[this.dimensions_.y.index],
+      rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes,
       scale: {
         x: scale[this.dimensions_.x.index],
