@@ -31,12 +31,23 @@ export class OmeZarrChunkSource {
   // Maps from a dimension name to its index in a dataset array.
   private readonly dimensions_: DimensionMapping;
   private readonly datasets_: ReadonlyArray<Dataset>;
+  private readonly arrays_: zarr.Array<zarr.DataType, Readable>[] = [];
 
   private constructor(props: OmeZarrChunkSourceProps) {
     this.group_ = props.group;
     this.metadata_ = props.metadata;
     this.dimensions_ = props.dimensions;
     this.datasets_ = getDatasetAttributes(this.metadata_);
+  }
+
+  private async getArray(lod: number) {
+    if (this.arrays_[lod] === undefined) {
+      this.arrays_[lod] = await openZarr.v2(
+        this.group_.resolve(this.datasets_[lod].path),
+        { kind: "array", attrs: false }
+      );
+    }
+    return this.arrays_[lod];
   }
 
   public get dimensions() {
@@ -46,10 +57,7 @@ export class OmeZarrChunkSource {
   // This is similar to OmeZarrImageLoader.loadChunk
   public async loadMetaChunk(camera: VirtualCamera2D): Promise<Chunk> {
     const lod = camera.lod ?? 0;
-    const array = await openZarr.v2(
-      this.group_.resolve(this.metadata_.datasets[lod].path),
-      { kind: "array", attrs: false }
-    );
+    const array = await this.getArray(lod);
     const indices = this.getArrayIndices(camera);
     const subarray = await zarr.get(array, indices);
     const data = subarray.data;
@@ -112,10 +120,7 @@ export class OmeZarrChunkSource {
     const chunks: Chunk[] = [];
     for (let lod = 0; lod < this.datasets_.length; ++lod) {
       const dataset = this.datasets_[lod];
-      const array = await openZarr.v2(this.group_.resolve(dataset.path), {
-        kind: "array",
-        attrs: false,
-      });
+      const array = await this.getArray(lod);
       const arrayShape = array.shape;
       const chunkShape = array.chunks;
       const chunkWidth = chunkShape[xIndex];
@@ -162,11 +167,7 @@ export class OmeZarrChunkSource {
   public async loadChunkData(chunk: Chunk, camera: VirtualCamera2D) {
     const lod = chunk.lod;
     const dataset = this.datasets_[lod];
-    const array = await openZarr.v2(this.group_.resolve(dataset.path), {
-      kind: "array",
-      attrs: false,
-    });
-
+    const array = await this.getArray(lod);
     const translation = dataset.translation;
     const scale = dataset.scale;
 
