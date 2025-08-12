@@ -12,17 +12,13 @@ import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent } from "../utilities/point_picking";
-
-export interface ImagePointPickingResult {
-  world: vec3;
-  value: number;
-}
+import { PointPickingResult } from "./label_image_layer";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
-  onPickValue?: (info: ImagePointPickingResult) => void;
+  onPickValue?: (info: PointPickingResult) => void;
 };
 
 // Loads data from an image source into renderable objects.
@@ -35,7 +31,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private readonly region_: Region;
   private readonly useChunkManager_: boolean;
   private readonly initialChannelProps_?: ChannelProps[];
-  private readonly onPickValue_?: (info: ImagePointPickingResult) => void;
+  private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly channelChangeCallbacks_: Array<() => void> = [];
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
   private chunkManagerSource_?: ChunkManagerSource;
