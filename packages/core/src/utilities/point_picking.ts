@@ -2,13 +2,15 @@ import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { Logger } from "./logger";
 
+type LoggerModule = "ImageLayer" | "LabelImageLayer";
+
 export function handlePointPickingEvent<T>(
   event: EventContext,
   pointerDownPos: vec2 | null,
   dragThreshold: number,
   getValueAtWorld: (world: vec3) => T | null,
   onPickValue?: (info: { world: vec3; value: T }) => void,
-  layerName: string
+  layerName: LoggerModule
 ): vec2 | null {
   switch (event.type) {
     case "pointerdown": {
