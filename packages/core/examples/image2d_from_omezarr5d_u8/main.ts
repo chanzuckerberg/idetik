@@ -6,7 +6,7 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
-  ImagePointPickingResult,
+  PointPickingResult,
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
@@ -49,7 +49,7 @@ const channelProps: ChannelProps[] = [
 
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
 
-const onPickValue = (info: ImagePointPickingResult) => {
+const onPickValue = (info: PointPickingResult) => {
   const { world, value } = info;
   pickInfoDiv.innerHTML = `
     <strong>Pick Result:</strong><br/>
