@@ -9,8 +9,8 @@ export function handlePointPickingEvent<T>(
   pointerDownPos: vec2 | null,
   dragThreshold: number,
   getValueAtWorld: (world: vec3) => T | null,
-  onPickValue?: (info: { world: vec3; value: T }) => void,
-  layerName: LoggerModule
+  layerName: LoggerModule,
+  onPickValue?: (info: { world: vec3; value: T }) => void
 ): vec2 | null {
   switch (event.type) {
     case "pointerdown": {
