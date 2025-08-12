@@ -246,6 +246,8 @@ export class OmeZarrChunkSource {
     }
 
     // TODO: calculate offset based on zIndex, cIndex, tIndex, and stride.
+    // TODO: this should not really happen here because the chunk may contain
+    // more data than the slice needs.
     const sliceSize = chunk.shape.x * chunk.shape.y;
     let offset = 0;
     if (this.dimensions_.z) {
