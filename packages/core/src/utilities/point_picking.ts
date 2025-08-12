@@ -2,7 +2,7 @@ import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { Logger } from "./logger";
 
-export function handlePointPickingEvent(
+export function handlePointPickingEvent<T>(
   event: EventContext,
   pointerDownPos: vec2 | null,
   dragThreshold: number,
