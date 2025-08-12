@@ -36,30 +36,31 @@ export class ChunkManagerSource {
     this.currentLOD_ = 0;
 
     this.xIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLocaleLowerCase() === "x"
+      (entry) => entry.dimension.toLowerCase() === "x"
     );
     this.yIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLocaleLowerCase() === "y"
+      (entry) => entry.dimension.toLowerCase() === "y"
     );
     this.zIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLocaleLowerCase() === "z"
+      (entry) => entry.dimension.toLowerCase() === "z"
     );
     this.channelIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLocaleLowerCase() === "c"
+      (entry) => entry.dimension.toLowerCase() === "c"
     );
 
-    if (this.xIdx_ === -1 || this.yIdx_ === -1 || this.zIdx_ === -1) {
-      throw new Error("Missing required spatial axis x/y/z");
+    if (this.xIdx_ === -1 || this.yIdx_ === -1) {
+      throw new Error("Missing required spatial axis x/y");
     }
 
-    this.validateScaleRatios(this.xIdx_, this.yIdx_, this.zIdx_);
+    this.validateXYScaleRatios(this.xIdx_, this.yIdx_);
 
     // generate chunks for each LOD without loading data
     this.chunks_ = [];
     for (let lod = 0; lod < this.attrs_.length; ++lod) {
       const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
       const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
-      const chunkDepth = this.attrs_[lod].chunks[this.zIdx_];
+      const chunkDepth =
+        this.zIdx_ !== -1 ? this.attrs_[lod].chunks[this.zIdx_] : 1;
 
       const chunksX = Math.ceil(
         this.attrs_[lod].shape[this.xIdx_] / chunkWidth
@@ -67,9 +68,10 @@ export class ChunkManagerSource {
       const chunksY = Math.ceil(
         this.attrs_[lod].shape[this.yIdx_] / chunkHeight
       );
-      const chunksZ = Math.ceil(
-        this.attrs_[lod].shape[this.zIdx_] / chunkDepth
-      );
+      const chunksZ =
+        this.zIdx_ !== -1
+          ? Math.ceil(this.attrs_[lod].shape[this.zIdx_] / chunkDepth)
+          : 1;
 
       const channels =
         this.channelIdx_ >= 0 ? this.attrs_[lod].shape[this.channelIdx_] : 1;
@@ -96,13 +98,17 @@ export class ChunkManagerSource {
               scale: {
                 x: scale[this.xIdx_],
                 y: scale[this.yIdx_],
-                z: scale[this.zIdx_],
+                z: this.zIdx_ !== -1 ? scale[this.zIdx_] : 1,
               },
               offset: {
                 x: translation[this.xIdx_] + x * chunkWidth * scale[this.xIdx_],
                 y:
                   translation[this.yIdx_] + y * chunkHeight * scale[this.yIdx_],
-                z: translation[this.zIdx_] + z * chunkDepth * scale[this.zIdx_],
+                z:
+                  this.zIdx_ !== -1
+                    ? translation[this.zIdx_] +
+                      z * chunkDepth * scale[this.zIdx_]
+                    : 0,
               },
             });
           }
@@ -235,21 +241,23 @@ export class ChunkManagerSource {
     }
   }
 
-  private validateScaleRatios(xIdx: number, yIdx: number, zIdx: number): void {
+  private validateXYScaleRatios(xIdx: number, yIdx: number): void {
+    // Validates that each LOD level is downsampled by a factor of 2 in X and Y.
+    // Z downsampling is not validated here because it may be inconsistent or
+    // completely absent in some pyramids.
     const availableScales = this.attrs_.map((attr) => attr.scale);
     for (let i = 1; i < availableScales.length; i++) {
       const prev = availableScales[i - 1];
       const curr = availableScales[i];
       const rx = curr[xIdx] / prev[xIdx];
       const ry = curr[yIdx] / prev[yIdx];
-      const rz = curr[zIdx] / prev[zIdx];
 
-      if (!almostEqual(rx, 2) || !almostEqual(ry, 2) || !almostEqual(rz, 2)) {
+      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
         throw new Error(
-          `Invalid scale ratio between LOD ${i - 1} and LOD ${i}: ` +
-            `expected (2, 2, 2), got ` +
-            `(${rx.toFixed(2)}, ${ry.toFixed(2)}, ${rz.toFixed(2)}) ` +
-            `from scales [${prev.join(", ")}] → [${curr.join(", ")}]`
+          `Invalid downsampling factor between levels ${i - 1} → ${i}: ` +
+            `expected (2× in X and Y), but got ` +
+            `(${rx.toFixed(2)}×, ${ry.toFixed(2)}×) from scale ` +
+            `[${prev.join(", ")}] → [${curr.join(", ")}]`
         );
       }
     }

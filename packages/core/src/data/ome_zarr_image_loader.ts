@@ -146,9 +146,20 @@ export class OmeZarrImageLoader {
       }
       return index.start * scale[i] + translation[i];
     };
-    const xOffset = calculateOffset(indices.length - 1);
-    const yOffset = calculateOffset(indices.length - 2);
-    const zOffset = calculateOffset(indices.length - 3);
+
+    const xIdx = region.findIndex(
+      (entry) => entry.dimension.toLowerCase() === "x"
+    );
+    const yIdx = region.findIndex(
+      (entry) => entry.dimension.toLowerCase() === "y"
+    );
+    const zIdx = region.findIndex(
+      (entry) => entry.dimension.toLowerCase() === "z"
+    );
+
+    const xOffset = calculateOffset(xIdx);
+    const yOffset = calculateOffset(yIdx);
+    const zOffset = zIdx !== -1 ? calculateOffset(indices.length - 3) : 0;
 
     const chunk: Chunk = {
       state: "loaded",
@@ -159,7 +170,7 @@ export class OmeZarrImageLoader {
       shape: {
         x: subarray.shape[subarray.shape.length - 1],
         y: subarray.shape[subarray.shape.length - 2],
-        z: subarray.shape[subarray.shape.length - 3],
+        z: zIdx !== -1 ? subarray.shape[subarray.shape.length - 3] : 1,
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
       chunkIndex: { x: 0, y: 0, z: 0 },
@@ -168,7 +179,7 @@ export class OmeZarrImageLoader {
       scale: {
         x: scale[indices.length - 1],
         y: scale[indices.length - 2],
-        z: scale[indices.length - 3],
+        z: zIdx !== -1 ? scale[indices.length - 3] : 1,
       },
       offset: { x: xOffset, y: yOffset, z: zOffset },
     };
