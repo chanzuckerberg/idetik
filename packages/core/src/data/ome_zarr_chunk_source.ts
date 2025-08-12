@@ -10,33 +10,13 @@ import {
   VirtualCamera2D,
 } from "./dimensions";
 import { Image as OmeZarrImage } from "../data/ome_ngff/0.4/image";
+import { Chunk, isChunkData } from "./chunk";
+import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 
 type OmeZarrChunkSourceProps = {
   group: Group<Readable>;
   metadata: OmeZarrImage["multiscales"][number];
   dimensions: DimensionMapping;
-};
-
-type Chunk = {
-  data: ArrayBuffer | null;
-  lod: number;
-  shape: {
-    x: number;
-    y: number;
-    c: number;
-  };
-  chunkIndex: {
-    x: number;
-    y: number;
-  };
-  scale: {
-    x: number;
-    y: number;
-  };
-  offset: {
-    x: number;
-    y: number;
-  };
 };
 
 type Dataset = {
@@ -64,7 +44,7 @@ export class OmeZarrChunkSource {
   }
 
   // This is similar to OmeZarrImageLoader.loadChunk
-  public async loadMetaChunk(camera: VirtualCamera2D) {
+  public async loadMetaChunk(camera: VirtualCamera2D): Promise<Chunk> {
     const lod = camera.lod ?? 0;
     const array = await openZarr.v2(
       this.group_.resolve(this.metadata_.datasets[lod].path),
@@ -72,14 +52,49 @@ export class OmeZarrChunkSource {
     );
     const indices = this.getArrayIndices(camera);
     const subarray = await zarr.get(array, indices);
+    const data = subarray.data;
+    if (!isChunkData(data)) {
+      throw new Error(
+        `Expected data to be ChunkData, but got ${data.constructor.name}`
+      );
+    }
+    const rowAlignmentBytes = data.BYTES_PER_ELEMENT;
+    if (!isTextureUnpackRowAlignment(rowAlignmentBytes)) {
+      throw new Error(
+        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
+      );
+    }
     return {
-      data: subarray.data,
-      shape: subarray.shape,
-      dtype: array.dtype,
+      data,
+      state: "loaded",
+      lod,
+      visible: true,
+      prefetch: false,
+      shape: {
+        x: subarray.shape[this.dimensions_.x.index],
+        y: subarray.shape[this.dimensions_.y.index],
+        c:
+          this.dimensions_.c === undefined
+            ? 1
+            : subarray.shape[this.dimensions_.c.index],
+      },
+      // TODO: maybe this should be undefined?
+      chunkIndex: { x: 0, y: 0 },
+      rowStride: subarray.stride[this.dimensions_.y.index],
+      rowAlignmentBytes,
+      scale: {
+        x: this.datasets_[lod].scale[this.dimensions_.x.index],
+        y: this.datasets_[lod].scale[this.dimensions_.y.index],
+      },
+      // TODO: calc offset
+      offset: {
+        x: 0,
+        y: 0,
+      },
     };
   }
 
-  public async getAllChunks(): Promise<Chunk[]> {
+  public async initAllChunks(): Promise<Chunk[]> {
     const xIndex = this.dimensions_.x.index;
     const yIndex = this.dimensions_.y.index;
     // From ChunkManagerSource constructor
@@ -98,20 +113,24 @@ export class OmeZarrChunkSource {
       const chunksY = Math.ceil(arrayShape[yIndex] / chunkHeight);
       const scale = dataset.scale;
       const translation = dataset.translation;
-      // TODO: handle case when c dimension
+      // TODO: handle case when c dimension has non-unit chunk shape.
       const numChannels = this.dimensions_.c
         ? arrayShape[this.dimensions_.c.index]
         : 1;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
           chunks.push({
-            data: null,
+            state: "unloaded",
             lod,
+            visible: false,
+            prefetch: false,
             shape: {
               x: chunkWidth,
               y: chunkHeight,
               c: numChannels,
             },
+            rowStride: chunkWidth,
+            rowAlignmentBytes: 1,
             chunkIndex: { x, y },
             scale: {
               x: scale[xIndex],
@@ -150,16 +169,18 @@ export class OmeZarrChunkSource {
           "Camera must specify z coordinate when z dimension is present."
         );
       }
-      const zTranslation = translation[this.dimensions_.z.index];
-      const zScale = scale[this.dimensions_.z.index];
-      zIndex = Math.round((camera.z - zTranslation) / zScale);
+      zIndex = toIndex(
+        camera.z,
+        translation[this.dimensions_.z.index],
+        scale[this.dimensions_.z.index]
+      );
       const zChunkIndex = Math.floor(
         zIndex / array.chunks[this.dimensions_.z.index]
       );
       chunkIndex[this.dimensions_.z.index] = zChunkIndex;
     }
 
-    // TODO: fix this
+    // TODO: handle case when we load multiple channels at once.
     if (this.dimensions_.c) {
       if (camera.c === undefined) {
         throw new Error(
@@ -169,15 +190,18 @@ export class OmeZarrChunkSource {
       chunkIndex[this.dimensions_.c.index] = camera.c;
     }
 
+    let tIndex: number;
     if (this.dimensions_.t) {
       if (camera.t === undefined) {
         throw new Error(
           "Camera must specify t coordinate when t dimension is present."
         );
       }
-      const tTranslation = translation[this.dimensions_.t.index];
-      const tScale = scale[this.dimensions_.t.index];
-      const tIndex = Math.round((camera.t - tTranslation) / tScale);
+      tIndex = toIndex(
+        camera.t,
+        translation[this.dimensions_.t.index],
+        scale[this.dimensions_.t.index]
+      );
       const tChunkIndex = Math.floor(
         tIndex / array.chunks[this.dimensions_.t.index]
       );
@@ -187,10 +211,15 @@ export class OmeZarrChunkSource {
       `Loading chunk data for chunkIndex: ${chunkIndex}, lod: ${lod}`
     );
     const subarray = await array.getChunk(chunkIndex);
-    // TODO: support other data types
-    const data = subarray.data as Uint16Array;
 
-    // TODO: calculate offset based on zIndex, tIndex, and stride.
+    const data = subarray.data;
+    if (!isChunkData(data)) {
+      throw new Error(
+        `Subarray has an unsupported data type, data=${data.constructor.name}`
+      );
+    }
+
+    // TODO: calculate offset based on zIndex, cIndex, tIndex, and stride.
     const sliceSize = chunk.shape.x * chunk.shape.y;
     let offset = 0;
     if (this.dimensions_.z) {
@@ -210,19 +239,19 @@ export class OmeZarrChunkSource {
     const translation = datasetAttrs.translation;
     const scale = datasetAttrs.scale;
 
-    const xTranslation = translation[this.dimensions_.x.index];
-    const xScale = scale[this.dimensions_.x.index];
-    const xStart = Math.floor((camera.x.start - xTranslation) / xScale);
-    const xEnd = Math.ceil((camera.x.end - xTranslation) / xScale);
-    const xIndex = zarr.slice(xStart, xEnd);
-    indices[this.dimensions_.x.index] = xIndex;
+    indices[this.dimensions_.x.index] = toSlice(
+      camera.x.start,
+      camera.x.end,
+      translation[this.dimensions_.x.index],
+      scale[this.dimensions_.x.index]
+    );
 
-    const yTranslation = translation[this.dimensions_.y.index];
-    const yScale = scale[this.dimensions_.y.index];
-    const yStart = Math.floor((camera.y.start - yTranslation) / yScale);
-    const yEnd = Math.ceil((camera.y.end - yTranslation) / yScale);
-    const yIndex = zarr.slice(yStart, yEnd);
-    indices[this.dimensions_.y.index] = yIndex;
+    indices[this.dimensions_.y.index] = toSlice(
+      camera.y.start,
+      camera.y.end,
+      translation[this.dimensions_.y.index],
+      scale[this.dimensions_.y.index]
+    );
 
     if (this.dimensions_.z) {
       if (camera.z === undefined) {
@@ -230,10 +259,11 @@ export class OmeZarrChunkSource {
           "Camera must specify z coordinate when z dimension is present."
         );
       }
-      const zTranslation = translation[this.dimensions_.z.index];
-      const zScale = scale[this.dimensions_.z.index];
-      const zIndex = Math.round((camera.z - zTranslation) / zScale);
-      indices[this.dimensions_.z.index] = zIndex;
+      indices[this.dimensions_.z.index] = toIndex(
+        camera.z,
+        translation[this.dimensions_.z.index],
+        scale[this.dimensions_.z.index]
+      );
     }
 
     if (this.dimensions_.c) {
@@ -242,6 +272,7 @@ export class OmeZarrChunkSource {
           "Camera must specify c coordinate when c dimension is present."
         );
       }
+      // TODO: technically c can have transforms, but it probably shouldn't.
       indices[this.dimensions_.c.index] = camera.c;
     }
 
@@ -251,10 +282,11 @@ export class OmeZarrChunkSource {
           "Camera must specify t coordinate when t dimension is present."
         );
       }
-      const tTranslation = translation[this.dimensions_.t.index];
-      const tScale = scale[this.dimensions_.t.index];
-      const tIndex = Math.round((camera.t - tTranslation) / tScale);
-      indices[this.dimensions_.t.index] = tIndex;
+      indices[this.dimensions_.t.index] = toIndex(
+        camera.t,
+        translation[this.dimensions_.t.index],
+        scale[this.dimensions_.t.index]
+      );
     }
 
     return indices;
@@ -413,4 +445,19 @@ function getDatasetAttributes(image: OmeZarrImage["multiscales"][number]) {
     });
   }
   return output;
+}
+
+function toSlice(
+  start: number,
+  end: number,
+  translation: number,
+  scale: number
+): Slice {
+  const startIndex = toIndex(start, translation, scale);
+  const endIndex = toIndex(end, translation, scale);
+  return zarr.slice(startIndex, endIndex);
+}
+
+function toIndex(value: number, translation: number, scale: number) {
+  return Math.round((value - translation) / scale);
 }
