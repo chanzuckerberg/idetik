@@ -7,7 +7,8 @@ export function handlePointPickingEvent<T>(
   pointerDownPos: vec2 | null,
   dragThreshold: number,
   getValueAtWorld: (world: vec3) => T | null,
-  onPickValue?: (info: { world: vec3; value: T }) => void
+  onPickValue?: (info: { world: vec3; value: T }) => void,
+  layerName: string
 ): vec2 | null {
   switch (event.type) {
     case "pointerdown": {
@@ -31,7 +32,7 @@ export function handlePointPickingEvent<T>(
               onPickValue({ world, value });
             } else {
               Logger.warn(
-                "PointPicking",
+                layerName,
                 "Point picking attempted but no onPickValue callback provided"
               );
             }

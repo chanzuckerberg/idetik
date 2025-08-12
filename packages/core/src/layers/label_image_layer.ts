@@ -86,7 +86,8 @@ export class LabelImageLayer extends Layer {
       this.pointerDownPos_,
       this.dragThreshold_,
       (world) => this.getValueAtWorld(world),
-      this.onPickValue_
+      this.onPickValue_,
+      "LabelImageLayer"
     );
   }
 
