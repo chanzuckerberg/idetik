@@ -27,12 +27,12 @@ export class OmeZarrImageSource {
         : new Location(new WebFileSystemStore(source), path);
   }
 
-  async open(): Promise<OmeZarrImageLoader> {
+  public async open(): Promise<OmeZarrImageLoader> {
     const root = await zarritaOpen.v2(this.location, { kind: "group" });
     const images = OmeNgffImage.parse(root.attrs).multiscales;
-    if (images.length > 1) {
+    if (images.length !== 1) {
       throw new Error(
-        `Currently only a single multiscale image is supported. Found ${images.length} images.`
+        `Exactly one multiscale image is supported. Found ${images.length} images.`
       );
     }
     const metadata = images[0];
