@@ -189,7 +189,7 @@ virusLike.setDepth(INITIAL_Z_POSITION);
 
 const imageSource = new OmeZarrImageSource(imageUrl);
 const loader = await imageSource.open();
-const attributes = await loader.loadAttributes();
+const attributes = loader.getAttributes();
 const attributesForLastLod = attributes[attributes.length - 1];
 
 const zDimName = "z";

@@ -14,7 +14,7 @@ const url =
   "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.4/96x0/marmoset_neurons.ome.zarr";
 const source = new OmeZarrImageSource(url);
 const loader = await source.open();
-const attributes = await loader.loadAttributes();
+const attributes = loader.getAttributes();
 const attributesAtLod0 = attributes[0];
 
 const dimensionInfo = (dimensionName: string) => {

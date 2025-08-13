@@ -60,9 +60,9 @@ export type ChunkSource = {
 };
 
 export type LoaderAttributes = {
-  chunks: readonly number[];
   dimensionNames: string[];
   dimensionUnits: (string | undefined)[];
+  chunks: readonly number[];
   shape: readonly number[];
   scale: readonly number[];
   translation: readonly number[];
@@ -77,5 +77,5 @@ export type ChunkLoader = {
 
   loadChunkDataFromRegion(chunk: Chunk, region: Region): Promise<void>;
 
-  loadAttributes(): Promise<LoaderAttributes[]>;
+  getAttributes(): ReadonlyArray<LoaderAttributes>;
 };

@@ -122,7 +122,7 @@ export class LabelImageLayer extends Layer {
     }
     this.setState("loading");
     const loader = await this.source_.open();
-    const attributes = await loader.loadAttributes();
+    const attributes = loader.getAttributes();
     const lod = this.lod_ ?? attributes.length - 1;
     const chunk = await loader.loadRegion(region, lod);
     this.image_ = this.createImage(chunk);
