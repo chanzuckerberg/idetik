@@ -5,8 +5,9 @@ import {
   LoaderAttributes,
 } from "../data/chunk";
 import { Region } from "../data/region";
-import { vec2 } from "gl-matrix";
+import { vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
+import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
@@ -26,7 +27,7 @@ export class ChunkManagerSource {
   private readonly yIdx_: number;
   private readonly zIdx_: number;
   private readonly channelIdx_: number;
-  private lastVisibleBounds_: Box2 | null = null;
+  private lastViewBounds2D_: Box2 | null = null;
 
   constructor(
     loader: ChunkLoader,
@@ -144,10 +145,10 @@ export class ChunkManagerSource {
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  public update(lodFactor: number, visibleBounds: Box2) {
+  public update(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
-    if (this.visibleBoundsChanged(visibleBounds)) {
-      this.updateChunkVisibility(visibleBounds);
+    if (this.viewBounds2DChanged(viewBounds2D)) {
+      this.updateChunkVisibility(viewBounds2D);
     }
     this.loadPendingChunks();
   }
@@ -223,7 +224,7 @@ export class ChunkManagerSource {
     }
   }
 
-  private updateChunkVisibility(visibleBounds: Box2): void {
+  private updateChunkVisibility(viewBounds2D: Box2): void {
     if (this.chunks_.length === 0) {
       Logger.warn(
         "ChunkManager",
@@ -232,13 +233,14 @@ export class ChunkManagerSource {
       return;
     }
 
-    const paddedBounds = this.getPaddedBounds(visibleBounds);
+    const viewBounds3D = this.makeViewBounds3D(viewBounds2D);
+    const paddedBounds = this.getPaddedBounds(viewBounds3D);
     for (const chunk of this.chunks_) {
       // TEMP: visibility is 2D (Box2). Ignore nonzero Z until Box3 intersects() exists.
       if (chunk.chunkIndex.z !== 0) continue;
 
       chunk.prefetch = false;
-      chunk.visible = this.isChunkWithinBounds(chunk, visibleBounds);
+      chunk.visible = this.isChunkWithinBounds(chunk, viewBounds3D);
       if (!chunk.visible) {
         chunk.prefetch = this.isChunkWithinBounds(chunk, paddedBounds);
       }
@@ -267,26 +269,65 @@ export class ChunkManagerSource {
     }
   }
 
-  private isChunkWithinBounds(chunk: Chunk, bounds: Box2): boolean {
-    const chunkBounds = new Box2(
-      vec2.fromValues(chunk.offset.x, chunk.offset.y),
-      vec2.fromValues(
+  private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
+    const chunkBounds = new Box3(
+      vec3.fromValues(chunk.offset.x, chunk.offset.y, chunk.offset.z),
+      vec3.fromValues(
         chunk.offset.x + chunk.shape.x * chunk.scale.x,
-        chunk.offset.y + chunk.shape.y * chunk.scale.y
+        chunk.offset.y + chunk.shape.y * chunk.scale.y,
+        chunk.offset.z + chunk.shape.z * chunk.scale.z
       )
     );
-    return Box2.intersects(chunkBounds, bounds);
+    return Box3.intersects(chunkBounds, bounds);
   }
 
-  private visibleBoundsChanged(newBounds: Box2): boolean {
-    const prev = this.lastVisibleBounds_;
+  private makeViewBounds3D(bounds: Box2): Box3 {
+    if (this.zIdx_ === -1) {
+      return new Box3(
+        vec3.fromValues(bounds.min[0], bounds.min[1], 0),
+        vec3.fromValues(bounds.max[0], bounds.max[1], 0)
+      );
+    }
+
+    const index = this.region_[this.zIdx_].index;
+    if (index.type !== "point") {
+      return new Box3(
+        vec3.fromValues(bounds.min[0], bounds.min[1], 0),
+        vec3.fromValues(bounds.max[0], bounds.max[1], 0)
+      );
+    }
+
+    const shapeZ = this.attrs_[this.currentLOD_].shape[this.zIdx_];
+    const scaleZ = this.attrs_[this.currentLOD_].scale[this.zIdx_];
+    const transZ = this.attrs_[this.currentLOD_].translation[this.zIdx_];
+    const chunkDepth = this.attrs_[this.currentLOD_].chunks[this.zIdx_];
+    const pointZ = Math.floor((index.value - transZ) / scaleZ);
+    const chunkZ = Math.max(
+      0,
+      Math.min(
+        Math.floor(pointZ / chunkDepth),
+        Math.ceil(shapeZ / chunkDepth) - 1
+      )
+    );
+
+    const zMin = transZ + chunkZ * chunkDepth * scaleZ;
+    const zMax = transZ + (chunkZ + 1) * chunkDepth * scaleZ;
+
+    return new Box3(
+      vec3.fromValues(bounds.min[0], bounds.min[1], zMin),
+      vec3.fromValues(bounds.max[0], bounds.max[1], zMax)
+    );
+  }
+
+  private viewBounds2DChanged(newBounds: Box2): boolean {
+    const prev = this.lastViewBounds2D_;
     const changed =
       prev === null ||
       !vec2.equals(prev.min, newBounds.min) ||
       !vec2.equals(prev.max, newBounds.max);
 
     if (changed) {
-      this.lastVisibleBounds_ = new Box2(
+      this.lastViewBounds2D_ = new Box2(
         vec2.clone(newBounds.min),
         vec2.clone(newBounds.max)
       );
@@ -295,7 +336,7 @@ export class ChunkManagerSource {
     return changed;
   }
 
-  private getPaddedBounds(bounds: Box2): Box2 {
+  private getPaddedBounds(bounds: Box3): Box3 {
     const chunkWidth =
       this.attrs_[this.currentLOD_].chunks[this.xIdx_] *
       this.attrs_[this.currentLOD_].scale[this.xIdx_];
@@ -304,12 +345,25 @@ export class ChunkManagerSource {
       this.attrs_[this.currentLOD_].chunks[this.yIdx_] *
       this.attrs_[this.currentLOD_].scale[this.yIdx_];
 
+    const chunkDepth =
+      this.attrs_[this.currentLOD_].chunks[this.zIdx_] *
+      this.attrs_[this.currentLOD_].scale[this.zIdx_];
+
     const padX = chunkWidth * PREFETCH_PADDING_CHUNKS;
     const padY = chunkHeight * PREFETCH_PADDING_CHUNKS;
+    const padZ = chunkDepth * PREFETCH_PADDING_CHUNKS;
 
-    return new Box2(
-      vec2.fromValues(bounds.min[0] - padX, bounds.min[1] - padY),
-      vec2.fromValues(bounds.max[0] + padX, bounds.max[1] + padY)
+    return new Box3(
+      vec3.fromValues(
+        bounds.min[0] - padX,
+        bounds.min[1] - padY,
+        bounds.min[2] - padZ
+      ),
+      vec3.fromValues(
+        bounds.max[0] + padX,
+        bounds.max[1] + padY,
+        bounds.max[2] + padZ
+      )
     );
   }
 }
@@ -336,13 +390,13 @@ export class ChunkManager {
       );
     }
 
-    const visibleBounds = camera.getWorldViewRect();
-    const virtualWidth = Math.abs(visibleBounds.max[0] - visibleBounds.min[0]);
+    const viewBounds2D = camera.getWorldViewRect();
+    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     for (const [_, chunkManagerSource] of this.sources_) {
-      chunkManagerSource.update(lodFactor, visibleBounds);
+      chunkManagerSource.update(lodFactor, viewBounds2D);
     }
   }
 }
