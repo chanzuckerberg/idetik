@@ -100,7 +100,7 @@ export class ImageSeriesLoader {
       return this.seriesAttributes_;
     }
     const loader = await this.getLoader();
-    const attributes = await loader.loadAttributes();
+    const attributes = loader.getAttributes();
     const attributesForLOD = attributes[this.lod_ ?? attributes.length - 1];
 
     const seriesIndex = attributesForLOD.dimensionNames.findIndex(
@@ -151,7 +151,7 @@ export class ImageSeriesLoader {
     });
 
     const loader = await this.getLoader();
-    const attributes = await loader.loadAttributes();
+    const attributes = loader.getAttributes();
     const lod = this.lod_ ?? attributes.length - 1;
 
     const chunk = await loader.loadRegion(pointRegion, lod, this.scheduler_);

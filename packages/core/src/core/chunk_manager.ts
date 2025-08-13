@@ -19,7 +19,7 @@ export class ChunkManagerSource {
   private readonly chunks_: Chunk[];
   private readonly loader_;
   private readonly region_;
-  private readonly attrs_: LoaderAttributes[];
+  private readonly attrs_: ReadonlyArray<LoaderAttributes>;
   private readonly lowestResLOD_: number;
   private currentLOD_: number = 0;
   private readonly xIdx_: number;
@@ -28,7 +28,11 @@ export class ChunkManagerSource {
   private readonly channelIdx_: number;
   private lastVisibleBounds_: Box2 | null = null;
 
-  constructor(loader: ChunkLoader, attrs: LoaderAttributes[], region: Region) {
+  constructor(
+    loader: ChunkLoader,
+    attrs: ReadonlyArray<LoaderAttributes>,
+    region: Region
+  ) {
     this.loader_ = loader;
     this.region_ = region;
     this.attrs_ = attrs;
@@ -317,7 +321,7 @@ export class ChunkManager {
     let existing = this.sources_.get(source);
     if (!existing) {
       const loader = await source.open();
-      const attrs = await loader.loadAttributes();
+      const attrs = loader.getAttributes();
       existing = new ChunkManagerSource(loader, attrs, region);
       this.sources_.set(source, existing);
     }

@@ -420,7 +420,7 @@ async function loadImageMetadata(
   xCoordRange: [number, number];
 }> {
   const loader = await source.open();
-  const attrs = await loader.loadAttributes();
+  const attrs = loader.getAttributes();
   const attrsForLevel = attrs[resolutionLevel];
 
   // TODO: We assume that the last dimension will give us the x-unit,

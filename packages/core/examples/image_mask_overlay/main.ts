@@ -18,7 +18,7 @@ const maskUrl = `${baseUrl}/Annotations/100/membrane-1.0_segmentationmask.zarr`;
 // Source is 3D with axes (z, y, x), so we provide an interval in z
 const imageSource = new OmeZarrImageSource(imageUrl);
 const loader = await imageSource.open();
-const attributes = await loader.loadAttributes();
+const attributes = loader.getAttributes();
 const lods = attributes.length;
 const attributesForLastLod = attributes[lods - 1];
 
