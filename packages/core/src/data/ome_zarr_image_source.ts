@@ -4,7 +4,10 @@ import FetchStore from "@zarrita/storage/fetch";
 import { openArray, openGroup } from "./zarrita/open";
 import WebFileSystemStore from "./zarrita/web_file_system_store";
 import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
-import { parseOmeNgffImage } from "./ome_zarr_hcs_metadata_loader";
+import {
+  omeZarrToZarrVersion,
+  parseOmeNgffImage,
+} from "./ome_zarr_hcs_metadata_loader";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
@@ -42,7 +45,7 @@ export class OmeZarrImageSource {
     if (metadata.datasets.length === 0) {
       throw new Error(`No datasets found in the multiscale image.`);
     }
-    const zarrVersion = omeVersion == "0.4" ? "v2" : "v3";
+    const zarrVersion = omeZarrToZarrVersion(omeVersion);
     const arrays = await Promise.all(
       metadata.datasets.map((d) => openArray(root.resolve(d.path), zarrVersion))
     );
