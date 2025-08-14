@@ -6,7 +6,6 @@ import {
   Region,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { FpsOverlay } from "./fps_overlay";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 
 const url =
@@ -28,9 +27,6 @@ const region: Region = [
 ];
 const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
 const camera = new OrthographicCamera(left, right, top, bottom);
-const fpsOverlay = new FpsOverlay({
-  textDiv: document.querySelector<HTMLDivElement>("#fps-text")!,
-});
 
 const imageLayer = new ImageLayer({ source, region, channelProps });
 imageLayer.debugMode = true;
@@ -45,5 +41,6 @@ new Idetik({
   camera,
   cameraControls: new PanZoomControls(camera),
   layers: [imageLayer],
-  overlays: [fpsOverlay, chunkInfoOverlay],
+  overlays: [chunkInfoOverlay],
+  showStats: true,
 }).start();
