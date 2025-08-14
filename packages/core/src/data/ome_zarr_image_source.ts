@@ -33,7 +33,7 @@ export class OmeZarrImageSource {
     const adaptedOmeImage = parseOmeNgffImage(root.attrs);
     const omeImage = adaptedOmeImage;
     const omeVersion = adaptedOmeImage.originalVersion;
-    const images = omeImage.multiscales
+    const images = omeImage.multiscales;
     if (images.length !== 1) {
       throw new Error(
         `Exactly one multiscale image is supported. Found ${images.length} images.`
@@ -45,9 +45,7 @@ export class OmeZarrImageSource {
     }
     const zarrVersion = omeVersion == "0.4" ? "v2" : "v3";
     const arrays = await Promise.all(
-      metadata.datasets.map((d) =>
-        openArray(root.resolve(d.path), zarrVersion)
-      )
+      metadata.datasets.map((d) => openArray(root.resolve(d.path), zarrVersion))
     );
     const shape = arrays[0].shape;
     const axes = metadata.axes;
