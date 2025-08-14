@@ -60,13 +60,9 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
     const x = region.find((r) => r.dimension.toLowerCase() === "x");
     const y = region.find((r) => r.dimension.toLowerCase() === "y");
-    const z = region.find((r) => r.dimension.toLowerCase() === "z");
     const hasIntervals = region.some((r) => r.index.type === "interval");
     this.useChunkManager_ =
-      !hasIntervals &&
-      x?.index.type === "full" &&
-      y?.index.type === "full" &&
-      z?.index.type === "point";
+      !hasIntervals && x?.index.type === "full" && y?.index.type === "full";
 
     if (this.useChunkManager_) {
       Logger.info("ImageLayer", "Loading data using the chunk manager");

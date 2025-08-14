@@ -184,8 +184,7 @@ export class ChunkManagerSource {
       if (chunk.lod !== this.lowestResLOD_ || chunk.state !== "unloaded")
         continue;
 
-      // TEMP: visibility is 2D (Box2). Ignore nonzero Z until Box3 intersects() exists.
-      // In this case, changes to loadChunkDataFromRegion are also needed.
+      // TEMP: visibility is 2D. Ignore nonzero Z until chunk prioritization exists.
       if (chunk.chunkIndex.z !== 0) continue;
 
       this.loadChunkData(chunk);
@@ -233,10 +232,15 @@ export class ChunkManagerSource {
       return;
     }
 
-    const viewBounds3D = this.makeViewBounds3D(viewBounds2D);
+    const [zMin, zMax] = this.getZBounds();
+    const viewBounds3D = new Box3(
+      vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
+      vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
+    );
+
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
     for (const chunk of this.chunks_) {
-      // TEMP: visibility is 2D (Box2). Ignore nonzero Z until Box3 intersects() exists.
+      // TEMP: visibility is 2D. Ignore nonzero Z until chunk prioritization exists.
       if (chunk.chunkIndex.z !== 0) continue;
 
       chunk.prefetch = false;
@@ -281,42 +285,31 @@ export class ChunkManagerSource {
     return Box3.intersects(chunkBounds, bounds);
   }
 
-  private makeViewBounds3D(bounds: Box2): Box3 {
-    if (this.zIdx_ === -1) {
-      return new Box3(
-        vec3.fromValues(bounds.min[0], bounds.min[1], 0),
-        vec3.fromValues(bounds.max[0], bounds.max[1], 0)
-      );
-    }
-
+  private getZBounds(): [number, number] {
+    if (this.zIdx_ === -1) return [0, 0];
     const index = this.region_[this.zIdx_].index;
     if (index.type !== "point") {
-      return new Box3(
-        vec3.fromValues(bounds.min[0], bounds.min[1], 0),
-        vec3.fromValues(bounds.max[0], bounds.max[1], 0)
-      );
+      throw new Error("Intervals are currently not supported.");
     }
 
-    const shapeZ = this.attrs_[this.currentLOD_].shape[this.zIdx_];
-    const scaleZ = this.attrs_[this.currentLOD_].scale[this.zIdx_];
-    const transZ = this.attrs_[this.currentLOD_].translation[this.zIdx_];
+    const zShape = this.attrs_[this.currentLOD_].shape[this.zIdx_];
+    const zScale = this.attrs_[this.currentLOD_].scale[this.zIdx_];
+    const zTran = this.attrs_[this.currentLOD_].translation[this.zIdx_];
+    const zPoint = Math.floor((index.value - zTran) / zScale);
     const chunkDepth = this.attrs_[this.currentLOD_].chunks[this.zIdx_];
-    const pointZ = Math.floor((index.value - transZ) / scaleZ);
-    const chunkZ = Math.max(
+
+    const zChunk = Math.max(
       0,
       Math.min(
-        Math.floor(pointZ / chunkDepth),
-        Math.ceil(shapeZ / chunkDepth) - 1
+        Math.floor(zPoint / chunkDepth),
+        Math.ceil(zShape / chunkDepth) - 1
       )
     );
 
-    const zMin = transZ + chunkZ * chunkDepth * scaleZ;
-    const zMax = transZ + (chunkZ + 1) * chunkDepth * scaleZ;
-
-    return new Box3(
-      vec3.fromValues(bounds.min[0], bounds.min[1], zMin),
-      vec3.fromValues(bounds.max[0], bounds.max[1], zMax)
-    );
+    return [
+      zTran + zChunk * chunkDepth * zScale,
+      zTran + (zChunk + 1) * chunkDepth * zScale,
+    ];
   }
 
   private viewBounds2DChanged(newBounds: Box2): boolean {
