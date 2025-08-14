@@ -84,12 +84,13 @@ export class OmeZarrImageLoader {
       if (!region.c) {
         throw new Error("Region must specify a c index to load data with c.");
       }
+      // TODO: handle this more specifically.
       if (region.c.type === "full") {
         throw new Error(
           "Region c index cannot be 'full' when loading chunk data."
         );
       }
-      chunkCoords[dimension.c.index] = region.c.value;
+      chunkCoords[dimension.c.index] = Math.floor(region.c.value / dimension.c.chunkSize);
     }
     if (dimension.t) {
       if (!region.t) {
