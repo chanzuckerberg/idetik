@@ -90,7 +90,9 @@ export class OmeZarrImageLoader {
           "Region c index cannot be 'full' when loading chunk data."
         );
       }
-      chunkCoords[dimension.c.index] = Math.floor(region.c.value / dimension.c.chunkSize);
+      chunkCoords[dimension.c.index] = Math.floor(
+        region.c.value / dimension.c.chunkSize
+      );
     }
     if (dimension.t) {
       if (!region.t) {
@@ -325,15 +327,15 @@ function getChunkedArrayDimensions(
     const x = getChunkedArrayDimension(image, arrays, i, xIndex);
     const y = getChunkedArrayDimension(image, arrays, i, yIndex);
     const z =
-      zIndex !== undefined
+      zIndex !== -1
         ? getChunkedArrayDimension(image, arrays, i, zIndex)
         : undefined;
     const c =
-      cIndex !== undefined
+      cIndex !== -1
         ? getChunkedArrayDimension(image, arrays, i, cIndex)
         : undefined;
     const t =
-      tIndex !== undefined
+      tIndex !== -1
         ? getChunkedArrayDimension(image, arrays, i, tIndex)
         : undefined;
     result.push({
@@ -369,7 +371,7 @@ function getDimensionIndices(
         Found at index ${yIndex} of ${axes.length}`);
   }
 
-  let zIndex;
+  let zIndex: number = -1;
   if (dimensions.z) {
     zIndex = findDimension(dimensions.z, axes);
     if (zIndex === -1) {
@@ -393,7 +395,7 @@ function getDimensionIndices(
     }
   }
 
-  let cIndex;
+  let cIndex: number = -1;
   if (dimensions.c) {
     cIndex = findDimension(dimensions.c, axes);
     if (cIndex === -1) {

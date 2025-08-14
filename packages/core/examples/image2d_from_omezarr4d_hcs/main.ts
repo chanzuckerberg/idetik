@@ -4,12 +4,12 @@ import {
   OrthographicCamera,
   OmeZarrImageSource,
   PanZoomControls,
-  Region,
   loadOmeroChannels,
   loadOmeroDefaultZ,
   loadOmeZarrPlate,
   loadOmeZarrWell,
 } from "@";
+import { Region2DProps } from "@/data/region";
 
 const plateUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/";
@@ -41,13 +41,11 @@ const app = new Idetik({
   cameraControls: controls,
 }).start();
 
-const region: Region = [
-  { dimension: "T", index: { type: "point", value: 0 } },
-  { dimension: "C", index: { type: "interval", start: 1, stop: 3 } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
-  { dimension: "Y", index: { type: "full" } },
-  { dimension: "X", index: { type: "full" } },
-];
+const region: Region2DProps = {
+  t: { type: "point", value: 0 },
+  c: { type: "interval", start: 1, stop: 3 },
+  z: { type: "point", value: 0 },
+};
 
 const imageSelector = document.querySelector("#image") as HTMLSelectElement;
 
@@ -58,12 +56,9 @@ const onImageChange = async () => {
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl);
   const omeroDefaultZ = await loadOmeroDefaultZ(source);
-  region[2] = {
-    dimension: "Z",
-    index: {
-      type: "point",
-      value: (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE,
-    },
+  region.z = {
+    type: "point",
+    value: (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE,
   };
   const omeroChannels = await loadOmeroChannels(source);
   const contrastLimits: [number, number][] = [

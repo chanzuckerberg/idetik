@@ -6,6 +6,7 @@ import {
   Color,
   ImageLayer,
 } from "@";
+import { Region2DProps } from "@/data/region";
 import {
   LabelImageLayer,
   PointPickingResult,
@@ -51,13 +52,11 @@ const xStopPoint = xExtent.size * xExtent.scale;
 const yExtent = dimensionExtent("Y");
 const yStopPoint = yExtent.size * yExtent.scale;
 
-const imageRegion: Region = [
-  { dimension: "T", index: { type: "point", value: tStartPoint } },
-  { dimension: "C", index: { type: "point", value: phaseChannelIndex } },
-  { dimension: "Z", index: { type: "point", value: zMidPoint } },
-  { dimension: "Y", index: { type: "full" } },
-  { dimension: "X", index: { type: "full" } },
-];
+const imageRegion: Region2DProps = {
+  t: { type: "point", value: tStartPoint },
+  c: { type: "point", value: phaseChannelIndex },
+  z: { type: "point", value: zMidPoint },
+};
 
 // Labels provide C and Z dimensions, but they are unitary.
 const labelsRegion: Region = [

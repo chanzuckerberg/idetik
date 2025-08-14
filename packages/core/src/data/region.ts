@@ -27,7 +27,7 @@ export type DimensionalIndex = {
 // A region of some dimensional space.
 export type Region = Array<DimensionalIndex>;
 
-// A set of indices that maps from an n-dimensional source to 2D.
+// A set of indices that maps from a 2-5D source to 2D.
 export type Region2DProps = {
   x?: Interval | Full;
   y?: Interval | Full;

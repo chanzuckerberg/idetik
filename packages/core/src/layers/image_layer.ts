@@ -46,15 +46,11 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     new Color(0.6, 0.5, 0.3),
   ];
 
-  // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
-  private readonly lod_?: number;
-
   constructor({
     source,
     region,
     channelProps,
     onPickValue,
-    lod,
     ...layerOptions
   }: ImageLayerProps) {
     super(layerOptions);
@@ -64,7 +60,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
-    this.lod_ = lod;
   }
 
   public async onAttached(context: IdetikContext) {

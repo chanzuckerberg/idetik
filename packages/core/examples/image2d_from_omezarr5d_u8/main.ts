@@ -5,9 +5,9 @@ import {
   ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
-  Region,
   PointPickingResult,
 } from "@";
+import { Region2DProps } from "@/data/region";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
@@ -34,11 +34,9 @@ const zMidPoint = zInfo.offset + 0.5 * zInfo.size * zInfo.scale;
 const yInfo = dimensionInfo("y");
 const xInfo = dimensionInfo("x");
 
-const region: Region = [
-  { dimension: "z", index: { type: "point", value: zMidPoint } },
-  { dimension: "y", index: { type: "full" } },
-  { dimension: "x", index: { type: "full" } },
-];
+const region: Region2DProps = {
+  z: { type: "point", value: zMidPoint },
+};
 const channelProps: ChannelProps[] = [
   {
     visible: true,
