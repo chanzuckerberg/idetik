@@ -117,7 +117,7 @@ export class OmeZarrImageLoader {
     if (region.z) {
       // TODO: I think dimension.z must be defined here, but double check.
       const zIndex =
-        (region.z.value - dimension.z!.translation) / dimension.z!.scale;
+        Math.round((region.z.value - dimension.z!.translation) / dimension.z!.scale);
       zOffset = (zIndex % dimension.z!.chunkSize) * sliceSize;
     }
     chunk.data = data.slice(zOffset, zOffset + sliceSize);
