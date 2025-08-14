@@ -31,9 +31,8 @@ export class OmeZarrImageSource {
   public async open(): Promise<OmeZarrImageLoader> {
     const root = await openGroup(this.location);
     const adaptedOmeImage = parseOmeNgffImage(root.attrs);
-    const omeImage = adaptedOmeImage;
     const omeVersion = adaptedOmeImage.originalVersion;
-    const images = omeImage.multiscales;
+    const images = adaptedOmeImage.multiscales;
     if (images.length !== 1) {
       throw new Error(
         `Exactly one multiscale image is supported. Found ${images.length} images.`
