@@ -126,10 +126,12 @@ export class Idetik {
         return;
       }
 
-      this.chunkManager_.update(
-        this.camera as OrthographicCamera,
-        this.renderer_.width
-      );
+      if (this.camera.type === "OrthographicCamera") {
+        this.chunkManager_.update(
+          this.camera as OrthographicCamera,
+          this.renderer_.width
+        );
+      }
 
       // Must resize before render b/c changing canvas coordinate space clears it.
       if (this.needsResize_) {

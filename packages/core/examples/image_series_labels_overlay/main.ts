@@ -23,7 +23,7 @@ const labelsSource = new OmeZarrImageSource(labelsUrl);
 
 const lod = 0;
 const loader = await imageSource.open();
-const attributes = await loader.loadAttributes();
+const attributes = loader.getAttributes();
 const attributesAtLod = attributes[lod];
 
 // Phase contrast limits were chosen qualitatively.

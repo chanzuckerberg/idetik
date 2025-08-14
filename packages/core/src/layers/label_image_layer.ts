@@ -10,6 +10,7 @@ import {
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
+import { handlePointPickingEvent } from "../utilities/point_picking";
 
 export interface PointPickingResult {
   world: vec3;
@@ -80,40 +81,13 @@ export class LabelImageLayer extends Layer {
   }
 
   public onEvent(event: EventContext) {
-    if (!this.onPickValue_) return;
-
-    switch (event.type) {
-      case "pointerdown": {
-        const e = event.event as PointerEvent;
-        this.pointerDownPos_ = vec2.fromValues(e.clientX, e.clientY);
-        break;
-      }
-
-      case "pointerup": {
-        if (!this.pointerDownPos_) break;
-
-        const e = event.event as PointerEvent;
-        const pointerUpPos = vec2.fromValues(e.clientX, e.clientY);
-        const dist = vec2.distance(this.pointerDownPos_, pointerUpPos);
-
-        if (dist < this.dragThreshold_) {
-          this.pointerDownPos_ = null;
-          const world = event.worldPos;
-          if (!world) return;
-          const value = this.getValueAtWorld(world);
-
-          if (value !== null) {
-            this.onPickValue_({ world, value });
-          }
-        }
-        break;
-      }
-
-      case "pointercancel": {
-        this.pointerDownPos_ = null;
-        break;
-      }
-    }
+    this.pointerDownPos_ = handlePointPickingEvent(
+      event,
+      this.pointerDownPos_,
+      this.dragThreshold_,
+      (world) => this.getValueAtWorld(world),
+      this.onPickValue_
+    );
   }
 
   private async load(region: Region) {
@@ -122,7 +96,7 @@ export class LabelImageLayer extends Layer {
     }
     this.setState("loading");
     const loader = await this.source_.open();
-    const attributes = await loader.loadAttributes();
+    const attributes = loader.getAttributes();
     const lod = this.lod_ ?? attributes.length - 1;
     const chunk = await loader.loadRegion(region, lod);
     this.image_ = this.createImage(chunk);

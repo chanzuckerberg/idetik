@@ -20,6 +20,7 @@ type Module =
   | "EventDispatcher"
   | "Idetik"
   | "ImageLayer"
+  | "LabelImageLayer"
   | "WebGLRenderer"
   | "WebGLShaderProgram"
   | "WebGLTexture"

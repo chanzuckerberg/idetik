@@ -1,9 +1,10 @@
 import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
-import { openGroup } from "./zarrita/open";
+import { openArray, openGroup } from "./zarrita/open";
 import WebFileSystemStore from "./zarrita/web_file_system_store";
 import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
+import { parseOmeNgffImage } from "./ome_zarr_hcs_metadata_loader";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
@@ -27,8 +28,37 @@ export class OmeZarrImageSource {
         : new Location(new WebFileSystemStore(source), path);
   }
 
-  async open(): Promise<OmeZarrImageLoader> {
+  public async open(): Promise<OmeZarrImageLoader> {
     const root = await openGroup(this.location);
-    return new OmeZarrImageLoader(root);
+    const adaptedOmeImage = parseOmeNgffImage(root.attrs);
+    const omeImage = adaptedOmeImage;
+    const omeVersion = adaptedOmeImage.originalVersion;
+    const images = omeImage.multiscales
+    if (images.length !== 1) {
+      throw new Error(
+        `Exactly one multiscale image is supported. Found ${images.length} images.`
+      );
+    }
+    const metadata = images[0];
+    if (metadata.datasets.length === 0) {
+      throw new Error(`No datasets found in the multiscale image.`);
+    }
+    const zarrVersion = omeVersion == "0.4" ? "v2" : "v3";
+    const arrays = await Promise.all(
+      metadata.datasets.map((d) =>
+        openArray(root.resolve(d.path), zarrVersion)
+      )
+    );
+    const shape = arrays[0].shape;
+    const axes = metadata.axes;
+    if (axes.length !== shape.length) {
+      throw new Error(
+        `Mismatch between number of axes (${axes.length}) and array shape (${shape.length})`
+      );
+    }
+    return new OmeZarrImageLoader({
+      metadata,
+      arrays,
+    });
   }
 }

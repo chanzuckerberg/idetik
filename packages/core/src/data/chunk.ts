@@ -33,6 +33,7 @@ export type Chunk = {
   shape: {
     x: number;
     y: number;
+    z: number;
     c: number;
   };
   rowStride: number;
@@ -40,14 +41,17 @@ export type Chunk = {
   chunkIndex: {
     x: number;
     y: number;
+    z: number;
   };
   scale: {
     x: number;
     y: number;
+    z: number;
   };
   offset: {
     x: number;
     y: number;
+    z: number;
   };
 };
 
@@ -56,9 +60,9 @@ export type ChunkSource = {
 };
 
 export type LoaderAttributes = {
-  chunks: readonly number[];
   dimensionNames: string[];
   dimensionUnits: (string | undefined)[];
+  chunks: readonly number[];
   shape: readonly number[];
   scale: readonly number[];
   translation: readonly number[];
@@ -73,5 +77,5 @@ export type ChunkLoader = {
 
   loadChunkDataFromRegion(chunk: Chunk, region: Region): Promise<void>;
 
-  loadAttributes(): Promise<LoaderAttributes[]>;
+  getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
