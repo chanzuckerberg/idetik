@@ -67,8 +67,8 @@ const onImageChange = async () => {
   };
   const omeroChannels = await loadOmeroChannels(source);
   const contrastLimits: [number, number][] = [
-    [omeroChannels[1].window.start, omeroChannels[1].window.end],
-    [omeroChannels[2].window.start, omeroChannels[2].window.end],
+    [omeroChannels[1].window!.start, omeroChannels[1].window!.end],
+    [omeroChannels[2].window!.start, omeroChannels[2].window!.end],
   ];
   const newLayer = new ImageLayer({
     source,

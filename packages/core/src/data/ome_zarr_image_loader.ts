@@ -6,7 +6,7 @@ import { Chunk, isChunkData, LoaderAttributes } from "./chunk";
 import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-import { Image as OmeNgffImage } from "../data/ome_ngff/0.4/image";
+import { Image as OmeNgffImage } from "../data/ome_ngff/0.5/image";
 
 import { Readable } from "@zarrita/storage";
 
@@ -30,14 +30,14 @@ export class PromiseQueue<T> {
 }
 
 type OmeZarrImageLoaderProps = {
-  metadata: OmeNgffImage["multiscales"][number];
+  metadata: OmeNgffImage["ome"]["multiscales"][number];
   arrays: zarr.Array<zarr.DataType, Readable>[];
 };
 
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
-  private readonly metadata_: OmeNgffImage["multiscales"][number];
+  private readonly metadata_: OmeNgffImage["ome"]["multiscales"][number];
   private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
   private readonly lods_: number;
   private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
@@ -224,7 +224,7 @@ export class OmeZarrImageLoader {
 }
 
 function getLoaderAttributes(
-  image: OmeNgffImage["multiscales"][number],
+  image: OmeNgffImage["ome"]["multiscales"][number],
   arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>
 ): LoaderAttributes[] {
   const output: LoaderAttributes[] = [];

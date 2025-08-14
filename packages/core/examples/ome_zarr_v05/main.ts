@@ -12,7 +12,7 @@ import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 const url =
-  "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.4/96x0/marmoset_neurons.ome.zarr";
+  "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
 const source = new OmeZarrImageSource(url);
 const loader = await source.open();
 const attributes = loader.getAttributes();

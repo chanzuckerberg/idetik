@@ -1,9 +1,13 @@
-import { Location, open as zarritaOpen } from "@zarrita/core";
-import FetchStore from "@zarrita/storage/fetch";
-import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
-import WebFileSystemStore from "./zarrita/web_file_system_store";
+import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
-import { Image as OmeNgffImage } from "../data/ome_ngff/0.4/image";
+import FetchStore from "@zarrita/storage/fetch";
+import { openArray, openGroup } from "./zarrita/open";
+import WebFileSystemStore from "./zarrita/web_file_system_store";
+import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
+import {
+  omeZarrToZarrVersion,
+  parseOmeNgffImage,
+} from "./ome_zarr_hcs_metadata_loader";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
@@ -28,8 +32,10 @@ export class OmeZarrImageSource {
   }
 
   public async open(): Promise<OmeZarrImageLoader> {
-    const root = await zarritaOpen.v2(this.location, { kind: "group" });
-    const images = OmeNgffImage.parse(root.attrs).multiscales;
+    const root = await openGroup(this.location);
+    const adaptedOmeImage = parseOmeNgffImage(root.attrs);
+    const omeVersion = adaptedOmeImage.originalVersion;
+    const images = adaptedOmeImage.multiscales;
     if (images.length !== 1) {
       throw new Error(
         `Exactly one multiscale image is supported. Found ${images.length} images.`
@@ -39,13 +45,9 @@ export class OmeZarrImageSource {
     if (metadata.datasets.length === 0) {
       throw new Error(`No datasets found in the multiscale image.`);
     }
+    const zarrVersion = omeZarrToZarrVersion(omeVersion);
     const arrays = await Promise.all(
-      metadata.datasets.map((d) =>
-        zarritaOpen.v2(root.resolve(d.path), {
-          kind: "array",
-          attrs: false,
-        })
-      )
+      metadata.datasets.map((d) => openArray(root.resolve(d.path), zarrVersion))
     );
     const shape = arrays[0].shape;
     const axes = metadata.axes;
