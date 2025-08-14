@@ -1,8 +1,153 @@
 # @idetik/react
 
-React components for image viewers - wrapping idetik/core functionality
+React components for interactive visualization of large datasets, built on the Idetik runtime.
 
-## Getting Started
+## For Integrators: Using @idetik/react Components
+
+### Installation
+
+```bash
+npm install @idetik/react @idetik/core
+```
+
+### Basic Usage: OmeZarrImageViewer (Reference Viewer)
+
+The simplest way to get started is with the `OmeZarrImageViewer` reference viewer:
+
+```tsx
+"use client";
+import { IdetikProvider, OmeZarrImageViewer } from "@idetik/react";
+import { Region } from "@idetik/core";
+
+// Define the region to view
+const region: Region = [
+  { dimension: "T", index: { type: "point", value: 0 } },
+  { dimension: "C", index: { type: "full" } },
+  { dimension: "Z", index: { type: "full" } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
+];
+
+export function ImageViewer({ zarrUrl }: { zarrUrl: string }) {
+  return (
+    <IdetikProvider>
+      <OmeZarrImageViewer
+        sourceUrl={zarrUrl}
+        region={region}
+        seriesDimensionName="Z"
+        loadAllButtonText="Load 3D high-res (250MB)"
+      />
+    </IdetikProvider>
+  );
+}
+```
+
+The `OmeZarrImageViewer` is a complete reference viewer that includes its own canvas, built-in channel controls, slice navigation, and loading indicators.
+It provides 2D visualization of image data stored in OME-Zarr format, with support for multi-dimensional datasets and a single "series" dimension (e.g., Z-slices, time frames).
+
+#### Tracking Metrics
+
+To track metrics, the `OmeZarrImageViewer` component accepts optional callbacks for the following events:
+
+- `onLayerCreated`
+- `onFirstSliceLoaded`
+- `onLoadAllSlicesClicked`
+- `onAllSlicesLoaded`
+- `onLoadAllSlicesAborted`
+
+### Advanced Usage: Building Custom Viewers
+
+A **Viewer** is any component that contains an `IdetikCanvas` and manages its own visualization layers. You can build custom viewers for different data types or interaction patterns:
+
+```tsx
+import { IdetikProvider, IdetikCanvas, useIdetik } from "@idetik/react";
+import { ImageSeriesLayer, OmeZarrImageSource } from "@idetik/core";
+import { useState, useEffect, useSyncExternalStore } from "react";
+
+function CustomViewer({ sourceUrl }: { sourceUrl: string }) {
+  const [layer, setLayer] = useState<ImageSeriesLayer | null>(null);
+  const { isReady, runtime } = useIdetik();
+
+  const activeLayers = useSyncExternalStore(
+    (callback) => {
+      if (!isReady) return () => {};
+      return contextValue.runtime.layerManager.addLayersChangeCallback(callback);
+    },
+    () => {
+      if (!isReady) return [];
+      return contextValue.runtime.layerManager.layers;
+    }
+  );
+
+  useEffect(() => {
+    if (!isReady) return;
+
+    const source = new OmeZarrImageSource(sourceUrl);
+    const newLayer = new ImageSeriesLayer({
+      source,
+      region: yourRegion,
+      seriesDimensionName: "Z"
+    });
+    runtime.layerManager.add(newLayer);
+    setLayer(newLayer);
+
+    return () => {
+      if (layer && runtime.layerManager.layers.includes(layer)) {
+        runtime.layerManager.remove(layer);
+      }
+    };
+  }, [contextValue, sourceUrl]);
+
+  return (
+    <div className="w-full h-full relative">
+      <IdetikCanvas />
+      <div className="absolute top-4 left-4 text-white">
+        Active layers: {activeLayers.length}
+      </div>
+    </div>
+  );
+}
+
+export function App() {
+  return (
+    <IdetikProvider>
+      <CustomViewer sourceUrl="https://example.com/data.zarr" />
+    </IdetikProvider>
+  );
+}
+```
+
+### Core Concepts
+
+**IdetikProvider**: Wraps your application and manages the Idetik runtime instance. Must be placed at the root of any component tree that uses Idetik components.
+
+**IdetikCanvas**: Renders the WebGL canvas. Must be placed somewhere inside the IdetikProvider. Only one canvas per provider is supported.
+
+**Viewers**: Components that contain an `IdetikCanvas` and manage their own layers. Examples include `OmeZarrImageViewer` (reference implementation) or custom viewers for specific use cases.
+
+**useIdetik Hook**: Provides access to the runtime state:
+- When `isReady: false`: Provides `initializeWithCanvas(canvas)` function
+- When `isReady: true`: Provides `runtime` (Idetik instance)
+
+**Layer Management**: Use `runtime.layerManager` directly:
+- `runtime.layerManager.add(layer)` - Add a layer
+- `runtime.layerManager.remove(layer)` - Remove a layer
+- `runtime.layerManager.layers` - Get current layers array
+- `runtime.layerManager.addLayersChangeCallback(callback)` - Subscribe to layer changes
+
+**Reactive Updates**: Use `useSyncExternalStore` to subscribe to runtime state changes. Prefer this
+over duplicating state in your components, where possible. If you need access to library state that
+doesn't provide a compatible interface, consider adding it.
+```tsx
+const layers = useSyncExternalStore(
+  runtime.layerManager.addLayersChangeCallback,
+  () => runtime.layerManager.layers
+);
+```
+
+## For Internal Developers
+
+### Getting Started
 
 ```bash
 # Install dependencies from root directory
@@ -28,11 +173,11 @@ If you make changes to the `@idetik/core` package, you'll need to:
 
 This ensures your React components use the latest version of the core package.
 
-## Component Development Guidelines
+### Component Development Guidelines
 
 Pure TypeScript code (has no react dependencies) should go in the `lib/` directory.
 
-### File Structure
+#### File Structure
 Each component should have its own directory with the following structure:
 ```
 ComponentName/
@@ -42,7 +187,7 @@ ComponentName/
 └── components/      # Sub-components (if needed)
 ```
 
-### Best Practices
+#### Best Practices
 
 1. **Exports**
    - Use named exports instead of default exports
@@ -97,7 +242,7 @@ ComponentName/
    );
    ```
 
-## Available Scripts
+### Available Scripts
 
 - `npm run dev` - Start the Vite development server
 - `npm run compile` - Run TypeScript compilation

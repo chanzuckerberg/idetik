@@ -1,5 +1,7 @@
+import { IdetikContext } from "../idetik";
 import { RenderableObject } from "./renderable_object";
-import { clamp } from "utilities/clamp";
+import { clamp } from "../utilities/clamp";
+import { EventContext } from "./event_dispatcher";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
@@ -13,9 +15,16 @@ export interface LayerOptions {
   transparent?: boolean;
   opacity?: number;
   blendMode?: blendMode;
+
+  // TODO:(shlomnissan) Remove this parameter—LOD will be computed
+  // dynamically by the chunk manager.
+  lod?: number;
 }
 
 export abstract class Layer {
+  public abstract readonly type: string;
+  public debugMode = false;
+
   private objects_: RenderableObject[] = [];
   private state_: LayerState = "initialized";
   private readonly callbacks_: StateChangeCallback[] = [];
@@ -25,9 +34,9 @@ export abstract class Layer {
   public blendMode: blendMode;
 
   constructor({
-    transparent: transparent = false,
+    transparent = false,
     opacity = 1.0,
-    blendMode: blendMode = "normal",
+    blendMode = "normal",
   }: LayerOptions = {}) {
     if (opacity < 0 || opacity > 1) {
       console.warn(
@@ -51,6 +60,14 @@ export abstract class Layer {
   }
 
   public abstract update(): void;
+
+  public onEvent(_: EventContext): void {}
+
+  // TODO: Consider making this an abstract method once chunk manager
+  // integration is finalized. Most layers will likely need access to the chunk
+  // manager, but for now, we allow optional overrides to avoid requiring
+  // placeholder implementations.
+  public async onAttached(_context: IdetikContext) {}
 
   public get objects() {
     return this.objects_;
@@ -80,6 +97,13 @@ export abstract class Layer {
 
   protected addObject(object: RenderableObject) {
     this.objects_.push(object);
+  }
+
+  protected removeObject(object: RenderableObject) {
+    const index = this.objects_.indexOf(object);
+    if (index !== -1) {
+      this.objects_.splice(index, 1);
+    }
   }
 
   protected clearObjects() {

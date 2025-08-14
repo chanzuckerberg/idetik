@@ -1,48 +1,26 @@
-import { Layer, LayerOptions } from "core/layer";
-import { Full, Interval, Region } from "data/region";
-import {
-  ImageChunk,
-  ImageChunkLoader,
-  ImageChunkSource,
-} from "data/image_chunk";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
-import { AbortError, PromiseScheduler } from "data/promise_scheduler";
-import { ChannelProps } from "objects/textures/channel";
-import { ImageRenderable } from "objects/renderable/image_renderable";
-import { PlaneGeometry } from "objects/geometry/plane_geometry";
+import { Layer, LayerOptions } from "../core/layer";
+import { Region } from "../data/region";
+import { Chunk, ChunkSource } from "../data/chunk";
+import { Texture2DArray } from "../objects/textures/texture_2d_array";
+import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import { ImageRenderable } from "../objects/renderable/image_renderable";
+import { PlaneGeometry } from "../objects/geometry/plane_geometry";
+import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
 export type ImageSeriesLayerProps = LayerOptions & {
-  source: ImageChunkSource;
+  source: ChunkSource;
   region: Region;
   seriesDimensionName: string;
   channelProps?: ChannelProps[];
 };
 
-export type SeriesAttributes = {
-  start: number;
-  stop: number;
-  scale: number;
-  length: number;
-};
-
-type LoadingToken = {
-  canceled: boolean;
-  index: number;
-};
-
-// Loads 2D+z image data (Z-stack) from an image source into renderable objects.
-export class ImageSeriesLayer extends Layer {
-  private readonly source_: ImageChunkSource;
-  private readonly region_: Region;
-  private readonly seriesDimensionName_: string;
-  private readonly seriesIndex_: Interval | Full;
-  private readonly scheduler_: PromiseScheduler = new PromiseScheduler(16);
-  private loader_: ImageChunkLoader | null = null;
-  private seriesAttributes_?: SeriesAttributes;
-  private loadingToken_: LoadingToken | null = null;
-  private texture_: Texture2DArray | null = null;
-  private dataChunks_: ImageChunk[] = [];
+export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
+  public readonly type = "ImageSeriesLayer";
+  private readonly seriesLoader_: ImageSeriesLoader;
+  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channelChangeCallbacks_: Array<() => void> = [];
   private channelProps_?: ChannelProps[];
+  private texture_: Texture2DArray | null = null;
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
 
@@ -51,28 +29,26 @@ export class ImageSeriesLayer extends Layer {
     region,
     seriesDimensionName,
     channelProps,
+    lod,
     ...layerOptions
   }: ImageSeriesLayerProps) {
     super(layerOptions);
     this.setState("initialized");
-    this.source_ = source;
-    this.region_ = region;
-    this.seriesDimensionName_ = seriesDimensionName;
-    const seriesDimensionalIndex = region.find(
-      (x) => x.dimension == seriesDimensionName
-    );
-    if (seriesDimensionalIndex === undefined) {
-      throw new Error(
-        `Series dimension '${seriesDimensionName}' not in region ${JSON.stringify(region)}`
-      );
-    }
-    if (seriesDimensionalIndex.index.type === "point") {
-      throw new Error(
-        "Series dimension index in region must be an interval or 'full', not a point value"
-      );
-    }
-    this.seriesIndex_ = seriesDimensionalIndex.index;
     this.channelProps_ = channelProps;
+    this.initialChannelProps_ = channelProps;
+    this.seriesLoader_ = new ImageSeriesLoader({
+      source,
+      region,
+      seriesDimensionName,
+      lod,
+    });
+  }
+
+  public update() {
+    if (this.state === "initialized") {
+      this.setState("loading");
+      this.seriesLoader_.loadSeriesAttributes();
+    }
   }
 
   public get channelProps(): ChannelProps[] | undefined {
@@ -82,48 +58,62 @@ export class ImageSeriesLayer extends Layer {
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
+    });
   }
 
-  public update() {
-    if (this.state === "initialized") {
-      this.loadSeriesAttributes();
+  public resetChannelProps(): void {
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
     }
   }
 
-  public async setPosition(position: number) {
-    const seriesAttributes = await this.loadSeriesAttributes();
-    const index = Math.round(
-      (position - seriesAttributes.start) / seriesAttributes.scale
-    );
-    this.setIndex(index);
+  public addChannelChangeCallback(callback: () => void): void {
+    this.channelChangeCallbacks_.push(callback);
   }
 
-  public async setIndex(index: number) {
-    const token = this.loadingToken_;
-    if (token) {
-      if (token.index === index && !token.canceled) {
-        console.debug("Ignoring duplicate active setIndex request");
-        return;
-      } else {
-        console.debug(
-          `Cancelling setIndex request for index ${token.index}, new requested index is ${index}`
-        );
-        token.canceled = true;
-      }
+  public removeChannelChangeCallback(callback: () => void): void {
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
     }
-
-    const chunk = this.dataChunks_[index];
-    if (chunk === undefined) {
-      this.loadingToken_ = { canceled: false, index: index };
-      await this.loadAndSetIndex(index, this.loadingToken_);
-      return;
-    }
-    this.setData(chunk);
+    this.channelChangeCallbacks_.splice(index, 1);
   }
 
-  private setData(chunk: ImageChunk) {
+  public async setPosition(position: number): Promise<SetIndexResult> {
+    const result = await this.seriesLoader_.setPosition(position);
+    return this.processIndexResult(result);
+  }
+
+  public async setIndex(index: number): Promise<SetIndexResult> {
+    const result = await this.seriesLoader_.setIndex(index);
+    return this.processIndexResult(result);
+  }
+
+  public close() {
+    this.seriesLoader_.shutdown();
+  }
+
+  public async preloadSeries() {
+    this.seriesLoader_.preloadAllChunks();
+  }
+
+  public get extent(): { x: number; y: number } | undefined {
+    return this.extent_;
+  }
+
+  private processIndexResult(result: SetIndexResult) {
+    if (result.chunk) {
+      this.setData(result.chunk);
+      this.setState("ready");
+    }
+    return result;
+  }
+
+  private setData(chunk: Chunk) {
     if (!this.texture_ || !this.image_) {
-      this.texture_ = Texture2DArray.createWithImageChunk(chunk);
+      this.texture_ = Texture2DArray.createWithChunk(chunk);
       this.image_ = this.createImage(chunk, this.texture_, this.channelProps_);
       this.addObject(this.image_);
 
@@ -132,153 +122,20 @@ export class ImageSeriesLayer extends Layer {
         x: chunk.shape.x * chunk.scale.x,
         y: chunk.shape.y * chunk.scale.y,
       };
-    } else {
+    } else if (chunk.data) {
       this.texture_.data = chunk.data;
     }
   }
 
-  public close() {
-    this.scheduler_.shutdown();
-  }
-
-  private async loadSeriesAttributes() {
-    if (this.seriesAttributes_) {
-      return this.seriesAttributes_;
-    }
-    this.setState("loading");
-    const loader = await this.getLoader();
-
-    const attributes = await loader.loadAttributes();
-    const seriesIndex = attributes.dimensionNames.findIndex(
-      (dim) => dim === this.seriesDimensionName_
-    );
-    if (seriesIndex === -1) {
-      throw new Error(
-        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${attributes.dimensionNames}`
-      );
-    }
-    const seriesDimScale = attributes.scale[seriesIndex];
-    const seriesMax = attributes.shape[seriesIndex] * seriesDimScale;
-
-    const indexIsFull = this.seriesIndex_.type === "full";
-    const seriesStart = indexIsFull ? 0 : this.seriesIndex_.start;
-    const seriesStop = indexIsFull ? seriesMax : this.seriesIndex_.stop;
-
-    const seriesLength = Math.round(
-      (seriesStop - seriesStart) / seriesDimScale
-    );
-    this.dataChunks_ = new Array(seriesLength);
-
-    this.seriesAttributes_ = {
-      start: seriesStart,
-      stop: seriesStop,
-      scale: seriesDimScale,
-      length: seriesLength,
-    };
-    this.setState("ready");
-    return this.seriesAttributes_;
-  }
-
-  private async loadAndSetIndex(index: number, token?: LoadingToken) {
-    this.setLoadingStateFromToken(token);
-
-    const seriesAttributes = await this.loadSeriesAttributes();
-    if (index < 0 || index >= seriesAttributes.length) {
-      throw new Error(
-        `Requested index ${index} is out of bounds [0, ${seriesAttributes.length - 1}]`
-      );
-    }
-    const loader = await this.getLoader();
-
-    // replace the series region with a point region for the requested index
-    const position = seriesAttributes.start + index * seriesAttributes.scale;
-    const pointRegion = this.region_.filter(
-      (dimIndex) => dimIndex.dimension !== this.seriesDimensionName_
-    );
-    pointRegion.push({
-      dimension: this.seriesDimensionName_,
-      index: { type: "point", value: position },
-    });
-
-    const chunk = await loader.loadChunk(pointRegion, this.scheduler_);
-
-    this.dataChunks_[index] = chunk;
-    console.debug(
-      `Loaded data for position ${position} (array index ${index})`
-    );
-    if (!token) {
-      console.debug(
-        `Not setting data for position ${position} (array index ${index}) - loaded in background`
-      );
-      return;
-    }
-
-    if (token.canceled) {
-      console.debug(
-        `Not setting data for position ${position} (array index ${index}) - canceled by subsequent request`
-      );
-    } else {
-      console.debug(
-        `Setting data for position ${position} (array index ${index})`
-      );
-      this.loadingToken_ = null;
-      this.setData(chunk);
-      this.setState("ready");
-    }
-  }
-
-  public async preloadSeries() {
-    console.debug(`Preloading series for dim ${this.seriesDimensionName_}`);
-    const { length } = await this.loadSeriesAttributes();
-    // Load remaining slices concurrently, exclude the token so they don't get set
-    const loadPromises = [];
-    for (let index = 0; index < length; index++) {
-      loadPromises.push(this.loadAndSetIndex(index));
-    }
-
-    // Wait for all slices to finish loading
-    const results = await Promise.allSettled(loadPromises);
-    for (const result of results) {
-      if (result.status === "rejected") {
-        if (result.reason instanceof AbortError) {
-          // reject the promise because this means the layer was closed
-          return Promise.reject(result.reason);
-        } else {
-          console.error(`Error loading slice: ${result.reason}`);
-        }
-      }
-    }
-    if (!results.some((result) => result.status === "rejected")) {
-      console.debug(
-        `Loaded all ${this.dataChunks_.length} slices for dim ${this.seriesDimensionName_}`
-      );
-    }
-  }
-
-  public get extent(): { x: number; y: number } | undefined {
-    return this.extent_;
-  }
-
-  private async getLoader() {
-    this.loader_ ??= await this.source_.open();
-    return this.loader_;
-  }
-
-  private setLoadingStateFromToken(token?: LoadingToken) {
-    if (!!token && !token.canceled && this.state !== "loading") {
-      this.setState("loading");
-    }
-  }
-
   private createImage(
-    chunk: ImageChunk,
+    chunk: Chunk,
     texture: Texture2DArray,
     channelProps?: ChannelProps[]
   ) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(geometry, texture, channelProps);
-    image.transform.scale([chunk.scale.x, chunk.scale.y, 1]);
-    image.transform.translate([chunk.offset.x, chunk.offset.y, 0]);
+    image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
+    image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
   }
 }

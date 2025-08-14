@@ -1,7 +1,7 @@
 import { vec3 } from "gl-matrix";
-import { Layer } from "core/layer";
-import { ProjectedLine } from "objects/renderable/projected_line";
-import { ProjectedLineGeometry } from "objects/geometry/projected_line_geometry";
+import { Layer } from "../core/layer";
+import { ProjectedLine } from "../objects/renderable/projected_line";
+import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
 
 type TrackParameters = {
   path: vec3[];
@@ -12,6 +12,8 @@ type TrackParameters = {
 };
 
 export class TracksLayer extends Layer {
+  public readonly type = "TracksLayer";
+
   private tracks_: TrackParameters[] = [];
 
   constructor(tracks: TrackParameters[] = []) {

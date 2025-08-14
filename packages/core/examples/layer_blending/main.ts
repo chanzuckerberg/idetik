@@ -1,19 +1,17 @@
 import {
+  ChannelProps,
+  Color,
+  Idetik,
   ImageSeriesLayer,
-  LayerManager,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
-  WebGLRenderer,
 } from "@";
 import { blendMode } from "@/core/layer";
 import { loadOmeroDefaultZ } from "data/ome_zarr_hcs_metadata_loader";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
-const layerManager = new LayerManager();
-const renderer = new WebGLRenderer("#canvas");
-const camera = new OrthographicCamera(0, 1920, 0, 1440);
 
 // Source is 5D, so provide an interval in T a scalar index in Z
 // (first of only depth) to get a 2D image series.
@@ -23,7 +21,7 @@ const source = new OmeZarrImageSource(url);
 let zIndex = 0;
 (async () => {
   try {
-    zIndex = await loadOmeroDefaultZ(url);
+    zIndex = await loadOmeroDefaultZ(source);
   } catch (error) {
     console.error("Error loading default Z index:", error);
   }
@@ -39,21 +37,21 @@ const region: Region = [
 ];
 // Raise the contrast limits for the blue channel because there is
 // a lot of low signal that washes everything else out.
-const channelProps = [
+const channelProps: ChannelProps[] = [
   {
     visible: false,
-    color: [1, 0, 0] as [number, number, number],
-    contrastLimits: [0, 255] as [number, number],
+    color: Color.RED,
+    contrastLimits: [0, 255],
   },
   {
     visible: true,
-    color: [0, 1, 0] as [number, number, number],
-    contrastLimits: [0, 255] as [number, number],
+    color: Color.BLUE,
+    contrastLimits: [0, 255],
   },
   {
     visible: true,
-    color: [0, 0, 1] as [number, number, number],
-    contrastLimits: [128, 255] as [number, number],
+    color: Color.GREEN,
+    contrastLimits: [128, 255],
   },
 ];
 const layer = new ImageSeriesLayer({
@@ -62,13 +60,14 @@ const layer = new ImageSeriesLayer({
   seriesDimensionName: "T",
   channelProps,
 });
-layerManager.add(layer);
 
 const overlayChannelProps = structuredClone(channelProps);
 overlayChannelProps[0].visible = true;
-overlayChannelProps[0].color = [1, 1, 0] as [number, number, number]; // yellow-ish red+green
+overlayChannelProps[0].color = new Color(1, 1, 0); // yellow-ish red+green
 overlayChannelProps[1].visible = false;
+overlayChannelProps[1].color = Color.BLUE;
 overlayChannelProps[2].visible = false;
+overlayChannelProps[2].color = Color.GREEN;
 
 const overlayLayer = new ImageSeriesLayer({
   source,
@@ -79,7 +78,6 @@ const overlayLayer = new ImageSeriesLayer({
   opacity: 0.5,
   blendMode: "normal", // just for now; you can try "additive", etc. later
 });
-layerManager.add(overlayLayer);
 
 const blendSelect = document.querySelector<HTMLSelectElement>("#blendMode");
 blendSelect?.addEventListener("change", (e) => {
@@ -113,9 +111,9 @@ overlayLayer.setIndex(slider.valueAsNumber - timeInterval.start);
 layer.preloadSeries();
 overlayLayer.preloadSeries();
 
-function animate() {
-  renderer.render(layerManager, camera);
-  requestAnimationFrame(animate);
-}
-
-animate();
+const camera = new OrthographicCamera(0, 1920, 0, 1440);
+new Idetik({
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
+  camera,
+  layers: [layer, overlayLayer],
+}).start();

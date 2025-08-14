@@ -1,4 +1,6 @@
-import { Node } from "core/node";
+import { Node } from "./node";
+
+export type Primitive = "triangles" | "points" | "lines";
 
 type GeometryAttributeType =
   | "position"
@@ -7,7 +9,23 @@ type GeometryAttributeType =
   | "next_position"
   | "previous_position"
   | "direction"
-  | "path_proportion";
+  | "path_proportion"
+  | "color"
+  | "size"
+  | "marker";
+
+export const GeometryAttributeIndex: Record<GeometryAttributeType, number> = {
+  position: 0,
+  normal: 1,
+  uv: 2,
+  next_position: 3,
+  previous_position: 4,
+  direction: 5,
+  path_proportion: 6,
+  color: 7,
+  size: 8,
+  marker: 9,
+};
 
 type GeometryAttribute = {
   type: GeometryAttributeType;
@@ -16,14 +34,20 @@ type GeometryAttribute = {
 };
 
 export class Geometry extends Node {
+  protected primitive_: Primitive;
+  protected attributes_: GeometryAttribute[];
   protected vertexData_: Float32Array;
   protected indexData_: Uint32Array;
-  private attributes_: GeometryAttribute[];
 
-  constructor(vertexData: number[] = [], indexData: number[] = []) {
+  constructor(
+    vertexData: number[] = [],
+    indexData: number[] = [],
+    primitive: Primitive = "triangles"
+  ) {
     super();
     this.vertexData_ = new Float32Array(vertexData);
     this.indexData_ = new Uint32Array(indexData);
+    this.primitive_ = primitive;
     this.attributes_ = [];
   }
 
@@ -31,16 +55,20 @@ export class Geometry extends Node {
     this.attributes_.push(attr);
   }
 
-  public get itemSize() {
-    return this.vertexData_.length / this.stride;
+  public get vertexCount() {
+    return this.vertexData_.byteLength / this.stride;
   }
 
   public get stride() {
     return (
       this.attributes_.reduce((acc, curr) => {
-        return (acc += curr.itemSize);
+        return acc + curr.itemSize;
       }, 0) * Float32Array.BYTES_PER_ELEMENT
     );
+  }
+
+  public get primitive() {
+    return this.primitive_;
   }
 
   public get vertexData() {

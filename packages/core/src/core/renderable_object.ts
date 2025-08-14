@@ -1,22 +1,42 @@
-import { Node } from "core/node";
-import { Geometry } from "core/geometry";
-import { Texture } from "objects/textures/texture";
-import { AffineTransform } from "core/transforms";
-
-import { Shader } from "renderers/shaders";
+import { Node } from "../core/node";
+import { Geometry } from "../core/geometry";
+import { WireframeGeometry } from "../core/wireframe_geometry";
+import { Texture } from "../objects/textures/texture";
+import { TrsTransform } from "../core/transforms";
+import { Shader } from "../renderers/shaders";
+import { Color } from "../core/color";
 
 export abstract class RenderableObject extends Node {
+  public wireframeEnabled = false;
+  public wireframeColor = Color.WHITE;
+  private readonly textures_: Texture[] = [];
+  private staleTextures_: Texture[] = [];
+  private readonly transform_ = new TrsTransform();
   private geometry_ = new Geometry();
-  private textures_: Texture[] = [];
-  private transform_ = new AffineTransform();
+  private wireframeGeometry_: WireframeGeometry | null = null;
   private programName_: Shader | null = null;
 
-  public addTexture(texture: Texture) {
-    this.textures_.push(texture);
+  public setTexture(index: number, texture: Texture) {
+    const oldTexture = this.textures_[index];
+    if (oldTexture !== undefined) {
+      this.staleTextures_.push(oldTexture);
+    }
+    this.textures_[index] = texture;
+  }
+
+  public popStaleTextures() {
+    const stale = this.staleTextures_;
+    this.staleTextures_ = [];
+    return stale;
   }
 
   public get geometry() {
     return this.geometry_;
+  }
+
+  public get wireframeGeometry() {
+    this.wireframeGeometry_ ??= new WireframeGeometry(this.geometry);
+    return this.wireframeGeometry_;
   }
 
   public get textures() {
@@ -29,6 +49,7 @@ export abstract class RenderableObject extends Node {
 
   public set geometry(geometry: Geometry) {
     this.geometry_ = geometry;
+    this.wireframeGeometry_ = null;
   }
 
   public get programName(): Shader {

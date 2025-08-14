@@ -1,89 +1,36 @@
-import { vec2, vec3 } from "gl-matrix";
 import { LayerManager } from "./layer_manager";
-import { Camera } from "objects/cameras/camera";
-import { PerspectiveCamera } from "objects/cameras/perspective_camera";
-import { OrthographicCamera } from "objects/cameras/orthographic_camera";
-import { CameraControls, NullControls } from "objects/cameras/controls";
+import { Camera } from "../objects/cameras/camera";
+import { Color, ColorLike } from "./color";
 import { Layer } from "./layer";
-
-type Color = [number, number, number, number];
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
   private width_ = 0;
   private height_ = 0;
-  private backgroundColor_: Color = [0, 0, 0, 0];
+  private backgroundColor_: Color = new Color(0, 0, 0, 0);
   private activeCamera_: Camera | null = null;
-  private controls_: CameraControls = new NullControls();
-  private controlCallbacks_: [string, (event: Event) => void][] = [];
 
   protected abstract resize(width: number, height: number): void;
   protected abstract renderObject(layer: Layer, objectIndex: number): void;
   protected abstract clear(): void;
 
-  protected beginTransparentPass(): void {}
-  protected endTransparentPass(): void {}
-
-  constructor(selector: string) {
-    this.canvas_ = document.querySelector<HTMLCanvasElement>(selector);
-    if (!this.canvas_) {
-      throw new Error(`Canvas element not found for selector "${selector}"`);
-    }
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas_ = canvas;
     this.updateRendererSize();
-    window.addEventListener("resize", () => {
-      this.updateRendererSize();
-      this.resize(this.width_, this.height_);
-    });
   }
 
-  public render(layerManager: LayerManager, camera: Camera) {
-    this.clear();
+  protected set activeCamera(camera: Camera) {
     if (this.activeCamera_ !== camera) {
       this.activeCamera_ = camera;
       this.updateActiveCamera();
     }
-    const { opaque, transparent } = layerManager.partitionLayers();
-
-    for (const layer of opaque) {
-      layer.update();
-      if (layer.state === "ready") {
-        for (let i = 0; i < layer.objects.length; i++) {
-          this.renderObject(layer, i);
-        }
-      }
-    }
-
-    this.beginTransparentPass();
-    for (const layer of transparent) {
-      layer.update();
-      if (layer.state !== "ready") continue;
-      layer.objects.forEach((_, i) => this.renderObject(layer, i));
-    }
-    this.endTransparentPass();
   }
 
-  public setControls(controls: CameraControls) {
-    this.unbindControls();
-    this.controls_ = controls;
-    this.bindControls();
-  }
+  public abstract render(layerManager: LayerManager, camera: Camera): void;
 
-  private unbindControls() {
-    this.controlCallbacks_.forEach(([event, listener]) => {
-      this.canvas.removeEventListener(event, listener);
-    });
-    this.controlCallbacks_ = [];
-  }
-
-  private bindControls() {
-    const clientToClip = this.clientToClip.bind(this);
-    this.controlCallbacks_ = this.controls_.callbacks(
-      this.canvas,
-      clientToClip
-    );
-    this.controlCallbacks_.forEach(([event, listener]) => {
-      this.canvas.addEventListener(event, listener, { passive: false });
-    });
+  public updateSize(): void {
+    this.updateRendererSize();
+    this.resize(this.width_, this.height_);
   }
 
   private updateRendererSize() {
@@ -97,15 +44,9 @@ export abstract class Renderer {
   }
 
   private updateActiveCamera() {
-    const aspectRatio = this.width_ / this.height_;
+    const canvasAspectRatio = this.width_ / this.height_;
     if (this.activeCamera_) {
-      if (this.activeCamera_ instanceof PerspectiveCamera) {
-        this.activeCamera_.setAspectRatio(aspectRatio);
-      }
-      if (this.activeCamera_ instanceof OrthographicCamera) {
-        this.activeCamera_.setViewportAspectRatio(aspectRatio);
-      }
-      this.activeCamera_.update();
+      this.activeCamera_.setAspectRatio(canvasAspectRatio);
     }
   }
 
@@ -121,12 +62,12 @@ export abstract class Renderer {
     return this.height_;
   }
 
-  public get backgroundColor() {
+  public get backgroundColor(): Color {
     return this.backgroundColor_;
   }
 
-  public set backgroundColor(color: Color) {
-    this.backgroundColor_ = color;
+  public set backgroundColor(color: ColorLike) {
+    this.backgroundColor_ = Color.from(color);
   }
 
   protected get activeCamera() {
@@ -136,15 +77,5 @@ export abstract class Renderer {
       );
     }
     return this.activeCamera_;
-  }
-
-  public clientToClip(position: vec2, depth: number = 0): vec3 {
-    const [x, y] = position;
-    const rect = this.canvas.getBoundingClientRect();
-    return vec3.fromValues(
-      (2 * (x - rect.x)) / this.canvas.clientWidth - 1,
-      (2 * (y - rect.y)) / this.canvas.clientHeight - 1,
-      depth
-    );
   }
 }

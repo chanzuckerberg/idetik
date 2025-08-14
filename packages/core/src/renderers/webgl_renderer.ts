@@ -1,13 +1,19 @@
-import { Renderer } from "core/renderer";
+import { Renderer } from "../core/renderer";
 import { WebGLShaderProgram } from "./webgl_shader_program";
-import { Logger } from "utilities/logger";
+import { WebGLShaderPrograms } from "./webgl_shader_programs";
+import { Logger } from "../utilities/logger";
 
-import { Shader, shaderCode } from "./shaders";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
+import { Layer } from "../core/layer";
+import { LayerManager } from "../core/layer_manager";
+import { Camera } from "../objects/cameras/camera";
+import { WebGLState } from "./WebGLState";
+import { RenderableObject } from "../core/renderable_object";
+import { Geometry, Primitive } from "../core/geometry";
+
 import { mat4 } from "gl-matrix";
-import { Layer } from "core/layer";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -23,14 +29,18 @@ const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext | null = null;
-  private readonly shaders_: Map<Shader, WebGLShaderProgram>;
+  private readonly programs_: WebGLShaderPrograms;
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
+  private readonly state_: WebGLState;
 
-  constructor(selector: string) {
-    super(selector);
+  constructor(canvas: HTMLCanvasElement) {
+    super(canvas);
 
-    this.gl_ = this.canvas.getContext("webgl2", { depth: true });
+    this.gl_ = this.canvas.getContext("webgl2", {
+      depth: true,
+      antialias: false,
+    });
     if (!this.gl_) {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
@@ -39,45 +49,76 @@ export class WebGLRenderer extends Renderer {
       `WebGL version ${this.gl.getParameter(this.gl.VERSION)}`
     );
 
-    this.shaders_ = new Map<Shader, WebGLShaderProgram>();
+    this.programs_ = new WebGLShaderPrograms(this.gl);
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
     this.resize(this.canvas.width, this.canvas.height);
+    this.state_ = new WebGLState(this.gl);
   }
 
-  protected beginTransparentPass(): void {
-    this.gl.enable(this.gl.BLEND);
-    this.gl.depthMask(false);
+  public render(layerManager: LayerManager, camera: Camera) {
+    this.clear();
+    this.activeCamera = camera;
+
+    const { opaque, transparent } = layerManager.partitionLayers();
+
+    this.state_.setDepthMask(true);
+    for (const layer of opaque) {
+      layer.update();
+      if (layer.state === "ready") {
+        this.renderLayer(layer);
+      }
+    }
+
+    this.state_.setDepthMask(false);
+    for (const layer of transparent) {
+      layer.update();
+      if (layer.state !== "ready") continue;
+      this.renderLayer(layer);
+    }
+    this.state_.setDepthMask(true);
   }
 
-  protected endTransparentPass(): void {
-    this.gl.disable(this.gl.BLEND);
-    this.gl.depthMask(true);
+  private renderLayer(layer: Layer) {
+    this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
+    layer.objects.forEach((_, i) => this.renderObject(layer, i));
   }
 
   protected renderObject(layer: Layer, objectIndex: number) {
     const object = layer.objects[objectIndex];
-    const program = this.getShaderProgram(object.programName).use();
+    this.bindings_.bindGeometry(object.geometry);
+    object.popStaleTextures().forEach((texture) => {
+      this.textures_.disposeTexture(texture);
+    });
+    object.textures.forEach((texture, index) => {
+      this.textures_.bindTexture(texture, index);
+    });
 
-    if (layer.transparent) {
-      switch (layer.blendMode) {
-        case "additive":
-          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE);
-          break;
-        case "multiply":
-          this.gl.blendFunc(this.gl.DST_COLOR, this.gl.ZERO);
-          break;
-        case "subtractive":
-          this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_COLOR);
-          break;
-        case "normal":
-        default:
-          this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-      }
+    const program = this.programs_.use(object.programName);
+    this.drawGeometry(object.geometry, object, layer, program);
+
+    if (object.wireframeEnabled) {
+      this.bindings_.bindGeometry(object.wireframeGeometry);
+      const wireframeProgram = this.programs_.use("wireframe");
+      wireframeProgram.setUniform("u_color", object.wireframeColor.rgb);
+      this.drawGeometry(
+        object.wireframeGeometry,
+        object,
+        layer,
+        wireframeProgram
+      );
     }
+  }
+
+  private drawGeometry(
+    geometry: Geometry,
+    object: RenderableObject,
+    layer: Layer,
+    program: WebGLShaderProgram
+  ) {
     const modelView = mat4.multiply(
       mat4.create(),
-      this.activeCamera.transform.inverse,
+      this.activeCamera.viewMatrix,
       object.transform.matrix
     );
     const projection = mat4.multiply(
@@ -90,7 +131,6 @@ export class WebGLRenderer extends Renderer {
     const objectUniforms = object.getUniforms();
     for (const uniformName of program.uniformNames) {
       switch (uniformName) {
-        // Set common uniforms with renderer data
         case "ModelView":
           program.setUniform(uniformName, modelView);
           break;
@@ -104,26 +144,33 @@ export class WebGLRenderer extends Renderer {
           program.setUniform(uniformName, layer.opacity);
           break;
         default:
-          // Get uniforms from the renderable object
           if (uniformName in objectUniforms) {
             program.setUniform(uniformName, objectUniforms[uniformName]);
           }
       }
     }
 
-    this.bindings_.bind(object);
-
-    object.textures.forEach((texture) => {
-      this.textures_.bind(texture);
-    });
-
-    // TODO: Move 'type' property to RenderableObject
-    const type = this.gl.TRIANGLES;
-    const index = object.geometry.indexData;
+    const primitive = this.glGetPrimitive(geometry.primitive);
+    const index = geometry.indexData;
     if (index.length) {
-      this.gl.drawElements(type, index.length, this.gl.UNSIGNED_INT, 0);
+      this.gl.drawElements(primitive, index.length, this.gl.UNSIGNED_INT, 0);
     } else {
-      this.gl.drawArrays(type, 0, object.geometry.itemSize);
+      this.gl.drawArrays(primitive, 0, geometry.vertexCount);
+    }
+  }
+
+  private glGetPrimitive(type: Primitive) {
+    switch (type) {
+      case "points":
+        return this.gl.POINTS;
+      case "triangles":
+        return this.gl.TRIANGLES;
+      case "lines":
+        return this.gl.LINES;
+      default: {
+        const exhaustiveCheck: never = type;
+        throw new Error(`Unknown Primitive type: ${exhaustiveCheck}`);
+      }
     }
   }
 
@@ -132,24 +179,10 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected clear() {
-    this.gl.clearColor(...this.backgroundColor);
+    this.gl.clearColor(...this.backgroundColor.rgba);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-    this.gl.enable(this.gl.DEPTH_TEST);
+    this.state_.setDepthTesting(true);
     this.gl.depthFunc(this.gl.LEQUAL);
-  }
-
-  private getShaderProgram(type: Shader) {
-    if (!this.shaders_.has(type)) {
-      this.shaders_.set(
-        type,
-        new WebGLShaderProgram(
-          this.gl,
-          shaderCode[type].vertex,
-          shaderCode[type].fragment
-        )
-      );
-    }
-    return this.shaders_.get(type)!;
   }
 
   private get gl() {

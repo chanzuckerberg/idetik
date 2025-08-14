@@ -16,11 +16,10 @@
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@eslint/js": "^9.9.0",
-    "@idetik/core": "^0.0.1",
-    "@mui/base": "^5.0.0-beta.58",
-    "@mui/icons-material": "^5.16.7",
-    "@mui/lab": "^5.0.0-alpha.173",
-    "@mui/material": "^5.16.7",
+    "@mui/base": "5.0.0-beta.58",
+    "@mui/icons-material": "5.16.7",
+    "@mui/lab": "5.0.0-alpha.173",
+    "@mui/material": "5.16.7",
     "@types/react-dom": "^18.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -49,12 +48,14 @@
   "license": "ISC",
   "devDependencies": {
     "@types/classnames": "^2.3.0",
+    "@idetik/core": "^0.0.1",
     "autoprefixer": "^10.4.20",
     "classnames": "^2.5.1",
     "tailwindcss": "^3.4.17"
   },
   "peerDependencies": {
     "@czi-sds/components": "^22.3.0",
+    "@idetik/core": "^0.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   }

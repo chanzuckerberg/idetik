@@ -1,4 +1,3 @@
-import cns from "classnames";
 import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
@@ -16,6 +15,7 @@ const region: Region = [
 
 const imagePaths = ["000000", "000001", "000002", "001000", "001001", "001002"];
 
+/** Demo. */
 export default function App() {
   const [imageIndex, setImageIndex] = useState(0);
 
@@ -69,33 +69,27 @@ export default function App() {
   }, []);
 
   return (
-    <div className={cns("h-screen", "flex", "flex-row", "gap-4", "p-4")}>
-      <div
-        className={cns(
-          "w-full",
-          "h-full",
-          "flex",
-          "flex-col",
-          "flex-1",
-          "gap-4"
-        )}
-      >
-        <OmeZarrImageViewer
-          sourceUrl={imageUrl}
-          region={region}
-          seriesDimensionName="Z"
-          allSlicesSizeEstimate="250 MB"
-          onLayerCreated={handleLayerCreated}
-          onFirstSliceLoaded={handleFirstSliceLoaded}
-          onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
-          onAllSlicesLoaded={handleAllSlicesLoaded}
-          onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-        />
-      </div>
+    <div className="h-screen flex flex-col">
+      <OmeZarrImageViewer
+        sourceUrl={imageUrl}
+        region={region}
+        seriesDimensionName="Z"
+        initialIndex="omeroDefaultZ"
+        classNames={{
+          root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
+        }}
+        loadAllButtonText="Load 3D high-res (250MB)"
+        onLayerCreated={handleLayerCreated}
+        onFirstSliceLoaded={handleFirstSliceLoaded}
+        onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+        onAllSlicesLoaded={handleAllSlicesLoaded}
+        onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
+      />
       <input
         type="button"
-        value="Switch Image"
+        value="Next Image"
         onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
+        className="h-12 shrink-0 basis-[50px]"
       />
     </div>
   );

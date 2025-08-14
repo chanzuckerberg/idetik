@@ -1,4 +1,4 @@
-import { generateUUID } from "utilities/uuid_generator";
+import { generateUUID } from "../utilities/uuid_generator";
 
 export abstract class Node {
   public readonly uuid = generateUUID();

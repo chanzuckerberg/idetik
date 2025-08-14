@@ -1,148 +1,155 @@
+import { Logger } from "../utilities/logger";
 import {
   Texture,
   TextureFilter,
   TextureWrapMode,
   TextureDataType,
   TextureDataFormat,
-} from "objects/textures/texture";
+} from "../objects/textures/texture";
 
-import { Texture2D } from "objects/textures/texture_2d";
-import { Texture2DArray } from "objects/textures/texture_2d_array";
+import { Texture2D } from "../objects/textures/texture_2d";
+import { Texture2DArray } from "../objects/textures/texture_2d_array";
+
+type TextureFormatInfo = {
+  internalFormat: number;
+  format: number;
+  type: number;
+};
 
 export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
-  private readonly textures_: Map<string, WebGLTexture> = new Map();
-  private currentTexture_: WebGLTexture = 0;
+  private readonly textures_: Map<Texture, WebGLTexture> = new Map();
+  private currentTexture_: Texture | null = null;
+  private readonly maxTextureUnits_: number;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
+    this.maxTextureUnits_ = gl.MAX_TEXTURE_IMAGE_UNITS;
   }
 
-  public bind(texture: Texture) {
-    if (this.alreadyActive(texture.uuid) && !texture.needsUpdate) return;
+  public bindTexture(texture: Texture, index: number) {
+    if (this.alreadyActive(texture)) return;
 
-    let textureId = this.textures_.get(texture.uuid) || null;
+    if (index < 0 || index >= this.maxTextureUnits_) {
+      throw new Error(
+        `Texture index ${index} must be in [0, ${this.maxTextureUnits_ - 1}]`
+      );
+    }
+    this.gl_.activeTexture(this.gl_.TEXTURE0 + index);
+
+    const textureType = this.getTextureType(texture);
+    const info = this.getDataFormatInfo(texture.dataFormat, texture.dataType);
+
+    if (!this.textures_.has(texture)) {
+      this.generateTexture(texture, info, textureType);
+    }
+
+    const textureId = this.textures_.get(texture);
     if (!textureId) {
-      textureId = this.createTexture();
+      throw new Error("Failed to retrieve texture ID");
     }
 
-    this.gl_.bindTexture(this.getGLTextureType(texture), textureId);
-    if (!this.textures_.has(texture.uuid)) {
-      this.configureTexture(texture);
-      this.textures_.set(texture.uuid, textureId);
-    }
-
+    this.gl_.bindTexture(textureType, textureId);
     if (texture.needsUpdate && texture.data !== null) {
-      // Currently, we don't support mipmaps, so we always update the base level (0).
-      const mipmapLevel = 0;
-
-      // The offsets are always set to zero because we are replacing the entire data set.
-      const offset = { x: 0, y: 0, z: 0 };
-
-      this.uploadTextureSubData(texture, mipmapLevel, offset);
+      this.configureTextureParameters(texture, textureType);
+      this.uploadTextureData(texture, info, textureType);
       texture.needsUpdate = false;
     }
 
-    this.currentTexture_ = textureId;
+    this.currentTexture_ = texture;
   }
 
-  private alreadyActive(uuid: string) {
-    if (this.currentTexture_ !== 0) {
-      return this.textures_.get(uuid) === this.currentTexture_;
+  public disposeTexture(texture: Texture) {
+    const id = this.textures_.get(texture);
+    if (id) {
+      this.gl_.deleteTexture(id);
+      this.textures_.delete(texture);
+      if (this.currentTexture_ === texture) {
+        this.currentTexture_ = null;
+      }
     }
-    return false;
   }
 
-  private createTexture() {
-    const texture = this.gl_.createTexture();
-    if (!texture) {
-      throw new Error(`Unable to generate a texture name`);
+  public disposeAll() {
+    for (const texture of this.textures_.keys()) {
+      this.disposeTexture(texture);
     }
-    return texture;
   }
 
-  private configureTexture(texture: Texture) {
-    this.configureTextureParameters(texture);
-    this.allocateTextureStorage(texture);
+  private alreadyActive(texture: Texture) {
+    return this.currentTexture_ === texture && !texture.needsUpdate;
   }
 
-  private configureTextureParameters(texture: Texture) {
-    const gl = this.gl_;
+  private generateTexture(
+    texture: Texture,
+    info: TextureFormatInfo,
+    type: number
+  ) {
+    const textureId = this.gl_.createTexture();
+    if (!textureId) throw new Error("Failed to create texture");
 
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
-    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.unpackRowLength);
+    this.gl_.bindTexture(type, textureId);
 
-    gl.texParameteri(
-      this.getGLTextureType(texture),
-      gl.TEXTURE_MIN_FILTER,
-      this.getGLFilter(texture.minFilter, texture.dataFormat, texture.dataType)
-    );
-
-    gl.texParameteri(
-      this.getGLTextureType(texture),
-      gl.TEXTURE_MAG_FILTER,
-      this.getGLFilter(texture.maxFilter, texture.dataFormat, texture.dataType)
-    );
-
-    gl.texParameteri(
-      this.getGLTextureType(texture),
-      gl.TEXTURE_WRAP_S,
-      this.getGLWrapMode(texture.wrapS)
-    );
-
-    gl.texParameteri(
-      this.getGLTextureType(texture),
-      gl.TEXTURE_WRAP_T,
-      this.getGLWrapMode(texture.wrapT)
-    );
-
-    gl.texParameteri(
-      this.getGLTextureType(texture),
-      gl.TEXTURE_WRAP_R,
-      this.getGLWrapMode(texture.wrapR)
-    );
-  }
-
-  private allocateTextureStorage(texture: Texture) {
     if (this.isTexture2D(texture)) {
       this.gl_.texStorage2D(
-        this.getGLTextureType(texture),
+        type,
         texture.mipmapLevels,
-        this.getGLInternalFormat(texture.dataFormat, texture.dataType),
+        info.internalFormat,
         texture.width,
         texture.height
       );
     } else if (this.isTexture2DArray(texture)) {
       this.gl_.texStorage3D(
-        this.getGLTextureType(texture),
+        type,
         texture.mipmapLevels,
-        this.getGLInternalFormat(texture.dataFormat, texture.dataType),
+        info.internalFormat,
         texture.width,
         texture.height,
         texture.depth
       );
     } else {
-      throw new Error(
-        "Attempting to allocate storage for an unsupported texture type"
-      );
+      throw new Error(`Unknown texture type ${texture.type}`);
     }
+
+    this.textures_.set(texture, textureId);
+    this.gl_.bindTexture(type, null);
   }
 
-  private uploadTextureSubData(
+  private configureTextureParameters(texture: Texture, type: number) {
+    const gl = this.gl_;
+    const minFilter = this.getFilter(texture.minFilter, texture);
+    const maxFilter = this.getFilter(texture.maxFilter, texture);
+
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.unpackRowLength);
+    gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, minFilter);
+    gl.texParameteri(type, gl.TEXTURE_MAG_FILTER, maxFilter);
+    gl.texParameteri(type, gl.TEXTURE_WRAP_S, this.getWrapMode(texture.wrapS));
+    gl.texParameteri(type, gl.TEXTURE_WRAP_T, this.getWrapMode(texture.wrapT));
+    gl.texParameteri(type, gl.TEXTURE_WRAP_R, this.getWrapMode(texture.wrapR));
+  }
+
+  private uploadTextureData(
     texture: Texture,
-    mipmapLevel: number,
-    offset: { x: number; y: number; z: number }
+    info: TextureFormatInfo,
+    type: number
   ) {
+    // Only base level (0) is updated; mipmaps are not supported.
+    const mipmapLevel = 0;
+
+    // Zero offsets because entire dataset is overwritten.
+    const offset = { x: 0, y: 0, z: 0 };
+
     if (this.isTexture2D(texture)) {
       this.gl_.texSubImage2D(
-        this.getGLTextureType(texture),
+        type,
         mipmapLevel,
         offset.x,
         offset.y,
         texture.width,
         texture.height,
-        this.getGLFormat(texture.dataFormat, texture.dataType),
-        this.getGLType(texture.dataType),
+        info.format,
+        info.type,
         // This function has multiple overloads. We are temporarily casting it to
         // ArrayBufferView to ensure the correct overload is called. Once we
         // consolidate Texture2D and DataTexture2D, we can remove this cast.
@@ -151,7 +158,7 @@ export class WebGLTextures {
       );
     } else if (this.isTexture2DArray(texture)) {
       this.gl_.texSubImage3D(
-        this.getGLTextureType(texture),
+        type,
         mipmapLevel,
         offset.x,
         offset.y,
@@ -159,8 +166,8 @@ export class WebGLTextures {
         texture.width,
         texture.height,
         texture.depth,
-        this.getGLFormat(texture.dataFormat, texture.dataType),
-        this.getGLType(texture.dataType),
+        info.format,
+        info.type,
         texture.data as ArrayBufferView
       );
     } else {
@@ -170,86 +177,109 @@ export class WebGLTextures {
     }
   }
 
-  private getGLTextureType(texture: Texture) {
-    if (this.isTexture2D(texture)) {
-      return this.gl_.TEXTURE_2D;
-    } else if (this.isTexture2DArray(texture)) {
-      return this.gl_.TEXTURE_2D_ARRAY;
-    } else {
-      throw new Error(`Unknown texture type ${texture.type}`);
-    }
-  }
-
-  private getGLFilter(
-    filter: TextureFilter,
-    format: TextureDataFormat,
-    type: TextureDataType
-  ) {
-    if (format == "scalar" && type != "float" && filter != "nearest") {
-      console.warn(
+  private getFilter(filter: TextureFilter, texture: Texture) {
+    const { dataFormat, dataType } = texture;
+    if (
+      dataFormat === "scalar" &&
+      dataType !== "float" &&
+      filter !== "nearest"
+    ) {
+      Logger.warn(
+        "WebGLTexture",
         "Integer values are not filterable. Using gl.NEAREST instead."
       );
       return this.gl_.NEAREST;
     }
-
+    // prettier-ignore
     switch (filter) {
-      case "nearest":
-        return this.gl_.NEAREST;
-      case "linear":
-        return this.gl_.LINEAR;
+      case "nearest": return this.gl_.NEAREST;
+      case "linear": return this.gl_.LINEAR;
+      default: throw new Error(`Unsupported texture filter: ${filter}`);
     }
   }
 
-  private getGLWrapMode(mode: TextureWrapMode) {
+  private getTextureType(texture: Texture) {
+    if (this.isTexture2D(texture)) return this.gl_.TEXTURE_2D;
+    if (this.isTexture2DArray(texture)) return this.gl_.TEXTURE_2D_ARRAY;
+    throw new Error(`Unknown texture type ${texture.type}`);
+  }
+
+  private getWrapMode(mode: TextureWrapMode) {
+    // prettier-ignore
     switch (mode) {
-      case "repeat":
-        return this.gl_.REPEAT;
-      case "clamp_to_edge":
-        return this.gl_.CLAMP_TO_EDGE;
+      case "repeat": return this.gl_.REPEAT;
+      case "clamp_to_edge": return this.gl_.CLAMP_TO_EDGE;
+      default: throw new Error(`Unsupported wrap mode: ${mode}`);
     }
   }
 
-  private getGLType(type: TextureDataType) {
-    switch (type) {
-      case "unsigned_byte":
-        return this.gl_.UNSIGNED_BYTE;
-      case "unsigned_short":
-        return this.gl_.UNSIGNED_SHORT;
-      case "float":
-        return this.gl_.FLOAT;
-    }
-  }
-
-  private getGLFormat(format: TextureDataFormat, type: TextureDataType) {
-    switch (format) {
-      case "rgb":
-        return this.gl_.RGB;
-      case "rgba":
-        return this.gl_.RGBA;
-      case "scalar":
-        if (type === "float") return this.gl_.RED;
-        return this.gl_.RED_INTEGER;
-    }
-  }
-
-  private getGLInternalFormat(
+  private getDataFormatInfo(
     format: TextureDataFormat,
     type: TextureDataType
-  ) {
+  ): TextureFormatInfo {
     if (format === "rgba" && type === "unsigned_byte") {
-      return this.gl_.RGBA8;
-    } else if (format === "rgb" && type === "unsigned_byte") {
-      return this.gl_.RGB8;
-    } else if (format === "scalar" && type === "unsigned_byte") {
-      return this.gl_.R8UI;
-    } else if (format === "scalar" && type === "unsigned_short") {
-      return this.gl_.R16UI;
-    } else if (format === "scalar" && type === "float") {
-      return this.gl_.R32F;
+      return {
+        internalFormat: this.gl_.RGBA8,
+        format: this.gl_.RGBA,
+        type: this.gl_.UNSIGNED_BYTE,
+      };
     }
-    throw Error(
-      `Unsupported data format and type combination ${format}/${type}`
-    );
+    if (format === "rgb" && type === "unsigned_byte") {
+      return {
+        internalFormat: this.gl_.RGB8,
+        format: this.gl_.RGB,
+        type: this.gl_.UNSIGNED_BYTE,
+      };
+    }
+    if (format === "scalar") {
+      switch (type) {
+        case "byte":
+          return {
+            internalFormat: this.gl_.R8I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.BYTE,
+          };
+        case "short":
+          return {
+            internalFormat: this.gl_.R16I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.SHORT,
+          };
+        case "int":
+          return {
+            internalFormat: this.gl_.R32I,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.INT,
+          };
+        case "unsigned_byte":
+          return {
+            internalFormat: this.gl_.R8UI,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.UNSIGNED_BYTE,
+          };
+        case "unsigned_short":
+          return {
+            internalFormat: this.gl_.R16UI,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.UNSIGNED_SHORT,
+          };
+        case "unsigned_int":
+          return {
+            internalFormat: this.gl_.R32UI,
+            format: this.gl_.RED_INTEGER,
+            type: this.gl_.UNSIGNED_INT,
+          };
+        case "float":
+          return {
+            internalFormat: this.gl_.R32F,
+            format: this.gl_.RED,
+            type: this.gl_.FLOAT,
+          };
+        default:
+          throw new Error(`Unsupported scalar type: ${type}`);
+      }
+    }
+    throw new Error(`Unsupported format/type: ${format}/${type}`);
   }
 
   private isTexture2D(texture: Texture): texture is Texture2D {
@@ -257,6 +287,6 @@ export class WebGLTextures {
   }
 
   private isTexture2DArray(texture: Texture): texture is Texture2DArray {
-    return (texture as Texture2DArray).type === "Texture2DArray";
+    return texture.type === "Texture2DArray";
   }
 }

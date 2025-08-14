@@ -1,19 +1,27 @@
 import { mat4, vec3, quat } from "gl-matrix";
 
-export class AffineTransform {
+export class TrsTransform {
   private dirty_ = true;
   private matrix_ = mat4.create();
   private rotation_ = quat.create();
   private translation_ = vec3.create();
   private scale_ = vec3.fromValues(1, 1, 1);
 
-  public rotate(q: quat) {
+  public addRotation(q: quat) {
     quat.multiply(this.rotation_, this.rotation_, q);
-    vec3.transformQuat(this.translation_, this.translation_, q);
     this.dirty_ = true;
   }
 
-  public translate(vec: vec3) {
+  public setRotation(q: quat) {
+    quat.copy(this.rotation_, q);
+    this.dirty_ = true;
+  }
+
+  public get rotation() {
+    return quat.clone(this.rotation_);
+  }
+
+  public addTranslation(vec: vec3) {
     vec3.add(this.translation_, this.translation_, vec);
     this.dirty_ = true;
   }
@@ -27,10 +35,18 @@ export class AffineTransform {
     return vec3.clone(this.translation_);
   }
 
-  public scale(vec: vec3) {
+  public addScale(vec: vec3) {
     vec3.multiply(this.scale_, this.scale_, vec);
-    vec3.multiply(this.translation_, this.translation_, vec);
     this.dirty_ = true;
+  }
+
+  public setScale(vec: vec3) {
+    vec3.copy(this.scale_, vec);
+    this.dirty_ = true;
+  }
+
+  public get scale() {
+    return vec3.clone(this.scale_);
   }
 
   public get matrix() {

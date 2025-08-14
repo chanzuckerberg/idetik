@@ -6,8 +6,6 @@ import {
   OrthographicCamera,
   TracksLayer,
   WebGLRenderer,
-  NullControls,
-  PanZoomControls,
 } from "@idetik/core";
 
 // TODO: imageURL should come from the server (probably with each task)
@@ -19,7 +17,6 @@ const canvasId = "canvas";
 
 // TODO: consider useRef for these objects
 const camera = new OrthographicCamera(0, 1920, 0, 1440);
-const controls = new PanZoomControls(camera, camera.position);
 const layerManager = new LayerManager();
 
 export default function Renderer({
@@ -53,20 +50,19 @@ export default function Renderer({
     lastTaskId.current = task.taskId;
     const { tracksLayer, imageSeriesLayer } = task.layers();
     setImageSeriesLayer((prevLayer: ImageSeriesLayer | null) => {
-      if (prevLayer !== null) prevLayer.close();
+      prevLayer?.close();
       return imageSeriesLayer;
     });
     setTracksLayer(tracksLayer);
     const onReady = () => {
       setPlaybackEnabled(true);
       // TODO: update the data on the layers instead of creating new ones
-      layerManager.layers.length = 0;
+      layerManager.removeAll();
       layerManager.add(imageSeriesLayer);
       layerManager.add(tracksLayer);
       const extent = tracksLayer.extent;
       camera.setFrame(extent.xMin, extent.xMax, extent.yMax, extent.yMin);
-      camera.zoom = 0.25;
-      controls.panTarget = camera.position;
+      camera.zoom(0.25);
     };
     if (imageSeriesLayer.state === "ready") {
       onReady();
@@ -78,7 +74,9 @@ export default function Renderer({
       }
     };
     imageSeriesLayer.addStateChangeCallback(onStateChange);
-    return () => imageSeriesLayer.removeStateChangeCallback(onStateChange);
+    return () => {
+      imageSeriesLayer.removeStateChangeCallback(onStateChange);
+    };
   }, [task, setPlaybackEnabled]);
 
   // Use the mount-effect so that the renderer can find the corresponding
@@ -86,8 +84,8 @@ export default function Renderer({
   useEffect(() => {
     console.debug("Renderer::mount");
     let lastRequestId = 0;
-    const renderer = new WebGLRenderer(`#${canvasId}`);
-    renderer.setControls(controls);
+    const canvas = document.querySelector<HTMLCanvasElement>(`#${canvasId}`)!;
+    const renderer = new WebGLRenderer(canvas);
     function animate() {
       renderer.render(layerManager, camera);
       lastRequestId = requestAnimationFrame(animate);
@@ -95,7 +93,6 @@ export default function Renderer({
     animate();
     return () => {
       // TODO: cleanup by disposing objects owned by the renderer and camera.
-      renderer.setControls(new NullControls());
       if (lastRequestId > 0) {
         console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);

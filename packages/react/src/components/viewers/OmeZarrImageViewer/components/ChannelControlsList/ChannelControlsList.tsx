@@ -5,80 +5,71 @@ import {
   Button,
 } from "@czi-sds/components";
 import cns from "classnames";
-import {
-  ChannelControl,
-  ChannelControlProps,
-} from "./components/ChannelControl";
-import { ImageSeriesLayer, ChannelProps } from "@idetik/core";
-import { useEffect, useRef, useState } from "react";
+import { ChannelControl } from "./components/ChannelControl";
+import { ChannelProps, ColorLike, ChannelsEnabled } from "@idetik/core";
+import { useSyncExternalStore } from "react";
+import { ExtraControlProps } from "../../utils";
 
-interface ChannelControlsListProps {
-  layer: ImageSeriesLayer;
-  controlProps: Partial<ChannelControlProps>[];
-  resetCallback?: () => Promise<void>;
+export interface ChannelControlsListProps {
+  layer: ChannelsEnabled;
+  // TODO: it's awkward to have labels and contrastRanges as separate props
+  // but they're not needed for *rendering* so they don't belong in the library
+  // - one option is to add a way to store related additional properties in the library
+  extraControlProps: ExtraControlProps[];
+  classNames?: {
+    root?: string;
+  };
 }
+
+// stable empty array to prevent unnecessary re-renders
+const EMPTY_PROPS: ChannelProps[] = [];
 
 export function ChannelControlsList({
   layer,
-  controlProps,
-  resetCallback,
+  extraControlProps,
+  classNames,
 }: ChannelControlsListProps) {
-  // Keep a local copy of channelProps to trigger re-renders
-  const [channelProps, setChannelProps] = useState(layer.channelProps ?? []);
-  const isInternalUpdate = useRef(false);
-
-  // initial sync of local state with layer's channelProps
-  // props change indicates this is not an internal update
-  useEffect(() => {
-    isInternalUpdate.current = false;
-    setChannelProps(layer.channelProps ?? []);
-  }, [layer, controlProps, resetCallback]);
-
-  // update layer's channelProps when local state changes
-  useEffect(() => {
-    if (isInternalUpdate.current) {
-      layer.setChannelProps(channelProps);
-    }
-  }, [channelProps, layer]);
+  const channels = useSyncExternalStore(
+    (callback) => {
+      layer.addChannelChangeCallback(callback);
+      return () => layer.removeChannelChangeCallback(callback);
+    },
+    () => layer.channelProps ?? EMPTY_PROPS,
+    // fallback to empty array for SSR, which we don't support at this time
+    () => EMPTY_PROPS
+  );
 
   const updateChannel = (
     index: number,
     updates: Partial<{
       visible: boolean;
-      color: [number, number, number];
+      color: ColorLike;
       contrastLimits: [number, number];
     }>
   ) => {
-    isInternalUpdate.current = true;
-    const updatedChannelProps = [...channelProps];
-
-    updatedChannelProps[index] = {
-      ...channelProps[index],
+    const updatedChannels = [...channels];
+    updatedChannels[index] = {
+      ...channels[index],
       ...updates,
     };
-
-    setChannelProps(updatedChannelProps);
+    layer.setChannelProps(updatedChannels);
   };
 
   return (
     <div
       className={cns(
+        "text-white",
+        "bg-black/75",
         "backdrop-blur-md",
         "transition-[left]",
         "duration-300",
         "ease-in-out",
         "flex",
-        "[&_.MuiAccordion-root]:!bg-transparent",
-        "[&_.MuiAccordionDetails-root]:!pb-[4px]",
-        "relative",
-        "before:absolute",
-        "before:left-0",
-        "before:top-0",
-        "before:w-full",
-        "before:h-full",
-        "before:bg-[--sds-color-semantic-base-background-primary]",
-        "before:opacity-35",
-        "before:content-['']"
+        "rounded-sds-m",
+        "shadow-sds-m",
+        "m-sds-l",
+        "p-sds-xs",
+        classNames?.root
       )}
     >
       <Accordion
@@ -91,19 +82,21 @@ export function ChannelControlsList({
           className={cns(
             "flex",
             "w-full",
-            "[&_.MuiAccordionSummary-root]:!flex-grow",
-            "[&_.Mui-expanded]:!min-h-0",
-            "[&_.MuiSvgIcon-root]:!fill-[--sds-color-semantic-base-text-primary]"
+            "[&_.MuiAccordionSummary-expandIconWrapper_svg]:text-white",
+            "[&_.MuiAccordionSummary-expandIconWrapper_svg]:fill-white",
+            "[&_.MuiAccordionSummary-root]:flex-grow"
           )}
         >
           <AccordionHeader>
-            <div className={cns("flex", "items-center")}>Channel Controls</div>
+            <div className={cns("flex", "items-center", "text-white")}>
+              Channel Controls
+            </div>
           </AccordionHeader>
         </div>
 
         <AccordionDetails>
-          <div className={cns("grid grid-cols-4 grid-rows-auto gap-sds-xs")}>
-            {channelProps.map((props: ChannelProps, index: number) => {
+          <div className={cns("grid grid-cols-4 grid-rows-auto")}>
+            {channels.map((props: ChannelProps, index: number) => {
               // TODO: can possibly clean this up with better types
               // error on undefined values - we're setting defaults
               // and merging objects in too many places
@@ -115,8 +108,7 @@ export function ChannelControlsList({
                   `Contrast limits not defined for channel ${index}`
                 );
               }
-              const contrastRange = (controlProps[index]?.contrastRange ??
-                props.contrastLimits)!;
+              const contrastRange = extraControlProps[index].contrastRange;
               if (contrastRange === undefined) {
                 throw new Error(
                   `Contrast range not defined for channel ${index}`
@@ -127,7 +119,7 @@ export function ChannelControlsList({
                 <ChannelControl
                   key={index}
                   channelIndex={index}
-                  label={controlProps[index]?.label ?? `Channel ${index}`}
+                  label={extraControlProps[index].label}
                   color={props.color}
                   contrastLimits={props.contrastLimits}
                   contrastRange={contrastRange}
@@ -143,21 +135,17 @@ export function ChannelControlsList({
               );
             })}
           </div>
-          {resetCallback && (
-            <span className={cns("flex", "justify-end", "mt-sds-xs")}>
-              <Button
-                sdsStyle="minimal"
-                sdsType="secondary"
-                onClick={() => {
-                  resetCallback().then(() => {
-                    setChannelProps(layer.channelProps ?? []);
-                  });
-                }}
-              >
-                Reset channels
-              </Button>
-            </span>
-          )}
+          <span className={cns("flex", "justify-end", "mt-sds-xs")}>
+            <Button
+              sdsStyle="minimal"
+              sdsType="primary"
+              // Force dark mode styles on hover
+              className="text-white hover:!text-white hover:!bg-dark-sds-color-semantic-base-fill-hover"
+              onClick={layer.resetChannelProps.bind(layer)}
+            >
+              Reset channels
+            </Button>
+          </span>
         </AccordionDetails>
       </Accordion>
     </div>

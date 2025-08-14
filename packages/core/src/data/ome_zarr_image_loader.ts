@@ -1,23 +1,20 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { Region } from "data/region";
-import {
-  ImageChunk,
-  isImageChunkData,
-  LoaderAttributes,
-} from "data/image_chunk";
-import { isTextureUnpackRowAlignment } from "objects/textures/texture";
+import { Region } from "../data/region";
+import { Chunk, isChunkData, LoaderAttributes } from "./chunk";
+import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
-import { Image as OmeNgffImage } from "data/ome_ngff/0.4/image";
-import { parseOmeNgffImage } from "data/ome_zarr_hcs_metadata_loader";
+import { Image as OmeNgffImage } from "../data/ome_ngff/0.5/image";
+
+import { Readable } from "@zarrita/storage";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
 export class PromiseQueue<T> {
-  private promises_: Array<() => Promise<T>> = [];
-  private scheduler_: PromiseScheduler;
+  private readonly promises_: Array<() => Promise<T>> = [];
+  private readonly scheduler_: PromiseScheduler;
 
   constructor(scheduler: PromiseScheduler) {
     this.scheduler_ = scheduler;
@@ -32,49 +29,71 @@ export class PromiseQueue<T> {
   }
 }
 
+type OmeZarrImageLoaderProps = {
+  metadata: OmeNgffImage["ome"]["multiscales"][number];
+  arrays: zarr.Array<zarr.DataType, Readable>[];
+};
+
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
 // https://ngff.openmicroscopy.org/0.4/#image-layout
 export class OmeZarrImageLoader {
-  root_: zarr.Group<zarr.FetchStore>;
-  scaleIndex_: number;
-  metadata_: OmeNgffImage;
+  private readonly metadata_: OmeNgffImage["ome"]["multiscales"][number];
+  private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
+  private readonly lods_: number;
+  private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
 
-  constructor(root: zarr.Group<zarr.FetchStore>, scaleIndex?: number) {
-    this.root_ = root;
-    this.metadata_ = parseOmeNgffImage(this.root_);
-    if (this.metadata_.multiscales.length !== 1) {
+  constructor(props: OmeZarrImageLoaderProps) {
+    this.metadata_ = props.metadata;
+    this.arrays_ = props.arrays;
+    this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
+    this.lods_ = this.metadata_.datasets.length;
+  }
+
+  public async loadChunkDataFromRegion(chunk: Chunk, region: Region) {
+    const attrs = this.loaderAttributes_[chunk.lod];
+    const array = this.arrays_[chunk.lod];
+
+    const dimInfo = this.getDimInfoMap(region, chunk, attrs);
+    if (!dimInfo.has("x") || !dimInfo.has("y")) {
+      throw new Error("Missing required spatial axis x/y");
+    }
+
+    const chunkCoords: number[] = [];
+    dimInfo.forEach((info) => chunkCoords.push(info.chunkIdx));
+    const subarray = await array.getChunk(chunkCoords);
+
+    const data = subarray.data;
+    if (!isChunkData(data)) {
       throw new Error(
-        `Can only handle one multiscale image. Found ${this.metadata_.multiscales.length}`
+        `Subarray has an unsupported data type, data=${data.constructor.name}`
       );
     }
 
-    const numScales = this.metadata_.multiscales[0].datasets.length;
-    if (scaleIndex === undefined) {
-      // TODO: when undefined use the input to determine what level to load.
-      // That is, dynamically select the scale based on the size of the chunk
-      // to be loaded and how big it will be on screen.
-      // https://github.com/chanzuckerberg/imaging-active-learning/issues/37
-      // default to the lowest resolution
-      this.scaleIndex_ = numScales - 1;
-    } else if (scaleIndex < 0) {
-      // allow reverse indexing with negative numbers
-      this.scaleIndex_ = Math.max(0, numScales + scaleIndex);
-    } else {
-      this.scaleIndex_ = Math.min(numScales - 1, scaleIndex);
-    }
+    const sliceSize = chunk.shape.x * chunk.shape.y;
+    const zInfo = dimInfo.get("z") ?? dimInfo.get("Z");
+    const zOffset = zInfo
+      ? sliceSize * (zInfo.value % array.chunks[zInfo.dimIdx])
+      : 0;
+
+    chunk.data = data.slice(zOffset, zOffset + sliceSize);
   }
 
-  async loadChunk(
+  public async loadRegion(
     region: Region,
+    lod: number,
     scheduler?: PromiseScheduler
-  ): Promise<ImageChunk> {
-    const { datasetPath, scale, translation } = this.getImageAttributes();
-    const indices = this.regionToIndices(region);
+  ): Promise<Chunk> {
+    if (lod >= this.lods_) {
+      throw new Error(
+        `Invalid LOD index: ${lod}. Only ${this.lods_} lod(s) available`
+      );
+    }
 
-    const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
-      kind: "array",
-      attrs: false,
-    });
+    const attributes = this.loaderAttributes_[lod];
+    const indices = this.regionToIndices(region, attributes);
+    const { scale, translation } = attributes;
+    const array = this.arrays_[lod];
+
     let options = {};
     if (scheduler !== undefined) {
       options = {
@@ -84,7 +103,7 @@ export class OmeZarrImageLoader {
     }
     const subarray = await zarr.get(array, indices, options);
 
-    if (!isImageChunkData(subarray.data)) {
+    if (!isChunkData(subarray.data)) {
       throw new Error(
         `Subarray has an unsupported data type, data=${subarray.data.constructor.name}`
       );
@@ -105,71 +124,79 @@ export class OmeZarrImageLoader {
 
     const calculateOffset = (i: number) => {
       const index = indices[i];
-      if (typeof index === "number" || index.start === null) return 0;
+      if (typeof index === "number") {
+        return index * scale[i] + translation[i];
+      } else if (index.start === null) {
+        return translation[i];
+      }
       return index.start * scale[i] + translation[i];
     };
+
     const xOffset = calculateOffset(indices.length - 1);
     const yOffset = calculateOffset(indices.length - 2);
 
-    const chunk = {
+    const chunk: Chunk = {
+      state: "loaded",
+      lod: lod,
+      visible: true,
+      prefetch: false,
       data: subarray.data,
       shape: {
         x: subarray.shape[subarray.shape.length - 1],
         y: subarray.shape[subarray.shape.length - 2],
+        z: 1,
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
+      chunkIndex: { x: 0, y: 0, z: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
-      scale: { x: scale[indices.length - 1], y: scale[indices.length - 2] },
-      offset: { x: xOffset, y: yOffset },
+      scale: {
+        x: scale[indices.length - 1],
+        y: scale[indices.length - 2],
+        z: 1,
+      },
+      offset: { x: xOffset, y: yOffset, z: 0 },
     };
     return chunk;
   }
 
-  private getImageAttributes(scaleIndex?: number): {
-    image: OmeNgffImage["multiscales"][number];
-    dimensionNames: string[];
-    datasetPath: string;
-    scale: number[];
-    translation: number[];
-  } {
-    const image = this.metadata_.multiscales[0];
-    const axes = image.axes;
-    const dimensionNames = image.axes.map((axis) => axis.name);
-    const dataset = image.datasets[scaleIndex ?? this.scaleIndex_];
-    const datasetPath = dataset.path;
-    const scale = dataset.coordinateTransformations[0].scale;
-    const translation =
-      dataset.coordinateTransformations.length === 2
-        ? dataset.coordinateTransformations[1].translation
-        : new Array(axes.length).fill(0);
-    return {
-      image,
-      dimensionNames,
-      datasetPath,
-      scale,
-      translation,
-    };
+  public getAttributes(): ReadonlyArray<LoaderAttributes> {
+    return this.loaderAttributes_;
   }
 
-  public async loadAttributes(): Promise<LoaderAttributes> {
-    const { dimensionNames, datasetPath, scale } = this.getImageAttributes();
+  private getDimInfoMap(region: Region, chunk: Chunk, attrs: LoaderAttributes) {
+    const indices = this.regionToIndices(region, attrs);
+    const output = new Map();
+    region.forEach((entry, dimIdx) => {
+      if (entry.dimension.toLowerCase() === "x") {
+        const value = 0; // not used for x dimension
+        output.set("x", { dimIdx, chunkIdx: chunk.chunkIndex.x, value });
+        return;
+      }
 
-    const array = await zarr.open.v2(this.root_.resolve(datasetPath), {
-      kind: "array",
-      attrs: false,
+      if (entry.dimension.toLowerCase() === "y") {
+        const value = 0; // not used for y dimension
+        output.set("y", { dimIdx, chunkIdx: chunk.chunkIndex.y, value });
+        return;
+      }
+
+      const value = indices[dimIdx];
+      if (typeof value !== "number") {
+        throw new Error(`Expected numeric index for ${entry.dimension}`);
+      }
+
+      const chunkIdx = Math.floor(value / attrs.chunks[dimIdx]);
+      output.set(entry.dimension, { dimIdx, chunkIdx, value });
     });
-    const shape = array.shape;
 
-    return {
-      dimensionNames,
-      shape,
-      scale,
-    };
+    return output;
   }
 
-  regionToIndices(region: Region): Array<Slice | number> {
-    const { dimensionNames, scale, translation } = this.getImageAttributes();
+  private regionToIndices(
+    region: Region,
+    attributes: LoaderAttributes
+  ): Array<Slice | number> {
+    const { dimensionNames, scale, translation } = attributes;
 
     const indices: Array<Slice | number> = [];
     for (const [i, dimName] of dimensionNames.entries()) {
@@ -183,15 +210,41 @@ export class OmeZarrImageLoader {
         // null slice is the complete extent of a dimension like Python's `slice(None)`.
         index = zarr.slice(null);
       } else if (regionIndex.type === "point") {
-        index = Math.round(translation[i] + regionIndex.value / scale[i]);
+        index = Math.round((regionIndex.value - translation[i]) / scale[i]);
       } else {
         index = zarr.slice(
-          Math.floor(translation[i] + regionIndex.start / scale[i]),
-          Math.ceil(translation[i] + regionIndex.stop / scale[i])
+          Math.floor((regionIndex.start - translation[i]) / scale[i]),
+          Math.ceil((regionIndex.stop - translation[i]) / scale[i])
         );
       }
       indices.push(index);
     }
     return indices;
   }
+}
+
+function getLoaderAttributes(
+  image: OmeNgffImage["ome"]["multiscales"][number],
+  arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>
+): LoaderAttributes[] {
+  const output: LoaderAttributes[] = [];
+  const numAxes = image.axes.length;
+  for (let i = 0; i < image.datasets.length; i++) {
+    const dataset = image.datasets[i];
+    const array = arrays[i];
+    const scale = dataset.coordinateTransformations[0].scale;
+    const translation =
+      dataset.coordinateTransformations.length === 2
+        ? dataset.coordinateTransformations[1].translation
+        : new Array(numAxes).fill(0);
+    output.push({
+      dimensionNames: image.axes.map((axis) => axis.name),
+      dimensionUnits: image.axes.map((axis) => axis.unit),
+      chunks: array.chunks,
+      shape: array.shape,
+      scale,
+      translation,
+    });
+  }
+  return output;
 }

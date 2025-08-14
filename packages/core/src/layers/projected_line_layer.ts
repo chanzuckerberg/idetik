@@ -1,7 +1,7 @@
 import { vec3 } from "gl-matrix";
-import { Layer } from "core/layer";
-import { ProjectedLine } from "objects/renderable/projected_line";
-import { ProjectedLineGeometry } from "objects/geometry/projected_line_geometry";
+import { Layer } from "../core/layer";
+import { ProjectedLine } from "../objects/renderable/projected_line";
+import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
 
 type LineParameters = {
   path: vec3[];
@@ -10,6 +10,8 @@ type LineParameters = {
 };
 
 export class ProjectedLineLayer extends Layer {
+  public readonly type = "ProjectedLineLayer";
+
   private paths_: vec3[][] = [];
 
   constructor(lines: LineParameters[] = []) {

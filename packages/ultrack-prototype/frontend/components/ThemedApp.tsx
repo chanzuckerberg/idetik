@@ -4,7 +4,7 @@ import { Theme } from "@czi-sds/components";
 import CssBaseline from "@mui/material/CssBaseline";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
-import App from "./App.tsx";
+import App from "./App";
 
 // Create a wrapper component to handle theme and useMediaQuery
 export default function ThemedApp() {
