@@ -75,7 +75,7 @@ export type ChunkLoader = {
     scheduler?: PromiseScheduler
   ): Promise<Chunk>;
 
-  loadChunkDataFromRegion(chunk: Chunk, region: Region): Promise<void>;
+  loadChunkData(chunk: Chunk, region: Region): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };

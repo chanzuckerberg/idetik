@@ -194,7 +194,7 @@ export class ChunkManagerSource {
   private loadChunkData(chunk: Chunk): void {
     chunk.state = "loading";
     this.loader_
-      .loadChunkDataFromRegion(chunk, this.region_)
+      .loadChunkData(chunk, this.region_)
       .then(() => {
         chunk.state = "loaded";
       })
