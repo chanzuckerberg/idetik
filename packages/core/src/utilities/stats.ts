@@ -1,8 +1,8 @@
 import Stats from "stats.js";
 
-export function createStats(panel: 0 | 1 | 2 = 0) {
+export function createStats() {
   const stats = new Stats();
-  stats.showPanel(panel);
+  stats.showPanel(0 /* 0 = fps, 1 = ms, 2 = mb */);
   document.body.appendChild(stats.dom);
   return stats;
 }
