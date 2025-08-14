@@ -4,6 +4,7 @@ import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
 import WebFileSystemStore from "./zarrita/web_file_system_store";
 import { Readable } from "@zarrita/storage";
 import { Image as OmeNgffImage } from "../data/ome_ngff/0.4/image";
+import { DimensionMapping } from "./chunk";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
@@ -27,7 +28,9 @@ export class OmeZarrImageSource {
         : new Location(new WebFileSystemStore(source), path);
   }
 
-  public async open(): Promise<OmeZarrImageLoader> {
+  public async open(
+    dimensionMapping?: DimensionMapping
+  ): Promise<OmeZarrImageLoader> {
     const root = await zarritaOpen.v2(this.location, { kind: "group" });
     const images = OmeNgffImage.parse(root.attrs).multiscales;
     if (images.length !== 1) {
@@ -57,6 +60,7 @@ export class OmeZarrImageSource {
     return new OmeZarrImageLoader({
       metadata,
       arrays,
+      dimensionMapping,
     });
   }
 }

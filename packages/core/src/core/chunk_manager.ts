@@ -1,10 +1,10 @@
 import {
   Chunk,
+  ChunkedArrayDimensions,
   ChunkLoader,
   ChunkSource,
-  LoaderAttributes,
 } from "../data/chunk";
-import { Region } from "../data/region";
+import { Region2D } from "../data/region";
 import { vec2 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { almostEqual } from "../utilities/almost_equal";
@@ -18,73 +18,54 @@ const PREFETCH_PADDING_CHUNKS = 1;
 export class ChunkManagerSource {
   private readonly chunks_: Chunk[];
   private readonly loader_;
-  private readonly region_;
-  private readonly attrs_: ReadonlyArray<LoaderAttributes>;
+  private readonly dimensions_: ReadonlyArray<ChunkedArrayDimensions>;
+  private readonly region_: Region2D;
   private readonly lowestResLOD_: number;
   private currentLOD_: number = 0;
-  private readonly xIdx_: number;
-  private readonly yIdx_: number;
-  private readonly zIdx_: number;
-  private readonly channelIdx_: number;
   private lastVisibleBounds_: Box2 | null = null;
 
   constructor(
     loader: ChunkLoader,
-    attrs: ReadonlyArray<LoaderAttributes>,
-    region: Region
+    dimensions: ReadonlyArray<ChunkedArrayDimensions>,
+    region: Region2D
   ) {
     this.loader_ = loader;
+    this.dimensions_ = dimensions;
     this.region_ = region;
-    this.attrs_ = attrs;
-    this.lowestResLOD_ = attrs.length - 1;
+    // TODO: validate dimensions and region are compatible
+    this.lowestResLOD_ = dimensions.length - 1;
     this.currentLOD_ = 0;
 
-    this.xIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "x"
-    );
-    this.yIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "y"
-    );
-    this.zIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "z"
-    );
-    this.channelIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "c"
-    );
-
-    if (this.xIdx_ === -1 || this.yIdx_ === -1) {
-      throw new Error("Missing required spatial axis x/y");
-    }
-
-    this.validateXYScaleRatios(this.xIdx_, this.yIdx_);
+    this.validateXYScaleRatios();
 
     // generate chunks for each LOD without loading data
     this.chunks_ = [];
-    for (let lod = 0; lod < this.attrs_.length; ++lod) {
-      const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
-      const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
-      const chunkDepth =
-        this.zIdx_ !== -1 ? this.attrs_[lod].chunks[this.zIdx_] : 1;
+    for (let lod = 0; lod < this.dimensions_.length; ++lod) {
+      const dimension = this.dimensions_[lod];
 
-      const chunksX = Math.ceil(
-        this.attrs_[lod].shape[this.xIdx_] / chunkWidth
-      );
-      const chunksY = Math.ceil(
-        this.attrs_[lod].shape[this.yIdx_] / chunkHeight
-      );
-      const chunksZ =
-        this.zIdx_ !== -1
-          ? Math.ceil(this.attrs_[lod].shape[this.zIdx_] / chunkDepth)
-          : 1;
+      const chunkWidth = dimension.x.chunkSize;
+      const chunkHeight = dimension.y.chunkSize;
+      const chunkDepth = dimension.z?.chunkSize ?? 1;
 
-      const channels =
-        this.channelIdx_ >= 0 ? this.attrs_[lod].shape[this.channelIdx_] : 1;
+      const chunksX = Math.ceil(dimension.x.size / chunkWidth);
+      const chunksY = Math.ceil(dimension.y.size / chunkHeight);
+      const chunksZ = Math.ceil(dimension.z?.size ?? 1 / chunkDepth);
+      const channels = dimension.c?.size ?? 1;
 
-      const scale = this.attrs_[lod].scale;
-      const translation = this.attrs_[lod].translation;
+      const scaledChunkWidth = chunkWidth * dimension.x.scale;
+      const scaledChunkHeight = chunkHeight * dimension.y.scale;
+      const scaledChunkDepth = (dimension.z?.scale ?? 1) * chunkDepth;
+
+      const xTranslation = dimension.x.translation;
+      const yTranslation = dimension.y.translation;
+      const zTranslation = dimension.z?.translation ?? 0;
+
       for (let x = 0; x < chunksX; ++x) {
+        const xOffset = xTranslation + x * scaledChunkWidth;
         for (let y = 0; y < chunksY; ++y) {
+          const yOffset = yTranslation + y * scaledChunkHeight;
           for (let z = 0; z < chunksZ; ++z) {
+            const zOffset = zTranslation + z * scaledChunkDepth;
             this.chunks_.push({
               state: "unloaded",
               lod,
@@ -100,19 +81,14 @@ export class ChunkManagerSource {
               rowAlignmentBytes: 1,
               chunkIndex: { x, y, z },
               scale: {
-                x: scale[this.xIdx_],
-                y: scale[this.yIdx_],
-                z: this.zIdx_ !== -1 ? scale[this.zIdx_] : 1,
+                x: dimension.x.scale,
+                y: dimension.y.scale,
+                z: dimension.z?.scale ?? 1,
               },
               offset: {
-                x: translation[this.xIdx_] + x * chunkWidth * scale[this.xIdx_],
-                y:
-                  translation[this.yIdx_] + y * chunkHeight * scale[this.yIdx_],
-                z:
-                  this.zIdx_ !== -1
-                    ? translation[this.zIdx_] +
-                      z * chunkDepth * scale[this.zIdx_]
-                    : 0,
+                x: xOffset,
+                y: yOffset,
+                z: zOffset,
               },
             });
           }
@@ -208,7 +184,7 @@ export class ChunkManagerSource {
   }
 
   private setLOD(lodFactor: number): void {
-    const maxLOD = this.attrs_.length - 1;
+    const maxLOD = this.dimensions_.length - 1;
     const targetLOD = Math.max(
       0,
       Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
@@ -245,23 +221,22 @@ export class ChunkManagerSource {
     }
   }
 
-  private validateXYScaleRatios(xIdx: number, yIdx: number): void {
+  private validateXYScaleRatios(): void {
     // Validates that each LOD level is downsampled by a factor of 2 in X and Y.
     // Z downsampling is not validated here because it may be inconsistent or
     // completely absent in some pyramids.
-    const availableScales = this.attrs_.map((attr) => attr.scale);
-    for (let i = 1; i < availableScales.length; i++) {
-      const prev = availableScales[i - 1];
-      const curr = availableScales[i];
-      const rx = curr[xIdx] / prev[xIdx];
-      const ry = curr[yIdx] / prev[yIdx];
+    for (let i = 1; i < this.dimensions_.length; i++) {
+      const prev = this.dimensions_[i - 1];
+      const curr = this.dimensions_[i];
+      const rx = curr.x.scale / prev.x.scale;
+      const ry = curr.y.scale / prev.y.scale;
 
       if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
         throw new Error(
           `Invalid downsampling factor between levels ${i - 1} → ${i}: ` +
             `expected (2× in X and Y), but got ` +
             `(${rx.toFixed(2)}×, ${ry.toFixed(2)}×) from scale ` +
-            `[${prev.join(", ")}] → [${curr.join(", ")}]`
+            `[${(prev.x.scale, prev.y.scale)}] → [${curr.x.scale}, ${curr.y.scale}]`
         );
       }
     }
@@ -296,13 +271,11 @@ export class ChunkManagerSource {
   }
 
   private getPaddedBounds(bounds: Box2): Box2 {
-    const chunkWidth =
-      this.attrs_[this.currentLOD_].chunks[this.xIdx_] *
-      this.attrs_[this.currentLOD_].scale[this.xIdx_];
+    const x = this.dimensions_[this.currentLOD_].x;
+    const chunkWidth = x.chunkSize * x.scale;
 
-    const chunkHeight =
-      this.attrs_[this.currentLOD_].chunks[this.yIdx_] *
-      this.attrs_[this.currentLOD_].scale[this.yIdx_];
+    const y = this.dimensions_[this.currentLOD_].y;
+    const chunkHeight = y.chunkSize * y.scale;
 
     const padX = chunkWidth * PREFETCH_PADDING_CHUNKS;
     const padY = chunkHeight * PREFETCH_PADDING_CHUNKS;
@@ -317,12 +290,12 @@ export class ChunkManagerSource {
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
 
-  public async addSource(source: ChunkSource, region: Region) {
+  public async addSource(source: ChunkSource, region: Region2D) {
     let existing = this.sources_.get(source);
     if (!existing) {
       const loader = await source.open();
-      const attrs = loader.getAttributes();
-      existing = new ChunkManagerSource(loader, attrs, region);
+      const dimensions = loader.getDimensions();
+      existing = new ChunkManagerSource(loader, dimensions, region);
       this.sources_.set(source, existing);
     }
     return existing;

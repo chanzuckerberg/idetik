@@ -1,8 +1,15 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { Region } from "../data/region";
-import { Chunk, isChunkData, LoaderAttributes } from "./chunk";
+import { Region, Region2D } from "../data/region";
+import {
+  Chunk,
+  ChunkedArrayDimension,
+  ChunkedArrayDimensions,
+  DimensionMapping,
+  isChunkData,
+  LoaderAttributes,
+} from "./chunk";
 import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
@@ -32,6 +39,7 @@ export class PromiseQueue<T> {
 type OmeZarrImageLoaderProps = {
   metadata: OmeNgffImage["multiscales"][number];
   arrays: zarr.Array<zarr.DataType, Readable>[];
+  dimensionMapping?: DimensionMapping;
 };
 
 // Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
@@ -41,25 +49,59 @@ export class OmeZarrImageLoader {
   private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
   private readonly lods_: number;
   private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
+  private readonly dimensions_: ReadonlyArray<ChunkedArrayDimensions>;
 
   constructor(props: OmeZarrImageLoaderProps) {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
+    this.dimensions_ = getChunkedArrayDimensions(
+      this.metadata_,
+      this.arrays_,
+      props.dimensionMapping
+    );
     this.lods_ = this.metadata_.datasets.length;
   }
 
-  public async loadChunkDataFromRegion(chunk: Chunk, region: Region) {
-    const attrs = this.loaderAttributes_[chunk.lod];
+  public async loadChunkDataFromRegion(chunk: Chunk, region: Region2D) {
     const array = this.arrays_[chunk.lod];
-
-    const dimInfo = this.getDimInfoMap(region, chunk, attrs);
-    if (!dimInfo.has("x") || !dimInfo.has("y")) {
-      throw new Error("Missing required spatial axis x/y");
-    }
+    const dimension = this.dimensions_[chunk.lod];
 
     const chunkCoords: number[] = [];
-    dimInfo.forEach((info) => chunkCoords.push(info.chunkIdx));
+    chunkCoords[dimension.x.index] = chunk.chunkIndex.x;
+    chunkCoords[dimension.y.index] = chunk.chunkIndex.y;
+    if (dimension.z) {
+      if (!region.z) {
+        throw new Error("Region must specify a z index to load data with z.");
+      }
+      const index =
+        (region.z.value - dimension.z.translation) / dimension.z.scale;
+      chunkCoords[dimension.z.index] = Math.floor(
+        index / dimension.z.chunkSize
+      );
+    }
+    if (dimension.c) {
+      if (!region.c) {
+        throw new Error("Region must specify a c index to load data with c.");
+      }
+      if (region.c.type === "full") {
+        throw new Error(
+          "Region c index cannot be 'full' when loading chunk data."
+        );
+      }
+      chunkCoords[dimension.c.index] = region.c.value;
+    }
+    if (dimension.t) {
+      if (!region.t) {
+        throw new Error("Region must specify a t index to load data with t.");
+      }
+      const index =
+        (region.t.value - dimension.t.translation) / dimension.t.scale;
+      chunkCoords[dimension.t.index] = Math.floor(
+        index / dimension.t.chunkSize
+      );
+    }
+
     const subarray = await array.getChunk(chunkCoords);
 
     const data = subarray.data;
@@ -69,12 +111,15 @@ export class OmeZarrImageLoader {
       );
     }
 
+    // TODO: should not be sliced here.
     const sliceSize = chunk.shape.x * chunk.shape.y;
-    const zInfo = dimInfo.get("z") ?? dimInfo.get("Z");
-    const zOffset = zInfo
-      ? sliceSize * (zInfo.value % array.chunks[zInfo.dimIdx])
-      : 0;
-
+    let zOffset = 0;
+    if (region.z) {
+      // TODO: I think dimension.z must be defined here, but double check.
+      const zIndex =
+        (region.z.value - dimension.z!.translation) / dimension.z!.scale;
+      zOffset = (zIndex % dimension.z!.chunkSize) * sliceSize;
+    }
     chunk.data = data.slice(zOffset, zOffset + sliceSize);
   }
 
@@ -164,32 +209,8 @@ export class OmeZarrImageLoader {
     return this.loaderAttributes_;
   }
 
-  private getDimInfoMap(region: Region, chunk: Chunk, attrs: LoaderAttributes) {
-    const indices = this.regionToIndices(region, attrs);
-    const output = new Map();
-    region.forEach((entry, dimIdx) => {
-      if (entry.dimension.toLowerCase() === "x") {
-        const value = 0; // not used for x dimension
-        output.set("x", { dimIdx, chunkIdx: chunk.chunkIndex.x, value });
-        return;
-      }
-
-      if (entry.dimension.toLowerCase() === "y") {
-        const value = 0; // not used for y dimension
-        output.set("y", { dimIdx, chunkIdx: chunk.chunkIndex.y, value });
-        return;
-      }
-
-      const value = indices[dimIdx];
-      if (typeof value !== "number") {
-        throw new Error(`Expected numeric index for ${entry.dimension}`);
-      }
-
-      const chunkIdx = Math.floor(value / attrs.chunks[dimIdx]);
-      output.set(entry.dimension, { dimIdx, chunkIdx, value });
-    });
-
-    return output;
+  public getDimensions(): ReadonlyArray<ChunkedArrayDimensions> {
+    return this.dimensions_;
   }
 
   private regionToIndices(
@@ -247,4 +268,167 @@ function getLoaderAttributes(
     });
   }
   return output;
+}
+
+function inferDimensionMapping(
+  axes: OmeNgffImage["multiscales"][number]["axes"]
+): DimensionMapping {
+  const xIndex = findDimension("x", axes, false);
+  if (xIndex === undefined) {
+    throw new Error('Could not find "x" axis');
+  }
+  const yIndex = findDimension("y", axes, false);
+  if (yIndex === undefined) {
+    throw new Error('Could not find "y" axis');
+  }
+  const zIndex = findDimension("z", axes, false);
+  const cIndex = findDimension("c", axes, false);
+  const tIndex = findDimension("t", axes, false);
+  return {
+    x: axes[xIndex].name,
+    y: axes[yIndex].name,
+    z: axes[zIndex]?.name,
+    c: axes[cIndex]?.name,
+    t: axes[tIndex]?.name,
+  };
+}
+
+function findDimension(
+  name: string,
+  axes: OmeNgffImage["multiscales"][number]["axes"],
+  caseSensitive: boolean = true
+): number {
+  return axes.findIndex((a) => {
+    const axisName = caseSensitive ? a.name : a.name.toLowerCase();
+    const targetName = caseSensitive ? name : name.toLowerCase();
+    return axisName === targetName;
+  });
+}
+
+function getChunkedArrayDimensions(
+  image: OmeNgffImage["multiscales"][number],
+  arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>,
+  dimensions?: DimensionMapping
+): ReadonlyArray<ChunkedArrayDimensions> {
+  if (!dimensions) {
+    dimensions = inferDimensionMapping(image.axes);
+    console.debug("Inferred dimension mapping:", dimensions);
+  }
+  const { xIndex, yIndex, zIndex, cIndex, tIndex } = getDimensionIndices(
+    dimensions,
+    image.axes
+  );
+  const result: ChunkedArrayDimensions[] = [];
+  for (let i = 0; i < image.datasets.length; i++) {
+    const x = getChunkedArrayDimension(image, arrays, i, xIndex);
+    const y = getChunkedArrayDimension(image, arrays, i, yIndex);
+    const z =
+      zIndex !== undefined
+        ? getChunkedArrayDimension(image, arrays, i, zIndex)
+        : undefined;
+    const c =
+      cIndex !== undefined
+        ? getChunkedArrayDimension(image, arrays, i, cIndex)
+        : undefined;
+    const t =
+      tIndex !== undefined
+        ? getChunkedArrayDimension(image, arrays, i, tIndex)
+        : undefined;
+    result.push({
+      x,
+      y,
+      z,
+      c,
+      t,
+    });
+  }
+  return result;
+}
+
+function getDimensionIndices(
+  dimensions: DimensionMapping,
+  axes: OmeNgffImage["multiscales"][number]["axes"]
+) {
+  const xIndex = findDimension(dimensions.x, axes);
+  if (xIndex === -1) {
+    throw new Error(`Could not find "${dimensions.x}" axis`);
+  }
+  if (xIndex !== axes.length - 1) {
+    throw new Error(`X axis must be the last axis in the data.
+        Found at index ${xIndex} of ${axes.length}`);
+  }
+
+  const yIndex = findDimension(dimensions.y, axes);
+  if (yIndex === -1) {
+    throw new Error(`Could not find "${dimensions.y}" axis`);
+  }
+  if (yIndex !== axes.length - 2) {
+    throw new Error(`Y axis must be the second to last axis in the data.
+        Found at index ${yIndex} of ${axes.length}`);
+  }
+
+  let zIndex;
+  if (dimensions.z) {
+    zIndex = findDimension(dimensions.z, axes);
+    if (zIndex === -1) {
+      throw new Error(`Could not find "${dimensions.z}" axis`);
+    }
+    if (zIndex !== axes.length - 3) {
+      throw new Error(`Z axis must be the third to last axis in the data.
+          Found at index ${zIndex} of ${axes.length}`);
+    }
+  }
+
+  let tIndex: number = -1;
+  if (dimensions.t) {
+    tIndex = findDimension(dimensions.t, axes);
+    if (tIndex === -1) {
+      throw new Error(`Could not find "${dimensions.t}" axis`);
+    }
+    if (tIndex !== 0) {
+      throw new Error(`T axis must be the first axis in the data.
+          Found at index ${tIndex} of ${axes.length}`);
+    }
+  }
+
+  let cIndex;
+  if (dimensions.c) {
+    cIndex = findDimension(dimensions.c, axes);
+    if (cIndex === -1) {
+      throw new Error(`Could not find "${dimensions.c}" axis`);
+    }
+    if (tIndex !== -1 && cIndex !== 1) {
+      throw new Error(`When T is present C axis must be the second axis in the data.
+          Found at index ${cIndex} of ${axes.length}`);
+    }
+    if (tIndex === -1 && cIndex !== 0) {
+      throw new Error(`When T is not present C axis must be the first axis in the data.
+          Found at index ${cIndex} of ${axes.length}`);
+    }
+  }
+
+  return { xIndex, yIndex, zIndex, cIndex, tIndex };
+}
+
+function getChunkedArrayDimension(
+  image: OmeNgffImage["multiscales"][number],
+  arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>,
+  datasetIndex: number,
+  axisIndex: number
+): ChunkedArrayDimension {
+  const axis = image.axes[axisIndex];
+  const dataset = image.datasets[datasetIndex];
+  const array = arrays[datasetIndex];
+  const transforms = dataset.coordinateTransformations;
+  const scale = transforms[0].scale[axisIndex];
+  const translation = transforms[1]?.translation[axisIndex] ?? 0;
+  return {
+    name: axis.name,
+    index: axisIndex,
+    size: array.shape[axisIndex],
+    chunkSize: array.chunks[axisIndex],
+    scale,
+    translation,
+    unit: axis.unit,
+  };
 }

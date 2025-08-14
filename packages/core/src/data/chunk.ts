@@ -1,4 +1,4 @@
-import { Region } from "./region";
+import { Region, Region2D } from "./region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
@@ -59,6 +59,35 @@ export type ChunkSource = {
   open(): Promise<ChunkLoader>;
 };
 
+// Describes a single dimension of a chunked array (e.g. from an OME-Zarr).
+export type ChunkedArrayDimension = {
+  name: string;
+  index: number;
+  size: number;
+  chunkSize: number;
+  scale: number;
+  translation: number;
+  unit?: string;
+};
+
+// Maps from Idetik dimension names to chunked array dimensions.
+export type ChunkedArrayDimensions = {
+  x: ChunkedArrayDimension;
+  y: ChunkedArrayDimension;
+  z?: ChunkedArrayDimension;
+  c?: ChunkedArrayDimension;
+  t?: ChunkedArrayDimension;
+};
+
+// Maps from Idetik dimension names to source dimension names.
+export type DimensionMapping = {
+  x: string;
+  y: string;
+  z?: string;
+  c?: string;
+  t?: string;
+};
+
 export type LoaderAttributes = {
   dimensionNames: string[];
   dimensionUnits: (string | undefined)[];
@@ -75,7 +104,9 @@ export type ChunkLoader = {
     scheduler?: PromiseScheduler
   ): Promise<Chunk>;
 
-  loadChunkDataFromRegion(chunk: Chunk, region: Region): Promise<void>;
+  loadChunkDataFromRegion(chunk: Chunk, region: Region2D): Promise<void>;
+
+  getDimensions(): ReadonlyArray<ChunkedArrayDimensions>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };

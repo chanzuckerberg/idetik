@@ -1,13 +1,12 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
-import { Region } from "../data/region";
+import { Region2D, Region2DProps } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
@@ -16,7 +15,7 @@ import { PointPickingResult } from "./label_image_layer";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
-  region: Region;
+  region: Region2DProps;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
 };
@@ -28,8 +27,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private readonly source_: ChunkSource;
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/idetik/issues/33
-  private readonly region_: Region;
-  private readonly useChunkManager_: boolean;
+  private readonly region_: Region2D;
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly channelChangeCallbacks_: Array<() => void> = [];
@@ -62,34 +60,18 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
-    this.region_ = region;
+    this.region_ = new Region2D(region);
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
     this.lod_ = lod;
-
-    const x = region.find((r) => r.dimension.toLowerCase() === "x");
-    const y = region.find((r) => r.dimension.toLowerCase() === "y");
-    const z = region.find((r) => r.dimension.toLowerCase() === "z");
-    const hasIntervals = region.some((r) => r.index.type === "interval");
-    this.useChunkManager_ =
-      !hasIntervals &&
-      x?.index.type === "full" &&
-      y?.index.type === "full" &&
-      z?.index.type === "point";
-
-    if (this.useChunkManager_) {
-      Logger.info("ImageLayer", "Loading data using the chunk manager");
-    }
   }
 
   public async onAttached(context: IdetikContext) {
-    if (this.useChunkManager_) {
-      this.chunkManagerSource_ = await context.chunkManager.addSource(
-        this.source_,
-        this.region_
-      );
-    }
+    this.chunkManagerSource_ = await context.chunkManager.addSource(
+      this.source_,
+      this.region_
+    );
   }
 
   private updateChunks() {
@@ -126,22 +108,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public update() {
-    if (this.useChunkManager_) {
-      this.updateChunks();
-    } else {
-      switch (this.state) {
-        case "initialized":
-          this.load(this.region_);
-          break;
-        case "loading":
-        case "ready":
-          break;
-        default: {
-          const exhaustiveCheck: never = this.state;
-          throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
-        }
-      }
-    }
+    this.updateChunks();
   }
 
   public onEvent(event: EventContext) {
@@ -180,27 +147,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
-  }
-
-  private async load(region: Region) {
-    if (this.state !== "initialized") {
-      throw new Error(`Trying to load chunks more than once.`);
-    }
-    this.setState("loading");
-    const loader = await this.source_.open();
-    const attributes = loader.getAttributes();
-    const lod = this.lod_ ?? attributes.length - 1;
-
-    const chunk = await loader.loadRegion(region, lod);
-    this.extent_ = {
-      x: chunk.shape.x * chunk.scale.x,
-      y: chunk.shape.y * chunk.scale.y,
-    };
-
-    this.image_ = this.createImage(chunk, this.channelProps_);
-    this.addObject(this.image_);
-
-    this.setState("ready");
   }
 
   // TODO: we probably want something like this, but it should be unified across layers

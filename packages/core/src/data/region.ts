@@ -26,3 +26,28 @@ export type DimensionalIndex = {
 
 // A region of some dimensional space.
 export type Region = Array<DimensionalIndex>;
+
+// A set of indices that maps from an n-dimensional source to 2D.
+export type Region2DProps = {
+  x?: Interval | Full;
+  y?: Interval | Full;
+  c?: Point | Full;
+  z?: Point;
+  t?: Point;
+};
+
+export class Region2D {
+  public readonly x: Interval | Full;
+  public readonly y: Interval | Full;
+  public readonly c: Point | Full;
+  public readonly z?: Point;
+  public readonly t?: Point;
+
+  constructor(props: Region2DProps) {
+    this.x = props.x ?? { type: "full" };
+    this.y = props.y ?? { type: "full" };
+    this.c = props.c ?? { type: "full" };
+    this.z = props.z;
+    this.t = props.t;
+  }
+}
