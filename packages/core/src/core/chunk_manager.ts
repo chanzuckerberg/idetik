@@ -50,7 +50,6 @@ export class ChunkManagerSource {
       const lodAttrs = this.attrs_[lod];
       const chunkWidth = lodAttrs.chunks[xIdx];
       const chunkHeight = lodAttrs.chunks[yIdx];
-      // TODO: chunkDepth should not really be defined at all.
       const chunkDepth = lodAttrs.chunks[zIdx] ?? 1;
 
       const shape = lodAttrs.shape;
@@ -309,7 +308,7 @@ export class ChunkManagerSource {
   private getPaddedBounds(bounds: Box3): Box3 {
     const xIdx = this.dimensions_.x.sourceIndex;
     const yIdx = this.dimensions_.y.sourceIndex;
-    // TODO: handle case where there is no Z dimension
+    // TODO: properly handle the case where there is no Z dimension
     const zIdx = this.dimensions_.z?.sourceIndex ?? 0;
 
     const attrs = this.attrs_[this.currentLOD_];
@@ -369,45 +368,6 @@ export class ChunkManager {
   }
 }
 
-function findDimensionIndex(dimensionNames: string[], target: string): number {
-  const index = findDimensionIndexSafe(dimensionNames, target);
-  if (index === -1) {
-    throw new Error(
-      `Could not find x dimension in loader attributes: [${dimensionNames.join(
-        ", "
-      )}]`
-    );
-  }
-  return index;
-}
-
-function findDimensionIndexSafe(
-  dimensionNames: string[],
-  target: string
-): number {
-  return dimensionNames.findIndex(
-    (name) => name.toLowerCase() === target.toLowerCase()
-  );
-}
-
-function findRegionPointValue(region: Region, dimension: string): number {
-  const entry = region.find(
-    (r) => r.dimension.toLowerCase() === dimension.toLowerCase()
-  );
-  if (!entry) {
-    throw new Error(
-      `Region must contain an entry for the "${dimension}" dimension since the source has a "${dimension}" dimension.`
-    );
-  }
-  if (entry.index.type !== "point") {
-    throw new Error(
-      `Region entry for "${dimension}" dimension has type "${entry.index.type}". ` +
-        `It must be of type "point".`
-    );
-  }
-  return entry.index.value;
-}
-
 function getDimensionMapping(
   region: Region,
   attrs: LoaderAttributes
@@ -440,4 +400,40 @@ function getDimensionMapping(
   }
 
   return mapping;
+}
+
+function compareDimensions(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+function findDimensionIndex(dimensionNames: string[], target: string): number {
+  const index = findDimensionIndexSafe(dimensionNames, target);
+  if (index === -1) {
+    throw new Error(
+      `Could not find "${target}" dimension in loader attributes: [${dimensionNames.join(
+        ", "
+      )}]`
+    );
+  }
+  return index;
+}
+
+function findDimensionIndexSafe(dimensions: string[], target: string): number {
+  return dimensions.findIndex((d) => compareDimensions(d, target));
+}
+
+function findRegionPointValue(region: Region, dimension: string): number {
+  const entry = region.find((r) => compareDimensions(r.dimension, dimension));
+  if (!entry) {
+    throw new Error(
+      `Region must contain an entry for the "${dimension}" dimension since the source has a "${dimension}" dimension.`
+    );
+  }
+  if (entry.index.type !== "point") {
+    throw new Error(
+      `Region entry for "${dimension}" dimension has type "${entry.index.type}". ` +
+        `It must be of type "point".`
+    );
+  }
+  return entry.index.value;
 }
