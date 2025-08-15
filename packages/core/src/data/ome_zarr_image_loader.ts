@@ -2,12 +2,7 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "../data/region";
-import {
-  Chunk,
-  DimensionMapping,
-  isChunkData,
-  LoaderAttributes,
-} from "./chunk";
+import { Chunk, DimensionMap, isChunkData, LoaderAttributes } from "./chunk";
 import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
@@ -54,7 +49,7 @@ export class OmeZarrImageLoader {
     this.lods_ = this.metadata_.datasets.length;
   }
 
-  public async loadChunkData(chunk: Chunk, mapping: DimensionMapping) {
+  public async loadChunkData(chunk: Chunk, mapping: DimensionMap) {
     const array = this.arrays_[chunk.lod];
     const attrs = this.loaderAttributes_[chunk.lod];
     const translation = attrs.translation;
@@ -68,7 +63,7 @@ export class OmeZarrImageLoader {
       // For now, compute the chunk index for z from the world index.
       const sourceIndex = mapping.z.sourceIndex;
       const arrayIndex = Math.round(
-        (mapping.z.worldIndex - translation[sourceIndex]) / scale[sourceIndex]
+        (mapping.z.pointWorld - translation[sourceIndex]) / scale[sourceIndex]
       );
       chunkCoords[sourceIndex] = Math.floor(
         arrayIndex / array.chunks[sourceIndex]
@@ -78,7 +73,7 @@ export class OmeZarrImageLoader {
       const sourceIndex = mapping.c.sourceIndex;
       // TODO: technical this could have scale/translation but in practice
       // for the channel dimension these are always 1 and 0 respectively.
-      const arrayIndex = mapping.c.worldIndex;
+      const arrayIndex = mapping.c.pointWorld;
       chunkCoords[sourceIndex] = Math.floor(
         arrayIndex / array.chunks[sourceIndex]
       );
@@ -86,7 +81,7 @@ export class OmeZarrImageLoader {
     if (mapping.t) {
       const sourceIndex = mapping.t.sourceIndex;
       const arrayIndex = Math.round(
-        (mapping.t.worldIndex - translation[sourceIndex]) / scale[sourceIndex]
+        (mapping.t.pointWorld - translation[sourceIndex]) / scale[sourceIndex]
       );
       chunkCoords[sourceIndex] = Math.floor(
         arrayIndex / array.chunks[sourceIndex]
@@ -117,7 +112,7 @@ export class OmeZarrImageLoader {
     if (mapping.z) {
       const sourceIndex = mapping.z.sourceIndex;
       const arrayIndex = Math.round(
-        (mapping.z.worldIndex - translation[sourceIndex]) / scale[sourceIndex]
+        (mapping.z.pointWorld - translation[sourceIndex]) / scale[sourceIndex]
       );
       const indexWithinChunk = arrayIndex % array.chunks[sourceIndex];
       const offset = indexWithinChunk * subarray.stride[sourceIndex];

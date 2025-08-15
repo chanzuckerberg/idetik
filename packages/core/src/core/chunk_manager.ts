@@ -2,7 +2,7 @@ import {
   Chunk,
   ChunkLoader,
   ChunkSource,
-  DimensionMapping,
+  DimensionMap,
   LoaderAttributes,
 } from "../data/chunk";
 import { Region } from "../data/region";
@@ -20,7 +20,7 @@ const PREFETCH_PADDING_CHUNKS = 1;
 export class ChunkManagerSource {
   private readonly chunks_: Chunk[];
   private readonly loader_;
-  private readonly dimensions_: DimensionMapping;
+  private readonly dimensions_: DimensionMap;
   private readonly attrs_: ReadonlyArray<LoaderAttributes>;
   private readonly lowestResLOD_: number;
   private currentLOD_: number = 0;
@@ -271,7 +271,7 @@ export class ChunkManagerSource {
     const zShape = attrs.shape[zIdx];
     const zScale = attrs.scale[zIdx];
     const zTran = attrs.translation[zIdx];
-    const zPoint = Math.floor((this.dimensions_.z.worldIndex - zTran) / zScale);
+    const zPoint = Math.floor((this.dimensions_.z.pointWorld - zTran) / zScale);
     const chunkDepth = attrs.chunks[zIdx];
 
     const zChunk = Math.max(
@@ -371,7 +371,7 @@ export class ChunkManager {
 function getDimensionMapping(
   region: Region,
   attrs: LoaderAttributes
-): DimensionMapping {
+): DimensionMap {
   const names = attrs.dimensionNames;
   const xIndex = findDimensionIndex(names, "x");
   const yIndex = findDimensionIndex(names, "y");
@@ -379,24 +379,24 @@ function getDimensionMapping(
   const cIndex = findDimensionIndexSafe(names, "c");
   const tIndex = findDimensionIndexSafe(names, "t");
 
-  const mapping: DimensionMapping = {
+  const mapping: DimensionMap = {
     x: { name: names[xIndex], sourceIndex: xIndex },
     y: { name: names[yIndex], sourceIndex: yIndex },
   };
 
   if (zIndex !== -1) {
     const value = findRegionPointValue(region, "z");
-    mapping.z = { name: names[zIndex], sourceIndex: zIndex, worldIndex: value };
+    mapping.z = { name: names[zIndex], sourceIndex: zIndex, pointWorld: value };
   }
 
   if (cIndex !== -1) {
     const value = findRegionPointValue(region, "c");
-    mapping.c = { name: names[cIndex], sourceIndex: cIndex, worldIndex: value };
+    mapping.c = { name: names[cIndex], sourceIndex: cIndex, pointWorld: value };
   }
 
   if (tIndex !== -1) {
     const value = findRegionPointValue(region, "t");
-    mapping.t = { name: names[tIndex], sourceIndex: tIndex, worldIndex: value };
+    mapping.t = { name: names[tIndex], sourceIndex: tIndex, pointWorld: value };
   }
 
   return mapping;
