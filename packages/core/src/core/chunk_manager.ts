@@ -40,52 +40,40 @@ export class ChunkManagerSource {
     this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
-    this.xIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "x"
-    );
-    this.yIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "y"
-    );
-    this.zIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "z"
-    );
-    this.channelIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "c"
-    );
-
-    if (this.xIdx_ === -1 || this.yIdx_ === -1) {
-      throw new Error("Missing required spatial axis x/y");
-    }
-
+    const dimensionNames = this.attrs_[0].dimensionNames;
+    this.xIdx_ = findDimensionIndex(dimensionNames, "x");
+    this.yIdx_ = findDimensionIndex(dimensionNames, "y");
     this.validateXYScaleRatios(this.xIdx_, this.yIdx_);
+    this.zIdx_ = findDimensionIndexSafe(dimensionNames, "z");
+    this.channelIdx_ = findDimensionIndexSafe(dimensionNames, "c");
 
     // generate chunks for each LOD without loading data
     this.chunks_ = [];
     for (let lod = 0; lod < this.attrs_.length; ++lod) {
-      const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
-      const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
-      const chunkDepth =
-        this.zIdx_ !== -1 ? this.attrs_[lod].chunks[this.zIdx_] : 1;
+      const lodAttrs = this.attrs_[lod];
+      const chunkWidth = lodAttrs.chunks[this.xIdx_];
+      const chunkHeight = lodAttrs.chunks[this.yIdx_];
+      const chunkDepth = lodAttrs.chunks[this.zIdx_] ?? 1;
 
-      const chunksX = Math.ceil(
-        this.attrs_[lod].shape[this.xIdx_] / chunkWidth
-      );
-      const chunksY = Math.ceil(
-        this.attrs_[lod].shape[this.yIdx_] / chunkHeight
-      );
-      const chunksZ =
-        this.zIdx_ !== -1
-          ? Math.ceil(this.attrs_[lod].shape[this.zIdx_] / chunkDepth)
-          : 1;
+      const shape = lodAttrs.shape;
+      const chunksX = Math.ceil(shape[this.xIdx_] / chunkWidth);
+      const chunksY = Math.ceil(shape[this.yIdx_] / chunkHeight);
+      const chunksZ = Math.ceil((shape[this.zIdx_] ?? 1) / chunkDepth);
+      const channels = shape[this.channelIdx_] ?? 1;
 
-      const channels =
-        this.channelIdx_ >= 0 ? this.attrs_[lod].shape[this.channelIdx_] : 1;
-
-      const scale = this.attrs_[lod].scale;
-      const translation = this.attrs_[lod].translation;
+      const scale = lodAttrs.scale;
+      const translation = lodAttrs.translation;
       for (let x = 0; x < chunksX; ++x) {
+        const xOffset =
+          translation[this.xIdx_] + x * chunkWidth * scale[this.xIdx_];
         for (let y = 0; y < chunksY; ++y) {
+          const yOffset =
+            translation[this.yIdx_] + y * chunkHeight * scale[this.yIdx_];
           for (let z = 0; z < chunksZ; ++z) {
+            const zOffset =
+              this.zIdx_ !== -1
+                ? translation[this.zIdx_] + z * chunkDepth * scale[this.zIdx_]
+                : 0;
             this.chunks_.push({
               state: "unloaded",
               lod,
@@ -103,17 +91,12 @@ export class ChunkManagerSource {
               scale: {
                 x: scale[this.xIdx_],
                 y: scale[this.yIdx_],
-                z: this.zIdx_ !== -1 ? scale[this.zIdx_] : 1,
+                z: scale[this.zIdx_] ?? 1,
               },
               offset: {
-                x: translation[this.xIdx_] + x * chunkWidth * scale[this.xIdx_],
-                y:
-                  translation[this.yIdx_] + y * chunkHeight * scale[this.yIdx_],
-                z:
-                  this.zIdx_ !== -1
-                    ? translation[this.zIdx_] +
-                      z * chunkDepth * scale[this.zIdx_]
-                    : 0,
+                x: xOffset,
+                y: yOffset,
+                z: zOffset,
               },
             });
           }
@@ -392,4 +375,25 @@ export class ChunkManager {
       chunkManagerSource.update(lodFactor, viewBounds2D);
     }
   }
+}
+
+function findDimensionIndex(dimensionNames: string[], target: string): number {
+  const index = findDimensionIndexSafe(dimensionNames, target);
+  if (index === -1) {
+    throw new Error(
+      `Could not find x dimension in loader attributes: [${dimensionNames.join(
+        ", "
+      )}]`
+    );
+  }
+  return index;
+}
+
+function findDimensionIndexSafe(
+  dimensionNames: string[],
+  target: string
+): number {
+  return dimensionNames.findIndex(
+    (name) => name.toLowerCase() === target.toLowerCase()
+  );
 }
