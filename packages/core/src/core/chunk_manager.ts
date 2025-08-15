@@ -35,12 +35,13 @@ export class ChunkManagerSource {
     region: Region
   ) {
     this.loader_ = loader;
-    this.region_ = region;
     this.attrs_ = attrs;
     this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
     const dimensionNames = this.attrs_[0].dimensionNames;
+    this.region_ = validateRegion(region, dimensionNames);
+
     this.xIdx_ = findDimensionIndex(dimensionNames, "x");
     this.yIdx_ = findDimensionIndex(dimensionNames, "y");
     this.validateXYScaleRatios(this.xIdx_, this.yIdx_);
@@ -396,4 +397,63 @@ function findDimensionIndexSafe(
   return dimensionNames.findIndex(
     (name) => name.toLowerCase() === target.toLowerCase()
   );
+}
+
+function validateRegion(region: Region, dimensionNames: string[]): Region {
+  const lowerNames = new Set(dimensionNames.map((n) => n.toLowerCase()));
+  if (!lowerNames.has("x")) {
+    throw new Error(`Loader attributes must contain an "x" dimension.`);
+  }
+  if (!lowerNames.has("y")) {
+    throw new Error(`Loader attributes must contain a "y" dimension.`);
+  }
+  const supportedNames = new Set(["x", "y", "z", "c", "t"]);
+  for (const name of lowerNames) {
+    if (!supportedNames.has(name)) {
+      throw new Error(
+        `Source contains an unexpected dimension name: "${name}". ` +
+          `Expected only ${new Array(supportedNames).join(",")}.`
+      );
+    }
+  }
+  for (const name of ["z", "c", "t"]) {
+    if (lowerNames.has(name)) {
+      const entry = region.find((r) => r.dimension.toLowerCase() === name);
+      if (!entry) {
+        throw new Error(
+          `Source contains a "${name}" dimension, so region must contain an entry for the "${name}" dimension.`
+        );
+      }
+      if (entry.index.type !== "point") {
+        throw new Error(
+          `Region entry for "${name}" dimension has type "${entry.index.type}". ` +
+            `It must be of type "point".`
+        );
+      }
+    }
+  }
+  const validated: Region = [];
+  for (const entry of region) {
+    const index = findDimensionIndexSafe(dimensionNames, entry.dimension);
+    if (index === -1) {
+      throw new Error(
+        `Region contains dimension "${entry.dimension}" which is not present in ` +
+          `loader attributes: [${dimensionNames.join(", ")}]`
+      );
+    }
+    const dimName = entry.dimension.toLowerCase();
+    if (dimName === "x" || dimName === "y") {
+      if (entry.index.type !== "full") {
+        throw new Error(
+          `Region for dimension "${entry.dimension}" must be of type "full". ` +
+            `Only point/interval types are only supported for other dimensions.`
+        );
+      }
+    }
+    validated.push({
+      dimension: dimensionNames[index],
+      index: entry.index,
+    });
+  }
+  return validated;
 }
