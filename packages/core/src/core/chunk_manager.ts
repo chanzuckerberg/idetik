@@ -2,6 +2,7 @@ import {
   Chunk,
   ChunkLoader,
   ChunkSource,
+  DimensionMapping,
   LoaderAttributes,
 } from "../data/chunk";
 import { Region } from "../data/region";
@@ -19,14 +20,10 @@ const PREFETCH_PADDING_CHUNKS = 1;
 export class ChunkManagerSource {
   private readonly chunks_: Chunk[];
   private readonly loader_;
-  private readonly region_;
+  private readonly dimensions_: DimensionMapping;
   private readonly attrs_: ReadonlyArray<LoaderAttributes>;
   private readonly lowestResLOD_: number;
   private currentLOD_: number = 0;
-  private readonly xIdx_: number;
-  private readonly yIdx_: number;
-  private readonly zIdx_: number;
-  private readonly channelIdx_: number;
   private lastViewBounds2D_: Box2 | null = null;
 
   constructor(
@@ -39,41 +36,40 @@ export class ChunkManagerSource {
     this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
-    const dimensionNames = this.attrs_[0].dimensionNames;
-    this.region_ = validateRegion(region, dimensionNames);
+    this.dimensions_ = getDimensionMapping(region, this.attrs_[0]);
+    console.debug("Dimension mapping:", this.dimensions_, this.attrs_);
+    const xIdx = this.dimensions_.x.sourceIndex;
+    const yIdx = this.dimensions_.y.sourceIndex;
+    const zIdx = this.dimensions_.z?.sourceIndex ?? -1;
+    const channelIdx = this.dimensions_.c?.sourceIndex ?? -1;
 
-    this.xIdx_ = findDimensionIndex(dimensionNames, "x");
-    this.yIdx_ = findDimensionIndex(dimensionNames, "y");
-    this.validateXYScaleRatios(this.xIdx_, this.yIdx_);
-    this.zIdx_ = findDimensionIndexSafe(dimensionNames, "z");
-    this.channelIdx_ = findDimensionIndexSafe(dimensionNames, "c");
+    this.validateXYScaleRatios(xIdx, yIdx);
 
     // generate chunks for each LOD without loading data
     this.chunks_ = [];
     for (let lod = 0; lod < this.attrs_.length; ++lod) {
       const lodAttrs = this.attrs_[lod];
-      const chunkWidth = lodAttrs.chunks[this.xIdx_];
-      const chunkHeight = lodAttrs.chunks[this.yIdx_];
-      const chunkDepth = lodAttrs.chunks[this.zIdx_] ?? 1;
+      const chunkWidth = lodAttrs.chunks[xIdx];
+      const chunkHeight = lodAttrs.chunks[yIdx];
+      // TODO: chunkDepth should not really be defined at all.
+      const chunkDepth = lodAttrs.chunks[zIdx] ?? 1;
 
       const shape = lodAttrs.shape;
-      const chunksX = Math.ceil(shape[this.xIdx_] / chunkWidth);
-      const chunksY = Math.ceil(shape[this.yIdx_] / chunkHeight);
-      const chunksZ = Math.ceil((shape[this.zIdx_] ?? 1) / chunkDepth);
-      const channels = shape[this.channelIdx_] ?? 1;
+      const chunksX = Math.ceil(shape[xIdx] / chunkWidth);
+      const chunksY = Math.ceil(shape[yIdx] / chunkHeight);
+      const chunksZ = Math.ceil((shape[zIdx] ?? 1) / chunkDepth);
+      const channels = shape[channelIdx] ?? 1;
 
       const scale = lodAttrs.scale;
       const translation = lodAttrs.translation;
       for (let x = 0; x < chunksX; ++x) {
-        const xOffset =
-          translation[this.xIdx_] + x * chunkWidth * scale[this.xIdx_];
+        const xOffset = translation[xIdx] + x * chunkWidth * scale[xIdx];
         for (let y = 0; y < chunksY; ++y) {
-          const yOffset =
-            translation[this.yIdx_] + y * chunkHeight * scale[this.yIdx_];
+          const yOffset = translation[yIdx] + y * chunkHeight * scale[yIdx];
           for (let z = 0; z < chunksZ; ++z) {
             const zOffset =
-              this.zIdx_ !== -1
-                ? translation[this.zIdx_] + z * chunkDepth * scale[this.zIdx_]
+              zIdx !== -1
+                ? translation[zIdx] + z * chunkDepth * scale[zIdx]
                 : 0;
             this.chunks_.push({
               state: "unloaded",
@@ -90,9 +86,9 @@ export class ChunkManagerSource {
               rowAlignmentBytes: 1,
               chunkIndex: { x, y, z },
               scale: {
-                x: scale[this.xIdx_],
-                y: scale[this.yIdx_],
-                z: scale[this.zIdx_] ?? 1,
+                x: scale[xIdx],
+                y: scale[yIdx],
+                z: scale[zIdx] ?? 1,
               },
               offset: {
                 x: xOffset,
@@ -178,7 +174,7 @@ export class ChunkManagerSource {
   private loadChunkData(chunk: Chunk): void {
     chunk.state = "loading";
     this.loader_
-      .loadChunkDataFromRegion(chunk, this.region_)
+      .loadChunkData(chunk, this.dimensions_)
       .then(() => {
         chunk.state = "loaded";
       })
@@ -217,6 +213,7 @@ export class ChunkManagerSource {
     }
 
     const [zMin, zMax] = this.getZBounds();
+    console.debug("Z bounds for visibility check:", zMin, zMax);
     const viewBounds3D = new Box3(
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
@@ -270,17 +267,15 @@ export class ChunkManagerSource {
   }
 
   private getZBounds(): [number, number] {
-    if (this.zIdx_ === -1) return [0, 0];
-    const index = this.region_[this.zIdx_].index;
-    if (index.type !== "point") {
-      throw new Error("Intervals are currently not supported.");
-    }
+    if (this.dimensions_.z === undefined) return [0, 0];
+    const zIdx = this.dimensions_.z.sourceIndex;
+    const attrs = this.attrs_[this.currentLOD_];
 
-    const zShape = this.attrs_[this.currentLOD_].shape[this.zIdx_];
-    const zScale = this.attrs_[this.currentLOD_].scale[this.zIdx_];
-    const zTran = this.attrs_[this.currentLOD_].translation[this.zIdx_];
-    const zPoint = Math.floor((index.value - zTran) / zScale);
-    const chunkDepth = this.attrs_[this.currentLOD_].chunks[this.zIdx_];
+    const zShape = attrs.shape[zIdx];
+    const zScale = attrs.scale[zIdx];
+    const zTran = attrs.translation[zIdx];
+    const zPoint = Math.floor((this.dimensions_.z.worldIndex - zTran) / zScale);
+    const chunkDepth = attrs.chunks[zIdx];
 
     const zChunk = Math.max(
       0,
@@ -314,17 +309,15 @@ export class ChunkManagerSource {
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
-    const chunkWidth =
-      this.attrs_[this.currentLOD_].chunks[this.xIdx_] *
-      this.attrs_[this.currentLOD_].scale[this.xIdx_];
+    const xIdx = this.dimensions_.x.sourceIndex;
+    const yIdx = this.dimensions_.y.sourceIndex;
+    // TODO: handle case where there is no Z dimension
+    const zIdx = this.dimensions_.z?.sourceIndex ?? 0;
 
-    const chunkHeight =
-      this.attrs_[this.currentLOD_].chunks[this.yIdx_] *
-      this.attrs_[this.currentLOD_].scale[this.yIdx_];
-
-    const chunkDepth =
-      this.attrs_[this.currentLOD_].chunks[this.zIdx_] *
-      this.attrs_[this.currentLOD_].scale[this.zIdx_];
+    const attrs = this.attrs_[this.currentLOD_];
+    const chunkWidth = attrs.chunks[xIdx] * attrs.scale[xIdx];
+    const chunkHeight = attrs.chunks[yIdx] * attrs.scale[yIdx];
+    const chunkDepth = attrs.chunks[zIdx] * attrs.scale[zIdx];
 
     const padX = chunkWidth * PREFETCH_PADDING_CHUNKS;
     const padY = chunkHeight * PREFETCH_PADDING_CHUNKS;
@@ -399,61 +392,55 @@ function findDimensionIndexSafe(
   );
 }
 
-function validateRegion(region: Region, dimensionNames: string[]): Region {
-  const lowerNames = new Set(dimensionNames.map((n) => n.toLowerCase()));
-  if (!lowerNames.has("x")) {
-    throw new Error(`Loader attributes must contain an "x" dimension.`);
+function findRegionPointValue(region: Region, dimension: string): number {
+  const entry = region.find(
+    (r) => r.dimension.toLowerCase() === dimension.toLowerCase()
+  );
+  if (!entry) {
+    throw new Error(
+      `Region must contain an entry for the "${dimension}" dimension since the source has a "${dimension}" dimension.`
+    );
   }
-  if (!lowerNames.has("y")) {
-    throw new Error(`Loader attributes must contain a "y" dimension.`);
+  if (entry.index.type !== "point") {
+    throw new Error(
+      `Region entry for "${dimension}" dimension has type "${entry.index.type}". ` +
+        `It must be of type "point".`
+    );
   }
-  const supportedNames = new Set(["x", "y", "z", "c", "t"]);
-  for (const name of lowerNames) {
-    if (!supportedNames.has(name)) {
-      throw new Error(
-        `Source contains an unexpected dimension name: "${name}". ` +
-          `Expected only ${new Array(supportedNames).join(",")}.`
-      );
-    }
+  return entry.index.value;
+}
+
+function getDimensionMapping(
+  region: Region,
+  attrs: LoaderAttributes
+): DimensionMapping {
+  console.debug("Getting dimension mapping for region:", region, attrs);
+  const names = attrs.dimensionNames;
+  const xIndex = findDimensionIndex(names, "x");
+  const yIndex = findDimensionIndex(names, "y");
+  const zIndex = findDimensionIndexSafe(names, "z");
+  const cIndex = findDimensionIndexSafe(names, "c");
+  const tIndex = findDimensionIndexSafe(names, "t");
+
+  const mapping: DimensionMapping = {
+    x: { name: names[xIndex], sourceIndex: xIndex },
+    y: { name: names[yIndex], sourceIndex: yIndex },
+  };
+
+  if (zIndex !== -1) {
+    const value = findRegionPointValue(region, "z");
+    mapping.z = { name: names[zIndex], sourceIndex: zIndex, worldIndex: value };
   }
-  for (const name of ["z", "c", "t"]) {
-    if (lowerNames.has(name)) {
-      const entry = region.find((r) => r.dimension.toLowerCase() === name);
-      if (!entry) {
-        throw new Error(
-          `Source contains a "${name}" dimension, so region must contain an entry for the "${name}" dimension.`
-        );
-      }
-      if (entry.index.type !== "point") {
-        throw new Error(
-          `Region entry for "${name}" dimension has type "${entry.index.type}". ` +
-            `It must be of type "point".`
-        );
-      }
-    }
+
+  if (cIndex !== -1) {
+    const value = findRegionPointValue(region, "c");
+    mapping.c = { name: names[cIndex], sourceIndex: cIndex, worldIndex: value };
   }
-  const validated: Region = [];
-  for (const entry of region) {
-    const index = findDimensionIndexSafe(dimensionNames, entry.dimension);
-    if (index === -1) {
-      throw new Error(
-        `Region contains dimension "${entry.dimension}" which is not present in ` +
-          `loader attributes: [${dimensionNames.join(", ")}]`
-      );
-    }
-    const dimName = entry.dimension.toLowerCase();
-    if (dimName === "x" || dimName === "y") {
-      if (entry.index.type !== "full") {
-        throw new Error(
-          `Region for dimension "${entry.dimension}" must be of type "full". ` +
-            `Only point/interval types are only supported for other dimensions.`
-        );
-      }
-    }
-    validated.push({
-      dimension: dimensionNames[index],
-      index: entry.index,
-    });
+
+  if (tIndex !== -1) {
+    const value = findRegionPointValue(region, "t");
+    mapping.t = { name: names[tIndex], sourceIndex: tIndex, worldIndex: value };
   }
-  return validated;
+
+  return mapping;
 }

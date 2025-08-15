@@ -2,7 +2,12 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "../data/region";
-import { Chunk, isChunkData, LoaderAttributes } from "./chunk";
+import {
+  Chunk,
+  DimensionMapping,
+  isChunkData,
+  LoaderAttributes,
+} from "./chunk";
 import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
@@ -49,17 +54,46 @@ export class OmeZarrImageLoader {
     this.lods_ = this.metadata_.datasets.length;
   }
 
-  public async loadChunkDataFromRegion(chunk: Chunk, region: Region) {
-    const attrs = this.loaderAttributes_[chunk.lod];
+  public async loadChunkData(chunk: Chunk, mapping: DimensionMapping) {
     const array = this.arrays_[chunk.lod];
-
-    const dimInfo = this.getDimInfoMap(region, chunk, attrs);
-    if (!dimInfo.has("x") || !dimInfo.has("y")) {
-      throw new Error("Missing required spatial axis x/y");
-    }
+    const attrs = this.loaderAttributes_[chunk.lod];
+    const translation = attrs.translation;
+    const scale = attrs.scale;
 
     const chunkCoords: number[] = [];
-    dimInfo.forEach((info) => chunkCoords.push(info.chunkIdx));
+    chunkCoords[mapping.x.sourceIndex] = chunk.chunkIndex.x;
+    chunkCoords[mapping.y.sourceIndex] = chunk.chunkIndex.y;
+    if (mapping.z) {
+      // TODO: chunkIndex.z is always 0 for now since we load 2D chunks.
+      // For now, compute the chunk index for z from the world index.
+      const sourceIndex = mapping.z.sourceIndex;
+      const arrayIndex = Math.round(
+        (mapping.z.worldIndex - translation[sourceIndex]) / scale[sourceIndex]
+      );
+      chunkCoords[sourceIndex] = Math.floor(
+        arrayIndex / array.chunks[sourceIndex]
+      );
+    }
+    if (mapping.c) {
+      const sourceIndex = mapping.c.sourceIndex;
+      // TODO: technical this could have scale/translation but in practice
+      // for the channel dimension these are always 1 and 0 respectively.
+      const arrayIndex = mapping.c.worldIndex;
+      chunkCoords[sourceIndex] = Math.floor(
+        arrayIndex / array.chunks[sourceIndex]
+      );
+    }
+    if (mapping.t) {
+      const sourceIndex = mapping.t.sourceIndex;
+      const arrayIndex = Math.round(
+        (mapping.t.worldIndex - translation[sourceIndex]) / scale[sourceIndex]
+      );
+      chunkCoords[sourceIndex] = Math.floor(
+        arrayIndex / array.chunks[sourceIndex]
+      );
+    }
+    console.debug("chunkCoords", chunkCoords);
+
     const subarray = await array.getChunk(chunkCoords);
 
     const data = subarray.data;
@@ -69,13 +103,35 @@ export class OmeZarrImageLoader {
       );
     }
 
-    const sliceSize = chunk.shape.x * chunk.shape.y;
-    const zInfo = dimInfo.get("z") ?? dimInfo.get("Z");
-    const zOffset = zInfo
-      ? sliceSize * (zInfo.value % array.chunks[zInfo.dimIdx])
-      : 0;
+    const rowAlignment = data.BYTES_PER_ELEMENT;
+    if (!isTextureUnpackRowAlignment(rowAlignment)) {
+      throw new Error(
+        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
+      );
+    }
 
-    chunk.data = data.slice(zOffset, zOffset + sliceSize);
+    chunk.rowAlignmentBytes = rowAlignment;
+    chunk.rowStride = subarray.stride[mapping.y.sourceIndex];
+
+    // TODO: move slicing elsewhere.
+    // Also handle c and t dimensions.
+    if (mapping.z) {
+      const sourceIndex = mapping.z.sourceIndex;
+      const arrayIndex = Math.round(
+        (mapping.z.worldIndex - translation[sourceIndex]) / scale[sourceIndex]
+      );
+      const indexWithinChunk = arrayIndex % array.chunks[sourceIndex];
+      const offset = indexWithinChunk * subarray.stride[sourceIndex];
+      const sliceSize = chunk.rowStride * chunk.shape.y;
+      console.debug("Slicing chunk data:", {
+        offset,
+        sliceSize,
+        indexWithinChunk,
+      });
+      chunk.data = data.slice(offset, offset + sliceSize);
+    } else {
+      chunk.data = data;
+    }
   }
 
   public async loadRegion(
@@ -162,34 +218,6 @@ export class OmeZarrImageLoader {
 
   public getAttributes(): ReadonlyArray<LoaderAttributes> {
     return this.loaderAttributes_;
-  }
-
-  private getDimInfoMap(region: Region, chunk: Chunk, attrs: LoaderAttributes) {
-    const indices = this.regionToIndices(region, attrs);
-    const output = new Map();
-    region.forEach((entry, dimIdx) => {
-      if (entry.dimension.toLowerCase() === "x") {
-        const value = 0; // not used for x dimension
-        output.set("x", { dimIdx, chunkIdx: chunk.chunkIndex.x, value });
-        return;
-      }
-
-      if (entry.dimension.toLowerCase() === "y") {
-        const value = 0; // not used for y dimension
-        output.set("y", { dimIdx, chunkIdx: chunk.chunkIndex.y, value });
-        return;
-      }
-
-      const value = indices[dimIdx];
-      if (typeof value !== "number") {
-        throw new Error(`Expected numeric index for ${entry.dimension}`);
-      }
-
-      const chunkIdx = Math.floor(value / attrs.chunks[dimIdx]);
-      output.set(entry.dimension, { dimIdx, chunkIdx, value });
-    });
-
-    return output;
   }
 
   private regionToIndices(

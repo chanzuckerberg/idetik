@@ -55,6 +55,25 @@ export type Chunk = {
   };
 };
 
+type VisibleDimension = {
+  name: string;
+  sourceIndex: number;
+};
+
+type NonVisibleDimension = {
+  name: string;
+  sourceIndex: number;
+  worldIndex: number;
+};
+
+export type DimensionMapping = {
+  x: VisibleDimension;
+  y: VisibleDimension;
+  z?: NonVisibleDimension;
+  c?: NonVisibleDimension;
+  t?: NonVisibleDimension;
+};
+
 export type ChunkSource = {
   open(): Promise<ChunkLoader>;
 };
@@ -75,7 +94,7 @@ export type ChunkLoader = {
     scheduler?: PromiseScheduler
   ): Promise<Chunk>;
 
-  loadChunkDataFromRegion(chunk: Chunk, region: Region): Promise<void>;
+  loadChunkData(chunk: Chunk, mapping: DimensionMapping): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
