@@ -32,12 +32,12 @@ test("intersects: separated boxes return false", () => {
   expect(Box2.intersects(b, a)).toBe(false); // symmetry
 });
 
-test("intersects: touching edges count as intersecting", () => {
+test("intersects: touching edges do not count as intersecting", () => {
   const a = new Box2(vec2.fromValues(0, 0), vec2.fromValues(2, 2));
   const b = new Box2(vec2.fromValues(2, 0), vec2.fromValues(4, 2));
   const c = new Box2(vec2.fromValues(0, 2), vec2.fromValues(2, 4));
-  expect(Box2.intersects(a, b)).toBe(true);
-  expect(Box2.intersects(a, c)).toBe(true);
+  expect(Box2.intersects(a, b)).toBe(false);
+  expect(Box2.intersects(a, c)).toBe(false);
 });
 
 test("intersects: empty and non-empty box do not intersect", () => {

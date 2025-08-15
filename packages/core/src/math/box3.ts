@@ -31,11 +31,11 @@ export class Box3 {
     );
   }
 
-  // Touching edges count as intersecting (closed intervals)
+  // Half-open interval intersection: returns true only if boxes overlap.
   public static intersects(a: Box3, b: Box3): boolean {
-    if (a.max[0] < b.min[0] || a.min[0] > b.max[0]) return false;
-    if (a.max[1] < b.min[1] || a.min[1] > b.max[1]) return false;
-    if (a.max[2] < b.min[2] || a.min[2] > b.max[2]) return false;
+    if (a.max[0] <= b.min[0] || a.min[0] >= b.max[0]) return false;
+    if (a.max[1] <= b.min[1] || a.min[1] >= b.max[1]) return false;
+    if (a.max[2] <= b.min[2] || a.min[2] >= b.max[2]) return false;
     return true;
   }
 }
