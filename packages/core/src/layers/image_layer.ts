@@ -11,8 +11,7 @@ import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
-import { handlePointPickingEvent } from "../utilities/point_picking";
-import { PointPickingResult } from "./label_image_layer";
+import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -39,7 +38,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
   private pointerDownPos_: vec2 | null = null;
-  private readonly dragThreshold_ = 3;
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
@@ -144,7 +142,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
       this.pointerDownPos_,
-      this.dragThreshold_,
       (world) => this.getValueAtWorld(world),
       this.onPickValue_
     );
@@ -194,6 +191,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     };
 
     this.image_ = this.createImage(chunk, this.channelProps_);
+    this.visibleChunks_.set(chunk, this.image_);
     this.addObject(this.image_);
 
     this.setState("ready");

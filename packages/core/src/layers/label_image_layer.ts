@@ -10,12 +10,7 @@ import {
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
-import { handlePointPickingEvent } from "../utilities/point_picking";
-
-export interface PointPickingResult {
-  world: vec3;
-  value: number;
-}
+import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 
 export type LabelImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -35,7 +30,6 @@ export class LabelImageLayer extends Layer {
   private image_?: LabelImageRenderable;
   private imageChunk_?: Chunk;
   private pointerDownPos_: vec2 | null = null;
-  private readonly dragThreshold_ = 3;
 
   constructor({
     source,
@@ -84,7 +78,6 @@ export class LabelImageLayer extends Layer {
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
       this.pointerDownPos_,
-      this.dragThreshold_,
       (world) => this.getValueAtWorld(world),
       this.onPickValue_
     );
