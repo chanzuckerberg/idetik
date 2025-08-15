@@ -264,14 +264,15 @@ export class ChunkManagerSource {
   }
 
   private getZBounds(): [number, number] {
-    if (this.dimensions_.z === undefined) return [0, 0];
-    const zIdx = this.dimensions_.z.sourceIndex;
+    const zDim = this.dimensions_.z;
+    if (zDim === undefined) return [0, 0];
+    const zIdx = zDim.sourceIndex;
     const attrs = this.attrs_[this.currentLOD_];
 
     const zShape = attrs.shape[zIdx];
     const zScale = attrs.scale[zIdx];
     const zTran = attrs.translation[zIdx];
-    const zPoint = Math.floor((this.dimensions_.z.pointWorld - zTran) / zScale);
+    const zPoint = Math.floor((zDim.pointWorld - zTran) / zScale);
     const chunkDepth = attrs.chunks[zIdx];
 
     const zChunk = Math.max(

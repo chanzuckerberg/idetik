@@ -2,7 +2,13 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "../data/region";
-import { Chunk, DimensionMap, isChunkData, LoaderAttributes } from "./chunk";
+import {
+  Chunk,
+  DimensionMap,
+  isChunkData,
+  LoaderAttributes,
+  SliceDimension,
+} from "./chunk";
 import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 
@@ -52,40 +58,21 @@ export class OmeZarrImageLoader {
   public async loadChunkData(chunk: Chunk, mapping: DimensionMap) {
     const array = this.arrays_[chunk.lod];
     const attrs = this.loaderAttributes_[chunk.lod];
-    const translation = attrs.translation;
-    const scale = attrs.scale;
 
     const chunkCoords: number[] = [];
     chunkCoords[mapping.x.sourceIndex] = chunk.chunkIndex.x;
     chunkCoords[mapping.y.sourceIndex] = chunk.chunkIndex.y;
     if (mapping.z) {
-      // TODO: chunkIndex.z is always 0 for now since we load 2D chunks.
-      // For now, compute the chunk index for z from the world index.
-      const sourceIndex = mapping.z.sourceIndex;
-      const arrayIndex = Math.round(
-        (mapping.z.pointWorld - translation[sourceIndex]) / scale[sourceIndex]
-      );
-      chunkCoords[sourceIndex] = Math.floor(
-        arrayIndex / array.chunks[sourceIndex]
-      );
+      // TODO: chunk.chunkIndex.z is always 0 for now since we load 2D chunks.
+      // For now, compute the chunk index for z from the world slice point.
+      // Later we could use chunk.chunkIndex.z
+      chunkCoords[mapping.z.sourceIndex] = sliceChunkIndex(mapping.z, attrs);
     }
     if (mapping.c) {
-      const sourceIndex = mapping.c.sourceIndex;
-      // TODO: technical this could have scale/translation but in practice
-      // for the channel dimension these are always 1 and 0 respectively.
-      const arrayIndex = mapping.c.pointWorld;
-      chunkCoords[sourceIndex] = Math.floor(
-        arrayIndex / array.chunks[sourceIndex]
-      );
+      chunkCoords[mapping.c.sourceIndex] = sliceChunkIndex(mapping.c, attrs);
     }
     if (mapping.t) {
-      const sourceIndex = mapping.t.sourceIndex;
-      const arrayIndex = Math.round(
-        (mapping.t.pointWorld - translation[sourceIndex]) / scale[sourceIndex]
-      );
-      chunkCoords[sourceIndex] = Math.floor(
-        arrayIndex / array.chunks[sourceIndex]
-      );
+      chunkCoords[mapping.t.sourceIndex] = sliceChunkIndex(mapping.t, attrs);
     }
 
     const subarray = await array.getChunk(chunkCoords);
@@ -110,12 +97,9 @@ export class OmeZarrImageLoader {
     // TODO: move slicing elsewhere.
     // Also handle c and t dimensions.
     if (mapping.z) {
-      const sourceIndex = mapping.z.sourceIndex;
-      const arrayIndex = Math.round(
-        (mapping.z.pointWorld - translation[sourceIndex]) / scale[sourceIndex]
-      );
-      const indexWithinChunk = arrayIndex % array.chunks[sourceIndex];
-      const offset = indexWithinChunk * subarray.stride[sourceIndex];
+      const dataIdx = sliceDataIndex(mapping.z, attrs);
+      const idxInChunk = dataIdx % array.chunks[mapping.z.sourceIndex];
+      const offset = idxInChunk * subarray.stride[mapping.z.sourceIndex];
       const sliceSize = chunk.rowStride * chunk.shape.y;
       chunk.data = data.slice(offset, offset + sliceSize);
     } else {
@@ -264,4 +248,18 @@ function getLoaderAttributes(
     });
   }
   return output;
+}
+
+function sliceChunkIndex(dim: SliceDimension, attrs: LoaderAttributes): number {
+  const { sourceIndex } = dim;
+  const dataIndex = sliceDataIndex(dim, attrs);
+  return Math.floor(dataIndex / attrs.chunks[sourceIndex]);
+}
+
+function sliceDataIndex(dim: SliceDimension, attrs: LoaderAttributes): number {
+  const { sourceIndex, pointWorld } = dim;
+  const { scale, translation } = attrs;
+  return Math.round(
+    (pointWorld - translation[sourceIndex]) / scale[sourceIndex]
+  );
 }

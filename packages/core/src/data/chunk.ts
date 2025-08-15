@@ -60,7 +60,7 @@ type VisibleDimension = {
   sourceIndex: number;
 };
 
-type SliceDimension = {
+export type SliceDimension = {
   name: string;
   sourceIndex: number;
   pointWorld: number;
