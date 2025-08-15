@@ -42,6 +42,7 @@ export type Chunk = {
     x: number;
     y: number;
     z: number;
+    c: number;
   };
   scale: {
     x: number;

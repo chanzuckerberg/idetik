@@ -12,6 +12,7 @@ import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent } from "../utilities/point_picking";
 import { PointPickingResult } from "./label_image_layer";
+import { DataTextureTypedArray } from "@/objects/textures/texture";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -32,10 +33,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly channelChangeCallbacks_: Array<() => void> = [];
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
+  private readonly images_: Map<string, ImageRenderable> = new Map();
   private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
-  private extent_?: { x: number; y: number };
   private pointerDownPos_: vec2 | null = null;
   private readonly dragThreshold_ = 3;
 
@@ -89,14 +90,25 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.visibleChunks_.forEach((image, chunk) => {
       if (!currentChunks.has(chunk)) {
         this.removeObject(image);
+        this.images_.delete(chunkKey(chunk));
         this.visibleChunks_.delete(chunk); // safe
       }
     });
 
     currentChunks.forEach((chunk) => {
       if (chunk.state === "loaded" && !this.visibleChunks_.has(chunk)) {
+        // TODO: instead of creating a new image, look for the one
+        // associated with the chunk's xyz-lod index.
+        const key = chunkKey(chunk);
+        if (this.images_.has(key)) {
+          const image = this.images_.get(key)!;
+          this.visibleChunks_.set(chunk, image);
+          this.addChunkToImage(chunk, image);
+          return;
+        }
         const image = this.createImage(chunk, this.channelProps);
         this.visibleChunks_.set(chunk, image);
+        this.images_.set(key, image);
         this.addObject(image);
       }
     });
@@ -144,24 +156,66 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.channelChangeCallbacks_.splice(index, 1);
   }
 
-  // TODO: we probably want something like this, but it should be unified across layers
-  // see TracksLayer for another example
   public get extent(): { x: number; y: number } | undefined {
-    return this.extent_;
+    const source = this.chunkManagerSource;
+    if (!source) return;
+    const dimensions = source.getDimensions();
+    if (dimensions.length == 0) return;
+    const dimension = dimensions[0];
+    return {
+      x: dimension.x.size * dimension.x.scale,
+      y: dimension.y.size * dimension.y.scale,
+    };
   }
 
   public get chunkManagerSource(): ChunkManagerSource | undefined {
     return this.chunkManagerSource_;
   }
 
+  private addChunkToImage(chunk: Chunk, image: ImageRenderable) {
+    const channelDataSize = chunk.rowStride * chunk.shape.y;
+    // TODO: handle typing properly.
+    const texture = image.textures[0] as Texture2DArray;
+    let channelChunkIndex = chunk.chunkIndex.c;
+    if (this.region_.c?.type === "point") {
+      channelChunkIndex = 0;
+    }
+    const offset = channelChunkIndex * channelDataSize;
+    console.debug("addChunkToImage: ", { chunk, offset, texture });
+    texture.data.set(chunk.data!, offset);
+    texture.needsUpdate = true;
+  }
+
   private createImage(chunk: Chunk, channelProps?: ChannelProps[]) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
-    const image = new ImageRenderable(
-      geometry,
-      Texture2DArray.createWithChunk(chunk),
-      channelProps
-    );
+    const dimensions = this.chunkManagerSource!.getDimensions();
+    const chunkData = chunk.data!;
+    // TODO: the number of channels is also affected by the region.
+    let numChannels = dimensions[0].c?.size ?? 1;
+    let channelChunkIndex = chunk.chunkIndex.c;
+    if (this.region_.c?.type === "point") {
+      numChannels = 1;
+      channelChunkIndex = 0;
+    }
+    const channelDataSize = chunk.rowStride * chunk.shape.y;
+    const TypedArray = chunkData.constructor as new (
+      size: number
+    ) => DataTextureTypedArray;
+    const data = new TypedArray(channelDataSize * numChannels);
+    console.debug("createImage: ", {
+      chunk,
+      channelDataSize,
+      numChannels,
+      data,
+    });
+    data.set(chunkData, channelChunkIndex * channelDataSize);
+    const texture = new Texture2DArray(data, chunk.shape.x, chunk.shape.y);
+    texture.unpackRowLength = chunk.rowStride;
+    texture.unpackAlignment = chunk.rowAlignmentBytes;
+    console.debug("Created texture for chunk:", { chunk, texture });
+
+    const image = new ImageRenderable(geometry, texture, channelProps);
 
     if (this.debugMode) {
       image.wireframeEnabled = true;
@@ -198,4 +252,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
     return null;
   }
+}
+
+function chunkKey(chunk: Chunk): string {
+  return `${chunk.chunkIndex.x},${chunk.chunkIndex.y},${chunk.chunkIndex.z},${chunk.lod}`;
 }

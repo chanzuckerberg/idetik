@@ -1,4 +1,5 @@
 import {
+  Color,
   Idetik,
   ImageLayer,
   OrthographicCamera,
@@ -43,7 +44,6 @@ const app = new Idetik({
 
 const region: Region2DProps = {
   t: { type: "point", value: 0 },
-  c: { type: "interval", start: 1, stop: 3 },
   z: { type: "point", value: 0 },
 };
 
@@ -61,17 +61,14 @@ const onImageChange = async () => {
     value: (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE,
   };
   const omeroChannels = await loadOmeroChannels(source);
-  const contrastLimits: [number, number][] = [
-    [omeroChannels[1].window.start, omeroChannels[1].window.end],
-    [omeroChannels[2].window.start, omeroChannels[2].window.end],
-  ];
+  const channelProps = omeroChannels.map((ch) => ({
+    color: Color.fromRgbHex(ch.color),
+    contrastLimits: [ch.window.start, ch.window.end] as [number, number],
+  }));
   const newLayer = new ImageLayer({
     source,
     region,
-    channelProps: [
-      { color: [0, 1, 1], contrastLimits: contrastLimits[0] },
-      { color: [1, 0, 1], contrastLimits: contrastLimits[1] },
-    ],
+    channelProps,
     lod: 0,
   });
   app.layerManager.add(newLayer);

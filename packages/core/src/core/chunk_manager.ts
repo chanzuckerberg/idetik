@@ -51,6 +51,7 @@ export class ChunkManagerSource {
       const chunksY = Math.ceil(dimension.y.size / chunkHeight);
       const chunksZ = Math.ceil(dimension.z?.size ?? 1 / chunkDepth);
       const channels = dimension.c?.size ?? 1;
+      console.debug("channels", channels);
 
       const scaledChunkWidth = chunkWidth * dimension.x.scale;
       const scaledChunkHeight = chunkHeight * dimension.y.scale;
@@ -66,35 +67,41 @@ export class ChunkManagerSource {
           const yOffset = yTranslation + y * scaledChunkHeight;
           for (let z = 0; z < chunksZ; ++z) {
             const zOffset = zTranslation + z * scaledChunkDepth;
-            this.chunks_.push({
-              state: "unloaded",
-              lod,
-              visible: false,
-              prefetch: false,
-              shape: {
-                x: chunkWidth,
-                y: chunkHeight,
-                z: chunkDepth,
-                c: channels,
-              },
-              rowStride: chunkWidth,
-              rowAlignmentBytes: 1,
-              chunkIndex: { x, y, z },
-              scale: {
-                x: dimension.x.scale,
-                y: dimension.y.scale,
-                z: dimension.z?.scale ?? 1,
-              },
-              offset: {
-                x: xOffset,
-                y: yOffset,
-                z: zOffset,
-              },
-            });
+            for (let c = 0; c < channels; ++c) {
+              this.chunks_.push({
+                state: "unloaded",
+                lod,
+                visible: false,
+                prefetch: false,
+                shape: {
+                  x: chunkWidth,
+                  y: chunkHeight,
+                  z: chunkDepth,
+                  c: dimension.c?.chunkSize ?? 1,
+                },
+                rowStride: chunkWidth,
+                rowAlignmentBytes: 1,
+                chunkIndex: { x, y, z, c },
+                scale: {
+                  x: dimension.x.scale,
+                  y: dimension.y.scale,
+                  z: dimension.z?.scale ?? 1,
+                },
+                offset: {
+                  x: xOffset,
+                  y: yOffset,
+                  z: zOffset,
+                },
+              });
+            }
           }
         }
       }
     }
+  }
+
+  public getDimensions() {
+    return this.dimensions_;
   }
 
   public getChunks(): Chunk[] {
@@ -169,6 +176,7 @@ export class ChunkManagerSource {
 
   private loadChunkData(chunk: Chunk): void {
     chunk.state = "loading";
+    console.debug("loading chunk", chunk);
     this.loader_
       .loadChunkDataFromRegion(chunk, this.region_)
       .then(() => {
@@ -243,6 +251,15 @@ export class ChunkManagerSource {
   }
 
   private isChunkWithinBounds(chunk: Chunk, bounds: Box2): boolean {
+    if (this.region_.c?.type === "point") {
+      const channelIndex = this.region_.c.value;
+      const chunkChannelIndex = chunk.chunkIndex.c;
+      const lowerBound = chunkChannelIndex * chunk.shape.c;
+      const upperBound = lowerBound + chunk.shape.c;
+      if (channelIndex < lowerBound || channelIndex >= upperBound) {
+        return false;
+      }
+    }
     const chunkBounds = new Box2(
       vec2.fromValues(chunk.offset.x, chunk.offset.y),
       vec2.fromValues(

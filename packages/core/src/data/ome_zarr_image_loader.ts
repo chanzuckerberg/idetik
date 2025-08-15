@@ -61,6 +61,7 @@ export class OmeZarrImageLoader {
       props.dimensionMapping
     );
     this.lods_ = this.metadata_.datasets.length;
+    console.debug(this.dimensions_);
   }
 
   public async loadChunkDataFromRegion(chunk: Chunk, region: Region2D) {
@@ -84,15 +85,7 @@ export class OmeZarrImageLoader {
       if (!region.c) {
         throw new Error("Region must specify a c index to load data with c.");
       }
-      // TODO: handle this more specifically.
-      if (region.c.type === "full") {
-        throw new Error(
-          "Region c index cannot be 'full' when loading chunk data."
-        );
-      }
-      chunkCoords[dimension.c.index] = Math.floor(
-        region.c.value / dimension.c.chunkSize
-      );
+      chunkCoords[dimension.c.index] = chunk.chunkIndex.c;
     }
     if (dimension.t) {
       if (!region.t) {
@@ -115,6 +108,7 @@ export class OmeZarrImageLoader {
     }
 
     // TODO: should not be sliced here.
+    // This should also handle slicing in c and t.
     const sliceSize = chunk.shape.x * chunk.shape.y;
     let zOffset = 0;
     if (region.z) {
@@ -196,7 +190,7 @@ export class OmeZarrImageLoader {
         z: 1,
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
-      chunkIndex: { x: 0, y: 0, z: 0 },
+      chunkIndex: { x: 0, y: 0, z: 0, c: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
       scale: {
