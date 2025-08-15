@@ -8,6 +8,7 @@ import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
 import { vec2, vec3 } from "gl-matrix";
 import { OrthographicCamera } from "./objects/cameras/orthographic_camera";
+import { createStats, type Stats } from "./utilities/stats";
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
@@ -20,6 +21,7 @@ type IdetikParams = {
   cameraControls?: CameraControls;
   layers?: Layer[];
   overlays?: Overlay[];
+  showStats?: boolean;
 };
 
 export type IdetikContext = {
@@ -38,6 +40,7 @@ export class Idetik {
   public readonly canvas: HTMLCanvasElement;
   public readonly events: EventDispatcher;
   public readonly overlays: Overlay[];
+  private readonly stats_?: Stats;
 
   constructor(params: IdetikParams) {
     if (!params.canvas && !params.canvasSelector) {
@@ -70,6 +73,8 @@ export class Idetik {
     }
 
     this.overlays = params.overlays ?? [];
+
+    if (params.showStats) this.stats_ = createStats();
 
     this.events = new EventDispatcher(canvas);
     this.events.addEventListener((event: EventContext) => {
@@ -118,6 +123,8 @@ export class Idetik {
       this.needsResize_ = true;
     }).observe(this.canvas);
     const render = (timestamp?: DOMHighResTimeStamp) => {
+      if (this.stats_) this.stats_.begin();
+
       if (!this.camera) {
         Logger.warn(
           "Idetik",
@@ -142,6 +149,8 @@ export class Idetik {
       for (const overlay of this.overlays) {
         overlay.update(this, timestamp);
       }
+
+      if (this.stats_) this.stats_.end();
       this.lastAnimationId_ = requestAnimationFrame(render);
     };
     render();
