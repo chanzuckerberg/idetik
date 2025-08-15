@@ -92,7 +92,6 @@ export class OmeZarrImageLoader {
         arrayIndex / array.chunks[sourceIndex]
       );
     }
-    console.debug("chunkCoords", chunkCoords);
 
     const subarray = await array.getChunk(chunkCoords);
 
@@ -123,11 +122,6 @@ export class OmeZarrImageLoader {
       const indexWithinChunk = arrayIndex % array.chunks[sourceIndex];
       const offset = indexWithinChunk * subarray.stride[sourceIndex];
       const sliceSize = chunk.rowStride * chunk.shape.y;
-      console.debug("Slicing chunk data:", {
-        offset,
-        sliceSize,
-        indexWithinChunk,
-      });
       chunk.data = data.slice(offset, offset + sliceSize);
     } else {
       chunk.data = data;

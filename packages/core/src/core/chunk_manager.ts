@@ -37,7 +37,6 @@ export class ChunkManagerSource {
     this.currentLOD_ = 0;
 
     this.dimensions_ = getDimensionMapping(region, this.attrs_[0]);
-    console.debug("Dimension mapping:", this.dimensions_, this.attrs_);
     const xIdx = this.dimensions_.x.sourceIndex;
     const yIdx = this.dimensions_.y.sourceIndex;
     const zIdx = this.dimensions_.z?.sourceIndex ?? -1;
@@ -213,7 +212,6 @@ export class ChunkManagerSource {
     }
 
     const [zMin, zMax] = this.getZBounds();
-    console.debug("Z bounds for visibility check:", zMin, zMax);
     const viewBounds3D = new Box3(
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
@@ -414,7 +412,6 @@ function getDimensionMapping(
   region: Region,
   attrs: LoaderAttributes
 ): DimensionMapping {
-  console.debug("Getting dimension mapping for region:", region, attrs);
   const names = attrs.dimensionNames;
   const xIndex = findDimensionIndex(names, "x");
   const yIndex = findDimensionIndex(names, "y");
