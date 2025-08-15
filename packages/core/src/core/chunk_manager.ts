@@ -267,13 +267,13 @@ export class ChunkManagerSource {
     const zDim = this.dimensions_.z;
     if (zDim === undefined) return [0, 0];
     const zIdx = zDim.sourceIndex;
-    const attrs = this.attrs_[this.currentLOD_];
+    const lodAttrs = this.attrs_[this.currentLOD_];
 
-    const zShape = attrs.shape[zIdx];
-    const zScale = attrs.scale[zIdx];
-    const zTran = attrs.translation[zIdx];
+    const zShape = lodAttrs.shape[zIdx];
+    const zScale = lodAttrs.scale[zIdx];
+    const zTran = lodAttrs.translation[zIdx];
     const zPoint = Math.floor((zDim.pointWorld - zTran) / zScale);
-    const chunkDepth = attrs.chunks[zIdx];
+    const chunkDepth = lodAttrs.chunks[zIdx];
 
     const zChunk = Math.max(
       0,

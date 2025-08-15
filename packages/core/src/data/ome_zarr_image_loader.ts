@@ -63,9 +63,8 @@ export class OmeZarrImageLoader {
     chunkCoords[mapping.x.sourceIndex] = chunk.chunkIndex.x;
     chunkCoords[mapping.y.sourceIndex] = chunk.chunkIndex.y;
     if (mapping.z) {
-      // TODO: chunk.chunkIndex.z is always 0 for now since we load 2D chunks.
-      // For now, compute the chunk index for z from the world slice point.
-      // Later we could use chunk.chunkIndex.z
+      // TODO: chunk.chunkIndex.z is always 0 right now, so compute the chunk
+      // index for z from the world slice point. Later use chunk.chunkIndex.z
       chunkCoords[mapping.z.sourceIndex] = sliceChunkIndex(mapping.z, attrs);
     }
     if (mapping.c) {
