@@ -1,12 +1,17 @@
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 
+export interface PointPickingResult {
+  world: vec3;
+  value: number;
+}
+
 export function handlePointPickingEvent<T>(
   event: EventContext,
   pointerDownPos: vec2 | null,
-  dragThreshold: number,
   getValueAtWorld: (world: vec3) => T | null,
-  onPickValue?: (info: { world: vec3; value: T }) => void
+  onPickValue?: (info: { world: vec3; value: T }) => void,
+  dragThreshold: number = 3
 ): vec2 | null {
   switch (event.type) {
     case "pointerdown": {
