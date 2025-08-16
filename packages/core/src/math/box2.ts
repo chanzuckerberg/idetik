@@ -20,7 +20,7 @@ export class Box2 {
   }
 
   public isEmpty(): boolean {
-    return this.max[0] < this.min[0] || this.max[1] < this.min[1];
+    return this.max[0] <= this.min[0] || this.max[1] <= this.min[1];
   }
 
   // Half-open interval intersection: returns true only if boxes overlap.

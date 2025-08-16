@@ -25,9 +25,9 @@ export class Box3 {
 
   public isEmpty(): boolean {
     return (
-      this.max[0] < this.min[0] ||
-      this.max[1] < this.min[1] ||
-      this.max[2] < this.min[2]
+      this.max[0] <= this.min[0] ||
+      this.max[1] <= this.min[1] ||
+      this.max[2] <= this.min[2]
     );
   }
 
