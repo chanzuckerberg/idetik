@@ -208,10 +208,11 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private slicePlane(chunk: Chunk, zValue: number) {
+    if (!chunk.data) return;
     const zLocal = Math.round((zValue - chunk.offset.z) / chunk.scale.z);
     const sliceSize = chunk.shape.x * chunk.shape.y;
     const offset = sliceSize * (zLocal % chunk.shape.z);
-    return chunk.data?.slice(offset, offset + sliceSize);
+    return chunk.data.slice(offset, offset + sliceSize);
   }
 
   private createImage(chunk: Chunk, channelProps?: ChannelProps[]) {
