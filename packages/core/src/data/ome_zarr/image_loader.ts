@@ -49,33 +49,62 @@ export class OmeZarrImageLoader {
     this.lods_ = this.metadata_.datasets.length;
   }
 
-  public async loadChunkDataFromRegion(chunk: Chunk, region: Region) {
-    const attrs = this.loaderAttributes_[chunk.lod];
-    const array = this.arrays_[chunk.lod];
+  public buildChunkCoords(
+    chunk: Chunk,
+    region: Region,
+    attrs: LoaderAttributes
+  ) {
+    const dims = attrs.dimensionNames.map((d) => d.toLowerCase());
+    const coords = new Array(dims.length).fill(0);
+    const indices = this.regionToIndices(region, attrs);
 
-    const dimInfo = this.getDimInfoMap(region, chunk, attrs);
-    if (!dimInfo.has("x") || !dimInfo.has("y")) {
-      throw new Error("Missing required spatial axis x/y");
+    for (let dimIdx = 0; dimIdx < dims.length; dimIdx++) {
+      const dim = dims[dimIdx];
+      const chunkSize = attrs.chunks[dimIdx];
+      let coord: number;
+      switch (dim) {
+        case "x":
+          coord = chunk.chunkIndex.x;
+          break;
+        case "y":
+          coord = chunk.chunkIndex.y;
+          break;
+        case "z":
+          coord = chunk.chunkIndex.z ?? 0;
+          break;
+        default: {
+          // Non-spatial dimension (e.g., "t", "c", or any other).
+          // Pull from indices[dimIdx] if present otherwise default to 0.
+          const value = indices[dimIdx];
+          if (typeof value === "number") {
+            coord = Math.floor(value / chunkSize);
+          } else {
+            coord =
+              value.start === null ? 0 : Math.floor(value.start / chunkSize);
+          }
+          break;
+        }
+      }
+      const dimSize = attrs.shape[dimIdx];
+      const maxChunk = Math.max(0, Math.ceil(dimSize / chunkSize) - 1);
+      coords[dimIdx] = Math.max(0, Math.min(coord, maxChunk));
     }
 
-    const chunkCoords: number[] = [];
-    dimInfo.forEach((info) => chunkCoords.push(info.chunkIdx));
-    const subarray = await array.getChunk(chunkCoords);
+    return coords;
+  }
 
+  public async loadChunkData(chunk: Chunk, region: Region) {
+    const attrs = this.loaderAttributes_[chunk.lod];
+    const array = this.arrays_[chunk.lod];
+    const coords = this.buildChunkCoords(chunk, region, attrs);
+    const subarray = await array.getChunk(coords);
     const data = subarray.data;
     if (!isChunkData(data)) {
       throw new Error(
         `Subarray has an unsupported data type, data=${data.constructor.name}`
       );
     }
-
-    const sliceSize = chunk.shape.x * chunk.shape.y;
-    const zInfo = dimInfo.get("z") ?? dimInfo.get("Z");
-    const zOffset = zInfo
-      ? sliceSize * (zInfo.value % array.chunks[zInfo.dimIdx])
-      : 0;
-
-    chunk.data = data.slice(zOffset, zOffset + sliceSize);
+    chunk.data = data;
   }
 
   public async loadRegion(
@@ -162,34 +191,6 @@ export class OmeZarrImageLoader {
 
   public getAttributes(): ReadonlyArray<LoaderAttributes> {
     return this.loaderAttributes_;
-  }
-
-  private getDimInfoMap(region: Region, chunk: Chunk, attrs: LoaderAttributes) {
-    const indices = this.regionToIndices(region, attrs);
-    const output = new Map();
-    region.forEach((entry, dimIdx) => {
-      if (entry.dimension.toLowerCase() === "x") {
-        const value = 0; // not used for x dimension
-        output.set("x", { dimIdx, chunkIdx: chunk.chunkIndex.x, value });
-        return;
-      }
-
-      if (entry.dimension.toLowerCase() === "y") {
-        const value = 0; // not used for y dimension
-        output.set("y", { dimIdx, chunkIdx: chunk.chunkIndex.y, value });
-        return;
-      }
-
-      const value = indices[dimIdx];
-      if (typeof value !== "number") {
-        throw new Error(`Expected numeric index for ${entry.dimension}`);
-      }
-
-      const chunkIdx = Math.floor(value / attrs.chunks[dimIdx]);
-      output.set(entry.dimension, { dimIdx, chunkIdx, value });
-    });
-
-    return output;
   }
 
   private regionToIndices(
