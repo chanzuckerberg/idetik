@@ -36,7 +36,7 @@ export class ChunkManagerSource {
     this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
-    this.dimensions_ = getDimensionMapping(region, this.attrs_[0]);
+    this.dimensions_ = this.loader_.getDimensionMap(region);
     const xIdx = this.dimensions_.x.sourceIndex;
     const yIdx = this.dimensions_.y.sourceIndex;
     const zIdx = this.dimensions_.z?.sourceIndex ?? -1;
@@ -356,70 +356,4 @@ export class ChunkManager {
       chunkManagerSource.update(lodFactor, viewBounds2D);
     }
   }
-}
-
-function getDimensionMapping(
-  region: Region,
-  attrs: LoaderAttributes
-): DimensionMap {
-  const names = attrs.dimensionNames;
-  const xIndex = findDimensionIndex(names, "x");
-  const yIndex = findDimensionIndex(names, "y");
-  const zIndex = findDimensionIndexSafe(names, "z");
-  const cIndex = findDimensionIndexSafe(names, "c");
-  const tIndex = findDimensionIndexSafe(names, "t");
-
-  const mapping: DimensionMap = {
-    x: { name: names[xIndex], sourceIndex: xIndex },
-    y: { name: names[yIndex], sourceIndex: yIndex },
-  };
-
-  if (zIndex !== -1) {
-    const value = findRegionPointValue(region, "z");
-    mapping.z = { name: names[zIndex], sourceIndex: zIndex, pointWorld: value };
-  }
-
-  if (cIndex !== -1) {
-    const value = findRegionPointValue(region, "c");
-    mapping.c = { name: names[cIndex], sourceIndex: cIndex, pointWorld: value };
-  }
-
-  if (tIndex !== -1) {
-    const value = findRegionPointValue(region, "t");
-    mapping.t = { name: names[tIndex], sourceIndex: tIndex, pointWorld: value };
-  }
-
-  return mapping;
-}
-
-function compareDimensions(a: string, b: string): boolean {
-  return a.toLowerCase() === b.toLowerCase();
-}
-
-function findDimensionIndex(dimensions: string[], target: string): number {
-  const index = findDimensionIndexSafe(dimensions, target);
-  if (index === -1) {
-    throw new Error(`Could not find "${target}" dimension in [${dimensions.join(", ")}]`);
-  }
-  return index;
-}
-
-function findDimensionIndexSafe(dimensions: string[], target: string): number {
-  return dimensions.findIndex((d) => compareDimensions(d, target));
-}
-
-function findRegionPointValue(region: Region, dimension: string): number {
-  const entry = region.find((r) => compareDimensions(r.dimension, dimension));
-  if (!entry) {
-    throw new Error(
-      `Region must contain an entry for the "${dimension}" dimension since the source has a "${dimension}" dimension.`
-    );
-  }
-  if (entry.index.type !== "point") {
-    throw new Error(
-      `Region entry for "${dimension}" dimension has type "${entry.index.type}". ` +
-        `It must be of type "point".`
-    );
-  }
-  return entry.index.value;
 }

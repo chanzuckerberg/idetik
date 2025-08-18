@@ -94,6 +94,8 @@ export type ChunkLoader = {
     scheduler?: PromiseScheduler
   ): Promise<Chunk>;
 
+  getDimensionMap(region: Region): DimensionMap;
+
   loadChunkData(chunk: Chunk, mapping: DimensionMap): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
