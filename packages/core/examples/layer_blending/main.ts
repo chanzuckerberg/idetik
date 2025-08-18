@@ -6,9 +6,9 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
+  loadOmeroDefaultZ,
 } from "@";
 import { blendMode } from "@/core/layer";
-import { loadOmeroDefaultZ } from "@/data/ome_zarr/metadata_loaders";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
