@@ -2,7 +2,13 @@ import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
 import { Region } from "../region";
-import { Chunk, isChunkData, LoaderAttributes } from "../chunk";
+import {
+  Chunk,
+  DimensionMap,
+  isChunkData,
+  LoaderAttributes,
+  SliceDimension,
+} from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
 
@@ -49,61 +55,84 @@ export class OmeZarrImageLoader {
     this.lods_ = this.metadata_.datasets.length;
   }
 
-  public buildChunkCoords(
-    chunk: Chunk,
-    region: Region,
-    attrs: LoaderAttributes
-  ) {
-    const dims = attrs.dimensionNames.map((d) => d.toLowerCase());
-    const coords = new Array(dims.length).fill(0);
-    const indices = this.regionToIndices(region, attrs);
+  public getDimensionMap(region: Region): DimensionMap {
+    const names = this.loaderAttributes_[0].dimensionNames;
+    const xIndex = findDimensionIndex(names, "x");
+    const yIndex = findDimensionIndex(names, "y");
+    const zIndex = findDimensionIndexSafe(names, "z");
+    const cIndex = findDimensionIndexSafe(names, "c");
+    const tIndex = findDimensionIndexSafe(names, "t");
 
-    for (let dimIdx = 0; dimIdx < dims.length; dimIdx++) {
-      const dim = dims[dimIdx];
-      const chunkSize = attrs.chunks[dimIdx];
-      let coord: number;
-      switch (dim) {
-        case "x":
-          coord = chunk.chunkIndex.x;
-          break;
-        case "y":
-          coord = chunk.chunkIndex.y;
-          break;
-        case "z":
-          coord = chunk.chunkIndex.z ?? 0;
-          break;
-        default: {
-          // Non-spatial dimension (e.g., "t", "c", or any other).
-          // Pull from indices[dimIdx] if present otherwise default to 0.
-          const value = indices[dimIdx];
-          if (typeof value === "number") {
-            coord = Math.floor(value / chunkSize);
-          } else {
-            coord =
-              value.start === null ? 0 : Math.floor(value.start / chunkSize);
-          }
-          break;
-        }
-      }
-      const dimSize = attrs.shape[dimIdx];
-      const maxChunk = Math.max(0, Math.ceil(dimSize / chunkSize) - 1);
-      coords[dimIdx] = Math.max(0, Math.min(coord, maxChunk));
+    const mapping: DimensionMap = {
+      x: { name: names[xIndex], sourceIndex: xIndex },
+      y: { name: names[yIndex], sourceIndex: yIndex },
+    };
+
+    if (zIndex !== -1) {
+      const value = findRegionPointValue(region, "z");
+      mapping.z = {
+        name: names[zIndex],
+        sourceIndex: zIndex,
+        pointWorld: value,
+      };
     }
 
-    return coords;
+    if (cIndex !== -1) {
+      const value = findRegionPointValue(region, "c");
+      mapping.c = {
+        name: names[cIndex],
+        sourceIndex: cIndex,
+        pointWorld: value,
+      };
+    }
+
+    if (tIndex !== -1) {
+      const value = findRegionPointValue(region, "t");
+      mapping.t = {
+        name: names[tIndex],
+        sourceIndex: tIndex,
+        pointWorld: value,
+      };
+    }
+
+    return mapping;
   }
 
-  public async loadChunkData(chunk: Chunk, region: Region) {
-    const attrs = this.loaderAttributes_[chunk.lod];
+  public async loadChunkData(chunk: Chunk, mapping: DimensionMap) {
     const array = this.arrays_[chunk.lod];
-    const coords = this.buildChunkCoords(chunk, region, attrs);
-    const subarray = await array.getChunk(coords);
+    const attrs = this.loaderAttributes_[chunk.lod];
+
+    const chunkCoords: number[] = [];
+    chunkCoords[mapping.x.sourceIndex] = chunk.chunkIndex.x;
+    chunkCoords[mapping.y.sourceIndex] = chunk.chunkIndex.y;
+    if (mapping.z) {
+      chunkCoords[mapping.z.sourceIndex] = chunk.chunkIndex.z;
+    }
+    if (mapping.c) {
+      chunkCoords[mapping.c.sourceIndex] = sliceChunkIndex(mapping.c, attrs);
+    }
+    if (mapping.t) {
+      chunkCoords[mapping.t.sourceIndex] = sliceChunkIndex(mapping.t, attrs);
+    }
+
+    const subarray = await array.getChunk(chunkCoords);
+
     const data = subarray.data;
     if (!isChunkData(data)) {
       throw new Error(
         `Subarray has an unsupported data type, data=${data.constructor.name}`
       );
     }
+
+    const rowAlignment = data.BYTES_PER_ELEMENT;
+    if (!isTextureUnpackRowAlignment(rowAlignment)) {
+      throw new Error(
+        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
+      );
+    }
+
+    chunk.rowAlignmentBytes = rowAlignment;
+    chunk.rowStride = subarray.stride[mapping.y.sourceIndex];
     chunk.data = data;
   }
 
@@ -248,4 +277,47 @@ function getLoaderAttributes(
     });
   }
   return output;
+}
+
+function sliceChunkIndex(dim: SliceDimension, attrs: LoaderAttributes): number {
+  const { sourceIndex, pointWorld } = dim;
+  const { scale, translation } = attrs;
+  const dataIndex = Math.round(
+    (pointWorld - translation[sourceIndex]) / scale[sourceIndex]
+  );
+  return Math.floor(dataIndex / attrs.chunks[sourceIndex]);
+}
+
+function compareDimensions(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+function findDimensionIndex(dimensions: string[], target: string): number {
+  const index = findDimensionIndexSafe(dimensions, target);
+  if (index === -1) {
+    throw new Error(
+      `Could not find "${target}" dimension in [${dimensions.join(", ")}]`
+    );
+  }
+  return index;
+}
+
+function findDimensionIndexSafe(dimensions: string[], target: string): number {
+  return dimensions.findIndex((d) => compareDimensions(d, target));
+}
+
+function findRegionPointValue(region: Region, dimension: string): number {
+  const entry = region.find((r) => compareDimensions(r.dimension, dimension));
+  if (!entry) {
+    throw new Error(
+      `Region must contain an entry for the "${dimension}" dimension since the source has a "${dimension}" dimension.`
+    );
+  }
+  if (entry.index.type !== "point") {
+    throw new Error(
+      `Region entry for "${dimension}" dimension has type "${entry.index.type}". ` +
+        `It must be of type "point".`
+    );
+  }
+  return entry.index.value;
 }
