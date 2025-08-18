@@ -59,13 +59,13 @@ export class OmeZarrImageLoader {
     const array = this.arrays_[chunk.lod];
     const attrs = this.loaderAttributes_[chunk.lod];
 
+    console.debug("loadChunkData", chunk);
+
     const chunkCoords: number[] = [];
     chunkCoords[mapping.x.sourceIndex] = chunk.chunkIndex.x;
     chunkCoords[mapping.y.sourceIndex] = chunk.chunkIndex.y;
     if (mapping.z) {
-      // TODO: chunk.chunkIndex.z is always 0 right now, so compute the chunk
-      // index for z from the world slice point. Later use chunk.chunkIndex.z
-      chunkCoords[mapping.z.sourceIndex] = sliceChunkIndex(mapping.z, attrs);
+      chunkCoords[mapping.z.sourceIndex] = chunk.chunkIndex.z;
     }
     if (mapping.c) {
       chunkCoords[mapping.c.sourceIndex] = sliceChunkIndex(mapping.c, attrs);
