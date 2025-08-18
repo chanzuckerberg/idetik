@@ -237,15 +237,10 @@ function getLoaderAttributes(
 }
 
 function sliceChunkIndex(dim: SliceDimension, attrs: LoaderAttributes): number {
-  const { sourceIndex } = dim;
-  const dataIndex = sliceDataIndex(dim, attrs);
-  return Math.floor(dataIndex / attrs.chunks[sourceIndex]);
-}
-
-function sliceDataIndex(dim: SliceDimension, attrs: LoaderAttributes): number {
   const { sourceIndex, pointWorld } = dim;
   const { scale, translation } = attrs;
-  return Math.round(
+  const dataIndex = Math.round(
     (pointWorld - translation[sourceIndex]) / scale[sourceIndex]
   );
+  return Math.floor(dataIndex / attrs.chunks[sourceIndex]);
 }
