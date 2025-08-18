@@ -1,13 +1,10 @@
 import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
-import { openArray, openGroup } from "./zarr/open";
-import WebFileSystemStore from "./zarr/web_file_system_store";
-import { OmeZarrImageLoader } from "../data/ome_zarr_image_loader";
-import {
-  omeZarrToZarrVersion,
-  parseOmeZarrImage,
-} from "./ome_zarr_hcs_metadata_loader";
+import { openArray, openGroup } from "../zarr/open";
+import WebFileSystemStore from "../zarr/web_file_system_store";
+import { OmeZarrImageLoader } from "./image_loader";
+import { omeZarrToZarrVersion, parseOmeZarrImage } from "./metadata_loaders";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {

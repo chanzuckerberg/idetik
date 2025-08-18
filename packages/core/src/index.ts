@@ -18,7 +18,7 @@ export { ImageLayer } from "./layers/image_layer";
 export { LabelImageLayer } from "./layers/label_image_layer";
 export type { PointPickingResult } from "./layers/point_picking";
 export { ImageSeriesLayer } from "./layers/image_series_layer";
-export { OmeZarrImageSource } from "./data/ome_zarr_image_source";
+export { OmeZarrImageSource } from "./data/ome_zarr/image_source";
 
 export { Box2 } from "./math/box2";
 export { Box3 } from "./math/box3";
@@ -30,11 +30,11 @@ export {
   loadOmeroDefaultZ,
   loadOmeZarrPlate,
   loadOmeZarrWell,
-} from "./data/ome_zarr_hcs_metadata_loader";
+} from "./data/ome_zarr/metadata_loaders";
 export type {
   OmeroMetadata,
   OmeroChannel,
-} from "./data/ome_zarr_hcs_metadata_loader";
+} from "./data/ome_zarr/metadata_loaders";
 
 export { Color } from "./core/color";
 export type { ColorLike } from "./core/color";

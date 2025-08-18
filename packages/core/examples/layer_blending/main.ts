@@ -8,7 +8,7 @@ import {
   Region,
 } from "@";
 import { blendMode } from "@/core/layer";
-import { loadOmeroDefaultZ } from "data/ome_zarr_hcs_metadata_loader";
+import { loadOmeroDefaultZ } from "@/data/ome_zarr/metadata_loaders";
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";

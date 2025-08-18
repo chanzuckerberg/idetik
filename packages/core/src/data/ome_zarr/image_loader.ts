@@ -1,12 +1,12 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { Region } from "../data/region";
-import { Chunk, isChunkData, LoaderAttributes } from "./chunk";
-import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
-import { PromiseScheduler } from "./promise_scheduler";
+import { Region } from "../region";
+import { Chunk, isChunkData, LoaderAttributes } from "../chunk";
+import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
+import { PromiseScheduler } from "../promise_scheduler";
 
-import { Image as OmeZarrImage } from "./ome_zarr/0.5/image";
+import { Image as OmeZarrImage } from "./0.5/image";
 
 import { Readable } from "@zarrita/storage";
 
