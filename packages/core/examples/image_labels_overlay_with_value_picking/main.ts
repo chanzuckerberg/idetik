@@ -6,10 +6,8 @@ import {
   Color,
   ImageLayer,
 } from "@";
-import {
-  LabelImageLayer,
-  PointPickingResult,
-} from "@/layers/label_image_layer";
+import { LabelImageLayer } from "@/layers/label_image_layer";
+import { PointPickingResult } from "@/layers/point_picking";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
 // These roughly correspond in terms of content and the number of time-points.

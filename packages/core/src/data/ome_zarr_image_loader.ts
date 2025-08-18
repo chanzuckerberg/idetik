@@ -92,18 +92,7 @@ export class OmeZarrImageLoader {
 
     chunk.rowAlignmentBytes = rowAlignment;
     chunk.rowStride = subarray.stride[mapping.y.sourceIndex];
-
-    // TODO: move slicing elsewhere.
-    // Also handle c and t dimensions.
-    if (mapping.z) {
-      const dataIdx = sliceDataIndex(mapping.z, attrs);
-      const idxInChunk = dataIdx % array.chunks[mapping.z.sourceIndex];
-      const offset = idxInChunk * subarray.stride[mapping.z.sourceIndex];
-      const sliceSize = chunk.rowStride * chunk.shape.y;
-      chunk.data = data.slice(offset, offset + sliceSize);
-    } else {
-      chunk.data = data;
-    }
+    chunk.data = data;
   }
 
   public async loadRegion(

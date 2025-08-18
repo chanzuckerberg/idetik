@@ -11,7 +11,7 @@ const chunkDataTypes = [
   Uint32Array,
   Float32Array,
 ] as const;
-type ChunkData = InstanceType<(typeof chunkDataTypes)[number]>;
+export type ChunkData = InstanceType<(typeof chunkDataTypes)[number]>;
 
 export function isChunkData(value: unknown): value is ChunkData {
   if (chunkDataTypes.some((ChunkData) => value instanceof ChunkData)) {

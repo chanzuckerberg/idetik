@@ -161,10 +161,6 @@ export class ChunkManagerSource {
     for (const chunk of this.chunks_) {
       if (chunk.lod !== this.lowestResLOD_ || chunk.state !== "unloaded")
         continue;
-
-      // TEMP: visibility is 2D. Ignore nonzero Z until chunk prioritization exists.
-      if (chunk.chunkIndex.z !== 0) continue;
-
       this.loadChunkData(chunk);
     }
   }
@@ -218,9 +214,6 @@ export class ChunkManagerSource {
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
     for (const chunk of this.chunks_) {
-      // TEMP: visibility is 2D. Ignore nonzero Z until chunk prioritization exists.
-      if (chunk.chunkIndex.z !== 0) continue;
-
       chunk.prefetch = false;
       chunk.visible = this.isChunkWithinBounds(chunk, viewBounds3D);
       if (!chunk.visible) {
@@ -309,17 +302,16 @@ export class ChunkManagerSource {
   private getPaddedBounds(bounds: Box3): Box3 {
     const xIdx = this.dimensions_.x.sourceIndex;
     const yIdx = this.dimensions_.y.sourceIndex;
-    // TODO: properly handle the case where there is no Z dimension
-    const zIdx = this.dimensions_.z?.sourceIndex ?? 0;
 
     const attrs = this.attrs_[this.currentLOD_];
     const chunkWidth = attrs.chunks[xIdx] * attrs.scale[xIdx];
     const chunkHeight = attrs.chunks[yIdx] * attrs.scale[yIdx];
-    const chunkDepth = attrs.chunks[zIdx] * attrs.scale[zIdx];
 
     const padX = chunkWidth * PREFETCH_PADDING_CHUNKS;
     const padY = chunkHeight * PREFETCH_PADDING_CHUNKS;
-    const padZ = chunkDepth * PREFETCH_PADDING_CHUNKS;
+
+    // Disable prefetching in Z until chunk prioritization exists.
+    const padZ = 0;
 
     return new Box3(
       vec3.fromValues(
