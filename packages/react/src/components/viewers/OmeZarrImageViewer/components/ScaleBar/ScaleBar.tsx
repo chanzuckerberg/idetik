@@ -5,8 +5,8 @@ import { Idetik, OrthographicCamera } from "@idetik/core";
 import cns from "classnames";
 import { useIdetik } from "hooks";
 
-// From OME-NGFF v0.4 specification:
-// https://ngff.openmicroscopy.org/0.4/#axes-md
+// From OME-Zarr v0.5 specification:
+// https://ngff.openmicroscopy.org/0.5/#axes-md
 const unitAbbreviations: Map<string, string> = new Map([
   ["angstrom", "Å"],
   ["attometer", "am"],

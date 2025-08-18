@@ -1,12 +1,12 @@
 import * as zarr from "zarrita";
-import { Image as ImageV04 } from "./ome_ngff/0.4/image";
-import { Plate as PlateV04 } from "./ome_ngff/0.4/plate";
-import { Well as WellV04 } from "./ome_ngff/0.4/well";
-import { Image } from "./ome_ngff/0.5/image";
-import { Plate } from "./ome_ngff/0.5/plate";
-import { Well } from "./ome_ngff/0.5/well";
-import { OmeZarrImageSource } from "./ome_zarr_image_source";
-import { Version as ZarrVersion, openGroup } from "./zarrita/open";
+import { Image as ImageV04 } from "./0.4/image";
+import { Plate as PlateV04 } from "./0.4/plate";
+import { Well as WellV04 } from "./0.4/well";
+import { Image } from "./0.5/image";
+import { Plate } from "./0.5/plate";
+import { Well } from "./0.5/well";
+import { OmeZarrImageSource } from "./image_source";
+import { Version as ZarrVersion, openGroup } from "../zarr/open";
 
 const versions = ["0.4", "0.5"] as const;
 const versionsSet: ReadonlySet<string> = new Set(versions);
@@ -144,7 +144,7 @@ export async function loadOmeroChannels(
   source: OmeZarrImageSource
 ): Promise<OmeroChannel[]> {
   const group = await openGroup(source.location);
-  const image = parseOmeNgffImage(group.attrs);
+  const image = parseOmeZarrImage(group.attrs);
   return image.omero?.channels ?? [];
 }
 
@@ -152,7 +152,7 @@ export async function loadOmeroDefaultZ(
   source: OmeZarrImageSource
 ): Promise<number> {
   const group = await openGroup(source.location);
-  const image = parseOmeNgffImage(group.attrs);
+  const image = parseOmeZarrImage(group.attrs);
   return image.omero?.rdefs?.defaultZ ?? 0;
 }
 
@@ -182,7 +182,7 @@ function parseImage(attrs: Record<string, unknown>): AdaptedOme<Image["ome"]> {
   }
 }
 
-export function parseOmeNgffImage(
+export function parseOmeZarrImage(
   attrs: Record<string, unknown>
 ): AdaptedOme<Image["ome"]> {
   try {
