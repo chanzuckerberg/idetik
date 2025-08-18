@@ -207,12 +207,29 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     return this.chunkManagerSource_;
   }
 
+  private slicePlane(chunk: Chunk, zValue: number) {
+    if (!chunk.data) return;
+    const zLocal = Math.round((zValue - chunk.offset.z) / chunk.scale.z);
+    const sliceSize = chunk.shape.x * chunk.shape.y;
+    const offset = sliceSize * (zLocal % chunk.shape.z);
+    return chunk.data.slice(offset, offset + sliceSize);
+  }
+
   private createImage(chunk: Chunk, channelProps?: ChannelProps[]) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
+    let data = chunk.data;
+    if (chunk.shape.z > 1) {
+      const zIdx = this.region_.find((r) => r.dimension.toLowerCase() === "z");
+      if (zIdx?.index.type !== "point") {
+        throw new Error("Expected Z index to be a point");
+      }
+      data = this.slicePlane(chunk, zIdx.index.value);
+    }
+
     const image = new ImageRenderable(
       geometry,
-      Texture2DArray.createWithChunk(chunk),
+      Texture2DArray.createWithChunk(chunk, data),
       channelProps
     );
 
