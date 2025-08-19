@@ -83,7 +83,7 @@ export class ChunkManagerSource {
                 },
                 rowStride: chunkWidth,
                 rowAlignmentBytes: 1,
-                chunkIndex: { x, y, z, c},
+                chunkIndex: { x, y, z, c },
                 scale: {
                   x: scale[xIdx],
                   y: scale[yIdx],
