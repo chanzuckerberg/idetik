@@ -36,5 +36,8 @@
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-glsl": "^1.3.0",
     "vitest": "^3.0.9"
+  },
+  "dependencies": {
+    "lil-gui": "^0.20.0"
   }
 }

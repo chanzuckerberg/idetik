@@ -20,11 +20,13 @@ const PREFETCH_PADDING_CHUNKS = 1;
 export class ChunkManagerSource {
   private readonly chunks_: Chunk[];
   private readonly loader_;
-  private readonly dimensions_: DimensionMap;
   private readonly attrs_: ReadonlyArray<LoaderAttributes>;
   private readonly lowestResLOD_: number;
+  private readonly region_: Region;
+  private dimensions_: DimensionMap;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
+  private lastZBounds_?: [number, number];
 
   constructor(
     loader: ChunkLoader,
@@ -33,10 +35,11 @@ export class ChunkManagerSource {
   ) {
     this.loader_ = loader;
     this.attrs_ = attrs;
+    this.region_ = region;
     this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
-    this.dimensions_ = this.loader_.getDimensionMap(region);
+    this.dimensions_ = this.loader_.getDimensionMap(this.region_);
     const xIdx = this.dimensions_.x.sourceIndex;
     const yIdx = this.dimensions_.y.sourceIndex;
     const zIdx = this.dimensions_.z?.sourceIndex ?? -1;
@@ -122,14 +125,27 @@ export class ChunkManagerSource {
 
   public update(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
-    if (this.viewBounds2DChanged(viewBounds2D)) {
+    this.dimensions_ = this.loader_.getDimensionMap(this.region_);
+
+    const zBounds = this.getZBounds();
+
+    if (
+      this.viewBounds2DChanged(viewBounds2D) ||
+      this.zBoundsChanged(zBounds)
+    ) {
       this.updateChunkVisibility(viewBounds2D);
+      this.lastZBounds_ = zBounds;
     }
+
     this.loadPendingChunks();
   }
 
   public get lodCount() {
     return this.lowestResLOD_ + 1;
+  }
+
+  public get dimensions() {
+    return this.dimensions_;
   }
 
   public get chunks(): Chunk[] {
@@ -294,6 +310,11 @@ export class ChunkManagerSource {
     }
 
     return changed;
+  }
+
+  private zBoundsChanged(newBounds: [number, number]): boolean {
+    const prev = this.lastZBounds_;
+    return !prev || prev[0] !== newBounds[0] || prev[1] !== newBounds[1];
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {

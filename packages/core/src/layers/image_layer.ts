@@ -38,6 +38,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
   private pointerDownPos_: vec2 | null = null;
+  private zPrevPointWorld_?: number;
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
@@ -94,6 +95,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       this.setState("ready");
     }
 
+    this.resliceIfZChanged();
+
     // TODO:(shlomnissan) Reuse images instead of deleting and creating new ones.
     //
     // This loop removes image renderables for chunks that are no longer visible
@@ -117,6 +120,24 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
         this.addObject(image);
       }
     });
+  }
+
+  private resliceIfZChanged() {
+    const dimensions = this.chunkManagerSource_?.dimensions;
+    const pointWorld = dimensions?.z?.pointWorld;
+    if (pointWorld === undefined || this.zPrevPointWorld_ === pointWorld) {
+      return;
+    }
+
+    for (const [chunk, image] of this.visibleChunks_) {
+      if (chunk.state !== "loaded" || !chunk.data) continue;
+      const data = this.slicePlane(chunk, pointWorld);
+      if (data) {
+        image.textures[0].data = data;
+      }
+    }
+
+    this.zPrevPointWorld_ = pointWorld;
   }
 
   public update() {
@@ -210,8 +231,9 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private slicePlane(chunk: Chunk, zValue: number) {
     if (!chunk.data) return;
     const zLocal = Math.round((zValue - chunk.offset.z) / chunk.scale.z);
+    const zClamped = Math.max(0, Math.min(zLocal, chunk.shape.z - 1));
     const sliceSize = chunk.shape.x * chunk.shape.y;
-    const offset = sliceSize * (zLocal % chunk.shape.z);
+    const offset = sliceSize * zClamped;
     return chunk.data.slice(offset, offset + sliceSize);
   }
 
@@ -219,12 +241,9 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
     let data = chunk.data;
-    if (chunk.shape.z > 1) {
-      const zIdx = this.region_.find((r) => r.dimension.toLowerCase() === "z");
-      if (zIdx?.index.type !== "point") {
-        throw new Error("Expected Z index to be a point");
-      }
-      data = this.slicePlane(chunk, zIdx.index.value);
+    const dimensions = this.chunkManagerSource?.dimensions;
+    if (dimensions?.z) {
+      data = this.slicePlane(chunk, dimensions.z.pointWorld);
     }
 
     const image = new ImageRenderable(
