@@ -147,7 +147,7 @@ export class OmeZarrImageLoader {
         z: 1,
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
-      chunkIndex: { x: 0, y: 0, z: 0 },
+      chunkIndex: { x: 0, y: 0, z: 0, c: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
       scale: {

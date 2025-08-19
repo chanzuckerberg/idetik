@@ -66,6 +66,7 @@ export class ChunkManagerSource {
       const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
       const chunkDepth =
         this.zIdx_ !== -1 ? this.attrs_[lod].chunks[this.zIdx_] : 1;
+      const chunkChannels = this.attrs_[lod].chunks[this.channelIdx_] ?? 1;
 
       const chunksX = Math.ceil(
         this.attrs_[lod].shape[this.xIdx_] / chunkWidth
@@ -78,44 +79,49 @@ export class ChunkManagerSource {
           ? Math.ceil(this.attrs_[lod].shape[this.zIdx_] / chunkDepth)
           : 1;
 
-      const channels =
-        this.channelIdx_ >= 0 ? this.attrs_[lod].shape[this.channelIdx_] : 1;
+      const channels = this.attrs_[lod].shape[this.channelIdx_] ?? 1;
+      const chunksC = Math.ceil(channels / chunkChannels);
 
       const scale = this.attrs_[lod].scale;
       const translation = this.attrs_[lod].translation;
       for (let x = 0; x < chunksX; ++x) {
         for (let y = 0; y < chunksY; ++y) {
           for (let z = 0; z < chunksZ; ++z) {
-            this.chunks_.push({
-              state: "unloaded",
-              lod,
-              visible: false,
-              prefetch: false,
-              shape: {
-                x: chunkWidth,
-                y: chunkHeight,
-                z: chunkDepth,
-                c: channels,
-              },
-              rowStride: chunkWidth,
-              rowAlignmentBytes: 1,
-              chunkIndex: { x, y, z },
-              scale: {
-                x: scale[this.xIdx_],
-                y: scale[this.yIdx_],
-                z: this.zIdx_ !== -1 ? scale[this.zIdx_] : 1,
-              },
-              offset: {
-                x: translation[this.xIdx_] + x * chunkWidth * scale[this.xIdx_],
-                y:
-                  translation[this.yIdx_] + y * chunkHeight * scale[this.yIdx_],
-                z:
-                  this.zIdx_ !== -1
-                    ? translation[this.zIdx_] +
-                      z * chunkDepth * scale[this.zIdx_]
-                    : 0,
-              },
-            });
+            for (let c = 0; c < chunksC; ++c) {
+              this.chunks_.push({
+                state: "unloaded",
+                lod,
+                visible: false,
+                prefetch: false,
+                shape: {
+                  x: chunkWidth,
+                  y: chunkHeight,
+                  z: chunkDepth,
+                  c: chunkChannels,
+                },
+                rowStride: chunkWidth,
+                rowAlignmentBytes: 1,
+                chunkIndex: { x, y, z, c },
+                scale: {
+                  x: scale[this.xIdx_],
+                  y: scale[this.yIdx_],
+                  z: this.zIdx_ !== -1 ? scale[this.zIdx_] : 1,
+                },
+                offset: {
+                  x:
+                    translation[this.xIdx_] +
+                    x * chunkWidth * scale[this.xIdx_],
+                  y:
+                    translation[this.yIdx_] +
+                    y * chunkHeight * scale[this.yIdx_],
+                  z:
+                    this.zIdx_ !== -1
+                      ? translation[this.zIdx_] +
+                        z * chunkDepth * scale[this.zIdx_]
+                      : 0,
+                },
+              });
+            }
           }
         }
       }
