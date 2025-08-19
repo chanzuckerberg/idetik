@@ -114,20 +114,24 @@ var Stats = function(scale = 1) {
 Stats.Panel = function(name, fg, bg, scale) {
 
   var min = Infinity, max = 0, round = Math.round;
-  var PR = scale * round(window.devicePixelRatio || 1);
+  var PR = round(window.devicePixelRatio || 1);
 
-  var WIDTH = 80 * PR, HEIGHT = 48 * PR,
-    TEXT_X = 3 * PR, TEXT_Y = 2 * PR,
-    GRAPH_X = 3 * PR, GRAPH_Y = 15 * PR,
-    GRAPH_WIDTH = 74 * PR, GRAPH_HEIGHT = 30 * PR;
+  var WIDTH = round(80 * PR * scale);
+  var HEIGHT = round(48 * PR * scale);
+  var TEXT_X = round(3 * PR * scale);
+  var TEXT_Y = round(2 * PR * scale);
+  var GRAPH_X = round(3 * PR * scale);
+  var GRAPH_Y = round(15 * PR * scale);
+  var GRAPH_WIDTH = round(74 * PR * scale);
+  var GRAPH_HEIGHT = round(30 * PR * scale);
 
   var canvas = document.createElement('canvas');
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
-  canvas.style.cssText = `width:${scale * 80}px;height:${scale * 48}px`;
+  canvas.style.cssText = `width:${round(scale * 80)}px;height:${round(scale * 48)}px`;
 
   var context = canvas.getContext('2d');
-  context.font = 'bold ' + (9 * PR) + 'px Helvetica,Arial,sans-serif';
+  context.font = 'bold ' + round(9 * PR * scale) + 'px Helvetica,Arial,sans-serif';
   context.textBaseline = 'top';
 
   context.fillStyle = bg;
