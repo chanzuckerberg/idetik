@@ -2,6 +2,7 @@ import {
   Chunk,
   ChunkLoader,
   ChunkSource,
+  DimensionMap,
   LoaderAttributes,
 } from "../data/chunk";
 import { Region } from "../data/region";
@@ -19,14 +20,10 @@ const PREFETCH_PADDING_CHUNKS = 1;
 export class ChunkManagerSource {
   private readonly chunks_: Chunk[];
   private readonly loader_;
-  private readonly region_;
+  private readonly dimensions_: DimensionMap;
   private readonly attrs_: ReadonlyArray<LoaderAttributes>;
   private readonly lowestResLOD_: number;
   private currentLOD_: number = 0;
-  private readonly xIdx_: number;
-  private readonly yIdx_: number;
-  private readonly zIdx_: number;
-  private readonly channelIdx_: number;
   private lastViewBounds2D_: Box2 | null = null;
 
   constructor(
@@ -35,58 +32,43 @@ export class ChunkManagerSource {
     region: Region
   ) {
     this.loader_ = loader;
-    this.region_ = region;
     this.attrs_ = attrs;
     this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
-    this.xIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "x"
-    );
-    this.yIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "y"
-    );
-    this.zIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "z"
-    );
-    this.channelIdx_ = region.findIndex(
-      (entry) => entry.dimension.toLowerCase() === "c"
-    );
+    this.dimensions_ = this.loader_.getDimensionMap(region);
+    const xIdx = this.dimensions_.x.sourceIndex;
+    const yIdx = this.dimensions_.y.sourceIndex;
+    const zIdx = this.dimensions_.z?.sourceIndex ?? -1;
+    const channelIdx = this.dimensions_.c?.sourceIndex ?? -1;
 
-    if (this.xIdx_ === -1 || this.yIdx_ === -1) {
-      throw new Error("Missing required spatial axis x/y");
-    }
-
-    this.validateXYScaleRatios(this.xIdx_, this.yIdx_);
+    this.validateXYScaleRatios(xIdx, yIdx);
 
     // generate chunks for each LOD without loading data
     this.chunks_ = [];
     for (let lod = 0; lod < this.attrs_.length; ++lod) {
-      const chunkWidth = this.attrs_[lod].chunks[this.xIdx_];
-      const chunkHeight = this.attrs_[lod].chunks[this.yIdx_];
-      const chunkDepth =
-        this.zIdx_ !== -1 ? this.attrs_[lod].chunks[this.zIdx_] : 1;
-      const chunkChannels = this.attrs_[lod].chunks[this.channelIdx_] ?? 1;
+      const { chunks, scale, shape, translation } = this.attrs_[lod];
+      const chunkWidth = chunks[xIdx];
+      const chunkHeight = chunks[yIdx];
+      const chunkDepth = chunks[zIdx] ?? 1;
+      const chunkChannels = chunks[channelIdx] ?? 1;
 
-      const chunksX = Math.ceil(
-        this.attrs_[lod].shape[this.xIdx_] / chunkWidth
-      );
-      const chunksY = Math.ceil(
-        this.attrs_[lod].shape[this.yIdx_] / chunkHeight
-      );
-      const chunksZ =
-        this.zIdx_ !== -1
-          ? Math.ceil(this.attrs_[lod].shape[this.zIdx_] / chunkDepth)
-          : 1;
+      const chunksX = Math.ceil(shape[xIdx] / chunkWidth);
+      const chunksY = Math.ceil(shape[yIdx] / chunkHeight);
+      const chunksZ = Math.ceil((shape[zIdx] ?? 1) / chunkDepth);
 
-      const channels = this.attrs_[lod].shape[this.channelIdx_] ?? 1;
+      const channels = shape[channelIdx] ?? 1;
       const chunksC = Math.ceil(channels / chunkChannels);
 
-      const scale = this.attrs_[lod].scale;
-      const translation = this.attrs_[lod].translation;
       for (let x = 0; x < chunksX; ++x) {
+        const xOffset = translation[xIdx] + x * chunkWidth * scale[xIdx];
         for (let y = 0; y < chunksY; ++y) {
+          const yOffset = translation[yIdx] + y * chunkHeight * scale[yIdx];
           for (let z = 0; z < chunksZ; ++z) {
+            const zOffset =
+              zIdx !== -1
+                ? translation[zIdx] + z * chunkDepth * scale[zIdx]
+                : 0;
             for (let c = 0; c < chunksC; ++c) {
               this.chunks_.push({
                 state: "unloaded",
@@ -101,24 +83,16 @@ export class ChunkManagerSource {
                 },
                 rowStride: chunkWidth,
                 rowAlignmentBytes: 1,
-                chunkIndex: { x, y, z, c },
+                chunkIndex: { x, y, z, c},
                 scale: {
-                  x: scale[this.xIdx_],
-                  y: scale[this.yIdx_],
-                  z: this.zIdx_ !== -1 ? scale[this.zIdx_] : 1,
+                  x: scale[xIdx],
+                  y: scale[yIdx],
+                  z: scale[zIdx] ?? 1,
                 },
                 offset: {
-                  x:
-                    translation[this.xIdx_] +
-                    x * chunkWidth * scale[this.xIdx_],
-                  y:
-                    translation[this.yIdx_] +
-                    y * chunkHeight * scale[this.yIdx_],
-                  z:
-                    this.zIdx_ !== -1
-                      ? translation[this.zIdx_] +
-                        z * chunkDepth * scale[this.zIdx_]
-                      : 0,
+                  x: xOffset,
+                  y: yOffset,
+                  z: zOffset,
                 },
               });
             }
@@ -189,10 +163,6 @@ export class ChunkManagerSource {
     for (const chunk of this.chunks_) {
       if (chunk.lod !== this.lowestResLOD_ || chunk.state !== "unloaded")
         continue;
-
-      // TEMP: visibility is 2D. Ignore nonzero Z until chunk prioritization exists.
-      if (chunk.chunkIndex.z !== 0) continue;
-
       this.loadChunkData(chunk);
     }
   }
@@ -200,7 +170,7 @@ export class ChunkManagerSource {
   private loadChunkData(chunk: Chunk): void {
     chunk.state = "loading";
     this.loader_
-      .loadChunkDataFromRegion(chunk, this.region_)
+      .loadChunkData(chunk, this.dimensions_)
       .then(() => {
         chunk.state = "loaded";
       })
@@ -246,9 +216,6 @@ export class ChunkManagerSource {
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
     for (const chunk of this.chunks_) {
-      // TEMP: visibility is 2D. Ignore nonzero Z until chunk prioritization exists.
-      if (chunk.chunkIndex.z !== 0) continue;
-
       chunk.prefetch = false;
       chunk.visible = this.isChunkWithinBounds(chunk, viewBounds3D);
       if (!chunk.visible) {
@@ -292,17 +259,16 @@ export class ChunkManagerSource {
   }
 
   private getZBounds(): [number, number] {
-    if (this.zIdx_ === -1) return [0, 0];
-    const index = this.region_[this.zIdx_].index;
-    if (index.type !== "point") {
-      throw new Error("Intervals are currently not supported.");
-    }
+    const zDim = this.dimensions_.z;
+    if (zDim === undefined) return [0, 0];
+    const zIdx = zDim.sourceIndex;
+    const lodAttrs = this.attrs_[this.currentLOD_];
 
-    const zShape = this.attrs_[this.currentLOD_].shape[this.zIdx_];
-    const zScale = this.attrs_[this.currentLOD_].scale[this.zIdx_];
-    const zTran = this.attrs_[this.currentLOD_].translation[this.zIdx_];
-    const zPoint = Math.floor((index.value - zTran) / zScale);
-    const chunkDepth = this.attrs_[this.currentLOD_].chunks[this.zIdx_];
+    const zShape = lodAttrs.shape[zIdx];
+    const zScale = lodAttrs.scale[zIdx];
+    const zTran = lodAttrs.translation[zIdx];
+    const zPoint = Math.floor((zDim.pointWorld - zTran) / zScale);
+    const chunkDepth = lodAttrs.chunks[zIdx];
 
     const zChunk = Math.max(
       0,
@@ -336,21 +302,18 @@ export class ChunkManagerSource {
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
-    const chunkWidth =
-      this.attrs_[this.currentLOD_].chunks[this.xIdx_] *
-      this.attrs_[this.currentLOD_].scale[this.xIdx_];
+    const xIdx = this.dimensions_.x.sourceIndex;
+    const yIdx = this.dimensions_.y.sourceIndex;
 
-    const chunkHeight =
-      this.attrs_[this.currentLOD_].chunks[this.yIdx_] *
-      this.attrs_[this.currentLOD_].scale[this.yIdx_];
-
-    const chunkDepth =
-      this.attrs_[this.currentLOD_].chunks[this.zIdx_] *
-      this.attrs_[this.currentLOD_].scale[this.zIdx_];
+    const attrs = this.attrs_[this.currentLOD_];
+    const chunkWidth = attrs.chunks[xIdx] * attrs.scale[xIdx];
+    const chunkHeight = attrs.chunks[yIdx] * attrs.scale[yIdx];
 
     const padX = chunkWidth * PREFETCH_PADDING_CHUNKS;
     const padY = chunkHeight * PREFETCH_PADDING_CHUNKS;
-    const padZ = chunkDepth * PREFETCH_PADDING_CHUNKS;
+
+    // Disable prefetching in Z until chunk prioritization exists.
+    const padZ = 0;
 
     return new Box3(
       vec3.fromValues(

@@ -1,12 +1,18 @@
 import * as zarr from "zarrita";
 import { Slice } from "@zarrita/indexing";
 
-import { Region } from "../data/region";
-import { Chunk, isChunkData, LoaderAttributes } from "./chunk";
-import { isTextureUnpackRowAlignment } from "../objects/textures/texture";
-import { PromiseScheduler } from "./promise_scheduler";
+import { Region } from "../region";
+import {
+  Chunk,
+  DimensionMap,
+  isChunkData,
+  LoaderAttributes,
+  SliceDimension,
+} from "../chunk";
+import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
+import { PromiseScheduler } from "../promise_scheduler";
 
-import { Image as OmeNgffImage } from "../data/ome_ngff/0.5/image";
+import { Image as OmeZarrImage } from "./0.5/image";
 
 import { Readable } from "@zarrita/storage";
 
@@ -30,14 +36,14 @@ export class PromiseQueue<T> {
 }
 
 type OmeZarrImageLoaderProps = {
-  metadata: OmeNgffImage["ome"]["multiscales"][number];
+  metadata: OmeZarrImage["ome"]["multiscales"][number];
   arrays: zarr.Array<zarr.DataType, Readable>[];
 };
 
-// Loads chunks from a multiscale zarr image implementing OME-NGFF v0.4:
-// https://ngff.openmicroscopy.org/0.4/#image-layout
+// Loads chunks from a multiscale image implementing OME-Zarr v0.5:
+// https://ngff.openmicroscopy.org/0.5/#image-layout
 export class OmeZarrImageLoader {
-  private readonly metadata_: OmeNgffImage["ome"]["multiscales"][number];
+  private readonly metadata_: OmeZarrImage["ome"]["multiscales"][number];
   private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
   private readonly lods_: number;
   private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
@@ -49,17 +55,66 @@ export class OmeZarrImageLoader {
     this.lods_ = this.metadata_.datasets.length;
   }
 
-  public async loadChunkDataFromRegion(chunk: Chunk, region: Region) {
-    const attrs = this.loaderAttributes_[chunk.lod];
-    const array = this.arrays_[chunk.lod];
+  public getDimensionMap(region: Region): DimensionMap {
+    const names = this.loaderAttributes_[0].dimensionNames;
+    const xIndex = findDimensionIndex(names, "x");
+    const yIndex = findDimensionIndex(names, "y");
+    const zIndex = findDimensionIndexSafe(names, "z");
+    const cIndex = findDimensionIndexSafe(names, "c");
+    const tIndex = findDimensionIndexSafe(names, "t");
 
-    const dimInfo = this.getDimInfoMap(region, chunk, attrs);
-    if (!dimInfo.has("x") || !dimInfo.has("y")) {
-      throw new Error("Missing required spatial axis x/y");
+    const mapping: DimensionMap = {
+      x: { name: names[xIndex], sourceIndex: xIndex },
+      y: { name: names[yIndex], sourceIndex: yIndex },
+    };
+
+    if (zIndex !== -1) {
+      const value = findRegionPointValue(region, "z");
+      mapping.z = {
+        name: names[zIndex],
+        sourceIndex: zIndex,
+        pointWorld: value,
+      };
     }
 
+    if (cIndex !== -1) {
+      const value = findRegionPointValue(region, "c");
+      mapping.c = {
+        name: names[cIndex],
+        sourceIndex: cIndex,
+        pointWorld: value,
+      };
+    }
+
+    if (tIndex !== -1) {
+      const value = findRegionPointValue(region, "t");
+      mapping.t = {
+        name: names[tIndex],
+        sourceIndex: tIndex,
+        pointWorld: value,
+      };
+    }
+
+    return mapping;
+  }
+
+  public async loadChunkData(chunk: Chunk, mapping: DimensionMap) {
+    const array = this.arrays_[chunk.lod];
+    const attrs = this.loaderAttributes_[chunk.lod];
+
     const chunkCoords: number[] = [];
-    dimInfo.forEach((info) => chunkCoords.push(info.chunkIdx));
+    chunkCoords[mapping.x.sourceIndex] = chunk.chunkIndex.x;
+    chunkCoords[mapping.y.sourceIndex] = chunk.chunkIndex.y;
+    if (mapping.z) {
+      chunkCoords[mapping.z.sourceIndex] = chunk.chunkIndex.z;
+    }
+    if (mapping.c) {
+      chunkCoords[mapping.c.sourceIndex] = sliceChunkIndex(mapping.c, attrs);
+    }
+    if (mapping.t) {
+      chunkCoords[mapping.t.sourceIndex] = sliceChunkIndex(mapping.t, attrs);
+    }
+
     const subarray = await array.getChunk(chunkCoords);
 
     const data = subarray.data;
@@ -69,13 +124,16 @@ export class OmeZarrImageLoader {
       );
     }
 
-    const sliceSize = chunk.shape.x * chunk.shape.y;
-    const zInfo = dimInfo.get("z") ?? dimInfo.get("Z");
-    const zOffset = zInfo
-      ? sliceSize * (zInfo.value % array.chunks[zInfo.dimIdx])
-      : 0;
+    const rowAlignment = data.BYTES_PER_ELEMENT;
+    if (!isTextureUnpackRowAlignment(rowAlignment)) {
+      throw new Error(
+        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
+      );
+    }
 
-    chunk.data = data.slice(zOffset, zOffset + sliceSize);
+    chunk.rowAlignmentBytes = rowAlignment;
+    chunk.rowStride = subarray.stride[mapping.y.sourceIndex];
+    chunk.data = data;
   }
 
   public async loadRegion(
@@ -164,34 +222,6 @@ export class OmeZarrImageLoader {
     return this.loaderAttributes_;
   }
 
-  private getDimInfoMap(region: Region, chunk: Chunk, attrs: LoaderAttributes) {
-    const indices = this.regionToIndices(region, attrs);
-    const output = new Map();
-    region.forEach((entry, dimIdx) => {
-      if (entry.dimension.toLowerCase() === "x") {
-        const value = 0; // not used for x dimension
-        output.set("x", { dimIdx, chunkIdx: chunk.chunkIndex.x, value });
-        return;
-      }
-
-      if (entry.dimension.toLowerCase() === "y") {
-        const value = 0; // not used for y dimension
-        output.set("y", { dimIdx, chunkIdx: chunk.chunkIndex.y, value });
-        return;
-      }
-
-      const value = indices[dimIdx];
-      if (typeof value !== "number") {
-        throw new Error(`Expected numeric index for ${entry.dimension}`);
-      }
-
-      const chunkIdx = Math.floor(value / attrs.chunks[dimIdx]);
-      output.set(entry.dimension, { dimIdx, chunkIdx, value });
-    });
-
-    return output;
-  }
-
   private regionToIndices(
     region: Region,
     attributes: LoaderAttributes
@@ -224,7 +254,7 @@ export class OmeZarrImageLoader {
 }
 
 function getLoaderAttributes(
-  image: OmeNgffImage["ome"]["multiscales"][number],
+  image: OmeZarrImage["ome"]["multiscales"][number],
   arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>
 ): LoaderAttributes[] {
   const output: LoaderAttributes[] = [];
@@ -247,4 +277,47 @@ function getLoaderAttributes(
     });
   }
   return output;
+}
+
+function sliceChunkIndex(dim: SliceDimension, attrs: LoaderAttributes): number {
+  const { sourceIndex, pointWorld } = dim;
+  const { scale, translation } = attrs;
+  const dataIndex = Math.round(
+    (pointWorld - translation[sourceIndex]) / scale[sourceIndex]
+  );
+  return Math.floor(dataIndex / attrs.chunks[sourceIndex]);
+}
+
+function compareDimensions(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+function findDimensionIndex(dimensions: string[], target: string): number {
+  const index = findDimensionIndexSafe(dimensions, target);
+  if (index === -1) {
+    throw new Error(
+      `Could not find "${target}" dimension in [${dimensions.join(", ")}]`
+    );
+  }
+  return index;
+}
+
+function findDimensionIndexSafe(dimensions: string[], target: string): number {
+  return dimensions.findIndex((d) => compareDimensions(d, target));
+}
+
+function findRegionPointValue(region: Region, dimension: string): number {
+  const entry = region.find((r) => compareDimensions(r.dimension, dimension));
+  if (!entry) {
+    throw new Error(
+      `Region must contain an entry for the "${dimension}" dimension since the source has a "${dimension}" dimension.`
+    );
+  }
+  if (entry.index.type !== "point") {
+    throw new Error(
+      `Region entry for "${dimension}" dimension has type "${entry.index.type}". ` +
+        `It must be of type "point".`
+    );
+  }
+  return entry.index.value;
 }

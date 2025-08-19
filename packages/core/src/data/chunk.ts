@@ -11,7 +11,7 @@ const chunkDataTypes = [
   Uint32Array,
   Float32Array,
 ] as const;
-type ChunkData = InstanceType<(typeof chunkDataTypes)[number]>;
+export type ChunkData = InstanceType<(typeof chunkDataTypes)[number]>;
 
 export function isChunkData(value: unknown): value is ChunkData {
   if (chunkDataTypes.some((ChunkData) => value instanceof ChunkData)) {
@@ -56,6 +56,25 @@ export type Chunk = {
   };
 };
 
+type VisibleDimension = {
+  name: string;
+  sourceIndex: number;
+};
+
+export type SliceDimension = {
+  name: string;
+  sourceIndex: number;
+  pointWorld: number;
+};
+
+export type DimensionMap = {
+  x: VisibleDimension;
+  y: VisibleDimension;
+  z?: SliceDimension;
+  c?: SliceDimension;
+  t?: SliceDimension;
+};
+
 export type ChunkSource = {
   open(): Promise<ChunkLoader>;
 };
@@ -76,7 +95,9 @@ export type ChunkLoader = {
     scheduler?: PromiseScheduler
   ): Promise<Chunk>;
 
-  loadChunkDataFromRegion(chunk: Chunk, region: Region): Promise<void>;
+  getDimensionMap(region: Region): DimensionMap;
+
+  loadChunkData(chunk: Chunk, mapping: DimensionMap): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
