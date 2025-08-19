@@ -96,7 +96,7 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   }
 
   public async preloadSeries() {
-    this.seriesLoader_.preloadAllChunks();
+    return this.seriesLoader_.preloadAllChunks();
   }
 
   public get extent(): { x: number; y: number } | undefined {
