@@ -1,3 +1,5 @@
+import { Box2 } from "../math/box2";
+
 export type BlendingMode =
   | "none"
   | "normal"
@@ -13,6 +15,7 @@ export class WebGLState {
   private blendSrcFactor_: GLenum | null = null;
   private blendDstFactor_: GLenum | null = null;
   private currentBlendingMode_: BlendingMode | null = null;
+  private currentViewport_: Box2 | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -69,6 +72,24 @@ export class WebGLState {
     }
   }
 
+  public setViewport(box?: Box2) {
+    if (box && this.currentViewport_ && Box2.equals(this.currentViewport_, box))
+      return;
+    this.currentViewport_ = box ? box.clone() : null;
+    const { x, y, width, height } = this.getViewportDimensions();
+    this.gl_.viewport(x, y, width, height);
+  }
+
+  public enableScissor() {
+    this.enable(this.gl_.SCISSOR_TEST);
+    const { x, y, width, height } = this.getViewportDimensions();
+    this.gl_.scissor(x, y, width, height);
+  }
+
+  public disableScissor() {
+    this.disable(this.gl_.SCISSOR_TEST);
+  }
+
   public setBlendingMode(mode: BlendingMode) {
     if (this.currentBlendingMode_ === mode) return;
 
@@ -93,5 +114,25 @@ export class WebGLState {
       }
     }
     this.currentBlendingMode_ = mode;
+  }
+
+  private getViewportDimensions(): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    if (!this.currentViewport_) {
+      this.currentViewport_ = new Box2(
+        [0, 0],
+        [this.gl_.canvas.width, this.gl_.canvas.height]
+      );
+    }
+    const box = this.currentViewport_;
+    const x = box.min[0];
+    const y = box.min[1];
+    const width = box.max[0] - box.min[0];
+    const height = box.max[1] - box.min[1];
+    return { x, y, width, height };
   }
 }

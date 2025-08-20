@@ -16,10 +16,6 @@ import {
 } from "./core/viewport";
 import { ChunkManager } from "./core/chunk_manager";
 
-export type IdetikContext = {
-  chunkManager: ChunkManager;
-};
-
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
 };
@@ -38,10 +34,15 @@ type IdetikParams = {
   showStats?: boolean;
 };
 
+export type IdetikContext = {
+  chunkManager: ChunkManager;
+};
+
 export class Idetik {
   private lastAnimationId_?: number;
   private needsResize_ = false;
   private readonly renderer_: WebGLRenderer;
+  private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
   public readonly canvas: HTMLCanvasElement;
   public readonly events: EventDispatcher;
@@ -64,10 +65,11 @@ export class Idetik {
     }
     this.canvas = canvas;
     this.renderer_ = new WebGLRenderer(canvas);
+    this.chunkManager_ = new ChunkManager();
 
     // Create shared context with single ChunkManager
     this.context_ = {
-      chunkManager: new ChunkManager(),
+      chunkManager: this.chunkManager_,
     };
 
     if (!params.viewports && !params.camera) {
@@ -129,19 +131,18 @@ export class Idetik {
     return this.renderer_.height;
   }
 
+  // delegate to an "active" or "main" viewport (currently first viewport)
+  // for previously public camera/cameraControls/layerManager
+
   public set cameraControls(controls: CameraControls | undefined) {
-    if (this.viewports_.length > 0) {
-      this.viewports_[0].cameraControls = controls;
-    }
+    this.viewports_[0].cameraControls = controls;
   }
 
-  // Delegate to active/main viewport (currently first viewport)
   public get camera(): Camera {
     return this.viewports_[0].camera;
   }
 
   public get layerManager(): LayerManager {
-    // Always return the first viewport's persistent layer manager
     return this.viewports_[0].layerManager;
   }
 
@@ -155,35 +156,10 @@ export class Idetik {
     );
   }
 
-  private getCanvasBox(): Box2 {
-    // Canvas width/height are already in device pixels
-    return new Box2(
-      vec2.fromValues(0, 0),
-      vec2.fromValues(this.canvas.width, this.canvas.height)
-    );
-  }
-
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
-    new ResizeObserver(() => {
-      this.needsResize_ = true;
-    }).observe(this.canvas);
+    this.startSizeObservers();
 
-    // Listen for device pixel ratio changes (when moving between screens)
-    const startDevicePixelRatioObserver = () => {
-      const mediaQuery = matchMedia(
-        `(resolution: ${window.devicePixelRatio}dppx)`
-      );
-      mediaQuery.addEventListener(
-        "change",
-        () => {
-          this.needsResize_ = true;
-          startDevicePixelRatioObserver(); // Re-setup listener for new ratio
-        },
-        { once: true }
-      );
-    };
-    startDevicePixelRatioObserver();
     const render = (timestamp?: DOMHighResTimeStamp) => {
       if (this.stats_) this.stats_.begin();
 
@@ -193,14 +169,12 @@ export class Idetik {
         this.needsResize_ = false;
       }
 
-      this.renderer_.clear();
-
       const canvasBox = this.getCanvasBox();
       for (const viewport of this.viewports_) {
         // single viewport mode
         if (viewport.element == this.canvas) {
           if (viewport.camera.type === "OrthographicCamera") {
-            this.context_.chunkManager.update(
+            this.chunkManager_.update(
               viewport.camera as OrthographicCamera,
               this.renderer_.width
             );
@@ -213,7 +187,7 @@ export class Idetik {
         if (Box2.intersects(viewportBox, canvasBox)) {
           if (viewport.camera.type === "OrthographicCamera") {
             const width = viewportBox.max[0] - viewportBox.min[0];
-            this.context_.chunkManager.update(
+            this.chunkManager_.update(
               viewport.camera as OrthographicCamera,
               width
             );
@@ -243,5 +217,33 @@ export class Idetik {
     if (this.lastAnimationId_ !== undefined) {
       cancelAnimationFrame(this.lastAnimationId_);
     }
+  }
+
+  private startSizeObservers() {
+    new ResizeObserver(() => {
+      this.needsResize_ = true;
+    }).observe(this.canvas);
+
+    const startDevicePixelRatioObserver = () => {
+      const mediaQuery = matchMedia(
+        `(resolution: ${window.devicePixelRatio}dppx)`
+      );
+      mediaQuery.addEventListener(
+        "change",
+        () => {
+          this.needsResize_ = true;
+          startDevicePixelRatioObserver();
+        },
+        { once: true }
+      );
+    };
+    startDevicePixelRatioObserver();
+  }
+
+  private getCanvasBox(): Box2 {
+    return new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(this.canvas.width, this.canvas.height)
+    );
   }
 }

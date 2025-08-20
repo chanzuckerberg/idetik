@@ -23,6 +23,15 @@ export class Box2 {
     return this.max[0] <= this.min[0] || this.max[1] <= this.min[1];
   }
 
+  public static equals(a: Box2, b: Box2): boolean {
+    return (
+      a.min[0] === b.min[0] &&
+      a.min[1] === b.min[1] &&
+      a.max[0] === b.max[0] &&
+      a.max[1] === b.max[1]
+    );
+  }
+
   // Half-open interval intersection: returns true only if boxes overlap.
   public static intersects(a: Box2, b: Box2): boolean {
     if (a.max[0] <= b.min[0] || a.min[0] >= b.max[0]) return false;

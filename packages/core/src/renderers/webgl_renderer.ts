@@ -53,8 +53,8 @@ export class WebGLRenderer extends Renderer {
     this.programs_ = new WebGLShaderPrograms(this.gl);
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
-    this.resize(this.canvas.width, this.canvas.height);
     this.state_ = new WebGLState(this.gl);
+    this.resize(this.canvas.width, this.canvas.height);
   }
 
   public render(
@@ -63,16 +63,11 @@ export class WebGLRenderer extends Renderer {
     viewportBox?: Box2
   ) {
     if (viewportBox) {
-      this.gl.enable(this.gl.SCISSOR_TEST);
-      const x = viewportBox.min[0];
-      const y = viewportBox.min[1];
-      const width = viewportBox.max[0] - viewportBox.min[0];
-      const height = viewportBox.max[1] - viewportBox.min[1];
-      this.gl.viewport(x, y, width, height);
-      this.gl.scissor(x, y, width, height);
+      this.state_.setViewport(viewportBox);
+      this.state_.enableScissor();
     } else {
-      // TODO: move scissor test state management to WebGLState
-      this.gl.disable(this.gl.SCISSOR_TEST);
+      this.state_.setViewport();
+      this.state_.disableScissor();
     }
 
     this.clear();
@@ -95,10 +90,6 @@ export class WebGLRenderer extends Renderer {
       this.renderLayer(layer);
     }
     this.state_.setDepthMask(true);
-
-    if (viewportBox) {
-      this.gl.disable(this.gl.SCISSOR_TEST);
-    }
   }
 
   private renderLayer(layer: Layer) {
@@ -197,7 +188,8 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected resize(width: number, height: number) {
-    this.gl.viewport(0, 0, width, height);
+    const viewport = new Box2([0, 0], [width, height]);
+    this.state_.setViewport(viewport);
   }
 
   public clear() {
