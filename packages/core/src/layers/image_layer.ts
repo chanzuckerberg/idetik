@@ -91,6 +91,20 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private updateChunks() {
     if (!this.chunkManagerSource_) return;
 
+    // TODO: does not belong here, but cannot think of a better place,
+    // since this is a good time before setting the state to ready.
+    if (this.extent_ === undefined) {
+      const dimensions = this.chunkManagerSource_.getDimensions();
+      const attrs = this.chunkManagerSource_.getAttributes()[0];
+
+      const x = dimensions.x.sourceIndex;
+      const y = dimensions.y.sourceIndex;
+      this.extent_ = {
+        x: attrs.shape[x] * attrs.scale[x],
+        y: attrs.shape[y] * attrs.scale[y],
+      };
+    }
+
     // Temporary until we decide how to approach state management
     if (this.state !== "ready") {
       this.setState("ready");
@@ -229,7 +243,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     const chunkSlice = { z, c };
     const slicedChunk = sliceChunk2D(chunk, chunkSlice);
 
-    const sliceSize = slicedChunk.rowStride * slicedChunk.shape.y;
+    const sliceSize = slicedChunk.shape.x * slicedChunk.shape.y;
     const offset = slicedChunk.offset.c * sliceSize;
     texture.data.set(slicedChunk.data, offset);
     console.debug("addChunkToImage", offset, chunkSlice, texture);

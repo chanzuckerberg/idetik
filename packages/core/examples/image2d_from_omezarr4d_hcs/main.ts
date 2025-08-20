@@ -9,6 +9,7 @@ import {
   loadOmeroDefaultZ,
   loadOmeZarrPlate,
   loadOmeZarrWell,
+  Color,
 } from "@";
 
 const plateUrl =
@@ -43,8 +44,8 @@ const app = new Idetik({
 
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
-  { dimension: "C", index: { type: "interval", start: 1, stop: 3 } },
   { dimension: "Z", index: { type: "point", value: 0 } },
+  { dimension: "C", index: { type: "full" } },
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },
 ];
@@ -58,7 +59,7 @@ const onImageChange = async () => {
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl);
   const omeroDefaultZ = await loadOmeroDefaultZ(source);
-  region[2] = {
+  region[1] = {
     dimension: "Z",
     index: {
       type: "point",
@@ -66,17 +67,14 @@ const onImageChange = async () => {
     },
   };
   const omeroChannels = await loadOmeroChannels(source);
-  const contrastLimits: [number, number][] = [
-    [omeroChannels[1].window!.start, omeroChannels[1].window!.end],
-    [omeroChannels[2].window!.start, omeroChannels[2].window!.end],
-  ];
+  const channelProps = omeroChannels.map((ch) => ({
+    color: Color.fromRgbHex(ch.color!),
+    contrastLimits: [ch.window!.start, ch.window!.end] as [number, number],
+  }));
   const newLayer = new ImageLayer({
     source,
     region,
-    channelProps: [
-      { color: [0, 1, 1], contrastLimits: contrastLimits[0] },
-      { color: [1, 0, 1], contrastLimits: contrastLimits[1] },
-    ],
+    channelProps,
     lod: 0,
   });
   app.layerManager.add(newLayer);
