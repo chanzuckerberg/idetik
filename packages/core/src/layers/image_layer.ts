@@ -216,73 +216,73 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     return this.chunkManagerSource_;
   }
 
-  private addChunkToImage(chunk: Chunk, image: ImageRenderable) {
-    const channelDataSize = chunk.rowStride * chunk.shape.y;
-    // TODO: handle typing properly.
-    const texture = image.textures[0] as Texture2DArray;
-    let channelChunkIndex = chunk.chunkIndex.c;
-    if (this.region_.c?.type === "point") {
-      channelChunkIndex = 0;
-    }
-    const offset = channelChunkIndex * channelDataSize;
-    console.debug("addChunkToImage: ", { chunk, offset, texture });
-    texture.data.set(chunk.data!, offset);
-    texture.needsUpdate = true;
+  private addChunkToImage(_chunk: Chunk, _image: ImageRenderable) {
+    return;
+    // const channelDataSize = chunk.rowStride * chunk.shape.y;
+    // // TODO: handle typing properly.
+    // const texture = image.textures[0] as Texture2DArray;
+    // let channelChunkIndex = chunk.chunkIndex.c;
+    // if (this.region_.c?.type === "point") {
+    //   channelChunkIndex = 0;
+    // }
+    // const offset = channelChunkIndex * channelDataSize;
+    // texture.data.set(chunk.data!, offset);
+    // texture.needsUpdate = true;
   }
 
-  private getChannelIndex(): number {
-    const cRegion = this.region_.find((r) => r.dimension.toLowerCase() === "c");
-    if (cRegion?.index.type !== "point") {
-      return 0;
-    }
-    return cRegion.index.value;
+  private sliceChunkInC(chunk: Chunk, cValue: number) {
+    // TODO: use stride.
+    const sliceSize = chunk.shape.z * chunk.shape.y * chunk.shape.x;
+    const offset = sliceSize * (cValue % chunk.shape.c);
+    return chunk.data!.slice(offset, offset + sliceSize);
   }
 
-  private slicePlane(chunk: Chunk, zValue: number) {
-    if (!chunk.data) return;
+  private sliceChunkInZ(chunk: Chunk, zValue: number) {
+    // TODO: assert that zLocal is within bounds of chunk.
     const zLocal = Math.round((zValue - chunk.offset.z) / chunk.scale.z);
+    // TODO: use stride.
     const sliceSize = chunk.shape.x * chunk.shape.y;
-    const offset = sliceSize * (zLocal % chunk.shape.z);
-    return chunk.data.slice(offset, offset + sliceSize);
+    const offset = sliceSize * zLocal;
+    return chunk.data!.slice(offset, offset + sliceSize);
   }
+
+  // private makeChannelChunkData(chunk: Chunk): DataTextureTypedArray {
+  //   const dimensions = this.chunkManagerSource_!.getDimensions();
+  //   const attrs = this.chunkManagerSource_!.getAttributes()[chunk.lod];
+  //   const data = chunk.data as DataTextureTypedArray;
+
+  //   const cIdx = dimensions.c!.sourceIndex;
+  //   const numChannels = attrs.shape[cIdx];
+  //   const channelChunkIndex = chunk.chunkIndex.c;
+
+  //   // TODO: This should really use strides.
+  //   const channelDataSize = chunk.shape.z * chunk.shape.y * chunk.shape.x;
+  //   const TypedArray = data.constructor as new (
+  //     size: number
+  //   ) => DataTextureTypedArray;
+  //   const newData = new TypedArray(channelDataSize * numChannels);
+  //   newData.set(data, channelChunkIndex * channelDataSize);
+  //   return newData;
+  // }
 
   private createImage(chunk: Chunk, channelProps?: ChannelProps[]) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-    let data = chunk.data;
-    if (chunk.shape.z > 1) {
-      const zIdx = this.region_.find((r) => r.dimension.toLowerCase() === "z");
-      if (zIdx?.index.type !== "point") {
-        throw new Error("Expected Z index to be a point");
-      }
-      data = this.slicePlane(chunk, zIdx.index.value);
+
+    let data = chunk.data as DataTextureTypedArray;
+
+    // C is assumed to change more slowly than z.
+    const dimensions = this.chunkManagerSource_?.getDimensions();
+    if (dimensions?.c) {
+      data = this.sliceChunkInC(chunk, dimensions.c.pointWorld);
     }
 
-    const dimensions = this.chunkManagerSource!.getDimensions();
-    const chunkData = chunk.data!;
-    // TODO: the number of channels is also affected by the region.
-    let numChannels = dimensions[0].c?.size ?? 1;
-    let channelChunkIndex = chunk.chunkIndex.c;
-    if (this.region_.c?.type === "point") {
-      numChannels = 1;
-      channelChunkIndex = 0;
+    if (dimensions?.z) {
+      data = this.sliceChunkInZ(chunk, dimensions.z.pointWorld)!;
     }
-    const channelDataSize = chunk.rowStride * chunk.shape.y;
-    const TypedArray = chunkData.constructor as new (
-      size: number
-    ) => DataTextureTypedArray;
-    const newData = new TypedArray(channelDataSize * numChannels);
-    console.debug("createImage: ", {
-      chunk,
-      channelDataSize,
-      numChannels,
-      data,
-    });
-    newData.set(chunkData, channelChunkIndex * channelDataSize);
 
-    const texture = new Texture2DArray(newData, chunk.shape.x, chunk.shape.y);
+    const texture = new Texture2DArray(data, chunk.shape.x, chunk.shape.y);
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
-    console.debug("Created texture for chunk:", { chunk, texture });
 
     const image = new ImageRenderable(geometry, texture, channelProps);
 

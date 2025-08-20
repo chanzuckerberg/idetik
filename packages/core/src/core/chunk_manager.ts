@@ -102,6 +102,14 @@ export class ChunkManagerSource {
     }
   }
 
+  public getDimensions(): DimensionMap {
+    return this.dimensions_;
+  }
+
+  public getAttributes(): ReadonlyArray<LoaderAttributes> {
+    return this.attrs_;
+  }
+
   public getChunks(): Chunk[] {
     const currentLODChunks = this.chunks_.filter(
       (chunk) =>
