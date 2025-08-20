@@ -44,8 +44,8 @@ const app = new Idetik({
 
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
   { dimension: "C", index: { type: "full" } },
+  { dimension: "Z", index: { type: "point", value: 0 } },
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },
 ];
@@ -59,7 +59,7 @@ const onImageChange = async () => {
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl);
   const omeroDefaultZ = await loadOmeroDefaultZ(source);
-  region[1] = {
+  region[2] = {
     dimension: "Z",
     index: {
       type: "point",
