@@ -1,5 +1,5 @@
 import { Layer, LayerOptions } from "../core/layer";
-import { IdetikContext } from "../idetik";
+import { IdetikContext } from "../core/viewport";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";

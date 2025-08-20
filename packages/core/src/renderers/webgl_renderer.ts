@@ -12,6 +12,7 @@ import { Camera } from "../objects/cameras/camera";
 import { WebGLState } from "./WebGLState";
 import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
+import { Box2 } from "../math/box2";
 
 import { mat4 } from "gl-matrix";
 
@@ -56,7 +57,24 @@ export class WebGLRenderer extends Renderer {
     this.state_ = new WebGLState(this.gl);
   }
 
-  public render(layerManager: LayerManager, camera: Camera) {
+  public render(
+    layerManager: LayerManager,
+    camera: Camera,
+    viewportBox?: Box2
+  ) {
+    if (viewportBox) {
+      this.gl.enable(this.gl.SCISSOR_TEST);
+      const x = viewportBox.min[0];
+      const y = viewportBox.min[1];
+      const width = viewportBox.max[0] - viewportBox.min[0];
+      const height = viewportBox.max[1] - viewportBox.min[1];
+      this.gl.viewport(x, y, width, height);
+      this.gl.scissor(x, y, width, height);
+    } else {
+      // TODO: move scissor test state management to WebGLState
+      this.gl.disable(this.gl.SCISSOR_TEST);
+    }
+
     this.clear();
     this.activeCamera = camera;
 
@@ -77,6 +95,10 @@ export class WebGLRenderer extends Renderer {
       this.renderLayer(layer);
     }
     this.state_.setDepthMask(true);
+
+    if (viewportBox) {
+      this.gl.disable(this.gl.SCISSOR_TEST);
+    }
   }
 
   private renderLayer(layer: Layer) {
@@ -178,7 +200,7 @@ export class WebGLRenderer extends Renderer {
     this.gl.viewport(0, 0, width, height);
   }
 
-  protected clear() {
+  public clear() {
     this.gl.clearColor(...this.backgroundColor.rgba);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.state_.setDepthTesting(true);

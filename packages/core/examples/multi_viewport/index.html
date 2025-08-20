@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multi-Viewport Example</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        width: 100%;
+        height: 100%;
+        font-family: Arial, sans-serif;
+      }
+
+      .viewport-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .viewport-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+
+        /* 2x2 flexbox grid */
+        display: grid;
+        grid-template: 1fr 1fr / 1fr 1fr;
+        gap: 2px;
+      }
+
+      .viewport {
+        pointer-events: auto;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        position: relative;
+        background: rgba(0, 0, 0, 0.1);
+      }
+
+      .viewport-label {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: bold;
+        z-index: 100;
+        pointer-events: none;
+      }
+
+      /* Different border colors for each viewport */
+      .viewport[data-view-id="A"] {
+        border-color: rgba(255, 100, 100, 0.6);
+      }
+
+      .viewport[data-view-id="B"] {
+        border-color: rgba(100, 255, 100, 0.6);
+      }
+
+      .viewport[data-view-id="C"] {
+        border-color: rgba(100, 100, 255, 0.6);
+      }
+
+      .viewport[data-view-id="D"] {
+        border-color: rgba(255, 255, 100, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="viewport-container">
+      <canvas id="webgl-canvas" width="800" height="600"></canvas>
+      <div class="viewport-overlay">
+        <div class="viewport" data-view-id="A">
+          <div class="viewport-label">Viewport A</div>
+        </div>
+        <div class="viewport" data-view-id="B">
+          <div class="viewport-label">Viewport B</div>
+        </div>
+        <div class="viewport" data-view-id="C">
+          <div class="viewport-label">Viewport C</div>
+        </div>
+        <div class="viewport" data-view-id="D">
+          <div class="viewport-label">Viewport D</div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

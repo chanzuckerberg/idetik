@@ -1,14 +1,19 @@
 import { Camera } from "./objects/cameras/camera";
 import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
-import { EventContext, EventDispatcher } from "./core/event_dispatcher";
+import { EventDispatcher } from "./core/event_dispatcher";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
-import { ChunkManager } from "./core/chunk_manager";
 import { vec2, vec3 } from "gl-matrix";
 import { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 import { createStats, type Stats } from "./utilities/stats";
+import { Box2 } from "./math/box2";
+import {
+  Viewport,
+  ViewportConfig,
+  parseViewportConfigs,
+} from "./core/viewport";
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
@@ -17,29 +22,25 @@ type Overlay = {
 type IdetikParams = {
   canvas?: HTMLCanvasElement;
   canvasSelector?: string;
-  camera: Camera;
+
+  camera?: Camera;
   cameraControls?: CameraControls;
   layers?: Layer[];
+
+  viewports?: ViewportConfig[];
+
   overlays?: Overlay[];
   showStats?: boolean;
 };
 
-export type IdetikContext = {
-  chunkManager: ChunkManager;
-};
-
 export class Idetik {
-  private cameraControls_?: CameraControls;
   private lastAnimationId_?: number;
   private needsResize_ = false;
-  private readonly chunkManager_: ChunkManager;
-  private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
-  public camera: Camera;
-  public layerManager: LayerManager;
   public readonly canvas: HTMLCanvasElement;
   public readonly events: EventDispatcher;
   public readonly overlays: Overlay[];
+  private readonly viewports_: Viewport[];
   private readonly stats_?: Stats;
 
   constructor(params: IdetikParams) {
@@ -49,9 +50,6 @@ export class Idetik {
     if (params.canvas && params.canvasSelector) {
       throw new Error("Cannot provide both canvas and canvasSelector");
     }
-
-    this.camera = params.camera;
-    this.cameraControls_ = params.cameraControls;
     const canvas =
       params.canvas ??
       document.querySelector<HTMLCanvasElement>(params.canvasSelector!);
@@ -60,39 +58,41 @@ export class Idetik {
     }
     this.canvas = canvas;
     this.renderer_ = new WebGLRenderer(canvas);
-    this.chunkManager_ = new ChunkManager();
-    this.context_ = {
-      chunkManager: this.chunkManager_,
-    };
-    this.layerManager = new LayerManager(this.context_);
 
-    if (params.layers) {
-      for (const layer of params.layers) {
-        this.layerManager.add(layer);
-      }
+    if (!params.viewports && !params.camera) {
+      throw new Error(
+        "Either camera (single viewport) or viewports (multi viewport) must be provided"
+      );
     }
+    if (
+      params.viewports &&
+      (params.camera || params.layers || params.cameraControls)
+    ) {
+      throw new Error(
+        "Cannot provide single viewport parameters (camera/layers/cameraControls) and viewports together"
+      );
+    }
+
+    this.viewports_ = params.viewports
+      ? parseViewportConfigs(params.viewports)
+      : [
+          new Viewport({
+            id: "main",
+            element: canvas,
+            camera: params.camera!,
+            layers: params.layers,
+            cameraControls: params.cameraControls,
+          }),
+        ];
 
     this.overlays = params.overlays ?? [];
 
     if (params.showStats) this.stats_ = createStats();
 
     this.events = new EventDispatcher(canvas);
-    this.events.addEventListener((event: EventContext) => {
-      if (
-        event.event instanceof PointerEvent ||
-        event.event instanceof WheelEvent
-      ) {
-        const { clientX, clientY } = event.event;
-        const client = vec2.fromValues(clientX, clientY);
-        event.clipPos = this.clientToClip(client, 0);
-        event.worldPos = this.camera.clipToWorld(event.clipPos);
-      }
-      for (const layer of this.layerManager.layers) {
-        layer.onEvent(event);
-        if (event.propagationStopped) return;
-      }
-      this.cameraControls_?.onEvent(event);
-    });
+
+    // Set up viewport-based event handling
+    this.events.setViewports(this.viewports_);
   }
 
   public get width() {
@@ -104,7 +104,19 @@ export class Idetik {
   }
 
   public set cameraControls(controls: CameraControls | undefined) {
-    this.cameraControls_ = controls;
+    if (this.viewports_.length > 0) {
+      this.viewports_[0].cameraControls = controls;
+    }
+  }
+
+  // Delegate to active/main viewport (currently first viewport)
+  public get camera(): Camera {
+    return this.viewports_[0].camera;
+  }
+
+  public get layerManager(): LayerManager {
+    // Always return the first viewport's persistent layer manager
+    return this.viewports_[0].layerManager;
   }
 
   public clientToClip(position: vec2, depth: number = 0): vec3 {
@@ -117,35 +129,79 @@ export class Idetik {
     );
   }
 
+  private getCanvasBox(): Box2 {
+    // Canvas width/height are already in device pixels
+    return new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(this.canvas.width, this.canvas.height)
+    );
+  }
+
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
     new ResizeObserver(() => {
       this.needsResize_ = true;
     }).observe(this.canvas);
+
+    // Listen for device pixel ratio changes (when moving between screens)
+    const startDevicePixelRatioObserver = () => {
+      const mediaQuery = matchMedia(
+        `(resolution: ${window.devicePixelRatio}dppx)`
+      );
+      mediaQuery.addEventListener(
+        "change",
+        () => {
+          this.needsResize_ = true;
+          startDevicePixelRatioObserver(); // Re-setup listener for new ratio
+        },
+        { once: true }
+      );
+    };
+    startDevicePixelRatioObserver();
     const render = (timestamp?: DOMHighResTimeStamp) => {
       if (this.stats_) this.stats_.begin();
-
-      if (!this.camera) {
-        Logger.warn(
-          "Idetik",
-          "A camera must be set before starting the Idetik runtime"
-        );
-        return;
-      }
-
-      if (this.camera.type === "OrthographicCamera") {
-        this.chunkManager_.update(
-          this.camera as OrthographicCamera,
-          this.renderer_.width
-        );
-      }
 
       // Must resize before render b/c changing canvas coordinate space clears it.
       if (this.needsResize_) {
         this.renderer_.updateSize();
         this.needsResize_ = false;
       }
-      this.renderer_.render(this.layerManager, this.camera);
+
+      this.renderer_.clear();
+
+      const canvasBox = this.getCanvasBox();
+      for (const viewport of this.viewports_) {
+        // single viewport mode
+        if (viewport.element == this.canvas) {
+          if (viewport.camera.type === "OrthographicCamera") {
+            viewport.chunkManager.update(
+              viewport.camera as OrthographicCamera,
+              this.renderer_.width
+            );
+          }
+          this.renderer_.render(viewport.layerManager, viewport.camera);
+          continue;
+        }
+
+        const viewportBox = viewport.calculateViewportBox(this.canvas);
+        if (Box2.intersects(viewportBox, canvasBox)) {
+          if (viewport.camera.type === "OrthographicCamera") {
+            const width = viewportBox.max[0] - viewportBox.min[0];
+            viewport.chunkManager.update(
+              viewport.camera as OrthographicCamera,
+              width
+            );
+          }
+
+          this.renderer_.render(
+            viewport.layerManager,
+            viewport.camera,
+            viewportBox
+          );
+        }
+      }
+
+      // TODO: overlays may need to be attached to specific viewports
       for (const overlay of this.overlays) {
         overlay.update(this, timestamp);
       }

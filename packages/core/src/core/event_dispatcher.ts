@@ -1,5 +1,6 @@
 import { vec3 } from "gl-matrix";
 import { Logger } from "../utilities/logger";
+import { Viewport } from "./viewport";
 
 const eventTypes = [
   "pointerdown",
@@ -39,8 +40,11 @@ type Listener = (event: EventContext) => void;
 
 export class EventDispatcher {
   private readonly listeners_: Listener[] = [];
+  private readonly viewportEventHandlers_: Map<Viewport, (e: Event) => void> =
+    new Map();
 
   constructor(canvas: HTMLCanvasElement) {
+    // Add listeners to canvas for backward compatibility
     eventTypes.forEach((type) => {
       canvas.addEventListener(type, this.handleEvent, { passive: false });
     });
@@ -50,6 +54,57 @@ export class EventDispatcher {
     this.listeners_.push(listener);
   }
 
+  public setViewports(viewports: Viewport[]) {
+    // Remove existing viewport event handlers
+    for (const [viewport, handler] of this.viewportEventHandlers_) {
+      eventTypes.forEach((type) => {
+        viewport.element.removeEventListener(type, handler);
+      });
+    }
+    this.viewportEventHandlers_.clear();
+
+    // Set up direct event listeners on each viewport element
+    for (const viewport of viewports) {
+      const handler = this.createViewportEventHandler(viewport);
+      this.viewportEventHandlers_.set(viewport, handler);
+
+      eventTypes.forEach((type) => {
+        viewport.element.addEventListener(type, handler, { passive: false });
+      });
+    }
+  }
+
+  private createViewportEventHandler(viewport: Viewport): (e: Event) => void {
+    return (e: Event) => {
+      if (!isEventType(e.type)) {
+        Logger.error("EventDispatcher", `Unsupported event type ${e.type}`);
+        return;
+      }
+
+      const event = new EventContext(e.type, e);
+
+      // Set up coordinate transformations for this viewport
+      if (e instanceof PointerEvent || e instanceof WheelEvent) {
+        const { clientX, clientY } = e;
+        const { clipX, clipY } = viewport.clientToViewportClip(
+          clientX,
+          clientY
+        );
+        event.clipPos = vec3.fromValues(clipX, clipY, 0);
+        event.worldPos = viewport.camera.clipToWorld(event.clipPos);
+      }
+
+      // Forward events to viewport layers
+      for (const layer of viewport.layers) {
+        layer.onEvent(event);
+        if (event.propagationStopped) return;
+      }
+
+      // Forward to camera controls
+      viewport.cameraControls?.onEvent(event);
+    };
+  }
+
   private readonly handleEvent = (e: Event) => {
     if (!isEventType(e.type)) {
       Logger.error("EventDispatcher", `Unsupported event type ${e.type}`);
@@ -57,6 +112,8 @@ export class EventDispatcher {
     }
 
     const event = new EventContext(e.type, e);
+
+    // Handle global listeners (for backward compatibility with single viewport)
     for (const listener of this.listeners_) {
       listener(event);
       if (event.propagationStopped) break;

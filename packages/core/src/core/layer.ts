@@ -1,4 +1,4 @@
-import { IdetikContext } from "../idetik";
+import { IdetikContext } from "./viewport";
 import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { EventContext } from "./event_dispatcher";

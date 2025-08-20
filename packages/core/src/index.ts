@@ -1,4 +1,6 @@
 export { Idetik } from "./idetik";
+export { Viewport } from "./core/viewport";
+export type { ViewportConfig } from "./core/viewport";
 
 export { WebGLRenderer } from "./renderers/webgl_renderer";
 export { OrthographicCamera } from "./objects/cameras/orthographic_camera";

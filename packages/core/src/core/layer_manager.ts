@@ -1,5 +1,5 @@
 import { Layer } from "./layer";
-import { IdetikContext } from "../idetik";
+import { IdetikContext } from "./viewport";
 
 export class LayerManager {
   private layers_: ReadonlyArray<Layer> = [];
