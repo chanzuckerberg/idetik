@@ -247,8 +247,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       ? attrs.shape[dimensions.c.sourceIndex]
       : 1;
 
-    // TODO: This should really use strides.
-    const bufferSize = numChannels * chunk.shape.y * chunk.rowStride;
+    const bufferSize = numChannels * chunk.shape.y * chunk.shape.x;
     const TypedArray = data.constructor as new (
       size: number
     ) => DataTextureTypedArray;
