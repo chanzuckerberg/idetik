@@ -64,13 +64,14 @@ export class OmeZarrImageLoader {
     const tIndex = findDimensionIndexSafe(names, "t");
 
     const mapping: DimensionMap = {
-      x: { name: names[xIndex], sourceIndex: xIndex },
-      y: { name: names[yIndex], sourceIndex: yIndex },
+      x: { type: "VisibleDimension", name: names[xIndex], sourceIndex: xIndex },
+      y: { type: "VisibleDimension", name: names[yIndex], sourceIndex: yIndex },
     };
 
     if (zIndex !== -1) {
       const value = findRegionPointValue(region, "z");
       mapping.z = {
+        type: "SliceDimension",
         name: names[zIndex],
         sourceIndex: zIndex,
         pointWorld: value,
@@ -78,17 +79,28 @@ export class OmeZarrImageLoader {
     }
 
     if (cIndex !== -1) {
-      const value = findRegionPointValue(region, "c");
-      mapping.c = {
-        name: names[cIndex],
-        sourceIndex: cIndex,
-        pointWorld: value,
-      };
+      const entry = findRegionEntry(region, "c");
+      if (entry.index.type === "point") {
+        const value = findRegionPointValue(region, "c");
+        mapping.c = {
+          type: "SliceDimension",
+          name: names[cIndex],
+          sourceIndex: cIndex,
+          pointWorld: value,
+        };
+      } else {
+        mapping.c = {
+          type: "VisibleDimension",
+          name: names[cIndex],
+          sourceIndex: cIndex,
+        };
+      }
     }
 
     if (tIndex !== -1) {
       const value = findRegionPointValue(region, "t");
       mapping.t = {
+        type: "SliceDimension",
         name: names[tIndex],
         sourceIndex: tIndex,
         pointWorld: value,
@@ -109,7 +121,7 @@ export class OmeZarrImageLoader {
       chunkCoords[mapping.z.sourceIndex] = chunk.chunkIndex.z;
     }
     if (mapping.c) {
-      chunkCoords[mapping.c.sourceIndex] = sliceChunkIndex(mapping.c, attrs);
+      chunkCoords[mapping.c.sourceIndex] = chunk.chunkIndex.c;
     }
     if (mapping.t) {
       chunkCoords[mapping.t.sourceIndex] = sliceChunkIndex(mapping.t, attrs);
@@ -306,13 +318,18 @@ function findDimensionIndexSafe(dimensions: string[], target: string): number {
   return dimensions.findIndex((d) => compareDimensions(d, target));
 }
 
-function findRegionPointValue(region: Region, dimension: string): number {
+function findRegionEntry(region: Region, dimension: string): Region[number] {
   const entry = region.find((r) => compareDimensions(r.dimension, dimension));
   if (!entry) {
     throw new Error(
       `Region must contain an entry for the "${dimension}" dimension since the source has a "${dimension}" dimension.`
     );
   }
+  return entry;
+}
+
+function findRegionPointValue(region: Region, dimension: string): number {
+  const entry = findRegionEntry(region, dimension);
   if (entry.index.type !== "point") {
     throw new Error(
       `Region entry for "${dimension}" dimension has type "${entry.index.type}". ` +

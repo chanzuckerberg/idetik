@@ -26,10 +26,6 @@ const loader = await imageSource.open();
 const attributes = loader.getAttributes();
 const attributesAtLod = attributes[lod];
 
-// Phase contrast limits were chosen qualitatively.
-const phaseChannelIndex = 0;
-const phaseContrastLimits: [number, number] = [20, 200];
-
 const tStartPoint = 0;
 
 const dimensionExtent = (dimensionName: string) => {
@@ -51,7 +47,7 @@ const yStopPoint = yExtent.size * yExtent.scale;
 
 const imageRegion: Region = [
   { dimension: "T", index: { type: "point", value: tStartPoint } },
-  { dimension: "C", index: { type: "point", value: phaseChannelIndex } },
+  { dimension: "C", index: { type: "full" } },
   { dimension: "Z", index: { type: "point", value: zMidPoint } },
   { dimension: "Y", index: { type: "full" } },
   { dimension: "X", index: { type: "full" } },
@@ -81,7 +77,17 @@ const imageLayer = new ImageLayer({
     {
       visible: true,
       color: Color.WHITE,
-      contrastLimits: phaseContrastLimits,
+      contrastLimits: [20, 200],
+    },
+    {
+      visible: true,
+      color: Color.RED,
+      contrastLimits: [0, 200],
+    },
+    {
+      visible: true,
+      color: Color.GREEN,
+      contrastLimits: [0, 200],
     },
   ],
   lod,
