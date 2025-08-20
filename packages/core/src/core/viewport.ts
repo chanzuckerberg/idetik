@@ -4,17 +4,29 @@ import { LayerManager } from "./layer_manager";
 import { CameraControls } from "../objects/cameras/controls";
 import { Box2 } from "../math/box2";
 import { vec2 } from "gl-matrix";
-import { ChunkManager } from "./chunk_manager";
 import { generateUUID } from "../utilities/uuid_generator";
 
-export function parseViewportConfigs(
+export function validateViewportConfigs(
   viewportConfigs: ViewportConfig[]
-): Viewport[] {
+): void {
   const elementToViewportId = new Map<HTMLElement, string>();
+  const seenViewportIds = new Set<string>();
 
   for (const config of viewportConfigs) {
-    const viewportId = config.id || config.element.id || "unnamed";
+    const viewportId = config.id || config.element.id;
 
+    // Only check for duplicate viewport IDs if we have an explicit ID
+    // (viewports without IDs will get unique generated IDs)
+    if (viewportId && seenViewportIds.has(viewportId)) {
+      throw new Error(
+        `Duplicate viewport ID "${viewportId}". Each viewport must have a unique ID.`
+      );
+    }
+    if (viewportId) {
+      seenViewportIds.add(viewportId);
+    }
+
+    // Check for shared elements
     if (elementToViewportId.has(config.element)) {
       const existingViewportId = elementToViewportId.get(config.element)!;
       const elementDescription =
@@ -22,18 +34,12 @@ export function parseViewportConfigs(
         (config.element.id ? `#${config.element.id}` : "[element has no id]");
       throw new Error(
         `Multiple viewports cannot share the same HTML element: ` +
-          `viewports "${existingViewportId}" and "${viewportId}" both use ${elementDescription}`
+          `viewports "${existingViewportId}" and "${viewportId || "unnamed"}" both use ${elementDescription}`
       );
     }
-    elementToViewportId.set(config.element, viewportId);
+    elementToViewportId.set(config.element, viewportId || "unnamed");
   }
-
-  return viewportConfigs.map((config) => new Viewport(config));
 }
-
-export type IdetikContext = {
-  chunkManager: ChunkManager;
-};
 
 export interface ViewportConfig {
   id?: string;
@@ -50,24 +56,16 @@ export class Viewport {
   public readonly layers: Layer[];
   public cameraControls?: CameraControls;
   private readonly layerManager_: LayerManager;
-  private readonly chunkManager_: ChunkManager;
 
-  constructor(config: ViewportConfig) {
+  constructor(config: ViewportConfig, layerManager: LayerManager) {
     this.id = config.id || config.element.id || generateUUID();
     this.element = config.element;
     this.camera = config.camera;
     this.layers = config.layers || [];
     this.cameraControls = config.cameraControls;
+    this.layerManager_ = layerManager;
 
-    // TODO: the chunk manager should be fixed to be shareable across viewports
-    // Create per-viewport chunk manager and context
-    this.chunkManager_ = new ChunkManager();
-    const context = {
-      chunkManager: this.chunkManager_,
-    };
-
-    // Create persistent layer manager for this viewport
-    this.layerManager_ = new LayerManager(context);
+    // Add all layers to the layer manager
     for (const layer of this.layers) {
       this.layerManager_.add(layer);
     }
@@ -75,10 +73,6 @@ export class Viewport {
 
   public get layerManager(): LayerManager {
     return this.layerManager_;
-  }
-
-  public get chunkManager(): ChunkManager {
-    return this.chunkManager_;
   }
 
   public calculateViewportBox(canvas: HTMLCanvasElement): Box2 {

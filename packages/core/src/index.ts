@@ -1,4 +1,5 @@
 export { Idetik } from "./idetik";
+export type { IdetikContext } from "./idetik";
 export { Viewport } from "./core/viewport";
 export type { ViewportConfig } from "./core/viewport";
 

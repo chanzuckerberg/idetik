@@ -12,8 +12,13 @@ import { Box2 } from "./math/box2";
 import {
   Viewport,
   ViewportConfig,
-  parseViewportConfigs,
+  validateViewportConfigs,
 } from "./core/viewport";
+import { ChunkManager } from "./core/chunk_manager";
+
+export type IdetikContext = {
+  chunkManager: ChunkManager;
+};
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
@@ -37,6 +42,7 @@ export class Idetik {
   private lastAnimationId_?: number;
   private needsResize_ = false;
   private readonly renderer_: WebGLRenderer;
+  private readonly context_: IdetikContext;
   public readonly canvas: HTMLCanvasElement;
   public readonly events: EventDispatcher;
   public readonly overlays: Overlay[];
@@ -59,6 +65,11 @@ export class Idetik {
     this.canvas = canvas;
     this.renderer_ = new WebGLRenderer(canvas);
 
+    // Create shared context with single ChunkManager
+    this.context_ = {
+      chunkManager: new ChunkManager(),
+    };
+
     if (!params.viewports && !params.camera) {
       throw new Error(
         "Either camera (single viewport) or viewports (multi viewport) must be provided"
@@ -73,17 +84,32 @@ export class Idetik {
       );
     }
 
-    this.viewports_ = params.viewports
-      ? parseViewportConfigs(params.viewports)
-      : [
-          new Viewport({
+    if (params.viewports) {
+      // Validate multi-viewport configurations
+      validateViewportConfigs(params.viewports);
+
+      // Create viewports with LayerManagers
+      this.viewports_ = params.viewports.map((config) => {
+        const viewportId = config.id || config.element.id || "unnamed";
+        const layerManager = new LayerManager(this.context_, viewportId);
+        return new Viewport(config, layerManager);
+      });
+    } else {
+      // Single viewport mode
+      const layerManager = new LayerManager(this.context_, "main");
+      this.viewports_ = [
+        new Viewport(
+          {
             id: "main",
             element: canvas,
             camera: params.camera!,
             layers: params.layers,
             cameraControls: params.cameraControls,
-          }),
-        ];
+          },
+          layerManager
+        ),
+      ];
+    }
 
     this.overlays = params.overlays ?? [];
 
@@ -174,7 +200,7 @@ export class Idetik {
         // single viewport mode
         if (viewport.element == this.canvas) {
           if (viewport.camera.type === "OrthographicCamera") {
-            viewport.chunkManager.update(
+            this.context_.chunkManager.update(
               viewport.camera as OrthographicCamera,
               this.renderer_.width
             );
@@ -187,7 +213,7 @@ export class Idetik {
         if (Box2.intersects(viewportBox, canvasBox)) {
           if (viewport.camera.type === "OrthographicCamera") {
             const width = viewportBox.max[0] - viewportBox.min[0];
-            viewport.chunkManager.update(
+            this.context_.chunkManager.update(
               viewport.camera as OrthographicCamera,
               width
             );

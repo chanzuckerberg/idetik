@@ -326,17 +326,33 @@ export class ChunkManagerSource {
 }
 
 export class ChunkManager {
-  private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
+  private readonly sources_ = new Map<string, ChunkManagerSource>();
+  private readonly sourceIds_ = new WeakMap<ChunkSource, number>();
+  private sourceIdCounter_ = 0;
 
-  public async addSource(source: ChunkSource, region: Region) {
-    let existing = this.sources_.get(source);
+  public async addSource(
+    source: ChunkSource,
+    region: Region,
+    viewportId: string
+  ) {
+    const key = this.createSourceKey(source, viewportId);
+    let existing = this.sources_.get(key);
     if (!existing) {
       const loader = await source.open();
       const attrs = loader.getAttributes();
       existing = new ChunkManagerSource(loader, attrs, region);
-      this.sources_.set(source, existing);
+      this.sources_.set(key, existing);
     }
     return existing;
+  }
+
+  private createSourceKey(source: ChunkSource, viewportId: string): string {
+    let sourceId = this.sourceIds_.get(source);
+    if (sourceId === undefined) {
+      sourceId = this.sourceIdCounter_++;
+      this.sourceIds_.set(source, sourceId);
+    }
+    return `${sourceId}-${viewportId}`;
   }
 
   public update(camera: OrthographicCamera, bufferWidth: number) {

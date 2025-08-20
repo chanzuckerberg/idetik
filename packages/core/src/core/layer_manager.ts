@@ -1,5 +1,5 @@
 import { Layer } from "./layer";
-import { IdetikContext } from "./viewport";
+import { IdetikContext } from "../idetik";
 
 export class LayerManager {
   private layers_: ReadonlyArray<Layer> = [];
@@ -8,8 +8,12 @@ export class LayerManager {
   // TODO: Make this non-optional when react components use the Idetik Runtime
   private readonly context_?: IdetikContext;
 
-  constructor(context?: IdetikContext) {
+  // TODO: Remove viewportId when ChunkManagerSource can be shared across viewports
+  private readonly viewportId_?: string;
+
+  constructor(context?: IdetikContext, viewportId?: string) {
     this.context_ = context;
+    this.viewportId_ = viewportId;
   }
 
   public partitionLayers(): {
@@ -33,7 +37,7 @@ export class LayerManager {
   public add(layer: Layer) {
     this.layers_ = [...this.layers_, layer];
     if (this.context_) {
-      layer.onAttached(this.context_);
+      layer.onAttached(this.context_, this.viewportId_);
     }
     this.notifyLayersChanged();
   }

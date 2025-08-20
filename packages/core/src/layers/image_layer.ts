@@ -1,5 +1,5 @@
 import { Layer, LayerOptions } from "../core/layer";
-import { IdetikContext } from "../core/viewport";
+import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
@@ -77,11 +77,17 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  public async onAttached(context: IdetikContext) {
+  public async onAttached(context: IdetikContext, viewportId?: string) {
     if (this.useChunkManager_) {
+      if (!viewportId) {
+        throw new Error(
+          "ImageLayer requires viewportId when using chunk manager"
+        );
+      }
       this.chunkManagerSource_ = await context.chunkManager.addSource(
         this.source_,
-        this.region_
+        this.region_,
+        viewportId
       );
     }
   }

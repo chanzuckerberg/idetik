@@ -1,4 +1,4 @@
-import { IdetikContext } from "./viewport";
+import { IdetikContext } from "../idetik";
 import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { EventContext } from "./event_dispatcher";
@@ -67,7 +67,7 @@ export abstract class Layer {
   // integration is finalized. Most layers will likely need access to the chunk
   // manager, but for now, we allow optional overrides to avoid requiring
   // placeholder implementations.
-  public async onAttached(_context: IdetikContext) {}
+  public async onAttached(_context: IdetikContext, _viewportId?: string) {}
 
   public get objects() {
     return this.objects_;
