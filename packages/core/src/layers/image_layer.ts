@@ -111,7 +111,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
     // Add all objects anew so that they respect the chunk order, which may
     // capture details important for rendering, such as LOD, instead of the
-    // creation order, which is dependent on when the chunks were loaded.
+    // creation order, which is dependent on when the chunks finished loading.
     this.clearObjects();
     currentChunks.forEach((chunk) => {
       let image = this.visibleChunks_.get(chunk);
