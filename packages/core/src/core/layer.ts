@@ -67,6 +67,7 @@ export abstract class Layer {
   // integration is finalized. Most layers will likely need access to the chunk
   // manager, but for now, we allow optional overrides to avoid requiring
   // placeholder implementations.
+  // TODO: Consider removing viewportId when ChunkManagerSource can be shared
   public async onAttached(_context: IdetikContext, _viewportId?: string) {}
 
   public get objects() {

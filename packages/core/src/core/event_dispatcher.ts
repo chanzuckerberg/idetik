@@ -83,7 +83,7 @@ export class EventDispatcher {
 
       const event = new EventContext(e.type, e);
 
-      // Set up coordinate transformations for this viewport
+      // Set up coordinate transformations based on the specific viewport
       if (e instanceof PointerEvent || e instanceof WheelEvent) {
         const { clientX, clientY } = e;
         const { clipX, clipY } = viewport.clientToViewportClip(
@@ -94,13 +94,11 @@ export class EventDispatcher {
         event.worldPos = viewport.camera.clipToWorld(event.clipPos);
       }
 
-      // Forward events to viewport layers
-      for (const layer of viewport.layers) {
+      for (const layer of viewport.layerManager.layers) {
         layer.onEvent(event);
         if (event.propagationStopped) return;
       }
 
-      // Forward to camera controls
       viewport.cameraControls?.onEvent(event);
     };
   }

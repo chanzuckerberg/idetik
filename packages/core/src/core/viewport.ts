@@ -53,20 +53,18 @@ export class Viewport {
   public readonly id: string;
   public readonly element: HTMLElement;
   public readonly camera: Camera;
-  public readonly layers: Layer[];
   public cameraControls?: CameraControls;
   private readonly layerManager_: LayerManager;
+  private cachedViewportBox_?: Box2;
 
   constructor(config: ViewportConfig, layerManager: LayerManager) {
     this.id = config.id || config.element.id || generateUUID();
     this.element = config.element;
     this.camera = config.camera;
-    this.layers = config.layers || [];
     this.cameraControls = config.cameraControls;
     this.layerManager_ = layerManager;
 
-    // Add all layers to the layer manager
-    for (const layer of this.layers) {
+    for (const layer of config.layers ?? []) {
       this.layerManager_.add(layer);
     }
   }
@@ -75,7 +73,15 @@ export class Viewport {
     return this.layerManager_;
   }
 
-  public calculateViewportBox(canvas: HTMLCanvasElement): Box2 {
+  public updateSize(): void {
+    this.cachedViewportBox_ = undefined;
+  }
+
+  public getViewportBox(canvas: HTMLCanvasElement): Box2 {
+    if (this.cachedViewportBox_) {
+      return this.cachedViewportBox_;
+    }
+
     const rect = this.element.getBoundingClientRect();
     const canvasRect = canvas.getBoundingClientRect();
     const devicePixelRatio = window.devicePixelRatio || 1;
@@ -95,10 +101,12 @@ export class Viewport {
     const width = Math.floor(cssWidth * devicePixelRatio);
     const height = Math.floor(cssHeight * devicePixelRatio);
 
-    return new Box2(
+    this.cachedViewportBox_ = new Box2(
       vec2.fromValues(x, y),
       vec2.fromValues(x + width, y + height)
     );
+
+    return this.cachedViewportBox_;
   }
 
   public clientToViewportClip(

@@ -63,6 +63,12 @@ const cameraA = new OrthographicCamera(
   baseTop,
   baseBottom
 );
+const cameraB = new OrthographicCamera(
+  baseLeft,
+  baseRight,
+  baseTop,
+  baseBottom
+);
 
 const viewports: ViewportConfig[] = [
   {
@@ -78,9 +84,9 @@ const viewports: ViewportConfig[] = [
   {
     id: "B",
     element: viewportB,
-    camera: new OrthographicCamera(baseLeft, baseRight, baseTop, baseBottom),
+    camera: cameraB,
     layers: [new ImageLayer({ source, region: regions.B, channelProps })],
-    cameraControls: undefined,
+    cameraControls: new PanZoomControls(cameraB),
   },
   {
     id: "C",

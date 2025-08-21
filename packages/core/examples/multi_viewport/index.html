@@ -43,9 +43,14 @@
 
       .viewport {
         pointer-events: auto;
-        border: 2px solid rgba(255, 255, 255, 0.3);
+        border: none;
         position: relative;
         background: rgba(0, 0, 0, 0.1);
+        transition: border 0.1s ease;
+      }
+
+      .viewport:hover {
+        border: 3px solid white;
       }
 
       .viewport-label {
@@ -60,23 +65,6 @@
         font-weight: bold;
         z-index: 100;
         pointer-events: none;
-      }
-
-      /* Different border colors for each viewport */
-      .viewport[data-view-id="A"] {
-        border-color: rgba(255, 100, 100, 0.6);
-      }
-
-      .viewport[data-view-id="B"] {
-        border-color: rgba(100, 255, 100, 0.6);
-      }
-
-      .viewport[data-view-id="C"] {
-        border-color: rgba(100, 100, 255, 0.6);
-      }
-
-      .viewport[data-view-id="D"] {
-        border-color: rgba(255, 255, 100, 0.6);
       }
     </style>
   </head>

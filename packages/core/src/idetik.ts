@@ -87,10 +87,8 @@ export class Idetik {
     }
 
     if (params.viewports) {
-      // Validate multi-viewport configurations
       validateViewportConfigs(params.viewports);
 
-      // Create viewports with LayerManagers
       this.viewports_ = params.viewports.map((config) => {
         const viewportId = config.id || config.element.id || "unnamed";
         const layerManager = new LayerManager(this.context_, viewportId);
@@ -98,11 +96,12 @@ export class Idetik {
       });
     } else {
       // Single viewport mode
-      const layerManager = new LayerManager(this.context_, "main");
+      const viewportId = canvas.id || "main";
+      const layerManager = new LayerManager(this.context_, viewportId);
       this.viewports_ = [
         new Viewport(
           {
-            id: "main",
+            id: viewportId,
             element: canvas,
             camera: params.camera!,
             layers: params.layers,
@@ -118,9 +117,11 @@ export class Idetik {
     if (params.showStats) this.stats_ = createStats();
 
     this.events = new EventDispatcher(canvas);
-
-    // Set up viewport-based event handling
     this.events.setViewports(this.viewports_);
+  }
+
+  public get viewports(): readonly Viewport[] {
+    return this.viewports_;
   }
 
   public get width() {
@@ -158,7 +159,7 @@ export class Idetik {
 
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
-    this.startSizeObservers();
+    this.startLayoutObservers();
 
     const render = (timestamp?: DOMHighResTimeStamp) => {
       if (this.stats_) this.stats_.begin();
@@ -183,7 +184,7 @@ export class Idetik {
           continue;
         }
 
-        const viewportBox = viewport.calculateViewportBox(this.canvas);
+        const viewportBox = viewport.getViewportBox(this.canvas);
         if (Box2.intersects(viewportBox, canvasBox)) {
           if (viewport.camera.type === "OrthographicCamera") {
             const width = viewportBox.max[0] - viewportBox.min[0];
@@ -197,6 +198,11 @@ export class Idetik {
             viewport.layerManager,
             viewport.camera,
             viewportBox
+          );
+        } else {
+          Logger.warn(
+            "Idetik",
+            `Viewport ${viewport.id} is outside canvas bounds, skipping render`
           );
         }
       }
@@ -219,11 +225,26 @@ export class Idetik {
     }
   }
 
-  private startSizeObservers() {
-    new ResizeObserver(() => {
+  private startLayoutObservers() {
+    // Observe layout changes for canvas and all viewport elements
+    const resizeObserver = new ResizeObserver(() => {
       this.needsResize_ = true;
-    }).observe(this.canvas);
+      // Invalidate cached viewport boxes
+      for (const viewport of this.viewports_) {
+        viewport.updateSize();
+      }
+    });
 
+    resizeObserver.observe(this.canvas);
+
+    for (const viewport of this.viewports_) {
+      // Only observe viewport elements that are not the canvas itself
+      if (viewport.element !== this.canvas) {
+        resizeObserver.observe(viewport.element);
+      }
+    }
+
+    // Observe device pixel ratio changes
     const startDevicePixelRatioObserver = () => {
       const mediaQuery = matchMedia(
         `(resolution: ${window.devicePixelRatio}dppx)`
@@ -232,6 +253,10 @@ export class Idetik {
         "change",
         () => {
           this.needsResize_ = true;
+          // Invalidate cached viewport boxes on device pixel ratio change
+          for (const viewport of this.viewports_) {
+            viewport.updateSize();
+          }
           startDevicePixelRatioObserver();
         },
         { once: true }
