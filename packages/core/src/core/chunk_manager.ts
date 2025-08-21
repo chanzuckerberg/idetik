@@ -255,7 +255,7 @@ export class ChunkManagerSource {
 
   private getZBounds(): [number, number] {
     const zDim = this.dimensions_.z;
-    if (zDim === undefined) return [0, 0];
+    if (zDim === undefined) return [0, 1];
     const zIdx = zDim.sourceIndex;
     const lodAttrs = this.attrs_[this.currentLOD_];
 
