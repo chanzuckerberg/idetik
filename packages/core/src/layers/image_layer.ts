@@ -95,8 +95,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       this.setState("ready");
     }
 
-    this.resliceIfZChanged();
-
     // TODO:(shlomnissan) Reuse images instead of deleting and creating new ones.
     //
     // This loop removes image renderables for chunks that are no longer visible
@@ -143,6 +141,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   public update() {
     if (this.useChunkManager_) {
       this.updateChunks();
+      this.resliceIfZChanged();
     } else {
       switch (this.state) {
         case "initialized":
@@ -230,9 +229,9 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
   private slicePlane(chunk: Chunk, zValue: number) {
     if (!chunk.data) return;
+    const sliceSize = chunk.shape.x * chunk.shape.y;
     const zLocal = Math.round((zValue - chunk.offset.z) / chunk.scale.z);
     const zClamped = Math.max(0, Math.min(zLocal, chunk.shape.z - 1));
-    const sliceSize = chunk.shape.x * chunk.shape.y;
     const offset = sliceSize * zClamped;
     return chunk.data.slice(offset, offset + sliceSize);
   }

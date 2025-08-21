@@ -134,7 +134,6 @@ export class ChunkManagerSource {
       this.zBoundsChanged(zBounds)
     ) {
       this.updateChunkVisibility(viewBounds2D);
-      this.lastZBounds_ = zBounds;
     }
 
     this.loadPendingChunks();
@@ -314,7 +313,11 @@ export class ChunkManagerSource {
 
   private zBoundsChanged(newBounds: [number, number]): boolean {
     const prev = this.lastZBounds_;
-    return !prev || prev[0] !== newBounds[0] || prev[1] !== newBounds[1];
+    const changed = !prev || !vec2.equals(prev, newBounds);
+    if (changed) {
+      this.lastZBounds_ = newBounds;
+    }
+    return changed;
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
