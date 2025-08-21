@@ -158,6 +158,7 @@ export class Idetik {
   }
 
   public stop() {
+    Logger.info("Idetik", "Idetik runtime stopped");
     if (this.lastAnimationId_ !== undefined) {
       cancelAnimationFrame(this.lastAnimationId_);
     }
