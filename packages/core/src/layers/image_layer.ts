@@ -109,21 +109,17 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       }
     });
 
-    currentChunks.forEach((chunk) => {
-      if (chunk.state === "loaded" && !this.visibleChunks_.has(chunk)) {
-        const image = this.createImage(chunk, this.channelProps);
-        this.visibleChunks_.set(chunk, image);
-      }
-    });
-
     // Add all objects anew so that they respect the chunk order, which may
-    // capture details important for rendering, such as LOD.
+    // capture details important for rendering, such as LOD, instead of the
+    // creation order, which is dependent on when the chunks were loaded.
     this.clearObjects();
     currentChunks.forEach((chunk) => {
-      const image = this.visibleChunks_.get(chunk);
-      if (image) {
-        this.addObject(image);
+      let image = this.visibleChunks_.get(chunk);
+      if (!image && chunk.state === "loaded") {
+        image = this.createImage(chunk, this.channelProps);
+        this.visibleChunks_.set(chunk, image);
       }
+      if (image) this.addObject(image);
     });
   }
 
