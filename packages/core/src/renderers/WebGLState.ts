@@ -1,3 +1,6 @@
+import { Box2 } from "../math/box2";
+import { vec2 } from "gl-matrix";
+
 export type BlendingMode =
   | "none"
   | "normal"
@@ -13,6 +16,8 @@ export class WebGLState {
   private blendSrcFactor_: GLenum | null = null;
   private blendDstFactor_: GLenum | null = null;
   private currentBlendingMode_: BlendingMode | null = null;
+  private currentViewport_: Box2 | null = null;
+  private scissorEnabled_: boolean = false;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -93,5 +98,74 @@ export class WebGLState {
       }
     }
     this.currentBlendingMode_ = mode;
+  }
+
+  public setViewport(viewportBox?: Box2) {
+    const viewport = viewportBox ?? new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(this.gl_.canvas.width, this.gl_.canvas.height)
+    );
+
+    if (
+      this.currentViewport_ &&
+      Box2.equals(this.currentViewport_, viewport)
+    ) {
+      return;
+    }
+
+    const x = Math.floor(viewport.min[0]);
+    const y = Math.floor(viewport.min[1]);
+    const width = Math.floor(viewport.max[0] - viewport.min[0]);
+    const height = Math.floor(viewport.max[1] - viewport.min[1]);
+
+    this.gl_.viewport(x, y, width, height);
+    this.currentViewport_ = viewport.clone();
+  }
+
+  public enableScissor(scissorBox?: Box2) {
+    if (!this.scissorEnabled_) {
+      this.enable(this.gl_.SCISSOR_TEST);
+      this.scissorEnabled_ = true;
+    }
+
+    const { x, y, width, height } = scissorBox
+      ? this.getBoxDimensions(scissorBox)
+      : this.getViewportDimensions();
+    this.gl_.scissor(x, y, width, height);
+  }
+
+  public disableScissor() {
+    if (this.scissorEnabled_) {
+      this.disable(this.gl_.SCISSOR_TEST);
+      this.scissorEnabled_ = false;
+    }
+  }
+
+  private getViewportDimensions(): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    if (!this.currentViewport_) {
+      this.currentViewport_ = new Box2(
+        vec2.fromValues(0, 0),
+        vec2.fromValues(this.gl_.canvas.width, this.gl_.canvas.height)
+      );
+    }
+    return this.getBoxDimensions(this.currentViewport_);
+  }
+
+  private getBoxDimensions(box: Box2): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    const x = Math.floor(box.min[0]);
+    const y = Math.floor(box.min[1]);
+    const width = Math.floor(box.max[0] - box.min[0]);
+    const height = Math.floor(box.max[1] - box.min[1]);
+    return { x, y, width, height };
   }
 }

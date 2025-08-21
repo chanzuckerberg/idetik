@@ -12,8 +12,9 @@ import { Camera } from "../objects/cameras/camera";
 import { WebGLState } from "./WebGLState";
 import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
+import { Box2 } from "../math/box2";
 
-import { mat4 } from "gl-matrix";
+import { mat4, vec2 } from "gl-matrix";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -56,7 +57,23 @@ export class WebGLRenderer extends Renderer {
     this.state_ = new WebGLState(this.gl);
   }
 
-  public render(layerManager: LayerManager, camera: Camera) {
+  public render(
+    layerManager: LayerManager,
+    camera: Camera,
+    viewportBox?: Box2
+  ) {
+    if (viewportBox) {
+      this.state_.setViewport(viewportBox);
+      this.state_.enableScissor();
+    } else {
+      this.state_.disableScissor();
+      const defaultViewport = new Box2(
+        vec2.fromValues(0, 0),
+        vec2.fromValues(this.canvas.width, this.canvas.height)
+      );
+      this.state_.setViewport(defaultViewport);
+    }
+
     this.clear();
     this.activeCamera = camera;
 
@@ -179,7 +196,11 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected resize(width: number, height: number) {
-    this.gl.viewport(0, 0, width, height);
+    const defaultViewport = new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(width, height)
+    );
+    this.state_.setViewport(defaultViewport);
   }
 
   protected clear() {

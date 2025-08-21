@@ -1,4 +1,5 @@
 import { vec2 } from "gl-matrix";
+import { almostEqual } from "../utilities/almost_equal";
 
 export class Box2 {
   public min: vec2;
@@ -28,5 +29,21 @@ export class Box2 {
     if (a.max[0] <= b.min[0] || a.min[0] >= b.max[0]) return false;
     if (a.max[1] <= b.min[1] || a.min[1] >= b.max[1]) return false;
     return true;
+  }
+
+  public static equals(
+    a: Box2,
+    b: Box2,
+    options: { absoluteTolerance?: number; relativeTolerance?: number } = {
+      absoluteTolerance: 1e-6,
+      relativeTolerance: 1e-9,
+    }
+  ): boolean {
+    return (
+      almostEqual(a.min[0], b.min[0], options) &&
+      almostEqual(a.min[1], b.min[1], options) &&
+      almostEqual(a.max[0], b.max[0], options) &&
+      almostEqual(a.max[1], b.max[1], options)
+    );
   }
 }
