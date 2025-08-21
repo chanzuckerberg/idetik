@@ -2,7 +2,7 @@ import { LayerManager } from "./layer_manager";
 import { Camera } from "../objects/cameras/camera";
 import { Color, ColorLike } from "./color";
 import { Layer } from "./layer";
-import { Box2 } from "@/math/box2";
+import { Box2 } from "../math/box2";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
