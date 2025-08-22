@@ -41,6 +41,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private extent_?: { x: number; y: number };
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
+  private debugMode_ = false;
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
@@ -261,7 +262,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       channelProps
     );
 
-    if (this.debugMode) {
+    if (this.debugMode_) {
       image.wireframeEnabled = true;
       image.wireframeColor =
         this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
@@ -295,5 +296,16 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       }
     }
     return null;
+  }
+
+  public set debugMode(debug: boolean) {
+    this.debugMode_ = debug;
+    this.visibleChunks_.forEach((image, chunk) => {
+      image.wireframeEnabled = this.debugMode_;
+      if (this.debugMode_) {
+        image.wireframeColor =
+          this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
+      }
+    });
   }
 }
