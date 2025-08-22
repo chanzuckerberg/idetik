@@ -107,19 +107,23 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     // creating new texture objects. Note: GPU resources are not currently being
     // released, so this will also need to be addressed soon.
     const currentChunks = new Set(this.chunkManagerSource_.getChunks());
-    this.visibleChunks_.forEach((image, chunk) => {
+    this.visibleChunks_.forEach((_image, chunk) => {
       if (!currentChunks.has(chunk)) {
-        this.removeObject(image);
         this.visibleChunks_.delete(chunk); // safe
       }
     });
 
+    // Add all objects anew so that they respect the chunk order, which may
+    // capture details important for rendering, such as LOD, instead of the
+    // creation order, which is dependent on when the chunks finished loading.
+    this.clearObjects();
     currentChunks.forEach((chunk) => {
-      if (chunk.state === "loaded" && !this.visibleChunks_.has(chunk)) {
-        const image = this.createImage(chunk, this.channelProps);
+      let image = this.visibleChunks_.get(chunk);
+      if (!image && chunk.state === "loaded") {
+        image = this.createImage(chunk, this.channelProps);
         this.visibleChunks_.set(chunk, image);
-        this.addObject(image);
       }
+      if (image) this.addObject(image);
     });
   }
 
