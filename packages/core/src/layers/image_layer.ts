@@ -12,6 +12,7 @@ import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
+import { almostEqual } from "@/utilities/almost_equal";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -233,15 +234,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     const zIdx = Math.round(zLocal);
     const zClamped = Math.max(0, Math.min(zIdx, chunk.shape.z - 1));
 
-    // Allow for small overshoot to account for rounding and
-    // floating point error. Anything larger means the requested
-    // zValue is truly outside the chunk extent.
-    if (zIdx !== zClamped) {
-      const delta = Math.abs(zLocal - zClamped);
-      const eps = 1e-6;
-      if (delta > 1 + eps) {
-        Logger.error("ImageLayer", "slicePlane zValue outside extent");
-      }
+    // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
+    // Anything further away means the requested zValue is outside.
+    if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
+      Logger.error("ImageLayer", "slicePlane zValue outside extent");
     }
 
     const sliceSize = chunk.shape.x * chunk.shape.y;
