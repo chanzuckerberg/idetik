@@ -91,6 +91,7 @@ export abstract class Texture extends Node {
   public abstract get width(): number;
   public abstract get height(): number;
   public abstract get data(): TexImageSource | ArrayBufferView | null;
+  public abstract set data(data: DataTextureTypedArray);
 
   public get type() {
     return "Texture";

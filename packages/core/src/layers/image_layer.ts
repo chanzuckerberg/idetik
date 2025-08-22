@@ -12,6 +12,8 @@ import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
+import { almostEqual } from "../utilities/almost_equal";
+import { clamp } from "../utilities/clamp";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -38,6 +40,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
   private pointerDownPos_: vec2 | null = null;
+  private zPrevPointWorld_?: number;
+  private debugMode_ = false;
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
@@ -123,9 +127,28 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     });
   }
 
+  private resliceIfZChanged() {
+    const dimensions = this.chunkManagerSource_?.dimensions;
+    const pointWorld = dimensions?.z?.pointWorld;
+    if (pointWorld === undefined || this.zPrevPointWorld_ === pointWorld) {
+      return;
+    }
+
+    for (const [chunk, image] of this.visibleChunks_) {
+      if (chunk.state !== "loaded" || !chunk.data) continue;
+      const data = this.slicePlane(chunk, pointWorld);
+      if (data) {
+        image.textures[0].data = data;
+      }
+    }
+
+    this.zPrevPointWorld_ = pointWorld;
+  }
+
   public update() {
     if (this.useChunkManager_) {
       this.updateChunks();
+      this.resliceIfZChanged();
     } else {
       switch (this.state) {
         case "initialized":
@@ -213,22 +236,28 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
   private slicePlane(chunk: Chunk, zValue: number) {
     if (!chunk.data) return;
-    const zLocal = Math.round((zValue - chunk.offset.z) / chunk.scale.z);
+    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
+    const zIdx = Math.round(zLocal);
+    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
+
+    // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
+    // Anything further away means the requested zValue is outside.
+    if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
+      Logger.error("ImageLayer", "slicePlane zValue outside extent");
+    }
+
     const sliceSize = chunk.shape.x * chunk.shape.y;
-    const offset = sliceSize * (zLocal % chunk.shape.z);
-    return chunk.data.slice(offset, offset + sliceSize);
+    const offset = sliceSize * zClamped;
+    return chunk.data.subarray(offset, offset + sliceSize);
   }
 
   private createImage(chunk: Chunk, channelProps?: ChannelProps[]) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
     let data = chunk.data;
-    if (chunk.shape.z > 1) {
-      const zIdx = this.region_.find((r) => r.dimension.toLowerCase() === "z");
-      if (zIdx?.index.type !== "point") {
-        throw new Error("Expected Z index to be a point");
-      }
-      data = this.slicePlane(chunk, zIdx.index.value);
+    const dimensions = this.chunkManagerSource?.dimensions;
+    if (dimensions?.z) {
+      data = this.slicePlane(chunk, dimensions.z.pointWorld);
     }
 
     const image = new ImageRenderable(
@@ -237,7 +266,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       channelProps
     );
 
-    if (this.debugMode) {
+    if (this.debugMode_) {
       image.wireframeEnabled = true;
       image.wireframeColor =
         this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
@@ -271,5 +300,16 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       }
     }
     return null;
+  }
+
+  public set debugMode(debug: boolean) {
+    this.debugMode_ = debug;
+    this.visibleChunks_.forEach((image, chunk) => {
+      image.wireframeEnabled = this.debugMode_;
+      if (this.debugMode_) {
+        image.wireframeColor =
+          this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
+      }
+    });
   }
 }
