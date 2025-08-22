@@ -12,7 +12,8 @@ import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
-import { almostEqual } from "@/utilities/almost_equal";
+import { almostEqual } from "../utilities/almost_equal";
+import { clamp } from "../utilities/clamp";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -232,7 +233,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     if (!chunk.data) return;
     const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
     const zIdx = Math.round(zLocal);
-    const zClamped = Math.max(0, Math.min(zIdx, chunk.shape.z - 1));
+    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
 
     // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
     // Anything further away means the requested zValue is outside.
