@@ -10,7 +10,10 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
     isReady: false,
     runtime: null,
     initializeWithCanvas: (canvas: HTMLCanvasElement) => {
-      console.debug("IdetikProvider initializing Idetik runtime with canvas", canvas);
+      console.debug(
+        "IdetikProvider initializing Idetik runtime with canvas",
+        canvas
+      );
       const camera = new OrthographicCamera(0, 128, 0, 128, -1000, 1000);
       const cameraControls = new PanZoomControls(camera);
       const newIdetik = new Idetik({
@@ -28,10 +31,7 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     return () => {
-      console.debug("IdetikProvider unmounting", idetikContext);
-      // if (idetikContext.runtime) {
-      //   idetikContext.runtime.stop();
-      // }
+      idetikContext.runtime?.stop();
     };
   }, [idetikContext]);
 

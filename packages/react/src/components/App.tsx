@@ -76,21 +76,23 @@ export default function App() {
         onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
         className="h-12 shrink-0 basis-[50px]"
       />
-      {(imageIndex % 2 == 0) && <OmeZarrImageViewer
-        sourceUrl={imageUrl}
-        region={region}
-        seriesDimensionName="Z"
-        initialIndex="omeroDefaultZ"
-        classNames={{
-          root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
-        }}
-        loadAllButtonText="Load 3D high-res (250MB)"
-        onLayerCreated={handleLayerCreated}
-        onFirstSliceLoaded={handleFirstSliceLoaded}
-        onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
-        onAllSlicesLoaded={handleAllSlicesLoaded}
-        onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-      />}
+      {imageIndex % 2 == 0 && (
+        <OmeZarrImageViewer
+          sourceUrl={imageUrl}
+          region={region}
+          seriesDimensionName="Z"
+          initialIndex="omeroDefaultZ"
+          classNames={{
+            root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
+          }}
+          loadAllButtonText="Load 3D high-res (250MB)"
+          onLayerCreated={handleLayerCreated}
+          onFirstSliceLoaded={handleFirstSliceLoaded}
+          onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+          onAllSlicesLoaded={handleAllSlicesLoaded}
+          onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
+        />
+      )}
     </div>
   );
 }
