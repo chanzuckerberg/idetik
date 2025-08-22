@@ -70,7 +70,13 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col">
-      <OmeZarrImageViewer
+      <input
+        type="button"
+        value="Next Image"
+        onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
+        className="h-12 shrink-0 basis-[50px]"
+      />
+      {(imageIndex % 2 == 0) && <OmeZarrImageViewer
         sourceUrl={imageUrl}
         region={region}
         seriesDimensionName="Z"
@@ -84,13 +90,7 @@ export default function App() {
         onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
         onAllSlicesLoaded={handleAllSlicesLoaded}
         onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-      />
-      <input
-        type="button"
-        value="Next Image"
-        onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
-        className="h-12 shrink-0 basis-[50px]"
-      />
+      />}
     </div>
   );
 }

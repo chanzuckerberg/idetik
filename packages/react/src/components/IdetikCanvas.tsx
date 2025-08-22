@@ -16,8 +16,13 @@ export function IdetikCanvas({
 
   const canvasCallbackRef = useCallback(
     (canvas: HTMLCanvasElement | null) => {
-      if (!contextValue.isReady && canvas) {
+      console.debug("IdetikCanvas mounting with canvas", canvas, contextValue);
+      if (canvas === null) {
+        contextValue.runtime?.stop();
+      } else if (!contextValue.isReady) {
         contextValue.initializeWithCanvas(canvas);
+      } else {
+        contextValue.runtime.start();
       }
     },
     [contextValue]
