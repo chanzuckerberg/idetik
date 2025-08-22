@@ -119,48 +119,55 @@ export class Idetik {
 
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
-    new ResizeObserver(() => {
-      this.needsResize_ = true;
-    }).observe(this.canvas);
-    const render = (timestamp?: DOMHighResTimeStamp) => {
-      if (this.stats_) this.stats_.begin();
-
-      if (!this.camera) {
-        Logger.warn(
-          "Idetik",
-          "A camera must be set before starting the Idetik runtime"
-        );
-        return;
-      }
-
-      if (this.camera.type === "OrthographicCamera") {
-        this.chunkManager_.update(
-          this.camera as OrthographicCamera,
-          this.renderer_.width
-        );
-      }
-
-      // Must resize before render b/c changing canvas coordinate space clears it.
-      if (this.needsResize_) {
-        this.renderer_.updateSize();
-        this.needsResize_ = false;
-      }
-      this.renderer_.render(this.layerManager, this.camera);
-      for (const overlay of this.overlays) {
-        overlay.update(this, timestamp);
-      }
-
-      if (this.stats_) this.stats_.end();
-      this.lastAnimationId_ = requestAnimationFrame(render);
-    };
-    render();
+    if (this.lastAnimationId_ === undefined) {
+      new ResizeObserver(() => {
+        this.needsResize_ = true;
+      }).observe(this.canvas);
+      this.animate();
+    } else {
+      Logger.warn("Idetik", "Idetik runtime already started");
+    }
     return this;
+  }
+
+  private animate(timestamp?: DOMHighResTimeStamp) {
+    if (this.stats_) this.stats_.begin();
+
+    // Must resize before render b/c changing canvas coordinate space clears it.
+    if (this.needsResize_) {
+      this.renderer_.updateSize();
+      this.needsResize_ = false;
+    }
+
+    if (this.camera.type === "OrthographicCamera") {
+      this.chunkManager_.update(
+        this.camera as OrthographicCamera,
+        this.renderer_.width
+      );
+    }
+
+    this.renderer_.render(this.layerManager, this.camera);
+    for (const overlay of this.overlays) {
+      overlay.update(this, timestamp);
+    }
+
+    if (this.stats_) this.stats_.end();
+
+    this.lastAnimationId_ = requestAnimationFrame((timestamp) =>
+      this.animate(timestamp)
+    );
   }
 
   public stop() {
     Logger.info("Idetik", "Idetik runtime stopped");
     if (this.lastAnimationId_ !== undefined) {
+      Logger.info(
+        "Idetik",
+        "Cancelling animation frame",
+        this.lastAnimationId_
+      );
       cancelAnimationFrame(this.lastAnimationId_);
+      this.lastAnimationId_ = undefined;
     }
   }
 }
