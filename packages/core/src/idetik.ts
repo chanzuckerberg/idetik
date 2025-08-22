@@ -159,7 +159,7 @@ export class Idetik {
   }
 
   public stop() {
-    Logger.info("Idetik", "Idetik runtime stopped");
+    Logger.info("Idetik", "Idetik runtime stopping");
     if (this.lastAnimationId_ !== undefined) {
       Logger.info(
         "Idetik",
