@@ -229,11 +229,24 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
   private slicePlane(chunk: Chunk, zValue: number) {
     if (!chunk.data) return;
+    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
+    const zIdx = Math.round(zLocal);
+    const zClamped = Math.max(0, Math.min(zIdx, chunk.shape.z - 1));
+
+    // Allow for small overshoot to account for rounding and
+    // floating point error. Anything larger means the requested
+    // zValue is truly outside the chunk extent.
+    if (zIdx !== zClamped) {
+      const delta = Math.abs(zLocal - zClamped);
+      const eps = 1e-6;
+      if (delta > 1 + eps) {
+        Logger.error("ImageLayer", "slicePlane zValue outside extent");
+      }
+    }
+
     const sliceSize = chunk.shape.x * chunk.shape.y;
-    const zLocal = Math.round((zValue - chunk.offset.z) / chunk.scale.z);
-    const zClamped = Math.max(0, Math.min(zLocal, chunk.shape.z - 1));
     const offset = sliceSize * zClamped;
-    return chunk.data.slice(offset, offset + sliceSize);
+    return chunk.data.subarray(offset, offset + sliceSize);
   }
 
   private createImage(chunk: Chunk, channelProps?: ChannelProps[]) {
