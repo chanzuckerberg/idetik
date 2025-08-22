@@ -22,8 +22,6 @@ export function IdetikCanvas({
         contextValue.runtime?.stop();
       } else if (!contextValue.isReady) {
         contextValue.initializeWithCanvas(canvas);
-      } else {
-        contextValue.runtime.start();
       }
     },
     [contextValue]
