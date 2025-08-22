@@ -14,6 +14,7 @@ export function IdetikCanvas({
 }: IdetikCanvasProps) {
   const contextValue = useIdetik();
 
+  console.debug("IdetikCanvas rendering", contextValue);
   const canvasCallbackRef = useCallback(
     (canvas: HTMLCanvasElement | null) => {
       console.debug("IdetikCanvas mounting with canvas", canvas, contextValue);
