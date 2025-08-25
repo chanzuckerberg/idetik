@@ -4,7 +4,7 @@ import {
   ChunkLoader,
   ChunkSource,
   LoaderAttributes,
-  SliceIndices,
+  SliceCoordinates,
 } from "../data/chunk";
 import { vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
@@ -22,7 +22,7 @@ export class ChunkManagerSource {
   private readonly loader_;
   private readonly attrs_: ReadonlyArray<LoaderAttributes>;
   private readonly lowestResLOD_: number;
-  private readonly sliceIndices_: SliceIndices;
+  private readonly sliceCoords_: SliceCoordinates;
   private dimensions_: ChunkDimensionMap;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
@@ -31,14 +31,14 @@ export class ChunkManagerSource {
   constructor(
     loader: ChunkLoader,
     attrs: ReadonlyArray<LoaderAttributes>,
-    sliceIndices: SliceIndices
+    sliceCoords: SliceCoordinates
   ) {
     this.loader_ = loader;
     this.attrs_ = attrs;
     this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
-    this.sliceIndices_ = sliceIndices;
+    this.sliceCoords_ = sliceCoords;
     this.dimensions_ = this.loader_.getDimensionMap();
     const xIdx = this.dimensions_.x.index;
     const yIdx = this.dimensions_.y.index;
@@ -178,7 +178,7 @@ export class ChunkManagerSource {
   private loadChunkData(chunk: Chunk): void {
     chunk.state = "loading";
     this.loader_
-      .loadChunkData(chunk, this.sliceIndices_)
+      .loadChunkData(chunk, this.sliceCoords_)
       .then(() => {
         chunk.state = "loaded";
       })
@@ -268,13 +268,13 @@ export class ChunkManagerSource {
 
   private getZBounds(): [number, number] {
     const zDim = this.dimensions_.z;
-    if (zDim === undefined || this.sliceIndices_.z === undefined) return [0, 1];
+    if (zDim === undefined || this.sliceCoords_.z === undefined) return [0, 1];
 
     const zLod = zDim.lods[this.currentLOD_];
     const zShape = zLod.size;
     const zScale = zLod.scale;
     const zTran = zLod.translation;
-    const zPoint = Math.floor((this.sliceIndices_.z - zTran) / zScale);
+    const zPoint = Math.floor((this.sliceCoords_.z - zTran) / zScale);
     const chunkDepth = zLod.chunkSize;
 
     const zChunk = Math.max(
@@ -349,12 +349,12 @@ export class ChunkManagerSource {
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
 
-  public async addSource(source: ChunkSource, sliceIndices: SliceIndices) {
+  public async addSource(source: ChunkSource, sliceCoords: SliceCoordinates) {
     let existing = this.sources_.get(source);
     if (!existing) {
       const loader = await source.open();
       const attrs = loader.getAttributes();
-      existing = new ChunkManagerSource(loader, attrs, sliceIndices);
+      existing = new ChunkManagerSource(loader, attrs, sliceCoords);
       this.sources_.set(source, existing);
     }
     return existing;

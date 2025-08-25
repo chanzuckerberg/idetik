@@ -7,7 +7,7 @@ import {
   PointPickingResult,
   ChunkImageLayer,
 } from "@";
-import { SliceIndices } from "@/data/chunk";
+import { SliceCoordinates } from "@/data/chunk";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
@@ -34,7 +34,7 @@ const zMidPoint = zInfo.offset + 0.5 * zInfo.size * zInfo.scale;
 const yInfo = dimensionInfo("y");
 const xInfo = dimensionInfo("x");
 
-const region: SliceIndices = {
+const sliceCoords: SliceCoordinates = {
   z: zMidPoint,
 };
 const channelProps: ChannelProps[] = [
@@ -58,7 +58,7 @@ const onPickValue = (info: PointPickingResult) => {
 
 const layer = new ChunkImageLayer({
   source,
-  sliceIndices: region,
+  sliceCoords,
   channelProps,
   onPickValue,
 });

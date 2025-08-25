@@ -7,7 +7,7 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 import GUI from "lil-gui";
-import { SliceIndices } from "@/data/chunk";
+import { SliceCoordinates } from "@/data/chunk";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -20,7 +20,7 @@ const bottom = 900;
 // Also specify a subregion in x and y to exercise that part of the API.
 const source = new OmeZarrImageSource(url);
 
-const sliceIndices: SliceIndices = {
+const sliceCoords: SliceCoordinates = {
   t: 400,
   z: 300,
   c: 0,
@@ -28,7 +28,7 @@ const sliceIndices: SliceIndices = {
 
 const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkImageLayer({ source, sliceIndices, channelProps });
+const imageLayer = new ChunkImageLayer({ source, sliceCoords, channelProps });
 imageLayer.debugMode = true;
 
 const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;
@@ -47,7 +47,7 @@ new Idetik({
 }).start();
 
 const controls = {
-  region: sliceIndices,
+  sliceCoords,
   showWireframes: true,
   showChunkInfoOverlay: true,
 };
@@ -59,7 +59,9 @@ const max = z.translate + z.scale * z.shape - z.scale;
 const zRange = { min, max };
 const gui = new GUI({ width: 500 });
 
-gui.add(controls.region, "z", zRange.min, zRange.max, z.scale).name("Z-point");
+gui
+  .add(controls.sliceCoords, "z", zRange.min, zRange.max, z.scale)
+  .name("Z-point");
 
 gui
   .add(controls, "showWireframes")

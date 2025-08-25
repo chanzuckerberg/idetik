@@ -1,6 +1,6 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource, SliceIndices } from "../data/chunk";
+import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import {
   ChannelProps,
@@ -24,7 +24,7 @@ import { clamp } from "../utilities/clamp";
 
 export type ChunkImageLayerProps = LayerOptions & {
   source: ChunkSource;
-  sliceIndices: SliceIndices;
+  sliceCoords: SliceCoordinates;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
 };
@@ -33,7 +33,7 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ChunkImageLayer";
 
   private readonly source_: ChunkSource;
-  private readonly sliceIndices_: SliceIndices;
+  private readonly sliceCoords_: SliceCoordinates;
   private readonly channels_: Channels;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
@@ -51,7 +51,7 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
 
   constructor({
     source,
-    sliceIndices,
+    sliceCoords,
     channelProps,
     onPickValue,
     ...layerOptions
@@ -59,7 +59,7 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
-    this.sliceIndices_ = sliceIndices;
+    this.sliceCoords_ = sliceCoords;
     this.channels_ = new Channels(channelProps);
     this.onPickValue_ = onPickValue;
   }
@@ -67,7 +67,7 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
   public async onAttached(context: IdetikContext) {
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_,
-      this.sliceIndices_
+      this.sliceCoords_
     );
   }
 
@@ -109,7 +109,7 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private resliceIfZChanged() {
-    const pointWorld = this.sliceIndices_.z;
+    const pointWorld = this.sliceCoords_.z;
     if (pointWorld === undefined || this.zPrevPointWorld_ === pointWorld) {
       return;
     }
@@ -187,8 +187,8 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
     let data = chunk.data;
-    if (this.sliceIndices_.z !== undefined) {
-      data = this.slicePlane(chunk, this.sliceIndices_.z);
+    if (this.sliceCoords_.z !== undefined) {
+      data = this.slicePlane(chunk, this.sliceCoords_.z);
     }
 
     const image = new ImageRenderable(
