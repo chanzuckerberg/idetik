@@ -11,7 +11,11 @@ import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
-import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
+import {
+  getValueAtWorld,
+  handlePointPickingEvent,
+  PointPickingResult,
+} from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 
@@ -218,24 +222,8 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
   public getValueAtWorld(world: vec3): number | null {
     // Iterate through all visible chunks to find the one containing the world position
     for (const [chunk, image] of this.visibleChunks_) {
-      if (!chunk.data) continue;
-      const localPos = vec3.transformMat4(
-        vec3.create(),
-        world,
-        image.transform.inverse
-      );
-
-      const x = Math.floor(localPos[0]);
-      const y = Math.floor(localPos[1]);
-
-      // Check if this chunk contains the requested position
-      if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-        const pixelIndex = y * chunk.rowStride + x;
-        const data = chunk.data;
-
-        // For multi-channel images, take the first channel value
-        return data[pixelIndex];
-      }
+      const value = getValueAtWorld(world, image.transform, chunk);
+      if (value !== null) return value;
     }
     return null;
   }

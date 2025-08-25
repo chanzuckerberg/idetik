@@ -10,7 +10,11 @@ import {
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
-import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
+import {
+  getValueAtWorld,
+  handlePointPickingEvent,
+  PointPickingResult,
+} from "./point_picking";
 
 export type LabelImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -111,31 +115,10 @@ export class LabelImageLayer extends Layer {
   }
 
   public getValueAtWorld(world: vec3): number | null {
-    if (!this.image_ || !this.imageChunk_?.data) {
+    const { image_: image, imageChunk_: chunk } = this;
+    if (!image || !chunk) {
       return null;
     }
-
-    // Transform world to local texture coordinates using inverse transform
-    const localPos = vec3.transformMat4(
-      vec3.create(),
-      world,
-      this.image_.transform.inverse
-    );
-
-    // Convert to pixel coordinates and bounds check
-    const x = Math.floor(localPos[0]);
-    const y = Math.floor(localPos[1]);
-    if (
-      x < 0 ||
-      x >= this.imageChunk_.shape.x ||
-      y < 0 ||
-      y >= this.imageChunk_.shape.y
-    ) {
-      return null;
-    }
-
-    const pixelIndex = y * this.imageChunk_.rowStride + x;
-    const data = this.imageChunk_.data;
-    return data[pixelIndex];
+    return getValueAtWorld(world, image.transform, chunk);
   }
 }

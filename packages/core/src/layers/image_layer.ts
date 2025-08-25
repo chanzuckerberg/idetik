@@ -8,7 +8,11 @@ import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
-import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
+import {
+  getValueAtWorld,
+  handlePointPickingEvent,
+  PointPickingResult,
+} from "./point_picking";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -165,24 +169,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   public getValueAtWorld(world: vec3): number | null {
     const chunk = this.chunk_;
     if (!chunk || !chunk.data || !this.image_) return null;
-    const localPos = vec3.transformMat4(
-      vec3.create(),
-      world,
-      this.image_.transform.inverse
-    );
-
-    const x = Math.floor(localPos[0]);
-    const y = Math.floor(localPos[1]);
-
-    // Check if this chunk contains the requested position
-    if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-      const pixelIndex = y * chunk.rowStride + x;
-      const data = chunk.data;
-
-      // For multi-channel images, take the first channel value
-      return data[pixelIndex];
-    }
-    return null;
+    return getValueAtWorld(world, this.image_.transform, chunk);
   }
 
   public set debugMode(debug: boolean) {
@@ -193,6 +180,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
         this.image_.wireframeColor =
           this.wireframeColors_[this.chunk_.lod % this.wireframeColors_.length];
       }
-    };
+    }
   }
 }
