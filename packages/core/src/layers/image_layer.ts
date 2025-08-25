@@ -33,6 +33,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
+  private readonly lod_?: number;
   private readonly channels_: Channels;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private image_?: ImageRenderable;
@@ -47,9 +48,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     new Color(0.4, 0.4, 0.7),
     new Color(0.6, 0.5, 0.3),
   ];
-
-  // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
-  private readonly lod_?: number;
 
   constructor({
     source,
