@@ -2,12 +2,12 @@ import {
   ChannelProps,
   Color,
   Idetik,
-  ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
-  Region,
   PointPickingResult,
+  ChunkImageLayer,
 } from "@";
+import { Region2DProps } from "@/data/chunk";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 
@@ -34,11 +34,9 @@ const zMidPoint = zInfo.offset + 0.5 * zInfo.size * zInfo.scale;
 const yInfo = dimensionInfo("y");
 const xInfo = dimensionInfo("x");
 
-const region: Region = [
-  { dimension: "z", index: { type: "point", value: zMidPoint } },
-  { dimension: "y", index: { type: "full" } },
-  { dimension: "x", index: { type: "full" } },
-];
+const region: Region2DProps = {
+  z: zMidPoint,
+};
 const channelProps: ChannelProps[] = [
   {
     visible: true,
@@ -58,12 +56,11 @@ const onPickValue = (info: PointPickingResult) => {
   `;
 };
 
-const layer = new ImageLayer({
+const layer = new ChunkImageLayer({
   source,
   region,
   channelProps,
   onPickValue,
-  lod: 1,
 });
 const axes = new AxesLayer({
   length: 0.75 * xInfo.scale * xInfo.size,
