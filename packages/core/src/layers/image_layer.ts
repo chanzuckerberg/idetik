@@ -295,9 +295,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
         // Use the actual sliced data being displayed, not the full chunk data
         let data: ChunkData;
         const dimensions = this.chunkManagerSource_?.dimensions;
-        if (chunk.data === undefined) {
-          continue;
-        }
         if (dimensions?.z) {
           // When z-slicing is active, use the sliced data
           data = this.slicePlane(chunk, dimensions.z.pointWorld)!;
