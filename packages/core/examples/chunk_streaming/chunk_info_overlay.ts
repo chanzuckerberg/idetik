@@ -1,15 +1,15 @@
 import { Idetik } from "../../src/idetik";
-import { ImageLayer } from "../../src/layers/image_layer";
+import { ChunkImageLayer } from "../../src/layers/chunk_image_layer";
 import { Chunk } from "../../src/data/chunk";
 
 export interface ChunkInfoOverlayOptions {
   textDiv: HTMLDivElement;
-  imageLayer: ImageLayer;
+  imageLayer: ChunkImageLayer;
 }
 
 export class ChunkInfoOverlay {
   private readonly textDiv_: HTMLDivElement;
-  private readonly imageLayer_: ImageLayer;
+  private readonly imageLayer_: ChunkImageLayer;
 
   constructor({ textDiv, imageLayer }: ChunkInfoOverlayOptions) {
     this.textDiv_ = textDiv;

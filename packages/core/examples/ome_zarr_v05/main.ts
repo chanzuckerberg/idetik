@@ -58,7 +58,13 @@ const onPickValue = (info: PointPickingResult) => {
   `;
 };
 
-const layer = new ImageLayer({ source, region, channelProps, onPickValue });
+const layer = new ImageLayer({
+  source,
+  region,
+  channelProps,
+  onPickValue,
+  lod: 1,
+});
 const axes = new AxesLayer({
   length: 0.75 * xInfo.scale * xInfo.size,
   width: 0.01,
