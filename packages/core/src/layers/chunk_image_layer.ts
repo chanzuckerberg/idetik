@@ -1,7 +1,6 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
-import { Region } from "../data/region";
-import { Chunk, ChunkSource } from "../data/chunk";
+import { Chunk, ChunkSource, Region2DProps } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import {
   ChannelProps,
@@ -25,7 +24,7 @@ import { clamp } from "../utilities/clamp";
 
 export type ChunkImageLayerProps = LayerOptions & {
   source: ChunkSource;
-  region: Region;
+  region: Region2DProps;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
 };
@@ -37,7 +36,7 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
   private readonly source_: ChunkSource;
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/idetik/issues/33
-  private readonly region_: Region;
+  private readonly region_: Region2DProps;
   private readonly channels_: Channels;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
@@ -113,8 +112,7 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private resliceIfZChanged() {
-    const dimensions = this.chunkManagerSource_?.dimensions;
-    const pointWorld = dimensions?.z?.pointWorld;
+    const pointWorld = this.region_.z;
     if (pointWorld === undefined || this.zPrevPointWorld_ === pointWorld) {
       return;
     }
@@ -192,9 +190,8 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
     let data = chunk.data;
-    const dimensions = this.chunkManagerSource?.dimensions;
-    if (dimensions?.z) {
-      data = this.slicePlane(chunk, dimensions.z.pointWorld);
+    if (this.region_.z !== undefined) {
+      data = this.slicePlane(chunk, this.region_.z);
     }
 
     const image = new ImageRenderable(

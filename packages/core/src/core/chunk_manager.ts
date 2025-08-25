@@ -1,11 +1,11 @@
 import {
   Chunk,
+  ChunkDimensionMap,
   ChunkLoader,
   ChunkSource,
-  DimensionMap,
   LoaderAttributes,
+  Region2DProps,
 } from "../data/chunk";
-import { Region } from "../data/region";
 import { vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
@@ -22,8 +22,8 @@ export class ChunkManagerSource {
   private readonly loader_;
   private readonly attrs_: ReadonlyArray<LoaderAttributes>;
   private readonly lowestResLOD_: number;
-  private readonly region_: Region;
-  private dimensions_: DimensionMap;
+  private readonly region_: Region2DProps;
+  private dimensions_: ChunkDimensionMap;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
@@ -31,19 +31,19 @@ export class ChunkManagerSource {
   constructor(
     loader: ChunkLoader,
     attrs: ReadonlyArray<LoaderAttributes>,
-    region: Region
+    region: Region2DProps
   ) {
     this.loader_ = loader;
     this.attrs_ = attrs;
-    this.region_ = region;
     this.lowestResLOD_ = attrs.length - 1;
     this.currentLOD_ = 0;
 
-    this.dimensions_ = this.loader_.getDimensionMap(this.region_);
-    const xIdx = this.dimensions_.x.sourceIndex;
-    const yIdx = this.dimensions_.y.sourceIndex;
-    const zIdx = this.dimensions_.z?.sourceIndex ?? -1;
-    const channelIdx = this.dimensions_.c?.sourceIndex ?? -1;
+    this.region_ = region;
+    this.dimensions_ = this.loader_.getDimensionMap();
+    const xIdx = this.dimensions_.x.index;
+    const yIdx = this.dimensions_.y.index;
+    const zIdx = this.dimensions_.z?.index ?? -1;
+    const channelIdx = this.dimensions_.c?.index ?? -1;
 
     this.validateXYScaleRatios(xIdx, yIdx);
 
@@ -125,8 +125,6 @@ export class ChunkManagerSource {
 
   public update(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
-    this.dimensions_ = this.loader_.getDimensionMap(this.region_);
-
     const zBounds = this.getZBounds();
 
     if (
@@ -180,7 +178,7 @@ export class ChunkManagerSource {
   private loadChunkData(chunk: Chunk): void {
     chunk.state = "loading";
     this.loader_
-      .loadChunkData(chunk, this.dimensions_)
+      .loadChunkData(chunk, this.region_)
       .then(() => {
         chunk.state = "loaded";
       })
@@ -270,15 +268,14 @@ export class ChunkManagerSource {
 
   private getZBounds(): [number, number] {
     const zDim = this.dimensions_.z;
-    if (zDim === undefined) return [0, 1];
-    const zIdx = zDim.sourceIndex;
-    const lodAttrs = this.attrs_[this.currentLOD_];
+    if (zDim === undefined || this.region_.z === undefined) return [0, 1];
 
-    const zShape = lodAttrs.shape[zIdx];
-    const zScale = lodAttrs.scale[zIdx];
-    const zTran = lodAttrs.translation[zIdx];
-    const zPoint = Math.floor((zDim.pointWorld - zTran) / zScale);
-    const chunkDepth = lodAttrs.chunks[zIdx];
+    const zLod = zDim.lods[this.currentLOD_];
+    const zShape = zLod.size;
+    const zScale = zLod.scale;
+    const zTran = zLod.translation;
+    const zPoint = Math.floor((this.region_.z - zTran) / zScale);
+    const chunkDepth = zLod.chunkSize;
 
     const zChunk = Math.max(
       0,
@@ -321,8 +318,8 @@ export class ChunkManagerSource {
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
-    const xIdx = this.dimensions_.x.sourceIndex;
-    const yIdx = this.dimensions_.y.sourceIndex;
+    const xIdx = this.dimensions_.x.index;
+    const yIdx = this.dimensions_.y.index;
 
     const attrs = this.attrs_[this.currentLOD_];
     const chunkWidth = attrs.chunks[xIdx] * attrs.scale[xIdx];
@@ -352,7 +349,7 @@ export class ChunkManagerSource {
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
 
-  public async addSource(source: ChunkSource, region: Region) {
+  public async addSource(source: ChunkSource, region: Region2DProps) {
     let existing = this.sources_.get(source);
     if (!existing) {
       const loader = await source.open();
