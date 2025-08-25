@@ -293,10 +293,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       // Check if this chunk contains the requested position
       if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
         const dimensions = this.chunkManagerSource_?.dimensions;
+
         const data = dimensions?.z
           ? this.slicePlane(chunk, dimensions.z.pointWorld)!
           : chunk.data;
-
         const pixelIndex = y * chunk.shape.x + x; // Use shape.x for 2D slice stride
 
         // For multi-channel images, take the first channel value
