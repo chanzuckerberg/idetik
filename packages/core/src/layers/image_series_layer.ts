@@ -2,7 +2,11 @@ import { Layer, LayerOptions } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import {
+  ChannelProps,
+  Channels,
+  ChannelsEnabled,
+} from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
@@ -17,9 +21,7 @@ export type ImageSeriesLayerProps = LayerOptions & {
 export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageSeriesLayer";
   private readonly seriesLoader_: ImageSeriesLoader;
-  private readonly initialChannelProps_?: ChannelProps[];
-  private readonly channelChangeCallbacks_: Array<() => void> = [];
-  private channelProps_?: ChannelProps[];
+  private readonly channels_: Channels;
   private texture_: Texture2DArray | null = null;
   private image_?: ImageRenderable;
   private extent_?: { x: number; y: number };
@@ -34,8 +36,7 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   }: ImageSeriesLayerProps) {
     super(layerOptions);
     this.setState("initialized");
-    this.channelProps_ = channelProps;
-    this.initialChannelProps_ = channelProps;
+    this.channels_ = new Channels(channelProps);
     this.seriesLoader_ = new ImageSeriesLoader({
       source,
       region,
@@ -52,33 +53,24 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   }
 
   public get channelProps(): ChannelProps[] | undefined {
-    return this.channelProps_;
+    return this.channels_.props;
   }
 
-  public setChannelProps(channelProps: ChannelProps[]) {
-    this.channelProps_ = channelProps;
+  public setChannelProps(channelProps: ChannelProps[]): void {
     this.image_?.setChannelProps(channelProps);
-    this.channelChangeCallbacks_.forEach((callback) => {
-      callback();
-    });
+    this.channels_.setProps(channelProps);
   }
 
   public resetChannelProps(): void {
-    if (this.initialChannelProps_ !== undefined) {
-      this.setChannelProps(this.initialChannelProps_);
-    }
+    this.channels_.resetProps();
   }
 
   public addChannelChangeCallback(callback: () => void): void {
-    this.channelChangeCallbacks_.push(callback);
+    this.channels_.addChangeCallback(callback);
   }
 
   public removeChannelChangeCallback(callback: () => void): void {
-    const index = this.channelChangeCallbacks_.indexOf(callback);
-    if (index === undefined) {
-      throw new Error(`Callback to remove could not be found: ${callback}`);
-    }
-    this.channelChangeCallbacks_.splice(index, 1);
+    this.channels_.removeChangeCallback(callback);
   }
 
   public async setPosition(position: number): Promise<SetIndexResult> {
@@ -114,7 +106,7 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   private setData(chunk: Chunk) {
     if (!this.texture_ || !this.image_) {
       this.texture_ = Texture2DArray.createWithChunk(chunk);
-      this.image_ = this.createImage(chunk, this.texture_, this.channelProps_);
+      this.image_ = this.createImage(chunk, this.texture_, this.channelProps);
       this.addObject(this.image_);
 
       // extent does not change after renderable creation

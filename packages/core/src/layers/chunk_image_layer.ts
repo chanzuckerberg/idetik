@@ -3,7 +3,11 @@ import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import {
+  ChannelProps,
+  Channels,
+  ChannelsEnabled,
+} from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
@@ -34,13 +38,10 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
-  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channels_: Channels;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
-  private readonly channelChangeCallbacks_: Array<() => void> = [];
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
   private chunkManagerSource_?: ChunkManagerSource;
-  private channelProps_?: ChannelProps[];
-  private image_?: ImageRenderable;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
   private debugMode_ = false;
@@ -63,8 +64,7 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-    this.channelProps_ = channelProps;
-    this.initialChannelProps_ = channelProps;
+    this.channels_ = new Channels(channelProps);
     this.onPickValue_ = onPickValue;
   }
 
@@ -145,31 +145,26 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public get channelProps(): ChannelProps[] | undefined {
-    // TODO: should this return Channel[] instead of ChannelProps[]?
-    return this.channelProps_;
+    return this.channels_.props;
   }
+
   public setChannelProps(channelProps: ChannelProps[]) {
-    this.channelProps_ = channelProps;
-    this.image_?.setChannelProps(channelProps);
-    this.channelChangeCallbacks_.forEach((callback) => {
-      callback();
+    this.visibleChunks_.forEach((image) => {
+      image.setChannelProps(channelProps);
     });
+    this.channels_.setProps(channelProps);
   }
+
   public resetChannelProps(): void {
-    if (this.initialChannelProps_ !== undefined) {
-      this.setChannelProps(this.initialChannelProps_);
-    }
+    this.channels_.resetProps();
   }
 
   public addChannelChangeCallback(callback: () => void): void {
-    this.channelChangeCallbacks_.push(callback);
+    this.channels_.addChangeCallback(callback);
   }
+
   public removeChannelChangeCallback(callback: () => void): void {
-    const index = this.channelChangeCallbacks_.indexOf(callback);
-    if (index === undefined) {
-      throw new Error(`Callback to remove could not be found: ${callback}`);
-    }
-    this.channelChangeCallbacks_.splice(index, 1);
+    this.channels_.removeChangeCallback(callback);
   }
 
   public get chunkManagerSource(): ChunkManagerSource | undefined {
