@@ -7,7 +7,6 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 import GUI from "lil-gui";
-import { SliceCoordinates } from "@/data/chunk";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -20,7 +19,7 @@ const bottom = 900;
 // Also specify a subregion in x and y to exercise that part of the API.
 const source = new OmeZarrImageSource(url);
 
-const sliceCoords: SliceCoordinates = {
+const sliceCoords = {
   t: 400,
   z: 300,
   c: 0,
