@@ -61,6 +61,7 @@ export type ChunkDimensionMap = {
   z?: ChunkDimension;
   c?: ChunkDimension;
   t?: ChunkDimension;
+  numLods: number;
 };
 
 export type ChunkDimension = {

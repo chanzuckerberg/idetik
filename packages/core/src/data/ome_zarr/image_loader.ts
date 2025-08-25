@@ -267,6 +267,7 @@ function getChunkDimensionMap(
   const dims: ChunkDimensionMap = {
     x: getChunkDimension(names[xIndex], xIndex, attrs),
     y: getChunkDimension(names[yIndex], yIndex, attrs),
+    numLods: attrs.length,
   };
 
   const zIndex = findDimensionIndexSafe(names, "z");
