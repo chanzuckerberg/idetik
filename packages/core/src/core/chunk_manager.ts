@@ -26,10 +26,7 @@ export class ChunkManagerSource {
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
 
-  constructor(
-    loader: ChunkLoader,
-    sliceCoords: SliceCoordinates
-  ) {
+  constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
     this.loader_ = loader;
     this.dimensions_ = this.loader_.getDimensionMap();
     this.lowestResLOD_ = this.dimensions_.numLods - 1;
@@ -242,7 +239,7 @@ export class ChunkManagerSource {
           `Invalid downsampling factor between levels ${i - 1} → ${i}: ` +
             `expected (2× in X and Y), but got ` +
             `(${rx.toFixed(2)}×, ${ry.toFixed(2)}×) from scale ` +
-            `[${xDim.lods[i-1].scale}, ${yDim.lods[i-1].scale}] → [${xDim.lods[i].scale}, ${yDim.lods[i].scale}]`
+            `[${xDim.lods[i - 1].scale}, ${yDim.lods[i - 1].scale}] → [${xDim.lods[i].scale}, ${yDim.lods[i].scale}]`
         );
       }
     }
