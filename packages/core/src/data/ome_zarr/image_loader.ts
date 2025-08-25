@@ -266,9 +266,7 @@ function getChunkDimensionMap(
   const attrs = getLoaderAttributes(image, arrays);
 
   const xIndex = findDimensionIndex(names, "x");
-
   const yIndex = findDimensionIndex(names, "y");
-
   const dims: ChunkDimensionMap = {
     x: getChunkDimension(names[xIndex], xIndex, attrs),
     y: getChunkDimension(names[yIndex], yIndex, attrs),
