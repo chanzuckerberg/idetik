@@ -1,7 +1,7 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
-import { Chunk, ChunkData, ChunkSource } from "../data/chunk";
+import { Chunk, ChunkSource } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -298,7 +298,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
           dimensions?.z !== undefined
             ? this.slicePlane(chunk, dimensions.z.pointWorld)!
             : chunk.data;
-        const pixelIndex = y * chunk.shape.x + x;
+        const pixelIndex = y * chunk.rowStride + x;
 
         // For multi-channel images, take the first channel value
         return data[pixelIndex];
