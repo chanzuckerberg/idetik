@@ -189,6 +189,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.debugMode_ = debug;
     if (this.image_) {
       this.image_.wireframeEnabled = this.debugMode_;
-    }
+      if (this.debugMode_ && this.chunk_) {
+        this.image_.wireframeColor =
+          this.wireframeColors_[this.chunk_.lod % this.wireframeColors_.length];
+      }
+    };
   }
 }
