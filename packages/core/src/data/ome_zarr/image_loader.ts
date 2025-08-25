@@ -9,7 +9,7 @@ import {
   ChunkDimensionMap,
   isChunkData,
   LoaderAttributes,
-  Region2DProps,
+  Region2D,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -61,7 +61,7 @@ export class OmeZarrImageLoader {
     return this.dimensions_;
   }
 
-  public async loadChunkData(chunk: Chunk, region: Region2DProps) {
+  public async loadChunkData(chunk: Chunk, region: Region2D) {
     const array = this.arrays_[chunk.lod];
     const dims = this.dimensions_;
 

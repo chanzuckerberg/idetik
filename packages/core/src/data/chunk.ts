@@ -55,25 +55,6 @@ export type Chunk = {
   };
 };
 
-type VisibleDimension = {
-  name: string;
-  sourceIndex: number;
-};
-
-export type SliceDimension = {
-  name: string;
-  sourceIndex: number;
-  pointWorld: number;
-};
-
-export type DimensionMap = {
-  x: VisibleDimension;
-  y: VisibleDimension;
-  z?: SliceDimension;
-  c?: SliceDimension;
-  t?: SliceDimension;
-};
-
 export type ChunkDimensionMap = {
   x: ChunkDimension;
   y: ChunkDimension;
@@ -96,19 +77,10 @@ export type ChunkDimensionLod = {
   translation: number;
 };
 
-export type Region2DProps = {
-  z?: number;
-  c?: number;
-  t?: number;
-};
-
 export type Region2D = {
-  x: [number, number];
-  y: [number, number];
   z?: number;
   c?: number;
   t?: number;
-  lod: number;
 };
 
 export type ChunkSource = {
@@ -133,7 +105,7 @@ export type ChunkLoader = {
 
   getDimensionMap(): ChunkDimensionMap;
 
-  loadChunkData(chunk: Chunk, region: Region2DProps): Promise<void>;
+  loadChunkData(chunk: Chunk, region: Region2D): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };

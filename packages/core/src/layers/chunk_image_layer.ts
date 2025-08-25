@@ -1,6 +1,6 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource, Region2DProps } from "../data/chunk";
+import { Chunk, ChunkSource, Region2D } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import {
   ChannelProps,
@@ -24,7 +24,7 @@ import { clamp } from "../utilities/clamp";
 
 export type ChunkImageLayerProps = LayerOptions & {
   source: ChunkSource;
-  region: Region2DProps;
+  region: Region2D;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
 };
@@ -36,7 +36,7 @@ export class ChunkImageLayer extends Layer implements ChannelsEnabled {
   private readonly source_: ChunkSource;
   // TODO: remove this when region is passed through to update.
   // https://github.com/chanzuckerberg/idetik/issues/33
-  private readonly region_: Region2DProps;
+  private readonly region_: Region2D;
   private readonly channels_: Channels;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();

@@ -4,7 +4,7 @@ import {
   ChunkLoader,
   ChunkSource,
   LoaderAttributes,
-  Region2DProps,
+  Region2D,
 } from "../data/chunk";
 import { vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
@@ -22,7 +22,7 @@ export class ChunkManagerSource {
   private readonly loader_;
   private readonly attrs_: ReadonlyArray<LoaderAttributes>;
   private readonly lowestResLOD_: number;
-  private readonly region_: Region2DProps;
+  private readonly region_: Region2D;
   private dimensions_: ChunkDimensionMap;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
@@ -31,7 +31,7 @@ export class ChunkManagerSource {
   constructor(
     loader: ChunkLoader,
     attrs: ReadonlyArray<LoaderAttributes>,
-    region: Region2DProps
+    region: Region2D
   ) {
     this.loader_ = loader;
     this.attrs_ = attrs;
@@ -349,7 +349,7 @@ export class ChunkManagerSource {
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
 
-  public async addSource(source: ChunkSource, region: Region2DProps) {
+  public async addSource(source: ChunkSource, region: Region2D) {
     let existing = this.sources_.get(source);
     if (!existing) {
       const loader = await source.open();

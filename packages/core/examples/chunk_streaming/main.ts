@@ -7,7 +7,7 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 import GUI from "lil-gui";
-import { Region2DProps } from "@/data/chunk";
+import { Region2D } from "@/data/chunk";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -20,7 +20,7 @@ const bottom = 900;
 // Also specify a subregion in x and y to exercise that part of the API.
 const source = new OmeZarrImageSource(url);
 
-const region: Region2DProps = {
+const region: Region2D = {
   t: 400,
   z: 300,
   c: 0,
