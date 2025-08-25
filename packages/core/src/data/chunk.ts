@@ -77,7 +77,7 @@ export type ChunkDimensionLod = {
   translation: number;
 };
 
-export type Region2D = {
+export type SliceIndices = {
   z?: number;
   c?: number;
   t?: number;
@@ -105,7 +105,7 @@ export type ChunkLoader = {
 
   getDimensionMap(): ChunkDimensionMap;
 
-  loadChunkData(chunk: Chunk, region: Region2D): Promise<void>;
+  loadChunkData(chunk: Chunk, region: SliceIndices): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };

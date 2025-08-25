@@ -7,7 +7,7 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 import GUI from "lil-gui";
-import { Region2D } from "@/data/chunk";
+import { SliceIndices } from "@/data/chunk";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -20,7 +20,7 @@ const bottom = 900;
 // Also specify a subregion in x and y to exercise that part of the API.
 const source = new OmeZarrImageSource(url);
 
-const region: Region2D = {
+const sliceIndices: SliceIndices = {
   t: 400,
   z: 300,
   c: 0,
@@ -28,7 +28,7 @@ const region: Region2D = {
 
 const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkImageLayer({ source, region, channelProps });
+const imageLayer = new ChunkImageLayer({ source, sliceIndices, channelProps });
 imageLayer.debugMode = true;
 
 const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;
@@ -47,7 +47,7 @@ new Idetik({
 }).start();
 
 const controls = {
-  region,
+  region: sliceIndices,
   showWireframes: true,
   showChunkInfoOverlay: true,
 };

@@ -9,7 +9,7 @@ import {
   ChunkDimensionMap,
   isChunkData,
   LoaderAttributes,
-  Region2D,
+  SliceIndices,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -54,43 +54,42 @@ export class OmeZarrImageLoader {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
-    this.dimensions_ = getChunkDimensionMap(this.metadata_, this.arrays_);
+    this.dimensions_ = getChunkDimensionMap(this.loaderAttributes_);
   }
 
   public getDimensionMap(): ChunkDimensionMap {
     return this.dimensions_;
   }
 
-  public async loadChunkData(chunk: Chunk, region: Region2D) {
+  public async loadChunkData(chunk: Chunk, sliceIndices: SliceIndices) {
     const array = this.arrays_[chunk.lod];
-    const dims = this.dimensions_;
 
     const chunkCoords: number[] = [];
-    chunkCoords[dims.x.index] = chunk.chunkIndex.x;
-    chunkCoords[dims.y.index] = chunk.chunkIndex.y;
-    if (dims.z) {
-      chunkCoords[dims.z.index] = chunk.chunkIndex.z;
+    chunkCoords[this.dimensions_.x.index] = chunk.chunkIndex.x;
+    chunkCoords[this.dimensions_.y.index] = chunk.chunkIndex.y;
+    if (this.dimensions_.z) {
+      chunkCoords[this.dimensions_.z.index] = chunk.chunkIndex.z;
     }
-    if (dims.c) {
-      if (region.c === undefined) {
+    if (this.dimensions_.c) {
+      if (sliceIndices.c === undefined) {
         throw new Error(
           "Region is missing c value but c dimension exists in data"
         );
       }
-      chunkCoords[dims.c.index] = sliceChunkIndex(
-        region.c,
-        dims.c.lods[chunk.lod]
+      chunkCoords[this.dimensions_.c.index] = sliceChunkIndex(
+        sliceIndices.c,
+        this.dimensions_.c.lods[chunk.lod]
       );
     }
-    if (dims.t) {
-      if (region.t === undefined) {
+    if (this.dimensions_.t) {
+      if (sliceIndices.t === undefined) {
         throw new Error(
           "Region is missing t value but t dimension exists in data"
         );
       }
-      chunkCoords[dims.t.index] = sliceChunkIndex(
-        region.t,
-        dims.t.lods[chunk.lod]
+      chunkCoords[this.dimensions_.t.index] = sliceChunkIndex(
+        sliceIndices.t,
+        this.dimensions_.t.lods[chunk.lod]
       );
     }
 
@@ -111,7 +110,7 @@ export class OmeZarrImageLoader {
     }
 
     chunk.rowAlignmentBytes = rowAlignment;
-    chunk.rowStride = subarray.stride[dims.y.index];
+    chunk.rowStride = subarray.stride[this.dimensions_.y.index];
     chunk.data = data;
   }
 
@@ -259,11 +258,9 @@ function getLoaderAttributes(
 }
 
 function getChunkDimensionMap(
-  image: OmeZarrImage["ome"]["multiscales"][number],
-  arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>
+  attrs: ReadonlyArray<LoaderAttributes>
 ): ChunkDimensionMap {
-  const names = image.axes.map((axis) => axis.name);
-  const attrs = getLoaderAttributes(image, arrays);
+  const names = attrs[0].dimensionNames;
 
   const xIndex = findDimensionIndex(names, "x");
   const yIndex = findDimensionIndex(names, "y");
@@ -293,7 +290,7 @@ function getChunkDimensionMap(
 function getChunkDimension(
   name: string,
   index: number,
-  attrs: LoaderAttributes[]
+  attrs: ReadonlyArray<LoaderAttributes>
 ): ChunkDimension {
   return {
     name,

@@ -30,8 +30,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageLayer";
 
   private readonly source_: ChunkSource;
-  // TODO: remove this when region is passed through to update.
-  // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
   private readonly lod_?: number;
   private readonly channels_: Channels;
