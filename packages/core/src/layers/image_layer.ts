@@ -292,17 +292,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
       // Check if this chunk contains the requested position
       if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-        // Use the actual sliced data being displayed, not the full chunk data
-        let data: ChunkData;
         const dimensions = this.chunkManagerSource_?.dimensions;
-        if (dimensions?.z) {
-          // When z-slicing is active, use the sliced data
-          data = this.slicePlane(chunk, dimensions.z.pointWorld)!;
-          if (!data) return null;
-        } else {
-          // When no z-slicing, use original chunk data
-          data = chunk.data;
-        }
+        const data = dimensions?.z
+          ? this.slicePlane(chunk, dimensions.z.pointWorld)!
+          : chunk.data;
 
         const pixelIndex = y * chunk.shape.x + x; // Use shape.x for 2D slice stride
 
