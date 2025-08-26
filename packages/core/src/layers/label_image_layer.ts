@@ -18,6 +18,7 @@ export type LabelImageLayerProps = LayerOptions & {
   colorMap?: LabelColorMapProps;
   onPickValue?: (info: PointPickingResult) => void;
   lod?: number;
+  outlineSelected?: boolean;
 };
 
 export class LabelImageLayer extends Layer {
@@ -28,9 +29,11 @@ export class LabelImageLayer extends Layer {
   private readonly lod_?: number;
   private colorMap_: LabelColorMap;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
+  private readonly outlineSelected_: boolean;
   private image_?: LabelImageRenderable;
   private imageChunk_?: Chunk;
   private pointerDownPos_: vec2 | null = null;
+  private selectedValue_: number | null = null;
 
   constructor({
     source,
@@ -38,6 +41,7 @@ export class LabelImageLayer extends Layer {
     colorMap = {},
     onPickValue,
     lod,
+    outlineSelected = false,
     ...layerOptions
   }: LabelImageLayerProps) {
     super(layerOptions);
@@ -47,6 +51,7 @@ export class LabelImageLayer extends Layer {
     this.colorMap_ = new LabelColorMap(colorMap);
     this.onPickValue_ = onPickValue;
     this.lod_ = lod;
+    this.outlineSelected_ = outlineSelected;
   }
 
   public update() {
@@ -75,12 +80,24 @@ export class LabelImageLayer extends Layer {
     }
   }
 
+  public setSelectedValue(value: number | null) {
+    this.selectedValue_ = value;
+    if (this.image_) {
+      this.image_.setSelectedValue(this.selectedValue_);
+    }
+  }
+
   public onEvent(event: EventContext) {
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
       this.pointerDownPos_,
       (world) => this.getValueAtWorld(world),
-      this.onPickValue_
+      this.outlineSelected_ 
+        ? (info: PointPickingResult) => {
+            this.setSelectedValue(info.value);
+            this.onPickValue_?.(info);
+          }
+        : this.onPickValue_
     );
   }
 
@@ -105,6 +122,8 @@ export class LabelImageLayer extends Layer {
       geometry,
       imageData: Texture2D.createWithChunk(chunk),
       colorMap: this.colorMap_,
+      outlineSelected: this.outlineSelected_,
+      selectedValue: this.selectedValue_,
     });
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);

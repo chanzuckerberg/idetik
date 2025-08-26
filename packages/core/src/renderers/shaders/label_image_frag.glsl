@@ -10,6 +10,8 @@ uniform mediump sampler2D ColorCycleSampler;
 uniform highp usampler2D ColorLookupTableSampler;
 
 uniform float u_opacity;
+uniform float u_outlineSelected;
+uniform float u_selectedValue;
 
 in vec2 TexCoords;
 
@@ -21,8 +23,45 @@ vec4 unpackRgba(uint packed) {
     return vec4(float(r), float(g), float(b), float(a)) / 255.0;
 }
 
+bool isEdgePixel(uint centerValue, vec2 texCoords) {
+    vec2 texSize = vec2(textureSize(ImageSampler, 0));
+    vec2 texelSize = 1.0 / texSize;
+    
+    // Check 8-connected neighbors
+    for (int dx = -1; dx <= 1; dx++) {
+        for (int dy = -1; dy <= 1; dy++) {
+            if (dx == 0 && dy == 0) continue; // Skip center pixel
+            
+            vec2 neighborCoords = texCoords + vec2(float(dx), float(dy)) * texelSize;
+            
+            // Skip if out of bounds
+            if (neighborCoords.x < 0.0 || neighborCoords.x > 1.0 || 
+                neighborCoords.y < 0.0 || neighborCoords.y > 1.0) {
+                continue;
+            }
+            
+            uint neighborValue = texture(ImageSampler, neighborCoords).r;
+            if (neighborValue != centerValue) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void main() {
     uint texel = texture(ImageSampler, TexCoords).r;
+    
+    // Check if we should outline this selected segment
+    if (u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue) {
+        if (isEdgePixel(texel, TexCoords)) {
+            // Draw outline in bright white with full opacity
+            fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+            return;
+        }
+        // For non-edge pixels of selected segment, use normal coloring but more transparent
+        // to make the outline stand out more
+    }
 
     uint mapLength = uint(textureSize(ColorLookupTableSampler, 0).x);
     for (uint i = 0u; i < mapLength; ++i) {
@@ -30,7 +69,13 @@ void main() {
         if (texel == key) {
             uint value = texelFetch(ColorLookupTableSampler, ivec2(i, 1), 0).r;
             vec4 color = unpackRgba(value);
-            fragColor = vec4(color.rgb, u_opacity * color.a);
+            
+            // If this is the selected segment and outlining is enabled, make it slightly transparent
+            float alpha = (u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue) 
+                ? u_opacity * color.a * 0.3 
+                : u_opacity * color.a;
+            
+            fragColor = vec4(color.rgb, alpha);
             return;
         }
     }
@@ -38,5 +83,11 @@ void main() {
     uint cycleLength = uint(textureSize(ColorCycleSampler, 0).x);
     uint index = uint(texel - 1u) % cycleLength;
     vec4 color = texelFetch(ColorCycleSampler, ivec2(index, 0), 0);
-    fragColor = vec4(color.rgb, u_opacity * color.a);
+    
+    // If this is the selected segment and outlining is enabled, make it slightly transparent
+    float alpha = (u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue) 
+        ? u_opacity * color.a * 0.3 
+        : u_opacity * color.a;
+    
+    fragColor = vec4(color.rgb, alpha);
 }
