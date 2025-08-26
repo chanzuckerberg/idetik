@@ -230,7 +230,7 @@ export class ChunkManagerSource {
     // completely absent in some pyramids.
     const xDim = this.dimensions_.x;
     const yDim = this.dimensions_.y;
-    for (let i = 1; i < this.dimensions_.x.lods.length; i++) {
+    for (let i = 1; i < this.dimensions_.numLods; i++) {
       const rx = xDim.lods[i].scale / xDim.lods[i - 1].scale;
       const ry = xDim.lods[i].scale / yDim.lods[i - 1].scale;
 
