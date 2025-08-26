@@ -106,7 +106,7 @@ export type ChunkLoader = {
 
   getDimensionMap(): ChunkDimensionMap;
 
-  loadChunkData(chunk: Chunk, region: SliceCoordinates): Promise<void>;
+  loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
