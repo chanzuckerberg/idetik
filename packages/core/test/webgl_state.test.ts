@@ -1,49 +1,34 @@
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import { vec2 } from "gl-matrix";
 import { WebGLState } from "../src/renderers/WebGLState";
 import { Box2 } from "../src/math/box2";
 
-// Mock WebGL2RenderingContext for testing
-class MockWebGL2Context {
-  public viewport = vi.fn();
-  public scissor = vi.fn();
-  public enable = vi.fn();
-  public disable = vi.fn();
-  public canvas = { width: 800, height: 600 };
-
-  // WebGL constants
-  public readonly SCISSOR_TEST = 0x0c11;
-  public readonly DEPTH_TEST = 0x0b71;
-  public readonly BLEND = 0x0be2;
-
-  // Mock blend constants
-  public readonly SRC_ALPHA = 0x0302;
-  public readonly ONE_MINUS_SRC_ALPHA = 0x0303;
-  public readonly ONE = 1;
-  public readonly ZERO = 0;
-  public readonly DST_COLOR = 0x0306;
-  public readonly ONE_MINUS_SRC_COLOR = 0x0301;
+function createTestWebGLContext(): WebGL2RenderingContext {
+  const canvas = document.createElement("canvas");
+  canvas.width = 800;
+  canvas.height = 600;
+  const gl = canvas.getContext("webgl2");
+  if (!gl) {
+    throw new Error("WebGL2 not supported in test environment");
+  }
+  return gl;
 }
 
-test("setViewport calls gl.viewport with correct parameters", () => {
-  const mockGL = new MockWebGL2Context();
-  const webglState = new WebGLState(
-    mockGL as unknown as WebGL2RenderingContext
-  );
+test("setViewport sets correct viewport parameters", () => {
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
 
   const viewport = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
 
   webglState.setViewport(viewport);
 
-  expect(mockGL.viewport).toHaveBeenCalledWith(10, 20, 100, 200);
-  expect(mockGL.viewport).toHaveBeenCalledTimes(1);
+  const actualViewport = gl.getParameter(gl.VIEWPORT);
+  expect(Array.from(actualViewport)).toEqual([10, 20, 100, 200]);
 });
 
 test("setViewport with floating point values floors to integers", () => {
-  const mockGL = new MockWebGL2Context();
-  const webglState = new WebGLState(
-    mockGL as unknown as WebGL2RenderingContext
-  );
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
 
   const viewport = new Box2(
     vec2.fromValues(10.7, 20.9),
@@ -52,43 +37,40 @@ test("setViewport with floating point values floors to integers", () => {
 
   webglState.setViewport(viewport);
 
-  expect(mockGL.viewport).toHaveBeenCalledWith(10, 20, 99, 199);
+  const actualViewport = gl.getParameter(gl.VIEWPORT);
+  expect(Array.from(actualViewport)).toEqual([10, 20, 99, 199]);
 });
 
 test("setScissor with explicit scissor box enables scissor test", () => {
-  const mockGL = new MockWebGL2Context();
-  const webglState = new WebGLState(
-    mockGL as unknown as WebGL2RenderingContext
-  );
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
 
   const scissorBox = new Box2(vec2.fromValues(5, 10), vec2.fromValues(55, 110));
 
   webglState.setScissor(scissorBox);
 
-  expect(mockGL.enable).toHaveBeenCalledWith(mockGL.SCISSOR_TEST);
-  expect(mockGL.scissor).toHaveBeenCalledWith(5, 10, 50, 100);
+  expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(true);
+  const actualScissorBox = gl.getParameter(gl.SCISSOR_BOX);
+  expect(Array.from(actualScissorBox)).toEqual([5, 10, 50, 100]);
 });
 
 test("setScissor without parameters disables scissor test", () => {
-  const mockGL = new MockWebGL2Context();
-  const webglState = new WebGLState(
-    mockGL as unknown as WebGL2RenderingContext
-  );
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
 
   const scissorBox = new Box2(vec2.fromValues(5, 10), vec2.fromValues(55, 110));
 
   // First enable scissor, then disable it
   webglState.setScissor(scissorBox);
-  webglState.setScissor();
+  expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(true);
 
-  expect(mockGL.disable).toHaveBeenCalledWith(mockGL.SCISSOR_TEST);
+  webglState.setScissor();
+  expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(false);
 });
 
 test("setScissor with floating point values floors to integers", () => {
-  const mockGL = new MockWebGL2Context();
-  const webglState = new WebGLState(
-    mockGL as unknown as WebGL2RenderingContext
-  );
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
 
   const scissorBox = new Box2(
     vec2.fromValues(5.7, 10.9),
@@ -97,6 +79,69 @@ test("setScissor with floating point values floors to integers", () => {
 
   webglState.setScissor(scissorBox);
 
-  expect(mockGL.enable).toHaveBeenCalledWith(mockGL.SCISSOR_TEST);
-  expect(mockGL.scissor).toHaveBeenCalledWith(5, 10, 49, 99);
+  expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(true);
+  const actualScissorBox = gl.getParameter(gl.SCISSOR_BOX);
+  expect(Array.from(actualScissorBox)).toEqual([5, 10, 49, 99]);
+});
+
+test("setViewport updates existing viewport", () => {
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
+
+  // Set initial viewport
+  const viewport1 = new Box2(
+    vec2.fromValues(10, 20),
+    vec2.fromValues(110, 220)
+  );
+  webglState.setViewport(viewport1);
+
+  let actualViewport = gl.getParameter(gl.VIEWPORT);
+  expect(Array.from(actualViewport)).toEqual([10, 20, 100, 200]);
+
+  // Update to new viewport
+  const viewport2 = new Box2(
+    vec2.fromValues(50, 60),
+    vec2.fromValues(250, 360)
+  );
+  webglState.setViewport(viewport2);
+
+  actualViewport = gl.getParameter(gl.VIEWPORT);
+  expect(Array.from(actualViewport)).toEqual([50, 60, 200, 300]);
+});
+
+test("setViewport without parameters uses default canvas size", () => {
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
+
+  webglState.setViewport();
+
+  const actualViewport = gl.getParameter(gl.VIEWPORT);
+  expect(Array.from(actualViewport)).toEqual([0, 0, 800, 600]);
+});
+
+test("setScissor updates existing scissor box", () => {
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
+
+  // Set initial scissor
+  const scissorBox1 = new Box2(
+    vec2.fromValues(10, 20),
+    vec2.fromValues(110, 220)
+  );
+  webglState.setScissor(scissorBox1);
+
+  expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(true);
+  let actualScissorBox = gl.getParameter(gl.SCISSOR_BOX);
+  expect(Array.from(actualScissorBox)).toEqual([10, 20, 100, 200]);
+
+  // Update to new scissor box
+  const scissorBox2 = new Box2(
+    vec2.fromValues(50, 60),
+    vec2.fromValues(250, 360)
+  );
+  webglState.setScissor(scissorBox2);
+
+  expect(gl.isEnabled(gl.SCISSOR_TEST)).toBe(true);
+  actualScissorBox = gl.getParameter(gl.SCISSOR_BOX);
+  expect(Array.from(actualScissorBox)).toEqual([50, 60, 200, 300]);
 });

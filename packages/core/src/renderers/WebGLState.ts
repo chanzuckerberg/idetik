@@ -152,13 +152,11 @@ export class WebGLState {
         height: Math.floor(height),
       };
 
-      if (
-        !this.isCapabilityEnabled(this.gl_.SCISSOR_TEST, true)
-      ) {
-          this.enable(this.gl_.SCISSOR_TEST);
+      if (!this.isCapabilityEnabled(this.gl_.SCISSOR_TEST, true)) {
+        this.enable(this.gl_.SCISSOR_TEST);
       }
 
-      if(
+      if (
         this.currentScissor_ &&
         WebGLState.xywhEquals(flooredXYWH, this.currentScissor_)
       ) {
