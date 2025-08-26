@@ -1,51 +1,36 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
-import {
-  ChannelProps,
-  Channels,
-  ChannelsEnabled,
-} from "../objects/textures/channel";
+import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
-import {
-  getValueAtWorld,
-  handlePointPickingEvent,
-  PointPickingResult,
-} from "./point_picking";
+import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
+  lod?: number;
 };
 
-// Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageLayer";
 
   private readonly source_: ChunkSource;
   private readonly region_: Region;
   private readonly lod_?: number;
-  private readonly channels_: Channels;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
+  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channelChangeCallbacks_: Array<() => void> = [];
+  private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
   private chunk_?: Chunk;
   private extent_?: { x: number; y: number };
   private pointerDownPos_: vec2 | null = null;
-  private debugMode_ = false;
-
-  private readonly wireframeColors_ = [
-    new Color(0.6, 0.3, 0.3),
-    new Color(0.3, 0.6, 0.4),
-    new Color(0.4, 0.4, 0.7),
-    new Color(0.6, 0.5, 0.3),
-  ];
 
   constructor({
     source,
@@ -124,8 +109,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       y: chunk.shape.y * chunk.scale.y,
     };
 
+    this.image_ = this.createImage(chunk);
     this.chunk_ = chunk;
-    this.image_ = this.createImage(chunk, this.channelProps);
     this.addObject(this.image_);
 
     this.setState("ready");
@@ -137,39 +122,42 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     return this.extent_;
   }
 
-  private createImage(chunk: Chunk, channelProps?: ChannelProps[]) {
+  private createImage(chunk: Chunk) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(
       geometry,
-      Texture2DArray.createWithChunk(chunk, chunk.data),
-      channelProps
+      Texture2DArray.createWithChunk(chunk),
+      this.channelProps
     );
-
-    if (this.debugMode_) {
-      image.wireframeEnabled = true;
-      image.wireframeColor =
-        this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
-    }
-
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
   }
 
   public getValueAtWorld(world: vec3): number | null {
-    const chunk = this.chunk_;
-    if (!chunk || !chunk.data || !this.image_) return null;
-    return getValueAtWorld(world, this.image_.transform, chunk);
-  }
+    if (!this.image_) return null;
+    if (!this.chunk_?.data) return null;
+    const localPos = vec3.transformMat4(
+      vec3.create(),
+      world,
+      this.image_.transform.inverse
+    );
 
-  public set debugMode(debug: boolean) {
-    this.debugMode_ = debug;
-    if (this.image_) {
-      this.image_.wireframeEnabled = this.debugMode_;
-      if (this.debugMode_ && this.chunk_) {
-        this.image_.wireframeColor =
-          this.wireframeColors_[this.chunk_.lod % this.wireframeColors_.length];
-      }
+    const x = Math.floor(localPos[0]);
+    const y = Math.floor(localPos[1]);
+
+    // Check if this chunk contains the requested position
+    if (
+      x >= 0 &&
+      x < this.chunk_.shape.x &&
+      y >= 0 &&
+      y < this.chunk_.shape.y
+    ) {
+      const pixelIndex = y * this.chunk_.rowStride + x;
+      // For multi-channel images, take the first channel value
+      return this.chunk_.data[pixelIndex];
     }
+
+    return null;
   }
 }

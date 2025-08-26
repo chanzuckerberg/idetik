@@ -4,7 +4,7 @@ import {
   OrthographicCamera,
   Region,
   Color,
-  ImageLayer,
+  ChunkedImageLayer,
 } from "@";
 import { LabelImageLayer } from "@/layers/label_image_layer";
 import { PointPickingResult } from "@/layers/point_picking";
@@ -73,18 +73,11 @@ const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
 
 // Create base image layer
-const imageLayer = new ImageLayer({
+const imageLayer = new ChunkedImageLayer({
   source: imageSource,
   region: imageRegion,
   transparent: true,
-  channelProps: [
-    {
-      visible: true,
-      color: Color.WHITE,
-      contrastLimits: phaseContrastLimits,
-    },
-  ],
-  lod,
+  channelProps: { contrastLimits: phaseContrastLimits },
 });
 
 // Create label image layer with picking functionality

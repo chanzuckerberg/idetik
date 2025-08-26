@@ -1,11 +1,10 @@
 import {
   ChannelProps,
-  Color,
   Idetik,
+  ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   PointPickingResult,
-  ChunkImageLayer,
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
@@ -36,13 +35,7 @@ const xInfo = dimensionInfo("x");
 const sliceCoords = {
   z: zMidPoint,
 };
-const channelProps: ChannelProps[] = [
-  {
-    visible: true,
-    color: Color.WHITE,
-    contrastLimits: [0, 200],
-  },
-];
+const channelProps: ChannelProps = { contrastLimits: [0, 200] };
 
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
 
@@ -55,7 +48,7 @@ const onPickValue = (info: PointPickingResult) => {
   `;
 };
 
-const layer = new ChunkImageLayer({
+const layer = new ChunkedImageLayer({
   source,
   sliceCoords,
   channelProps,

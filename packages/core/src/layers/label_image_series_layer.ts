@@ -15,6 +15,7 @@ export type LabelImageSeriesLayerProps = LayerOptions & {
   region: Region;
   seriesDimensionName: string;
   colorMap?: LabelColorMapProps;
+  lod?: number;
 };
 
 export class LabelImageSeriesLayer extends Layer {

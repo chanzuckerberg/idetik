@@ -1,6 +1,7 @@
 import {
+  ChannelProps,
   Idetik,
-  ChunkImageLayer,
+  ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
 } from "@";
@@ -16,18 +17,16 @@ const top = 100;
 const bottom = 900;
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
-// Also specify a subregion in x and y to exercise that part of the API.
 const source = new OmeZarrImageSource(url);
-
 const sliceCoords = {
   t: 400,
   z: 300,
   c: 0,
 };
 
-const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
+const channelProps: ChannelProps = { contrastLimits: [0, 255] };
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkImageLayer({ source, sliceCoords, channelProps });
+const imageLayer = new ChunkedImageLayer({ source, sliceCoords, channelProps });
 imageLayer.debugMode = true;
 
 const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;

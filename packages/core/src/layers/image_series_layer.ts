@@ -16,6 +16,7 @@ export type ImageSeriesLayerProps = LayerOptions & {
   region: Region;
   seriesDimensionName: string;
   channelProps?: ChannelProps[];
+  lod?: number;
 };
 
 export class ImageSeriesLayer extends Layer implements ChannelsEnabled {

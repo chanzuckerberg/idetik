@@ -21,6 +21,7 @@ export type LabelImageLayerProps = LayerOptions & {
   region: Region;
   colorMap?: LabelColorMapProps;
   onPickValue?: (info: PointPickingResult) => void;
+  lod?: number;
 };
 
 export class LabelImageLayer extends Layer {
