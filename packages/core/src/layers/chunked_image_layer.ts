@@ -151,7 +151,7 @@ export class ChunkedImageLayer extends Layer {
 
     const sliceSize = chunk.shape.x * chunk.shape.y;
     const offset = sliceSize * zClamped;
-    return chunk.data.subarray(offset, offset + sliceSize);
+    return chunk.data.slice(offset, offset + sliceSize);
   }
 
   private createImage(chunk: Chunk) {
