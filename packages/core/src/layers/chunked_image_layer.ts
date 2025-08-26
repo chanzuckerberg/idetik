@@ -181,33 +181,55 @@ export class ChunkedImageLayer extends Layer {
   }
 
   public getValueAtWorld(world: vec3): number | null {
-    if (!this.chunkManagerSource_) return null;
-    // Iterate through all visible chunks to find the one containing the world position
+    const currentLOD = this.chunkManagerSource_?.currentLOD ?? 0;
+
+    // First, try to find the value in current LOD chunks (highest priority)
     for (const [chunk, image] of this.visibleChunks_) {
-      if (!chunk.data) continue;
-      const localPos = vec3.transformMat4(
-        vec3.create(),
-        world,
-        image.transform.inverse
-      );
-
-      const x = Math.floor(localPos[0]);
-      const y = Math.floor(localPos[1]);
-
-      // Check if this chunk contains the requested position
-      if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-        const dimensions = this.chunkManagerSource_.dimensions;
-
-        const data =
-          dimensions?.z !== undefined
-            ? this.slicePlane(chunk, dimensions.z.pointWorld)!
-            : chunk.data;
-        const pixelIndex = y * chunk.rowStride + x;
-
-        // For multi-channel images, take the first channel value
-        return data[pixelIndex];
-      }
+      if (chunk.lod !== currentLOD) continue;
+      const value = this.getValueFromChunk(chunk, image, world);
+      if (value !== null) return value;
     }
+
+    // Fallback to low-res chunks if no current LOD chunk contains the position
+    for (const [chunk, image] of this.visibleChunks_) {
+      if (chunk.lod === currentLOD) continue;
+      const value = this.getValueFromChunk(chunk, image, world);
+      if (value !== null) return value;
+    }
+
+    return null;
+  }
+
+  private getValueFromChunk(
+    chunk: Chunk,
+    image: ImageRenderable,
+    world: vec3
+  ): number | null {
+    if (!chunk.data) return null;
+
+    const localPos = vec3.transformMat4(
+      vec3.create(),
+      world,
+      image.transform.inverse
+    );
+
+    const x = Math.floor(localPos[0]);
+    const y = Math.floor(localPos[1]);
+
+    // Check if this chunk contains the requested position
+    if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
+      const dimensions = this.chunkManagerSource_?.dimensions;
+
+      const data =
+        dimensions?.z !== undefined
+          ? this.slicePlane(chunk, dimensions.z.pointWorld)!
+          : chunk.data;
+      const pixelIndex = y * chunk.rowStride + x;
+
+      // For multi-channel images, take the first channel value
+      return data[pixelIndex];
+    }
+
     return null;
   }
 

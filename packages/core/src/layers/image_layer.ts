@@ -168,6 +168,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       // For multi-channel images, take the first channel value
       return this.chunk_.data[pixelIndex];
     }
+
     return null;
   }
 }
