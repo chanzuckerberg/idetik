@@ -28,47 +28,6 @@ export interface ChannelsEnabled {
   removeChannelChangeCallback(callback: () => void): void;
 }
 
-export class Channels {
-  private props_: ChannelProps[] | undefined;
-  private initialProps_: ChannelProps[] | undefined;
-  private readonly changeCallbacks_: Array<() => void> = [];
-
-  constructor(props?: ChannelProps[]) {
-    this.props_ = props;
-    this.initialProps_ = props;
-  }
-
-  public get props(): ChannelProps[] | undefined {
-    // TODO: should this return Channel[] instead of ChannelProps[]?
-    return this.props_;
-  }
-
-  public setProps(props: ChannelProps[]): void {
-    this.props_ = props;
-    this.changeCallbacks_.forEach((callback) => {
-      callback();
-    });
-  }
-
-  public resetProps(): void {
-    if (this.initialProps_ !== undefined) {
-      this.setProps(this.initialProps_);
-    }
-  }
-
-  public addChangeCallback(callback: () => void): void {
-    this.changeCallbacks_.push(callback);
-  }
-
-  public removeChangeCallback(callback: () => void): void {
-    const index = this.changeCallbacks_.indexOf(callback);
-    if (index === undefined) {
-      throw new Error(`Callback to remove could not be found: ${callback}`);
-    }
-    this.changeCallbacks_.splice(index, 1);
-  }
-}
-
 export function validateChannel(
   texture: Texture | null,
   { visible, color, contrastLimits }: ChannelProps

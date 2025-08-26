@@ -1,34 +1,9 @@
-import { Chunk } from "../data/chunk";
 import { EventContext } from "../core/event_dispatcher";
-import { TrsTransform } from "../core/transforms";
 import { vec2, vec3 } from "gl-matrix";
 
 export interface PointPickingResult {
   world: vec3;
   value: number;
-}
-
-export function getValueAtWorld(
-  worldPos: vec3,
-  dataToWorld: TrsTransform,
-  chunk: Chunk
-): number | null {
-  if (!chunk.data) return null;
-
-  // Transform world to local texture coordinates using inverse transform
-  const worldToData = dataToWorld.inverse;
-  const localPos = vec3.transformMat4(vec3.create(), worldPos, worldToData);
-
-  // Convert to pixel coordinates and bounds check
-  const x = Math.floor(localPos[0]);
-  const y = Math.floor(localPos[1]);
-  if (x < 0 || x >= chunk.shape.x || y < 0 || y >= chunk.shape.y) {
-    return null;
-  }
-
-  const pixelIndex = y * chunk.rowStride + x;
-  const data = chunk.data;
-  return data[pixelIndex];
 }
 
 export function handlePointPickingEvent<T>(
