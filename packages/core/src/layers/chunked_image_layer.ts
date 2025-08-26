@@ -1,6 +1,6 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource } from "../data/chunk";
+import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -13,11 +13,10 @@ import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
-import { Region } from "../data/region";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
-  region: Region;
+  sliceCoords: SliceCoordinates;
   channelProps?: ChannelProps;
   onPickValue?: (info: PointPickingResult) => void;
 };
@@ -26,7 +25,7 @@ export class ChunkedImageLayer extends Layer {
   public readonly type = "ChunkedImageLayer";
 
   private readonly source_: ChunkSource;
-  private readonly region_: Region;
+  private readonly sliceCoords_: SliceCoordinates;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
   private channelProps_?: ChannelProps;
@@ -44,7 +43,7 @@ export class ChunkedImageLayer extends Layer {
 
   constructor({
     source,
-    region,
+    sliceCoords,
     channelProps,
     onPickValue,
     ...layerOptions
@@ -52,7 +51,7 @@ export class ChunkedImageLayer extends Layer {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
-    this.region_ = region;
+    this.sliceCoords_ = sliceCoords;
     this.channelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
   }
@@ -60,7 +59,7 @@ export class ChunkedImageLayer extends Layer {
   public async onAttached(context: IdetikContext) {
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_,
-      this.region_
+      this.sliceCoords_
     );
   }
 
@@ -107,8 +106,7 @@ export class ChunkedImageLayer extends Layer {
   }
 
   private resliceIfZChanged() {
-    const dimensions = this.chunkManagerSource_?.dimensions;
-    const pointWorld = dimensions?.z?.pointWorld;
+    const pointWorld = this.sliceCoords_.z;
     if (pointWorld === undefined || this.zPrevPointWorld_ === pointWorld) {
       return;
     }
@@ -158,9 +156,9 @@ export class ChunkedImageLayer extends Layer {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
     let data = chunk.data;
-    const dimensions = this.chunkManagerSource?.dimensions;
-    if (dimensions?.z) {
-      data = this.slicePlane(chunk, dimensions.z.pointWorld);
+    const pointWorld = this.sliceCoords_.z;
+    if (pointWorld !== undefined) {
+      data = this.slicePlane(chunk, pointWorld);
     }
 
     const image = new ImageRenderable(
@@ -218,11 +216,10 @@ export class ChunkedImageLayer extends Layer {
 
     // Check if this chunk contains the requested position
     if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-      const dimensions = this.chunkManagerSource_?.dimensions;
-
+      const pointWorld = this.sliceCoords_.z;
       const data =
-        dimensions?.z !== undefined
-          ? this.slicePlane(chunk, dimensions.z.pointWorld)!
+        pointWorld !== undefined
+          ? this.slicePlane(chunk, pointWorld)!
           : chunk.data;
       const pixelIndex = y * chunk.rowStride + x;
 
