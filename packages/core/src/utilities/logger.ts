@@ -19,6 +19,7 @@ type Module =
   | "ChunkManager"
   | "EventDispatcher"
   | "Idetik"
+  | "ChunkedImageLayer"
   | "ImageLayer"
   | "LabelImageLayer"
   | "WebGLRenderer"

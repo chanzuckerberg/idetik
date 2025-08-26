@@ -15,10 +15,6 @@ export interface LayerOptions {
   transparent?: boolean;
   opacity?: number;
   blendMode?: blendMode;
-
-  // TODO:(shlomnissan) Remove this parameter—LOD will be computed
-  // dynamically by the chunk manager.
-  lod?: number;
 }
 
 export abstract class Layer {
