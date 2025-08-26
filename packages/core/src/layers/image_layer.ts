@@ -44,7 +44,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.setState("initialized");
     this.source_ = source;
     this.region_ = region;
-    this.channels_ = new Channels(channelProps);
+    this.channelProps_ = channelProps;
+    this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
     this.lod_ = lod;
   }
@@ -74,24 +75,34 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public get channelProps(): ChannelProps[] | undefined {
-    return this.channels_.props;
+    // TODO: should this return Channel[] instead of ChannelProps[]?
+    return this.channelProps_;
   }
 
   public setChannelProps(channelProps: ChannelProps[]) {
+    this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
-    this.channels_.setProps(channelProps);
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
+    });
   }
 
   public resetChannelProps(): void {
-    this.channels_.resetProps();
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
+    }
   }
 
   public addChannelChangeCallback(callback: () => void): void {
-    this.channels_.addChangeCallback(callback);
+    this.channelChangeCallbacks_.push(callback);
   }
 
   public removeChannelChangeCallback(callback: () => void): void {
-    this.channels_.removeChangeCallback(callback);
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.channelChangeCallbacks_.splice(index, 1);
   }
 
   private async load(region: Region) {
