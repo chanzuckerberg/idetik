@@ -62,13 +62,8 @@ export class WebGLRenderer extends Renderer {
     camera: Camera,
     viewportBox?: Box2
   ) {
-    if (viewportBox) {
-      this.state_.setViewport(viewportBox);
-      this.state_.setScissor(viewportBox);
-    } else {
-      this.state_.setScissor();
-      this.state_.setViewport();
-    }
+    this.state_.setViewport(viewportBox);
+    this.state_.setScissor(viewportBox);
 
     this.clear();
     this.activeCamera = camera;
@@ -192,11 +187,11 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected resize(width: number, height: number) {
-    const defaultViewport = new Box2(
+    const newViewport = new Box2(
       vec2.fromValues(0, 0),
       vec2.fromValues(width, height)
     );
-    this.state_.setViewport(defaultViewport);
+    this.state_.setViewport(newViewport);
   }
 
   protected clear() {
