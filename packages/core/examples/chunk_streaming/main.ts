@@ -1,6 +1,7 @@
 import {
+  ChannelProps,
   Idetik,
-  ImageLayer,
+  ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
@@ -29,9 +30,9 @@ const region: Region = [
   { dimension: "x", index: { type: "full" } },
 ];
 
-const channelProps = [{ contrastLimits: [0, 255] as [number, number] }];
+const channelProps: ChannelProps = { contrastLimits: [0, 255] };
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ImageLayer({ source, region, channelProps });
+const imageLayer = new ChunkedImageLayer({ source, region, channelProps });
 imageLayer.debugMode = true;
 
 const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;
