@@ -26,7 +26,7 @@ export function isChunkData(value: unknown): value is ChunkData {
 
 export type Chunk = {
   data?: ChunkData;
-  state: "unloaded" | "loading" | "loaded";
+  state: "unloaded" | "loading" | "loaded" | "disposed";
   lod: number;
   visible: boolean;
   prefetch: boolean;
