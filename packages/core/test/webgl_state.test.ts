@@ -39,21 +39,23 @@ test("setViewport calls gl.viewport with correct parameters", () => {
   expect(mockGL.viewport).toHaveBeenCalledTimes(1);
 });
 
-test("setViewport avoids redundant gl.viewport calls", () => {
+test("setViewport with floating point values floors to integers", () => {
   const mockGL = new MockWebGL2Context();
   const webglState = new WebGLState(
     mockGL as unknown as WebGL2RenderingContext
   );
 
-  const viewport = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
+  const viewport = new Box2(
+    vec2.fromValues(10.7, 20.9),
+    vec2.fromValues(110.3, 220.1)
+  );
 
   webglState.setViewport(viewport);
-  webglState.setViewport(viewport);
 
-  expect(mockGL.viewport).toHaveBeenCalledTimes(1);
+  expect(mockGL.viewport).toHaveBeenCalledWith(10, 20, 99, 199);
 });
 
-test("enableScissor with explicit scissor box", () => {
+test("setScissor with explicit scissor box enables scissor test", () => {
   const mockGL = new MockWebGL2Context();
   const webglState = new WebGLState(
     mockGL as unknown as WebGL2RenderingContext
@@ -61,62 +63,40 @@ test("enableScissor with explicit scissor box", () => {
 
   const scissorBox = new Box2(vec2.fromValues(5, 10), vec2.fromValues(55, 110));
 
-  webglState.enableScissor(scissorBox);
+  webglState.setScissor(scissorBox);
 
   expect(mockGL.enable).toHaveBeenCalledWith(mockGL.SCISSOR_TEST);
   expect(mockGL.scissor).toHaveBeenCalledWith(5, 10, 50, 100);
 });
 
-test("enableScissor without parameters uses current viewport", () => {
+test("setScissor without parameters disables scissor test", () => {
   const mockGL = new MockWebGL2Context();
   const webglState = new WebGLState(
     mockGL as unknown as WebGL2RenderingContext
   );
 
-  const viewport = new Box2(vec2.fromValues(5, 10), vec2.fromValues(55, 110));
+  const scissorBox = new Box2(vec2.fromValues(5, 10), vec2.fromValues(55, 110));
 
-  // Set viewport first, then enable scissor
-  webglState.setViewport(viewport);
-  webglState.enableScissor();
-
-  expect(mockGL.enable).toHaveBeenCalledWith(mockGL.SCISSOR_TEST);
-  expect(mockGL.scissor).toHaveBeenCalledWith(5, 10, 50, 100);
-});
-
-test("enableScissor without parameters uses default canvas size when no viewport set", () => {
-  const mockGL = new MockWebGL2Context();
-  const webglState = new WebGLState(
-    mockGL as unknown as WebGL2RenderingContext
-  );
-
-  webglState.enableScissor();
-
-  expect(mockGL.enable).toHaveBeenCalledWith(mockGL.SCISSOR_TEST);
-  expect(mockGL.scissor).toHaveBeenCalledWith(0, 0, 800, 600);
-});
-
-test("disableScissor disables SCISSOR_TEST when enabled", () => {
-  const mockGL = new MockWebGL2Context();
-  const webglState = new WebGLState(
-    mockGL as unknown as WebGL2RenderingContext
-  );
-
-  const viewport = new Box2(vec2.fromValues(5, 10), vec2.fromValues(55, 110));
-
-  webglState.setViewport(viewport);
-  webglState.enableScissor();
-  webglState.disableScissor();
+  // First enable scissor, then disable it
+  webglState.setScissor(scissorBox);
+  webglState.setScissor();
 
   expect(mockGL.disable).toHaveBeenCalledWith(mockGL.SCISSOR_TEST);
 });
 
-test("disableScissor does nothing when not enabled", () => {
+test("setScissor with floating point values floors to integers", () => {
   const mockGL = new MockWebGL2Context();
   const webglState = new WebGLState(
     mockGL as unknown as WebGL2RenderingContext
   );
 
-  webglState.disableScissor();
+  const scissorBox = new Box2(
+    vec2.fromValues(5.7, 10.9),
+    vec2.fromValues(55.3, 110.1)
+  );
 
-  expect(mockGL.disable).not.toHaveBeenCalled();
+  webglState.setScissor(scissorBox);
+
+  expect(mockGL.enable).toHaveBeenCalledWith(mockGL.SCISSOR_TEST);
+  expect(mockGL.scissor).toHaveBeenCalledWith(5, 10, 49, 99);
 });

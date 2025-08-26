@@ -1,5 +1,4 @@
 import { vec2 } from "gl-matrix";
-import { almostEqual } from "../utilities/almost_equal";
 
 export class Box2 {
   public min: vec2;
@@ -31,19 +30,11 @@ export class Box2 {
     return true;
   }
 
-  public static equals(
-    a: Box2,
-    b: Box2,
-    options: { absoluteTolerance?: number; relativeTolerance?: number } = {
-      absoluteTolerance: 1e-6,
-      relativeTolerance: 1e-9,
-    }
-  ): boolean {
-    return (
-      almostEqual(a.min[0], b.min[0], options) &&
-      almostEqual(a.min[1], b.min[1], options) &&
-      almostEqual(a.max[0], b.max[0], options) &&
-      almostEqual(a.max[1], b.max[1], options)
-    );
+  public asXYWH(): { x: number; y: number; width: number; height: number } {
+    const x = this.min[0];
+    const y = this.min[1];
+    const width = this.max[0] - this.min[0];
+    const height = this.max[1] - this.min[1];
+    return { x, y, width, height };
   }
 }

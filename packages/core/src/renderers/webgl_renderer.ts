@@ -53,8 +53,8 @@ export class WebGLRenderer extends Renderer {
     this.programs_ = new WebGLShaderPrograms(this.gl);
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
-    this.resize(this.canvas.width, this.canvas.height);
     this.state_ = new WebGLState(this.gl);
+    this.resize(this.canvas.width, this.canvas.height);
   }
 
   public render(
@@ -64,14 +64,10 @@ export class WebGLRenderer extends Renderer {
   ) {
     if (viewportBox) {
       this.state_.setViewport(viewportBox);
-      this.state_.enableScissor();
+      this.state_.setScissor(viewportBox);
     } else {
-      this.state_.disableScissor();
-      const defaultViewport = new Box2(
-        vec2.fromValues(0, 0),
-        vec2.fromValues(this.canvas.width, this.canvas.height)
-      );
-      this.state_.setViewport(defaultViewport);
+      this.state_.setScissor();
+      this.state_.setViewport();
     }
 
     this.clear();
