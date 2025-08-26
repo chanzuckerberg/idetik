@@ -161,7 +161,7 @@ export class ChunkManagerSource {
     for (const chunk of this.chunks_) {
       if (
         chunk.lod === this.currentLOD_ &&
-        (chunk.state === "unloaded" || chunk.state === "disposed") &&
+        chunk.state === "unloaded" &&
         (chunk.visible || chunk.prefetch)
       ) {
         this.loadChunkData(chunk);
@@ -227,29 +227,23 @@ export class ChunkManagerSource {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
     for (const chunk of this.chunks_) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
-      const inPrefetchRegion =
+      const eligibleForPrefetch =
         !isVisible && this.isChunkWithinBounds(chunk, paddedBounds);
 
-      const isCurrent = chunk.lod === this.currentLOD_;
-      const isFallback = chunk.lod === this.lowestResLOD_;
+      const isCurrentLOD = chunk.lod === this.currentLOD_;
+      const isFallbackLOD = chunk.lod === this.lowestResLOD_;
       const isLoaded = chunk.state === "loaded";
 
       chunk.visible = isVisible;
-      chunk.prefetch = isCurrent && inPrefetchRegion && !isLoaded;
+      chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
 
-      /*
-        Disposal rules:
-        - Keep fallback LOD pinned.
-        - For current LOD dispose if not visible AND not in prefetch region.
-        - For any other LOD dispose regardless.
-      */
-      if (isLoaded && !isFallback) {
+      if (isLoaded && !isFallbackLOD) {
         const shouldDispose =
-          !isCurrent || (isCurrent && !isVisible && !inPrefetchRegion);
+          !isCurrentLOD || (isCurrentLOD && !isVisible && !eligibleForPrefetch);
 
         if (shouldDispose) {
           chunk.data = undefined;
-          chunk.state = "disposed";
+          chunk.state = "unloaded";
           Logger.debug("ChunkManager", `Disposing chunk in LOD ${chunk.lod}`);
         }
       }
