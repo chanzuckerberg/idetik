@@ -1,6 +1,5 @@
 import {
   ChannelProps,
-  Color,
   Idetik,
   ChunkedImageLayer,
   OmeZarrImageSource,
@@ -39,11 +38,7 @@ const region: Region = [
   { dimension: "y", index: { type: "full" } },
   { dimension: "x", index: { type: "full" } },
 ];
-const channelProps: ChannelProps = {
-  visible: true,
-  color: Color.WHITE,
-  contrastLimits: [0, 200],
-};
+const channelProps: ChannelProps = { contrastLimits: [0, 200] };
 
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
 
@@ -56,7 +51,12 @@ const onPickValue = (info: PointPickingResult) => {
   `;
 };
 
-const layer = new ChunkedImageLayer({ source, region, channelProps, onPickValue });
+const layer = new ChunkedImageLayer({
+  source,
+  region,
+  channelProps,
+  onPickValue,
+});
 const axes = new AxesLayer({
   length: 0.75 * xInfo.scale * xInfo.size,
   width: 0.01,
