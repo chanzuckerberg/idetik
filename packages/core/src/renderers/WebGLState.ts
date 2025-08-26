@@ -1,6 +1,8 @@
 import { Box2 } from "../math/box2";
 import { vec2 } from "gl-matrix";
 
+type XYWH = { x: number; y: number; width: number; height: number };
+
 export type BlendingMode =
   | "none"
   | "normal"
@@ -16,27 +18,16 @@ export class WebGLState {
   private blendSrcFactor_: GLenum | null = null;
   private blendDstFactor_: GLenum | null = null;
   private currentBlendingMode_: BlendingMode | null = null;
-  private currentViewport_: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null = null;
+  private currentViewport_: XYWH | null = null;
+  private currentScissor_: XYWH | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
   }
 
-  private glBoxEquals(
-    box: Box2,
-    xywh: { x: number; y: number; width: number; height: number }
-  ): boolean {
-    const boxXYWH = box.asXYWH();
+  private static xywhEquals(a: XYWH, b: XYWH): boolean {
     return (
-      Math.floor(boxXYWH.x) === xywh.x &&
-      Math.floor(boxXYWH.y) === xywh.y &&
-      Math.floor(boxXYWH.width) === xywh.width &&
-      Math.floor(boxXYWH.height) === xywh.height
+      a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
     );
   }
 
@@ -135,7 +126,7 @@ export class WebGLState {
 
     if (
       this.currentViewport_ &&
-      this.glBoxEquals(viewport, this.currentViewport_)
+      WebGLState.xywhEquals(flooredXYWH, this.currentViewport_)
     ) {
       return;
     }
@@ -152,19 +143,39 @@ export class WebGLState {
   public setScissor(scissorBox?: Box2) {
     const enabled = scissorBox !== undefined;
 
-    if (this.isCapabilityEnabled(this.gl_.SCISSOR_TEST, enabled)) return;
-
     if (enabled) {
-      this.enable(this.gl_.SCISSOR_TEST);
       const { x, y, width, height } = scissorBox.asXYWH();
+      const flooredXYWH: XYWH = {
+        x: Math.floor(x),
+        y: Math.floor(y),
+        width: Math.floor(width),
+        height: Math.floor(height),
+      };
+
+      if (
+        !this.isCapabilityEnabled(this.gl_.SCISSOR_TEST, true)
+      ) {
+          this.enable(this.gl_.SCISSOR_TEST);
+      }
+
+      if(
+        this.currentScissor_ &&
+        WebGLState.xywhEquals(flooredXYWH, this.currentScissor_)
+      ) {
+        return;
+      }
+
       this.gl_.scissor(
-        Math.floor(x),
-        Math.floor(y),
-        Math.floor(width),
-        Math.floor(height)
+        flooredXYWH.x,
+        flooredXYWH.y,
+        flooredXYWH.width,
+        flooredXYWH.height
       );
+      this.currentScissor_ = flooredXYWH;
     } else {
+      if (this.isCapabilityEnabled(this.gl_.SCISSOR_TEST, false)) return;
       this.disable(this.gl_.SCISSOR_TEST);
+      this.currentScissor_ = null;
     }
   }
 }
