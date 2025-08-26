@@ -103,6 +103,10 @@ export class Idetik {
     return this.renderer_.height;
   }
 
+  public get textureInfo() {
+    return this.renderer_.textureInfo;
+  }
+
   public set cameraControls(controls: CameraControls | undefined) {
     this.cameraControls_ = controls;
   }
