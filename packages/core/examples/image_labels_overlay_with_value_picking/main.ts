@@ -113,7 +113,7 @@ function createLabelsLayer() {
         Label Value: ${value}<br/>
         Mode: ${outlineMode ? "Outline" : "Fill"}
       `;
-      
+
       if (outlineMode) {
         // In outline mode, the layer handles the selection internally
       } else {
@@ -142,12 +142,12 @@ const idetik = new Idetik({
 toggleButton.addEventListener("click", () => {
   outlineMode = !outlineMode;
   toggleButton.textContent = `Mode: ${outlineMode ? "Outline" : "Fill"}`;
-  
+
   // Remove old layer and create new one with updated mode
   idetik.layerManager.remove(labelsLayer);
   labelsLayer = createLabelsLayer();
   idetik.layerManager.add(labelsLayer);
-  
+
   // Clear pick info
   pickInfoDiv.innerHTML = `
     <strong>Mode changed to:</strong> ${outlineMode ? "Outline" : "Fill"}<br/>

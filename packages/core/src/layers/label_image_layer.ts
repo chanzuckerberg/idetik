@@ -92,7 +92,7 @@ export class LabelImageLayer extends Layer {
       event,
       this.pointerDownPos_,
       (world) => this.getValueAtWorld(world),
-      this.outlineSelected_ 
+      this.outlineSelected_
         ? (info: PointPickingResult) => {
             this.setSelectedValue(info.value);
             this.onPickValue_?.(info);
