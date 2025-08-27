@@ -151,7 +151,7 @@ export class Idetik {
         this.needsResize_ = false;
       }
 
-      // TEMP: in the future, the renderer will manage a list of dynmaically-sized viewports
+      // TEMP: in the future, the renderer will manage a list of dynamically-sized viewports
       // instead of passing its own box to itself
       this.renderer_.render(this.layerManager, this.camera, this.renderer_.box);
       for (const overlay of this.overlays) {
