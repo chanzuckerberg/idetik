@@ -72,7 +72,7 @@ void main() {
             
             // If this is the selected segment and outlining is enabled, make it slightly transparent
             float alpha = (u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue) 
-                ? u_opacity * color.a * 0.3 
+                ? u_opacity * color.a * 0.9 
                 : u_opacity * color.a;
             
             fragColor = vec4(color.rgb, alpha);
@@ -86,7 +86,7 @@ void main() {
     
     // If this is the selected segment and outlining is enabled, make it slightly transparent
     float alpha = (u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue) 
-        ? u_opacity * color.a * 0.3 
+        ? u_opacity * color.a * 0.9 
         : u_opacity * color.a;
     
     fragColor = vec4(color.rgb, alpha);

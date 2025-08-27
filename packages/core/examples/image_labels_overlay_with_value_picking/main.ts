@@ -74,18 +74,12 @@ const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
 
 // Add outline mode toggle
 let outlineMode = false;
-const toggleButton = document.createElement("button");
-toggleButton.textContent = "Mode: Fill";
-toggleButton.style.position = "absolute";
-toggleButton.style.top = "10px";
-toggleButton.style.right = "10px";
-toggleButton.style.padding = "8px 16px";
-toggleButton.style.backgroundColor = "#007acc";
-toggleButton.style.color = "white";
-toggleButton.style.border = "none";
-toggleButton.style.borderRadius = "4px";
-toggleButton.style.cursor = "pointer";
-document.body.appendChild(toggleButton);
+const infoBox = document.querySelector<HTMLDivElement>("#info-box")!;
+const toggleDiv = document.createElement("div");
+toggleDiv.innerHTML =
+  '<strong>Mode:</strong> <span id="mode-text" style="cursor: pointer; text-decoration: underline;">Fill</span>';
+toggleDiv.style.cursor = "pointer";
+infoBox.appendChild(toggleDiv);
 
 // Create base image layer
 const imageLayer = new ChunkedImageLayer({
@@ -110,8 +104,7 @@ function createLabelsLayer() {
       pickInfoDiv.innerHTML = `
         <strong>Pick Result:</strong><br/>
         World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
-        Label Value: ${value}<br/>
-        Mode: ${outlineMode ? "Outline" : "Fill"}
+        Label Value: ${value}
       `;
 
       if (outlineMode) {
@@ -138,10 +131,11 @@ const idetik = new Idetik({
   cameraControls: new PanZoomControls(camera),
 });
 
-// Add toggle button functionality
-toggleButton.addEventListener("click", () => {
+// Add toggle functionality
+const modeText = document.querySelector<HTMLSpanElement>("#mode-text")!;
+toggleDiv.addEventListener("click", () => {
   outlineMode = !outlineMode;
-  toggleButton.textContent = `Mode: ${outlineMode ? "Outline" : "Fill"}`;
+  modeText.textContent = outlineMode ? "Outline" : "Fill";
 
   // Remove old layer and create new one with updated mode
   idetik.layerManager.remove(labelsLayer);
