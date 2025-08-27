@@ -127,9 +127,6 @@ export class Idetik {
       this.needsResize_ = true;
     }).observe(this.canvas);
 
-    // TEMP: in the future, the renderer will manage a list of dynmaically-sized viewports
-    let viewportBox = this.renderer_.box;
-
     const render = (timestamp?: DOMHighResTimeStamp) => {
       if (this.stats_) this.stats_.begin();
 
@@ -151,11 +148,12 @@ export class Idetik {
       // Must resize before render b/c changing canvas coordinate space clears it.
       if (this.needsResize_) {
         this.renderer_.updateSize();
-        viewportBox = this.renderer_.box;
         this.needsResize_ = false;
       }
 
-      this.renderer_.render(this.layerManager, this.camera, viewportBox);
+      // TEMP: in the future, the renderer will manage a list of dynmaically-sized viewports
+      // instead of passing its own box to itself
+      this.renderer_.render(this.layerManager, this.camera, this.renderer_.box);
       for (const overlay of this.overlays) {
         overlay.update(this, timestamp);
       }

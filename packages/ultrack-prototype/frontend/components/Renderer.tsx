@@ -86,8 +86,16 @@ export default function Renderer({
     let lastRequestId = 0;
     const canvas = document.querySelector<HTMLCanvasElement>(`#${canvasId}`)!;
     const renderer = new WebGLRenderer(canvas);
+    let needsResize = false;
+    new ResizeObserver(() => {
+      needsResize = true;
+    }).observe(canvas);
     function animate() {
-      renderer.render(layerManager, camera);
+      if (needsResize) {
+        renderer.updateSize();
+        needsResize = false;
+      }
+      renderer.render(layerManager, camera, renderer.box);
       lastRequestId = requestAnimationFrame(animate);
     }
     animate();
