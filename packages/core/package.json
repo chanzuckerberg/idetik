@@ -39,7 +39,7 @@
     "test": "test"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@apidevtools/json-schema-ref-parser": "^14.1.1",
     "json-schema-to-zod": "^2.6.1"
