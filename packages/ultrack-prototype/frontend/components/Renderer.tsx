@@ -87,9 +87,10 @@ export default function Renderer({
     const canvas = document.querySelector<HTMLCanvasElement>(`#${canvasId}`)!;
     const renderer = new WebGLRenderer(canvas);
     let needsResize = false;
-    new ResizeObserver(() => {
+    const resizeObserver = new ResizeObserver(() => {
       needsResize = true;
-    }).observe(canvas);
+    });
+    resizeObserver.observe(canvas);
     function animate() {
       if (needsResize) {
         renderer.updateSize();
@@ -105,6 +106,7 @@ export default function Renderer({
         console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);
       }
+      resizeObserver.disconnect();
     };
   }, []);
 

@@ -34,7 +34,7 @@ export class Box2 {
     return vec2.exactEquals(a.min, b.min) && vec2.exactEquals(a.max, b.max);
   }
 
-  public clamp(): Box2 {
+  public floor(): Box2 {
     return new Box2(
       vec2.fromValues(Math.floor(this.min[0]), Math.floor(this.min[1])),
       vec2.fromValues(Math.floor(this.max[0]), Math.floor(this.max[1]))

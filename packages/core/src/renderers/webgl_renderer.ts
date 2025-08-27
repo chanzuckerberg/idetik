@@ -59,7 +59,7 @@ export class WebGLRenderer extends Renderer {
 
   public render(layerManager: LayerManager, camera: Camera, viewportBox: Box2) {
     this.state_.setViewport(viewportBox);
-    if (Box2.equals(viewportBox.clamp(), this.box.clamp())) {
+    if (Box2.equals(viewportBox.floor(), this.box.floor())) {
       this.state_.setScissorTest(false);
     } else {
       this.state_.setScissor(viewportBox);

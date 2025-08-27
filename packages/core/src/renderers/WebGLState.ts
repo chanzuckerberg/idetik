@@ -94,7 +94,7 @@ export class WebGLState {
   }
 
   public setViewport(box: Box2) {
-    const clampedBox = box.clamp();
+    const clampedBox = box.floor();
 
     if (
       this.currentViewport_ &&
@@ -117,7 +117,7 @@ export class WebGLState {
   }
 
   public setScissor(box: Box2) {
-    const clampedBox = box.clamp();
+    const clampedBox = box.floor();
 
     if (this.currentScissor_ && Box2.equals(clampedBox, this.currentScissor_)) {
       return;

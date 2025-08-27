@@ -91,7 +91,7 @@ test("clamp: floors coordinates to integers", () => {
     vec2.fromValues(10.7, 20.9),
     vec2.fromValues(110.3, 220.1)
   );
-  const clamped = box.clamp();
+  const clamped = box.floor();
 
   expect(clamped.min).toEqual(vec2.fromValues(10, 20));
   expect(clamped.max).toEqual(vec2.fromValues(110, 220));
