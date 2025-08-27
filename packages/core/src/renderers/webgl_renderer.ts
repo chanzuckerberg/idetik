@@ -58,13 +58,17 @@ export class WebGLRenderer extends Renderer {
   }
 
   public render(layerManager: LayerManager, camera: Camera, viewportBox: Box2) {
-    this.state_.setViewport(viewportBox);
-    if (Box2.equals(viewportBox.floor(), this.box.floor())) {
+    const rendererBox = new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(this.width, this.height)
+    );
+    if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
       this.state_.setScissorTest(false);
     } else {
       this.state_.setScissor(viewportBox);
       this.state_.setScissorTest(true);
     }
+    this.state_.setViewport(viewportBox);
 
     this.clear();
     this.activeCamera = camera;

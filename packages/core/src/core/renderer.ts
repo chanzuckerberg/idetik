@@ -3,7 +3,6 @@ import { Camera } from "../objects/cameras/camera";
 import { Color, ColorLike } from "./color";
 import { Layer } from "./layer";
 import { Box2 } from "../math/box2";
-import { vec2 } from "gl-matrix";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
@@ -67,13 +66,6 @@ export abstract class Renderer {
 
   public get height() {
     return this.height_;
-  }
-
-  public get box(): Box2 {
-    return new Box2(
-      vec2.fromValues(0, 0),
-      vec2.fromValues(this.width_, this.height_)
-    );
   }
 
   public get backgroundColor(): Color {

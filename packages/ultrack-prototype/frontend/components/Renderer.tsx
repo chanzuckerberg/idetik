@@ -6,12 +6,14 @@ import {
   OrthographicCamera,
   TracksLayer,
   WebGLRenderer,
+  Box2,
 } from "@idetik/core";
 
 // TODO: imageURL should come from the server (probably with each task)
 import { Task } from "../lib/tasks";
 import { Box } from "@mui/material";
 import { LoadingIndicator } from "@czi-sds/components";
+import { vec2 } from "gl-matrix";
 
 const canvasId = "canvas";
 
@@ -96,7 +98,11 @@ export default function Renderer({
         renderer.updateSize();
         needsResize = false;
       }
-      renderer.render(layerManager, camera, renderer.box);
+      const viewportBox = new Box2(
+        vec2.fromValues(0, 0),
+        vec2.fromValues(renderer.width, renderer.height)
+      );
+      renderer.render(layerManager, camera, viewportBox);
       lastRequestId = requestAnimationFrame(animate);
     }
     animate();

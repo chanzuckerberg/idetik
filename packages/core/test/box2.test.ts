@@ -86,15 +86,15 @@ test("toRect: preserves floating point values", () => {
   expect(result.height).toBeCloseTo(199.2);
 });
 
-test("clamp: floors coordinates to integers", () => {
+test("floor: floors coordinates to integers", () => {
   const box = new Box2(
     vec2.fromValues(10.7, 20.9),
     vec2.fromValues(110.3, 220.1)
   );
-  const clamped = box.floor();
+  const floored = box.floor();
 
-  expect(clamped.min).toEqual(vec2.fromValues(10, 20));
-  expect(clamped.max).toEqual(vec2.fromValues(110, 220));
+  expect(floored.min).toEqual(vec2.fromValues(10, 20));
+  expect(floored.max).toEqual(vec2.fromValues(110, 220));
 });
 
 test("equals: compares boxes for exact equality", () => {
