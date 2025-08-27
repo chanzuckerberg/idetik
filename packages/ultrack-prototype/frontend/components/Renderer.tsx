@@ -6,12 +6,14 @@ import {
   OrthographicCamera,
   TracksLayer,
   WebGLRenderer,
+  Box2,
 } from "@idetik/core";
 
 // TODO: imageURL should come from the server (probably with each task)
 import { Task } from "../lib/tasks";
 import { Box } from "@mui/material";
 import { LoadingIndicator } from "@czi-sds/components";
+import { vec2 } from "gl-matrix";
 
 const canvasId = "canvas";
 
@@ -86,8 +88,21 @@ export default function Renderer({
     let lastRequestId = 0;
     const canvas = document.querySelector<HTMLCanvasElement>(`#${canvasId}`)!;
     const renderer = new WebGLRenderer(canvas);
+    let needsResize = false;
+    const resizeObserver = new ResizeObserver(() => {
+      needsResize = true;
+    });
+    resizeObserver.observe(canvas);
     function animate() {
-      renderer.render(layerManager, camera);
+      if (needsResize) {
+        renderer.updateSize();
+        needsResize = false;
+      }
+      const viewportBox = new Box2(
+        vec2.fromValues(0, 0),
+        vec2.fromValues(renderer.width, renderer.height)
+      );
+      renderer.render(layerManager, camera, viewportBox);
       lastRequestId = requestAnimationFrame(animate);
     }
     animate();
@@ -97,6 +112,7 @@ export default function Renderer({
         console.debug(`Cancelling animation frame ${lastRequestId}`);
         cancelAnimationFrame(lastRequestId);
       }
+      resizeObserver.disconnect();
     };
   }, []);
 
