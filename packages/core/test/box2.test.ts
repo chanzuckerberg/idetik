@@ -61,9 +61,9 @@ test("clone creates a deep copy", () => {
   expect(a.max[1]).not.toBe(b.max[1]);
 });
 
-test("asXYWH: converts box to XYWH format", () => {
+test("toRect: converts box to rectangle format", () => {
   const box = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
-  const result = box.asXYWH();
+  const result = box.toRect();
 
   expect(result).toEqual({
     x: 10,
@@ -73,12 +73,12 @@ test("asXYWH: converts box to XYWH format", () => {
   });
 });
 
-test("asXYWH: preserves floating point values", () => {
+test("toRect: preserves floating point values", () => {
   const box = new Box2(
     vec2.fromValues(10.7, 20.9),
     vec2.fromValues(110.3, 220.1)
   );
-  const result = box.asXYWH();
+  const result = box.toRect();
 
   expect(result.x).toBeCloseTo(10.7);
   expect(result.y).toBeCloseTo(20.9);
@@ -86,14 +86,22 @@ test("asXYWH: preserves floating point values", () => {
   expect(result.height).toBeCloseTo(199.2);
 });
 
-test("asXYWH: handles zero-sized box", () => {
-  const box = new Box2(vec2.fromValues(5, 5), vec2.fromValues(5, 5));
-  const result = box.asXYWH();
+test("clamp: floors coordinates to integers", () => {
+  const box = new Box2(
+    vec2.fromValues(10.7, 20.9),
+    vec2.fromValues(110.3, 220.1)
+  );
+  const clamped = box.clamp();
 
-  expect(result).toEqual({
-    x: 5,
-    y: 5,
-    width: 0,
-    height: 0,
-  });
+  expect(clamped.min).toEqual(vec2.fromValues(10, 20));
+  expect(clamped.max).toEqual(vec2.fromValues(110, 220));
+});
+
+test("equals: compares boxes for exact equality", () => {
+  const a = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
+  const b = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
+  const c = new Box2(vec2.fromValues(15, 25), vec2.fromValues(115, 225));
+
+  expect(Box2.equals(a, b)).toBe(true);
+  expect(Box2.equals(a, c)).toBe(false);
 });

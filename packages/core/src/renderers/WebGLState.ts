@@ -1,7 +1,4 @@
 import { Box2 } from "../math/box2";
-import { vec2 } from "gl-matrix";
-
-type XYWH = { x: number; y: number; width: number; height: number };
 
 export type BlendingMode =
   | "none"
@@ -18,17 +15,11 @@ export class WebGLState {
   private blendSrcFactor_: GLenum | null = null;
   private blendDstFactor_: GLenum | null = null;
   private currentBlendingMode_: BlendingMode | null = null;
-  private currentViewport_: XYWH | null = null;
-  private currentScissor_: XYWH | null = null;
+  private currentViewport_: Box2 | null = null;
+  private currentScissor_: Box2 | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
-  }
-
-  private static xywhEquals(a: XYWH, b: XYWH): boolean {
-    return (
-      a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
-    );
   }
 
   private enable(cap: GLenum) {
@@ -53,12 +44,7 @@ export class WebGLState {
     }
   }
 
-  private isCapabilityEnabled(cap: GLenum, desired: boolean): boolean {
-    return this.enabledCapabilities_.get(cap) === desired;
-  }
-
   public setDepthTesting(enabled: boolean) {
-    if (this.isCapabilityEnabled(this.gl_.DEPTH_TEST, enabled)) return;
     if (enabled) {
       this.enable(this.gl_.DEPTH_TEST);
     } else {
@@ -67,7 +53,6 @@ export class WebGLState {
   }
 
   public setBlending(enabled: boolean) {
-    if (this.isCapabilityEnabled(this.gl_.BLEND, enabled)) return;
     if (enabled) {
       this.enable(this.gl_.BLEND);
     } else {
@@ -108,72 +93,37 @@ export class WebGLState {
     this.currentBlendingMode_ = mode;
   }
 
-  public setViewport(viewportBox?: Box2) {
-    const viewport =
-      viewportBox ??
-      new Box2(
-        vec2.fromValues(0, 0),
-        vec2.fromValues(this.gl_.canvas.width, this.gl_.canvas.height)
-      );
-
-    const { x, y, width, height } = viewport.asXYWH();
-    const flooredXYWH = {
-      x: Math.floor(x),
-      y: Math.floor(y),
-      width: Math.floor(width),
-      height: Math.floor(height),
-    };
+  public setViewport(box: Box2) {
+    const clampedBox = box.clamp();
 
     if (
       this.currentViewport_ &&
-      WebGLState.xywhEquals(flooredXYWH, this.currentViewport_)
+      Box2.equals(clampedBox, this.currentViewport_)
     ) {
       return;
     }
-
-    this.gl_.viewport(
-      flooredXYWH.x,
-      flooredXYWH.y,
-      flooredXYWH.width,
-      flooredXYWH.height
-    );
-    this.currentViewport_ = flooredXYWH;
+    const { x, y, width, height } = clampedBox.toRect();
+    this.gl_.viewport(x, y, width, height);
+    this.currentViewport_ = clampedBox;
   }
 
-  public setScissor(scissorBox?: Box2) {
-    const enabled = scissorBox !== undefined;
-
+  public setScissorTest(enabled: boolean) {
     if (enabled) {
-      const { x, y, width, height } = scissorBox.asXYWH();
-      const flooredXYWH: XYWH = {
-        x: Math.floor(x),
-        y: Math.floor(y),
-        width: Math.floor(width),
-        height: Math.floor(height),
-      };
-
-      if (!this.isCapabilityEnabled(this.gl_.SCISSOR_TEST, true)) {
-        this.enable(this.gl_.SCISSOR_TEST);
-      }
-
-      if (
-        this.currentScissor_ &&
-        WebGLState.xywhEquals(flooredXYWH, this.currentScissor_)
-      ) {
-        return;
-      }
-
-      this.gl_.scissor(
-        flooredXYWH.x,
-        flooredXYWH.y,
-        flooredXYWH.width,
-        flooredXYWH.height
-      );
-      this.currentScissor_ = flooredXYWH;
+      this.enable(this.gl_.SCISSOR_TEST);
     } else {
-      if (this.isCapabilityEnabled(this.gl_.SCISSOR_TEST, false)) return;
       this.disable(this.gl_.SCISSOR_TEST);
       this.currentScissor_ = null;
     }
+  }
+
+  public setScissor(box: Box2) {
+    const clampedBox = box.clamp();
+
+    if (this.currentScissor_ && Box2.equals(clampedBox, this.currentScissor_)) {
+      return;
+    }
+    const { x, y, width, height } = clampedBox.toRect();
+    this.gl_.scissor(x, y, width, height);
+    this.currentScissor_ = clampedBox;
   }
 }

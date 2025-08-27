@@ -30,7 +30,23 @@ export class Box2 {
     return true;
   }
 
-  public asXYWH(): { x: number; y: number; width: number; height: number } {
+  public static equals(a: Box2, b: Box2): boolean {
+    return (
+      a.min[0] === b.min[0] &&
+      a.min[1] === b.min[1] &&
+      a.max[0] === b.max[0] &&
+      a.max[1] === b.max[1]
+    );
+  }
+
+  public clamp(): Box2 {
+    return new Box2(
+      vec2.fromValues(Math.floor(this.min[0]), Math.floor(this.min[1])),
+      vec2.fromValues(Math.floor(this.max[0]), Math.floor(this.max[1]))
+    );
+  }
+
+  public toRect(): { x: number; y: number; width: number; height: number } {
     const x = this.min[0];
     const y = this.min[1];
     const width = this.max[0] - this.min[0];
