@@ -14,6 +14,7 @@ import { clamp } from "../utilities/clamp";
 import { ChunkSourceView } from "../data/chunk_source_view";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 import { SourceManager } from "@/core/source_manager";
+import { CachedChunkLoader } from "@/data/cached_chunk_loader";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -63,6 +64,7 @@ export class ChunkedImageLayer extends Layer {
         this.open(props.sourceManager);
         break;
       case "loading":
+        this.makeView(props.sourceManager.getLoader(this.source_));
         break;
       case "ready":
         this.updateChunks(props);
@@ -77,16 +79,20 @@ export class ChunkedImageLayer extends Layer {
 
   private async open(sourceManager: SourceManager) {
     this.setState("loading");
-    // null represents that the loader has already been requested (e.g.
-    // by another layer), so we should switch back to initialized until
-    // it has been opened.
-    const cachedLoader = await sourceManager.getLoader(this.source_);
-    if (cachedLoader === null) {
-      this.setState("initialized");
-    } else {
-      this.chunkSourceView_ = new ChunkSourceView(cachedLoader);
-      this.setState("ready");
+    const loader = sourceManager.getLoader(this.source_);
+    if (loader === null) return;
+    if (loader === undefined) {
+      const newLoader = await sourceManager.openLoader(this.source_);
+      this.makeView(newLoader);
     }
+  }
+
+  private makeView(loader: CachedChunkLoader | null | undefined) {
+    if (loader === undefined)
+      throw new Error("Open loader before making a view.");
+    if (loader === null) return;
+    this.chunkSourceView_ = new ChunkSourceView(loader);
+    this.setState("ready");
   }
 
   private updateChunks(props?: UpdateProps) {
