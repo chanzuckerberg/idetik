@@ -77,12 +77,19 @@ export class ChunkedImageLayer extends Layer {
 
   private async open(sourceManager: SourceManager) {
     this.setState("loading");
+    // null represents that the loader has already been requested (e.g.
+    // by another layer), so we should switch back to initialized until
+    // it has been opened.
     const cachedLoader = await sourceManager.getLoader(this.source_);
-    this.chunkSourceView_ = new ChunkSourceView(
-      cachedLoader,
-      this.sliceCoords_
-    );
-    this.setState("ready");
+    if (cachedLoader === null) {
+      this.setState("initialized");
+    } else {
+      this.chunkSourceView_ = new ChunkSourceView(
+        cachedLoader,
+        this.sliceCoords_
+      );
+      this.setState("ready");
+    }
   }
 
   private updateChunks(props?: UpdateProps) {
