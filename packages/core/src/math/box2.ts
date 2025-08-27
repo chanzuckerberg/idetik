@@ -31,12 +31,7 @@ export class Box2 {
   }
 
   public static equals(a: Box2, b: Box2): boolean {
-    return (
-      a.min[0] === b.min[0] &&
-      a.min[1] === b.min[1] &&
-      a.max[0] === b.max[0] &&
-      a.max[1] === b.max[1]
-    );
+    return vec2.exactEquals(a.min, b.min) && vec2.exactEquals(a.max, b.max);
   }
 
   public clamp(): Box2 {
