@@ -84,10 +84,7 @@ export class ChunkedImageLayer extends Layer {
     if (cachedLoader === null) {
       this.setState("initialized");
     } else {
-      this.chunkSourceView_ = new ChunkSourceView(
-        cachedLoader,
-        this.sliceCoords_
-      );
+      this.chunkSourceView_ = new ChunkSourceView(cachedLoader);
       this.setState("ready");
     }
   }
@@ -107,7 +104,8 @@ export class ChunkedImageLayer extends Layer {
 
     this.chunkSourceView_.update(
       props.camera as OrthographicCamera,
-      props.bufferWidth
+      props.bufferWidth,
+      this.sliceCoords_
     );
 
     // TODO:(shlomnissan) Reuse images instead of deleting and creating new ones.

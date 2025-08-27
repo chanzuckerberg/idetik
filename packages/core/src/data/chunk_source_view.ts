@@ -13,15 +13,13 @@ const PREFETCH_PADDING_CHUNKS = 1;
 
 export class ChunkSourceView {
   private readonly loader_: CachedChunkLoader;
-  private readonly sliceCoords_: SliceCoordinates;
   private readonly lowestResLOD_: number;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
 
-  constructor(loader: CachedChunkLoader, sliceCoords: SliceCoordinates) {
+  constructor(loader: CachedChunkLoader) {
     this.loader_ = loader;
-    this.sliceCoords_ = sliceCoords;
     this.currentLOD_ = 0;
     this.lowestResLOD_ = this.dimensions.numLods - 1;
     this.validateXYScaleRatios();
@@ -66,27 +64,31 @@ export class ChunkSourceView {
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  public update(camera: OrthographicCamera, bufferWidth: number) {
+  public update(
+    camera: OrthographicCamera,
+    bufferWidth: number,
+    sliceCoords: SliceCoordinates
+  ) {
     const viewBounds2D = camera.getWorldViewRect();
     const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     this.setLOD(lodFactor);
-    const zBounds = this.getZBounds();
+    const zBounds = this.getZBounds(sliceCoords);
 
     if (
       this.viewBounds2DChanged(viewBounds2D) ||
       this.zBoundsChanged(zBounds)
     ) {
-      this.updateChunkVisibility(viewBounds2D);
+      this.updateChunkVisibility(viewBounds2D, sliceCoords);
     }
 
-    this.loadPendingChunks();
+    this.loadPendingChunks(sliceCoords);
   }
 
-  private loadPendingChunks() {
-    this.loadLowResChunks();
+  private loadPendingChunks(sliceCoords: SliceCoordinates) {
+    this.loadLowResChunks(sliceCoords);
 
     for (const chunk of this.chunks) {
       if (
@@ -94,16 +96,16 @@ export class ChunkSourceView {
         chunk.state === "unloaded" &&
         (chunk.visible || chunk.prefetch)
       ) {
-        this.loader_.loadChunkData(chunk, this.sliceCoords_);
+        this.loader_.loadChunkData(chunk, sliceCoords);
       }
     }
   }
 
-  private loadLowResChunks(): void {
+  private loadLowResChunks(sliceCoords: SliceCoordinates): void {
     for (const chunk of this.chunks) {
       if (chunk.lod !== this.lowestResLOD_ || chunk.state !== "unloaded")
         continue;
-      this.loader_.loadChunkData(chunk, this.sliceCoords_);
+      this.loader_.loadChunkData(chunk, sliceCoords);
     }
   }
 
@@ -123,7 +125,10 @@ export class ChunkSourceView {
     }
   }
 
-  private updateChunkVisibility(viewBounds2D: Box2): void {
+  private updateChunkVisibility(
+    viewBounds2D: Box2,
+    sliceCoords: SliceCoordinates
+  ): void {
     if (this.chunks.length === 0) {
       Logger.warn(
         "ChunkManager",
@@ -132,7 +137,7 @@ export class ChunkSourceView {
       return;
     }
 
-    const [zMin, zMax] = this.getZBounds();
+    const [zMin, zMax] = this.getZBounds(sliceCoords);
     const viewBounds3D = new Box3(
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
@@ -176,15 +181,15 @@ export class ChunkSourceView {
     return Box3.intersects(chunkBounds, bounds);
   }
 
-  private getZBounds(): [number, number] {
+  private getZBounds(sliceCoords: SliceCoordinates): [number, number] {
     const zDim = this.dimensions.z;
-    if (zDim === undefined || this.sliceCoords_.z === undefined) return [0, 1];
+    if (zDim === undefined || sliceCoords.z === undefined) return [0, 1];
 
     const zLod = zDim.lods[this.currentLOD_];
     const zShape = zLod.size;
     const zScale = zLod.scale;
     const zTran = zLod.translation;
-    const zPoint = Math.floor((this.sliceCoords_.z - zTran) / zScale);
+    const zPoint = Math.floor((sliceCoords.z - zTran) / zScale);
     const chunkDepth = zLod.chunkSize;
 
     const zChunk = Math.max(
