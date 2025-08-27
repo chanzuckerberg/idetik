@@ -106,20 +106,20 @@ export class ChunkedImageLayer extends Layer {
   }
 
   private resliceIfZChanged() {
-    const pointWorld = this.sliceCoords_.z;
-    if (pointWorld === undefined || this.zPrevPointWorld_ === pointWorld) {
+    const zPointWorld = this.sliceCoords_.z;
+    if (zPointWorld === undefined || this.zPrevPointWorld_ === zPointWorld) {
       return;
     }
 
     for (const [chunk, image] of this.visibleChunks_) {
       if (chunk.state !== "loaded" || !chunk.data) continue;
-      const data = this.slicePlane(chunk, pointWorld);
+      const data = this.slicePlane(chunk, zPointWorld);
       if (data) {
         image.textures[0].data = data;
       }
     }
 
-    this.zPrevPointWorld_ = pointWorld;
+    this.zPrevPointWorld_ = zPointWorld;
   }
 
   public onEvent(event: EventContext) {
@@ -156,9 +156,8 @@ export class ChunkedImageLayer extends Layer {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
 
     let data = chunk.data;
-    const pointWorld = this.sliceCoords_.z;
-    if (pointWorld !== undefined) {
-      data = this.slicePlane(chunk, pointWorld);
+    if (this.sliceCoords_.z !== undefined) {
+      data = this.slicePlane(chunk, this.sliceCoords_.z);
     }
 
     const image = new ImageRenderable(
@@ -216,10 +215,9 @@ export class ChunkedImageLayer extends Layer {
 
     // Check if this chunk contains the requested position
     if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-      const pointWorld = this.sliceCoords_.z;
       const data =
-        pointWorld !== undefined
-          ? this.slicePlane(chunk, pointWorld)!
+        this.sliceCoords_.z !== undefined
+          ? this.slicePlane(chunk, this.sliceCoords_)!
           : chunk.data;
       const pixelIndex = y * chunk.rowStride + x;
 
