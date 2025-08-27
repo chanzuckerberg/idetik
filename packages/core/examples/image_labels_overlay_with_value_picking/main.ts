@@ -141,12 +141,6 @@ toggleDiv.addEventListener("click", () => {
   idetik.layerManager.remove(labelsLayer);
   labelsLayer = createLabelsLayer();
   idetik.layerManager.add(labelsLayer);
-
-  // Clear pick info
-  pickInfoDiv.innerHTML = `
-    <strong>Mode changed to:</strong> ${outlineMode ? "Outline" : "Fill"}<br/>
-    Click on a label to see the effect.
-  `;
 });
 
 idetik.start();
