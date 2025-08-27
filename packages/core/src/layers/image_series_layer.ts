@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerOptions, UpdateProps } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
@@ -45,7 +45,7 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
     });
   }
 
-  public update() {
+  public update(_props: UpdateProps) {
     if (this.state === "initialized") {
       this.setState("loading");
       this.seriesLoader_.loadSeriesAttributes();

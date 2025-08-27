@@ -12,8 +12,8 @@ import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { ChunkSourceView } from "../data/chunk_source_view";
-import { CachedChunkLoader } from "../data/cached_chunk_loader";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
+import { SourceManager } from "@/core/source_manager";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -60,8 +60,7 @@ export class ChunkedImageLayer extends Layer {
   public update(props: UpdateProps) {
     switch (this.state) {
       case "initialized":
-        this.setState("loading");
-        this.open();
+        this.open(props.sourceManager);
         break;
       case "loading":
         break;
@@ -76,9 +75,9 @@ export class ChunkedImageLayer extends Layer {
     }
   }
 
-  private async open() {
-    const loader = await this.source_.open();
-    const cachedLoader = new CachedChunkLoader(loader);
+  private async open(sourceManager: SourceManager) {
+    this.setState("loading");
+    const cachedLoader = await sourceManager.getLoader(this.source_);
     this.chunkSourceView_ = new ChunkSourceView(
       cachedLoader,
       this.sliceCoords_

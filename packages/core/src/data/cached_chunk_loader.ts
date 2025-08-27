@@ -4,7 +4,6 @@ import {
   ChunkLoader,
   SliceCoordinates,
 } from "./chunk";
-import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 
 export class CachedChunkLoader {
@@ -15,7 +14,6 @@ export class CachedChunkLoader {
   constructor(loader: ChunkLoader) {
     this.loader_ = loader;
     this.dimensions_ = this.loader_.getDimensionMap();
-    this.validateXYScaleRatios();
 
     // generate chunks for each LOD without loading data
     this.chunks_ = [];
@@ -96,26 +94,5 @@ export class CachedChunkLoader {
         );
         chunk.state = "unloaded";
       });
-  }
-
-  private validateXYScaleRatios(): void {
-    // Validates that each LOD level is downsampled by a factor of 2 in X and Y.
-    // Z downsampling is not validated here because it may be inconsistent or
-    // completely absent in some pyramids.
-    const xDim = this.dimensions_.x;
-    const yDim = this.dimensions_.y;
-    for (let i = 1; i < this.dimensions_.numLods; i++) {
-      const rx = xDim.lods[i].scale / xDim.lods[i - 1].scale;
-      const ry = xDim.lods[i].scale / yDim.lods[i - 1].scale;
-
-      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
-        throw new Error(
-          `Invalid downsampling factor between levels ${i - 1} → ${i}: ` +
-            `expected (2× in X and Y), but got ` +
-            `(${rx.toFixed(2)}×, ${ry.toFixed(2)}×) from scale ` +
-            `[${xDim.lods[i - 1].scale}, ${yDim.lods[i - 1].scale}] → [${xDim.lods[i].scale}, ${yDim.lods[i].scale}]`
-        );
-      }
-    }
   }
 }

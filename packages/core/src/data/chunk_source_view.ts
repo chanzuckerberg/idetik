@@ -5,6 +5,7 @@ import { Box3 } from "../math/box3";
 import { Logger } from "../utilities/logger";
 import { CachedChunkLoader } from "./cached_chunk_loader";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import { almostEqual } from "../utilities/almost_equal";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -23,6 +24,7 @@ export class ChunkSourceView {
     this.sliceCoords_ = sliceCoords;
     this.currentLOD_ = 0;
     this.lowestResLOD_ = this.dimensions.numLods - 1;
+    this.validateXYScaleRatios();
   }
 
   public get chunks(): Chunk[] {
@@ -247,5 +249,26 @@ export class ChunkSourceView {
         bounds.max[2] + padZ
       )
     );
+  }
+
+  private validateXYScaleRatios(): void {
+    // Validates that each LOD level is downsampled by a factor of 2 in X and Y.
+    // Z downsampling is not validated here because it may be inconsistent or
+    // completely absent in some pyramids.
+    const xDim = this.dimensions.x;
+    const yDim = this.dimensions.y;
+    for (let i = 1; i < this.dimensions.numLods; i++) {
+      const rx = xDim.lods[i].scale / xDim.lods[i - 1].scale;
+      const ry = xDim.lods[i].scale / yDim.lods[i - 1].scale;
+
+      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
+        throw new Error(
+          `Invalid downsampling factor between levels ${i - 1} → ${i}: ` +
+            `expected (2× in X and Y), but got ` +
+            `(${rx.toFixed(2)}×, ${ry.toFixed(2)}×) from scale ` +
+            `[${xDim.lods[i - 1].scale}, ${yDim.lods[i - 1].scale}] → [${xDim.lods[i].scale}, ${yDim.lods[i].scale}]`
+        );
+      }
+    }
   }
 }

@@ -14,6 +14,7 @@ import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
 
 import { mat4 } from "gl-matrix";
+import { SourceManager } from "@/core/source_manager";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -33,6 +34,7 @@ export class WebGLRenderer extends Renderer {
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
+  private readonly sourceManager_: SourceManager = new SourceManager();
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -63,6 +65,7 @@ export class WebGLRenderer extends Renderer {
     const { opaque, transparent } = layerManager.partitionLayers();
 
     const updateProps = {
+      sourceManager: this.sourceManager_,
       camera,
       bufferWidth: this.width,
     };
