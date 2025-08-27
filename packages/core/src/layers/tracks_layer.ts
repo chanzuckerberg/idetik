@@ -1,5 +1,5 @@
 import { vec3 } from "gl-matrix";
-import { Layer } from "../core/layer";
+import { Layer, UpdateProps } from "../core/layer";
 import { ProjectedLine } from "../objects/renderable/projected_line";
 import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
 
@@ -63,7 +63,7 @@ export class TracksLayer extends Layer {
     }
   }
 
-  public update() {}
+  public update(_props: UpdateProps) {}
 
   // TODO: this is temporary - we may want to generalize this to all layers
   // for now it is used to set the initial camera position to be centered on the tracks

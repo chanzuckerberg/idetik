@@ -1,16 +1,8 @@
 import { Layer } from "./layer";
-import { IdetikContext } from "../idetik";
 
 export class LayerManager {
   private layers_: ReadonlyArray<Layer> = [];
   private callbacks_: Array<() => void> = [];
-
-  // TODO: Make this non-optional when react components use the Idetik Runtime
-  private readonly context_?: IdetikContext;
-
-  constructor(context?: IdetikContext) {
-    this.context_ = context;
-  }
 
   public partitionLayers(): {
     opaque: Layer[];
@@ -32,9 +24,6 @@ export class LayerManager {
 
   public add(layer: Layer) {
     this.layers_ = [...this.layers_, layer];
-    if (this.context_) {
-      layer.onAttached(this.context_);
-    }
     this.notifyLayersChanged();
   }
 

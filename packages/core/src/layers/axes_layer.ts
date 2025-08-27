@@ -1,4 +1,4 @@
-import { Layer } from "../core/layer";
+import { Layer, UpdateProps } from "../core/layer";
 import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
 import { ProjectedLine } from "../objects/renderable/projected_line";
 
@@ -32,7 +32,7 @@ export class AxesLayer extends Layer {
     this.setState("ready");
   }
 
-  public update() {}
+  public update(_props: UpdateProps) {}
 }
 
 function makeAxis(params: {

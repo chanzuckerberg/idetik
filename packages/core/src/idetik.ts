@@ -5,9 +5,7 @@ import { EventContext, EventDispatcher } from "./core/event_dispatcher";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
-import { ChunkManager } from "./core/chunk_manager";
 import { vec2, vec3 } from "gl-matrix";
-import { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 import { createStats, type Stats } from "./utilities/stats";
 
 type Overlay = {
@@ -24,16 +22,10 @@ type IdetikParams = {
   showStats?: boolean;
 };
 
-export type IdetikContext = {
-  chunkManager: ChunkManager;
-};
-
 export class Idetik {
   private cameraControls_?: CameraControls;
   private lastAnimationId_?: number;
   private needsResize_ = false;
-  private readonly chunkManager_: ChunkManager;
-  private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
   public camera: Camera;
   public layerManager: LayerManager;
@@ -60,11 +52,7 @@ export class Idetik {
     }
     this.canvas = canvas;
     this.renderer_ = new WebGLRenderer(canvas);
-    this.chunkManager_ = new ChunkManager();
-    this.context_ = {
-      chunkManager: this.chunkManager_,
-    };
-    this.layerManager = new LayerManager(this.context_);
+    this.layerManager = new LayerManager();
 
     if (params.layers) {
       for (const layer of params.layers) {
@@ -137,19 +125,14 @@ export class Idetik {
         return;
       }
 
-      if (this.camera.type === "OrthographicCamera") {
-        this.chunkManager_.update(
-          this.camera as OrthographicCamera,
-          this.renderer_.width
-        );
-      }
-
       // Must resize before render b/c changing canvas coordinate space clears it.
       if (this.needsResize_) {
         this.renderer_.updateSize();
         this.needsResize_ = false;
       }
+
       this.renderer_.render(this.layerManager, this.camera);
+
       for (const overlay of this.overlays) {
         overlay.update(this, timestamp);
       }

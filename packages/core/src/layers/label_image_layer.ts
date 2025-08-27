@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerOptions, UpdateProps } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
@@ -49,7 +49,7 @@ export class LabelImageLayer extends Layer {
     this.lod_ = lod;
   }
 
-  public update() {
+  public update(_props: UpdateProps) {
     switch (this.state) {
       case "initialized":
         this.load(this.region_);

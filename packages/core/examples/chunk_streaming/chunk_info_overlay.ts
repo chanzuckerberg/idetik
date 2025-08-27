@@ -17,21 +17,21 @@ export class ChunkInfoOverlay {
   }
 
   public update(idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
-    const chunkManagerSource = this.imageLayer_.chunkManagerSource;
-    if (!chunkManagerSource) {
-      this.textDiv_.textContent = "No chunk manager source";
+    const chunkSourceView = this.imageLayer_.chunkSourceView;
+    if (!chunkSourceView) {
+      this.textDiv_.textContent = "No chunk source view ";
       return;
     }
 
-    const allChunks = chunkManagerSource.chunks;
+    const allChunks = chunkSourceView.chunks;
     if (!allChunks) {
       this.textDiv_.textContent = "No chunks available";
       return;
     }
 
     const chunkDetails: string[] = [];
-    const currentLOD = chunkManagerSource.currentLOD;
-    const renderedChunks = chunkManagerSource.getChunks();
+    const currentLOD = chunkSourceView.currentLOD;
+    const renderedChunks = chunkSourceView.getChunks();
     const totalChunks = allChunks.length;
 
     let loadedChunks = 0;
@@ -48,7 +48,7 @@ export class ChunkInfoOverlay {
       visible: number;
       rendered: number;
       prefetched: number;
-    }[] = Array.from({ length: chunkManagerSource.lodCount }, () => ({
+    }[] = Array.from({ length: chunkSourceView.lodCount }, () => ({
       visible: 0,
       rendered: 0,
       prefetched: 0,

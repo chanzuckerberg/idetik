@@ -1,7 +1,5 @@
-import { Layer, LayerOptions } from "../core/layer";
-import { IdetikContext } from "../idetik";
+import { Layer, LayerOptions, UpdateProps } from "../core/layer";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
@@ -13,6 +11,9 @@ import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
+import { ChunkSourceView } from "../data/chunk_source_view";
+import { CachedChunkLoader } from "../data/cached_chunk_loader";
+import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -29,7 +30,7 @@ export class ChunkedImageLayer extends Layer {
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
   private channelProps_?: ChannelProps;
-  private chunkManagerSource_?: ChunkManagerSource;
+  private chunkSourceView_?: ChunkSourceView;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
   private debugMode_ = false;
@@ -56,25 +57,52 @@ export class ChunkedImageLayer extends Layer {
     this.onPickValue_ = onPickValue;
   }
 
-  public async onAttached(context: IdetikContext) {
-    this.chunkManagerSource_ = await context.chunkManager.addSource(
-      this.source_,
+  public update(props: UpdateProps) {
+    switch (this.state) {
+      case "initialized":
+        this.setState("loading");
+        this.open();
+        break;
+      case "loading":
+        break;
+      case "ready":
+        this.updateChunks(props);
+        this.resliceIfZChanged();
+        break;
+      default: {
+        const exhaustiveCheck: never = this.state;
+        throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
+      }
+    }
+  }
+
+  private async open() {
+    const loader = await this.source_.open();
+    const cachedLoader = new CachedChunkLoader(loader);
+    this.chunkSourceView_ = new ChunkSourceView(
+      cachedLoader,
       this.sliceCoords_
     );
+    this.setState("ready");
   }
 
-  public update() {
-    this.updateChunks();
-    this.resliceIfZChanged();
-  }
-
-  private updateChunks() {
-    if (!this.chunkManagerSource_) return;
-
-    // Temporary until we decide how to approach state management
-    if (this.state !== "ready") {
-      this.setState("ready");
+  private updateChunks(props?: UpdateProps) {
+    if (!this.chunkSourceView_) {
+      throw new Error("Updating chunks without a view.");
     }
+
+    if (!props) {
+      throw new Error("Updating chunks without update props");
+    }
+
+    if (props.camera.type !== "OrthographicCamera") {
+      throw new Error("Updating chunks with non-orthographic camera");
+    }
+
+    this.chunkSourceView_.update(
+      props.camera as OrthographicCamera,
+      props.bufferWidth
+    );
 
     // TODO:(shlomnissan) Reuse images instead of deleting and creating new ones.
     //
@@ -84,7 +112,7 @@ export class ChunkedImageLayer extends Layer {
     // to reuse renderables by updating their underlying data instead of repeatedly
     // creating new texture objects. Note: GPU resources are not currently being
     // released, so this will also need to be addressed soon.
-    const currentChunks = new Set(this.chunkManagerSource_.getChunks());
+    const currentChunks = new Set(this.chunkSourceView_.getChunks());
     this.visibleChunks_.forEach((_image, chunk) => {
       if (!currentChunks.has(chunk)) {
         this.visibleChunks_.delete(chunk); // safe
@@ -131,8 +159,8 @@ export class ChunkedImageLayer extends Layer {
     );
   }
 
-  public get chunkManagerSource(): ChunkManagerSource | undefined {
-    return this.chunkManagerSource_;
+  public get chunkSourceView(): ChunkSourceView | undefined {
+    return this.chunkSourceView_;
   }
 
   private slicePlane(chunk: Chunk, zValue: number) {
@@ -178,7 +206,7 @@ export class ChunkedImageLayer extends Layer {
   }
 
   public getValueAtWorld(world: vec3): number | null {
-    const currentLOD = this.chunkManagerSource_?.currentLOD ?? 0;
+    const currentLOD = this.chunkSourceView_?.currentLOD ?? 0;
 
     // First, try to find the value in current LOD chunks (highest priority)
     for (const [chunk, image] of this.visibleChunks_) {

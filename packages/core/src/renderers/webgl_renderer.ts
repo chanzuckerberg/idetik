@@ -62,9 +62,14 @@ export class WebGLRenderer extends Renderer {
 
     const { opaque, transparent } = layerManager.partitionLayers();
 
+    const updateProps = {
+      camera,
+      bufferWidth: this.width,
+    };
+
     this.state_.setDepthMask(true);
     for (const layer of opaque) {
-      layer.update();
+      layer.update(updateProps);
       if (layer.state === "ready") {
         this.renderLayer(layer);
       }
@@ -72,7 +77,7 @@ export class WebGLRenderer extends Renderer {
 
     this.state_.setDepthMask(false);
     for (const layer of transparent) {
-      layer.update();
+      layer.update(updateProps);
       if (layer.state !== "ready") continue;
       this.renderLayer(layer);
     }

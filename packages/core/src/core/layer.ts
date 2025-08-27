@@ -1,7 +1,7 @@
-import { IdetikContext } from "../idetik";
 import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { EventContext } from "./event_dispatcher";
+import { Camera } from "../objects/cameras/camera";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
@@ -10,6 +10,11 @@ type StateChangeCallback = (
   newState: LayerState,
   prevState?: LayerState
 ) => void;
+
+export type UpdateProps = {
+  camera: Camera;
+  bufferWidth: number;
+};
 
 export interface LayerOptions {
   transparent?: boolean;
@@ -54,15 +59,9 @@ export abstract class Layer {
     this.opacity_ = clamp(value, 0.0, 1.0);
   }
 
-  public abstract update(): void;
+  public abstract update(props: UpdateProps): void;
 
   public onEvent(_: EventContext): void {}
-
-  // TODO: Consider making this an abstract method once chunk manager
-  // integration is finalized. Most layers will likely need access to the chunk
-  // manager, but for now, we allow optional overrides to avoid requiring
-  // placeholder implementations.
-  public async onAttached(_context: IdetikContext) {}
 
   public get objects() {
     return this.objects_;

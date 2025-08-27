@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerOptions, UpdateProps } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
@@ -50,7 +50,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.lod_ = lod;
   }
 
-  public update() {
+  public update(_props: UpdateProps) {
     switch (this.state) {
       case "initialized":
         this.load(this.region_);
