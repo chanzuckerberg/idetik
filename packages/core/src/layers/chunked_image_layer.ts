@@ -217,7 +217,7 @@ export class ChunkedImageLayer extends Layer {
     if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
       const data =
         this.sliceCoords_.z !== undefined
-          ? this.slicePlane(chunk, this.sliceCoords_)!
+          ? this.slicePlane(chunk, this.sliceCoords_.z)!
           : chunk.data;
       const pixelIndex = y * chunk.rowStride + x;
 
