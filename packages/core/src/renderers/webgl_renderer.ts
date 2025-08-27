@@ -79,6 +79,10 @@ export class WebGLRenderer extends Renderer {
     this.state_.setDepthMask(true);
   }
 
+  public get textureInfo() {
+    return this.textures_.textureInfo;
+  }
+
   private renderLayer(layer: Layer) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
     layer.objects.forEach((_, i) => this.renderObject(layer, i));

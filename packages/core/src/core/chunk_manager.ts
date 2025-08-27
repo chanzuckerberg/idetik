@@ -216,10 +216,26 @@ export class ChunkManagerSource {
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
     for (const chunk of this.chunks_) {
-      chunk.prefetch = false;
-      chunk.visible = this.isChunkWithinBounds(chunk, viewBounds3D);
-      if (!chunk.visible) {
-        chunk.prefetch = this.isChunkWithinBounds(chunk, paddedBounds);
+      const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
+      const eligibleForPrefetch =
+        !isVisible && this.isChunkWithinBounds(chunk, paddedBounds);
+
+      const isCurrentLOD = chunk.lod === this.currentLOD_;
+      const isFallbackLOD = chunk.lod === this.lowestResLOD_;
+      const isLoaded = chunk.state === "loaded";
+
+      chunk.visible = isVisible;
+      chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
+
+      if (isLoaded && !isFallbackLOD) {
+        const shouldDispose =
+          !isCurrentLOD || (isCurrentLOD && !isVisible && !eligibleForPrefetch);
+
+        if (shouldDispose) {
+          chunk.data = undefined;
+          chunk.state = "unloaded";
+          Logger.debug("ChunkManager", `Disposing chunk in LOD ${chunk.lod}`);
+        }
       }
     }
   }
