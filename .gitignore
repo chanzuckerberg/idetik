@@ -26,11 +26,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# pixi environments file
-.pixi
-
-# slurm job output files
-*.out
-*.err
-
