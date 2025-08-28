@@ -2,16 +2,14 @@
   "private": true,
   "workspaces": [
     "packages/core",
-    "packages/react",
-    "packages/ultrack-prototype"
+    "packages/react"
   ],
   "scripts": {
     "build": "npm run build --workspace=@idetik/core",
     "build:all": "npm run build --workspaces",
     "examples": "npm run dev --workspace=@idetik/core",
     "components": "npm run dev --workspace=@idetik/react",
-    "format:all": "npm run format --workspaces",
-    "ultrack": "npm run dev --workspace=ultrack-prototype"
+    "format:all": "npm run format --workspaces"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",

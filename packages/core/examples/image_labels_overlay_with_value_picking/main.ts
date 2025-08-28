@@ -70,6 +70,15 @@ const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
 // Get the info div for displaying pick results
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
 
+// Add outline mode toggle
+let outlineMode = false;
+const infoBox = document.querySelector<HTMLDivElement>("#info-box")!;
+const toggleDiv = document.createElement("div");
+toggleDiv.innerHTML =
+  '<strong>Mode:</strong> <span id="mode-text" style="cursor: pointer; text-decoration: underline;">Fill</span>';
+toggleDiv.style.cursor = "pointer";
+infoBox.appendChild(toggleDiv);
+
 // Create base image layer
 const imageLayer = new ChunkedImageLayer({
   source: imageSource,
@@ -78,32 +87,58 @@ const imageLayer = new ChunkedImageLayer({
   channelProps: { contrastLimits: phaseContrastLimits },
 });
 
-// Create label image layer with picking functionality
-const labelsLayer = new LabelImageLayer({
-  source: labelsSource,
-  region: labelsRegion,
-  transparent: true,
-  opacity: 0.25,
-  blendMode: "normal",
-  lod,
-  onPickValue: (info: PointPickingResult) => {
-    const { world, value } = info;
-    pickInfoDiv.innerHTML = `
-      <strong>Pick Result:</strong><br/>
-      World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
-      Label Value: ${value}<br/>
-    `;
-    console.debug(`Setting color for label ${value} to transparent`);
-    labelsLayer.setColorMap({
-      cycle: Array.from(labelsLayer.colorMap.cycle),
-      lookupTable: new Map([[value, Color.WHITE]]),
-    });
-  },
-});
+// Function to create label layer with current mode
+function createLabelsLayer() {
+  return new LabelImageLayer({
+    source: labelsSource,
+    region: labelsRegion,
+    transparent: true,
+    opacity: 0.25,
+    blendMode: "normal",
+    lod,
+    outlineSelected: outlineMode,
+    onPickValue: (info: PointPickingResult) => {
+      const { world, value } = info;
+      pickInfoDiv.innerHTML = `
+        <strong>Pick Result:</strong><br/>
+        World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
+        Label Value: ${value}
+      `;
 
-new Idetik({
+      if (outlineMode) {
+        // In outline mode, the layer handles the selection internally
+      } else {
+        // In fill mode, use the old white fill behavior
+        labelsLayer.setColorMap({
+          cycle: Array.from(labelsLayer.colorMap.cycle),
+          lookupTable: new Map([[value, Color.WHITE]]),
+        });
+      }
+    },
+  });
+}
+
+// Create initial label layer
+let labelsLayer = createLabelsLayer();
+
+// Create Idetik instance
+const idetik = new Idetik({
   canvas,
   camera,
   layers: [imageLayer, labelsLayer],
   cameraControls: new PanZoomControls(camera),
-}).start();
+});
+
+// Add toggle functionality
+const modeText = document.querySelector<HTMLSpanElement>("#mode-text")!;
+toggleDiv.addEventListener("click", () => {
+  outlineMode = !outlineMode;
+  modeText.textContent = outlineMode ? "Outline" : "Fill";
+
+  // Remove old layer and create new one with updated mode
+  idetik.layerManager.remove(labelsLayer);
+  labelsLayer = createLabelsLayer();
+  idetik.layerManager.add(labelsLayer);
+});
+
+idetik.start();

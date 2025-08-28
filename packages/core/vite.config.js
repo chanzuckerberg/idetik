@@ -69,8 +69,12 @@ export default defineConfig(({ mode }) => {
       browser: {
         enabled: true,
         provider: "playwright",
-        name: "chromium", // browser name is required
         headless: true,
+        instances: [
+          {
+            browser: "chromium",
+          },
+        ],
       },
       coverage: {
         provider: "istanbul",
