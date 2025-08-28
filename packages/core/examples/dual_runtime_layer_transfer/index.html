@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dual Runtime Layer Transfer</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        font-family: monospace;
+        background: #222;
+      }
+
+      .header {
+        padding: 1em;
+        background: #333;
+        color: white;
+        text-align: center;
+      }
+
+      .canvas-container {
+        display: flex;
+        flex: 1;
+        gap: 2px;
+      }
+
+      .canvas-wrapper {
+        flex: 1;
+        position: relative;
+        background: #111;
+      }
+
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .canvas-label {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 0.5em;
+        font-size: 12px;
+        border-radius: 4px;
+      }
+
+      .controls {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 1em;
+        border-radius: 8px;
+        text-align: center;
+        min-width: 200px;
+      }
+
+      .btn {
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        margin: 4px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-family: monospace;
+      }
+
+      .btn:hover {
+        background: #0052a3;
+      }
+
+      .btn:disabled {
+        background: #666;
+        cursor: not-allowed;
+      }
+
+      .status {
+        margin-top: 1em;
+        font-size: 11px;
+        color: #aaa;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="header">
+      <h2>Dual Runtime Layer Transfer Test</h2>
+      <p>Testing LabelImageLayer transfer between two Idetik runtimes to reproduce rendering issues</p>
+    </div>
+    
+    <div class="canvas-container">
+      <div class="canvas-wrapper">
+        <canvas id="canvas1"></canvas>
+        <div class="canvas-label">Runtime 1</div>
+      </div>
+      
+      <div class="canvas-wrapper">
+        <canvas id="canvas2"></canvas>
+        <div class="canvas-label">Runtime 2</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div><strong>Layer Transfer Controls</strong></div>
+      <button id="transfer-to-runtime2" class="btn">Transfer Layer → Runtime 2</button>
+      <button id="transfer-to-runtime1" class="btn">Transfer Layer → Runtime 1</button>
+      <div class="status" id="status">Layer currently in: Runtime 1</div>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
