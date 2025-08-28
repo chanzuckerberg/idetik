@@ -2,6 +2,7 @@ import { LayerManager } from "./layer_manager";
 import { Camera } from "../objects/cameras/camera";
 import { Color, ColorLike } from "./color";
 import { Layer } from "./layer";
+import { Box2 } from "../math/box2";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
@@ -26,7 +27,12 @@ export abstract class Renderer {
     }
   }
 
-  public abstract render(layerManager: LayerManager, camera: Camera): void;
+  // TODO: make this just take a Viewport instance once implemented
+  public abstract render(
+    layerManager: LayerManager,
+    camera: Camera,
+    viewportBox: Box2
+  ): void;
 
   public updateSize(): void {
     this.updateRendererSize();

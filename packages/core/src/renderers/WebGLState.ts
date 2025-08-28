@@ -1,3 +1,5 @@
+import { Box2 } from "../math/box2";
+
 export type BlendingMode =
   | "none"
   | "normal"
@@ -13,6 +15,8 @@ export class WebGLState {
   private blendSrcFactor_: GLenum | null = null;
   private blendDstFactor_: GLenum | null = null;
   private currentBlendingMode_: BlendingMode | null = null;
+  private currentViewport_: Box2 | null = null;
+  private currentScissor_: Box2 | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -40,12 +44,7 @@ export class WebGLState {
     }
   }
 
-  private isCapabilityEnabled(cap: GLenum, desired: boolean): boolean {
-    return this.enabledCapabilities_.get(cap) === desired;
-  }
-
   public setDepthTesting(enabled: boolean) {
-    if (this.isCapabilityEnabled(this.gl_.DEPTH_TEST, enabled)) return;
     if (enabled) {
       this.enable(this.gl_.DEPTH_TEST);
     } else {
@@ -54,7 +53,6 @@ export class WebGLState {
   }
 
   public setBlending(enabled: boolean) {
-    if (this.isCapabilityEnabled(this.gl_.BLEND, enabled)) return;
     if (enabled) {
       this.enable(this.gl_.BLEND);
     } else {
@@ -93,5 +91,39 @@ export class WebGLState {
       }
     }
     this.currentBlendingMode_ = mode;
+  }
+
+  public setViewport(box: Box2) {
+    const clampedBox = box.floor();
+
+    if (
+      this.currentViewport_ &&
+      Box2.equals(clampedBox, this.currentViewport_)
+    ) {
+      return;
+    }
+    const { x, y, width, height } = clampedBox.toRect();
+    this.gl_.viewport(x, y, width, height);
+    this.currentViewport_ = clampedBox;
+  }
+
+  public setScissorTest(enabled: boolean) {
+    if (enabled) {
+      this.enable(this.gl_.SCISSOR_TEST);
+    } else {
+      this.disable(this.gl_.SCISSOR_TEST);
+      this.currentScissor_ = null;
+    }
+  }
+
+  public setScissor(box: Box2) {
+    const clampedBox = box.floor();
+
+    if (this.currentScissor_ && Box2.equals(clampedBox, this.currentScissor_)) {
+      return;
+    }
+    const { x, y, width, height } = clampedBox.toRect();
+    this.gl_.scissor(x, y, width, height);
+    this.currentScissor_ = clampedBox;
   }
 }

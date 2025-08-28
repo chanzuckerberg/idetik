@@ -29,4 +29,23 @@ export class Box2 {
     if (a.max[1] <= b.min[1] || a.min[1] >= b.max[1]) return false;
     return true;
   }
+
+  public static equals(a: Box2, b: Box2): boolean {
+    return vec2.exactEquals(a.min, b.min) && vec2.exactEquals(a.max, b.max);
+  }
+
+  public floor(): Box2 {
+    return new Box2(
+      vec2.fromValues(Math.floor(this.min[0]), Math.floor(this.min[1])),
+      vec2.fromValues(Math.floor(this.max[0]), Math.floor(this.max[1]))
+    );
+  }
+
+  public toRect(): { x: number; y: number; width: number; height: number } {
+    const x = this.min[0];
+    const y = this.min[1];
+    const width = this.max[0] - this.min[0];
+    const height = this.max[1] - this.min[1];
+    return { x, y, width, height };
+  }
 }

@@ -7,6 +7,7 @@ import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { vec2, vec3 } from "gl-matrix";
 import { createStats, type Stats } from "./utilities/stats";
+import { Box2 } from "./math/box2";
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
@@ -114,6 +115,7 @@ export class Idetik {
     new ResizeObserver(() => {
       this.needsResize_ = true;
     }).observe(this.canvas);
+
     const render = (timestamp?: DOMHighResTimeStamp) => {
       if (this.stats_) this.stats_.begin();
 
@@ -131,7 +133,14 @@ export class Idetik {
         this.needsResize_ = false;
       }
 
-      this.renderer_.render(this.layerManager, this.camera);
+      // TEMP: in the future, the renderer will manage a list of dynamically-sized viewports
+      // instead of passing its own box to itself
+      const viewportBox = new Box2(
+        vec2.fromValues(0, 0),
+        vec2.fromValues(this.renderer_.width, this.renderer_.height)
+      );
+
+      this.renderer_.render(this.layerManager, this.camera, viewportBox);
 
       for (const overlay of this.overlays) {
         overlay.update(this, timestamp);
