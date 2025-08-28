@@ -14,6 +14,10 @@ import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { Region } from "../data/region";
+import {
+  RenderablePool,
+  poolKeyForImageRenderable,
+} from "../utilities/renderable_pool";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -29,7 +33,8 @@ export class ChunkedImageLayer extends Layer {
   private readonly region_: Region;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
-  private channelProps_?: ChannelProps;
+  private readonly channelProps_?: ChannelProps;
+  private readonly pool_ = new RenderablePool<ImageRenderable>();
   private chunkManagerSource_?: ChunkManagerSource;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
@@ -71,39 +76,27 @@ export class ChunkedImageLayer extends Layer {
 
   private updateChunks() {
     if (!this.chunkManagerSource_) return;
+    if (this.state !== "ready") this.setState("ready");
 
-    // Temporary until we decide how to approach state management
-    if (this.state !== "ready") {
-      this.setState("ready");
-    }
+    const ordered = this.chunkManagerSource_.getChunks();
+    const current = new Set(ordered);
 
-    // TODO:(shlomnissan) Reuse images instead of deleting and creating new ones.
-    //
-    // This loop removes image renderables for chunks that are no longer visible
-    // or no longer returned by getChunks() (e.g., due to LOD changes).
-    // While this approach works for now, it may be more efficient in the future
-    // to reuse renderables by updating their underlying data instead of repeatedly
-    // creating new texture objects. Note: GPU resources are not currently being
-    // released, so this will also need to be addressed soon.
-    const currentChunks = new Set(this.chunkManagerSource_.getChunks());
-    this.visibleChunks_.forEach((_image, chunk) => {
-      if (!currentChunks.has(chunk)) {
-        this.visibleChunks_.delete(chunk); // safe
+    // Release dropped chunks to the pool
+    this.visibleChunks_.forEach((image, chunk) => {
+      if (!current.has(chunk)) {
+        this.visibleChunks_.delete(chunk);
+        this.pool_.release(poolKeyForImageRenderable(chunk), image);
       }
     });
 
-    // Add all objects anew so that they respect the chunk order, which may
-    // capture details important for rendering, such as LOD, instead of the
-    // creation order, which is dependent on when the chunks finished loading.
+    // Rebuild draw list in correct order
     this.clearObjects();
-    currentChunks.forEach((chunk) => {
-      let image = this.visibleChunks_.get(chunk);
-      if (!image && chunk.state === "loaded") {
-        image = this.createImage(chunk);
-        this.visibleChunks_.set(chunk, image);
-      }
-      if (image) this.addObject(image);
-    });
+    for (const chunk of ordered) {
+      if (chunk.state !== "loaded") continue;
+      const image = this.getImageForChunk(chunk);
+      this.visibleChunks_.set(chunk, image);
+      this.addObject(image);
+    }
   }
 
   private resliceIfZChanged() {
@@ -117,7 +110,8 @@ export class ChunkedImageLayer extends Layer {
       if (chunk.state !== "loaded" || !chunk.data) continue;
       const data = this.slicePlane(chunk, pointWorld);
       if (data) {
-        image.textures[0].data = data;
+        const texture = image.textures[0] as Texture2DArray;
+        texture.updateWithChunk(chunk, data);
       }
     }
 
@@ -154,30 +148,54 @@ export class ChunkedImageLayer extends Layer {
     return chunk.data.slice(offset, offset + sliceSize);
   }
 
-  private createImage(chunk: Chunk) {
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
+  private getImageForChunk(chunk: Chunk) {
+    const existing = this.visibleChunks_.get(chunk);
+    if (existing) return existing;
 
-    let data = chunk.data;
-    const dimensions = this.chunkManagerSource?.dimensions;
-    if (dimensions?.z) {
-      data = this.slicePlane(chunk, dimensions.z.pointWorld);
+    const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
+    if (pooled) {
+      const texture = pooled.textures[0] as Texture2DArray;
+      texture.updateWithChunk(chunk, this.getDataForImage(chunk));
+      this.updateImageChunk(pooled, chunk);
+      return pooled;
     }
 
+    return this.createImage(chunk);
+  }
+
+  private createImage(chunk: Chunk) {
+    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(
       geometry,
-      Texture2DArray.createWithChunk(chunk, data),
+      Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
       this.channelProps_ ? [this.channelProps_] : [{}]
     );
+    this.updateImageChunk(image, chunk);
+    return image;
+  }
 
+  private getDataForImage(chunk: Chunk) {
+    const dims = this.chunkManagerSource_?.dimensions;
+    const data = dims?.z
+      ? this.slicePlane(chunk, dims.z.pointWorld)
+      : chunk.data;
+    if (!data) {
+      Logger.warn("ChunkedImageLayer", "No data for image");
+      return;
+    }
+    return data;
+  }
+
+  private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
     if (this.debugMode_) {
       image.wireframeEnabled = true;
       image.wireframeColor =
         this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
+    } else {
+      image.wireframeEnabled = false;
     }
-
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
-    return image;
   }
 
   public getValueAtWorld(world: vec3): number | null {
