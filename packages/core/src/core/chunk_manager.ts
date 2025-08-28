@@ -1,7 +1,7 @@
 import { CachedChunkLoader } from "../data/cached_chunk_loader";
 import { ChunkSource } from "../data/chunk";
 
-export class SourceManager {
+export class ChunkManager {
   // missing/undefined: source has not been opened before
   // null: source is being opened
   private sourceMap_: Map<ChunkSource, CachedChunkLoader | null> = new Map();

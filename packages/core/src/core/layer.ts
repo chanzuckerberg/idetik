@@ -2,7 +2,7 @@ import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { EventContext } from "./event_dispatcher";
 import { Camera } from "../objects/cameras/camera";
-import { SourceManager } from "./source_manager";
+import { ChunkManager } from "./chunk_manager";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
@@ -13,7 +13,7 @@ type StateChangeCallback = (
 ) => void;
 
 export type UpdateProps = {
-  sourceManager: SourceManager;
+  sourceManager: ChunkManager;
   camera: Camera;
   bufferWidth: number;
 };

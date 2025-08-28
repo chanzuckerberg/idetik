@@ -13,7 +13,7 @@ import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { ChunkSourceView } from "../data/chunk_source_view";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
-import { SourceManager } from "@/core/source_manager";
+import { ChunkManager } from "@/core/chunk_manager";
 import { CachedChunkLoader } from "@/data/cached_chunk_loader";
 
 export type ChunkedImageLayerProps = LayerOptions & {
@@ -77,7 +77,7 @@ export class ChunkedImageLayer extends Layer {
     }
   }
 
-  private async open(sourceManager: SourceManager) {
+  private async open(sourceManager: ChunkManager) {
     this.setState("loading");
     const loader = sourceManager.getLoader(this.source_);
     if (loader === null) return;

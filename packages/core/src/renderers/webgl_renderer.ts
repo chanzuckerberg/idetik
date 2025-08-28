@@ -15,7 +15,7 @@ import { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
 
 import { mat4, vec2 } from "gl-matrix";
-import { SourceManager } from "../core/source_manager";
+import { ChunkManager } from "../core/chunk_manager";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -35,7 +35,7 @@ export class WebGLRenderer extends Renderer {
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
-  private readonly sourceManager_: SourceManager = new SourceManager();
+  private readonly sourceManager_: ChunkManager = new ChunkManager();
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
