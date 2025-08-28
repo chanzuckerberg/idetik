@@ -1,6 +1,6 @@
 # @idetik/react
 
-🚨 **This package is under active development and is subject to frequent changes.** Use at your own risk in production environments.
+🚨 **This package is under active development.** Use at your own risk in production environments.
 
 React components for interactive visualization of large datasets, built on the Idetik runtime.
 
