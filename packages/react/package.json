@@ -1,6 +1,6 @@
 {
   "name": "@idetik/react-prerelease",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,7 @@
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
     "lint": "eslint .",
-    "pub": "npm publish --access=public"
+    "pub": "npm run build; npm publish --access=public"
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-beta.2",
@@ -58,7 +58,7 @@
   },
   "peerDependencies": {
     "@czi-sds/components": "^22.3.0",
-    "@idetik/core-prerelease": "^0.0.1",
+    "@idetik/core": "npm:@idetik/core-prerelease@^0.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   }

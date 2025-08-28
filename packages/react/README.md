@@ -9,8 +9,14 @@ React components for interactive visualization of large datasets, built on the I
 ### Installation
 
 ```bash
-npm install @idetik/react @idetik/core
+npm install @idetik/react-prerelease
 ```
+
+Add
+```css
+@import "@idetik/react-prerelease/style.css";
+```
+to you global CSS file.
 
 ### Basic Usage: OmeZarrImageViewer (Reference Viewer)
 
