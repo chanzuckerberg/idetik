@@ -1,6 +1,5 @@
 {
-  "name": "@idetik/core",
-  "private": true,
+  "name": "@idetik/core-prerelease",
   "version": "0.0.1",
   "type": "module",
   "scripts": {
@@ -11,7 +10,8 @@
     "test-with-coverage": "vitest run --coverage",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "pub": "npm publish --access=public"
   },
   "dependencies": {
     "gl-matrix": "^3.4.3",
@@ -40,6 +40,9 @@
   },
   "author": "",
   "license": "MIT",
+  "keywords": [
+    "idetik"
+  ],
   "devDependencies": {
     "@apidevtools/json-schema-ref-parser": "^14.1.1",
     "json-schema-to-zod": "^2.6.1"

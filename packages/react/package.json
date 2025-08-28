@@ -1,7 +1,6 @@
 {
   "name": "@idetik/react",
-  "private": true,
-  "version": "0.0.1",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +8,8 @@
     "build": "vite build && tsc && rollup -c rollup.config.js",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "pub": "npm publish --access=public"
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-beta.2",
@@ -46,6 +46,9 @@
   ],
   "author": "",
   "license": "MIT",
+  "keywords": [
+    "idetik"
+  ],
   "devDependencies": {
     "@idetik/core": "^0.0.1",
     "@types/classnames": "^2.3.0",
