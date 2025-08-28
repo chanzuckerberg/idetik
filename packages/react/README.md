@@ -1,4 +1,4 @@
-# @idetik/react
+# @idetik/react-prerelease
 
 🚨 **This package is under active development.** Use at your own risk in production environments.
 
