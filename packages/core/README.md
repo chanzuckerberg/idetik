@@ -1,4 +1,4 @@
-# @idetik/core-prerelease
+# @idetik/core
 
 🚨 **This package is under active development.** Use at your own risk in production environments.
 

@@ -1,4 +1,4 @@
-# @idetik/react-prerelease
+# @idetik/react
 
 🚨 **This package is under active development.** Use at your own risk in production environments.
 
@@ -8,13 +8,19 @@ React components for interactive visualization of large datasets, built on the I
 
 ### Installation
 
+NPM
 ```bash
-npm install @idetik/react-prerelease
+npm i @idetik/react@npm:@idetik/react-prerelease @idetik/core@npm:@idetik/core-prerelease
+```
+
+Yarn
+```bash
+yarn add @idetik/react@npm:@idetik/react-prerelease@latest @idetik/core@npm:@idetik/core-prerelease@latest
 ```
 
 Add
 ```css
-@import "@idetik/react-prerelease/style.css";
+@import "@idetik/react/style.css";
 ```
 to you global CSS file.
 
