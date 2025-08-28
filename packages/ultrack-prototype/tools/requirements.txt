@@ -1,5 +1,0 @@
-numpy
-pandas
-pydantic
-ruff
-pre-commit
