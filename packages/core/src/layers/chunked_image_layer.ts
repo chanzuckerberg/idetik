@@ -168,7 +168,7 @@ export class ChunkedImageLayer extends Layer {
   }
 
   private getDataForImage(chunk: Chunk) {
-    const data = this.sliceCoords_?.z
+    const data = this.sliceCoords_?.z !== undefined
       ? this.slicePlane(chunk, this.sliceCoords_.z)
       : chunk.data;
     if (!data) {
