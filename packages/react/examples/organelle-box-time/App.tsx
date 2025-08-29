@@ -36,7 +36,9 @@ async function loadTimeMetadata(): Promise<TimeMetadata> {
   const wellMetadata = await response.json();
 
   if (!("time_metadata" in wellMetadata)) {
-    throw new Error(`No time metadata found in ${wellMetadataUrl}`);
+    throw new Error(
+      `No time metadata found in ${JSON.stringify(wellMetadataUrl)}`
+    );
   }
   const timeMetadata = wellMetadata["time_metadata"];
 
