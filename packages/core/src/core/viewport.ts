@@ -18,10 +18,10 @@ export class Viewport {
   public readonly id: string;
   public readonly element: HTMLElement;
   public readonly camera: Camera;
+  public readonly layerManager: LayerManager;
   public cameraControls: CameraControls | null = null;
 
   private readonly canvas_: HTMLCanvasElement;
-  private readonly layerManager_: LayerManager;
   private cachedViewportBox_: Box2 | null = null;
 
   constructor(
@@ -33,18 +33,15 @@ export class Viewport {
     this.element = config.element;
     this.canvas_ = canvas;
     this.camera = config.camera;
+    this.layerManager = layerManager;
     this.cameraControls = config.cameraControls ?? null;
-    this.layerManager_ = layerManager;
     this.updateAspectRatio();
 
     for (const layer of config.layers ?? []) {
-      this.layerManager_.add(layer);
+      this.layerManager.add(layer);
     }
   }
 
-  public get layerManager(): LayerManager {
-    return this.layerManager_;
-  }
 
   public updateSize(): void {
     this.cachedViewportBox_ = null;
