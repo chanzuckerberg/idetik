@@ -8,19 +8,13 @@ React components for interactive visualization of large datasets, built on the I
 
 ### Installation
 
-NPM
 ```bash
-npm i @idetik/react@npm:@idetik/react-prerelease @idetik/core@npm:@idetik/core-prerelease
-```
-
-Yarn
-```bash
-yarn add @idetik/react@npm:@idetik/react-prerelease@latest @idetik/core@npm:@idetik/core-prerelease@latest
+npm i @idetik/react-prerelease @idetik/core-prerelease
 ```
 
 Add
 ```css
-@import "@idetik/react/style.css";
+@import "@idetik/react-prerelease/style.css";
 ```
 to you global CSS file.
 
