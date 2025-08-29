@@ -1,4 +1,4 @@
-import { Idetik } from "@idetik/core";
+import { Idetik } from "@idetik/core-prerelease";
 import { createContext, useContext } from "react";
 
 export type IdetikContextValue =
