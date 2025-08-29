@@ -121,7 +121,7 @@ export default function App() {
         sourceUrl={imageUrl}
         region={region}
         seriesDimensionName={timeDimension}
-        initialIndex="start"
+        initialIndex="omeroDefault"
         loadAllButtonText="Load entire duration (105MB)"
         classNames={{
           root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",

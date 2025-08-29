@@ -6,7 +6,7 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
-  loadOmeroDefaultZ,
+  loadOmeroDefaults,
 } from "@";
 import { blendMode } from "@/core/layer";
 
@@ -21,7 +21,8 @@ const source = new OmeZarrImageSource(url);
 let zIndex = 0;
 (async () => {
   try {
-    zIndex = await loadOmeroDefaultZ(source);
+    const defaults = await loadOmeroDefaults(source);
+    zIndex = defaults?.defaultZ ?? 0;
   } catch (error) {
     console.error("Error loading default Z index:", error);
   }

@@ -7,7 +7,7 @@ import {
   ImageSeriesLayer,
   Region,
   loadOmeroChannels,
-  loadOmeroDefaultZ,
+  loadOmeroDefaults,
   ChannelProps,
   Idetik,
   ImageLayer,
@@ -39,7 +39,7 @@ export interface OmeZarrImageViewerProps {
   resolutionLevel?: number;
   shouldAutoLoadAllSlices?: boolean;
   shouldLoadMiddleZ?: boolean;
-  initialIndex?: "start" | "middle" | "end" | "omeroDefaultZ";
+  initialIndex?: "start" | "middle" | "end" | "omeroDefault";
   indexIndicatorText?:
     | string
     | ((currentIndex: number, totalIndexes: number) => string);
@@ -77,7 +77,7 @@ export function OmeZarrImageViewer({
   resolutionLevel = 0,
   shouldAutoLoadAllSlices = false,
   shouldLoadMiddleZ = false,
-  initialIndex = "omeroDefaultZ",
+  initialIndex = "omeroDefault",
   loadAllButtonText,
   indexIndicatorText,
   scaleBar = {
@@ -464,7 +464,14 @@ async function loadImageMetadata(
       const zShape = attrsForLevel.shape[zIdx];
       initialZ = zShape - 1;
     } else {
-      initialZ = await loadOmeroDefaultZ(source);
+      const defaults = await loadOmeroDefaults(source);
+      if (seriesDimensionName.toUpperCase() == "Z") {
+        initialZ = defaults?.defaultZ ?? 0;
+      } else if (seriesDimensionName.toUpperCase() == "T") {
+        initialZ = defaults?.defaultT ?? 0;
+      } else {
+        initialZ = 0;
+      }
     }
   } else if (zRegion) {
     switch (zRegion.index?.type) {
