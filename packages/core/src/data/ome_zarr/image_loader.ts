@@ -54,7 +54,7 @@ export class OmeZarrImageLoader {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
-    this.dimensions_ = getChunkDimensionMap(this.loaderAttributes_);
+    this.dimensions_ = inferChunkDimensionMap(this.loaderAttributes_);
   }
 
   public getDimensionMap(): ChunkDimensionMap {
@@ -257,7 +257,7 @@ function getLoaderAttributes(
   return output;
 }
 
-function getChunkDimensionMap(
+function inferChunkDimensionMap(
   attrs: ReadonlyArray<LoaderAttributes>
 ): ChunkDimensionMap {
   const names = attrs[0].dimensionNames;
