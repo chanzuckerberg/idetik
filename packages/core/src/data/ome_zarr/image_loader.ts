@@ -54,10 +54,10 @@ export class OmeZarrImageLoader {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
-    this.dimensions_ = inferChunkDimensionMap(this.loaderAttributes_);
+    this.dimensions_ = inferSourceDimensionMap(this.loaderAttributes_);
   }
 
-  public getDimensionMap(): SourceDimensionMap {
+  public getSourceDimensionMap(): SourceDimensionMap {
     return this.dimensions_;
   }
 
@@ -256,7 +256,7 @@ function getLoaderAttributes(
   return output;
 }
 
-function inferChunkDimensionMap(
+function inferSourceDimensionMap(
   attrs: ReadonlyArray<LoaderAttributes>
 ): SourceDimensionMap {
   const names = attrs[0].dimensionNames;
@@ -264,30 +264,30 @@ function inferChunkDimensionMap(
   const xIndex = findDimensionIndex(names, "x");
   const yIndex = findDimensionIndex(names, "y");
   const dims: SourceDimensionMap = {
-    x: getChunkDimension(names[xIndex], xIndex, attrs),
-    y: getChunkDimension(names[yIndex], yIndex, attrs),
+    x: getSourceDimension(names[xIndex], xIndex, attrs),
+    y: getSourceDimension(names[yIndex], yIndex, attrs),
     numLods: attrs.length,
   };
 
   const zIndex = findDimensionIndexSafe(names, "z");
   if (zIndex !== -1) {
-    dims.z = getChunkDimension(names[zIndex], zIndex, attrs);
+    dims.z = getSourceDimension(names[zIndex], zIndex, attrs);
   }
 
   const cIndex = findDimensionIndexSafe(names, "c");
   if (cIndex !== -1) {
-    dims.c = getChunkDimension(names[cIndex], cIndex, attrs);
+    dims.c = getSourceDimension(names[cIndex], cIndex, attrs);
   }
 
   const tIndex = findDimensionIndexSafe(names, "t");
   if (tIndex !== -1) {
-    dims.t = getChunkDimension(names[tIndex], tIndex, attrs);
+    dims.t = getSourceDimension(names[tIndex], tIndex, attrs);
   }
 
   return dims;
 }
 
-function getChunkDimension(
+function getSourceDimension(
   name: string,
   index: number,
   attrs: ReadonlyArray<LoaderAttributes>

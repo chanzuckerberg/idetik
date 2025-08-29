@@ -28,7 +28,7 @@ export class ChunkManagerSource {
 
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
     this.loader_ = loader;
-    this.dimensions_ = this.loader_.getDimensionMap();
+    this.dimensions_ = this.loader_.getSourceDimensionMap();
     this.lowestResLOD_ = this.dimensions_.numLods - 1;
     this.currentLOD_ = 0;
     this.sliceCoords_ = sliceCoords;

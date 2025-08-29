@@ -111,7 +111,7 @@ export type ChunkLoader = {
     scheduler?: PromiseScheduler
   ): Promise<Chunk>;
 
-  getDimensionMap(): SourceDimensionMap;
+  getSourceDimensionMap(): SourceDimensionMap;
 
   loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates): Promise<void>;
 
