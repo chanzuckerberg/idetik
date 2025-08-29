@@ -12,9 +12,10 @@ import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { ChunkSourceView } from "../data/chunk_source_view";
-import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
-import { ChunkManager } from "@/core/chunk_manager";
-import { CachedChunkLoader } from "@/data/cached_chunk_loader";
+import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import { ChunkManager } from "../core/chunk_manager";
+import { CachedChunkLoader } from "../data/cached_chunk_loader";
+import { RenderablePool } from "../utilities/renderable_pool";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -30,7 +31,8 @@ export class ChunkedImageLayer extends Layer {
   private readonly sliceCoords_: SliceCoordinates;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
-  private channelProps_?: ChannelProps;
+  private readonly channelProps_?: ChannelProps;
+  private readonly pool_ = new RenderablePool<ImageRenderable>();
   private chunkSourceView_?: ChunkSourceView;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
@@ -67,7 +69,8 @@ export class ChunkedImageLayer extends Layer {
         this.makeView(props.sourceManager.getLoader(this.source_));
         break;
       case "ready":
-        this.updateChunks(props);
+        this.updateView(props);
+        this.updateChunks();
         this.resliceIfZChanged();
         break;
       default: {
@@ -95,7 +98,7 @@ export class ChunkedImageLayer extends Layer {
     this.setState("ready");
   }
 
-  private updateChunks(props?: UpdateProps) {
+  private updateView(props?: UpdateProps) {
     if (!this.chunkSourceView_) {
       throw new Error("Updating chunks without a view.");
     }
@@ -113,34 +116,29 @@ export class ChunkedImageLayer extends Layer {
       props.bufferWidth,
       this.sliceCoords_
     );
+  }
 
-    // TODO:(shlomnissan) Reuse images instead of deleting and creating new ones.
-    //
-    // This loop removes image renderables for chunks that are no longer visible
-    // or no longer returned by getChunks() (e.g., due to LOD changes).
-    // While this approach works for now, it may be more efficient in the future
-    // to reuse renderables by updating their underlying data instead of repeatedly
-    // creating new texture objects. Note: GPU resources are not currently being
-    // released, so this will also need to be addressed soon.
-    const currentChunks = new Set(this.chunkSourceView_.getChunks());
-    this.visibleChunks_.forEach((_image, chunk) => {
-      if (!currentChunks.has(chunk)) {
-        this.visibleChunks_.delete(chunk); // safe
+  private updateChunks() {
+    if (!this.chunkSourceView_) return;
+    if (this.state !== "ready") this.setState("ready");
+
+    const orderedByLOD = this.chunkSourceView_.getChunks();
+    const current = new Set(orderedByLOD);
+
+    this.visibleChunks_.forEach((image, chunk) => {
+      if (!current.has(chunk)) {
+        this.visibleChunks_.delete(chunk);
+        this.pool_.release(poolKeyForImageRenderable(chunk), image);
       }
     });
 
-    // Add all objects anew so that they respect the chunk order, which may
-    // capture details important for rendering, such as LOD, instead of the
-    // creation order, which is dependent on when the chunks finished loading.
     this.clearObjects();
-    currentChunks.forEach((chunk) => {
-      let image = this.visibleChunks_.get(chunk);
-      if (!image && chunk.state === "loaded") {
-        image = this.createImage(chunk);
-        this.visibleChunks_.set(chunk, image);
-      }
-      if (image) this.addObject(image);
-    });
+    for (const chunk of orderedByLOD) {
+      if (chunk.state !== "loaded") continue;
+      const image = this.getImageForChunk(chunk);
+      this.visibleChunks_.set(chunk, image);
+      this.addObject(image);
+    }
   }
 
   private resliceIfZChanged() {
@@ -153,7 +151,8 @@ export class ChunkedImageLayer extends Layer {
       if (chunk.state !== "loaded" || !chunk.data) continue;
       const data = this.slicePlane(chunk, zPointWorld);
       if (data) {
-        image.textures[0].data = data;
+        const texture = image.textures[0] as Texture2DArray;
+        texture.updateWithChunk(chunk, data);
       }
     }
 
@@ -190,29 +189,54 @@ export class ChunkedImageLayer extends Layer {
     return chunk.data.slice(offset, offset + sliceSize);
   }
 
-  private createImage(chunk: Chunk) {
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
+  private getImageForChunk(chunk: Chunk) {
+    const existing = this.visibleChunks_.get(chunk);
+    if (existing) return existing;
 
-    let data = chunk.data;
-    if (this.sliceCoords_.z !== undefined) {
-      data = this.slicePlane(chunk, this.sliceCoords_.z);
+    const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
+    if (pooled) {
+      const texture = pooled.textures[0] as Texture2DArray;
+      texture.updateWithChunk(chunk, this.getDataForImage(chunk));
+      this.updateImageChunk(pooled, chunk);
+      return pooled;
     }
 
+    return this.createImage(chunk);
+  }
+
+  private createImage(chunk: Chunk) {
+    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(
       geometry,
-      Texture2DArray.createWithChunk(chunk, data),
+      Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
       this.channelProps_ ? [this.channelProps_] : [{}]
     );
+    this.updateImageChunk(image, chunk);
+    return image;
+  }
 
+  private getDataForImage(chunk: Chunk) {
+    const data =
+      this.sliceCoords_?.z !== undefined
+        ? this.slicePlane(chunk, this.sliceCoords_.z)
+        : chunk.data;
+    if (!data) {
+      Logger.warn("ChunkedImageLayer", "No data for image");
+      return;
+    }
+    return data;
+  }
+
+  private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
     if (this.debugMode_) {
       image.wireframeEnabled = true;
       image.wireframeColor =
         this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
+    } else {
+      image.wireframeEnabled = false;
     }
-
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
-    return image;
   }
 
   public getValueAtWorld(world: vec3): number | null {
@@ -276,4 +300,13 @@ export class ChunkedImageLayer extends Layer {
       }
     });
   }
+}
+
+export function poolKeyForImageRenderable(chunk: Chunk) {
+  return [
+    `lod${chunk.lod}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}`,
+    `stride${chunk.rowStride}`,
+    `align${chunk.rowAlignmentBytes}`,
+  ].join(":");
 }

@@ -105,7 +105,7 @@ export class LabelImageSeriesLayer extends Layer {
         y: chunk.shape.y * chunk.scale.y,
       };
     } else if (chunk.data) {
-      this.texture_.data = chunk.data;
+      this.texture_.updateWithChunk(chunk);
     }
   }
 

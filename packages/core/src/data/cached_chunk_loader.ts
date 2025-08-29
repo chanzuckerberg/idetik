@@ -1,6 +1,6 @@
 import {
   Chunk,
-  ChunkDimensionMap,
+  SourceDimensionMap,
   ChunkLoader,
   SliceCoordinates,
 } from "./chunk";
@@ -9,37 +9,37 @@ import { Logger } from "../utilities/logger";
 export class CachedChunkLoader {
   private readonly loader_: ChunkLoader;
   private readonly chunks_: Chunk[];
-  private readonly dimensions_: ChunkDimensionMap;
+  private readonly dimensions_: SourceDimensionMap;
 
   constructor(loader: ChunkLoader) {
     this.loader_ = loader;
-    this.dimensions_ = this.loader_.getDimensionMap();
+    this.dimensions_ = this.loader_.getSourceDimensionMap();
 
     // generate chunks for each LOD without loading data
     this.chunks_ = [];
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-      const xDim = this.dimensions_.x.lods[lod];
-      const yDim = this.dimensions_.y.lods[lod];
-      const zDim = this.dimensions_.z?.lods[lod];
-      const cDim = this.dimensions_.c?.lods[lod];
+      const xLod = this.dimensions_.x.lods[lod];
+      const yLod = this.dimensions_.y.lods[lod];
+      const zLod = this.dimensions_.z?.lods[lod];
+      const cLod = this.dimensions_.c?.lods[lod];
 
-      const chunkWidth = xDim.chunkSize;
-      const chunkHeight = yDim.chunkSize;
-      const chunkDepth = zDim?.chunkSize ?? 1;
+      const chunkWidth = xLod.chunkSize;
+      const chunkHeight = yLod.chunkSize;
+      const chunkDepth = zLod?.chunkSize ?? 1;
 
-      const chunksX = Math.ceil(xDim.size / chunkWidth);
-      const chunksY = Math.ceil(yDim.size / chunkHeight);
-      const chunksZ = Math.ceil((zDim?.size ?? 1) / chunkDepth);
-      const channels = cDim?.size ?? 1;
+      const chunksX = Math.ceil(xLod.size / chunkWidth);
+      const chunksY = Math.ceil(yLod.size / chunkHeight);
+      const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
+      const channels = cLod?.size ?? 1;
 
       for (let x = 0; x < chunksX; ++x) {
-        const xOffset = xDim.translation + x * xDim.chunkSize * xDim.scale;
+        const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
         for (let y = 0; y < chunksY; ++y) {
-          const yOffset = yDim.translation + y * yDim.chunkSize * yDim.scale;
+          const yOffset = yLod.translation + y * yLod.chunkSize * yLod.scale;
           for (let z = 0; z < chunksZ; ++z) {
             const zOffset =
-              zDim !== undefined
-                ? zDim.translation + z * chunkDepth * zDim.scale
+              zLod !== undefined
+                ? zLod.translation + z * chunkDepth * zLod.scale
                 : 0;
             this.chunks_.push({
               state: "unloaded",
@@ -56,9 +56,9 @@ export class CachedChunkLoader {
               rowAlignmentBytes: 1,
               chunkIndex: { x, y, z },
               scale: {
-                x: xDim.scale,
-                y: yDim.scale,
-                z: zDim?.scale ?? 1,
+                x: xLod.scale,
+                y: yLod.scale,
+                z: zLod?.scale ?? 1,
               },
               offset: {
                 x: xOffset,

@@ -28,7 +28,7 @@ export type { Region } from "./data/region";
 export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";
 export {
   loadOmeroChannels,
-  loadOmeroDefaultZ,
+  loadOmeroDefaults,
   loadOmeZarrPlate,
   loadOmeZarrWell,
 } from "./data/ome_zarr/metadata_loaders";

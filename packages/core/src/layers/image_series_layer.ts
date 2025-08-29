@@ -124,7 +124,7 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
         y: chunk.shape.y * chunk.scale.y,
       };
     } else if (chunk.data) {
-      this.texture_.data = chunk.data;
+      this.texture_.updateWithChunk(chunk);
     }
   }
 

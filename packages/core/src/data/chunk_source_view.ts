@@ -233,11 +233,11 @@ export class ChunkSourceView {
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
-    const xDim = this.dimensions.x.lods[this.currentLOD_];
-    const yDim = this.dimensions.y.lods[this.currentLOD_];
+    const xLod = this.dimensions.x.lods[this.currentLOD_];
+    const yLod = this.dimensions.y.lods[this.currentLOD_];
 
-    const padX = xDim.chunkSize * xDim.scale * PREFETCH_PADDING_CHUNKS;
-    const padY = yDim.chunkSize * yDim.scale * PREFETCH_PADDING_CHUNKS;
+    const padX = xLod.chunkSize * xLod.scale * PREFETCH_PADDING_CHUNKS;
+    const padY = yLod.chunkSize * yLod.scale * PREFETCH_PADDING_CHUNKS;
 
     // Disable prefetching in Z until chunk prioritization exists.
     const padZ = 0;
@@ -264,7 +264,7 @@ export class ChunkSourceView {
     const yDim = this.dimensions.y;
     for (let i = 1; i < this.dimensions.numLods; i++) {
       const rx = xDim.lods[i].scale / xDim.lods[i - 1].scale;
-      const ry = xDim.lods[i].scale / yDim.lods[i - 1].scale;
+      const ry = yDim.lods[i].scale / yDim.lods[i - 1].scale;
 
       if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
         throw new Error(

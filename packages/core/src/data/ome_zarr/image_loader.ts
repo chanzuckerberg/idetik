@@ -4,9 +4,9 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "../region";
 import {
   Chunk,
-  ChunkDimension,
-  ChunkDimensionLod,
-  ChunkDimensionMap,
+  SourceDimension,
+  SourceDimensionLod,
+  SourceDimensionMap,
   isChunkData,
   LoaderAttributes,
   SliceCoordinates,
@@ -48,22 +48,20 @@ export class OmeZarrImageLoader {
   private readonly metadata_: OmeZarrImage["ome"]["multiscales"][number];
   private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
   private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
-  private readonly dimensions_: ChunkDimensionMap;
+  private readonly dimensions_: SourceDimensionMap;
 
   constructor(props: OmeZarrImageLoaderProps) {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
-    this.dimensions_ = getChunkDimensionMap(this.loaderAttributes_);
+    this.dimensions_ = inferSourceDimensionMap(this.loaderAttributes_);
   }
 
-  public getDimensionMap(): ChunkDimensionMap {
+  public getSourceDimensionMap(): SourceDimensionMap {
     return this.dimensions_;
   }
 
-  public async loadChunkData(chunk: Chunk, sliceIndices: SliceCoordinates) {
-    const array = this.arrays_[chunk.lod];
-
+  public async loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates) {
     const chunkCoords: number[] = [];
     chunkCoords[this.dimensions_.x.index] = chunk.chunkIndex.x;
     chunkCoords[this.dimensions_.y.index] = chunk.chunkIndex.y;
@@ -71,28 +69,29 @@ export class OmeZarrImageLoader {
       chunkCoords[this.dimensions_.z.index] = chunk.chunkIndex.z;
     }
     if (this.dimensions_.c) {
-      if (sliceIndices.c === undefined) {
+      if (sliceCoords.c === undefined) {
         throw new Error(
           "Region is missing c value but c dimension exists in data"
         );
       }
       chunkCoords[this.dimensions_.c.index] = sliceChunkIndex(
-        sliceIndices.c,
+        sliceCoords.c,
         this.dimensions_.c.lods[chunk.lod]
       );
     }
     if (this.dimensions_.t) {
-      if (sliceIndices.t === undefined) {
+      if (sliceCoords.t === undefined) {
         throw new Error(
           "Region is missing t value but t dimension exists in data"
         );
       }
       chunkCoords[this.dimensions_.t.index] = sliceChunkIndex(
-        sliceIndices.t,
+        sliceCoords.t,
         this.dimensions_.t.lods[chunk.lod]
       );
     }
 
+    const array = this.arrays_[chunk.lod];
     const subarray = await array.getChunk(chunkCoords);
 
     const data = subarray.data;
@@ -257,42 +256,42 @@ function getLoaderAttributes(
   return output;
 }
 
-function getChunkDimensionMap(
+function inferSourceDimensionMap(
   attrs: ReadonlyArray<LoaderAttributes>
-): ChunkDimensionMap {
+): SourceDimensionMap {
   const names = attrs[0].dimensionNames;
 
   const xIndex = findDimensionIndex(names, "x");
   const yIndex = findDimensionIndex(names, "y");
-  const dims: ChunkDimensionMap = {
-    x: getChunkDimension(names[xIndex], xIndex, attrs),
-    y: getChunkDimension(names[yIndex], yIndex, attrs),
+  const dims: SourceDimensionMap = {
+    x: getSourceDimension(names[xIndex], xIndex, attrs),
+    y: getSourceDimension(names[yIndex], yIndex, attrs),
     numLods: attrs.length,
   };
 
   const zIndex = findDimensionIndexSafe(names, "z");
   if (zIndex !== -1) {
-    dims.z = getChunkDimension(names[zIndex], zIndex, attrs);
+    dims.z = getSourceDimension(names[zIndex], zIndex, attrs);
   }
 
   const cIndex = findDimensionIndexSafe(names, "c");
   if (cIndex !== -1) {
-    dims.c = getChunkDimension(names[cIndex], cIndex, attrs);
+    dims.c = getSourceDimension(names[cIndex], cIndex, attrs);
   }
 
   const tIndex = findDimensionIndexSafe(names, "t");
   if (tIndex !== -1) {
-    dims.t = getChunkDimension(names[tIndex], tIndex, attrs);
+    dims.t = getSourceDimension(names[tIndex], tIndex, attrs);
   }
 
   return dims;
 }
 
-function getChunkDimension(
+function getSourceDimension(
   name: string,
   index: number,
   attrs: ReadonlyArray<LoaderAttributes>
-): ChunkDimension {
+): SourceDimension {
   return {
     name,
     index,
@@ -305,7 +304,7 @@ function getChunkDimension(
   };
 }
 
-function sliceChunkIndex(value: number, lod: ChunkDimensionLod): number {
+function sliceChunkIndex(value: number, lod: SourceDimensionLod): number {
   const dataIndex = Math.round((value - lod.translation) / lod.scale);
   return Math.floor(dataIndex / lod.chunkSize);
 }
