@@ -17,6 +17,7 @@ import {
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
+  onEvent?(event: EventContext): void;
 };
 
 type IdetikParams = {
@@ -87,22 +88,15 @@ export class Idetik {
     if (params.showStats) this.stats_ = createStats();
 
     this.events = new EventDispatcher(canvas);
-    this.events.addEventListener((event: EventContext) => {
-      if (
-        event.event instanceof PointerEvent ||
-        event.event instanceof WheelEvent
-      ) {
-        const { clientX, clientY } = event.event;
-        const client = vec2.fromValues(clientX, clientY);
-        event.clipPos = this.clientToClip(client, 0);
-        event.worldPos = this.camera.clipToWorld(event.clipPos);
+    for (const viewport of this.viewports_) {
+      this.events.addViewport(viewport);
+    }
+
+    for (const overlay of this.overlays) {
+      if (overlay.onEvent) {
+        this.events.addEventListener(overlay.onEvent.bind(overlay));
       }
-      for (const layer of this.layerManager.layers) {
-        layer.onEvent(event);
-        if (event.propagationStopped) return;
-      }
-      this.viewports_[0].cameraControls?.onEvent(event);
-    });
+    }
   }
 
   public get width() {
