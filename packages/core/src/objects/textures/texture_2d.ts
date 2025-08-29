@@ -3,7 +3,7 @@ import {
   Texture,
   bufferToDataType,
 } from "../../objects/textures/texture";
-import { Chunk } from "../../data/chunk";
+import { Chunk, ChunkData } from "../../data/chunk";
 
 export class Texture2D extends Texture {
   private data_: DataTextureTypedArray;
@@ -41,13 +41,36 @@ export class Texture2D extends Texture {
     return this.height_;
   }
 
-  public static createWithChunk(chunk: Chunk) {
-    if (!chunk.data) {
+  public updateWithChunk(chunk: Chunk, data?: ChunkData) {
+    const source = data ?? chunk.data;
+    if (!source) {
       throw new Error(
-        "Unabled to create texture, chunk data is not initialized."
+        "Unable to update texture, chunk data is not initialized."
       );
     }
-    const texture = new Texture2D(chunk.data, chunk.shape.x, chunk.shape.y);
+
+    if (this.data === source) return;
+
+    if (
+      this.width != chunk.shape.x ||
+      this.height != chunk.shape.y ||
+      this.dataType != bufferToDataType(source)
+    ) {
+      throw new Error("Unable to update texture, texture buffer mismatch.");
+    }
+
+    this.data = source;
+  }
+
+  public static createWithChunk(chunk: Chunk, data?: ChunkData) {
+    const source = data ?? chunk.data;
+    if (!source) {
+      throw new Error(
+        "Unable to create texture, chunk data is not initialized."
+      );
+    }
+
+    const texture = new Texture2D(source, chunk.shape.x, chunk.shape.y);
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
