@@ -14,10 +14,7 @@ import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { Region } from "../data/region";
-import {
-  RenderablePool,
-  poolKeyForImageRenderable,
-} from "../utilities/renderable_pool";
+import { RenderablePool } from "../utilities/renderable_pool";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -78,10 +75,9 @@ export class ChunkedImageLayer extends Layer {
     if (!this.chunkManagerSource_) return;
     if (this.state !== "ready") this.setState("ready");
 
-    const ordered = this.chunkManagerSource_.getChunks();
-    const current = new Set(ordered);
+    const orderedByLOD = this.chunkManagerSource_.getChunks();
+    const current = new Set(orderedByLOD);
 
-    // Release dropped chunks to the pool
     this.visibleChunks_.forEach((image, chunk) => {
       if (!current.has(chunk)) {
         this.visibleChunks_.delete(chunk);
@@ -89,9 +85,8 @@ export class ChunkedImageLayer extends Layer {
       }
     });
 
-    // Rebuild draw list in correct order
     this.clearObjects();
-    for (const chunk of ordered) {
+    for (const chunk of orderedByLOD) {
       if (chunk.state !== "loaded") continue;
       const image = this.getImageForChunk(chunk);
       this.visibleChunks_.set(chunk, image);
@@ -261,4 +256,13 @@ export class ChunkedImageLayer extends Layer {
       }
     });
   }
+}
+
+export function poolKeyForImageRenderable(chunk: Chunk) {
+  return [
+    `lod${chunk.lod}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}`,
+    `stride${chunk.rowStride}`,
+    `align${chunk.rowAlignmentBytes}`,
+  ].join(":");
 }

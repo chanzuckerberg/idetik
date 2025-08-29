@@ -1,5 +1,4 @@
 import { RenderableObject } from "../core/renderable_object";
-import { Chunk } from "../data/chunk";
 import { Logger } from "./logger";
 
 export class RenderablePool<T extends RenderableObject> {
@@ -28,13 +27,4 @@ export class RenderablePool<T extends RenderableObject> {
     if (disposer) for (const bin of this.bins_.values()) bin.forEach(disposer);
     this.bins_.clear();
   }
-}
-
-export function poolKeyForImageRenderable(chunk: Chunk) {
-  return [
-    `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}`,
-    `stride${chunk.rowStride}`,
-    `align${chunk.rowAlignmentBytes}`,
-  ].join(":");
 }

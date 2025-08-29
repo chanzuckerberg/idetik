@@ -1,9 +1,7 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
-import {
-  RenderablePool,
-  poolKeyForImageRenderable,
-} from "@/utilities/renderable_pool";
+import { RenderablePool } from "@/utilities/renderable_pool";
 import { RenderableObject } from "@/core/renderable_object";
+import { poolKeyForImageRenderable } from "@/layers/chunked_image_layer";
 
 class RenderableStub extends RenderableObject {
   public readonly type = "RenderableStub";
