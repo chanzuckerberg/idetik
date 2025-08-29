@@ -1,6 +1,6 @@
 import { Region } from "@idetik/core";
 import { OmeZarrImageViewer } from "../../src/components/viewers/OmeZarrImageViewer";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const sourceUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_3fov_v2.zarr";
@@ -78,6 +78,8 @@ async function loadTimeMetadata(): Promise<TimeMetadata> {
     throw new Error(`Invalid time gap ${step}`);
   }
 
+  console.debug("Loaded time metadata:", timeMetadata);
+
   return {
     origin,
     start,
@@ -107,13 +109,14 @@ export default function App() {
   const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
 
   const [timeMetadata, setTimeMetadata] = useState<TimeMetadata | null>(null);
-  if (timeMetadata === null) {
+
+  useEffect(() => {
     loadTimeMetadata()
       .then((tm) => setTimeMetadata(tm))
       .catch((error) => {
         console.error("Failed to load time metadata:", error);
       });
-  }
+  }, []);
 
   return (
     <div className="h-screen flex flex-col">
