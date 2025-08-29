@@ -1,6 +1,7 @@
 import { Region } from "./region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
+import { Logger } from "../utilities/logger";
 
 const chunkDataTypes = [
   Int8Array,
@@ -18,7 +19,8 @@ export function isChunkData(value: unknown): value is ChunkData {
     return true;
   }
   const supportedDataTypeNames = chunkDataTypes.map((dtype) => dtype.name);
-  console.debug(
+  Logger.debug(
+    "Chunk",
     `Unsupported chunk data type: ${value}. Supported data types: ${supportedDataTypeNames}`
   );
   return false;
