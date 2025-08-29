@@ -50,7 +50,7 @@
     "idetik"
   ],
   "devDependencies": {
-    "@idetik/core-prerelease": "^0.0.1",
+    "@idetik/core-prerelease": "^1.0.0",
     "@types/classnames": "^2.3.0",
     "autoprefixer": "^10.4.20",
     "classnames": "^2.5.1",
