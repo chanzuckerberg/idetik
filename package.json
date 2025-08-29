@@ -5,10 +5,10 @@
     "packages/react"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@idetik/core",
+    "build": "npm run build --workspace=@idetik/core-prerelease",
     "build:all": "npm run build --workspaces",
-    "examples": "npm run dev --workspace=@idetik/core",
-    "components": "npm run dev --workspace=@idetik/react",
+    "examples": "npm run dev --workspace=@idetik/core-prerelease",
+    "components": "npm run dev --workspace=@idetik/react-prerelease",
     "format:all": "npm run format --workspaces"
   },
   "devDependencies": {
