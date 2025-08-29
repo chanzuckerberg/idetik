@@ -184,7 +184,7 @@ export class ChunkManagerSource {
   }
 
   private setLOD(lodFactor: number): void {
-    const maxLOD = this.lowestResLod_;
+    const maxLOD = this.lowestResLOD_;
     const targetLOD = Math.max(
       0,
       Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
