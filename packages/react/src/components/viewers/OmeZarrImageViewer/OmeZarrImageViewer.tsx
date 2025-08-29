@@ -465,9 +465,9 @@ async function loadImageMetadata(
       initialZ = zShape - 1;
     } else {
       const defaults = await loadOmeroDefaults(source);
-      if (seriesDimensionName.toUpperCase() == "Z") {
+      if (seriesDimensionName.toUpperCase() === "Z") {
         initialZ = defaults?.defaultZ ?? 0;
-      } else if (seriesDimensionName.toUpperCase() == "T") {
+      } else if (seriesDimensionName.toUpperCase() === "T") {
         initialZ = defaults?.defaultT ?? 0;
       } else {
         initialZ = 0;
