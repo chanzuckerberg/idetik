@@ -148,12 +148,12 @@ export async function loadOmeroChannels(
   return image.omero?.channels ?? [];
 }
 
-export async function loadOmeroDefaultZ(
+export async function loadOmeroDefaults(
   source: OmeZarrImageSource
-): Promise<number> {
+): Promise<OmeroMetadata["rdefs"]> {
   const group = await openGroup(source.location);
   const image = parseOmeZarrImage(group.attrs);
-  return image.omero?.rdefs?.defaultZ ?? 0;
+  return image.omero?.rdefs;
 }
 
 function adaptImageV04ToV05(imagev04: ImageV04): Image {
