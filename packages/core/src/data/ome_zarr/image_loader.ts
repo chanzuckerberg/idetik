@@ -4,10 +4,12 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "../region";
 import {
   Chunk,
-  DimensionMap,
+  SourceDimension,
+  SourceDimensionLod,
+  SourceDimensionMap,
   isChunkData,
   LoaderAttributes,
-  SliceDimension,
+  SliceCoordinates,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -45,76 +47,51 @@ type OmeZarrImageLoaderProps = {
 export class OmeZarrImageLoader {
   private readonly metadata_: OmeZarrImage["ome"]["multiscales"][number];
   private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
-  private readonly lods_: number;
   private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
+  private readonly dimensions_: SourceDimensionMap;
 
   constructor(props: OmeZarrImageLoaderProps) {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
-    this.lods_ = this.metadata_.datasets.length;
+    this.dimensions_ = inferSourceDimensionMap(this.loaderAttributes_);
   }
 
-  public getDimensionMap(region: Region): DimensionMap {
-    const names = this.loaderAttributes_[0].dimensionNames;
-    const xIndex = findDimensionIndex(names, "x");
-    const yIndex = findDimensionIndex(names, "y");
-    const zIndex = findDimensionIndexSafe(names, "z");
-    const cIndex = findDimensionIndexSafe(names, "c");
-    const tIndex = findDimensionIndexSafe(names, "t");
-
-    const mapping: DimensionMap = {
-      x: { name: names[xIndex], sourceIndex: xIndex },
-      y: { name: names[yIndex], sourceIndex: yIndex },
-    };
-
-    if (zIndex !== -1) {
-      const value = findRegionPointValue(region, "z");
-      mapping.z = {
-        name: names[zIndex],
-        sourceIndex: zIndex,
-        pointWorld: value,
-      };
-    }
-
-    if (cIndex !== -1) {
-      const value = findRegionPointValue(region, "c");
-      mapping.c = {
-        name: names[cIndex],
-        sourceIndex: cIndex,
-        pointWorld: value,
-      };
-    }
-
-    if (tIndex !== -1) {
-      const value = findRegionPointValue(region, "t");
-      mapping.t = {
-        name: names[tIndex],
-        sourceIndex: tIndex,
-        pointWorld: value,
-      };
-    }
-
-    return mapping;
+  public getSourceDimensionMap(): SourceDimensionMap {
+    return this.dimensions_;
   }
 
-  public async loadChunkData(chunk: Chunk, mapping: DimensionMap) {
-    const array = this.arrays_[chunk.lod];
-    const attrs = this.loaderAttributes_[chunk.lod];
-
+  public async loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates) {
     const chunkCoords: number[] = [];
-    chunkCoords[mapping.x.sourceIndex] = chunk.chunkIndex.x;
-    chunkCoords[mapping.y.sourceIndex] = chunk.chunkIndex.y;
-    if (mapping.z) {
-      chunkCoords[mapping.z.sourceIndex] = chunk.chunkIndex.z;
+    chunkCoords[this.dimensions_.x.index] = chunk.chunkIndex.x;
+    chunkCoords[this.dimensions_.y.index] = chunk.chunkIndex.y;
+    if (this.dimensions_.z) {
+      chunkCoords[this.dimensions_.z.index] = chunk.chunkIndex.z;
     }
-    if (mapping.c) {
-      chunkCoords[mapping.c.sourceIndex] = sliceChunkIndex(mapping.c, attrs);
+    if (this.dimensions_.c) {
+      if (sliceCoords.c === undefined) {
+        throw new Error(
+          "Region is missing c value but c dimension exists in data"
+        );
+      }
+      chunkCoords[this.dimensions_.c.index] = sliceChunkIndex(
+        sliceCoords.c,
+        this.dimensions_.c.lods[chunk.lod]
+      );
     }
-    if (mapping.t) {
-      chunkCoords[mapping.t.sourceIndex] = sliceChunkIndex(mapping.t, attrs);
+    if (this.dimensions_.t) {
+      if (sliceCoords.t === undefined) {
+        throw new Error(
+          "Region is missing t value but t dimension exists in data"
+        );
+      }
+      chunkCoords[this.dimensions_.t.index] = sliceChunkIndex(
+        sliceCoords.t,
+        this.dimensions_.t.lods[chunk.lod]
+      );
     }
 
+    const array = this.arrays_[chunk.lod];
     const subarray = await array.getChunk(chunkCoords);
 
     const data = subarray.data;
@@ -132,7 +109,7 @@ export class OmeZarrImageLoader {
     }
 
     chunk.rowAlignmentBytes = rowAlignment;
-    chunk.rowStride = subarray.stride[mapping.y.sourceIndex];
+    chunk.rowStride = subarray.stride[this.dimensions_.y.index];
     chunk.data = data;
   }
 
@@ -141,9 +118,9 @@ export class OmeZarrImageLoader {
     lod: number,
     scheduler?: PromiseScheduler
   ): Promise<Chunk> {
-    if (lod >= this.lods_) {
+    if (lod >= this.arrays_.length) {
       throw new Error(
-        `Invalid LOD index: ${lod}. Only ${this.lods_} lod(s) available`
+        `Invalid LOD index: ${lod}. Only ${this.arrays_.length} lod(s) available`
       );
     }
 
@@ -279,13 +256,57 @@ function getLoaderAttributes(
   return output;
 }
 
-function sliceChunkIndex(dim: SliceDimension, attrs: LoaderAttributes): number {
-  const { sourceIndex, pointWorld } = dim;
-  const { scale, translation } = attrs;
-  const dataIndex = Math.round(
-    (pointWorld - translation[sourceIndex]) / scale[sourceIndex]
-  );
-  return Math.floor(dataIndex / attrs.chunks[sourceIndex]);
+function inferSourceDimensionMap(
+  attrs: ReadonlyArray<LoaderAttributes>
+): SourceDimensionMap {
+  const names = attrs[0].dimensionNames;
+
+  const xIndex = findDimensionIndex(names, "x");
+  const yIndex = findDimensionIndex(names, "y");
+  const dims: SourceDimensionMap = {
+    x: getSourceDimension(names[xIndex], xIndex, attrs),
+    y: getSourceDimension(names[yIndex], yIndex, attrs),
+    numLods: attrs.length,
+  };
+
+  const zIndex = findDimensionIndexSafe(names, "z");
+  if (zIndex !== -1) {
+    dims.z = getSourceDimension(names[zIndex], zIndex, attrs);
+  }
+
+  const cIndex = findDimensionIndexSafe(names, "c");
+  if (cIndex !== -1) {
+    dims.c = getSourceDimension(names[cIndex], cIndex, attrs);
+  }
+
+  const tIndex = findDimensionIndexSafe(names, "t");
+  if (tIndex !== -1) {
+    dims.t = getSourceDimension(names[tIndex], tIndex, attrs);
+  }
+
+  return dims;
+}
+
+function getSourceDimension(
+  name: string,
+  index: number,
+  attrs: ReadonlyArray<LoaderAttributes>
+): SourceDimension {
+  return {
+    name,
+    index,
+    lods: attrs.map((attr) => ({
+      size: attr.shape[index],
+      chunkSize: attr.chunks[index],
+      scale: attr.scale[index],
+      translation: attr.translation[index],
+    })),
+  };
+}
+
+function sliceChunkIndex(value: number, lod: SourceDimensionLod): number {
+  const dataIndex = Math.round((value - lod.translation) / lod.scale);
+  return Math.floor(dataIndex / lod.chunkSize);
 }
 
 function compareDimensions(a: string, b: string): boolean {
@@ -304,20 +325,4 @@ function findDimensionIndex(dimensions: string[], target: string): number {
 
 function findDimensionIndexSafe(dimensions: string[], target: string): number {
   return dimensions.findIndex((d) => compareDimensions(d, target));
-}
-
-function findRegionPointValue(region: Region, dimension: string): number {
-  const entry = region.find((r) => compareDimensions(r.dimension, dimension));
-  if (!entry) {
-    throw new Error(
-      `Region must contain an entry for the "${dimension}" dimension since the source has a "${dimension}" dimension.`
-    );
-  }
-  if (entry.index.type !== "point") {
-    throw new Error(
-      `Region entry for "${dimension}" dimension has type "${entry.index.type}". ` +
-        `It must be of type "point".`
-    );
-  }
-  return entry.index.value;
 }

@@ -55,23 +55,40 @@ export type Chunk = {
   };
 };
 
-type VisibleDimension = {
-  name: string;
-  sourceIndex: number;
+// Maps Idetik spatial dimensions (x, y, z) and non-spatial dimensions (c, t)
+// dimensions to a chunk source's dimensions.
+export type SourceDimensionMap = {
+  x: SourceDimension;
+  y: SourceDimension;
+  z?: SourceDimension;
+  c?: SourceDimension;
+  t?: SourceDimension;
+  numLods: number;
 };
 
-export type SliceDimension = {
+// A dimension in a chunk source with multiple levels of detail (LODs).
+export type SourceDimension = {
   name: string;
-  sourceIndex: number;
-  pointWorld: number;
+  index: number;
+  unit?: string;
+  lods: SourceDimensionLod[];
 };
 
-export type DimensionMap = {
-  x: VisibleDimension;
-  y: VisibleDimension;
-  z?: SliceDimension;
-  c?: SliceDimension;
-  t?: SliceDimension;
+// Metadata for a source dimension at a specific level of detail (LOD)
+// of a multi-resolution image pyramid.
+// For example, combines zarr array metadata (size, chunkSize) with
+// OME-zarr coordinate transform (scale, translation).
+export type SourceDimensionLod = {
+  size: number;
+  chunkSize: number;
+  scale: number;
+  translation: number;
+};
+
+export type SliceCoordinates = {
+  z?: number;
+  c?: number;
+  t?: number;
 };
 
 export type ChunkSource = {
@@ -94,9 +111,9 @@ export type ChunkLoader = {
     scheduler?: PromiseScheduler
   ): Promise<Chunk>;
 
-  getDimensionMap(region: Region): DimensionMap;
+  getSourceDimensionMap(): SourceDimensionMap;
 
-  loadChunkData(chunk: Chunk, mapping: DimensionMap): Promise<void>;
+  loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
