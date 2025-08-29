@@ -38,28 +38,28 @@ export class ChunkManagerSource {
     // generate chunks for each LOD without loading data
     this.chunks_ = [];
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-      const xDim = this.dimensions_.x.lods[lod];
-      const yDim = this.dimensions_.y.lods[lod];
-      const zDim = this.dimensions_.z?.lods[lod];
-      const cDim = this.dimensions_.c?.lods[lod];
+      const xLod = this.dimensions_.x.lods[lod];
+      const yLod = this.dimensions_.y.lods[lod];
+      const zLod = this.dimensions_.z?.lods[lod];
+      const cLod = this.dimensions_.c?.lods[lod];
 
-      const chunkWidth = xDim.chunkSize;
-      const chunkHeight = yDim.chunkSize;
-      const chunkDepth = zDim?.chunkSize ?? 1;
+      const chunkWidth = xLod.chunkSize;
+      const chunkHeight = yLod.chunkSize;
+      const chunkDepth = zLod?.chunkSize ?? 1;
 
-      const chunksX = Math.ceil(xDim.size / chunkWidth);
-      const chunksY = Math.ceil(yDim.size / chunkHeight);
-      const chunksZ = Math.ceil((zDim?.size ?? 1) / chunkDepth);
-      const channels = cDim?.size ?? 1;
+      const chunksX = Math.ceil(xLod.size / chunkWidth);
+      const chunksY = Math.ceil(yLod.size / chunkHeight);
+      const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
+      const channels = cLod?.size ?? 1;
 
       for (let x = 0; x < chunksX; ++x) {
-        const xOffset = xDim.translation + x * xDim.chunkSize * xDim.scale;
+        const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
         for (let y = 0; y < chunksY; ++y) {
-          const yOffset = yDim.translation + y * yDim.chunkSize * yDim.scale;
+          const yOffset = yLod.translation + y * yLod.chunkSize * yLod.scale;
           for (let z = 0; z < chunksZ; ++z) {
             const zOffset =
-              zDim !== undefined
-                ? zDim.translation + z * chunkDepth * zDim.scale
+              zLod !== undefined
+                ? zLod.translation + z * chunkDepth * zLod.scale
                 : 0;
             this.chunks_.push({
               state: "unloaded",
@@ -76,9 +76,9 @@ export class ChunkManagerSource {
               rowAlignmentBytes: 1,
               chunkIndex: { x, y, z },
               scale: {
-                x: xDim.scale,
-                y: yDim.scale,
-                z: zDim?.scale ?? 1,
+                x: xLod.scale,
+                y: yLod.scale,
+                z: zLod?.scale ?? 1,
               },
               offset: {
                 x: xOffset,
@@ -248,7 +248,7 @@ export class ChunkManagerSource {
     const yDim = this.dimensions_.y;
     for (let i = 1; i < this.dimensions_.numLods; i++) {
       const rx = xDim.lods[i].scale / xDim.lods[i - 1].scale;
-      const ry = xDim.lods[i].scale / yDim.lods[i - 1].scale;
+      const ry = yDim.lods[i].scale / yDim.lods[i - 1].scale;
 
       if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
         throw new Error(
@@ -325,11 +325,11 @@ export class ChunkManagerSource {
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
-    const xDim = this.dimensions_.x.lods[this.currentLOD_];
-    const yDim = this.dimensions_.y.lods[this.currentLOD_];
+    const xLod = this.dimensions_.x.lods[this.currentLOD_];
+    const yLod = this.dimensions_.y.lods[this.currentLOD_];
 
-    const padX = xDim.chunkSize * xDim.scale * PREFETCH_PADDING_CHUNKS;
-    const padY = yDim.chunkSize * yDim.scale * PREFETCH_PADDING_CHUNKS;
+    const padX = xLod.chunkSize * xLod.scale * PREFETCH_PADDING_CHUNKS;
+    const padY = yLod.chunkSize * yLod.scale * PREFETCH_PADDING_CHUNKS;
 
     // Disable prefetching in Z until chunk prioritization exists.
     const padZ = 0;
