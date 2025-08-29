@@ -16,7 +16,7 @@ Add
 ```css
 @import "@idetik/react-prerelease/style.css";
 ```
-to you global CSS file.
+to your global CSS file.
 
 ### Basic Usage: OmeZarrImageViewer (Reference Viewer)
 
