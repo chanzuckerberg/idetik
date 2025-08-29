@@ -61,7 +61,7 @@ export class OmeZarrImageLoader {
     return this.dimensions_;
   }
 
-  public async loadChunkData(chunk: Chunk, sliceIndices: SliceCoordinates) {
+  public async loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates) {
     const array = this.arrays_[chunk.lod];
 
     const chunkCoords: number[] = [];
@@ -71,24 +71,24 @@ export class OmeZarrImageLoader {
       chunkCoords[this.dimensions_.z.index] = chunk.chunkIndex.z;
     }
     if (this.dimensions_.c) {
-      if (sliceIndices.c === undefined) {
+      if (sliceCoords.c === undefined) {
         throw new Error(
           "Region is missing c value but c dimension exists in data"
         );
       }
       chunkCoords[this.dimensions_.c.index] = sliceChunkIndex(
-        sliceIndices.c,
+        sliceCoords.c,
         this.dimensions_.c.lods[chunk.lod]
       );
     }
     if (this.dimensions_.t) {
-      if (sliceIndices.t === undefined) {
+      if (sliceCoords.t === undefined) {
         throw new Error(
           "Region is missing t value but t dimension exists in data"
         );
       }
       chunkCoords[this.dimensions_.t.index] = sliceChunkIndex(
-        sliceIndices.t,
+        sliceCoords.t,
         this.dimensions_.t.lods[chunk.lod]
       );
     }
