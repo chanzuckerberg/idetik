@@ -7,12 +7,12 @@ import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
 import { Layer } from "../core/layer";
-import { LayerManager } from "../core/layer_manager";
-import { Camera } from "../objects/cameras/camera";
 import { WebGLState } from "./WebGLState";
 import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
+import { Viewport } from "../core/viewport";
+import { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2 } from "gl-matrix";
 
@@ -34,6 +34,7 @@ export class WebGLRenderer extends Renderer {
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
+  private activeCamera_: Camera | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -57,7 +58,8 @@ export class WebGLRenderer extends Renderer {
     this.resize(this.canvas.width, this.canvas.height);
   }
 
-  public render(layerManager: LayerManager, camera: Camera, viewportBox: Box2) {
+  public render(viewport: Viewport) {
+    const viewportBox = viewport.getViewportBox();
     const rendererBox = new Box2(
       vec2.fromValues(0, 0),
       vec2.fromValues(this.width, this.height)
@@ -71,9 +73,9 @@ export class WebGLRenderer extends Renderer {
     this.state_.setViewport(viewportBox);
 
     this.clear();
-    this.activeCamera = camera;
+    this.activeCamera_ = viewport.camera;
 
-    const { opaque, transparent } = layerManager.partitionLayers();
+    const { opaque, transparent } = viewport.layerManager.partitionLayers();
 
     this.state_.setDepthMask(true);
     for (const layer of opaque) {
@@ -133,15 +135,19 @@ export class WebGLRenderer extends Renderer {
     layer: Layer,
     program: WebGLShaderProgram
   ) {
+    if (!this.activeCamera_) {
+      throw new Error("No active camera set for rendering");
+    }
+
     const modelView = mat4.multiply(
       mat4.create(),
-      this.activeCamera.viewMatrix,
+      this.activeCamera_.viewMatrix,
       object.transform.matrix
     );
     const projection = mat4.multiply(
       mat4.create(),
       axisDirection,
-      this.activeCamera.projectionMatrix
+      this.activeCamera_.projectionMatrix
     );
     const resolution = [this.canvas.width, this.canvas.height];
 
