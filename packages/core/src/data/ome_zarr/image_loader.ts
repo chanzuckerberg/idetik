@@ -4,9 +4,9 @@ import { Slice } from "@zarrita/indexing";
 import { Region } from "../region";
 import {
   Chunk,
-  ChunkDimension,
-  ChunkDimensionLod,
-  ChunkDimensionMap,
+  SourceDimension,
+  SourceDimensionLod,
+  SourceDimensionMap,
   isChunkData,
   LoaderAttributes,
   SliceCoordinates,
@@ -48,7 +48,7 @@ export class OmeZarrImageLoader {
   private readonly metadata_: OmeZarrImage["ome"]["multiscales"][number];
   private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
   private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
-  private readonly dimensions_: ChunkDimensionMap;
+  private readonly dimensions_: SourceDimensionMap;
 
   constructor(props: OmeZarrImageLoaderProps) {
     this.metadata_ = props.metadata;
@@ -57,7 +57,7 @@ export class OmeZarrImageLoader {
     this.dimensions_ = inferChunkDimensionMap(this.loaderAttributes_);
   }
 
-  public getDimensionMap(): ChunkDimensionMap {
+  public getDimensionMap(): SourceDimensionMap {
     return this.dimensions_;
   }
 
@@ -258,12 +258,12 @@ function getLoaderAttributes(
 
 function inferChunkDimensionMap(
   attrs: ReadonlyArray<LoaderAttributes>
-): ChunkDimensionMap {
+): SourceDimensionMap {
   const names = attrs[0].dimensionNames;
 
   const xIndex = findDimensionIndex(names, "x");
   const yIndex = findDimensionIndex(names, "y");
-  const dims: ChunkDimensionMap = {
+  const dims: SourceDimensionMap = {
     x: getChunkDimension(names[xIndex], xIndex, attrs),
     y: getChunkDimension(names[yIndex], yIndex, attrs),
     numLods: attrs.length,
@@ -291,7 +291,7 @@ function getChunkDimension(
   name: string,
   index: number,
   attrs: ReadonlyArray<LoaderAttributes>
-): ChunkDimension {
+): SourceDimension {
   return {
     name,
     index,
@@ -304,7 +304,7 @@ function getChunkDimension(
   };
 }
 
-function sliceChunkIndex(value: number, lod: ChunkDimensionLod): number {
+function sliceChunkIndex(value: number, lod: SourceDimensionLod): number {
   const dataIndex = Math.round((value - lod.translation) / lod.scale);
   return Math.floor(dataIndex / lod.chunkSize);
 }

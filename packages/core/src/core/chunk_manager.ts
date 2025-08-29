@@ -1,6 +1,6 @@
 import {
   Chunk,
-  ChunkDimensionMap,
+  SourceDimensionMap,
   ChunkLoader,
   ChunkSource,
   SliceCoordinates,
@@ -21,7 +21,7 @@ export class ChunkManagerSource {
   private readonly loader_;
   private readonly lowestResLOD_: number;
   private readonly sliceCoords_: SliceCoordinates;
-  private readonly dimensions_: ChunkDimensionMap;
+  private readonly dimensions_: SourceDimensionMap;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
