@@ -5,6 +5,7 @@ import { CameraControls } from "../objects/cameras/controls";
 import { Box2 } from "../math/box2";
 import { vec2, vec3 } from "gl-matrix";
 import { generateUUID } from "../utilities/uuid_generator";
+import { Logger } from "../utilities/logger";
 
 export interface ViewportConfig {
   id?: string;
@@ -104,6 +105,13 @@ export class Viewport {
 
   private updateAspectRatio(): void {
     const { width, height } = this.getBox().toRect();
+    if (width <= 0 || height <= 0) {
+      Logger.debug(
+        "Viewport",
+        `Skipping aspect ratio update for viewport ${this.id}: invalid dimensions ${width}x${height}`
+      );
+      return;
+    }
     const aspectRatio = width / height;
     this.camera.setAspectRatio(aspectRatio);
   }
