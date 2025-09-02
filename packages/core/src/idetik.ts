@@ -161,7 +161,7 @@ export class Idetik {
         vec2.fromValues(this.renderer_.width, this.renderer_.height)
       );
       for (const viewport of this.viewports_) {
-        const viewportBox = viewport.getViewportBox();
+        const viewportBox = viewport.getBoxRelativeToCanvas();
         if (!Box2.intersects(rendererBox, viewportBox)) {
           Logger.debug(
             "Idetik",

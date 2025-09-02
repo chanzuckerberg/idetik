@@ -1,3 +1,4 @@
+import { Camera } from "../objects/cameras/camera";
 import { Color, ColorLike } from "./color";
 import { Layer } from "./layer";
 import { Viewport } from "./viewport";
@@ -9,7 +10,11 @@ export abstract class Renderer {
   private backgroundColor_: Color = new Color(0, 0, 0, 0);
 
   protected abstract resize(width: number, height: number): void;
-  protected abstract renderObject(layer: Layer, objectIndex: number): void;
+  protected abstract renderObject(
+    layer: Layer,
+    objectIndex: number,
+    camera: Camera
+  ): void;
   protected abstract clear(): void;
 
   constructor(canvas: HTMLCanvasElement) {

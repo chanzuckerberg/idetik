@@ -47,7 +47,7 @@ export class Viewport {
     this.updateAspectRatio();
   }
 
-  public getViewportBox(): Box2 {
+  public getBoxRelativeToCanvas(): Box2 {
     if (this.cachedViewportBox_) {
       return this.cachedViewportBox_;
     }
@@ -95,7 +95,7 @@ export class Viewport {
   }
 
   private updateAspectRatio(): void {
-    const { width, height } = this.getViewportBox().toRect();
+    const { width, height } = this.getBoxRelativeToCanvas().toRect();
     const aspectRatio = width / height;
     this.camera.setAspectRatio(aspectRatio);
   }

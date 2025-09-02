@@ -34,7 +34,6 @@ export class WebGLRenderer extends Renderer {
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
-  private activeCamera_: Camera | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -59,7 +58,7 @@ export class WebGLRenderer extends Renderer {
   }
 
   public render(viewport: Viewport) {
-    const viewportBox = viewport.getViewportBox();
+    const viewportBox = viewport.getBoxRelativeToCanvas();
     const rendererBox = new Box2(
       vec2.fromValues(0, 0),
       vec2.fromValues(this.width, this.height)
@@ -73,7 +72,6 @@ export class WebGLRenderer extends Renderer {
     this.state_.setViewport(viewportBox);
 
     this.clear();
-    this.activeCamera_ = viewport.camera;
 
     const { opaque, transparent } = viewport.layerManager.partitionLayers();
 
@@ -81,7 +79,7 @@ export class WebGLRenderer extends Renderer {
     for (const layer of opaque) {
       layer.update();
       if (layer.state === "ready") {
-        this.renderLayer(layer);
+        this.renderLayer(layer, viewport.camera);
       }
     }
 
@@ -89,7 +87,7 @@ export class WebGLRenderer extends Renderer {
     for (const layer of transparent) {
       layer.update();
       if (layer.state !== "ready") continue;
-      this.renderLayer(layer);
+      this.renderLayer(layer, viewport.camera);
     }
     this.state_.setDepthMask(true);
   }
@@ -98,12 +96,12 @@ export class WebGLRenderer extends Renderer {
     return this.textures_.textureInfo;
   }
 
-  private renderLayer(layer: Layer) {
+  private renderLayer(layer: Layer, camera: Camera) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
-    layer.objects.forEach((_, i) => this.renderObject(layer, i));
+    layer.objects.forEach((_, i) => this.renderObject(layer, i, camera));
   }
 
-  protected renderObject(layer: Layer, objectIndex: number) {
+  protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
     this.bindings_.bindGeometry(object.geometry);
     object.popStaleTextures().forEach((texture) => {
@@ -114,7 +112,7 @@ export class WebGLRenderer extends Renderer {
     });
 
     const program = this.programs_.use(object.programName);
-    this.drawGeometry(object.geometry, object, layer, program);
+    this.drawGeometry(object.geometry, object, layer, program, camera);
 
     if (object.wireframeEnabled) {
       this.bindings_.bindGeometry(object.wireframeGeometry);
@@ -124,7 +122,8 @@ export class WebGLRenderer extends Renderer {
         object.wireframeGeometry,
         object,
         layer,
-        wireframeProgram
+        wireframeProgram,
+        camera
       );
     }
   }
@@ -133,21 +132,18 @@ export class WebGLRenderer extends Renderer {
     geometry: Geometry,
     object: RenderableObject,
     layer: Layer,
-    program: WebGLShaderProgram
+    program: WebGLShaderProgram,
+    camera: Camera
   ) {
-    if (!this.activeCamera_) {
-      throw new Error("No active camera set for rendering");
-    }
-
     const modelView = mat4.multiply(
       mat4.create(),
-      this.activeCamera_.viewMatrix,
+      camera.viewMatrix,
       object.transform.matrix
     );
     const projection = mat4.multiply(
       mat4.create(),
       axisDirection,
-      this.activeCamera_.projectionMatrix
+      camera.projectionMatrix
     );
     const resolution = [this.canvas.width, this.canvas.height];
 
