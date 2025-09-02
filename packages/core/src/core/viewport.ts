@@ -42,7 +42,6 @@ export class Viewport {
     }
   }
 
-
   public updateSize(): void {
     this.cachedViewportBox_ = null;
     this.updateAspectRatio();

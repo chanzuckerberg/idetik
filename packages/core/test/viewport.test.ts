@@ -19,9 +19,13 @@ function createTestCanvas(): HTMLCanvasElement {
   return canvas;
 }
 
+function createTestCamera(): OrthographicCamera {
+  return new OrthographicCamera(-1, 1, -1, 1);
+}
+
 test("Viewport constructor uses provided ID", () => {
   const element = createTestElement("test-element");
-  const camera = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
+  const camera = createTestCamera();
   const layerManager = new LayerManager();
 
   const config: ViewportConfig = {
@@ -37,7 +41,7 @@ test("Viewport constructor uses provided ID", () => {
 
 test("Viewport constructor falls back to element ID", () => {
   const element = createTestElement("element-id");
-  const camera = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
+  const camera = createTestCamera();
   const layerManager = new LayerManager();
 
   const config: ViewportConfig = {
@@ -50,10 +54,10 @@ test("Viewport constructor falls back to element ID", () => {
   expect(viewport.id).toBe("element-id");
 });
 
-test("Viewport constructor generates UUID when no ID available", () => {
+test("Viewport constructor generates a fallback ID when not provided or available", () => {
   const element = createTestElement("");
   element.id = ""; // Ensure no ID
-  const camera = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
+  const camera = createTestCamera();
   const layerManager = new LayerManager();
 
   const config: ViewportConfig = {
@@ -70,8 +74,8 @@ test("Viewport constructor generates UUID when no ID available", () => {
 test("parseViewportConfigs creates viewports with validation", () => {
   const element1 = createTestElement("viewport1");
   const element2 = createTestElement("viewport2");
-  const camera1 = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
-  const camera2 = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
+  const camera1 = createTestCamera();
+  const camera2 = createTestCamera();
 
   const configs: ViewportConfig[] = [
     { id: "viewport1", element: element1, camera: camera1 },
@@ -94,8 +98,8 @@ test("parseViewportConfigs creates viewports with validation", () => {
 test("parseViewportConfigs throws on duplicate IDs", () => {
   const element1 = createTestElement("viewport1");
   const element2 = createTestElement("viewport2");
-  const camera1 = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
-  const camera2 = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
+  const camera1 = createTestCamera();
+  const camera2 = createTestCamera();
 
   const configs: ViewportConfig[] = [
     { id: "duplicate", element: element1, camera: camera1 },
@@ -109,8 +113,8 @@ test("parseViewportConfigs throws on duplicate IDs", () => {
 
 test("parseViewportConfigs throws on shared elements", () => {
   const sharedElement = createTestElement("shared");
-  const camera1 = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
-  const camera2 = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
+  const camera1 = createTestCamera();
+  const camera2 = createTestCamera();
 
   const configs: ViewportConfig[] = [
     { id: "viewport1", element: sharedElement, camera: camera1 },
@@ -125,8 +129,8 @@ test("parseViewportConfigs throws on shared elements", () => {
 test("parseViewportConfigs allows viewports without explicit IDs", () => {
   const element1 = createTestElement("element1");
   const element2 = createTestElement("element2");
-  const camera1 = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
-  const camera2 = new OrthographicCamera(-1, 1, -1, 1, 0.1, 1000);
+  const camera1 = createTestCamera();
+  const camera2 = createTestCamera();
 
   const configs: ViewportConfig[] = [
     { element: element1, camera: camera1 },
