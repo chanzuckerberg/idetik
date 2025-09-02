@@ -20,7 +20,7 @@ export class Viewport {
   public readonly element: HTMLElement;
   public readonly camera: Camera;
   public readonly layerManager: LayerManager;
-  public cameraControls: CameraControls | null = null;
+  public cameraControls?: CameraControls;
 
   private cachedViewportBox_: Box2 | null = null;
 
@@ -29,7 +29,7 @@ export class Viewport {
     this.element = config.element;
     this.camera = config.camera;
     this.layerManager = layerManager;
-    this.cameraControls = config.cameraControls ?? null;
+    this.cameraControls = config.cameraControls;
     this.updateAspectRatio();
 
     for (const layer of config.layers ?? []) {

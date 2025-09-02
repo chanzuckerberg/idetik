@@ -101,7 +101,7 @@ export class Idetik {
         layer.onEvent(event);
         if (event.propagationStopped) return;
       }
-      this.cameraControls?.onEvent(event);
+      this.viewports_[0].cameraControls?.onEvent(event);
     });
   }
 
@@ -127,12 +127,8 @@ export class Idetik {
     return this.viewports_[0].layerManager;
   }
 
-  public set cameraControls(controls: CameraControls | null) {
+  public set cameraControls(controls: CameraControls | undefined) {
     this.viewports_[0].cameraControls = controls;
-  }
-
-  public get cameraControls() {
-    return this.viewports_[0].cameraControls;
   }
 
   public clientToClip(position: vec2, depth: number = 0): vec3 {
