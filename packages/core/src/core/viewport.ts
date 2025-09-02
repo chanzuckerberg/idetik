@@ -21,17 +21,11 @@ export class Viewport {
   public readonly layerManager: LayerManager;
   public cameraControls: CameraControls | null = null;
 
-  private readonly canvas_: HTMLCanvasElement;
   private cachedViewportBox_: Box2 | null = null;
 
-  constructor(
-    config: ViewportConfig,
-    layerManager: LayerManager,
-    canvas: HTMLCanvasElement
-  ) {
+  constructor(config: ViewportConfig, layerManager: LayerManager) {
     this.id = config.id || config.element.id || generateUUID();
     this.element = config.element;
-    this.canvas_ = canvas;
     this.camera = config.camera;
     this.layerManager = layerManager;
     this.cameraControls = config.cameraControls ?? null;
@@ -47,36 +41,30 @@ export class Viewport {
     this.updateAspectRatio();
   }
 
-  public getBoxRelativeToCanvas(): Box2 {
-    if (this.cachedViewportBox_) {
-      return this.cachedViewportBox_;
-    }
-
-    const rect = this.element.getBoundingClientRect();
-    const canvasRect = this.canvas_.getBoundingClientRect();
+  public getBoxRelativeTo(canvas: HTMLCanvasElement): Box2 {
+    const viewportRect = this.getBox().toRect();
+    const canvasRect = canvas.getBoundingClientRect();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
-    // Calculate viewport position relative to canvas in CSS pixels
-    const cssX = rect.left - canvasRect.left;
-    const cssY = rect.top - canvasRect.top;
-    const cssWidth = rect.width;
-    const cssHeight = rect.height;
+    // convert canvas rect to device pixels
+    // viewport rect is already in device pixels
+    const canvasX = canvasRect.left * devicePixelRatio;
+    const canvasY = canvasRect.top * devicePixelRatio;
+    const canvasHeight = canvasRect.height * devicePixelRatio;
 
-    // Convert to device pixels for WebGL viewport
+    const relativeX = viewportRect.x - canvasX;
+    const relativeY = viewportRect.y - canvasY;
+
     // Note: WebGL Y coordinate is flipped, so we adjust the Y position
-    const x = Math.floor(cssX * devicePixelRatio);
-    const y = Math.floor(
-      (canvasRect.height - cssY - cssHeight) * devicePixelRatio
-    );
-    const width = Math.floor(cssWidth * devicePixelRatio);
-    const height = Math.floor(cssHeight * devicePixelRatio);
+    const x = Math.floor(relativeX);
+    const y = Math.floor(canvasHeight - relativeY - viewportRect.height);
+    const width = Math.floor(viewportRect.width);
+    const height = Math.floor(viewportRect.height);
 
-    this.cachedViewportBox_ = new Box2(
+    return new Box2(
       vec2.fromValues(x, y),
       vec2.fromValues(x + width, y + height)
     );
-
-    return this.cachedViewportBox_;
   }
 
   public clientToClip(position: vec2, depth: number = 0): vec3 {
@@ -94,8 +82,28 @@ export class Viewport {
     return this.camera.clipToWorld(clipPos);
   }
 
+  private getBox(): Box2 {
+    if (this.cachedViewportBox_) {
+      return this.cachedViewportBox_;
+    }
+    const viewportRect = this.element.getBoundingClientRect();
+    const devicePixelRatio = window.devicePixelRatio || 1;
+
+    const x = viewportRect.left * devicePixelRatio;
+    const y = viewportRect.top * devicePixelRatio;
+    const width = viewportRect.width * devicePixelRatio;
+    const height = viewportRect.height * devicePixelRatio;
+
+    this.cachedViewportBox_ = new Box2(
+      vec2.fromValues(x, y),
+      vec2.fromValues(x + width, y + height)
+    );
+
+    return this.cachedViewportBox_;
+  }
+
   private updateAspectRatio(): void {
-    const { width, height } = this.getBoxRelativeToCanvas().toRect();
+    const { width, height } = this.getBox().toRect();
     const aspectRatio = width / height;
     this.camera.setAspectRatio(aspectRatio);
   }
@@ -138,13 +146,12 @@ function validateViewportConfigs(viewportConfigs: ViewportConfig[]): void {
 
 export function parseViewportConfigs(
   viewportConfigs: ViewportConfig[],
-  createLayerManager: () => LayerManager,
-  canvas: HTMLCanvasElement
+  createLayerManager: () => LayerManager
 ): Viewport[] {
   validateViewportConfigs(viewportConfigs);
 
   return viewportConfigs.map((config) => {
     const layerManager = createLayerManager();
-    return new Viewport(config, layerManager, canvas);
+    return new Viewport(config, layerManager);
   });
 }

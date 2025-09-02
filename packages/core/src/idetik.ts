@@ -14,7 +14,6 @@ import {
   Viewport,
   ViewportConfig,
 } from "./core/viewport";
-import { Box2 } from "./math/box2";
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
@@ -81,11 +80,7 @@ export class Idetik {
     // TEMP: pass closure to reuse the main LayerManager instead of creating new ones
     // This avoids circular import issues while maintaining shared context
     const createLayerManager = () => new LayerManager(this.context_);
-    this.viewports_ = parseViewportConfigs(
-      viewportConfigs,
-      createLayerManager,
-      canvas
-    );
+    this.viewports_ = parseViewportConfigs(viewportConfigs, createLayerManager);
 
     this.overlays = params.overlays ?? [];
 
@@ -156,24 +151,11 @@ export class Idetik {
         this.updateSize();
       }
 
-      const rendererBox = new Box2(
-        vec2.fromValues(0, 0),
-        vec2.fromValues(this.renderer_.width, this.renderer_.height)
-      );
       for (const viewport of this.viewports_) {
-        const viewportBox = viewport.getBoxRelativeToCanvas();
-        if (!Box2.intersects(rendererBox, viewportBox)) {
-          Logger.debug(
-            "Idetik",
-            `Viewport ${viewport.id} is entirely outside canvas bounds, skipping render`
-          );
-          continue;
-        }
         if (viewport.camera.type === "OrthographicCamera") {
-          const width = viewportBox.toRect().width;
           this.chunkManager_.update(
             viewport.camera as OrthographicCamera,
-            width
+            viewport.getBoxRelativeTo(this.canvas).toRect().width
           );
         }
         this.renderer_.render(viewport);

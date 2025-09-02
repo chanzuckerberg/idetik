@@ -58,16 +58,22 @@ export class WebGLRenderer extends Renderer {
   }
 
   public render(viewport: Viewport) {
-    const viewportBox = viewport.getBoxRelativeToCanvas();
+    const viewportBox = viewport.getBoxRelativeTo(this.canvas);
     const rendererBox = new Box2(
       vec2.fromValues(0, 0),
       vec2.fromValues(this.width, this.height)
     );
     if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
       this.state_.setScissorTest(false);
-    } else {
+    } else if (Box2.intersects(viewportBox, rendererBox)) {
       this.state_.setScissor(viewportBox);
       this.state_.setScissorTest(true);
+    } else {
+      Logger.debug(
+        "WebGLRenderer",
+        `Viewport ${viewport.id} is entirely outside canvas bounds, skipping render`
+      );
+      return;
     }
     this.state_.setViewport(viewportBox);
 
