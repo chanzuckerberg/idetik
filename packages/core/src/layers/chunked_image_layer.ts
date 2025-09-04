@@ -167,7 +167,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const image = new ImageRenderable(
       geometry,
       Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
-      this.channelProps_
+      this.channelProps_ ?? [{}]
     );
     this.updateImageChunk(image, chunk);
     return image;
