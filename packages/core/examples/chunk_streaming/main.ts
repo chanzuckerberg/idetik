@@ -24,7 +24,23 @@ const sliceCoords = {
   c: 0,
 };
 
-const channelProps: ChannelProps = { contrastLimits: [0, 255] };
+// values copied from source
+const imageDataRange = { min: 0, max: 244 };
+const z = { translate: 0.0, scale: 1.24, shape: 448 };
+const min = z.translate;
+const max = z.translate + z.scale * z.shape - z.scale;
+const zRange = { min, max };
+
+const initialWindow = 50;
+const initialLevel = 25;
+const initialContrastLimits = windowLevelToContrastLimits(
+  initialWindow,
+  initialLevel
+);
+const channelProps: ChannelProps[] = [
+  { contrastLimits: initialContrastLimits },
+];
+
 const camera = new OrthographicCamera(left, right, top, bottom);
 const imageLayer = new ChunkedImageLayer({ source, sliceCoords, channelProps });
 imageLayer.debugMode = true;
@@ -48,13 +64,13 @@ const controls = {
   sliceCoords,
   showWireframes: true,
   showChunkInfoOverlay: true,
+  window: initialWindow,
+  level: initialLevel,
+  resetContrast: function () {
+    contrastFolder.reset();
+  },
 };
 
-// values copied from source
-const z = { translate: 0.0, scale: 1.24, shape: 448 };
-const min = z.translate;
-const max = z.translate + z.scale * z.shape - z.scale;
-const zRange = { min, max };
 const gui = new GUI({ width: 500 });
 
 gui
@@ -72,3 +88,37 @@ gui
   .onChange((show: boolean) => {
     overlaySelector.style.display = show ? "block" : "none";
   });
+
+const contrastFolder = gui.addFolder("Window/Level");
+contrastFolder
+  .add(controls, "window", 1, 100, 1)
+  .name("Window (%)")
+  .onChange(updateContrastLimits);
+
+contrastFolder
+  .add(controls, "level", 0, 100, 1)
+  .name("Level (%)")
+  .onChange(updateContrastLimits);
+
+contrastFolder.add(controls, "resetContrast").name("Reset");
+
+function updateContrastLimits() {
+  const contrastLimits = windowLevelToContrastLimits(
+    controls.window,
+    controls.level
+  );
+  const newChannelProps = [{ contrastLimits }];
+  imageLayer.setChannelProps(newChannelProps);
+}
+
+function windowLevelToContrastLimits(
+  window: number,
+  level: number
+): [number, number] {
+  return [
+    (imageDataRange.max - imageDataRange.min) *
+      (level / 100 - window / 100 / 2),
+    (imageDataRange.max - imageDataRange.min) *
+      (level / 100 + window / 100 / 2),
+  ];
+}
