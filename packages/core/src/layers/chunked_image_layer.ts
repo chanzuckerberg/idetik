@@ -31,7 +31,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
   private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
-  private readonly channelChangeCallbacks_: Array<() => void> = [];
+  private readonly channelChangeCallbacks_:  (() => void)[] = [];
   private channelProps_?: ChannelProps[];
   private chunkManagerSource_?: ChunkManagerSource;
   private pointerDownPos_: vec2 | null = null;
