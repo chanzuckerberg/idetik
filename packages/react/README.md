@@ -1,5 +1,7 @@
 # @idetik/react
 
+🚨 **This package is under active development.** Use at your own risk in production environments.
+
 React components for interactive visualization of large datasets, built on the Idetik runtime.
 
 ## For Integrators: Using @idetik/react Components
@@ -7,8 +9,14 @@ React components for interactive visualization of large datasets, built on the I
 ### Installation
 
 ```bash
-npm install @idetik/react @idetik/core
+npm i @idetik/react-prerelease @idetik/core-prerelease
 ```
+
+Add
+```css
+@import "@idetik/react-prerelease/style.css";
+```
+to your global CSS file.
 
 ### Basic Usage: OmeZarrImageViewer (Reference Viewer)
 
@@ -168,8 +176,8 @@ No need to host any data locally to start development.
 ### Development with Core Package
 
 If you make changes to the `@idetik/core` package, you'll need to:
-1. Rebuild the core package: `npm run build --workspace=@idetik/core`
-2. Rebuild this package: `npm run build --workspace=@idetik/react`
+1. Rebuild the core package: `npm run build --workspace=@idetik/core-prerelease`
+2. Rebuild this package: `npm run build --workspace=@idetik/react-prerelease`
 
 This ensures your React components use the latest version of the core package.
 

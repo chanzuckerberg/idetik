@@ -11,7 +11,7 @@ import {
   ChannelProps,
   Idetik,
   ImageLayer,
-} from "@idetik/core";
+} from "@idetik/core-prerelease";
 import { useIdetik } from "../../../hooks/useIdetik";
 import { IdetikCanvas } from "../../IdetikCanvas";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";

@@ -1,4 +1,4 @@
-import { ColorLike } from "@idetik/core";
+import { ColorLike } from "@idetik/core-prerelease";
 import { VisibilityToggle } from "./components/VisibilityToggle";
 import { ColorPicker } from "./components/ColorPicker";
 import { ContrastSlider } from "./components/ContrastSlider";

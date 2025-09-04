@@ -1,4 +1,4 @@
-import { Color, ColorLike } from "@idetik/core";
+import { Color, ColorLike } from "@idetik/core-prerelease";
 
 interface ColorPickerProps {
   color: ColorLike;

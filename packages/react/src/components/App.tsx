@@ -1,4 +1,4 @@
-import { Region } from "@idetik/core";
+import { Region } from "@idetik/core-prerelease";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
 
