@@ -10,7 +10,7 @@ import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
-import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
+import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.

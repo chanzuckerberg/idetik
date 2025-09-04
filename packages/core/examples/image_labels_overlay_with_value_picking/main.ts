@@ -84,7 +84,7 @@ const imageLayer = new ChunkedImageLayer({
   source: imageSource,
   sliceCoords,
   transparent: true,
-  channelProps: { contrastLimits: phaseContrastLimits },
+  channelProps: [{ contrastLimits: phaseContrastLimits }],
 });
 
 // Function to create label layer with current mode

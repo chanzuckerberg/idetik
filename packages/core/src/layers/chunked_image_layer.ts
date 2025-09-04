@@ -2,7 +2,7 @@ import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
-import { ChannelProps } from "../objects/textures/channel";
+import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
@@ -18,19 +18,21 @@ import { RenderablePool } from "../utilities/renderable_pool";
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
-  channelProps?: ChannelProps;
+  channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
 };
 
-export class ChunkedImageLayer extends Layer {
+export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ChunkedImageLayer";
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
-  private readonly channelProps_?: ChannelProps;
   private readonly pool_ = new RenderablePool<ImageRenderable>();
+  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channelChangeCallbacks_: (() => void)[] = [];
+  private channelProps_?: ChannelProps[];
   private chunkManagerSource_?: ChunkManagerSource;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
@@ -55,6 +57,7 @@ export class ChunkedImageLayer extends Layer {
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.channelProps_ = channelProps;
+    this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
   }
 
@@ -150,6 +153,9 @@ export class ChunkedImageLayer extends Layer {
       const texture = pooled.textures[0] as Texture2DArray;
       texture.updateWithChunk(chunk, this.getDataForImage(chunk));
       this.updateImageChunk(pooled, chunk);
+      if (this.channelProps_) {
+        pooled.setChannelProps(this.channelProps_);
+      }
       return pooled;
     }
 
@@ -161,7 +167,7 @@ export class ChunkedImageLayer extends Layer {
     const image = new ImageRenderable(
       geometry,
       Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
-      this.channelProps_ ? [this.channelProps_] : [{}]
+      this.channelProps_ ?? [{}]
     );
     this.updateImageChunk(image, chunk);
     return image;
@@ -251,6 +257,38 @@ export class ChunkedImageLayer extends Layer {
           this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
       }
     });
+  }
+
+  public get channelProps(): ChannelProps[] | undefined {
+    return this.channelProps_;
+  }
+
+  public setChannelProps(channelProps: ChannelProps[]) {
+    this.channelProps_ = channelProps;
+    this.visibleChunks_.forEach((image) => {
+      image.setChannelProps(channelProps);
+    });
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
+    });
+  }
+
+  public resetChannelProps(): void {
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
+    }
+  }
+
+  public addChannelChangeCallback(callback: () => void): void {
+    this.channelChangeCallbacks_.push(callback);
+  }
+
+  public removeChannelChangeCallback(callback: () => void): void {
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === -1) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.channelChangeCallbacks_.splice(index, 1);
   }
 }
 

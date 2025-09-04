@@ -33,7 +33,7 @@ const yInfo = dimensionInfo("y");
 const xInfo = dimensionInfo("x");
 
 const sliceCoords = { z: zMidPoint };
-const channelProps: ChannelProps = { contrastLimits: [0, 200] };
+const channelProps: ChannelProps[] = [{ contrastLimits: [0, 200] }];
 
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
 
