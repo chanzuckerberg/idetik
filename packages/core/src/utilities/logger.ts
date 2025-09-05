@@ -29,9 +29,17 @@ type Module =
   | "WebGLTexture"
   | "WireframeGeometry";
 
+function getMode(): "production" | "development" | "test" {
+  const nodeEnv = process?.env?.NODE_ENV;
+  return nodeEnv === "production"
+    ? "production"
+    : nodeEnv === "test"
+      ? "test"
+      : "development";
+}
 export class Logger {
   private static logLevel_: LogLevel =
-    import.meta.env.MODE === "production" ? "warn" : "debug";
+    getMode() === "production" ? "warn" : "debug";
 
   public static setLogLevel(level: LogLevel) {
     Logger.logLevel_ = level;

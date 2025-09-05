@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Idetik, OrthographicCamera } from "@idetik/core-prerelease";
 import cns from "classnames";
-import { useIdetik } from "hooks";
+import { useIdetik } from "../../../../../hooks";
 
 // From OME-Zarr v0.5 specification:
 // https://ngff.openmicroscopy.org/0.5/#axes-md
