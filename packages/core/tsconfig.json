@@ -3,20 +3,12 @@
     "target": "ES2020",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "baseUrl": "./src",
     "paths": {
-      "@": [
-        "."
-      ],
-      "@/*": [
-        "./*"
-      ]
+      "@": ["."],
+      "@/*": ["./*"]
     },
     "jsx": "react-jsx",
     /* Bundler mode */
@@ -35,15 +27,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": [
-      "vite-plugin-glsl/ext",
-      "vite/client",
-      "node"
-    ]
+    "types": ["vite-plugin-glsl/ext", "vite/client", "node"]
   },
-  "include": [
-    "examples",
-    "src",
-    "test"
-  ]
+  "include": ["examples", "src", "test"]
 }
