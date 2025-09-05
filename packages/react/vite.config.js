@@ -57,7 +57,7 @@ export default defineConfig(() => {
             "react-dom/client": "ReactDOM.client",
             "@czi-sds/components": "SDS",
             "@mui/material": "MaterialUI",
-            "@idetik/core": "IdetikCore",
+            "@idetik/core-prerelease": "IdetikCorePre",
           },
         },
       },
