@@ -1,0 +1,279 @@
+/**
+ * Navigation styles for Idetik examples
+ * Designed to be unobtrusive and not interfere with examples
+ */
+
+#idetik-navigation {
+  position: relative;
+  width: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 10000;
+  display: block;
+}
+
+/* Minimal layout adjustments for navigation */
+body {
+  flex-direction: column;
+}
+
+/* Ensure content doesn't overlap navigation */
+body > *:not(#idetik-navigation) {
+  margin-bottom: 48px; /* height of nav bar */
+}
+
+/* Navigation positioning */
+#idetik-navigation {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+}
+
+#idetik-navigation * {
+  box-sizing: border-box;
+}
+
+/* Header Bar */
+.nav-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  color: white;
+  width: 100%;
+  box-sizing: border-box;
+  height: 48px;
+}
+
+.nav-header-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+}
+
+/* Toggle Button */
+.nav-toggle {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Menu */
+.nav-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 20px;
+  margin-bottom: 4px;
+  width: 280px;
+  max-height: 400px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateY(10px) scale(0.95);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#idetik-navigation.open .nav-menu {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* Header */
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.nav-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.nav-close {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+/* Content */
+.nav-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.nav-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* Example Items */
+.nav-item {
+  display: block;
+  padding: 12px 20px;
+  color: #333;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.nav-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #000;
+}
+
+.nav-item.active {
+  background: rgba(59, 130, 246, 0.1);
+  border-left-color: #3b82f6;
+  color: #1d4ed8;
+  font-weight: 500;
+}
+
+.nav-title {
+  display: block;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+/* Footer */
+.nav-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.nav-home {
+  color: #666;
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.2s ease;
+}
+
+.nav-home:hover {
+  color: #333;
+}
+
+/* Empty state */
+.nav-empty {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  #idetik-navigation {
+    top: 16px;
+    left: 16px;
+  }
+  
+  .nav-menu {
+    width: calc(100vw - 32px);
+    max-width: 320px;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .nav-menu {
+    background: rgba(30, 30, 30, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .nav-header {
+    background: rgba(20, 20, 20, 0.5);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .nav-header h3 {
+    color: #fff;
+  }
+  
+  .nav-close {
+    color: #aaa;
+  }
+  
+  .nav-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+  
+  .nav-item {
+    color: #ddd;
+  }
+  
+  .nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+  }
+  
+  .nav-item.active {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+  }
+  
+  .nav-footer {
+    background: rgba(20, 20, 20, 0.5);
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .nav-home {
+    color: #aaa;
+  }
+  
+  .nav-home:hover {
+    color: #fff;
+  }
+  
+  .nav-empty {
+    color: #aaa;
+  }
+}

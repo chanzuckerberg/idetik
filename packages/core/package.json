@@ -3,10 +3,10 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node generate-examples-manifest.js && vite",
     "compile": "tsc",
     "build": "vite build && tsc && rollup -c rollup.config.js",
-    "build:examples": "vite build --mode examples",
+    "build:examples": "node generate-examples-manifest.js && cp examples/examples-manifest.json public/ && vite build --mode examples",
     "test": "vitest",
     "test-with-coverage": "vitest run --coverage",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",

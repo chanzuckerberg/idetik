@@ -5,18 +5,57 @@ import glsl from 'vite-plugin-glsl';
 import path from 'path';
 import react from "@vitejs/plugin-react";
 import typescript from '@rollup/plugin-typescript';
+import injectExamplesNavigation from './vite-plugin-examples-nav.js';
 
 // __dirname is not available in ES6 modules
 // https://github.com/vitejs/vite/issues/6946#issuecomment-1041506056
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readdirSync, existsSync } from 'node:fs'
 const _dirname = dirname(fileURLToPath(import.meta.url));
+
+// Dynamic example discovery
+function getExampleInputs() {
+  const examplesDir = path.resolve(_dirname, 'examples');
+  const entries = readdirSync(examplesDir, { withFileTypes: true });
+  
+  const inputs = {
+    main: path.resolve(_dirname, 'examples/index.html'),
+  };
+  
+  const ignoreDirs = new Set(['dist', 'node_modules', '.git']);
+  
+  entries
+    .filter(entry => entry.isDirectory() && !ignoreDirs.has(entry.name))
+    .forEach(entry => {
+      const examplePath = path.resolve(examplesDir, entry.name, 'index.html');
+      if (existsSync(examplePath)) {
+        inputs[entry.name] = examplePath;
+      }
+    });
+  
+  return inputs;
+}
 
 function getPlugins(mode) {
   const basePlugins = [eslint(), glsl(), react()];
+  
   if (mode === 'examples') {
     // For examples mode, we don't need TypeScript compilation since it's handled by Vite
-    return basePlugins;
+    // Add navigation plugin for examples
+    return [...basePlugins, injectExamplesNavigation()];
+  } else if (mode === 'development') {
+    // For development mode (examples), include navigation plugin but keep TypeScript
+    return [
+      typescript({
+        noForceEmit: true,
+        compilerOptions: {
+          noEmit: true,
+        },
+      }),
+      ...basePlugins,
+      injectExamplesNavigation(),
+    ];
   } else {
     // For library mode, include TypeScript plugin
     return [
@@ -30,7 +69,6 @@ function getPlugins(mode) {
     ];
   }
 }
-
 const MODES = ['development', 'production', 'test', 'examples'];
 
 function modeToRoot(mode) {
@@ -56,23 +94,10 @@ export default defineConfig(({ mode }) => {
       ...(mode === 'examples' ? {
         // Build examples as a static site
         rollupOptions: {
-          input: {
-            main: path.resolve(_dirname, 'examples/index.html'),
-            // Add all example HTML files
-            image2d_from_omezarr4d_hcs: path.resolve(_dirname, 'examples/image2d_from_omezarr4d_hcs/index.html'),
-            image_series_from_omezarr5d_u8: path.resolve(_dirname, 'examples/image_series_from_omezarr5d_u8/index.html'),
-            ome_zarr_v05: path.resolve(_dirname, 'examples/ome_zarr_v05/index.html'),
-            image2d_from_omezarr5d_u16: path.resolve(_dirname, 'examples/image2d_from_omezarr5d_u16/index.html'),
-            chunk_streaming: path.resolve(_dirname, 'examples/chunk_streaming/index.html'),
-            projected_lines: path.resolve(_dirname, 'examples/projected_lines/index.html'),
-            tracks: path.resolve(_dirname, 'examples/tracks/index.html'),
-            layer_blending: path.resolve(_dirname, 'examples/layer_blending/index.html'),
-            points: path.resolve(_dirname, 'examples/points/index.html'),
-            image_mask_overlay: path.resolve(_dirname, 'examples/image_mask_overlay/index.html'),
-            image_labels_overlay_with_value_picking: path.resolve(_dirname, 'examples/image_labels_overlay_with_value_picking/index.html'),
-            image_series_labels_overlay: path.resolve(_dirname, 'examples/image_series_labels_overlay/index.html')
-          }
-        }
+          input: getExampleInputs(),
+        },
+        // Copy manifest file
+        copyPublicDir: true
       } : {
         lib: {
           entry: path.resolve(_dirname, 'src/index.ts'),
