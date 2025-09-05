@@ -29,13 +29,34 @@ type Module =
   | "WebGLTexture"
   | "WireframeGeometry";
 
+// function getMode(): "production" | "development" | "test" {
+//   const nodeEnv = process?.env?.NODE_ENV;
+//   return nodeEnv === "production"
+//     ? "production"
+//     : nodeEnv === "test"
+//       ? "test"
+//       : "development";
+// }
+
 function getMode(): "production" | "development" | "test" {
-  const nodeEnv = process?.env?.NODE_ENV;
-  return nodeEnv === "production"
-    ? "production"
-    : nodeEnv === "test"
-      ? "test"
-      : "development";
+  if (typeof process !== "undefined" && process.env && process.env.NODE_ENV) {
+    return process.env.NODE_ENV === "production"
+      ? "production"
+      : process.env.NODE_ENV === "test"
+        ? "test"
+        : "development";
+  }
+  // Fallback for browser/test environments, type-safe version
+  if (
+    typeof window !== "undefined" &&
+    typeof (window as { NODE_ENV?: string }).NODE_ENV === "string"
+  ) {
+    const env = (window as { NODE_ENV?: string }).NODE_ENV;
+    if (env === "production" || env === "test" || env === "development") {
+      return env;
+    }
+  }
+  return "development";
 }
 export class Logger {
   private static logLevel_: LogLevel =
