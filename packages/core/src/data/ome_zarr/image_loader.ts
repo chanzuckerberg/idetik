@@ -175,6 +175,7 @@ export class OmeZarrImageLoader {
       lod: lod,
       visible: true,
       prefetch: false,
+      priority: null,
       data: subarray.data,
       shape: {
         x: subarray.shape[subarray.shape.length - 1],

@@ -26,10 +26,11 @@ export function isChunkData(value: unknown): value is ChunkData {
 
 export type Chunk = {
   data?: ChunkData;
-  state: "unloaded" | "loading" | "loaded";
+  state: "unloaded" | "queued" | "loading" | "loaded";
   lod: number;
   visible: boolean;
   prefetch: boolean;
+  priority: number | null;
   shape: {
     x: number;
     y: number;

@@ -16,6 +16,11 @@ import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 // These additional chunks are prefetched to improve responsiveness when panning.
 const PREFETCH_PADDING_CHUNKS = 1;
 
+const PRI_FALLBACK_VISIBLE = 0;
+const PRI_VISIBLE_CURRENT = 1;
+const PRI_FALLBACK_BACKGROUND = 2;
+const PRI_PREFETCH = 3;
+
 export class ChunkManagerSource {
   private readonly chunks_: Chunk[];
   private readonly loader_;
@@ -66,6 +71,7 @@ export class ChunkManagerSource {
               lod,
               visible: false,
               prefetch: false,
+              priority: null,
               shape: {
                 x: chunkWidth,
                 y: chunkHeight,
@@ -125,8 +131,6 @@ export class ChunkManagerSource {
     ) {
       this.updateChunkVisibility(viewBounds2D);
     }
-
-    this.loadPendingChunks();
   }
 
   public get lodCount() {
@@ -145,42 +149,8 @@ export class ChunkManagerSource {
     return this.currentLOD_;
   }
 
-  private loadPendingChunks() {
-    this.loadLowResChunks();
-
-    for (const chunk of this.chunks_) {
-      if (
-        chunk.lod === this.currentLOD_ &&
-        chunk.state === "unloaded" &&
-        (chunk.visible || chunk.prefetch)
-      ) {
-        this.loadChunkData(chunk);
-      }
-    }
-  }
-
-  private loadLowResChunks(): void {
-    for (const chunk of this.chunks_) {
-      if (chunk.lod !== this.lowestResLOD_ || chunk.state !== "unloaded")
-        continue;
-      this.loadChunkData(chunk);
-    }
-  }
-
-  private loadChunkData(chunk: Chunk): void {
-    chunk.state = "loading";
-    this.loader_
-      .loadChunkData(chunk, this.sliceCoords_)
-      .then(() => {
-        chunk.state = "loaded";
-      })
-      .catch((error) => {
-        Logger.error(
-          "ChunkManager",
-          `Error loading chunk (${chunk.chunkIndex.x},${chunk.chunkIndex.y},${chunk.chunkIndex.z}): ${error}`
-        );
-        chunk.state = "unloaded";
-      });
+  public loadChunkData(chunk: Chunk) {
+    return this.loader_.loadChunkData(chunk, this.sliceCoords_);
   }
 
   private setLOD(lodFactor: number): void {
@@ -192,7 +162,7 @@ export class ChunkManagerSource {
 
     if (targetLOD !== this.currentLOD_) {
       Logger.debug(
-        "ChunkManager",
+        "ChunkManagerSource",
         `LOD changed from ${this.currentLOD_} to ${targetLOD}`
       );
       this.currentLOD_ = targetLOD;
@@ -202,7 +172,7 @@ export class ChunkManagerSource {
   private updateChunkVisibility(viewBounds2D: Box2): void {
     if (this.chunks_.length === 0) {
       Logger.warn(
-        "ChunkManager",
+        "ChunkManagerSource",
         "updateChunkVisibility called with no chunks initialized"
       );
       return;
@@ -226,6 +196,18 @@ export class ChunkManagerSource {
 
       chunk.visible = isVisible;
       chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
+      chunk.priority = this.computePriority(
+        isFallbackLOD,
+        isCurrentLOD,
+        isVisible,
+        chunk.prefetch
+      );
+
+      if (chunk.priority !== null && chunk.state === "unloaded") {
+        chunk.state = "queued";
+      } else if (chunk.priority === null && chunk.state === "queued") {
+        chunk.state = "unloaded";
+      }
 
       if (isLoaded && !isFallbackLOD) {
         const shouldDispose =
@@ -234,10 +216,27 @@ export class ChunkManagerSource {
         if (shouldDispose) {
           chunk.data = undefined;
           chunk.state = "unloaded";
-          Logger.debug("ChunkManager", `Disposing chunk in LOD ${chunk.lod}`);
+          chunk.priority = null;
+          Logger.debug(
+            "ChunkManagerSource",
+            `Disposing chunk in LOD ${chunk.lod}`
+          );
         }
       }
     }
+  }
+
+  private computePriority(
+    isFallbackLOD: boolean,
+    isCurrentLOD: boolean,
+    isVisible: boolean,
+    isPrefetch: boolean
+  ) {
+    if (isFallbackLOD && isVisible) return PRI_FALLBACK_VISIBLE;
+    if (isCurrentLOD && isVisible) return PRI_VISIBLE_CURRENT;
+    if (isFallbackLOD) return PRI_FALLBACK_BACKGROUND;
+    if (isCurrentLOD && isPrefetch) return PRI_PREFETCH;
+    return null;
   }
 
   private validateXYScaleRatios(): void {
@@ -349,6 +348,9 @@ export class ChunkManagerSource {
   }
 }
 
+type BucketItem = { source: ChunkManagerSource; chunk: Chunk };
+type Buckets = BucketItem[][];
+
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
 
@@ -375,8 +377,30 @@ export class ChunkManager {
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
-    for (const [_, chunkManagerSource] of this.sources_) {
-      chunkManagerSource.update(lodFactor, viewBounds2D);
+    const buckets: Buckets = [[], [], [], []];
+
+    for (const [_, source] of this.sources_) {
+      source.update(lodFactor, viewBounds2D);
+      for (const chunk of source.chunks) {
+        if (chunk.state !== "queued" || chunk.priority === null) continue;
+        buckets[chunk.priority].push({ source, chunk });
+      }
+    }
+
+    for (const bucket of buckets) {
+      for (const { source, chunk } of bucket) {
+        if (chunk.state !== "queued") continue; // guard
+        chunk.state = "loading";
+        source
+          .loadChunkData(chunk)
+          .then(() => {
+            if (chunk.state === "loading") chunk.state = "loaded";
+          })
+          .catch((err) => {
+            Logger.error("ChunkManager", String(err));
+            if (chunk.state === "loading") chunk.state = "unloaded";
+          });
+      }
     }
   }
 }
