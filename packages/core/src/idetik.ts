@@ -128,14 +128,14 @@ export class Idetik {
       new ResizeObserver(() => {
         this.needsResize_ = true;
       }).observe(this.canvas);
-      this.animate();
+      this.render();
     } else {
       Logger.warn("Idetik", "Idetik runtime already started");
     }
     return this;
   }
 
-  private animate(timestamp?: DOMHighResTimeStamp) {
+  private render(timestamp?: DOMHighResTimeStamp) {
     if (this.stats_) this.stats_.begin();
 
     // Must resize before render b/c changing canvas coordinate space clears it.
@@ -165,7 +165,7 @@ export class Idetik {
     if (this.stats_) this.stats_.end();
 
     this.lastAnimationId_ = requestAnimationFrame((timestamp) =>
-      this.animate(timestamp)
+      this.render(timestamp)
     );
   }
 
