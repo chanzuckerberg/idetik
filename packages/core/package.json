@@ -1,7 +1,6 @@
 {
-  "name": "@idetik/core",
-  "private": true,
-  "version": "0.0.1",
+  "name": "@idetik/core-prerelease",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +10,8 @@
     "test-with-coverage": "vitest run --coverage",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "pub": "npm run build; npm publish --access=public"
   },
   "dependencies": {
     "gl-matrix": "^3.4.3",
@@ -39,7 +39,10 @@
     "test": "test"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
+  "keywords": [
+    "idetik"
+  ],
   "devDependencies": {
     "@apidevtools/json-schema-ref-parser": "^14.1.1",
     "json-schema-to-zod": "^2.6.1"

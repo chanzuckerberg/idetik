@@ -6,7 +6,11 @@ import {
 } from "@czi-sds/components";
 import cns from "classnames";
 import { ChannelControl } from "./components/ChannelControl";
-import { ChannelProps, ColorLike, ChannelsEnabled } from "@idetik/core";
+import {
+  ChannelProps,
+  ColorLike,
+  ChannelsEnabled,
+} from "@idetik/core-prerelease";
 import { useSyncExternalStore } from "react";
 import { ExtraControlProps } from "../../utils";
 

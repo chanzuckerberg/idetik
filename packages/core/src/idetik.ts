@@ -9,6 +9,7 @@ import { ChunkManager } from "./core/chunk_manager";
 import { vec2, vec3 } from "gl-matrix";
 import { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 import { createStats, type Stats } from "./utilities/stats";
+import { Box2 } from "./math/box2";
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
@@ -103,6 +104,10 @@ export class Idetik {
     return this.renderer_.height;
   }
 
+  public get textureInfo() {
+    return this.renderer_.textureInfo;
+  }
+
   public set cameraControls(controls: CameraControls | undefined) {
     this.cameraControls_ = controls;
   }
@@ -146,7 +151,13 @@ export class Idetik {
       );
     }
 
-    this.renderer_.render(this.layerManager, this.camera);
+    // TEMP: in the future, the renderer will manage a list of dynamically-sized viewports
+    // instead of passing its own box to itself
+    const viewportBox = new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(this.renderer_.width, this.renderer_.height)
+    );
+    this.renderer_.render(this.layerManager, this.camera, viewportBox);
     for (const overlay of this.overlays) {
       overlay.update(this, timestamp);
     }

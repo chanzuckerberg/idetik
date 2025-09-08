@@ -6,7 +6,7 @@ import {
   PanZoomControls,
   Region,
   loadOmeroChannels,
-  loadOmeroDefaultZ,
+  loadOmeroDefaults,
   loadOmeZarrPlate,
   loadOmeZarrWell,
 } from "@";
@@ -57,7 +57,8 @@ const onImageChange = async () => {
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl);
-  const omeroDefaultZ = await loadOmeroDefaultZ(source);
+  const omeroDefaults = await loadOmeroDefaults(source);
+  const omeroDefaultZ = omeroDefaults?.defaultZ ?? 0;
   region[2] = {
     dimension: "Z",
     index: {

@@ -1,22 +1,22 @@
 import { Idetik } from "../../src/idetik";
-import { ImageLayer } from "../../src/layers/image_layer";
+import { ChunkedImageLayer } from "../../src/layers/chunked_image_layer";
 import { Chunk } from "../../src/data/chunk";
 
 export interface ChunkInfoOverlayOptions {
   textDiv: HTMLDivElement;
-  imageLayer: ImageLayer;
+  imageLayer: ChunkedImageLayer;
 }
 
 export class ChunkInfoOverlay {
   private readonly textDiv_: HTMLDivElement;
-  private readonly imageLayer_: ImageLayer;
+  private readonly imageLayer_: ChunkedImageLayer;
 
   constructor({ textDiv, imageLayer }: ChunkInfoOverlayOptions) {
     this.textDiv_ = textDiv;
     this.imageLayer_ = imageLayer;
   }
 
-  public update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
+  public update(idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
     const chunkManagerSource = this.imageLayer_.chunkManagerSource;
     if (!chunkManagerSource) {
       this.textDiv_.textContent = "No chunk manager source";
@@ -81,12 +81,19 @@ export class ChunkInfoOverlay {
       );
     });
 
+    const numTextures = idetik.textureInfo.textures;
+    const totalTextureSize = idetik.textureInfo.totalBytes;
+    const totalTextureSizeMB = Math.round(totalTextureSize / (1024 * 1024));
+
     this.textDiv_.innerHTML = [
       summary,
       "",
       ...counters,
       "",
       ...chunkDetails,
+      "",
+      `Number of textures ${numTextures}`,
+      `GPU Texture Memory in use ${totalTextureSizeMB}MB`,
     ].join("<br>");
   }
 }

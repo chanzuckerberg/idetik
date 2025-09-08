@@ -14,6 +14,7 @@ export type { EventContext } from "./core/event_dispatcher";
 export { AxesLayer } from "./layers/axes_layer";
 export { ProjectedLineLayer } from "./layers/projected_line_layer";
 export { TracksLayer } from "./layers/tracks_layer";
+export { ChunkedImageLayer } from "./layers/chunked_image_layer";
 export { ImageLayer } from "./layers/image_layer";
 export { LabelImageLayer } from "./layers/label_image_layer";
 export type { PointPickingResult } from "./layers/point_picking";
@@ -27,7 +28,7 @@ export type { Region } from "./data/region";
 export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";
 export {
   loadOmeroChannels,
-  loadOmeroDefaultZ,
+  loadOmeroDefaults,
   loadOmeZarrPlate,
   loadOmeZarrWell,
 } from "./data/ome_zarr/metadata_loaders";

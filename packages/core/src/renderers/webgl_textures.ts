@@ -21,10 +21,12 @@ export class WebGLTextures {
   private readonly textures_: Map<Texture, WebGLTexture> = new Map();
   private currentTexture_: Texture | null = null;
   private readonly maxTextureUnits_: number;
+  private gpuTextureBytes_ = 0;
+  private textureCount_ = 0;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
-    this.maxTextureUnits_ = gl.MAX_TEXTURE_IMAGE_UNITS;
+    this.maxTextureUnits_ = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
   }
 
   public bindTexture(texture: Texture, index: number) {
@@ -67,13 +69,27 @@ export class WebGLTextures {
       if (this.currentTexture_ === texture) {
         this.currentTexture_ = null;
       }
+
+      const info = this.getDataFormatInfo(texture.dataFormat, texture.dataType);
+      const bytes = this.computeStorageBytes(texture, info);
+      this.gpuTextureBytes_ = Math.max(0, this.gpuTextureBytes_ - bytes);
+      this.textureCount_ = Math.max(0, this.textureCount_ - 1);
     }
   }
 
   public disposeAll() {
-    for (const texture of this.textures_.keys()) {
+    for (const texture of Array.from(this.textures_.keys())) {
       this.disposeTexture(texture);
     }
+    this.gpuTextureBytes_ = 0;
+    this.textureCount_ = 0;
+  }
+
+  public get textureInfo() {
+    return {
+      textures: this.textureCount_,
+      totalBytes: this.gpuTextureBytes_,
+    };
   }
 
   private alreadyActive(texture: Texture) {
@@ -111,6 +127,8 @@ export class WebGLTextures {
       throw new Error(`Unknown texture type ${texture.type}`);
     }
 
+    this.gpuTextureBytes_ += this.computeStorageBytes(texture, info);
+    this.textureCount_ += 1;
     this.textures_.set(texture, textureId);
     this.gl_.bindTexture(type, null);
   }
@@ -280,6 +298,50 @@ export class WebGLTextures {
       }
     }
     throw new Error(`Unsupported format/type: ${format}/${type}`);
+  }
+
+  private computeStorageBytes(
+    texture: Texture,
+    info: TextureFormatInfo
+  ): number {
+    const bytes = this.bytesPerTexel(info);
+    const levels = Math.max(1, texture.mipmapLevels);
+    const depth = this.isTexture2DArray(texture)
+      ? Math.max(1, texture.depth)
+      : 1;
+
+    let width = Math.max(1, texture.width);
+    let height = Math.max(1, texture.height);
+    let total = 0;
+    for (let level = 0; level < levels; level++) {
+      total += width * height * depth * bytes;
+      width = Math.max(1, width >> 1);
+      height = Math.max(1, height >> 1);
+    }
+
+    return total;
+  }
+
+  private bytesPerTexel(info: TextureFormatInfo): number {
+    const gl = this.gl_;
+    if (info.format === gl.RGB && info.type === gl.UNSIGNED_BYTE) return 3;
+    if (info.format === gl.RGBA && info.type === gl.UNSIGNED_BYTE) return 4;
+    if (info.format === gl.RED_INTEGER) {
+      switch (info.type) {
+        case gl.BYTE:
+        case gl.UNSIGNED_BYTE:
+          return 1;
+        case gl.SHORT:
+        case gl.UNSIGNED_SHORT:
+          return 2;
+        case gl.INT:
+        case gl.UNSIGNED_INT:
+          return 4;
+      }
+    }
+    if (info.format === gl.RED && info.type === gl.FLOAT) return 4;
+
+    throw new Error("bytesPerTexel: unsupported format/type");
   }
 
   private isTexture2D(texture: Texture): texture is Texture2D {

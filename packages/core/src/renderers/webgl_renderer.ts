@@ -12,8 +12,9 @@ import { Camera } from "../objects/cameras/camera";
 import { WebGLState } from "./WebGLState";
 import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
+import { Box2 } from "../math/box2";
 
-import { mat4 } from "gl-matrix";
+import { mat4, vec2 } from "gl-matrix";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -52,11 +53,23 @@ export class WebGLRenderer extends Renderer {
     this.programs_ = new WebGLShaderPrograms(this.gl);
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
-    this.resize(this.canvas.width, this.canvas.height);
     this.state_ = new WebGLState(this.gl);
+    this.resize(this.canvas.width, this.canvas.height);
   }
 
-  public render(layerManager: LayerManager, camera: Camera) {
+  public render(layerManager: LayerManager, camera: Camera, viewportBox: Box2) {
+    const rendererBox = new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(this.width, this.height)
+    );
+    if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
+      this.state_.setScissorTest(false);
+    } else {
+      this.state_.setScissor(viewportBox);
+      this.state_.setScissorTest(true);
+    }
+    this.state_.setViewport(viewportBox);
+
     this.clear();
     this.activeCamera = camera;
 
@@ -77,6 +90,10 @@ export class WebGLRenderer extends Renderer {
       this.renderLayer(layer);
     }
     this.state_.setDepthMask(true);
+  }
+
+  public get textureInfo() {
+    return this.textures_.textureInfo;
   }
 
   private renderLayer(layer: Layer) {
@@ -175,7 +192,11 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected resize(width: number, height: number) {
-    this.gl.viewport(0, 0, width, height);
+    const newViewport = new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(width, height)
+    );
+    this.state_.setViewport(newViewport);
   }
 
   protected clear() {

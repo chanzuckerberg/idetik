@@ -1,4 +1,4 @@
-import { Region } from "@idetik/core";
+import { Region } from "@idetik/core-prerelease";
 import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
 
@@ -70,29 +70,27 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col">
+      <OmeZarrImageViewer
+        sourceUrl={imageUrl}
+        region={region}
+        seriesDimensionName="Z"
+        initialIndex="omeroDefault"
+        classNames={{
+          root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
+        }}
+        loadAllButtonText="Load 3D high-res (250MB)"
+        onLayerCreated={handleLayerCreated}
+        onFirstSliceLoaded={handleFirstSliceLoaded}
+        onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+        onAllSlicesLoaded={handleAllSlicesLoaded}
+        onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
+      />
       <input
         type="button"
         value="Next Image"
         onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
         className="h-12 shrink-0 basis-[50px]"
       />
-      {imageIndex % 2 == 0 && (
-        <OmeZarrImageViewer
-          sourceUrl={imageUrl}
-          region={region}
-          seriesDimensionName="Z"
-          initialIndex="omeroDefaultZ"
-          classNames={{
-            root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
-          }}
-          loadAllButtonText="Load 3D high-res (250MB)"
-          onLayerCreated={handleLayerCreated}
-          onFirstSliceLoaded={handleFirstSliceLoaded}
-          onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
-          onAllSlicesLoaded={handleAllSlicesLoaded}
-          onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
-        />
-      )}
-    </div>
+   </div>
   );
 }

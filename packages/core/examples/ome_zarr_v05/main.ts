@@ -1,11 +1,9 @@
 import {
   ChannelProps,
-  Color,
   Idetik,
-  ImageLayer,
+  ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
-  Region,
   PointPickingResult,
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
@@ -34,18 +32,8 @@ const zMidPoint = zInfo.offset + 0.5 * zInfo.size * zInfo.scale;
 const yInfo = dimensionInfo("y");
 const xInfo = dimensionInfo("x");
 
-const region: Region = [
-  { dimension: "z", index: { type: "point", value: zMidPoint } },
-  { dimension: "y", index: { type: "full" } },
-  { dimension: "x", index: { type: "full" } },
-];
-const channelProps: ChannelProps[] = [
-  {
-    visible: true,
-    color: Color.WHITE,
-    contrastLimits: [0, 200],
-  },
-];
+const sliceCoords = { z: zMidPoint };
+const channelProps: ChannelProps[] = [{ contrastLimits: [0, 200] }];
 
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
 
@@ -58,7 +46,12 @@ const onPickValue = (info: PointPickingResult) => {
   `;
 };
 
-const layer = new ImageLayer({ source, region, channelProps, onPickValue });
+const layer = new ChunkedImageLayer({
+  source,
+  sliceCoords,
+  channelProps,
+  onPickValue,
+});
 const axes = new AxesLayer({
   length: 0.75 * xInfo.scale * xInfo.size,
   width: 0.01,

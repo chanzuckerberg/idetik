@@ -60,3 +60,48 @@ test("clone creates a deep copy", () => {
   expect(a.min[0]).not.toBe(b.min[0]);
   expect(a.max[1]).not.toBe(b.max[1]);
 });
+
+test("toRect: converts box to rectangle format", () => {
+  const box = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
+  const result = box.toRect();
+
+  expect(result).toEqual({
+    x: 10,
+    y: 20,
+    width: 100,
+    height: 200,
+  });
+});
+
+test("toRect: preserves floating point values", () => {
+  const box = new Box2(
+    vec2.fromValues(10.7, 20.9),
+    vec2.fromValues(110.3, 220.1)
+  );
+  const result = box.toRect();
+
+  expect(result.x).toBeCloseTo(10.7);
+  expect(result.y).toBeCloseTo(20.9);
+  expect(result.width).toBeCloseTo(99.6);
+  expect(result.height).toBeCloseTo(199.2);
+});
+
+test("floor: floors coordinates to integers", () => {
+  const box = new Box2(
+    vec2.fromValues(10.7, 20.9),
+    vec2.fromValues(110.3, 220.1)
+  );
+  const floored = box.floor();
+
+  expect(floored.min).toEqual(vec2.fromValues(10, 20));
+  expect(floored.max).toEqual(vec2.fromValues(110, 220));
+});
+
+test("equals: compares boxes for exact equality", () => {
+  const a = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
+  const b = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
+  const c = new Box2(vec2.fromValues(15, 25), vec2.fromValues(115, 225));
+
+  expect(Box2.equals(a, b)).toBe(true);
+  expect(Box2.equals(a, c)).toBe(false);
+});

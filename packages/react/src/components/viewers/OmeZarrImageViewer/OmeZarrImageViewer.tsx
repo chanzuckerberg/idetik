@@ -7,11 +7,11 @@ import {
   ImageSeriesLayer,
   Region,
   loadOmeroChannels,
-  loadOmeroDefaultZ,
+  loadOmeroDefaults,
   ChannelProps,
   Idetik,
   ImageLayer,
-} from "@idetik/core";
+} from "@idetik/core-prerelease";
 import { useIdetik } from "../../../hooks/useIdetik";
 import { IdetikCanvas } from "../../IdetikCanvas";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
@@ -39,7 +39,7 @@ export interface OmeZarrImageViewerProps {
   resolutionLevel?: number;
   shouldAutoLoadAllSlices?: boolean;
   shouldLoadMiddleZ?: boolean;
-  initialIndex?: "start" | "middle" | "end" | "omeroDefaultZ";
+  initialIndex?: "start" | "middle" | "end" | "omeroDefault";
   indexIndicatorText?:
     | string
     | ((currentIndex: number, totalIndexes: number) => string);
@@ -77,7 +77,7 @@ export function OmeZarrImageViewer({
   resolutionLevel = 0,
   shouldAutoLoadAllSlices = false,
   shouldLoadMiddleZ = false,
-  initialIndex = "omeroDefaultZ",
+  initialIndex = "omeroDefault",
   loadAllButtonText,
   indexIndicatorText,
   scaleBar = {
@@ -245,49 +245,25 @@ export function OmeZarrImageViewer({
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
       <IdetikCanvas />
       {imageLayerRef.current && (
-        <ChannelControlsList
-          layer={imageLayerRef.current}
-          extraControlProps={extraControlProps}
-          classNames={{ root: "absolute top-0 left-0 z-10" }}
-        />
-      )}
-      {sourceRef.current && (
-        <div
-          className={cns(
-            "flex",
-            "absolute",
-            "bottom-0",
-            "w-full",
-            "items-end",
-            "justify-between",
-            "gap-sds-l"
-          )}
-        >
+        <>
+          <ChannelControlsList
+            layer={imageLayerRef.current}
+            extraControlProps={extraControlProps}
+            classNames={{ root: "absolute top-0 left-0 z-10" }}
+          />
           {scaleBar.visible && (
-            <div
-              className={cns(
-                "flex",
-                "flex-col",
-                "m-sds-l",
-                "w-1/5",
-                "select-none"
-              )}
-            >
+            <div className="flex flex-col m-sds-l w-1/5 select-none absolute bottom-0 left-0">
               <ScaleBar unit={unit} align={scaleBar.align} />
             </div>
           )}
           <div
             className={cns(
-              "flex",
-              "flex-col",
-              "grow",
-              "items-end",
-              "p-sds-l",
-              "gap-sds-l",
+              "flex flex-col grow items-end p-sds-l gap-sds-l absolute bottom-0 right-0",
               classNames?.sliceMetadataContainer
             )}
           >
-            {!loading ? (
+            {loading && <LoadingIndicator sdsStyle="tag" />}
+            {!loading && seriesDimensionName && (
               <div
                 // These share styles with ChannelControlsList
                 className={cns(
@@ -309,23 +285,8 @@ export function OmeZarrImageViewer({
                 {typeof indexIndicatorText === "undefined" &&
                   `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
               </div>
-            ) : (
-              <LoadingIndicator sdsStyle="tag" />
             )}
-            {!allSlicesLoaded ? (
-              <Button
-                sdsType="primary"
-                sdsStyle="square"
-                size="small"
-                disabled={loading}
-                onClick={loadAllSlicesCallback}
-                className={cns("shadow-sds-m", classNames?.load3dButton)}
-              >
-                {typeof loadAllButtonText === "string" && loadAllButtonText}
-                {typeof loadAllButtonText === "function" && loadAllButtonText()}
-                {typeof loadAllButtonText === "undefined" && "Load 3D high-res"}
-              </Button>
-            ) : (
+            {allSlicesLoaded && (
               <div
                 className={cns(
                   "w-full md:w-[200px]",
@@ -354,8 +315,22 @@ export function OmeZarrImageViewer({
                 />
               </div>
             )}
+            {!allSlicesLoaded && seriesDimensionName && (
+              <Button
+                sdsType="primary"
+                sdsStyle="square"
+                size="small"
+                disabled={loading}
+                onClick={loadAllSlicesCallback}
+                className={cns("shadow-sds-m", classNames?.load3dButton)}
+              >
+                {typeof loadAllButtonText === "string" && loadAllButtonText}
+                {typeof loadAllButtonText === "function" && loadAllButtonText()}
+                {typeof loadAllButtonText === "undefined" && "Load 3D high-res"}
+              </Button>
+            )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
@@ -489,7 +464,14 @@ async function loadImageMetadata(
       const zShape = attrsForLevel.shape[zIdx];
       initialZ = zShape - 1;
     } else {
-      initialZ = await loadOmeroDefaultZ(source);
+      const defaults = await loadOmeroDefaults(source);
+      if (seriesDimensionName.toUpperCase() === "Z") {
+        initialZ = defaults?.defaultZ ?? 0;
+      } else if (seriesDimensionName.toUpperCase() === "T") {
+        initialZ = defaults?.defaultT ?? 0;
+      } else {
+        initialZ = 0;
+      }
     }
   } else if (zRegion) {
     switch (zRegion.index?.type) {

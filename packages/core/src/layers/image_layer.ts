@@ -1,14 +1,10 @@
 import { Layer, LayerOptions } from "../core/layer";
-import { IdetikContext } from "../idetik";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
-import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { Logger } from "../utilities/logger";
-import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
@@ -18,36 +14,23 @@ export type ImageLayerProps = LayerOptions & {
   region: Region;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
+  lod?: number;
 };
 
-// Loads data from an image source into renderable objects.
 export class ImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageLayer";
 
   private readonly source_: ChunkSource;
-  // TODO: remove this when region is passed through to update.
-  // https://github.com/chanzuckerberg/idetik/issues/33
   private readonly region_: Region;
-  private readonly useChunkManager_: boolean;
-  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly lod_?: number;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
+  private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: Array<() => void> = [];
-  private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
-  private chunkManagerSource_?: ChunkManagerSource;
   private channelProps_?: ChannelProps[];
   private image_?: ImageRenderable;
+  private chunk_?: Chunk;
   private extent_?: { x: number; y: number };
   private pointerDownPos_: vec2 | null = null;
-
-  private readonly wireframeColors_ = [
-    new Color(0.6, 0.3, 0.3),
-    new Color(0.3, 0.6, 0.4),
-    new Color(0.4, 0.4, 0.7),
-    new Color(0.6, 0.5, 0.3),
-  ];
-
-  // TODO:(shlomnissan) Remove this parameter when chunk manager is used by default
-  private readonly lod_?: number;
 
   constructor({
     source,
@@ -65,75 +48,19 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
     this.lod_ = lod;
-
-    const x = region.find((r) => r.dimension.toLowerCase() === "x");
-    const y = region.find((r) => r.dimension.toLowerCase() === "y");
-    const hasIntervals = region.some((r) => r.index.type === "interval");
-    this.useChunkManager_ =
-      !hasIntervals && x?.index.type === "full" && y?.index.type === "full";
-
-    if (this.useChunkManager_) {
-      Logger.info("ImageLayer", "Loading data using the chunk manager");
-    }
-  }
-
-  public async onAttached(context: IdetikContext) {
-    if (this.useChunkManager_) {
-      this.chunkManagerSource_ = await context.chunkManager.addSource(
-        this.source_,
-        this.region_
-      );
-    }
-  }
-
-  private updateChunks() {
-    if (!this.chunkManagerSource_) return;
-
-    // Temporary until we decide how to approach state management
-    if (this.state !== "ready") {
-      this.setState("ready");
-    }
-
-    // TODO:(shlomnissan) Reuse images instead of deleting and creating new ones.
-    //
-    // This loop removes image renderables for chunks that are no longer visible
-    // or no longer returned by getChunks() (e.g., due to LOD changes).
-    // While this approach works for now, it may be more efficient in the future
-    // to reuse renderables by updating their underlying data instead of repeatedly
-    // creating new texture objects. Note: GPU resources are not currently being
-    // released, so this will also need to be addressed soon.
-    const currentChunks = new Set(this.chunkManagerSource_.getChunks());
-    this.visibleChunks_.forEach((image, chunk) => {
-      if (!currentChunks.has(chunk)) {
-        this.removeObject(image);
-        this.visibleChunks_.delete(chunk); // safe
-      }
-    });
-
-    currentChunks.forEach((chunk) => {
-      if (chunk.state === "loaded" && !this.visibleChunks_.has(chunk)) {
-        const image = this.createImage(chunk, this.channelProps);
-        this.visibleChunks_.set(chunk, image);
-        this.addObject(image);
-      }
-    });
   }
 
   public update() {
-    if (this.useChunkManager_) {
-      this.updateChunks();
-    } else {
-      switch (this.state) {
-        case "initialized":
-          this.load(this.region_);
-          break;
-        case "loading":
-        case "ready":
-          break;
-        default: {
-          const exhaustiveCheck: never = this.state;
-          throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
-        }
+    switch (this.state) {
+      case "initialized":
+        this.load(this.region_);
+        break;
+      case "loading":
+      case "ready":
+        break;
+      default: {
+        const exhaustiveCheck: never = this.state;
+        throw new Error(`Unhandled LayerState case: ${exhaustiveCheck}`);
       }
     }
   }
@@ -151,6 +78,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     // TODO: should this return Channel[] instead of ChannelProps[]?
     return this.channelProps_;
   }
+
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.image_?.setChannelProps(channelProps);
@@ -158,6 +86,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       callback();
     });
   }
+
   public resetChannelProps(): void {
     if (this.initialChannelProps_ !== undefined) {
       this.setChannelProps(this.initialChannelProps_);
@@ -167,6 +96,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   public addChannelChangeCallback(callback: () => void): void {
     this.channelChangeCallbacks_.push(callback);
   }
+
   public removeChannelChangeCallback(callback: () => void): void {
     const index = this.channelChangeCallbacks_.indexOf(callback);
     if (index === undefined) {
@@ -190,8 +120,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       y: chunk.shape.y * chunk.scale.y,
     };
 
-    this.image_ = this.createImage(chunk, this.channelProps_);
-    this.visibleChunks_.set(chunk, this.image_);
+    this.image_ = this.createImage(chunk);
+    this.chunk_ = chunk;
     this.addObject(this.image_);
 
     this.setState("ready");
@@ -203,69 +133,42 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     return this.extent_;
   }
 
-  public get chunkManagerSource(): ChunkManagerSource | undefined {
-    return this.chunkManagerSource_;
-  }
-
-  private slicePlane(chunk: Chunk, zValue: number) {
-    if (!chunk.data) return;
-    const zLocal = Math.round((zValue - chunk.offset.z) / chunk.scale.z);
-    const sliceSize = chunk.shape.x * chunk.shape.y;
-    const offset = sliceSize * (zLocal % chunk.shape.z);
-    return chunk.data.slice(offset, offset + sliceSize);
-  }
-
-  private createImage(chunk: Chunk, channelProps?: ChannelProps[]) {
+  private createImage(chunk: Chunk) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-
-    let data = chunk.data;
-    if (chunk.shape.z > 1) {
-      const zIdx = this.region_.find((r) => r.dimension.toLowerCase() === "z");
-      if (zIdx?.index.type !== "point") {
-        throw new Error("Expected Z index to be a point");
-      }
-      data = this.slicePlane(chunk, zIdx.index.value);
-    }
-
     const image = new ImageRenderable(
       geometry,
-      Texture2DArray.createWithChunk(chunk, data),
-      channelProps
+      Texture2DArray.createWithChunk(chunk),
+      this.channelProps
     );
-
-    if (this.debugMode) {
-      image.wireframeEnabled = true;
-      image.wireframeColor =
-        this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
-    }
-
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
   }
 
   public getValueAtWorld(world: vec3): number | null {
-    // Iterate through all visible chunks to find the one containing the world position
-    for (const [chunk, image] of this.visibleChunks_) {
-      if (!chunk.data) continue;
-      const localPos = vec3.transformMat4(
-        vec3.create(),
-        world,
-        image.transform.inverse
-      );
+    if (!this.image_) return null;
+    if (!this.chunk_?.data) return null;
+    const localPos = vec3.transformMat4(
+      vec3.create(),
+      world,
+      this.image_.transform.inverse
+    );
 
-      const x = Math.floor(localPos[0]);
-      const y = Math.floor(localPos[1]);
+    const x = Math.floor(localPos[0]);
+    const y = Math.floor(localPos[1]);
 
-      // Check if this chunk contains the requested position
-      if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-        const pixelIndex = y * chunk.rowStride + x;
-        const data = chunk.data;
-
-        // For multi-channel images, take the first channel value
-        return data[pixelIndex];
-      }
+    // Check if this chunk contains the requested position
+    if (
+      x >= 0 &&
+      x < this.chunk_.shape.x &&
+      y >= 0 &&
+      y < this.chunk_.shape.y
+    ) {
+      const pixelIndex = y * this.chunk_.rowStride + x;
+      // For multi-channel images, take the first channel value
+      return this.chunk_.data[pixelIndex];
     }
+
     return null;
   }
 }

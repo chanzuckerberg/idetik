@@ -9,6 +9,8 @@ type LabelImageRenderableProps = {
   geometry: Geometry;
   imageData: Texture;
   colorMap: LabelColorMap;
+  outlineSelected?: boolean;
+  selectedValue?: number | null;
 };
 
 const supportedDataTypes = new Set<TextureDataType>([
@@ -32,6 +34,9 @@ function validateImageData(imageData: Texture) {
 }
 
 export class LabelImageRenderable extends RenderableObject {
+  private outlineSelected_: boolean;
+  private selectedValue_: number | null;
+
   constructor(props: LabelImageRenderableProps) {
     super();
     this.geometry = props.geometry;
@@ -42,6 +47,8 @@ export class LabelImageRenderable extends RenderableObject {
       props.colorMap.lookupTable
     );
     this.setTexture(2, colorLookupTableTexture);
+    this.outlineSelected_ = props.outlineSelected ?? false;
+    this.selectedValue_ = props.selectedValue ?? null;
     this.programName = "labelImage";
   }
 
@@ -54,12 +61,18 @@ export class LabelImageRenderable extends RenderableObject {
       ImageSampler: 0,
       ColorCycleSampler: 1,
       ColorLookupTableSampler: 2,
+      u_outlineSelected: this.outlineSelected_ ? 1.0 : 0.0,
+      u_selectedValue: this.selectedValue_ ?? -1.0,
     };
   }
 
   public setColorMap(colorMap: LabelColorMap) {
     this.setTexture(1, this.makeColorCycleTexture(colorMap.cycle));
     this.setTexture(2, this.makeColorLookupTableTexture(colorMap.lookupTable));
+  }
+
+  public setSelectedValue(value: number | null) {
+    this.selectedValue_ = value;
   }
 
   private makeColorCycleTexture(cycle: ReadonlyArray<Color>) {

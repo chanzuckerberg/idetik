@@ -1,6 +1,10 @@
 "use client";
 
-import { Idetik, OrthographicCamera, PanZoomControls } from "@idetik/core";
+import {
+  Idetik,
+  OrthographicCamera,
+  PanZoomControls,
+} from "@idetik/core-prerelease";
 import { PropsWithChildren, useEffect, useState } from "react";
 import { IdetikContext, IdetikContextValue } from "../../hooks/useIdetik";
 
