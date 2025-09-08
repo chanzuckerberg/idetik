@@ -91,6 +91,6 @@ export default function App() {
         onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
         className="h-12 shrink-0 basis-[50px]"
       />
-   </div>
+    </div>
   );
 }
