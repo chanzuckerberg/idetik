@@ -137,54 +137,40 @@ export class Idetik {
 
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
-    if (this.lastAnimationId_ === undefined) {
-      this.startLayoutObservers();
-      this.animate();
-    } else {
-      Logger.warn("Idetik", "Idetik runtime already started");
-    }
+    this.startLayoutObservers();
+
+    const render = (timestamp?: DOMHighResTimeStamp) => {
+      if (this.stats_) this.stats_.begin();
+
+      // Must resize before render b/c changing canvas coordinate space clears it.
+      if (this.needsResize_) {
+        this.updateSize();
+      }
+
+      for (const viewport of this.viewports_) {
+        if (viewport.camera.type === "OrthographicCamera") {
+          this.chunkManager_.update(
+            viewport.camera as OrthographicCamera,
+            viewport.getBoxRelativeTo(this.canvas).toRect().width
+          );
+        }
+        this.renderer_.render(viewport);
+      }
+
+      for (const overlay of this.overlays) {
+        overlay.update(this, timestamp);
+      }
+
+      if (this.stats_) this.stats_.end();
+      this.lastAnimationId_ = requestAnimationFrame(render);
+    };
+    render();
     return this;
   }
 
-  private animate(timestamp?: DOMHighResTimeStamp) {
-    if (this.stats_) this.stats_.begin();
-
-    // Must resize before render b/c changing canvas coordinate space clears it.
-    if (this.needsResize_) {
-      this.updateSize();
-    }
-
-    for (const viewport of this.viewports_) {
-      if (viewport.camera.type === "OrthographicCamera") {
-        this.chunkManager_.update(
-          viewport.camera as OrthographicCamera,
-          viewport.getBoxRelativeTo(this.canvas).toRect().width
-        );
-      }
-      this.renderer_.render(viewport);
-    }
-
-    for (const overlay of this.overlays) {
-      overlay.update(this, timestamp);
-    }
-
-    if (this.stats_) this.stats_.end();
-
-    this.lastAnimationId_ = requestAnimationFrame((timestamp) =>
-      this.animate(timestamp)
-    );
-  }
-
   public stop() {
-    Logger.info("Idetik", "Idetik runtime stopping");
     if (this.lastAnimationId_ !== undefined) {
-      Logger.info(
-        "Idetik",
-        "Cancelling animation frame",
-        this.lastAnimationId_
-      );
       cancelAnimationFrame(this.lastAnimationId_);
-      this.lastAnimationId_ = undefined;
     }
   }
 
