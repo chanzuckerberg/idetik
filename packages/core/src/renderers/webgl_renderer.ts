@@ -69,7 +69,7 @@ export class WebGLRenderer extends Renderer {
       this.state_.setScissor(viewportBox);
       this.state_.setScissorTest(true);
     } else {
-      Logger.debug(
+      Logger.warn(
         "WebGLRenderer",
         `Viewport ${viewport.id} is entirely outside canvas bounds, skipping render`
       );
