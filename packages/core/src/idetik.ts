@@ -138,15 +138,11 @@ export class Idetik {
   public start() {
     Logger.info("Idetik", "Idetik runtime started");
     if (this.lastAnimationId_ === undefined) {
-      new ResizeObserver(() => {
-        this.needsResize_ = true;
-      }).observe(this.canvas);
       this.startLayoutObservers();
       this.animate();
     } else {
       Logger.warn("Idetik", "Idetik runtime already started");
     }
-    this.startLayoutObservers();
     return this;
   }
 
