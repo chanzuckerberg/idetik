@@ -32,7 +32,7 @@ type Module =
 
 export class Logger {
   private static logLevel_: LogLevel =
-    import.meta.env.MODE === "production" ? "info" : "debug";
+    import.meta.env.MODE === "production" ? "warn" : "debug";
 
   public static setLogLevel(level: LogLevel) {
     Logger.logLevel_ = level;
