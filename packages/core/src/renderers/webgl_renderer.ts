@@ -7,12 +7,12 @@ import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
 import { Layer } from "../core/layer";
-import { LayerManager } from "../core/layer_manager";
-import { Camera } from "../objects/cameras/camera";
 import { WebGLState } from "./WebGLState";
 import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
+import { Viewport } from "../core/viewport";
+import { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2 } from "gl-matrix";
 
@@ -57,29 +57,35 @@ export class WebGLRenderer extends Renderer {
     this.resize(this.canvas.width, this.canvas.height);
   }
 
-  public render(layerManager: LayerManager, camera: Camera, viewportBox: Box2) {
+  public render(viewport: Viewport) {
+    const viewportBox = viewport.getBoxRelativeTo(this.canvas);
     const rendererBox = new Box2(
       vec2.fromValues(0, 0),
       vec2.fromValues(this.width, this.height)
     );
     if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
       this.state_.setScissorTest(false);
-    } else {
+    } else if (Box2.intersects(viewportBox, rendererBox)) {
       this.state_.setScissor(viewportBox);
       this.state_.setScissorTest(true);
+    } else {
+      Logger.warn(
+        "WebGLRenderer",
+        `Viewport ${viewport.id} is entirely outside canvas bounds, skipping render`
+      );
+      return;
     }
     this.state_.setViewport(viewportBox);
 
     this.clear();
-    this.activeCamera = camera;
 
-    const { opaque, transparent } = layerManager.partitionLayers();
+    const { opaque, transparent } = viewport.layerManager.partitionLayers();
 
     this.state_.setDepthMask(true);
     for (const layer of opaque) {
       layer.update();
       if (layer.state === "ready") {
-        this.renderLayer(layer);
+        this.renderLayer(layer, viewport.camera);
       }
     }
 
@@ -87,7 +93,7 @@ export class WebGLRenderer extends Renderer {
     for (const layer of transparent) {
       layer.update();
       if (layer.state !== "ready") continue;
-      this.renderLayer(layer);
+      this.renderLayer(layer, viewport.camera);
     }
     this.state_.setDepthMask(true);
   }
@@ -96,12 +102,12 @@ export class WebGLRenderer extends Renderer {
     return this.textures_.textureInfo;
   }
 
-  private renderLayer(layer: Layer) {
+  private renderLayer(layer: Layer, camera: Camera) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
-    layer.objects.forEach((_, i) => this.renderObject(layer, i));
+    layer.objects.forEach((_, i) => this.renderObject(layer, i, camera));
   }
 
-  protected renderObject(layer: Layer, objectIndex: number) {
+  protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
     this.bindings_.bindGeometry(object.geometry);
     object.popStaleTextures().forEach((texture) => {
@@ -112,7 +118,7 @@ export class WebGLRenderer extends Renderer {
     });
 
     const program = this.programs_.use(object.programName);
-    this.drawGeometry(object.geometry, object, layer, program);
+    this.drawGeometry(object.geometry, object, layer, program, camera);
 
     if (object.wireframeEnabled) {
       this.bindings_.bindGeometry(object.wireframeGeometry);
@@ -122,7 +128,8 @@ export class WebGLRenderer extends Renderer {
         object.wireframeGeometry,
         object,
         layer,
-        wireframeProgram
+        wireframeProgram,
+        camera
       );
     }
   }
@@ -131,17 +138,18 @@ export class WebGLRenderer extends Renderer {
     geometry: Geometry,
     object: RenderableObject,
     layer: Layer,
-    program: WebGLShaderProgram
+    program: WebGLShaderProgram,
+    camera: Camera
   ) {
     const modelView = mat4.multiply(
       mat4.create(),
-      this.activeCamera.viewMatrix,
+      camera.viewMatrix,
       object.transform.matrix
     );
     const projection = mat4.multiply(
       mat4.create(),
       axisDirection,
-      this.activeCamera.projectionMatrix
+      camera.projectionMatrix
     );
     const resolution = [this.canvas.width, this.canvas.height];
 

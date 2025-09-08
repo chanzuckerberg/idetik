@@ -9,7 +9,11 @@ import { ChunkManager } from "./core/chunk_manager";
 import { vec2, vec3 } from "gl-matrix";
 import { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 import { createStats, type Stats } from "./utilities/stats";
-import { Box2 } from "./math/box2";
+import {
+  parseViewportConfigs,
+  Viewport,
+  ViewportConfig,
+} from "./core/viewport";
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
@@ -30,14 +34,12 @@ export type IdetikContext = {
 };
 
 export class Idetik {
-  private cameraControls_?: CameraControls;
   private lastAnimationId_?: number;
   private needsResize_ = false;
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
-  public camera: Camera;
-  public layerManager: LayerManager;
+  private readonly viewports_: Viewport[];
   public readonly canvas: HTMLCanvasElement;
   public readonly events: EventDispatcher;
   public readonly overlays: Overlay[];
@@ -51,8 +53,6 @@ export class Idetik {
       throw new Error("Cannot provide both canvas and canvasSelector");
     }
 
-    this.camera = params.camera;
-    this.cameraControls_ = params.cameraControls;
     const canvas =
       params.canvas ??
       document.querySelector<HTMLCanvasElement>(params.canvasSelector!);
@@ -60,18 +60,27 @@ export class Idetik {
       throw new Error(`Canvas not found: ${params.canvasSelector}`);
     }
     this.canvas = canvas;
+
     this.renderer_ = new WebGLRenderer(canvas);
     this.chunkManager_ = new ChunkManager();
     this.context_ = {
       chunkManager: this.chunkManager_,
     };
-    this.layerManager = new LayerManager(this.context_);
 
-    if (params.layers) {
-      for (const layer of params.layers) {
-        this.layerManager.add(layer);
-      }
-    }
+    // TEMP: creating a single viewport for now to maintain the existing API
+    const viewportConfigs: ViewportConfig[] = [
+      {
+        id: "main",
+        element: canvas,
+        camera: params.camera,
+        layers: params.layers,
+        cameraControls: params.cameraControls,
+      },
+    ];
+    // TEMP: pass closure to reuse the main LayerManager instead of creating new ones
+    // This avoids circular import issues while maintaining shared context
+    const createLayerManager = () => new LayerManager(this.context_);
+    this.viewports_ = parseViewportConfigs(viewportConfigs, createLayerManager);
 
     this.overlays = params.overlays ?? [];
 
@@ -92,7 +101,7 @@ export class Idetik {
         layer.onEvent(event);
         if (event.propagationStopped) return;
       }
-      this.cameraControls_?.onEvent(event);
+      this.viewports_[0].cameraControls?.onEvent(event);
     });
   }
 
@@ -108,18 +117,22 @@ export class Idetik {
     return this.renderer_.textureInfo;
   }
 
+  // TEMP: backward-compatible getters/setter for camera, layerManager, and cameraControls
+  // to be removed on completion of multi-viewport implementation
+  public get camera() {
+    return this.viewports_[0].camera;
+  }
+
+  public get layerManager() {
+    return this.viewports_[0].layerManager;
+  }
+
   public set cameraControls(controls: CameraControls | undefined) {
-    this.cameraControls_ = controls;
+    this.viewports_[0].cameraControls = controls;
   }
 
   public clientToClip(position: vec2, depth: number = 0): vec3 {
-    const [x, y] = position;
-    const rect = this.canvas.getBoundingClientRect();
-    return vec3.fromValues(
-      (2 * (x - rect.x)) / this.canvas.clientWidth - 1,
-      (2 * (y - rect.y)) / this.canvas.clientHeight - 1,
-      depth
-    );
+    return this.viewports_[0].clientToClip(position, depth);
   }
 
   public start() {
@@ -128,36 +141,33 @@ export class Idetik {
       new ResizeObserver(() => {
         this.needsResize_ = true;
       }).observe(this.canvas);
-      this.render();
+      this.startLayoutObservers();
+      this.animate();
     } else {
       Logger.warn("Idetik", "Idetik runtime already started");
     }
+    this.startLayoutObservers();
     return this;
   }
 
-  private render(timestamp?: DOMHighResTimeStamp) {
+  private animate(timestamp?: DOMHighResTimeStamp) {
     if (this.stats_) this.stats_.begin();
 
     // Must resize before render b/c changing canvas coordinate space clears it.
     if (this.needsResize_) {
-      this.renderer_.updateSize();
-      this.needsResize_ = false;
+      this.updateSize();
     }
 
-    if (this.camera.type === "OrthographicCamera") {
-      this.chunkManager_.update(
-        this.camera as OrthographicCamera,
-        this.renderer_.width
-      );
+    for (const viewport of this.viewports_) {
+      if (viewport.camera.type === "OrthographicCamera") {
+        this.chunkManager_.update(
+          viewport.camera as OrthographicCamera,
+          viewport.getBoxRelativeTo(this.canvas).toRect().width
+        );
+      }
+      this.renderer_.render(viewport);
     }
 
-    // TEMP: in the future, the renderer will manage a list of dynamically-sized viewports
-    // instead of passing its own box to itself
-    const viewportBox = new Box2(
-      vec2.fromValues(0, 0),
-      vec2.fromValues(this.renderer_.width, this.renderer_.height)
-    );
-    this.renderer_.render(this.layerManager, this.camera, viewportBox);
     for (const overlay of this.overlays) {
       overlay.update(this, timestamp);
     }
@@ -165,7 +175,7 @@ export class Idetik {
     if (this.stats_) this.stats_.end();
 
     this.lastAnimationId_ = requestAnimationFrame((timestamp) =>
-      this.render(timestamp)
+      this.animate(timestamp)
     );
   }
 
@@ -180,5 +190,44 @@ export class Idetik {
       cancelAnimationFrame(this.lastAnimationId_);
       this.lastAnimationId_ = undefined;
     }
+  }
+
+  private startLayoutObservers() {
+    const resizeObserver = new ResizeObserver(() => {
+      this.needsResize_ = true;
+    });
+
+    resizeObserver.observe(this.canvas);
+    for (const viewport of this.viewports_) {
+      if (viewport.element !== this.canvas) {
+        resizeObserver.observe(viewport.element);
+      }
+    }
+
+    const startDevicePixelRatioObserver = () => {
+      // this media query needs to be updated after a change is detected, so we use a one-time
+      // event listener that re-registers itself with the new value
+      // https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio#monitoring_screen_resolution_or_zoom_level_changes
+      const mediaQuery = matchMedia(
+        `(resolution: ${window.devicePixelRatio}dppx)`
+      );
+      mediaQuery.addEventListener(
+        "change",
+        () => {
+          this.needsResize_ = true;
+          startDevicePixelRatioObserver();
+        },
+        { once: true }
+      );
+    };
+    startDevicePixelRatioObserver();
+  }
+
+  private updateSize() {
+    this.renderer_.updateSize();
+    for (const viewport of this.viewports_) {
+      viewport.updateSize();
+    }
+    this.needsResize_ = false;
   }
 }
