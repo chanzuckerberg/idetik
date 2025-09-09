@@ -18,6 +18,7 @@ const Colors = {
 type Module =
   | "ChunkManager"
   | "ChunkManagerSource"
+  | "ChunkQueue"
   | "ChunkedImageLayer"
   | "EventDispatcher"
   | "Idetik"

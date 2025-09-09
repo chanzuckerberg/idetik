@@ -11,6 +11,7 @@ import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import { ChunkQueue } from "@/utilities/chunk_queue";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -149,8 +150,8 @@ export class ChunkManagerSource {
     return this.currentLOD_;
   }
 
-  public loadChunkData(chunk: Chunk) {
-    return this.loader_.loadChunkData(chunk, this.sliceCoords_);
+  public loadChunkData(chunk: Chunk, signal: AbortSignal) {
+    return this.loader_.loadChunkData(chunk, this.sliceCoords_, signal);
   }
 
   private setLOD(lodFactor: number): void {
@@ -348,11 +349,9 @@ export class ChunkManagerSource {
   }
 }
 
-type BucketItem = { source: ChunkManagerSource; chunk: Chunk };
-type Buckets = BucketItem[][];
-
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
+  private readonly queue_ = new ChunkQueue();
 
   public async addSource(source: ChunkSource, sliceCoords: SliceCoordinates) {
     let existing = this.sources_.get(source);
@@ -377,29 +376,16 @@ export class ChunkManager {
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
-    const buckets: Buckets = [[], [], [], []];
-
     for (const [_, source] of this.sources_) {
       source.update(lodFactor, viewBounds2D);
       for (const chunk of source.chunks) {
-        if (chunk.state !== "queued" || chunk.priority === null) continue;
-        buckets[chunk.priority].push({ source, chunk });
-      }
-    }
-
-    for (const bucket of buckets) {
-      for (const { source, chunk } of bucket) {
-        if (chunk.state !== "queued") continue; // guard
-        chunk.state = "loading";
-        source
-          .loadChunkData(chunk)
-          .then(() => {
-            if (chunk.state === "loading") chunk.state = "loaded";
-          })
-          .catch((err) => {
-            Logger.error("ChunkManager", String(err));
-            if (chunk.state === "loading") chunk.state = "unloaded";
-          });
+        if (chunk.priority === null) {
+          this.queue_.cancel(chunk);
+        } else if (chunk.state === "queued") {
+          this.queue_.enqueue(chunk, (signal) =>
+            source.loadChunkData(chunk, signal)
+          );
+        }
       }
     }
   }
