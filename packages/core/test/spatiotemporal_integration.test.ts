@@ -49,7 +49,7 @@ class Mock4DChunkLoader implements ChunkLoader {
         index: 3,
         lods: [
           { size: 100, chunkSize: 20, scale: 0.01, translation: 0.0 }, // 100 time points, 0.01s resolution
-          { size: 50, chunkSize: 10, scale: 0.02, translation: 0.0 },  // LOD 1: 0.02s resolution
+          { size: 50, chunkSize: 10, scale: 0.02, translation: 0.0 }, // LOD 1: 0.02s resolution
         ],
       },
       c: {
@@ -68,9 +68,17 @@ class Mock4DChunkLoader implements ChunkLoader {
     return this.dimensionMap_;
   }
 
-  async loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates): Promise<void> {
+  async loadChunkData(
+    chunk: Chunk,
+    _sliceCoords: SliceCoordinates
+  ): Promise<void> {
     // Simulate loading 4D spatiotemporal data
-    const totalSize = chunk.shape.x * chunk.shape.y * chunk.shape.z * chunk.shape.t * chunk.shape.c;
+    const totalSize =
+      chunk.shape.x *
+      chunk.shape.y *
+      chunk.shape.z *
+      chunk.shape.t *
+      chunk.shape.c;
     chunk.data = new Float32Array(totalSize);
 
     // Fill with spatiotemporal test pattern
@@ -81,7 +89,8 @@ class Mock4DChunkLoader implements ChunkLoader {
           for (let x = 0; x < chunk.shape.x; x++) {
             for (let c = 0; c < chunk.shape.c; c++) {
               // Create unique pattern: time affects amplitude, space affects frequency
-              chunk.data[idx] = (t + 1) * 10 + Math.sin((x + y) * 0.1) * 5 + z + c;
+              chunk.data[idx] =
+                (t + 1) * 10 + Math.sin((x + y) * 0.1) * 5 + z + c;
               idx++;
             }
           }
@@ -113,12 +122,15 @@ describe("4D Spatiotemporal Integration Tests", () => {
   beforeEach(() => {
     chunkManager = new ChunkManager();
     mock4DSource = new Mock4DChunkSource();
-    
+
     // Create orthographic camera for chunk manager updates
     camera = new OrthographicCamera(
-      0, 100, // left, right
-      0, 100, // bottom, top
-      -1, 1   // near, far
+      0,
+      100, // left, right
+      0,
+      100, // bottom, top
+      -1,
+      1 // near, far
     );
     camera.position.set(50, 50, 0);
     camera.updateMatrices();
@@ -126,30 +138,34 @@ describe("4D Spatiotemporal Integration Tests", () => {
 
   test("ChunkManager creates 4D spatiotemporal chunk grid", async () => {
     const sliceCoords: SliceCoordinates = {
-      z: 5.0,   // Middle of z range
-      t: 0.5,   // Time at 0.5 seconds  
-      c: 0,     // First channel
+      z: 5.0, // Middle of z range
+      t: 0.5, // Time at 0.5 seconds
+      c: 0, // First channel
     };
 
-    const chunkManagerSource = await chunkManager.addSource(mock4DSource, sliceCoords);
-    
+    const chunkManagerSource = await chunkManager.addSource(
+      mock4DSource,
+      sliceCoords
+    );
+
     const chunks = chunkManagerSource.chunks;
     expect(chunks.length).toBeGreaterThan(0);
 
     // Verify 4D chunk structure
-    const chunksWith4D = chunks.filter(c => 
-      c.chunkIndex.t >= 0 && c.shape.t > 0 && c.offset.t >= 0 && c.scale.t > 0
+    const chunksWith4D = chunks.filter(
+      (c) =>
+        c.chunkIndex.t >= 0 && c.shape.t > 0 && c.offset.t >= 0 && c.scale.t > 0
     );
     expect(chunksWith4D.length).toBeGreaterThan(0);
 
     // Check chunk distribution across time dimension
-    const tIndices = new Set(chunks.map(c => c.chunkIndex.t));
+    const tIndices = new Set(chunks.map((c) => c.chunkIndex.t));
     expect(tIndices.size).toBeGreaterThan(1); // Multiple time chunks
 
     // Verify temporal offsets are correct
-    const lod0Chunks = chunks.filter(c => c.lod === 0);
-    const timeChunks = lod0Chunks.filter(c => c.chunkIndex.t > 0);
-    
+    const lod0Chunks = chunks.filter((c) => c.lod === 0);
+    const timeChunks = lod0Chunks.filter((c) => c.chunkIndex.t > 0);
+
     if (timeChunks.length > 0) {
       const firstTimeChunk = timeChunks[0];
       // T chunk offset should be: translation + chunkIndex * chunkSize * scale
@@ -161,23 +177,26 @@ describe("4D Spatiotemporal Integration Tests", () => {
   test("ChunkManager temporal bounds filtering works correctly", async () => {
     const sliceCoords: SliceCoordinates = {
       z: 5.0,
-      t: 0.25, // Time that should be in first temporal chunk 
+      t: 0.25, // Time that should be in first temporal chunk
       c: 0,
     };
 
-    const chunkManagerSource = await chunkManager.addSource(mock4DSource, sliceCoords);
-    
+    const chunkManagerSource = await chunkManager.addSource(
+      mock4DSource,
+      sliceCoords
+    );
+
     // Update chunk manager to trigger visibility calculations
     chunkManager.update(camera, 800); // 800px buffer width
 
     // Get visible chunks
     const visibleChunks = chunkManagerSource.getChunks();
-    
+
     // All visible chunks should contain the current time point
     for (const chunk of visibleChunks) {
       const chunkTimeMin = chunk.offset.t;
       const chunkTimeMax = chunk.offset.t + chunk.shape.t * chunk.scale.t;
-      
+
       // Current time (0.25) should be within chunk's time range
       expect(chunkTimeMin).toBeLessThanOrEqual(0.25);
       expect(chunkTimeMax).toBeGreaterThan(0.25);
@@ -219,7 +238,7 @@ describe("4D Spatiotemporal Integration Tests", () => {
       offset: { x: 0.0, y: 0.0, z: 0.0, t: 0.0 },
     };
 
-    // Fill with known pattern: time dimension affects values  
+    // Fill with known pattern: time dimension affects values
     const spatialSize = 10 * 10 * 2; // x * y * z
     for (let t = 0; t < 3; t++) {
       const timeOffset = t * spatialSize;
@@ -230,19 +249,19 @@ describe("4D Spatiotemporal Integration Tests", () => {
 
     // Test complete data processing pipeline
     const getDataForImage = (layer as any).getDataForImage.bind(layer);
-    
+
     // Update slice coordinates to different time points and verify results
     (layer as any).sliceCoords_.t = 0.05; // Should get time slice 0
     const data0 = getDataForImage(testChunk);
     expect(data0).toBeDefined();
 
-    (layer as any).sliceCoords_.t = 0.15; // Should get time slice 1  
+    (layer as any).sliceCoords_.t = 0.15; // Should get time slice 1
     const data1 = getDataForImage(testChunk);
     expect(data1).toBeDefined();
 
     // Data from different time slices should be different
     expect(data0[0]).not.toBe(data1[0]);
-    
+
     // Verify temporal slicing gives expected values
     // (This would need more sophisticated testing with actual slice validation)
   });
@@ -254,11 +273,17 @@ describe("4D Spatiotemporal Integration Tests", () => {
       c: 0,
     };
 
-    const chunkManagerSource = await chunkManager.addSource(mock4DSource, initialSliceCoords);
+    const chunkManagerSource = await chunkManager.addSource(
+      mock4DSource,
+      initialSliceCoords
+    );
 
     // Simulate temporal navigation by updating slice coordinates
-    const viewBounds = new Box2(vec2.fromValues(0, 0), vec2.fromValues(100, 100));
-    
+    const viewBounds = new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(100, 100)
+    );
+
     // Initial update
     chunkManagerSource.update(1.0, viewBounds);
     const initialVisibleChunks = chunkManagerSource.getChunks().length;
@@ -269,23 +294,26 @@ describe("4D Spatiotemporal Integration Tests", () => {
       t: 0.5, // Different time point
       c: 0,
     };
-    
+
     // Create new chunk manager source with new time
-    const newChunkManagerSource = await chunkManager.addSource(mock4DSource, newSliceCoords);
+    const newChunkManagerSource = await chunkManager.addSource(
+      mock4DSource,
+      newSliceCoords
+    );
     newChunkManagerSource.update(1.0, viewBounds);
     const newVisibleChunks = newChunkManagerSource.getChunks().length;
 
     // Should have chunks for the new time point
     expect(newVisibleChunks).toBeGreaterThan(0);
-    
+
     // Verify that different temporal chunks are loaded
     const newChunks = newChunkManagerSource.getChunks();
-    const temporalChunksForNewTime = newChunks.filter(chunk => {
+    const temporalChunksForNewTime = newChunks.filter((chunk) => {
       const chunkTimeMin = chunk.offset.t;
       const chunkTimeMax = chunk.offset.t + chunk.shape.t * chunk.scale.t;
       return chunkTimeMin <= 0.5 && chunkTimeMax > 0.5;
     });
-    
+
     expect(temporalChunksForNewTime.length).toBeGreaterThan(0);
   });
 
@@ -296,12 +324,15 @@ describe("4D Spatiotemporal Integration Tests", () => {
       c: 1,
     };
 
-    const chunkManagerSource = await chunkManager.addSource(mock4DSource, sliceCoords);
-    
+    const chunkManagerSource = await chunkManager.addSource(
+      mock4DSource,
+      sliceCoords
+    );
+
     // Update with camera positioned to see specific spatial region
     camera.position.set(75, 75, 0); // Look at different spatial region
     camera.updateMatrices();
-    
+
     chunkManager.update(camera, 800);
     const visibleChunks = chunkManagerSource.getChunks();
 
@@ -309,13 +340,13 @@ describe("4D Spatiotemporal Integration Tests", () => {
     for (const chunk of visibleChunks) {
       // All chunks should be spatially relevant to camera view
       const spatialBounds = camera.getWorldViewRect();
-      
+
       // Check spatial overlap (approximate)
-      const chunkSpatiallyRelevant = 
-        chunk.offset.x < spatialBounds.max[0] && 
-        (chunk.offset.x + chunk.shape.x * chunk.scale.x) > spatialBounds.min[0] &&
-        chunk.offset.y < spatialBounds.max[1] && 
-        (chunk.offset.y + chunk.shape.y * chunk.scale.y) > spatialBounds.min[1];
+      const chunkSpatiallyRelevant =
+        chunk.offset.x < spatialBounds.max[0] &&
+        chunk.offset.x + chunk.shape.x * chunk.scale.x > spatialBounds.min[0] &&
+        chunk.offset.y < spatialBounds.max[1] &&
+        chunk.offset.y + chunk.shape.y * chunk.scale.y > spatialBounds.min[1];
 
       // All chunks should be temporally relevant
       const chunkTimeMin = chunk.offset.t;
@@ -337,14 +368,17 @@ describe("4D Spatiotemporal Integration Tests", () => {
       c: 0,
     };
 
-    const chunkManagerSource = await chunkManager.addSource(mock4DSource, sliceCoords);
-    
+    const chunkManagerSource = await chunkManager.addSource(
+      mock4DSource,
+      sliceCoords
+    );
+
     expect(chunkManagerSource.lodCount).toBe(2); // Two LOD levels
 
     // Test different LOD levels
     const allChunks = chunkManagerSource.chunks;
-    const lod0Chunks = allChunks.filter(c => c.lod === 0);
-    const lod1Chunks = allChunks.filter(c => c.lod === 1);
+    const lod0Chunks = allChunks.filter((c) => c.lod === 0);
+    const lod1Chunks = allChunks.filter((c) => c.lod === 1);
 
     expect(lod0Chunks.length).toBeGreaterThan(0);
     expect(lod1Chunks.length).toBeGreaterThan(0);
@@ -352,7 +386,7 @@ describe("4D Spatiotemporal Integration Tests", () => {
     // LOD 0 should have higher resolution (smaller scale values)
     const lod0TemporalScale = lod0Chunks[0].scale.t;
     const lod1TemporalScale = lod1Chunks[0].scale.t;
-    
+
     expect(lod0TemporalScale).toBeLessThan(lod1TemporalScale); // Higher temporal resolution at LOD 0
 
     // Verify temporal chunk sizes are appropriate for each LOD

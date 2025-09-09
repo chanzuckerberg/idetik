@@ -1,12 +1,12 @@
 import { expect, test, describe, vi, beforeEach } from "vitest";
 import { ChunkedImageLayer } from "../src/layers/chunked_image_layer";
-import { 
-  Chunk, 
-  ChunkSource, 
-  ChunkLoader, 
-  SliceCoordinates, 
+import {
+  Chunk,
+  ChunkSource,
+  ChunkLoader,
+  SliceCoordinates,
   SourceDimensionMap,
-  LoaderAttributes 
+  LoaderAttributes,
 } from "../src/data/chunk";
 import { IdetikContext } from "../src/idetik";
 import { ChunkManagerSource } from "../src/core/chunk_manager";
@@ -15,19 +15,39 @@ import { ChunkManagerSource } from "../src/core/chunk_manager";
 class MockChunkLoader implements ChunkLoader {
   getSourceDimensionMap(): SourceDimensionMap {
     return {
-      x: { name: "x", index: 0, lods: [{ size: 100, chunkSize: 50, scale: 1.0, translation: 0.0 }] },
-      y: { name: "y", index: 1, lods: [{ size: 100, chunkSize: 50, scale: 1.0, translation: 0.0 }] },
-      z: { name: "z", index: 2, lods: [{ size: 10, chunkSize: 5, scale: 1.0, translation: 0.0 }] },
-      t: { name: "t", index: 3, lods: [{ size: 20, chunkSize: 10, scale: 0.1, translation: 0.0 }] },
+      x: {
+        name: "x",
+        index: 0,
+        lods: [{ size: 100, chunkSize: 50, scale: 1.0, translation: 0.0 }],
+      },
+      y: {
+        name: "y",
+        index: 1,
+        lods: [{ size: 100, chunkSize: 50, scale: 1.0, translation: 0.0 }],
+      },
+      z: {
+        name: "z",
+        index: 2,
+        lods: [{ size: 10, chunkSize: 5, scale: 1.0, translation: 0.0 }],
+      },
+      t: {
+        name: "t",
+        index: 3,
+        lods: [{ size: 20, chunkSize: 10, scale: 0.1, translation: 0.0 }],
+      },
       numLods: 1,
     };
   }
 
-  async loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates): Promise<void> {
+  async loadChunkData(
+    chunk: Chunk,
+    _sliceCoords: SliceCoordinates
+  ): Promise<void> {
     // Create 4D data: x * y * z * t
-    const totalSize = chunk.shape.x * chunk.shape.y * chunk.shape.z * chunk.shape.t;
+    const totalSize =
+      chunk.shape.x * chunk.shape.y * chunk.shape.z * chunk.shape.t;
     chunk.data = new Float32Array(totalSize);
-    
+
     // Fill with test pattern: each time slice has different values
     for (let t = 0; t < chunk.shape.t; t++) {
       const timeSliceOffset = t * chunk.shape.x * chunk.shape.y * chunk.shape.z;
@@ -113,7 +133,7 @@ describe("ChunkedImageLayer temporal slicing", () => {
 
     // Test sliceTime method
     const sliceTime = (layer as any).sliceTime.bind(layer);
-    
+
     // Slice at t=0.05 should give first time slice (index 0)
     const slice0 = sliceTime(testChunk, 0.05);
     expect(slice0).toBeDefined();
@@ -121,7 +141,7 @@ describe("ChunkedImageLayer temporal slicing", () => {
     expect(slice0[0]).toBe(100); // First value of time slice 0
     expect(slice0[1]).toBe(101); // Second value of time slice 0
 
-    // Slice at t=0.15 should give second time slice (index 1)  
+    // Slice at t=0.15 should give second time slice (index 1)
     const slice1 = sliceTime(testChunk, 0.15);
     expect(slice1).toBeDefined();
     expect(slice1.length).toBe(spatialSize);
@@ -166,14 +186,14 @@ describe("ChunkedImageLayer temporal slicing", () => {
 
     // Test boundary conditions
     const spatialSize = 10 * 10 * 2;
-    
+
     // t value at chunk boundary (should clamp to valid range)
     const sliceAtBoundary = sliceTime(testChunk, -0.05); // Below range
     expect(sliceAtBoundary).toBeDefined();
     expect(sliceAtBoundary.length).toBe(spatialSize);
 
     const sliceAtUpperBoundary = sliceTime(testChunk, 0.45); // Above range
-    expect(sliceAtUpperBoundary).toBeDefined();  
+    expect(sliceAtUpperBoundary).toBeDefined();
     expect(sliceAtUpperBoundary.length).toBe(spatialSize);
   });
 
@@ -187,9 +207,11 @@ describe("ChunkedImageLayer temporal slicing", () => {
 
     // Mock visibleChunks_ and texture updating
     const mockImage = {
-      textures: [{
-        updateWithChunk: vi.fn(),
-      }],
+      textures: [
+        {
+          updateWithChunk: vi.fn(),
+        },
+      ],
     };
 
     const testChunk: Chunk = {
@@ -211,7 +233,9 @@ describe("ChunkedImageLayer temporal slicing", () => {
     (layer as any).visibleChunks_.set(testChunk, mockImage);
 
     // Mock sliceTime to return test data
-    const mockSliceTime = vi.spyOn(layer as any, "sliceTime").mockReturnValue(new Float32Array(100));
+    const mockSliceTime = vi
+      .spyOn(layer as any, "sliceTime")
+      .mockReturnValue(new Float32Array(100));
 
     // Test resliceIfTChanged method
     const resliceIfTChanged = (layer as any).resliceIfTChanged.bind(layer);
@@ -219,7 +243,10 @@ describe("ChunkedImageLayer temporal slicing", () => {
     // First call should trigger reslicing (no previous time)
     resliceIfTChanged();
     expect(mockSliceTime).toHaveBeenCalledWith(testChunk, 0.5);
-    expect(mockImage.textures[0].updateWithChunk).toHaveBeenCalledWith(testChunk, expect.any(Float32Array));
+    expect(mockImage.textures[0].updateWithChunk).toHaveBeenCalledWith(
+      testChunk,
+      expect.any(Float32Array)
+    );
 
     // Same time should not trigger reslicing
     mockSliceTime.mockClear();
@@ -232,15 +259,18 @@ describe("ChunkedImageLayer temporal slicing", () => {
     (layer as any).sliceCoords_.t = 1.0;
     resliceIfTChanged();
     expect(mockSliceTime).toHaveBeenCalledWith(testChunk, 1.0);
-    expect(mockImage.textures[0].updateWithChunk).toHaveBeenCalledWith(testChunk, expect.any(Float32Array));
+    expect(mockImage.textures[0].updateWithChunk).toHaveBeenCalledWith(
+      testChunk,
+      expect.any(Float32Array)
+    );
   });
 
   test("getDataForImage applies temporal slicing before spatial slicing", async () => {
     const layer = new ChunkedImageLayer({
       source: mockSource,
       sliceCoords: {
-        z: 2.0,  // Spatial slice
-        t: 0.5,  // Temporal slice
+        z: 2.0, // Spatial slice
+        t: 0.5, // Temporal slice
         c: 0,
       },
     });
@@ -266,19 +296,23 @@ describe("ChunkedImageLayer temporal slicing", () => {
     const temporallySlicedData = new Float32Array(20 * 20 * 4); // After temporal slicing
     const finalSlicedData = new Float32Array(20 * 20); // After both temporal and spatial slicing
 
-    const mockSliceTime = vi.spyOn(layer as any, "sliceTime").mockReturnValue(temporallySlicedData);
-    const mockSlicePlane = vi.spyOn(layer as any, "slicePlane").mockReturnValue(finalSlicedData);
+    const mockSliceTime = vi
+      .spyOn(layer as any, "sliceTime")
+      .mockReturnValue(temporallySlicedData);
+    const mockSlicePlane = vi
+      .spyOn(layer as any, "slicePlane")
+      .mockReturnValue(finalSlicedData);
 
     const getDataForImage = (layer as any).getDataForImage.bind(layer);
     const result = getDataForImage(testChunk);
 
     // Verify temporal slicing happens first
     expect(mockSliceTime).toHaveBeenCalledWith(testChunk, 0.5);
-    
+
     // Then spatial slicing on the temporally sliced data
     // Note: slicePlane should receive the temporally sliced data, but for testing we mock it
     expect(mockSlicePlane).toHaveBeenCalledWith(testChunk, 2.0);
-    
+
     expect(result).toBe(finalSlicedData);
   });
 
@@ -291,9 +325,15 @@ describe("ChunkedImageLayer temporal slicing", () => {
     await layer.onAttached(mockContext as IdetikContext);
 
     // Mock the methods called by update
-    const mockUpdateChunks = vi.spyOn(layer as any, "updateChunks").mockImplementation(() => {});
-    const mockResliceIfZChanged = vi.spyOn(layer as any, "resliceIfZChanged").mockImplementation(() => {});
-    const mockResliceIfTChanged = vi.spyOn(layer as any, "resliceIfTChanged").mockImplementation(() => {});
+    const mockUpdateChunks = vi
+      .spyOn(layer as any, "updateChunks")
+      .mockImplementation(() => {});
+    const mockResliceIfZChanged = vi
+      .spyOn(layer as any, "resliceIfZChanged")
+      .mockImplementation(() => {});
+    const mockResliceIfTChanged = vi
+      .spyOn(layer as any, "resliceIfTChanged")
+      .mockImplementation(() => {});
 
     layer.update();
 
@@ -310,7 +350,9 @@ describe("ChunkedImageLayer temporal slicing", () => {
 
     await layerWithoutT.onAttached(mockContext as IdetikContext);
 
-    const resliceIfTChanged = (layerWithoutT as any).resliceIfTChanged.bind(layerWithoutT);
+    const resliceIfTChanged = (layerWithoutT as any).resliceIfTChanged.bind(
+      layerWithoutT
+    );
 
     // Should not throw error when t coordinate is undefined
     expect(() => resliceIfTChanged()).not.toThrow();

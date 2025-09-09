@@ -36,6 +36,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private chunkManagerSource_?: ChunkManagerSource;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
+  private tPrevPointWorld_?: number;
   private debugMode_ = false;
 
   private readonly wireframeColors_ = [
@@ -71,6 +72,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public update() {
     this.updateChunks();
     this.resliceIfZChanged();
+    this.resliceIfTChanged();
   }
 
   private updateChunks() {
@@ -114,6 +116,24 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.zPrevPointWorld_ = zPointWorld;
   }
 
+  private resliceIfTChanged() {
+    const tPointWorld = this.sliceCoords_.t;
+    if (tPointWorld === undefined || this.tPrevPointWorld_ === tPointWorld) {
+      return;
+    }
+
+    for (const [chunk, image] of this.visibleChunks_) {
+      if (chunk.state !== "loaded" || !chunk.data) continue;
+      const data = this.sliceTime(chunk, tPointWorld);
+      if (data) {
+        const texture = image.textures[0] as Texture2DArray;
+        texture.updateWithChunk(chunk, data);
+      }
+    }
+
+    this.tPrevPointWorld_ = tPointWorld;
+  }
+
   public onEvent(event: EventContext) {
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
@@ -142,6 +162,23 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const sliceSize = chunk.shape.x * chunk.shape.y;
     const offset = sliceSize * zClamped;
     return chunk.data.slice(offset, offset + sliceSize);
+  }
+
+  private sliceTime(chunk: Chunk, tValue: number) {
+    if (!chunk.data) return;
+
+    const tLocal = (tValue - chunk.offset.t) / chunk.scale.t;
+    const tIdx = Math.round(tLocal);
+    const tClamped = clamp(tIdx, 0, chunk.shape.t - 1);
+
+    if (!almostEqual(tLocal, tClamped, 1 + 1e-6)) {
+      Logger.error("ChunkedImageLayer", "sliceTime tValue outside extent");
+    }
+
+    // Time has largest stride - slice entire spatial volumes
+    const spatialSliceSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
+    const offset = spatialSliceSize * tClamped;
+    return chunk.data.slice(offset, offset + spatialSliceSize);
   }
 
   private getImageForChunk(chunk: Chunk) {
@@ -174,12 +211,30 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getDataForImage(chunk: Chunk) {
-    const data =
-      this.sliceCoords_?.z !== undefined
-        ? this.slicePlane(chunk, this.sliceCoords_.z)
-        : chunk.data;
+    let data = chunk.data;
+
+    // Apply temporal slicing first (largest stride)
+    if (this.sliceCoords_?.t !== undefined) {
+      data = this.sliceTime(chunk, this.sliceCoords_.t);
+    }
+
+    // Then apply spatial z slicing if we have data and z coordinate
+    if (this.sliceCoords_?.z !== undefined && data) {
+      const zLocal = (this.sliceCoords_.z - chunk.offset.z) / chunk.scale.z;
+      const zIdx = Math.round(zLocal);
+      const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
+
+      if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
+        Logger.error("ChunkedImageLayer", "slicePlane zValue outside extent");
+      }
+
+      const sliceSize = chunk.shape.x * chunk.shape.y;
+      const offset = sliceSize * zClamped;
+      data = data.slice(offset, offset + sliceSize);
+    }
+
     if (!data) {
-      Logger.warn("ChunkedImageLayer", "No data for image");
+      Logger.warn("ChunkedImageLayer", "No data for image after slicing");
       return;
     }
     return data;

@@ -76,33 +76,33 @@ export class ChunkManagerSource {
                   ? tLod.translation + t * chunkTime * tLod.scale
                   : 0;
               this.chunks_.push({
-              state: "unloaded",
-              lod,
-              visible: false,
-              prefetch: false,
-              priority: null,
-              shape: {
-                x: chunkWidth,
-                y: chunkHeight,
-                z: chunkDepth,
-                c: channels,
-                t: chunkTime,
-              },
-              rowStride: chunkWidth,
-              rowAlignmentBytes: 1,
-              chunkIndex: { x, y, z, t },
-              scale: {
-                x: xLod.scale,
-                y: yLod.scale,
-                z: zLod?.scale ?? 1,
-                t: tLod?.scale ?? 1,
-              },
-              offset: {
-                x: xOffset,
-                y: yOffset,
-                z: zOffset,
-                t: tOffset,
-              },
+                state: "unloaded",
+                lod,
+                visible: false,
+                prefetch: false,
+                priority: null,
+                shape: {
+                  x: chunkWidth,
+                  y: chunkHeight,
+                  z: chunkDepth,
+                  c: channels,
+                  t: chunkTime,
+                },
+                rowStride: chunkWidth,
+                rowAlignmentBytes: 1,
+                chunkIndex: { x, y, z, t },
+                scale: {
+                  x: xLod.scale,
+                  y: yLod.scale,
+                  z: zLod?.scale ?? 1,
+                  t: tLod?.scale ?? 1,
+                },
+                offset: {
+                  x: xOffset,
+                  y: yOffset,
+                  z: zOffset,
+                  t: tOffset,
+                },
               });
             }
           }
@@ -207,7 +207,9 @@ export class ChunkManagerSource {
       const temporallyVisible = this.isChunkWithinTimeBounds(chunk, timeBounds);
       const isVisible = spatiallyVisible && temporallyVisible;
       const eligibleForPrefetch =
-        !isVisible && this.isChunkWithinBounds(chunk, paddedBounds) && temporallyVisible;
+        !isVisible &&
+        this.isChunkWithinBounds(chunk, paddedBounds) &&
+        temporallyVisible;
 
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === this.lowestResLOD_;
@@ -291,11 +293,14 @@ export class ChunkManagerSource {
     return Box3.intersects(chunkBounds, bounds);
   }
 
-  private isChunkWithinTimeBounds(chunk: Chunk, timeBounds: [number, number]): boolean {
+  private isChunkWithinTimeBounds(
+    chunk: Chunk,
+    timeBounds: [number, number]
+  ): boolean {
     const chunkTimeMin = chunk.offset.t;
     const chunkTimeMax = chunk.offset.t + chunk.shape.t * chunk.scale.t;
     const [tMin, tMax] = timeBounds;
-    
+
     return chunkTimeMax > tMin && chunkTimeMin < tMax;
   }
 

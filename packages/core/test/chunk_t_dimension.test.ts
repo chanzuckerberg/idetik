@@ -56,10 +56,10 @@ describe("Chunk type with t dimension", () => {
       priority: 0,
       shape: {
         x: 100, // Width
-        y: 100, // Height  
-        z: 10,  // Depth
-        c: 1,   // Channels
-        t: 5,   // Time points
+        y: 100, // Height
+        z: 10, // Depth
+        c: 1, // Channels
+        t: 5, // Time points
       },
       rowStride: 100,
       rowAlignmentBytes: 2,
@@ -70,16 +70,16 @@ describe("Chunk type with t dimension", () => {
         t: 0, // First time chunk
       },
       scale: {
-        x: 2.0,  // 2x downsampled in x
-        y: 2.0,  // 2x downsampled in y
-        z: 1.0,  // No z downsampling
-        t: 1.0,  // No temporal downsampling
+        x: 2.0, // 2x downsampled in x
+        y: 2.0, // 2x downsampled in y
+        z: 1.0, // No z downsampling
+        t: 1.0, // No temporal downsampling
       },
       offset: {
         x: 200.0, // World position
         y: 300.0, // World position
-        z: 10.0,  // World position
-        t: 0.0,   // Time position (first time point)
+        z: 10.0, // World position
+        t: 0.0, // Time position (first time point)
       },
     };
 
