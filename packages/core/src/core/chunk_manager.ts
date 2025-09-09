@@ -443,12 +443,6 @@ export class ChunkManager {
       for (const { source, chunk } of bucket) {
         if (chunk.state !== "queued") continue; // guard
         chunk.state = "loading";
-        console.debug(
-          "ChunkManager",
-          `Loading chunk (LOD ${chunk.lod}) at offset (${chunk.offset.x}, ${
-            chunk.offset.y
-          }, ${chunk.offset.z}, ${chunk.offset.t})`
-        );
         source
           .loadChunkData(chunk)
           .then(() => {
