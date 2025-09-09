@@ -24,6 +24,7 @@ type Module =
   | "ImageLayer"
   | "LabelImageLayer"
   | "RenderablePool"
+  | "Viewport"
   | "WebGLRenderer"
   | "WebGLShaderProgram"
   | "WebGLTexture"

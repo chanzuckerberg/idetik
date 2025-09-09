@@ -11,6 +11,9 @@ export type { LayerState } from "./core/layer";
 export { LayerManager } from "./core/layer_manager";
 export type { EventContext } from "./core/event_dispatcher";
 
+export { Viewport, parseViewportConfigs } from "./core/viewport";
+export type { ViewportConfig } from "./core/viewport";
+
 export { AxesLayer } from "./layers/axes_layer";
 export { ProjectedLineLayer } from "./layers/projected_line_layer";
 export { TracksLayer } from "./layers/tracks_layer";
