@@ -35,3 +35,47 @@ export function makeChunk(overrides: ChunkOverrides = {}): Chunk {
     offset: { ...defaultChunk.offset, ...(offset ?? {}) },
   };
 }
+
+export function makeControllableLoader(onStart?: () => void) {
+  const createAbortError = () => {
+    const e = new Error("Cancelled");
+    e.name = "AbortError";
+    return e;
+  };
+
+  let _resolve: () => void;
+  let _reject: (e: unknown) => void;
+
+  const loader = (signal: AbortSignal) =>
+    new Promise<void>((resolve, reject) => {
+      _resolve = resolve;
+      _reject = reject;
+      onStart?.();
+
+      const abort = () => reject(createAbortError());
+
+      if (signal.aborted) {
+        abort();
+      } else {
+        signal.addEventListener("abort", abort, { once: true });
+      }
+    });
+
+  return {
+    loader,
+    resolve: () => _resolve?.(),
+    reject: (e?: unknown) => _reject?.(e ?? new Error("test rejection")),
+  };
+}
+
+export async function waitFor(
+  check: () => boolean,
+  { timeout = 500, interval = 5 } = {}
+) {
+  const start = Date.now();
+  while (true) {
+    if (check()) return;
+    if (Date.now() - start > timeout) throw new Error("waitFor timeout");
+    await new Promise((r) => setTimeout(r, interval));
+  }
+}

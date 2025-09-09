@@ -8,11 +8,16 @@ type LoaderFn = (signal: AbortSignal) => Promise<void>;
 type PendingItem = { chunk: Chunk; fn: LoaderFn };
 
 export class ChunkQueue {
+  private readonly maxConcurrent_: number;
   private readonly pending_: PendingItem[] = [];
   private readonly running_ = new Map<
     Chunk,
     { controller: AbortController; promise: Promise<void> }
   >();
+
+  constructor(maxConcurrent = MAX_CONCURRENT) {
+    this.maxConcurrent_ = Math.max(1, maxConcurrent);
+  }
 
   enqueue(chunk: Chunk, fn: LoaderFn) {
     if (this.running_.has(chunk)) return;
@@ -38,7 +43,10 @@ export class ChunkQueue {
   }
 
   private pump() {
-    while (this.running_.size < MAX_CONCURRENT && this.pending_.length > 0) {
+    while (
+      this.running_.size < this.maxConcurrent_ &&
+      this.pending_.length > 0
+    ) {
       this.pending_.sort((a, b) => {
         return (
           (a.chunk.priority ?? Number.MAX_SAFE_INTEGER) -
@@ -66,10 +74,7 @@ export class ChunkQueue {
           if (chunk.state === "loading") chunk.state = "unloaded";
           this.running_.delete(chunk);
           this.pump();
-
-          const isAbort =
-            err instanceof DOMException && err.name === "AbortError";
-          if (!isAbort) {
+          if (err.name !== "AbortError") {
             Logger.error("ChunkQueue", String(err));
           }
         }
