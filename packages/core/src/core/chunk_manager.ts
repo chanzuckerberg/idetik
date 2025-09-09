@@ -28,6 +28,9 @@ export class ChunkManagerSource {
   private readonly sliceCoords_: SliceCoordinates;
   private readonly dimensions_: SourceDimensionMap;
   private currentLOD_: number = 0;
+  // TODO: make LOD bias configurable per-source or per-layer
+  // positive values nudge towards coarser resolution (higher LOD number)
+  private lodBias_: number = 0.5;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
 
@@ -154,10 +157,13 @@ export class ChunkManagerSource {
   }
 
   private setLOD(lodFactor: number): void {
+    const sourceAdjustment =
+      this.lodBias_ - Math.log2(this.dimensions_.x.lods[0].scale);
+    const sourceAdjustedLodFactor = sourceAdjustment - lodFactor;
     const maxLOD = this.lowestResLOD_;
     const targetLOD = Math.max(
       0,
-      Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
+      Math.min(maxLOD, Math.floor(sourceAdjustedLodFactor))
     );
 
     if (targetLOD !== this.currentLOD_) {
