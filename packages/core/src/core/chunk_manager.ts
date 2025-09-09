@@ -142,11 +142,15 @@ export class ChunkManagerSource {
 
     if (
       this.viewBounds2DChanged(viewBounds2D) ||
-      this.zBoundsChanged(zBounds) ||
-      this.tBoundsChanged(tBounds)
+      this.boundsChanged(zBounds, this.lastZBounds_) ||
+      this.boundsChanged(tBounds, this.lastTBounds_)
     ) {
       this.updateChunkVisibility(viewBounds2D);
     }
+
+    this.lastViewBounds2D_ = viewBounds2D;
+    this.lastZBounds_ = zBounds;
+    this.lastTBounds_ = tBounds;
   }
 
   public get lodCount() {
@@ -321,9 +325,7 @@ export class ChunkManagerSource {
   ): boolean {
     const chunkTimeMin = chunk.offset.t;
     const chunkTimeMax = chunk.offset.t + chunk.shape.t * chunk.scale.t;
-    const [tMin, tMax] = timeBounds;
-
-    return chunkTimeMax > tMin && chunkTimeMin < tMax;
+    return chunkTimeMax > timeBounds[0] && chunkTimeMin < timeBounds[1];
   }
 
   private getZBounds(): [number, number] {
@@ -339,14 +341,12 @@ export class ChunkManagerSource {
     coord?: number
   ): [number, number] {
     if (dimension === undefined || coord === undefined) return [0, 1];
-
     const lod = dimension.lods[this.currentLOD_];
     const size = lod.size;
     const scale = lod.scale;
     const tran = lod.translation;
     const arrayIndex = Math.floor((coord - tran) / scale);
     const chunkDepth = lod.chunkSize;
-
     const chunkIndex = Math.max(
       0,
       Math.min(
@@ -354,7 +354,6 @@ export class ChunkManagerSource {
         Math.ceil(size / chunkDepth) - 1
       )
     );
-
     return [
       tran + chunkIndex * chunkDepth * scale,
       tran + (chunkIndex + 1) * chunkDepth * scale,
@@ -362,38 +361,18 @@ export class ChunkManagerSource {
   }
 
   private viewBounds2DChanged(newBounds: Box2): boolean {
-    const prev = this.lastViewBounds2D_;
-    const changed =
-      prev === null ||
-      !vec2.equals(prev.min, newBounds.min) ||
-      !vec2.equals(prev.max, newBounds.max);
-
-    if (changed) {
-      this.lastViewBounds2D_ = new Box2(
-        vec2.clone(newBounds.min),
-        vec2.clone(newBounds.max)
-      );
-    }
-
-    return changed;
+    return (
+      this.lastViewBounds2D_ === null ||
+      !vec2.equals(this.lastViewBounds2D_.min, newBounds.min) ||
+      !vec2.equals(this.lastViewBounds2D_.max, newBounds.max)
+    );
   }
 
-  private zBoundsChanged(newBounds: [number, number]): boolean {
-    const prev = this.lastZBounds_;
-    const changed = !prev || !vec2.equals(prev, newBounds);
-    if (changed) {
-      this.lastZBounds_ = newBounds;
-    }
-    return changed;
-  }
-
-  private tBoundsChanged(newBounds: [number, number]): boolean {
-    const prev = this.lastTBounds_;
-    const changed = !prev || !vec2.equals(prev, newBounds);
-    if (changed) {
-      this.lastTBounds_ = newBounds;
-    }
-    return changed;
+  private boundsChanged(
+    newBounds: [number, number],
+    prevBounds?: [number, number]
+  ): boolean {
+    return prevBounds === undefined || !vec2.equals(prevBounds, newBounds);
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
