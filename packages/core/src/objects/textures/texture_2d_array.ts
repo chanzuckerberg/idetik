@@ -48,27 +48,6 @@ export class Texture2DArray extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunkSlice(chunkSlice: ChunkSlice2D) {
-    const data = chunkSlice.data;
-    if (this.data === data) return;
-
-    const width = chunkSlice.shape.x;
-    const height = chunkSlice.shape.y;
-    const depth = data.length / (width * height);
-    if (
-      this.width != width ||
-      this.height != height ||
-      this.depth_ != depth ||
-      this.dataType != bufferToDataType(data)
-    ) {
-      throw new Error(
-        `Unable to update texture, texture buffer mismatch: ${this.width}x${this.height}x${this.depth_} (${this.dataType}) vs ${width}x${height}x${depth} (${bufferToDataType(data)})`
-      );
-    }
-
-    this.data = data;
-  }
-
   public updateWithChunk(chunk: Chunk, data?: ChunkData) {
     const source = data ?? chunk.data;
     if (!source) {
@@ -92,6 +71,25 @@ export class Texture2DArray extends Texture {
     }
 
     this.data = source;
+  }
+
+  public updateWithChunkSlice(chunkSlice: ChunkSlice2D) {
+    const data = chunkSlice.data;
+    if (this.data === data) return;
+
+    const width = chunkSlice.shape.x;
+    const height = chunkSlice.shape.y;
+    const depth = data.length / (width * height);
+    if (
+      this.width != width ||
+      this.height != height ||
+      this.depth_ != depth ||
+      this.dataType != bufferToDataType(data)
+    ) {
+      throw new Error("Unable to update texture, texture buffer mismatch.");
+    }
+
+    this.data = data;
   }
 
   public static createWithChunk(chunk: Chunk, data?: ChunkData) {

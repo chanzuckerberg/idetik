@@ -61,7 +61,9 @@ export function sliceChunk2D(
     throw new Error("Slicing chunky channels is not yet supported");
   }
 
-  // TODO: fix the rounding behavior later.
+  // TODO: double check floor is enough here, or if we need to account
+  // for some tolerance (i.e. when the coordinate exceeds the bounds
+  // of the chunk due to floating point error).
   const z =
     sliceCoords.z !== undefined
       ? Math.floor((sliceCoords.z - chunk.offset.z) / chunk.scale.z)
