@@ -29,15 +29,6 @@ type Module =
   | "WebGLTexture"
   | "WireframeGeometry";
 
-// function getMode(): "production" | "development" | "test" {
-//   const nodeEnv = process?.env?.NODE_ENV;
-//   return nodeEnv === "production"
-//     ? "production"
-//     : nodeEnv === "test"
-//       ? "test"
-//       : "development";
-// }
-
 function getMode(): "production" | "development" | "test" {
   if (typeof process !== "undefined" && process.env && process.env.NODE_ENV) {
     return process.env.NODE_ENV === "production"
