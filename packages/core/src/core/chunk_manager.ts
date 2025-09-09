@@ -4,6 +4,7 @@ import {
   ChunkLoader,
   ChunkSource,
   SliceCoordinates,
+  SourceDimension,
 } from "../data/chunk";
 import { vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
@@ -252,6 +253,20 @@ export class ChunkManagerSource {
     }
   }
 
+  private computePriority(
+    isFallbackLOD: boolean,
+    isCurrentLOD: boolean,
+    isVisible: boolean,
+    isPrefetch: boolean,
+    isTemporallyVisible: boolean
+  ) {
+    if (isFallbackLOD && isVisible) return PRI_FALLBACK_VISIBLE;
+    if (isCurrentLOD && isVisible) return PRI_VISIBLE_CURRENT;
+    if (isFallbackLOD && isTemporallyVisible) return PRI_FALLBACK_BACKGROUND;
+    if (isCurrentLOD && isPrefetch) return PRI_PREFETCH;
+    return null;
+  }
+
   private shouldDispose(
     isLoaded: boolean,
     isFallbackLOD: boolean,
@@ -265,20 +280,6 @@ export class ChunkManagerSource {
     if (!isFallbackLOD && !isCurrentLOD) return true;
     if (isCurrentLOD && !isVisible && !isPrefetch) return true;
     return false;
-  }
-
-  private computePriority(
-    isFallbackLOD: boolean,
-    isCurrentLOD: boolean,
-    isVisible: boolean,
-    isPrefetch: boolean,
-    isTemporallyVisible: boolean
-  ) {
-    if (isFallbackLOD && isVisible) return PRI_FALLBACK_VISIBLE;
-    if (isCurrentLOD && isVisible) return PRI_VISIBLE_CURRENT;
-    if (isFallbackLOD && isTemporallyVisible) return PRI_FALLBACK_BACKGROUND;
-    if (isCurrentLOD && isPrefetch) return PRI_PREFETCH;
-    return null;
   }
 
   private validateXYScaleRatios(): void {
@@ -326,27 +327,37 @@ export class ChunkManagerSource {
   }
 
   private getZBounds(): [number, number] {
-    const zDim = this.dimensions_.z;
-    if (zDim === undefined || this.sliceCoords_.z === undefined) return [0, 1];
+    return this.getChunkBounds(this.dimensions_.z, this.sliceCoords_.z);
+  }
 
-    const zLod = zDim.lods[this.currentLOD_];
-    const zShape = zLod.size;
-    const zScale = zLod.scale;
-    const zTran = zLod.translation;
-    const zPoint = Math.floor((this.sliceCoords_.z - zTran) / zScale);
-    const chunkDepth = zLod.chunkSize;
+  private getTBounds(): [number, number] {
+    return this.getChunkBounds(this.dimensions_.t, this.sliceCoords_.t);
+  }
 
-    const zChunk = Math.max(
+  private getChunkBounds(
+    dimension?: SourceDimension,
+    coord?: number
+  ): [number, number] {
+    if (dimension === undefined || coord === undefined) return [0, 1];
+
+    const lod = dimension.lods[this.currentLOD_];
+    const size = lod.size;
+    const scale = lod.scale;
+    const tran = lod.translation;
+    const arrayIndex = Math.floor((coord - tran) / scale);
+    const chunkDepth = lod.chunkSize;
+
+    const chunkIndex = Math.max(
       0,
       Math.min(
-        Math.floor(zPoint / chunkDepth),
-        Math.ceil(zShape / chunkDepth) - 1
+        Math.floor(arrayIndex / chunkDepth),
+        Math.ceil(size / chunkDepth) - 1
       )
     );
 
     return [
-      zTran + zChunk * chunkDepth * zScale,
-      zTran + (zChunk + 1) * chunkDepth * zScale,
+      tran + chunkIndex * chunkDepth * scale,
+      tran + (chunkIndex + 1) * chunkDepth * scale,
     ];
   }
 
@@ -374,31 +385,6 @@ export class ChunkManagerSource {
       this.lastZBounds_ = newBounds;
     }
     return changed;
-  }
-
-  private getTBounds(): [number, number] {
-    const tDim = this.dimensions_.t;
-    if (tDim === undefined || this.sliceCoords_.t === undefined) return [0, 1];
-
-    const tLod = tDim.lods[this.currentLOD_];
-    const tShape = tLod.size;
-    const tScale = tLod.scale;
-    const tTran = tLod.translation;
-    const tPoint = Math.floor((this.sliceCoords_.t - tTran) / tScale);
-    const chunkTime = tLod.chunkSize;
-
-    const tChunk = Math.max(
-      0,
-      Math.min(
-        Math.floor(tPoint / chunkTime),
-        Math.ceil(tShape / chunkTime) - 1
-      )
-    );
-
-    return [
-      tTran + tChunk * chunkTime * tScale,
-      tTran + (tChunk + 1) * chunkTime * tScale,
-    ];
   }
 
   private tBoundsChanged(newBounds: [number, number]): boolean {
