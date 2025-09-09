@@ -1,6 +1,11 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource, sliceChunk2D, SliceCoordinates } from "../data/chunk";
+import {
+  Chunk,
+  ChunkSource,
+  sliceChunk2D,
+  SliceCoordinates,
+} from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -100,7 +105,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const zPointWorld = this.sliceCoords_.z;
     const tPointWorld = this.sliceCoords_.t;
     if (zPointWorld === undefined && tPointWorld === undefined) return;
-    if (zPointWorld === this.zPrevPointWorld_ && tPointWorld === this.tPrevPointWorld_) return;
+    if (
+      zPointWorld === this.zPrevPointWorld_ &&
+      tPointWorld === this.tPrevPointWorld_
+    )
+      return;
 
     for (const [chunk, image] of this.visibleChunks_) {
       if (chunk.state !== "loaded" || !chunk.data) continue;

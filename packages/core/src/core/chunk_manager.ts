@@ -224,7 +224,7 @@ export class ChunkManagerSource {
         isCurrentLOD,
         isVisible,
         chunk.prefetch,
-        temporallyVisible,
+        temporallyVisible
       );
 
       if (chunk.priority !== null && chunk.state === "unloaded") {
@@ -255,7 +255,7 @@ export class ChunkManagerSource {
     isCurrentLOD: boolean,
     isVisible: boolean,
     isPrefetch: boolean,
-    isTemporallyVisible: boolean,
+    isTemporallyVisible: boolean
   ) {
     if (isFallbackLOD && isVisible) return PRI_FALLBACK_VISIBLE;
     if (isCurrentLOD && isVisible) return PRI_VISIBLE_CURRENT;

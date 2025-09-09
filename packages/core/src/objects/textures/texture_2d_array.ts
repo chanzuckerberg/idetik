@@ -61,7 +61,9 @@ export class Texture2DArray extends Texture {
       this.depth_ != depth ||
       this.dataType != bufferToDataType(data)
     ) {
-      throw new Error(`Unable to update texture, texture buffer mismatch: ${this.width}x${this.height}x${this.depth_} (${this.dataType}) vs ${width}x${height}x${depth} (${bufferToDataType(data)})`);
+      throw new Error(
+        `Unable to update texture, texture buffer mismatch: ${this.width}x${this.height}x${this.depth_} (${this.dataType}) vs ${width}x${height}x${depth} (${bufferToDataType(data)})`
+      );
     }
 
     this.data = data;

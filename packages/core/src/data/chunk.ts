@@ -45,7 +45,10 @@ export type ChunkSlice2D = {
   };
 };
 
-export function sliceChunk2D(chunk: Chunk, sliceCoords: SliceCoordinates): ChunkSlice2D {
+export function sliceChunk2D(
+  chunk: Chunk,
+  sliceCoords: SliceCoordinates
+): ChunkSlice2D {
   if (!chunk.data) {
     throw new Error("Cannot slice an unloaded chunk");
   }
@@ -59,18 +62,20 @@ export function sliceChunk2D(chunk: Chunk, sliceCoords: SliceCoordinates): Chunk
   }
 
   // TODO: fix the rounding behavior later.
-  const z = sliceCoords.z !== undefined ?
-    Math.round((sliceCoords.z - chunk.offset.z) / chunk.scale.z)
-    : 0;
+  const z =
+    sliceCoords.z !== undefined
+      ? Math.round((sliceCoords.z - chunk.offset.z) / chunk.scale.z)
+      : 0;
   if (z < 0 || z > chunk.shape.z) {
     throw new Error(
       `z ${z} is out of bounds for chunk with shape.z ${chunk.shape.z}`
     );
   }
 
-  const t = sliceCoords.t !== undefined ?
-    Math.round((sliceCoords.t - chunk.offset.t) / chunk.scale.t)
-    : 0;
+  const t =
+    sliceCoords.t !== undefined
+      ? Math.round((sliceCoords.t - chunk.offset.t) / chunk.scale.t)
+      : 0;
   if (t < 0 || t > chunk.shape.t) {
     throw new Error(
       `t ${t} is out of bounds for chunk with shape.t ${chunk.shape.t}`
