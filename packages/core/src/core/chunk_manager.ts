@@ -14,7 +14,7 @@ import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
-const PREFETCH_PADDING_CHUNKS = 1;
+const PREFETCH_PADDING_CHUNKS = 0;
 
 const PRI_FALLBACK_VISIBLE = 0;
 const PRI_VISIBLE_CURRENT = 1;
@@ -168,20 +168,21 @@ export class ChunkManagerSource {
     return this.loader_.loadChunkData(chunk, this.sliceCoords_);
   }
 
-  private setLOD(lodFactor: number): void {
-    const maxLOD = this.lowestResLOD_;
-    const targetLOD = Math.max(
-      0,
-      Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
-    );
+  private setLOD(_lodFactor: number): void {
+    this.currentLOD_ = this.lowestResLOD_;
+  //   const maxLOD = this.lowestResLOD_;
+  //   const targetLOD = Math.max(
+  //     0,
+  //     Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
+  //   );
 
-    if (targetLOD !== this.currentLOD_) {
-      Logger.debug(
-        "ChunkManagerSource",
-        `LOD changed from ${this.currentLOD_} to ${targetLOD}`
-      );
-      this.currentLOD_ = targetLOD;
-    }
+  //   if (targetLOD !== this.currentLOD_) {
+  //     Logger.debug(
+  //       "ChunkManagerSource",
+  //       `LOD changed from ${this.currentLOD_} to ${targetLOD}`
+  //     );
+  //     this.currentLOD_ = targetLOD;
+  //   }
   }
 
   private updateChunkVisibility(viewBounds2D: Box2): void {
@@ -195,6 +196,8 @@ export class ChunkManagerSource {
 
     const [zMin, zMax] = this.getZBounds();
     const [tMin, tMax] = this.getTBounds();
+    console.debug("Z bounds", zMin, zMax);
+    console.debug("T bounds", tMin, tMax);
     const viewBounds3D = new Box3(
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
@@ -221,7 +224,8 @@ export class ChunkManagerSource {
         isFallbackLOD,
         isCurrentLOD,
         isVisible,
-        chunk.prefetch
+        chunk.prefetch,
+        temporallyVisible,
       );
 
       if (chunk.priority !== null && chunk.state === "unloaded") {
@@ -251,11 +255,12 @@ export class ChunkManagerSource {
     isFallbackLOD: boolean,
     isCurrentLOD: boolean,
     isVisible: boolean,
-    isPrefetch: boolean
+    isPrefetch: boolean,
+    isTemporallyVisible: boolean,
   ) {
     if (isFallbackLOD && isVisible) return PRI_FALLBACK_VISIBLE;
     if (isCurrentLOD && isVisible) return PRI_VISIBLE_CURRENT;
-    if (isFallbackLOD) return PRI_FALLBACK_BACKGROUND;
+    if (isFallbackLOD && isTemporallyVisible) return PRI_FALLBACK_BACKGROUND;
     if (isCurrentLOD && isPrefetch) return PRI_PREFETCH;
     return null;
   }
@@ -457,6 +462,12 @@ export class ChunkManager {
       for (const { source, chunk } of bucket) {
         if (chunk.state !== "queued") continue; // guard
         chunk.state = "loading";
+        console.debug(
+          "ChunkManager",
+          `Loading chunk (LOD ${chunk.lod}) at offset (${chunk.offset.x}, ${
+            chunk.offset.y
+          }, ${chunk.offset.z}, ${chunk.offset.t})`
+        );
         source
           .loadChunkData(chunk)
           .then(() => {
