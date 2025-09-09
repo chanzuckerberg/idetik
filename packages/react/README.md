@@ -74,21 +74,21 @@ import { useState, useEffect, useSyncExternalStore } from "react";
 
 function CustomViewer({ sourceUrl }: { sourceUrl: string }) {
   const [layer, setLayer] = useState<ImageSeriesLayer | null>(null);
-  const { isReady, runtime } = useIdetik();
+  const { runtime } = useIdetik();
 
   const activeLayers = useSyncExternalStore(
     (callback) => {
-      if (!isReady) return () => {};
+      if (!runtime) return () => {};
       return contextValue.runtime.layerManager.addLayersChangeCallback(callback);
     },
     () => {
-      if (!isReady) return [];
+      if (!runtime) return [];
       return contextValue.runtime.layerManager.layers;
     }
   );
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!runtime) return;
 
     const source = new OmeZarrImageSource(sourceUrl);
     const newLayer = new ImageSeriesLayer({
@@ -133,9 +133,7 @@ export function App() {
 
 **Viewers**: Components that contain an `IdetikCanvas` and manage their own layers. Examples include `OmeZarrImageViewer` (reference implementation) or custom viewers for specific use cases.
 
-**useIdetik Hook**: Provides access to the runtime state:
-- When `isReady: false`: Provides `initializeWithCanvas(canvas)` function
-- When `isReady: true`: Provides `runtime` (Idetik instance)
+**useIdetik Hook**: Provides access to the runtime state.
 
 **Layer Management**: Use `runtime.layerManager` directly:
 - `runtime.layerManager.add(layer)` - Add a layer

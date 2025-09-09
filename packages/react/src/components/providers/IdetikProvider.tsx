@@ -5,38 +5,37 @@ import {
   OrthographicCamera,
   PanZoomControls,
 } from "@idetik/core-prerelease";
-import { PropsWithChildren, useEffect, useState } from "react";
-import { IdetikContext, IdetikContextValue } from "../../hooks/useIdetik";
+import { PropsWithChildren, useState } from "react";
+import { IdetikContext } from "../../hooks/useIdetik";
 
 /** Global Idetik state provider that you must wrap your application in. */
 export const IdetikProvider = ({ children }: PropsWithChildren) => {
-  const [idetikContext, setIdetikContext] = useState<IdetikContextValue>({
-    isReady: false,
-    runtime: null,
-    initializeWithCanvas: (canvas: HTMLCanvasElement) => {
+  const [runtime, setRuntime] = useState<Idetik | null>(null);
+
+  const onCanvasChange = (canvas: HTMLCanvasElement | null) => {
+    // Canvas unmounted, so stop the runtime if it has been created.
+    if (canvas === null && runtime !== null) {
+      runtime.stop();
+      setRuntime(null);
+      return;
+    }
+    // Canvas mounted, so create and start a new runtime associated with it.
+    if (canvas !== null && runtime === null) {
       const camera = new OrthographicCamera(0, 128, 0, 128, -1000, 1000);
       const cameraControls = new PanZoomControls(camera);
-      const newIdetik = new Idetik({
+      const newRuntime = new Idetik({
         canvas,
         camera,
         cameraControls,
       });
-      newIdetik.start();
-      setIdetikContext({
-        isReady: true,
-        runtime: newIdetik,
-      });
-    },
-  });
-
-  useEffect(() => {
-    return () => {
-      idetikContext.runtime?.stop();
-    };
-  }, [idetikContext]);
+      newRuntime.start();
+      setRuntime(newRuntime);
+      return;
+    }
+  };
 
   return (
-    <IdetikContext.Provider value={idetikContext}>
+    <IdetikContext.Provider value={{ runtime, onCanvasChange }}>
       {children}
     </IdetikContext.Provider>
   );

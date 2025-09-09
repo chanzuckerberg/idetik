@@ -1,16 +1,10 @@
 import { Idetik } from "@idetik/core-prerelease";
 import { createContext, useContext } from "react";
 
-export type IdetikContextValue =
-  | {
-      isReady: true;
-      runtime: Idetik;
-    }
-  | {
-      isReady: false;
-      runtime: null;
-      initializeWithCanvas: (canvas: HTMLCanvasElement) => void;
-    };
+export type IdetikContextValue = {
+  runtime: Idetik | null;
+  onCanvasChange(canvas: HTMLCanvasElement | null): void;
+};
 
 export const IdetikContext = createContext<IdetikContextValue | undefined>(
   undefined
@@ -22,6 +16,5 @@ export function useIdetik(): IdetikContextValue {
   if (contextValue === undefined) {
     throw new Error("You must wrap your application in <IdetikProvider>.");
   }
-
   return contextValue;
 }

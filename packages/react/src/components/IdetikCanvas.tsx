@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
 import { useIdetik } from "../hooks/useIdetik";
 
 interface IdetikCanvasProps {
@@ -13,17 +12,11 @@ export function IdetikCanvas({
   classNames = "w-full h-full",
 }: IdetikCanvasProps) {
   const contextValue = useIdetik();
-
-  const canvasCallbackRef = useCallback(
-    (canvas: HTMLCanvasElement | null) => {
-      if (!contextValue.isReady && canvas) {
-        contextValue.initializeWithCanvas(canvas);
-      }
-    },
-    [contextValue]
-  );
-
   return (
-    <canvas ref={canvasCallbackRef} id={canvasId} className={classNames} />
+    <canvas
+      ref={contextValue.onCanvasChange}
+      id={canvasId}
+      className={classNames}
+    />
   );
 }

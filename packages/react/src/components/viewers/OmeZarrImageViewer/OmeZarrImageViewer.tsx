@@ -89,7 +89,7 @@ export function OmeZarrImageViewer({
     throw new Error("Cannot set both sourceUrl and sourceLocalDirectory.");
   }
 
-  const { isReady: runtimeIsReady, runtime } = useIdetik();
+  const { runtime } = useIdetik();
 
   const [unit, setUnit] = useState<string>();
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
@@ -105,7 +105,7 @@ export function OmeZarrImageViewer({
   // #region Initialization
   const { directory, path } = sourceLocalDirectory ?? {};
   useEffect(() => {
-    if (!runtimeIsReady) return;
+    if (!runtime) return;
     const initialize = async () => {
       const source = createSource(sourceUrl, directory, path);
       if (source === undefined) {
@@ -180,7 +180,6 @@ export function OmeZarrImageViewer({
     fallbackContrastLimits,
     directory,
     path,
-    runtimeIsReady,
     runtime,
   ]);
 
