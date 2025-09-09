@@ -352,7 +352,7 @@ describe("4D Spatiotemporal Integration Tests", () => {
 
       // Check spatial overlap (approximate)
       // const _chunkSpatiallyRelevant =
-        chunk.offset.x < spatialBounds.max[0] &&
+      chunk.offset.x < spatialBounds.max[0] &&
         chunk.offset.x + chunk.shape.x * chunk.scale.x > spatialBounds.min[0] &&
         chunk.offset.y < spatialBounds.max[1] &&
         chunk.offset.y + chunk.shape.y * chunk.scale.y > spatialBounds.min[1];
