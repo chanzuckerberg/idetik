@@ -124,7 +124,9 @@ describe("ChunkManagerSource with t dimension", () => {
     const chunkManager = new ChunkManagerSource(mockLoader, sliceCoords);
 
     // Access private method using type assertion for testing
-    const getTBounds = (chunkManager as any).getTBounds.bind(chunkManager);
+    const getTBounds = (
+      chunkManager as unknown as { getTBounds: () => [number, number] }
+    ).getTBounds.bind(chunkManager);
     const tBounds = getTBounds();
 
     expect(tBounds).toHaveLength(2);
@@ -147,7 +149,9 @@ describe("ChunkManagerSource with t dimension", () => {
       loaderWithoutT,
       sliceCoordsWithoutT
     );
-    const getTBounds = (chunkManager as any).getTBounds.bind(chunkManager);
+    const getTBounds = (
+      chunkManager as unknown as { getTBounds: () => [number, number] }
+    ).getTBounds.bind(chunkManager);
     const tBounds = getTBounds();
 
     // Should return default bounds when t dimension doesn't exist
@@ -161,7 +165,9 @@ describe("ChunkManagerSource with t dimension", () => {
       mockLoader,
       sliceCoordsWithoutT
     );
-    const getTBounds = (chunkManager as any).getTBounds.bind(chunkManager);
+    const getTBounds = (
+      chunkManager as unknown as { getTBounds: () => [number, number] }
+    ).getTBounds.bind(chunkManager);
     const tBounds = getTBounds();
 
     // Should return default bounds when t slice coordinate is undefined
@@ -170,9 +176,11 @@ describe("ChunkManagerSource with t dimension", () => {
 
   test("tBoundsChanged detects temporal bounds changes", () => {
     const chunkManager = new ChunkManagerSource(mockLoader, sliceCoords);
-    const tBoundsChanged = (chunkManager as any).tBoundsChanged.bind(
-      chunkManager
-    );
+    const tBoundsChanged = (
+      chunkManager as unknown as {
+        tBoundsChanged: (bounds: [number, number]) => boolean;
+      }
+    ).tBoundsChanged.bind(chunkManager);
 
     const bounds1: [number, number] = [0, 1];
     const bounds2: [number, number] = [1, 2];
@@ -193,7 +201,12 @@ describe("ChunkManagerSource with t dimension", () => {
   test("isChunkWithinTimeBounds correctly identifies temporal visibility", () => {
     const chunkManager = new ChunkManagerSource(mockLoader, sliceCoords);
     const isChunkWithinTimeBounds = (
-      chunkManager as any
+      chunkManager as unknown as {
+        isChunkWithinTimeBounds: (
+          chunk: Chunk,
+          bounds: [number, number]
+        ) => boolean;
+      }
     ).isChunkWithinTimeBounds.bind(chunkManager);
 
     const chunk: Chunk = {
@@ -230,13 +243,24 @@ describe("ChunkManagerSource with t dimension", () => {
 
     // Mock the private methods to spy on them
     const getTBoundsSpy = vi
-      .spyOn(chunkManager as any, "getTBounds")
+      .spyOn(
+        chunkManager as unknown as { getTBounds: () => [number, number] },
+        "getTBounds"
+      )
       .mockReturnValue([0, 1]);
     const tBoundsChangedSpy = vi
-      .spyOn(chunkManager as any, "tBoundsChanged")
+      .spyOn(
+        chunkManager as unknown as {
+          tBoundsChanged: (bounds: [number, number]) => boolean;
+        },
+        "tBoundsChanged"
+      )
       .mockReturnValue(true);
     const updateChunkVisibilitySpy = vi
-      .spyOn(chunkManager as any, "updateChunkVisibility")
+      .spyOn(
+        chunkManager as unknown as { updateChunkVisibility: () => void },
+        "updateChunkVisibility"
+      )
       .mockImplementation(() => {});
 
     const viewBounds = new Box2(

@@ -1,6 +1,6 @@
-import { expect, test, describe, beforeEach, vi } from "vitest";
+import { expect, test, describe, beforeEach } from "vitest";
 import { vec2 } from "gl-matrix";
-import { ChunkManager, ChunkManagerSource } from "../src/core/chunk_manager";
+import { ChunkManager } from "../src/core/chunk_manager";
 import { ChunkedImageLayer } from "../src/layers/chunked_image_layer";
 import { Box2 } from "../src/math/box2";
 import { OrthographicCamera } from "../src/objects/cameras/orthographic_camera";
@@ -213,7 +213,7 @@ describe("4D Spatiotemporal Integration Tests", () => {
     // Mock IdetikContext for layer
     const mockContext = {
       chunkManager,
-    } as any;
+    } as { chunkManager: ChunkManager };
 
     const layer = new ChunkedImageLayer({
       source: mock4DSource,
@@ -248,14 +248,20 @@ describe("4D Spatiotemporal Integration Tests", () => {
     }
 
     // Test complete data processing pipeline
-    const getDataForImage = (layer as any).getDataForImage.bind(layer);
+    const getDataForImage = (
+      layer as unknown as {
+        getDataForImage: (chunk: Chunk) => Float32Array | undefined;
+      }
+    ).getDataForImage.bind(layer);
 
     // Update slice coordinates to different time points and verify results
-    (layer as any).sliceCoords_.t = 0.05; // Should get time slice 0
+    (layer as unknown as { sliceCoords_: SliceCoordinates }).sliceCoords_.t =
+      0.05; // Should get time slice 0
     const data0 = getDataForImage(testChunk);
     expect(data0).toBeDefined();
 
-    (layer as any).sliceCoords_.t = 0.15; // Should get time slice 1
+    (layer as unknown as { sliceCoords_: SliceCoordinates }).sliceCoords_.t =
+      0.15; // Should get time slice 1
     const data1 = getDataForImage(testChunk);
     expect(data1).toBeDefined();
 
@@ -286,7 +292,7 @@ describe("4D Spatiotemporal Integration Tests", () => {
 
     // Initial update
     chunkManagerSource.update(1.0, viewBounds);
-    const initialVisibleChunks = chunkManagerSource.getChunks().length;
+    const _initialVisibleChunks = chunkManagerSource.getChunks().length;
 
     // Change time coordinate (navigate to different time point)
     const newSliceCoords: SliceCoordinates = {
@@ -342,7 +348,7 @@ describe("4D Spatiotemporal Integration Tests", () => {
       const spatialBounds = camera.getWorldViewRect();
 
       // Check spatial overlap (approximate)
-      const chunkSpatiallyRelevant =
+      const _chunkSpatiallyRelevant =
         chunk.offset.x < spatialBounds.max[0] &&
         chunk.offset.x + chunk.shape.x * chunk.scale.x > spatialBounds.min[0] &&
         chunk.offset.y < spatialBounds.max[1] &&
@@ -351,7 +357,8 @@ describe("4D Spatiotemporal Integration Tests", () => {
       // All chunks should be temporally relevant
       const chunkTimeMin = chunk.offset.t;
       const chunkTimeMax = chunk.offset.t + chunk.shape.t * chunk.scale.t;
-      const chunkTemporallyRelevant = chunkTimeMin <= 0.3 && chunkTimeMax > 0.3;
+      const _chunkTemporallyRelevant =
+        chunkTimeMin <= 0.3 && chunkTimeMax > 0.3;
 
       // In a real scenario, visible chunks should satisfy both conditions
       // For this test, we primarily verify the structure exists
