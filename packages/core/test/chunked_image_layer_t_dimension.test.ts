@@ -80,7 +80,7 @@ const createMockContext = (): Partial<IdetikContext> => ({
       return new ChunkManagerSource(loader, sliceCoords);
     }),
     update: vi.fn(),
-  } as ChunkManager,
+  } as unknown as ChunkManager,
 });
 
 describe("ChunkedImageLayer temporal slicing", () => {
@@ -141,23 +141,23 @@ describe("ChunkedImageLayer temporal slicing", () => {
     // Slice at t=0.05 should give first time slice (index 0)
     const slice0 = sliceTime(testChunk, 0.05);
     expect(slice0).toBeDefined();
-    expect(slice0.length).toBe(spatialSize);
-    expect(slice0[0]).toBe(100); // First value of time slice 0
-    expect(slice0[1]).toBe(101); // Second value of time slice 0
+    expect(slice0!.length).toBe(spatialSize);
+    expect(slice0![0]).toBe(100); // First value of time slice 0
+    expect(slice0![1]).toBe(101); // Second value of time slice 0
 
     // Slice at t=0.15 should give second time slice (index 1)
     const slice1 = sliceTime(testChunk, 0.15);
     expect(slice1).toBeDefined();
-    expect(slice1.length).toBe(spatialSize);
-    expect(slice1[0]).toBe(200); // First value of time slice 1
-    expect(slice1[1]).toBe(201); // Second value of time slice 1
+    expect(slice1!.length).toBe(spatialSize);
+    expect(slice1![0]).toBe(200); // First value of time slice 1
+    expect(slice1![1]).toBe(201); // Second value of time slice 1
 
     // Slice at t=0.25 should give third time slice (index 2)
     const slice2 = sliceTime(testChunk, 0.25);
     expect(slice2).toBeDefined();
-    expect(slice2.length).toBe(spatialSize);
-    expect(slice2[0]).toBe(300); // First value of time slice 2
-    expect(slice2[1]).toBe(301); // Second value of time slice 2
+    expect(slice2!.length).toBe(spatialSize);
+    expect(slice2![0]).toBe(300); // First value of time slice 2
+    expect(slice2![1]).toBe(301); // Second value of time slice 2
   });
 
   test("sliceTime handles edge cases correctly", async () => {
@@ -198,11 +198,11 @@ describe("ChunkedImageLayer temporal slicing", () => {
     // t value at chunk boundary (should clamp to valid range)
     const sliceAtBoundary = sliceTime(testChunk, -0.05); // Below range
     expect(sliceAtBoundary).toBeDefined();
-    expect(sliceAtBoundary.length).toBe(spatialSize);
+    expect(sliceAtBoundary!.length).toBe(spatialSize);
 
     const sliceAtUpperBoundary = sliceTime(testChunk, 0.45); // Above range
     expect(sliceAtUpperBoundary).toBeDefined();
-    expect(sliceAtUpperBoundary.length).toBe(spatialSize);
+    expect(sliceAtUpperBoundary!.length).toBe(spatialSize);
   });
 
   test("resliceIfTChanged updates chunks when time changes", async () => {

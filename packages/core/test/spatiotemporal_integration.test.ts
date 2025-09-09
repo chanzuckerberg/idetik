@@ -132,8 +132,10 @@ describe("4D Spatiotemporal Integration Tests", () => {
       -1,
       1 // near, far
     );
-    camera.position.set(50, 50, 0);
-    camera.updateMatrices();
+    camera.position[0] = 50;
+    camera.position[1] = 50;
+    camera.position[2] = 0;
+    camera.update();
   });
 
   test("ChunkManager creates 4D spatiotemporal chunk grid", async () => {
@@ -266,7 +268,7 @@ describe("4D Spatiotemporal Integration Tests", () => {
     expect(data1).toBeDefined();
 
     // Data from different time slices should be different
-    expect(data0[0]).not.toBe(data1[0]);
+    expect(data0![0]).not.toBe(data1![0]);
 
     // Verify temporal slicing gives expected values
     // (This would need more sophisticated testing with actual slice validation)
@@ -292,7 +294,6 @@ describe("4D Spatiotemporal Integration Tests", () => {
 
     // Initial update
     chunkManagerSource.update(1.0, viewBounds);
-    const _initialVisibleChunks = chunkManagerSource.getChunks().length;
 
     // Change time coordinate (navigate to different time point)
     const newSliceCoords: SliceCoordinates = {
@@ -336,8 +337,10 @@ describe("4D Spatiotemporal Integration Tests", () => {
     );
 
     // Update with camera positioned to see specific spatial region
-    camera.position.set(75, 75, 0); // Look at different spatial region
-    camera.updateMatrices();
+    camera.position[0] = 75; // Look at different spatial region
+    camera.position[1] = 75;
+    camera.position[2] = 0;
+    camera.update();
 
     chunkManager.update(camera, 800);
     const visibleChunks = chunkManagerSource.getChunks();
@@ -348,17 +351,17 @@ describe("4D Spatiotemporal Integration Tests", () => {
       const spatialBounds = camera.getWorldViewRect();
 
       // Check spatial overlap (approximate)
-      const _chunkSpatiallyRelevant =
+      // const _chunkSpatiallyRelevant =
         chunk.offset.x < spatialBounds.max[0] &&
         chunk.offset.x + chunk.shape.x * chunk.scale.x > spatialBounds.min[0] &&
         chunk.offset.y < spatialBounds.max[1] &&
         chunk.offset.y + chunk.shape.y * chunk.scale.y > spatialBounds.min[1];
 
       // All chunks should be temporally relevant
-      const chunkTimeMin = chunk.offset.t;
-      const chunkTimeMax = chunk.offset.t + chunk.shape.t * chunk.scale.t;
-      const _chunkTemporallyRelevant =
-        chunkTimeMin <= 0.3 && chunkTimeMax > 0.3;
+      // const chunkTimeMin = chunk.offset.t;
+      // const chunkTimeMax = chunk.offset.t + chunk.shape.t * chunk.scale.t;
+      // const _chunkTemporallyRelevant =
+      //   chunkTimeMin <= 0.3 && chunkTimeMax > 0.3;
 
       // In a real scenario, visible chunks should satisfy both conditions
       // For this test, we primarily verify the structure exists
