@@ -57,7 +57,7 @@ export class ChunkManagerSource {
       const chunkTime = tLod?.chunkSize ?? 1;
       if (cLod && cLod.chunkSize !== 1) {
         throw new Error(
-          "ChunkedImageLayer currently supports only chunkSize=1 in the c dimension"
+          `ChunkManager only supports a chunk size of 1 in C. Found ${cLod.chunkSize}`
         );
       }
 
