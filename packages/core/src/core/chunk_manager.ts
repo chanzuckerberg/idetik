@@ -14,7 +14,7 @@ import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
-const PREFETCH_PADDING_CHUNKS = 0;
+const PREFETCH_PADDING_CHUNKS = 1;
 
 const PRI_FALLBACK_VISIBLE = 0;
 const PRI_VISIBLE_CURRENT = 1;
@@ -168,21 +168,20 @@ export class ChunkManagerSource {
     return this.loader_.loadChunkData(chunk, this.sliceCoords_);
   }
 
-  private setLOD(_lodFactor: number): void {
-    this.currentLOD_ = this.lowestResLOD_;
-  //   const maxLOD = this.lowestResLOD_;
-  //   const targetLOD = Math.max(
-  //     0,
-  //     Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
-  //   );
+  private setLOD(lodFactor: number): void {
+    const maxLOD = this.lowestResLOD_;
+    const targetLOD = Math.max(
+      0,
+      Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
+    );
 
-  //   if (targetLOD !== this.currentLOD_) {
-  //     Logger.debug(
-  //       "ChunkManagerSource",
-  //       `LOD changed from ${this.currentLOD_} to ${targetLOD}`
-  //     );
-  //     this.currentLOD_ = targetLOD;
-  //   }
+    if (targetLOD !== this.currentLOD_) {
+      Logger.debug(
+        "ChunkManagerSource",
+        `LOD changed from ${this.currentLOD_} to ${targetLOD}`
+      );
+      this.currentLOD_ = targetLOD;
+    }
   }
 
   private updateChunkVisibility(viewBounds2D: Box2): void {
