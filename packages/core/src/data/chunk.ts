@@ -64,7 +64,7 @@ export function sliceChunk2D(
   // TODO: fix the rounding behavior later.
   const z =
     sliceCoords.z !== undefined
-      ? Math.round((sliceCoords.z - chunk.offset.z) / chunk.scale.z)
+      ? Math.floor((sliceCoords.z - chunk.offset.z) / chunk.scale.z)
       : 0;
   if (z < 0 || z > chunk.shape.z) {
     throw new Error(
@@ -74,7 +74,7 @@ export function sliceChunk2D(
 
   const t =
     sliceCoords.t !== undefined
-      ? Math.round((sliceCoords.t - chunk.offset.t) / chunk.scale.t)
+      ? Math.floor((sliceCoords.t - chunk.offset.t) / chunk.scale.t)
       : 0;
   if (t < 0 || t > chunk.shape.t) {
     throw new Error(
