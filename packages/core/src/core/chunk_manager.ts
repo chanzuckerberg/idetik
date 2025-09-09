@@ -195,8 +195,6 @@ export class ChunkManagerSource {
 
     const [zMin, zMax] = this.getZBounds();
     const [tMin, tMax] = this.getTBounds();
-    console.debug("Z bounds", zMin, zMax);
-    console.debug("T bounds", tMin, tMax);
     const viewBounds3D = new Box3(
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
@@ -233,21 +231,40 @@ export class ChunkManagerSource {
         chunk.state = "unloaded";
       }
 
-      if (isLoaded && !isFallbackLOD) {
-        const shouldDispose =
-          !isCurrentLOD || (isCurrentLOD && !isVisible && !eligibleForPrefetch);
-
-        if (shouldDispose) {
-          chunk.data = undefined;
-          chunk.state = "unloaded";
-          chunk.priority = null;
-          Logger.debug(
-            "ChunkManagerSource",
-            `Disposing chunk in LOD ${chunk.lod}`
-          );
-        }
+      if (
+        this.shouldDispose(
+          isLoaded,
+          isFallbackLOD,
+          isCurrentLOD,
+          isVisible,
+          eligibleForPrefetch,
+          temporallyVisible
+        )
+      ) {
+        chunk.data = undefined;
+        chunk.state = "unloaded";
+        chunk.priority = null;
+        Logger.debug(
+          "ChunkManagerSource",
+          `Disposing chunk in LOD ${chunk.lod}`
+        );
       }
     }
+  }
+
+  private shouldDispose(
+    isLoaded: boolean,
+    isFallbackLOD: boolean,
+    isCurrentLOD: boolean,
+    isVisible: boolean,
+    isPrefetch: boolean,
+    isTemporallyVisible: boolean
+  ) {
+    if (!isLoaded) return false;
+    if (!isTemporallyVisible) return true;
+    if (!isFallbackLOD && !isCurrentLOD) return true;
+    if (isCurrentLOD && !isVisible && !isPrefetch) return true;
+    return false;
   }
 
   private computePriority(
