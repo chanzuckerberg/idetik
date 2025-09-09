@@ -8,6 +8,12 @@ This plan implements time/t dimension support in the chunk_manager and chunked_i
 
 ## Implementation Status
 
+- [ ] **Phase 0: Test-Driven Development** (Write tests first!)
+  - [ ] Write unit tests for Chunk type with t dimension
+  - [ ] Write unit tests for ChunkManagerSource with t dimension methods
+  - [ ] Write unit tests for ChunkedImageLayer temporal slicing
+  - [ ] Write integration tests for 4D spatiotemporal chunk system
+
 - [ ] **Phase 1: Data Structure Updates** (`chunk.ts`)
   - [ ] Add t dimension to Chunk type shape property
   - [ ] Add t dimension to Chunk type chunkIndex property  
@@ -336,20 +342,28 @@ private getDataForImage(chunk: Chunk) {  // ✅ Update this method
 }
 ```
 
-## Testing Strategy
+## Testing Strategy (TDD Approach)
 
-1. **Unit Tests**: Test each new method independently
-2. **Integration Tests**: Test 4D chunk generation and bounds checking  
-3. **Data Flow Tests**: Verify temporal slicing with sample OME-Zarr data
-4. **Performance Tests**: Ensure 4D chunking doesn't degrade performance
+1. **Unit Tests**: Test each new method independently with focused test cases
+2. **Integration Tests**: Test 4D chunk generation and spatiotemporal bounds checking across modules
 
-## Implementation Order
+## Implementation Order (Test-Driven Development)
 
-1. Start with data structure updates (Phase 1) - minimal risk
-2. Implement chunk manager changes (Phase 2) - core functionality  
-3. Add image layer temporal slicing (Phase 3) - user-facing features
-4. Test integration with existing OME-Zarr loader
-5. Performance optimization if needed
+1. **Phase 0**: Write comprehensive tests first (TDD approach)
+   - Unit tests for all new methods and data structures
+   - Integration tests for 4D spatiotemporal chunk system
+   - Mock data structures for testing temporal slicing
+   
+2. **Phase 1**: Data structure updates (`chunk.ts`) - implement to pass tests
+3. **Phase 2**: Chunk manager changes (`chunk_manager.ts`) - implement to pass tests  
+4. **Phase 3**: Image layer temporal slicing (`chunked_image_layer.ts`) - implement to pass tests
+5. **Validation**: Verify all tests pass and integration works with existing OME-Zarr loader
+
+**TDD Benefits for this project:**
+- Ensures 4D spatiotemporal logic is correct before implementation
+- Tests serve as specification for complex temporal bounds checking
+- Prevents regressions in existing z-dimension functionality
+- Validates temporal slicing with largest stride assumption
 
 ## Notes
 
