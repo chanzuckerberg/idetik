@@ -36,6 +36,7 @@ export type Chunk = {
     y: number;
     z: number;
     c: number;
+    t: number;
   };
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
@@ -43,16 +44,19 @@ export type Chunk = {
     x: number;
     y: number;
     z: number;
+    t: number;
   };
   scale: {
     x: number;
     y: number;
     z: number;
+    t: number;
   };
   offset: {
     x: number;
     y: number;
     z: number;
+    t: number;
   };
 };
 

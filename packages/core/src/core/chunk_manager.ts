@@ -30,6 +30,7 @@ export class ChunkManagerSource {
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
+  private lastTBounds_?: [number, number];
 
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
     this.loader_ = loader;
@@ -46,15 +47,18 @@ export class ChunkManagerSource {
       const xLod = this.dimensions_.x.lods[lod];
       const yLod = this.dimensions_.y.lods[lod];
       const zLod = this.dimensions_.z?.lods[lod];
+      const tLod = this.dimensions_.t?.lods[lod];
       const cLod = this.dimensions_.c?.lods[lod];
 
       const chunkWidth = xLod.chunkSize;
       const chunkHeight = yLod.chunkSize;
       const chunkDepth = zLod?.chunkSize ?? 1;
+      const chunkTime = tLod?.chunkSize ?? 1;
 
       const chunksX = Math.ceil(xLod.size / chunkWidth);
       const chunksY = Math.ceil(yLod.size / chunkHeight);
       const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
+      const chunksT = Math.ceil((tLod?.size ?? 1) / chunkTime);
       const channels = cLod?.size ?? 1;
 
       for (let x = 0; x < chunksX; ++x) {
@@ -66,7 +70,12 @@ export class ChunkManagerSource {
               zLod !== undefined
                 ? zLod.translation + z * chunkDepth * zLod.scale
                 : 0;
-            this.chunks_.push({
+            for (let t = 0; t < chunksT; ++t) {
+              const tOffset =
+                tLod !== undefined
+                  ? tLod.translation + t * chunkTime * tLod.scale
+                  : 0;
+              this.chunks_.push({
               state: "unloaded",
               lod,
               visible: false,
@@ -77,21 +86,25 @@ export class ChunkManagerSource {
                 y: chunkHeight,
                 z: chunkDepth,
                 c: channels,
+                t: chunkTime,
               },
               rowStride: chunkWidth,
               rowAlignmentBytes: 1,
-              chunkIndex: { x, y, z },
+              chunkIndex: { x, y, z, t },
               scale: {
                 x: xLod.scale,
                 y: yLod.scale,
                 z: zLod?.scale ?? 1,
+                t: tLod?.scale ?? 1,
               },
               offset: {
                 x: xOffset,
                 y: yOffset,
                 z: zOffset,
+                t: tOffset,
               },
-            });
+              });
+            }
           }
         }
       }
@@ -124,10 +137,12 @@ export class ChunkManagerSource {
   public update(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
     const zBounds = this.getZBounds();
+    const tBounds = this.getTBounds();
 
     if (
       this.viewBounds2DChanged(viewBounds2D) ||
-      this.zBoundsChanged(zBounds)
+      this.zBoundsChanged(zBounds) ||
+      this.tBoundsChanged(tBounds)
     ) {
       this.updateChunkVisibility(viewBounds2D);
     }
@@ -179,16 +194,20 @@ export class ChunkManagerSource {
     }
 
     const [zMin, zMax] = this.getZBounds();
+    const [tMin, tMax] = this.getTBounds();
     const viewBounds3D = new Box3(
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
     );
+    const timeBounds: [number, number] = [tMin, tMax];
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
     for (const chunk of this.chunks_) {
-      const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
+      const spatiallyVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
+      const temporallyVisible = this.isChunkWithinTimeBounds(chunk, timeBounds);
+      const isVisible = spatiallyVisible && temporallyVisible;
       const eligibleForPrefetch =
-        !isVisible && this.isChunkWithinBounds(chunk, paddedBounds);
+        !isVisible && this.isChunkWithinBounds(chunk, paddedBounds) && temporallyVisible;
 
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === this.lowestResLOD_;
@@ -272,6 +291,14 @@ export class ChunkManagerSource {
     return Box3.intersects(chunkBounds, bounds);
   }
 
+  private isChunkWithinTimeBounds(chunk: Chunk, timeBounds: [number, number]): boolean {
+    const chunkTimeMin = chunk.offset.t;
+    const chunkTimeMax = chunk.offset.t + chunk.shape.t * chunk.scale.t;
+    const [tMin, tMax] = timeBounds;
+    
+    return chunkTimeMax > tMin && chunkTimeMin < tMax;
+  }
+
   private getZBounds(): [number, number] {
     const zDim = this.dimensions_.z;
     if (zDim === undefined || this.sliceCoords_.z === undefined) return [0, 1];
@@ -319,6 +346,40 @@ export class ChunkManagerSource {
     const changed = !prev || !vec2.equals(prev, newBounds);
     if (changed) {
       this.lastZBounds_ = newBounds;
+    }
+    return changed;
+  }
+
+  private getTBounds(): [number, number] {
+    const tDim = this.dimensions_.t;
+    if (tDim === undefined || this.sliceCoords_.t === undefined) return [0, 1];
+
+    const tLod = tDim.lods[this.currentLOD_];
+    const tShape = tLod.size;
+    const tScale = tLod.scale;
+    const tTran = tLod.translation;
+    const tPoint = Math.floor((this.sliceCoords_.t - tTran) / tScale);
+    const chunkTime = tLod.chunkSize;
+
+    const tChunk = Math.max(
+      0,
+      Math.min(
+        Math.floor(tPoint / chunkTime),
+        Math.ceil(tShape / chunkTime) - 1
+      )
+    );
+
+    return [
+      tTran + tChunk * chunkTime * tScale,
+      tTran + (tChunk + 1) * chunkTime * tScale,
+    ];
+  }
+
+  private tBoundsChanged(newBounds: [number, number]): boolean {
+    const prev = this.lastTBounds_;
+    const changed = !prev || !vec2.equals(prev, newBounds);
+    if (changed) {
+      this.lastTBounds_ = newBounds;
     }
     return changed;
   }
