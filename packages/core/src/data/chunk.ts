@@ -58,7 +58,9 @@ export function sliceChunk2D(
   }
 
   if (chunk.shape.c !== 1) {
-    throw new Error("Slicing chunky channels is not yet supported");
+    throw new Error(
+      `Slicing only supports one channel per chunk. Found ${chunk.shape.c}`
+    );
   }
 
   // TODO: double check floor is enough here, or if we need to account

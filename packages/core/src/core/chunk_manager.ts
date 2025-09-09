@@ -55,12 +55,16 @@ export class ChunkManagerSource {
       const chunkHeight = yLod.chunkSize;
       const chunkDepth = zLod?.chunkSize ?? 1;
       const chunkTime = tLod?.chunkSize ?? 1;
+      if (cLod && cLod.chunkSize !== 1) {
+        throw new Error(
+          "ChunkedImageLayer currently supports only chunkSize=1 in the c dimension"
+        );
+      }
 
       const chunksX = Math.ceil(xLod.size / chunkWidth);
       const chunksY = Math.ceil(yLod.size / chunkHeight);
       const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
       const chunksT = Math.ceil((tLod?.size ?? 1) / chunkTime);
-      const channels = cLod?.size ?? 1;
 
       for (let x = 0; x < chunksX; ++x) {
         const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
@@ -86,7 +90,7 @@ export class ChunkManagerSource {
                   x: chunkWidth,
                   y: chunkHeight,
                   z: chunkDepth,
-                  c: channels,
+                  c: 1,
                   t: chunkTime,
                 },
                 rowStride: chunkWidth,
