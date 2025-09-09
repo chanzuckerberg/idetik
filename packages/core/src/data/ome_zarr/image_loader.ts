@@ -80,15 +80,7 @@ export class OmeZarrImageLoader {
       );
     }
     if (this.dimensions_.t) {
-      if (sliceCoords.t === undefined) {
-        throw new Error(
-          "Region is missing t value but t dimension exists in data"
-        );
-      }
-      chunkCoords[this.dimensions_.t.index] = sliceChunkIndex(
-        sliceCoords.t,
-        this.dimensions_.t.lods[chunk.lod]
-      );
+      chunkCoords[this.dimensions_.t.index] = chunk.chunkIndex.t;
     }
 
     const array = this.arrays_[chunk.lod];
