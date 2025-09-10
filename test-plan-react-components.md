@@ -80,17 +80,23 @@ This document outlines the testing strategy for React components in the `package
 
 ## Testing Tools and Utilities
 
+### Mocking Strategy
+- Mock `@idetik/core-prerelease` components to avoid WebGL complexity in jsdom
+- Use Vitest mocking to create predictable runtime behavior
+- Track method calls (start, stop) to verify lifecycle management
+- Avoid browser testing complexity and hanging process issues
+
 ### Mock Requirements
 - Mock `@idetik/core-prerelease` classes:
-  - `Idetik` (runtime)
+  - `Idetik` (runtime) with spied start/stop methods
   - `OrthographicCamera`
   - `PanZoomControls`
 
 ### Test Utilities
 - Component wrappers with providers
-- Mock runtime factory functions
-- Async operation helpers
-- Memory leak detection utilities
+- Mock runtime factories with spied methods
+- Simple state verification without async complexity
+- Clean test environment without WebGL context issues
 
 ## Success Criteria
 
