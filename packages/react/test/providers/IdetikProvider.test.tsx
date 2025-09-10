@@ -1,26 +1,26 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
-import React, { useEffect, useRef } from 'react';
-import { IdetikProvider } from '../../src/components/providers/IdetikProvider';
-import { useIdetik } from '../../src/hooks/useIdetik';
-import { 
-  RuntimeObserverLayer, 
-  createRuntimeObserver, 
-  waitForRuntimeStart, 
-  waitForRuntimeStop 
-} from '../utils/runtime-observer';
-import { waitFor, waitForAnimationFrames } from '../utils/test-helpers';
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { render, cleanup } from "@testing-library/react";
+import React, { useEffect, useRef } from "react";
+import { IdetikProvider } from "../../src/components/providers/IdetikProvider";
+import { useIdetik } from "../../src/hooks/useIdetik";
+import {
+  RuntimeObserverLayer,
+  createRuntimeObserver,
+  waitForRuntimeStart,
+  waitForRuntimeStop,
+} from "../utils/runtime-observer";
+import { waitFor, waitForAnimationFrames } from "../utils/test-helpers";
 
-describe('IdetikProvider', () => {
-  const createdRuntimes: Array<ReturnType<typeof useIdetik>['runtime']> = [];
-  
+describe("IdetikProvider", () => {
+  const createdRuntimes: Array<ReturnType<typeof useIdetik>["runtime"]> = [];
+
   beforeEach(() => {
     cleanup();
   });
-  
+
   afterEach(() => {
     // Clean up any runtimes that weren't properly stopped
-    createdRuntimes.forEach(runtime => {
+    createdRuntimes.forEach((runtime) => {
       if (runtime) {
         try {
           runtime.stop();
@@ -32,10 +32,10 @@ describe('IdetikProvider', () => {
     createdRuntimes.length = 0;
   });
 
-  describe('Mount Behavior', () => {
-    it('should provide initial context value with runtime as null', () => {
+  describe("Mount Behavior", () => {
+    it("should provide initial context value with runtime as null", () => {
       let capturedContext: ReturnType<typeof useIdetik> | undefined;
-      
+
       function TestComponent() {
         const context = useIdetik();
         capturedContext = context;
@@ -49,17 +49,17 @@ describe('IdetikProvider', () => {
       );
 
       expect(capturedContext?.runtime).toBeNull();
-      expect(typeof capturedContext?.onCanvasChange).toBe('function');
+      expect(typeof capturedContext?.onCanvasChange).toBe("function");
     });
 
-    it('should create and start runtime when canvas is mounted', async () => {
-      let capturedRuntime: ReturnType<typeof useIdetik>['runtime'];
+    it("should create and start runtime when canvas is mounted", async () => {
+      let capturedRuntime: ReturnType<typeof useIdetik>["runtime"];
       let observer: RuntimeObserverLayer;
-      
+
       function TestCanvasComponent() {
         const { runtime, onCanvasChange } = useIdetik();
         const canvasRef = useRef<HTMLCanvasElement>(null);
-        
+
         useEffect(() => {
           if (canvasRef.current) {
             onCanvasChange(canvasRef.current);
@@ -86,27 +86,29 @@ describe('IdetikProvider', () => {
 
       // Wait for runtime to be created
       await waitFor(() => capturedRuntime !== undefined);
-      
+
       expect(capturedRuntime!).not.toBeNull();
-      expect(typeof capturedRuntime!.start).toBe('function');
-      expect(typeof capturedRuntime!.stop).toBe('function');
-      
+      expect(typeof capturedRuntime!.start).toBe("function");
+      expect(typeof capturedRuntime!.stop).toBe("function");
+
       // Wait for runtime to start rendering
       await waitForRuntimeStart(capturedRuntime!, observer!);
       expect(observer!.isRenderingActive()).toBe(true);
     });
 
-    it('should update context value when runtime is created', async () => {
-      const contextValues: Array<{ runtime: ReturnType<typeof useIdetik>['runtime'] }> = [];
-      
+    it("should update context value when runtime is created", async () => {
+      const contextValues: Array<{
+        runtime: ReturnType<typeof useIdetik>["runtime"];
+      }> = [];
+
       function TestCanvasComponent() {
         const context = useIdetik();
         const canvasRef = useRef<HTMLCanvasElement>(null);
-        
+
         useEffect(() => {
           contextValues.push({ runtime: context.runtime });
         }, [context.runtime]);
-        
+
         useEffect(() => {
           if (canvasRef.current) {
             context.onCanvasChange(canvasRef.current);
@@ -125,29 +127,35 @@ describe('IdetikProvider', () => {
 
       // Wait for runtime to be created
       await waitFor(() => contextValues.length >= 2);
-      
+
       // Initial context should have null runtime
       expect(contextValues[0].runtime).toBeNull();
-      
+
       // After canvas mount, should have runtime
       expect(contextValues[1].runtime).not.toBeNull();
     });
   });
 
-  describe('Unmount Behavior', () => {
-    it('should stop runtime and set to null when canvas is unmounted', async () => {
-      let capturedRuntime: ReturnType<typeof useIdetik>['runtime'];
+  describe("Unmount Behavior", () => {
+    it("should stop runtime and set to null when canvas is unmounted", async () => {
+      let capturedRuntime: ReturnType<typeof useIdetik>["runtime"];
       let observer: RuntimeObserverLayer;
-      const contextValues: Array<{ runtime: ReturnType<typeof useIdetik>['runtime'] }> = [];
-      
-      function TestCanvasComponent({ shouldRenderCanvas }: { shouldRenderCanvas: boolean }) {
+      const contextValues: Array<{
+        runtime: ReturnType<typeof useIdetik>["runtime"];
+      }> = [];
+
+      function TestCanvasComponent({
+        shouldRenderCanvas,
+      }: {
+        shouldRenderCanvas: boolean;
+      }) {
         const { runtime, onCanvasChange } = useIdetik();
         const canvasRef = useRef<HTMLCanvasElement>(null);
-        
+
         useEffect(() => {
           contextValues.push({ runtime });
         }, [runtime]);
-        
+
         useEffect(() => {
           if (shouldRenderCanvas && canvasRef.current) {
             onCanvasChange(canvasRef.current);
@@ -163,7 +171,9 @@ describe('IdetikProvider', () => {
           }
         }, [runtime]);
 
-        return shouldRenderCanvas ? <canvas ref={canvasRef} data-testid="test-canvas" /> : null;
+        return shouldRenderCanvas ? (
+          <canvas ref={canvasRef} data-testid="test-canvas" />
+        ) : null;
       }
 
       const { rerender } = render(
@@ -175,7 +185,7 @@ describe('IdetikProvider', () => {
       // Wait for runtime to be created and started
       await waitFor(() => capturedRuntime !== undefined);
       await waitForRuntimeStart(capturedRuntime, observer);
-      
+
       expect(observer.isRenderingActive()).toBe(true);
 
       // Unmount canvas
@@ -187,20 +197,28 @@ describe('IdetikProvider', () => {
 
       // Wait for runtime to stop and be set to null
       await waitForRuntimeStop(observer);
-      await waitFor(() => contextValues.some(ctx => ctx.runtime === null && contextValues.indexOf(ctx) > 0));
-      
+      await waitFor(() =>
+        contextValues.some(
+          (ctx) => ctx.runtime === null && contextValues.indexOf(ctx) > 0
+        )
+      );
+
       // Should have stopped runtime
       expect(contextValues[contextValues.length - 1].runtime).toBeNull();
     });
 
-    it('should call runtime.stop() exactly once on unmount', async () => {
-      let capturedRuntime: ReturnType<typeof useIdetik>['runtime'];
+    it("should call runtime.stop() exactly once on unmount", async () => {
+      let capturedRuntime: ReturnType<typeof useIdetik>["runtime"];
       let stopCallCount = 0;
-      
-      function TestCanvasComponent({ shouldRenderCanvas }: { shouldRenderCanvas: boolean }) {
+
+      function TestCanvasComponent({
+        shouldRenderCanvas,
+      }: {
+        shouldRenderCanvas: boolean;
+      }) {
         const { runtime, onCanvasChange } = useIdetik();
         const canvasRef = useRef<HTMLCanvasElement>(null);
-        
+
         useEffect(() => {
           if (shouldRenderCanvas && canvasRef.current) {
             onCanvasChange(canvasRef.current);
@@ -221,7 +239,9 @@ describe('IdetikProvider', () => {
           }
         }, [runtime]);
 
-        return shouldRenderCanvas ? <canvas ref={canvasRef} data-testid="test-canvas" /> : null;
+        return shouldRenderCanvas ? (
+          <canvas ref={canvasRef} data-testid="test-canvas" />
+        ) : null;
       }
 
       const { rerender } = render(
@@ -240,20 +260,25 @@ describe('IdetikProvider', () => {
       );
 
       await waitForAnimationFrames(5);
-      
+
       expect(stopCallCount).toBe(1);
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle multiple canvas mount/unmount cycles correctly', async () => {
-      const runtimeInstances: Array<ReturnType<typeof useIdetik>['runtime']> = [];
+  describe("Edge Cases", () => {
+    it("should handle multiple canvas mount/unmount cycles correctly", async () => {
+      const runtimeInstances: Array<ReturnType<typeof useIdetik>["runtime"]> =
+        [];
       let observer: RuntimeObserverLayer;
-      
-      function TestCanvasComponent({ shouldRenderCanvas }: { shouldRenderCanvas: boolean }) {
+
+      function TestCanvasComponent({
+        shouldRenderCanvas,
+      }: {
+        shouldRenderCanvas: boolean;
+      }) {
         const { runtime, onCanvasChange } = useIdetik();
         const canvasRef = useRef<HTMLCanvasElement>(null);
-        
+
         useEffect(() => {
           if (shouldRenderCanvas && canvasRef.current) {
             onCanvasChange(canvasRef.current);
@@ -271,7 +296,9 @@ describe('IdetikProvider', () => {
           }
         }, [runtime]);
 
-        return shouldRenderCanvas ? <canvas ref={canvasRef} data-testid="test-canvas" /> : null;
+        return shouldRenderCanvas ? (
+          <canvas ref={canvasRef} data-testid="test-canvas" />
+        ) : null;
       }
 
       const { rerender } = render(
@@ -281,16 +308,32 @@ describe('IdetikProvider', () => {
       );
 
       // Mount -> Unmount -> Mount -> Unmount cycle
-      rerender(<IdetikProvider><TestCanvasComponent shouldRenderCanvas={true} /></IdetikProvider>);
+      rerender(
+        <IdetikProvider>
+          <TestCanvasComponent shouldRenderCanvas={true} />
+        </IdetikProvider>
+      );
       await waitFor(() => runtimeInstances.length === 1);
-      
-      rerender(<IdetikProvider><TestCanvasComponent shouldRenderCanvas={false} /></IdetikProvider>);
+
+      rerender(
+        <IdetikProvider>
+          <TestCanvasComponent shouldRenderCanvas={false} />
+        </IdetikProvider>
+      );
       await waitForAnimationFrames(3);
-      
-      rerender(<IdetikProvider><TestCanvasComponent shouldRenderCanvas={true} /></IdetikProvider>);
+
+      rerender(
+        <IdetikProvider>
+          <TestCanvasComponent shouldRenderCanvas={true} />
+        </IdetikProvider>
+      );
       await waitFor(() => runtimeInstances.length === 2);
-      
-      rerender(<IdetikProvider><TestCanvasComponent shouldRenderCanvas={false} /></IdetikProvider>);
+
+      rerender(
+        <IdetikProvider>
+          <TestCanvasComponent shouldRenderCanvas={false} />
+        </IdetikProvider>
+      );
       await waitForAnimationFrames(3);
 
       // Should have created two different runtime instances
@@ -298,14 +341,14 @@ describe('IdetikProvider', () => {
       expect(runtimeInstances[0]).not.toBe(runtimeInstances[1]);
     });
 
-    it('should handle provider unmount with active runtime', async () => {
-      let capturedRuntime: ReturnType<typeof useIdetik>['runtime'];
+    it("should handle provider unmount with active runtime", async () => {
+      let capturedRuntime: ReturnType<typeof useIdetik>["runtime"];
       let observer: RuntimeObserverLayer;
-      
+
       function TestCanvasComponent() {
         const { runtime, onCanvasChange } = useIdetik();
         const canvasRef = useRef<HTMLCanvasElement>(null);
-        
+
         useEffect(() => {
           if (canvasRef.current) {
             onCanvasChange(canvasRef.current);
@@ -340,14 +383,15 @@ describe('IdetikProvider', () => {
       expect(true).toBe(true); // Test passes if no errors thrown
     });
 
-    it('should ignore canvas mount when runtime already exists', async () => {
-      const runtimeInstances: Array<ReturnType<typeof useIdetik>['runtime']> = [];
-      
+    it("should ignore canvas mount when runtime already exists", async () => {
+      const runtimeInstances: Array<ReturnType<typeof useIdetik>["runtime"]> =
+        [];
+
       function TestCanvasComponent() {
         const { runtime, onCanvasChange } = useIdetik();
         const canvas1Ref = useRef<HTMLCanvasElement>(null);
         const canvas2Ref = useRef<HTMLCanvasElement>(null);
-        
+
         useEffect(() => {
           // Mount first canvas
           if (canvas1Ref.current) {
@@ -358,7 +402,7 @@ describe('IdetikProvider', () => {
         useEffect(() => {
           if (runtime) {
             runtimeInstances.push(runtime);
-            
+
             // Try to mount second canvas after runtime is created
             setTimeout(() => {
               if (canvas2Ref.current) {

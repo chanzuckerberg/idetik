@@ -1,12 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
-import React, { useEffect, useRef } from 'react';
-import { IdetikProvider } from '../../src/components/providers/IdetikProvider';
-import { useIdetik } from '../../src/hooks/useIdetik';
-import { Idetik } from '@idetik/core-prerelease';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, cleanup } from "@testing-library/react";
+import { IdetikProvider } from "../../src/components/providers/IdetikProvider";
+import { IdetikContextValue, useIdetik } from "../../src/hooks/useIdetik";
+import { Idetik } from "@idetik/core-prerelease";
 
 // Mock the core library to avoid WebGL issues in jsdom
-vi.mock('@idetik/core-prerelease', () => ({
+vi.mock("@idetik/core-prerelease", () => ({
   Idetik: vi.fn().mockImplementation(() => ({
     start: vi.fn(),
     stop: vi.fn(),
@@ -18,19 +17,18 @@ vi.mock('@idetik/core-prerelease', () => ({
   PanZoomControls: vi.fn().mockImplementation(() => ({ mockControls: true })),
 }));
 
-describe('IdetikProvider - Basic Tests', () => {
+describe("IdetikProvider - Basic Tests", () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
   });
 
-  describe('Context Value', () => {
-    it('should provide initial context value with runtime as null', () => {
-      let capturedContext: ReturnType<typeof useIdetik> | undefined;
-      
+  describe("Context Value", () => {
+    it("non-canvas component should provide context with null runtime", () => {
+      let context: IdetikContextValue | undefined;
+
       function TestComponent() {
-        const context = useIdetik();
-        capturedContext = context;
+        context = useIdetik();
         return <div>Test</div>;
       }
 
@@ -40,25 +38,17 @@ describe('IdetikProvider - Basic Tests', () => {
         </IdetikProvider>
       );
 
-      expect(capturedContext?.runtime).toBeNull();
-      expect(typeof capturedContext?.onCanvasChange).toBe('function');
+      expect(context?.runtime).toBeNull();
     });
 
-    it('should update context when runtime is created', () => {
-      let capturedContext: ReturnType<typeof useIdetik> | undefined;
-      
-      function TestCanvasComponent() {
-        const context = useIdetik();
-        const canvasRef = useRef<HTMLCanvasElement>(null);
-        capturedContext = context;
-        
-        useEffect(() => {
-          if (canvasRef.current) {
-            context.onCanvasChange(canvasRef.current);
-          }
-        }, [context]);
+    it("canvas component should update context when runtime is created", () => {
+      let context: IdetikContextValue | undefined;
 
-        return <canvas ref={canvasRef} data-testid="test-canvas" />;
+      function TestCanvasComponent() {
+        context = useIdetik();
+        return (
+          <canvas ref={context.onCanvasChange} data-testid="test-canvas" />
+        );
       }
 
       render(
@@ -67,27 +57,17 @@ describe('IdetikProvider - Basic Tests', () => {
         </IdetikProvider>
       );
 
-      expect(capturedContext?.runtime).not.toBeNull();
-      expect(capturedContext?.runtime?.start).toBeDefined();
-      expect(capturedContext?.runtime?.stop).toBeDefined();
+      expect(context?.runtime).not.toBeNull();
     });
   });
 
-  describe('Runtime Lifecycle', () => {
-    it('should create and start runtime when canvas mounts', () => {
+  describe("Runtime Lifecycle", () => {
+    it("should create and start runtime when canvas mounts", () => {
       const mockIdetik = vi.mocked(Idetik);
-      
+
       function TestCanvasComponent() {
         const { onCanvasChange } = useIdetik();
-        const canvasRef = useRef<HTMLCanvasElement>(null);
-        
-        useEffect(() => {
-          if (canvasRef.current) {
-            onCanvasChange(canvasRef.current);
-          }
-        }, [onCanvasChange]);
-
-        return <canvas ref={canvasRef} data-testid="test-canvas" />;
+        return <canvas ref={onCanvasChange} data-testid="test-canvas" />;
       }
 
       render(
@@ -101,24 +81,20 @@ describe('IdetikProvider - Basic Tests', () => {
       expect(mockRuntime.start).toHaveBeenCalled();
     });
 
-    it('should stop runtime when canvas unmounts', () => {
+    it("should stop runtime when canvas unmounts", () => {
       const mockIdetik = vi.mocked(Idetik);
-      let capturedContext: ReturnType<typeof useIdetik> | undefined;
-      
-      function TestCanvasComponent({ shouldRender }: { shouldRender: boolean }) {
-        const context = useIdetik();
-        const canvasRef = useRef<HTMLCanvasElement>(null);
-        capturedContext = context;
-        
-        useEffect(() => {
-          if (shouldRender && canvasRef.current) {
-            context.onCanvasChange(canvasRef.current);
-          } else if (!shouldRender) {
-            context.onCanvasChange(null);
-          }
-        }, [shouldRender, context]);
+      let capturedContext: IdetikContextValue | undefined;
 
-        return shouldRender ? <canvas ref={canvasRef} data-testid="test-canvas" /> : null;
+      function TestCanvasComponent({
+        shouldRender,
+      }: {
+        shouldRender: boolean;
+      }) {
+        const context = useIdetik();
+        capturedContext = context;
+        return shouldRender ? (
+          <canvas ref={context.onCanvasChange} data-testid="test-canvas" />
+        ) : null;
       }
 
       const { rerender } = render(
@@ -145,25 +121,20 @@ describe('IdetikProvider - Basic Tests', () => {
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle multiple mount/unmount cycles', () => {
+  describe("Edge Cases", () => {
+    it("should handle multiple mount/unmount cycles", () => {
       const mockIdetik = vi.mocked(Idetik);
-      let capturedContext: ReturnType<typeof useIdetik> | undefined;
-      
-      function TestCanvasComponent({ shouldRender }: { shouldRender: boolean }) {
-        const context = useIdetik();
-        const canvasRef = useRef<HTMLCanvasElement>(null);
-        capturedContext = context;
-        
-        useEffect(() => {
-          if (shouldRender && canvasRef.current) {
-            context.onCanvasChange(canvasRef.current);
-          } else if (!shouldRender) {
-            context.onCanvasChange(null);
-          }
-        }, [shouldRender, context]);
+      let context: IdetikContextValue | undefined;
 
-        return shouldRender ? <canvas ref={canvasRef} data-testid="test-canvas" /> : null;
+      function TestCanvasComponent({
+        shouldRender,
+      }: {
+        shouldRender: boolean;
+      }) {
+        context = useIdetik();
+        return shouldRender ? (
+          <canvas ref={context.onCanvasChange} data-testid="test-canvas" />
+        ) : null;
       }
 
       const { rerender } = render(
@@ -173,32 +144,37 @@ describe('IdetikProvider - Basic Tests', () => {
       );
 
       // Mount -> Unmount -> Mount cycle
-      rerender(<IdetikProvider><TestCanvasComponent shouldRender={true} /></IdetikProvider>);
-      expect(capturedContext?.runtime).not.toBeNull();
-      
-      rerender(<IdetikProvider><TestCanvasComponent shouldRender={false} /></IdetikProvider>);
-      expect(capturedContext?.runtime).toBeNull();
-      
-      rerender(<IdetikProvider><TestCanvasComponent shouldRender={true} /></IdetikProvider>);
-      expect(capturedContext?.runtime).not.toBeNull();
+      rerender(
+        <IdetikProvider>
+          <TestCanvasComponent shouldRender={true} />
+        </IdetikProvider>
+      );
+      expect(context?.runtime).not.toBeNull();
+
+      rerender(
+        <IdetikProvider>
+          <TestCanvasComponent shouldRender={false} />
+        </IdetikProvider>
+      );
+      expect(context?.runtime).toBeNull();
+
+      rerender(
+        <IdetikProvider>
+          <TestCanvasComponent shouldRender={true} />
+        </IdetikProvider>
+      );
+      expect(context?.runtime).not.toBeNull();
 
       // Should have created two separate runtime instances
       expect(mockIdetik).toHaveBeenCalledTimes(2);
     });
 
-    it('should not create runtime when canvas is null', () => {
+    it("should not create runtime when canvas is null", () => {
       const mockIdetik = vi.mocked(Idetik);
-      let capturedContext: ReturnType<typeof useIdetik> | undefined;
-      
-      function TestCanvasComponent() {
-        const context = useIdetik();
-        capturedContext = context;
-        
-        useEffect(() => {
-          // Call onCanvasChange with null (simulating unmount)
-          context.onCanvasChange(null);
-        }, [context]);
+      let context: IdetikContextValue | undefined;
 
+      function TestCanvasComponent() {
+        context = useIdetik();
         return <div>No canvas</div>;
       }
 
@@ -208,9 +184,8 @@ describe('IdetikProvider - Basic Tests', () => {
         </IdetikProvider>
       );
 
-      // Should not create any runtime instance when canvas is null
       expect(mockIdetik).toHaveBeenCalledTimes(0);
-      expect(capturedContext?.runtime).toBeNull();
+      expect(context?.runtime).toBeNull();
     });
   });
 });

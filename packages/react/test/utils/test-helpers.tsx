@@ -1,13 +1,13 @@
-import React, { ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
-import { IdetikProvider } from '../../src/components/providers/IdetikProvider';
+import React, { ReactElement } from "react";
+import { render, RenderOptions } from "@testing-library/react";
+import { IdetikProvider } from "../../src/components/providers/IdetikProvider";
 
 /**
  * Custom render function that wraps components with IdetikProvider
  */
 export function renderWithProvider(
   ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
+  options?: Omit<RenderOptions, "wrapper">
 ) {
   function Wrapper({ children }: { children: React.ReactNode }) {
     return <IdetikProvider>{children}</IdetikProvider>;
@@ -25,12 +25,12 @@ export async function waitFor(
   interval = 10
 ): Promise<void> {
   const startTime = Date.now();
-  
+
   while (!condition()) {
     if (Date.now() - startTime > timeout) {
-      throw new Error('Timeout waiting for condition');
+      throw new Error("Timeout waiting for condition");
     }
-    await new Promise(resolve => setTimeout(resolve, interval));
+    await new Promise((resolve) => setTimeout(resolve, interval));
   }
 }
 
@@ -39,6 +39,6 @@ export async function waitFor(
  */
 export async function waitForAnimationFrames(count = 3): Promise<void> {
   for (let i = 0; i < count; i++) {
-    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
   }
 }

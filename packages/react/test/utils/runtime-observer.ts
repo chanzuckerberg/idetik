@@ -1,4 +1,4 @@
-import { Idetik, Layer } from '@idetik/core-prerelease';
+import { Idetik, Layer } from "@idetik/core-prerelease";
 
 /**
  * Test utility layer that observes runtime state changes
@@ -6,7 +6,7 @@ import { Idetik, Layer } from '@idetik/core-prerelease';
  */
 export class RuntimeObserverLayer extends Layer {
   public readonly type = "RuntimeObserverLayer";
-  
+
   private animationFrameCallbacks_ = 0;
   private isActive_ = false;
 
@@ -52,12 +52,12 @@ export async function waitForRuntimeStart(
   timeout = 1000
 ): Promise<void> {
   const startTime = Date.now();
-  
+
   while (!observer.isRenderingActive()) {
     if (Date.now() - startTime > timeout) {
-      throw new Error('Timeout waiting for runtime to start');
+      throw new Error("Timeout waiting for runtime to start");
     }
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise((resolve) => setTimeout(resolve, 10));
   }
 }
 
@@ -71,17 +71,17 @@ export async function waitForRuntimeStop(
 ): Promise<void> {
   const initialFrameCount = observer.getFrameCount();
   const startTime = Date.now();
-  
+
   // Wait a bit to see if more frames are rendered
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
   while (observer.getFrameCount() > initialFrameCount) {
     if (Date.now() - startTime > timeout) {
-      throw new Error('Timeout waiting for runtime to stop');
+      throw new Error("Timeout waiting for runtime to stop");
     }
     const currentFrameCount = observer.getFrameCount();
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     // If no new frames after 50ms, consider it stopped
     if (observer.getFrameCount() === currentFrameCount) {
       return;
