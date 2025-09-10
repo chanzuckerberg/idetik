@@ -1,53 +1,56 @@
 /**
- * Navigation styles for Idetik examples
- * Designed to be unobtrusive and not interfere with examples
+ * Simplified navigation styles for iframe-based examples
  */
 
-#idetik-navigation {
-  position: relative;
-  width: 100%;
+/* Container and iframe layout */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 1.4;
-  background: rgba(0, 0, 0, 0.9);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  z-index: 10000;
-  display: block;
 }
 
-/* Minimal layout adjustments for navigation */
-body {
+.container {
+  display: flex;
   flex-direction: column;
+  height: 100vh;
 }
 
-/* Ensure content doesn't overlap navigation */
-body > *:not(#idetik-navigation) {
-  margin-bottom: 48px; /* height of nav bar */
+.content {
+  flex: 1;
+  position: relative;
+  margin-bottom: 48px; /* height of navigation bar */
 }
 
-/* Navigation positioning */
+iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: white;
+}
+
+/* Navigation bar */
 #idetik-navigation {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
+  height: 48px;
+  background: rgba(0, 0, 0, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
   z-index: 10000;
+  font-size: 14px;
+  font-family: inherit;
 }
 
-#idetik-navigation * {
-  box-sizing: border-box;
-}
-
-/* Header Bar */
 .nav-header-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 20px;
   color: white;
-  width: 100%;
-  box-sizing: border-box;
   height: 48px;
+  box-sizing: border-box;
 }
 
 .nav-header-title {
@@ -57,7 +60,6 @@ body > *:not(#idetik-navigation) {
   flex: 1;
 }
 
-/* Toggle Button */
 .nav-toggle {
   padding: 6px 12px;
   border-radius: 6px;
@@ -65,10 +67,7 @@ body > *:not(#idetik-navigation) {
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  transition: all 0.2s ease;
   font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
   font-family: inherit;
 }
 
@@ -76,7 +75,7 @@ body > *:not(#idetik-navigation) {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Menu */
+/* Menu popup */
 .nav-menu {
   position: absolute;
   bottom: 100%;
@@ -86,26 +85,18 @@ body > *:not(#idetik-navigation) {
   max-height: 400px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  opacity: 0;
-  transform: translateY(10px) scale(0.95);
-  pointer-events: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-  display: flex;
+  display: none;
   flex-direction: column;
+  overflow: hidden;
 }
 
 #idetik-navigation.open .nav-menu {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
+  display: flex;
 }
 
-/* Header */
 .nav-header {
   display: flex;
   align-items: center;
@@ -129,10 +120,6 @@ body > *:not(#idetik-navigation) {
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .nav-close:hover {
@@ -140,7 +127,6 @@ body > *:not(#idetik-navigation) {
   color: #333;
 }
 
-/* Content */
 .nav-content {
   flex: 1;
   display: flex;
@@ -154,13 +140,12 @@ body > *:not(#idetik-navigation) {
   padding: 8px 0;
 }
 
-/* Example Items */
+/* Example items */
 .nav-item {
   display: block;
   padding: 12px 20px;
   color: #333;
-  text-decoration: none;
-  transition: all 0.2s ease;
+  cursor: pointer;
   border-left: 3px solid transparent;
 }
 
@@ -177,30 +162,10 @@ body > *:not(#idetik-navigation) {
 }
 
 .nav-title {
-  display: block;
   font-size: 14px;
   line-height: 1.3;
 }
 
-/* Footer */
-.nav-footer {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.nav-home {
-  color: #666;
-  text-decoration: none;
-  font-size: 13px;
-  transition: color 0.2s ease;
-}
-
-.nav-home:hover {
-  color: #333;
-}
-
-/* Empty state */
 .nav-empty {
   padding: 20px;
   text-align: center;
@@ -208,20 +173,7 @@ body > *:not(#idetik-navigation) {
   font-style: italic;
 }
 
-/* Responsive adjustments */
-@media (max-width: 480px) {
-  #idetik-navigation {
-    top: 16px;
-    left: 16px;
-  }
-  
-  .nav-menu {
-    width: calc(100vw - 32px);
-    max-width: 320px;
-  }
-}
-
-/* Dark theme support */
+/* Dark theme */
 @media (prefers-color-scheme: dark) {
   .nav-menu {
     background: rgba(30, 30, 30, 0.95);
@@ -258,19 +210,6 @@ body > *:not(#idetik-navigation) {
   .nav-item.active {
     background: rgba(59, 130, 246, 0.2);
     color: #60a5fa;
-  }
-  
-  .nav-footer {
-    background: rgba(20, 20, 20, 0.5);
-    border-top-color: rgba(255, 255, 255, 0.1);
-  }
-  
-  .nav-home {
-    color: #aaa;
-  }
-  
-  .nav-home:hover {
-    color: #fff;
   }
   
   .nav-empty {

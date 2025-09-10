@@ -7,33 +7,6 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function generateMainIndex(examples, examplesDir) {
-  // Redirect to the first example instead of showing a landing page
-  const firstExample = examples[0];
-  const redirectPath = firstExample ? firstExample.path : '/points/';
-
-  const indexHTML = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Idetik Examples</title>
-    <meta http-equiv="refresh" content="0; url=${redirectPath}">
-    <script>
-      // Fallback redirect if meta refresh doesn't work
-      window.location.href = '${redirectPath}';
-    </script>
-  </head>
-  <body>
-    <p>Redirecting to examples...</p>
-  </body>
-</html>`;
-
-  const indexPath = resolve(examplesDir, 'index.html');
-  writeFileSync(indexPath, indexHTML);
-  console.log('Generated main index.html');
-}
-
 function generateExamplesManifest() {
   const examplesDir = resolve(__dirname, 'examples');
   const entries = readdirSync(examplesDir, { withFileTypes: true })
@@ -65,8 +38,6 @@ function generateExamplesManifest() {
   };
   const manifestPath = resolve(examplesDir, 'examples-manifest.json');
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
-
-  generateMainIndex(examples, examplesDir);
 
   console.log(`Generated manifest with ${examples.length} examples:`);
   examples.forEach(example => {

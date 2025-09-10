@@ -47,15 +47,6 @@ function injectExamplesNavigation() {
         }
       });
 
-      server.middlewares.use('/navigation.js', (_req, res, next) => {
-        try {
-          const js = readFileSync(resolve(__dirname, 'examples/navigation.js'), 'utf-8');
-          res.setHeader('Content-Type', 'application/javascript');
-          res.end(js);
-        } catch (error) {
-          next(error);
-        }
-      });
 
       server.middlewares.use('/examples-manifest.json', (_req, res, next) => {
         try {
@@ -66,31 +57,23 @@ function injectExamplesNavigation() {
           next(error);
         }
       });
+
+      // Serve the main examples page dynamically to avoid file watching issues
+      server.middlewares.use('/examples/', (_req, res, next) => {
+        try {
+          const html = readFileSync(resolve(__dirname, 'examples/index.html'), 'utf-8');
+          res.setHeader('Content-Type', 'text/html');
+          res.end(html);
+        } catch (error) {
+          next(error);
+        }
+      });
     },
     transformIndexHtml: {
       order: 'post',
       handler(html, context) {
-        // Only inject navigation for example pages, not the main index
-        if (context.filename.includes('/examples/') && !context.filename.endsWith('/examples/index.html')) {
-          const navigationCSS = readFileSync(resolve(__dirname, 'examples/navigation.css'), 'utf-8');
-          const navigationJS = readFileSync(resolve(__dirname, 'examples/navigation.js'), 'utf-8');
-
-          // For build mode, inject inline. For dev mode, use external files
-          if (isDev) {
-            // Development mode - use external files
-            const injectedHTML = html
-              .replace('</head>', `  <link rel="stylesheet" href="/navigation.css">\n</head>`)
-              .replace('</body>', `  <script type="module" src="/navigation.js"></script>\n</body>`);
-            return injectedHTML;
-          } else {
-            // Build mode - inject inline
-            const injectedHTML = html
-              .replace('</head>', `  <style>${navigationCSS}</style>\n</head>`)
-              .replace('</body>', `  <script type="module">${navigationJS}</script>\n</body>`);
-            return injectedHTML;
-          }
-        }
-
+        // Navigation injection is now handled by the main examples/index.html page using iframes
+        // Individual example pages run clean without navigation injection
         return html;
       }
     }

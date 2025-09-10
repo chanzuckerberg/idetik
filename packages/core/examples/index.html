@@ -4,13 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Idetik Examples</title>
-    <meta http-equiv="refresh" content="0; url=/chunk_streaming/">
-    <script>
-      // Fallback redirect if meta refresh doesn't work
-      window.location.href = '/chunk_streaming/';
-    </script>
+    <link rel="stylesheet" href="/navigation.css" />
   </head>
   <body>
-    <p>Redirecting to examples...</p>
+    <div class="container">
+      <div class="content">
+        <iframe id="example-frame" src=""></iframe>
+      </div>
+
+      <nav id="idetik-navigation">
+        <div class="nav-header-bar">
+          <h1 class="nav-header-title">Idetik Examples</h1>
+          <button class="nav-toggle">Select Example</button>
+        </div>
+
+        <div class="nav-menu">
+          <div class="nav-header">
+            <h3>Examples</h3>
+            <button class="nav-close">✕</button>
+          </div>
+
+          <div class="nav-content">
+            <div class="nav-list" id="examples-list">
+              <div class="nav-empty">Loading examples...</div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <script type="module" src="/navigation.ts"></script>
   </body>
 </html>

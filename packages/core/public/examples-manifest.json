@@ -1,6 +1,5 @@
 {
-  "version": "1.0",
-  "generated": "2025-09-05T14:03:19.676Z",
+  "generated": "2025-09-10T13:12:22.987Z",
   "examples": [
     {
       "id": "chunk_streaming",
@@ -9,8 +8,32 @@
       "directory": "chunk_streaming"
     },
     {
+      "id": "image2d_from_omezarr4d_hcs",
+      "title": "Image 2D from OME-Zarr 4D HCS",
+      "path": "/image2d_from_omezarr4d_hcs/",
+      "directory": "image2d_from_omezarr4d_hcs"
+    },
+    {
+      "id": "image2d_from_omezarr5d_u16",
+      "title": "Image 2D from OME-Zarr 5D U16",
+      "path": "/image2d_from_omezarr5d_u16/",
+      "directory": "image2d_from_omezarr5d_u16"
+    },
+    {
+      "id": "image_labels_overlay_with_value_picking",
+      "title": "Image Labels Overlay with Value Picking",
+      "path": "/image_labels_overlay_with_value_picking/",
+      "directory": "image_labels_overlay_with_value_picking"
+    },
+    {
+      "id": "image_mask_overlay",
+      "title": "Image Mask Overlay",
+      "path": "/image_mask_overlay/",
+      "directory": "image_mask_overlay"
+    },
+    {
       "id": "image_series_from_omezarr5d_u8",
-      "title": "Image Series From Omezarr5d U8",
+      "title": "Image Series from OME-Zarr 5D U8",
       "path": "/image_series_from_omezarr5d_u8/",
       "directory": "image_series_from_omezarr5d_u8"
     },
@@ -21,18 +44,6 @@
       "directory": "image_series_labels_overlay"
     },
     {
-      "id": "image2d_from_omezarr4d_hcs",
-      "title": "Image2d From Omezarr4d Hcs",
-      "path": "/image2d_from_omezarr4d_hcs/",
-      "directory": "image2d_from_omezarr4d_hcs"
-    },
-    {
-      "id": "image2d_from_omezarr5d_u16",
-      "title": "Image2d From Omezarr5d U16",
-      "path": "/image2d_from_omezarr5d_u16/",
-      "directory": "image2d_from_omezarr5d_u16"
-    },
-    {
       "id": "layer_blending",
       "title": "Layer Blending",
       "path": "/layer_blending/",
@@ -40,15 +51,9 @@
     },
     {
       "id": "ome_zarr_v05",
-      "title": "Ome Zarr V05",
+      "title": "OME-Zarr v0.5",
       "path": "/ome_zarr_v05/",
       "directory": "ome_zarr_v05"
-    },
-    {
-      "id": "image_labels_overlay_with_value_picking",
-      "title": "Point Picking Example",
-      "path": "/image_labels_overlay_with_value_picking/",
-      "directory": "image_labels_overlay_with_value_picking"
     },
     {
       "id": "points",
@@ -67,12 +72,6 @@
       "title": "Tracks",
       "path": "/tracks/",
       "directory": "tracks"
-    },
-    {
-      "id": "image_mask_overlay",
-      "title": "Z-Stack Viewer",
-      "path": "/image_mask_overlay/",
-      "directory": "image_mask_overlay"
     }
   ]
 }
