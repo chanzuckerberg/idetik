@@ -532,7 +532,6 @@ function createLayer(
       source,
       sliceCoords,
       channelProps,
-      lod: resolutionLevel,
     });
   } else {
     return new ImageSeriesLayer({
