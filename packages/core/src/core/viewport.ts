@@ -79,11 +79,6 @@ export class Viewport implements EventProvider {
     );
   }
 
-  public clientToWorld(position: vec2, depth: number = 0): vec3 {
-    const clipPos = this.clientToClip(position, depth);
-    return this.camera.clipToWorld(clipPos);
-  }
-
   public processEvent(eventContext: EventContext): EventContext {
     const clipPos = this.clientToClip(eventContext.clientPos, 0);
     const worldPos = this.camera.clipToWorld(clipPos);
