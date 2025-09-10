@@ -1,6 +1,6 @@
+import "@testing-library/jest-dom";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import "@testing-library/jest-dom";
 import { IdetikProvider } from "../../src/components/providers/IdetikProvider";
 import { IdetikContextValue, useIdetik } from "../../src/hooks/useIdetik";
 import { Idetik } from "@idetik/core-prerelease";
