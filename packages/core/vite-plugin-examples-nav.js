@@ -5,28 +5,37 @@ import { generateExamplesManifest } from "./generate-examples-manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function injectExamplesNavigation() {
+function examplesManifestPlugin() {
   return {
     name: "examples-navigation",
-    buildStart() {
+    buildStart(options) {
+      if (options.command !== "build" || options.mode !== "examples") {
+        return;
+      }
+
       try {
         generateExamplesManifest();
-        // Copy to public directory for dev server
-        const manifestPath = resolve(__dirname, "examples", "examples-manifest.json");
-        const publicManifestPath = resolve(__dirname, "public", "examples-manifest.json");
-        copyFileSync(manifestPath, publicManifestPath);
-        console.log("Examples manifest generated and copied to public");
+        console.log("Examples manifest generated");
       } catch (error) {
         console.error("Failed to generate examples manifest:", error);
       }
     },
     configureServer(server) {
+      try {
+        generateExamplesManifest();
+        // copy exaples manifest to public directory for dev server
+        const manifestPath = resolve(__dirname, "examples", "examples-manifest.json");
+        const publicManifestPath = resolve(__dirname, "public", "examples-manifest.json");
+        copyFileSync(manifestPath, publicManifestPath);
+        console.log("Examples manifest generated and copied to public for dev server");
+      } catch (error) {
+        console.error("Failed to generate examples manifest:", error);
+      }
+
       // watch the entire examples directory for changes (including new files/directories)
       const fileWatcher = server.watcher;
       const examplesDir = resolve(__dirname, "examples");
       const distDir = resolve(__dirname, "examples", "dist");
-
-      // Watch the entire examples directory recursively for changes
       fileWatcher.add(examplesDir);
 
       const regenerateManifest = () => {
@@ -69,4 +78,4 @@ function injectExamplesNavigation() {
   };
 }
 
-export default injectExamplesNavigation;
+export default examplesManifestPlugin;
