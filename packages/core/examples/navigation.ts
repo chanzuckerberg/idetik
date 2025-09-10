@@ -12,6 +12,7 @@ interface Manifest {
 
 class IdetikNavigation {
   private navigation_: HTMLElement;
+  private navTitle_: HTMLElement;
   private toggle_: HTMLButtonElement;
   private close_: HTMLButtonElement;
   private examplesList_: HTMLElement;
@@ -20,6 +21,7 @@ class IdetikNavigation {
 
   constructor() {
     this.navigation_ = document.getElementById("idetik-navigation")!;
+    this.navTitle_ = this.navigation_.querySelector(".nav-header-title")!;
     this.toggle_ = this.navigation_.querySelector(".nav-toggle")!;
     this.close_ = this.navigation_.querySelector(".nav-close")!;
     this.examplesList_ = document.getElementById("examples-list")!;
@@ -128,6 +130,7 @@ class IdetikNavigation {
     const example = this.examples_.find((ex) => ex.path === path);
     if (example) {
       document.title = `${example.title} - Idetik Examples`;
+      this.navTitle_.textContent = document.title;
     }
   }
 
