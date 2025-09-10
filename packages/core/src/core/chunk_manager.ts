@@ -157,6 +157,13 @@ export class ChunkManagerSource {
   }
 
   private setLOD(lodFactor: number): void {
+    // `scale` here is the x-width of an image pixel in virtual units at LOD 0.
+    // So (ignoring the bias term) subtracting `lodFactor` from `Math.log2(scale)`
+    // is effectively `Math.log2(virtualUnitsPerScreenPixel / xScale)`.
+    // That is, `adjustedLodFactor = Math.log2(imagePixelsPerScreenPixel)`;
+    // or in other words, how many image pixels (LOD 0) fit in a screen pixel.
+    // Use of log2 here and in ChunkManager relies on the assumption that
+    // each LOD is downsampled by a factor of 2 in X and Y.
     const sourceAdjustment =
       this.lodBias_ - Math.log2(this.dimensions_.x.lods[0].scale);
     const sourceAdjustedLodFactor = sourceAdjustment - lodFactor;
