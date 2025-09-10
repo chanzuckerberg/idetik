@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import React from "react";
 import { IdetikCanvas } from "../../src/components/IdetikCanvas";
 import { IdetikProvider } from "../../src/components/providers/IdetikProvider";

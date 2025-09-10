@@ -80,7 +80,6 @@ export default defineConfig(() => {
     test: {
       globals: true,
       environment: "jsdom",
-      setupFiles: ["./test/setup.ts"],
       reporters: ['default', 'hanging-process'],
       // Temporarily disable browser testing to check basic functionality
       // browser: {
