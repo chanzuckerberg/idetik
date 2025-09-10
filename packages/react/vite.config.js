@@ -77,5 +77,23 @@ export default defineConfig(() => {
         include: [path.resolve(_dirname, "src/**")],
       },
     },
+    test: {
+      environment: "jsdom",
+      setupFiles: ["./test/setup.ts"],
+      browser: {
+        enabled: true,
+        provider: "playwright",
+        headless: true,
+        instances: [
+          {
+            browser: "chromium",
+          },
+        ],
+      },
+      coverage: {
+        provider: "istanbul",
+        include: ["src/**"],
+      },
+    },
   };
 });
