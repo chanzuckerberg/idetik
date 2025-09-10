@@ -30,9 +30,37 @@ type Module =
   | "WebGLTexture"
   | "WireframeGeometry";
 
+export function getMode(): "production" | "development" | "test" {
+  const nodeEnv =
+    typeof process !== "undefined" && typeof process.env?.NODE_ENV === "string"
+      ? process.env.NODE_ENV
+      : undefined;
+
+  if (
+    nodeEnv === "production" ||
+    nodeEnv === "development" ||
+    nodeEnv === "test"
+  ) {
+    return nodeEnv;
+  }
+
+  if (typeof window !== "undefined") {
+    const { NODE_ENV } = window as { NODE_ENV?: unknown };
+
+    if (
+      NODE_ENV === "production" ||
+      NODE_ENV === "development" ||
+      NODE_ENV === "test"
+    ) {
+      return NODE_ENV;
+    }
+  }
+
+  return "development";
+}
 export class Logger {
   private static logLevel_: LogLevel =
-    import.meta.env.MODE === "production" ? "warn" : "debug";
+    getMode() === "production" ? "warn" : "debug";
 
   public static setLogLevel(level: LogLevel) {
     Logger.logLevel_ = level;
