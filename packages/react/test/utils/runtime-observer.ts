@@ -5,38 +5,40 @@ import { Idetik, Layer } from '@idetik/core-prerelease';
  * to track when the animation loop starts and stops.
  */
 export class RuntimeObserverLayer extends Layer {
-  private animationFrameCallbacks = 0;
-  private isActive = false;
+  public readonly type = "RuntimeObserverLayer";
+  
+  private animationFrameCallbacks_ = 0;
+  private isActive_ = false;
 
   constructor() {
     super();
   }
 
-  render(): void {
-    this.animationFrameCallbacks++;
-    this.isActive = true;
+  update(): void {
+    this.animationFrameCallbacks_++;
+    this.isActive_ = true;
   }
 
   /**
    * Get the number of animation frames that have been rendered
    */
   getFrameCount(): number {
-    return this.animationFrameCallbacks;
+    return this.animationFrameCallbacks_;
   }
 
   /**
    * Check if the layer has been rendered at least once
    */
   isRenderingActive(): boolean {
-    return this.isActive;
+    return this.isActive_;
   }
 
   /**
    * Reset the frame counter and active state
    */
   reset(): void {
-    this.animationFrameCallbacks = 0;
-    this.isActive = false;
+    this.animationFrameCallbacks_ = 0;
+    this.isActive_ = false;
   }
 }
 
@@ -45,7 +47,7 @@ export class RuntimeObserverLayer extends Layer {
  * the observer layer has been called
  */
 export async function waitForRuntimeStart(
-  runtime: Idetik,
+  _runtime: Idetik,
   observer: RuntimeObserverLayer,
   timeout = 1000
 ): Promise<void> {

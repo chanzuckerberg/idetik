@@ -6,6 +6,8 @@
     "dev": "vite",
     "compile": "tsc",
     "build": "vite build && tsc && rollup -c rollup.config.js",
+    "test": "vitest run",
+    "test-with-coverage": "vitest run --coverage",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
     "lint": "eslint .",
