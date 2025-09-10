@@ -89,7 +89,7 @@ export class Idetik {
 
     this.events = new EventDispatcher(canvas);
     for (const viewport of this.viewports_) {
-      this.events.addViewport(viewport);
+      this.events.addProvider(viewport);
     }
 
     for (const overlay of this.overlays) {

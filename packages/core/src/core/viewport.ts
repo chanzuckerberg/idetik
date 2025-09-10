@@ -6,6 +6,7 @@ import { Box2 } from "../math/box2";
 import { vec2, vec3 } from "gl-matrix";
 import { generateUUID } from "../utilities/uuid_generator";
 import { Logger } from "../utilities/logger";
+import { EventContext, EventProvider } from "./event_dispatcher";
 
 export interface ViewportConfig {
   id?: string;
@@ -15,7 +16,7 @@ export interface ViewportConfig {
   cameraControls?: CameraControls;
 }
 
-export class Viewport {
+export class Viewport implements EventProvider {
   public readonly id: string;
   public readonly element: HTMLElement;
   public readonly camera: Camera;
@@ -81,6 +82,30 @@ export class Viewport {
   public clientToWorld(position: vec2, depth: number = 0): vec3 {
     const clipPos = this.clientToClip(position, depth);
     return this.camera.clipToWorld(clipPos);
+  }
+
+  public processEvent(eventContext: EventContext): EventContext {
+    const clipPos = this.clientToClip(eventContext.clientPos, 0);
+    const worldPos = this.camera.clipToWorld(clipPos);
+    const augmentedContext = new EventContext(
+      eventContext.type,
+      eventContext.event,
+      eventContext.clientPos,
+      worldPos,
+      clipPos,
+      this
+    );
+
+    for (const layer of this.layerManager.layers) {
+      layer.onEvent(augmentedContext);
+      if (augmentedContext.propagationStopped) break;
+    }
+
+    if (!augmentedContext.propagationStopped) {
+      this.cameraControls?.onEvent(augmentedContext);
+    }
+
+    return augmentedContext;
   }
 
   private getBox(): Box2 {

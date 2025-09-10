@@ -1,6 +1,5 @@
 import { vec2, vec3 } from "gl-matrix";
 import { Logger } from "../utilities/logger";
-import { Viewport } from "./viewport";
 
 const eventTypes = [
   "pointerdown",
@@ -17,6 +16,12 @@ function isEventType(type: string): type is EventType {
   return (eventTypes as readonly string[]).includes(type);
 }
 
+function hasClientCoordinates(
+  event: Event
+): event is Event & { clientX: number; clientY: number } {
+  return "clientX" in event && "clientY" in event;
+}
+
 export class EventContext {
   private propagationStopped_: boolean = false;
   public readonly type: EventType;
@@ -24,7 +29,7 @@ export class EventContext {
   public readonly clientPos: vec2;
   public readonly worldPos?: vec3;
   public readonly clipPos?: vec3;
-  public readonly sourceViewport?: Viewport;
+  public readonly source?: EventProvider;
 
   constructor(
     type: EventType,
@@ -32,14 +37,14 @@ export class EventContext {
     clientPos: vec2,
     worldPos?: vec3,
     clipPos?: vec3,
-    sourceViewport?: Viewport
+    source?: EventProvider
   ) {
     this.type = type;
     this.event = event;
     this.clientPos = clientPos;
     this.worldPos = worldPos;
     this.clipPos = clipPos;
-    this.sourceViewport = sourceViewport;
+    this.source = source;
   }
 
   get propagationStopped() {
@@ -49,143 +54,109 @@ export class EventContext {
   stopPropagation() {
     this.propagationStopped_ = true;
   }
+
+  public static fromDOMEvent(domEvent: Event): EventContext | null {
+    if (!isEventType(domEvent.type)) {
+      return null;
+    }
+    const clientPos = hasClientCoordinates(domEvent)
+      ? vec2.fromValues(domEvent.clientX, domEvent.clientY)
+      : vec2.fromValues(0, 0);
+    return new EventContext(domEvent.type, domEvent, clientPos);
+  }
 }
 
 type Listener = (event: EventContext) => void;
+type DOMEventListener = (e: Event) => void;
+
+export interface EventProvider {
+  readonly element: HTMLElement;
+  processEvent(eventContext: EventContext): EventContext;
+}
+
+class CanvasEventProvider implements EventProvider {
+  public readonly element: HTMLCanvasElement;
+
+  constructor(element: HTMLCanvasElement) {
+    this.element = element;
+  }
+
+  processEvent(eventContext: EventContext): EventContext {
+    return new EventContext(
+      eventContext.type,
+      eventContext.event,
+      eventContext.clientPos,
+      eventContext.worldPos,
+      eventContext.clipPos,
+      this
+    );
+  }
+}
 
 export class EventDispatcher {
   private readonly listeners_: Listener[] = [];
-  private readonly viewportEventHandlers_: Map<Viewport, (e: Event) => void> =
+  private readonly domListeners_: Map<EventProvider, DOMEventListener> =
     new Map();
 
   constructor(canvas: HTMLCanvasElement) {
-    eventTypes.forEach((type) => {
-      canvas.addEventListener(type, this.handleEvent, { passive: false });
-    });
+    const canvasProvider = new CanvasEventProvider(canvas);
+    this.addProvider(canvasProvider);
   }
 
   public addEventListener(listener: Listener) {
     this.listeners_.push(listener);
   }
 
-  public addViewport(viewport: Viewport) {
-    if (this.viewportEventHandlers_.has(viewport)) {
+  public addProvider(provider: EventProvider) {
+    if (this.domListeners_.has(provider)) {
+      Logger.warn("EventDispatcher", `Provider ${provider} already registered`);
+      return;
+    }
+
+    const domHandler = this.createHandler(provider);
+    this.domListeners_.set(provider, domHandler);
+
+    eventTypes.forEach((type) => {
+      provider.element.addEventListener(type, domHandler, { passive: false });
+    });
+  }
+
+  public removeProvider(provider: EventProvider) {
+    if (!this.domListeners_.has(provider)) {
       Logger.warn(
         "EventDispatcher",
-        `Viewport ${viewport.id} already registered`
+        `Provider ${provider} not found for removal`
       );
       return;
     }
 
-    const handler = this.createViewportEventHandler(viewport);
-    this.viewportEventHandlers_.set(viewport, handler);
-
-    eventTypes.forEach((type) => {
-      viewport.element.addEventListener(type, handler, { passive: false });
-    });
-  }
-
-  public removeViewport(viewport: Viewport) {
-    const handler = this.viewportEventHandlers_.get(viewport);
-    if (!handler) {
-      Logger.warn(
-        "EventDispatcher",
-        `Viewport ${viewport.id} not found for removal`
-      );
-      return;
-    }
-
-    eventTypes.forEach((type) => {
-      viewport.element.removeEventListener(type, handler);
-    });
-    this.viewportEventHandlers_.delete(viewport);
-  }
-
-  public setViewports(viewports: Viewport[]) {
-    for (const viewport of this.viewportEventHandlers_.keys()) {
-      this.removeViewport(viewport);
-    }
-
-    for (const viewport of viewports) {
-      this.addViewport(viewport);
+    const domHandler = this.domListeners_.get(provider);
+    if (domHandler) {
+      eventTypes.forEach((type) => {
+        provider.element.removeEventListener(type, domHandler);
+      });
+      this.domListeners_.delete(provider);
     }
   }
 
-  private createViewportEventHandler(viewport: Viewport): (e: Event) => void {
+  private createHandler(provider: EventProvider): DOMEventListener {
     return (e: Event) => {
-      if (!isEventType(e.type)) {
-        Logger.error("EventDispatcher", `Unsupported event type ${e.type}`);
+      const baseEventContext = EventContext.fromDOMEvent(e);
+      if (!baseEventContext) {
         return;
       }
 
-      const clientPos = this.extractClientPos(e);
-
-      const { worldPos, clipPos } = this.getWorldPosition(e, viewport);
-      const event = new EventContext(
-        e.type,
-        e,
-        clientPos,
-        worldPos,
-        clipPos,
-        viewport
-      );
-
-      // pass viewport events to their own layers first
-      for (const layer of viewport.layerManager.layers) {
-        layer.onEvent(event);
-        if (event.propagationStopped) return;
+      // let provider process the context (augment + handle internal distribution) first
+      const eventContext = provider.processEvent(baseEventContext);
+      if (eventContext.propagationStopped) {
+        return;
       }
 
-      viewport.cameraControls?.onEvent(event);
-      if (event.propagationStopped) return;
-
+      // distribute provider-augmented context to global listeners if not stopped
       for (const listener of this.listeners_) {
-        listener(event);
-        if (event.propagationStopped) return;
+        listener(eventContext);
+        if (eventContext.propagationStopped) return;
       }
     };
   }
-
-  private extractClientPos(event: Event): vec2 {
-    if (this.hasClientCoordinates(event)) {
-      return vec2.fromValues(event.clientX, event.clientY);
-    }
-    return vec2.fromValues(0, 0);
-  }
-
-  private getWorldPosition(
-    event: Event,
-    viewport: Viewport
-  ): { worldPos?: vec3; clipPos?: vec3 } {
-    if (this.hasClientCoordinates(event)) {
-      const clipPos = viewport.clientToClip([event.clientX, event.clientY], 0);
-      const worldPos = viewport.camera.clipToWorld(clipPos);
-      return { worldPos, clipPos };
-    } else {
-      return {};
-    }
-  }
-
-  private hasClientCoordinates(
-    event: Event
-  ): event is Event & { clientX: number; clientY: number } {
-    return "clientX" in event && "clientY" in event;
-  }
-
-  private readonly handleEvent = (e: Event) => {
-    if (!isEventType(e.type)) {
-      Logger.error("EventDispatcher", `Unsupported event type ${e.type}`);
-      return;
-    }
-
-    const clientPos = this.extractClientPos(e);
-
-    // base canvas event - no viewport context
-    const event = new EventContext(e.type, e, clientPos);
-
-    for (const listener of this.listeners_) {
-      listener(event);
-      if (event.propagationStopped) return;
-    }
-  };
 }
