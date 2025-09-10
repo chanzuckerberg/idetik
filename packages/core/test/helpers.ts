@@ -1,7 +1,7 @@
 import type { Chunk } from "@/data/chunk";
 
 type ChunkOverrides = Partial<
-  Omit<Chunk, "shape" | "chunkIndex" | "scale" | "offset">
+  Omit<Chunk, "shape" | "chunkIndex" | "scale" | "offset" | "rowStride">
 > & {
   shape?: Partial<Chunk["shape"]>;
   chunkIndex?: Partial<Chunk["chunkIndex"]>;
@@ -26,13 +26,16 @@ export function makeChunk(overrides: ChunkOverrides = {}): Chunk {
     offset: { x: 0, y: 0, z: 0 },
   };
 
+  const mergedShape = { ...defaultChunk.shape, ...(shape ?? {}) };
+
   return {
     ...defaultChunk,
     ...rest,
-    shape: { ...defaultChunk.shape, ...(shape ?? {}) },
+    shape: mergedShape,
     chunkIndex: { ...defaultChunk.chunkIndex, ...(chunkIndex ?? {}) },
     scale: { ...defaultChunk.scale, ...(scale ?? {}) },
     offset: { ...defaultChunk.offset, ...(offset ?? {}) },
+    rowStride: mergedShape.x,
   };
 }
 

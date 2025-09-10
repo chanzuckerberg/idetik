@@ -72,7 +72,6 @@ describe("poolKeyForImageRenderable", () => {
       makeChunk({
         lod: 2,
         shape: { x: 256, y: 128 },
-        rowStride: 256,
         rowAlignmentBytes: 4,
       })
     );

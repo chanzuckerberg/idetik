@@ -11,7 +11,7 @@ import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
-import { ChunkQueue } from "@/utilities/chunk_queue";
+import { ChunkQueue } from "../data/chunk_queue";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -388,5 +388,7 @@ export class ChunkManager {
         }
       }
     }
+
+    this.queue_.flush();
   }
 }

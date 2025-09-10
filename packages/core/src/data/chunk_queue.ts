@@ -1,5 +1,5 @@
-import { Chunk } from "@/data/chunk";
-import { Logger } from "./logger";
+import { Chunk } from "./chunk";
+import { Logger } from "../utilities/logger";
 
 const MAX_CONCURRENT = 8;
 
@@ -24,6 +24,9 @@ export class ChunkQueue {
     if (this.pending_.some((p) => p.chunk === chunk)) return;
 
     this.pending_.push({ chunk, fn });
+  }
+
+  flush() {
     this.pump();
   }
 
@@ -43,16 +46,24 @@ export class ChunkQueue {
   }
 
   private pump() {
+    if (
+      this.running_.size >= this.maxConcurrent_ ||
+      this.pending_.length === 0
+    ) {
+      return;
+    }
+
+    this.pending_.sort((a, b) => {
+      return (
+        (a.chunk.priority ?? Number.MAX_SAFE_INTEGER) -
+        (b.chunk.priority ?? Number.MAX_SAFE_INTEGER)
+      );
+    });
+
     while (
       this.running_.size < this.maxConcurrent_ &&
       this.pending_.length > 0
     ) {
-      this.pending_.sort((a, b) => {
-        return (
-          (a.chunk.priority ?? Number.MAX_SAFE_INTEGER) -
-          (b.chunk.priority ?? Number.MAX_SAFE_INTEGER)
-        );
-      });
       this.start(this.pending_.shift()!);
     }
   }
@@ -67,18 +78,18 @@ export class ChunkQueue {
       .then(
         () => {
           if (chunk.state === "loading") chunk.state = "loaded";
-          this.running_.delete(chunk);
-          this.pump();
         },
         (err) => {
           if (chunk.state === "loading") chunk.state = "unloaded";
-          this.running_.delete(chunk);
-          this.pump();
           if (err.name !== "AbortError") {
             Logger.error("ChunkQueue", String(err));
           }
         }
-      );
+      )
+      .finally(() => {
+        this.running_.delete(chunk);
+        this.pump();
+      });
 
     this.running_.set(chunk, { controller, promise });
   }
