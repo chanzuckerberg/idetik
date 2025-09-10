@@ -21,9 +21,9 @@ class IdetikNavigation {
 
   constructor() {
     this.navigation_ = document.getElementById("idetik-navigation")!;
-    this.navTitle_ = this.navigation_.querySelector(".nav-header-title")!;
-    this.toggle_ = this.navigation_.querySelector(".nav-toggle")!;
-    this.close_ = this.navigation_.querySelector(".nav-close")!;
+    this.navTitle_ = document.getElementById("nav-title")!;
+    this.toggle_ = document.getElementById("nav-toggle")! as HTMLButtonElement;
+    this.close_ = document.getElementById("nav-close")! as HTMLButtonElement;
     this.examplesList_ = document.getElementById("examples-list")!;
     this.iframe_ = document.getElementById(
       "example-frame"
@@ -48,7 +48,7 @@ class IdetikNavigation {
 
   private async loadExamples(): Promise<void> {
     try {
-      const response = await fetch("/examples-manifest.json");
+      const response = await fetch(`/examples-manifest.json?t=${Date.now()}`);
       const manifest: Manifest = await response.json();
       this.examples_ = manifest.examples || [];
       this.renderExamples();
