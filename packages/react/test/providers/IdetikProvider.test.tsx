@@ -17,7 +17,7 @@ vi.mock("@idetik/core-prerelease", () => ({
   PanZoomControls: vi.fn().mockImplementation(() => ({ mockControls: true })),
 }));
 
-describe("IdetikProvider - Basic Tests", () => {
+describe("IdetikProvider", () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
