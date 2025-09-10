@@ -10,7 +10,7 @@ import {
   loadOmeroDefaults,
   ChannelProps,
   Idetik,
-  ImageLayer,
+  ChunkedImageLayer,
 } from "@idetik/core-prerelease";
 import { useIdetik } from "../../../hooks/useIdetik";
 import { IdetikCanvas } from "../../IdetikCanvas";
@@ -100,7 +100,7 @@ export function OmeZarrImageViewer({
     ExtraControlProps[]
   >([]);
   const sourceRef = useRef<OmeZarrImageSource | null>(null);
-  const imageLayerRef = useRef<ImageLayer | ImageSeriesLayer | null>(null);
+  const imageLayerRef = useRef<ChunkedImageLayer | ImageSeriesLayer | null>(null);
 
   // #region Initialization
   const { directory, path } = sourceLocalDirectory ?? {};
@@ -518,21 +518,31 @@ function createLayer(
   channelProps: ChannelProps[],
   resolutionLevel: number,
   seriesDimensionName?: string
-): ImageLayer | ImageSeriesLayer {
-  return seriesDimensionName === undefined
-    ? new ImageLayer({
-        source,
-        region,
-        channelProps,
-        lod: resolutionLevel,
-      })
-    : new ImageSeriesLayer({
-        source,
-        region,
-        channelProps,
-        seriesDimensionName,
-        lod: resolutionLevel,
-      });
+): ChunkedImageLayer | ImageSeriesLayer {
+  if (seriesDimensionName === undefined) {
+    // Convert region to sliceCoords for ChunkedImageLayer
+    const sliceCoords: { [key: string]: number } = {};
+    region.forEach(regionDim => {
+      if (regionDim.index?.type === 'point') {
+        sliceCoords[regionDim.dimension.toLowerCase()] = regionDim.index.value;
+      }
+    });
+    
+    return new ChunkedImageLayer({
+      source,
+      sliceCoords,
+      channelProps,
+      lod: resolutionLevel,
+    });
+  } else {
+    return new ImageSeriesLayer({
+      source,
+      region,
+      channelProps,
+      seriesDimensionName,
+      lod: resolutionLevel,
+    });
+  }
 }
 
 function zoomToFit(
