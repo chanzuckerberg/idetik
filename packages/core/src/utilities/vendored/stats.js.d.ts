@@ -1,3 +1,4 @@
+// duplicated from stats.d.ts to avoid type errors (needed for build)
 export type StatsPanel = {
   dom: HTMLCanvasElement;
   update(value: number, maxValue: number): void;

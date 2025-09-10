@@ -30,24 +30,32 @@ type Module =
   | "WebGLTexture"
   | "WireframeGeometry";
 
-function getMode(): "production" | "development" | "test" {
-  if (typeof process !== "undefined" && process.env && process.env.NODE_ENV) {
-    return process.env.NODE_ENV === "production"
-      ? "production"
-      : process.env.NODE_ENV === "test"
-        ? "test"
-        : "development";
-  }
-  // Fallback for browser/test environments, type-safe version
+export function getMode(): "production" | "development" | "test" {
+  const nodeEnv =
+    typeof process !== "undefined" && typeof process.env?.NODE_ENV === "string"
+      ? process.env.NODE_ENV
+      : undefined;
+
   if (
-    typeof window !== "undefined" &&
-    typeof (window as { NODE_ENV?: string }).NODE_ENV === "string"
+    nodeEnv === "production" ||
+    nodeEnv === "development" ||
+    nodeEnv === "test"
   ) {
-    const env = (window as { NODE_ENV?: string }).NODE_ENV;
-    if (env === "production" || env === "test" || env === "development") {
-      return env;
+    return nodeEnv;
+  }
+
+  if (typeof window !== "undefined") {
+    const { NODE_ENV } = window as { NODE_ENV?: unknown };
+
+    if (
+      NODE_ENV === "production" ||
+      NODE_ENV === "development" ||
+      NODE_ENV === "test"
+    ) {
+      return NODE_ENV;
     }
   }
+
   return "development";
 }
 export class Logger {
