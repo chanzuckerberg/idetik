@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import React, { useEffect, useRef } from 'react';
 import { IdetikProvider } from '../../src/components/providers/IdetikProvider';
@@ -12,8 +12,24 @@ import {
 import { waitFor, waitForAnimationFrames } from '../utils/test-helpers';
 
 describe('IdetikProvider', () => {
+  const createdRuntimes: Array<ReturnType<typeof useIdetik>['runtime']> = [];
+  
   beforeEach(() => {
     cleanup();
+  });
+  
+  afterEach(() => {
+    // Clean up any runtimes that weren't properly stopped
+    createdRuntimes.forEach(runtime => {
+      if (runtime) {
+        try {
+          runtime.stop();
+        } catch (_e) {
+          // Ignore errors if already stopped
+        }
+      }
+    });
+    createdRuntimes.length = 0;
   });
 
   describe('Mount Behavior', () => {
@@ -54,6 +70,7 @@ describe('IdetikProvider', () => {
         useEffect(() => {
           if (runtime) {
             capturedRuntime = runtime;
+            createdRuntimes.push(runtime);
             observer = createRuntimeObserver(runtime);
           }
         }, [runtime]);

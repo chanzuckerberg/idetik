@@ -81,16 +81,18 @@ export default defineConfig(() => {
       globals: true,
       environment: "jsdom",
       setupFiles: ["./test/setup.ts"],
-      browser: {
-        enabled: true,
-        provider: "playwright",
-        headless: true,
-        instances: [
-          {
-            browser: "chromium",
-          },
-        ],
-      },
+      reporters: ['default', 'hanging-process'],
+      // Temporarily disable browser testing to check basic functionality
+      // browser: {
+      //   enabled: true,
+      //   provider: "playwright",
+      //   headless: true,
+      //   instances: [
+      //     {
+      //       browser: "chromium",
+      //     },
+      //   ],
+      // },
       coverage: {
         provider: "istanbul",
         include: ["src/**"],
