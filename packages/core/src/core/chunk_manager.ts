@@ -28,6 +28,9 @@ export class ChunkManagerSource {
   private readonly sliceCoords_: SliceCoordinates;
   private readonly dimensions_: SourceDimensionMap;
   private currentLOD_: number = 0;
+  // TODO: make LOD bias configurable per-source or per-layer
+  // positive values nudge towards coarser resolution (higher LOD number)
+  private lodBias_: number = 0.5;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
 
@@ -154,10 +157,20 @@ export class ChunkManagerSource {
   }
 
   private setLOD(lodFactor: number): void {
+    // `scale` here is the x-width of an image pixel in virtual units at LOD 0.
+    // So (ignoring the bias term) subtracting `lodFactor` from `Math.log2(scale)`
+    // is effectively `Math.log2(virtualUnitsPerScreenPixel / xScale)`.
+    // That is, `adjustedLodFactor = Math.log2(imagePixelsPerScreenPixel)`;
+    // or in other words, how many image pixels (LOD 0) fit in a screen pixel.
+    // Use of log2 here and in ChunkManager relies on the assumption that
+    // each LOD is downsampled by a factor of 2 in X and Y.
+    const sourceAdjustment =
+      this.lodBias_ - Math.log2(this.dimensions_.x.lods[0].scale);
+    const sourceAdjustedLodFactor = sourceAdjustment - lodFactor;
     const maxLOD = this.lowestResLOD_;
     const targetLOD = Math.max(
       0,
-      Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
+      Math.min(maxLOD, Math.floor(sourceAdjustedLodFactor))
     );
 
     if (targetLOD !== this.currentLOD_) {
