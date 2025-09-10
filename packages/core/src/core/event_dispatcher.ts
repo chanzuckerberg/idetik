@@ -57,6 +57,10 @@ export class EventContext {
 
   public static fromDOMEvent(domEvent: Event): EventContext | null {
     if (!isEventType(domEvent.type)) {
+      Logger.error(
+        "EventDispatcher",
+        `Unsupported event type ${domEvent.type}`
+      );
       return null;
     }
     const clientPos = hasClientCoordinates(domEvent)
