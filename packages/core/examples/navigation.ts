@@ -105,13 +105,15 @@ class IdetikNavigation {
   }
 
   private loadExample(path: string): void {
-    // Replace iframe instead of changing src to avoid history pollution
     const container = this.iframe_.parentElement!;
     const oldIframe = this.iframe_;
+    const validExample = this.examples_.find((ex) => ex.path === path);
+    const safePath = validExample ? validExample.path : this.examples_[0]?.path || "about:blank";
 
+    // replace iframe instead of changing src to avoid history pollution
     const newIframe = document.createElement("iframe");
     newIframe.id = "example-frame";
-    newIframe.src = path;
+    newIframe.src = safePath;
     newIframe.style.width = "100%";
     newIframe.style.height = "100%";
     newIframe.style.border = "none";
@@ -123,13 +125,12 @@ class IdetikNavigation {
     this.examplesList_.querySelectorAll(".nav-item").forEach((item) => {
       item.classList.toggle(
         "active",
-        (item as HTMLElement).dataset.path === path
-      );
+        (item as HTMLElement).dataset.path === safePath
+      )
     });
 
-    const example = this.examples_.find((ex) => ex.path === path);
-    if (example) {
-      document.title = `${example.title} - Idetik Examples`;
+    if (validExample) {
+      document.title = `${validExample.title} - Idetik Examples`;
       this.navTitle_.textContent = document.title;
     }
   }
