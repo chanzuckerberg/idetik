@@ -108,7 +108,9 @@ class IdetikNavigation {
     const container = this.iframe_.parentElement!;
     const oldIframe = this.iframe_;
     const validExample = this.examples_.find((ex) => ex.path === path);
-    const safePath = validExample ? validExample.path : this.examples_[0]?.path || "about:blank";
+    const safePath = validExample
+      ? validExample.path
+      : this.examples_[0]?.path || "about:blank";
 
     // replace iframe instead of changing src to avoid history pollution
     const newIframe = document.createElement("iframe");
@@ -126,7 +128,7 @@ class IdetikNavigation {
       item.classList.toggle(
         "active",
         (item as HTMLElement).dataset.path === safePath
-      )
+      );
     });
 
     if (validExample) {
