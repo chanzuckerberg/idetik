@@ -5,6 +5,7 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   ImageSeriesLayer,
+  ImageLayer,
   Region,
   loadOmeroChannels,
   loadOmeroDefaults,
@@ -34,6 +35,7 @@ export interface OmeZarrImageViewerProps {
     path?: `/${string}`;
   };
   region: Region;
+  layerType?: "ImageLayer" | "ChunkedImageLayer" | "ImageSeriesLayer";
   seriesDimensionName?: string;
   fallbackContrastLimits?: [number, number];
   resolutionLevel?: number;
@@ -56,7 +58,7 @@ export interface OmeZarrImageViewerProps {
     align?: "start" | "end" | "center";
   };
   onLayerCreated?: (
-    layer?: ChunkedImageLayer | ImageSeriesLayer,
+    layer?: ChunkedImageLayer | ImageSeriesLayer | ImageLayer,
     updateZSlice?: (zValue: number) => void
   ) => void;
   onFirstSliceLoaded?: () => void;
@@ -69,6 +71,7 @@ export function OmeZarrImageViewer({
   sourceUrl,
   sourceLocalDirectory,
   region,
+  layerType,
   seriesDimensionName,
   fallbackContrastLimits,
   classNames,
@@ -103,9 +106,9 @@ export function OmeZarrImageViewer({
     ExtraControlProps[]
   >([]);
   const sourceRef = useRef<OmeZarrImageSource | null>(null);
-  const imageLayerRef = useRef<ChunkedImageLayer | ImageSeriesLayer | null>(
-    null
-  );
+  const imageLayerRef = useRef<
+    ChunkedImageLayer | ImageSeriesLayer | ImageLayer | null
+  >(null);
 
   // #region Initialization
   const { directory, path } = sourceLocalDirectory ?? {};
@@ -147,6 +150,7 @@ export function OmeZarrImageViewer({
         region,
         channelProps,
         resolutionLevel,
+        layerType,
         seriesDimensionName
       );
       imageLayerRef.current = layer;
@@ -530,12 +534,27 @@ function createLayer(
   region: Region,
   channelProps: ChannelProps[],
   resolutionLevel: number,
+  layerType?: "ImageLayer" | "ChunkedImageLayer" | "ImageSeriesLayer",
   seriesDimensionName?: string
 ): {
-  layer: ChunkedImageLayer | ImageSeriesLayer;
+  layer: ChunkedImageLayer | ImageSeriesLayer | ImageLayer;
   sliceCoords?: { [key: string]: number };
 } {
-  if (seriesDimensionName === undefined) {
+  // Determine layer type based on props
+  const effectiveLayerType =
+    layerType ||
+    (seriesDimensionName ? "ImageSeriesLayer" : "ChunkedImageLayer");
+
+  if (effectiveLayerType === "ImageSeriesLayer") {
+    const layer = new ImageSeriesLayer({
+      source,
+      region,
+      channelProps,
+      seriesDimensionName: seriesDimensionName!,
+      lod: resolutionLevel,
+    });
+    return { layer };
+  } else if (effectiveLayerType === "ChunkedImageLayer") {
     // Convert region to sliceCoords for ChunkedImageLayer
     const sliceCoords: { [key: string]: number } = {};
     region.forEach((regionDim) => {
@@ -549,17 +568,15 @@ function createLayer(
       sliceCoords,
       channelProps,
     });
-
     return { layer, sliceCoords };
   } else {
-    const layer = new ImageSeriesLayer({
+    // ImageLayer
+    const layer = new ImageLayer({
       source,
       region,
       channelProps,
-      seriesDimensionName,
       lod: resolutionLevel,
     });
-
     return { layer };
   }
 }
