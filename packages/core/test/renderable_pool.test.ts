@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach } from "vitest";
 import { RenderablePool } from "@/utilities/renderable_pool";
 import { RenderableObject } from "@/core/renderable_object";
 import { poolKeyForImageRenderable } from "@/layers/chunked_image_layer";
+import { makeChunk } from "./helpers";
 
 class RenderableStub extends RenderableObject {
   public readonly type = "RenderableStub";
@@ -67,14 +68,14 @@ describe("RenderablePool", () => {
 
 describe("poolKeyForImageRenderable", () => {
   test("builds a stable key string from chunk layout fields", () => {
-    const chunk = {
-      lod: 2,
-      shape: { x: 256, y: 128 },
-      rowStride: 256,
-      rowAlignmentBytes: 4,
-    } as unknown as import("../src/data/chunk").Chunk;
+    const key = poolKeyForImageRenderable(
+      makeChunk({
+        lod: 2,
+        shape: { x: 256, y: 128 },
+        rowAlignmentBytes: 4,
+      })
+    );
 
-    const key = poolKeyForImageRenderable(chunk);
     expect(key).toBe("lod2:shape256x128:stride256:align4");
   });
 });
