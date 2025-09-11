@@ -19,18 +19,18 @@ export class ChunkQueue {
     this.maxConcurrent_ = Math.max(1, maxConcurrent);
   }
 
-  enqueue(chunk: Chunk, fn: LoaderFn) {
+  public enqueue(chunk: Chunk, fn: LoaderFn) {
     if (this.running_.has(chunk)) return;
     if (this.pending_.some((p) => p.chunk === chunk)) return;
 
     this.pending_.push({ chunk, fn });
   }
 
-  flush() {
+  public flush() {
     this.pump();
   }
 
-  cancel(chunk: Chunk) {
+  public cancel(chunk: Chunk) {
     const idx = this.pending_.findIndex((p) => p.chunk === chunk);
     if (idx >= 0) {
       this.pending_.splice(idx, 1);
@@ -43,6 +43,14 @@ export class ChunkQueue {
       running.controller.abort();
       Logger.debug("ChunkQueue", "Cancelled fetch request");
     }
+  }
+
+  public get pendingCount() {
+    return this.pending_.length;
+  }
+
+  public get runningCount() {
+    return this.running_.size;
   }
 
   private pump() {
