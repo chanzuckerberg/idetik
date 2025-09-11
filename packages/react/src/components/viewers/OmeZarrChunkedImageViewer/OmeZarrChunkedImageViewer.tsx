@@ -89,7 +89,7 @@ export function OmeZarrChunkedImageViewer({
         source,
         fallbackContrastLimits
       );
-      const loadImageMetadataPromise = loadImageMetadata(source, region);
+      const loadImageMetadataPromise = loadImageMetadata(source);
       const { channelProps, extraControlProps } =
         await loadChannelMetadataPromise;
       const { xUnit, yCoordRange, xCoordRange } =
@@ -140,8 +140,6 @@ export function OmeZarrChunkedImageViewer({
     runtime,
   ]);
 
-  // No complex callbacks needed for ChunkedImageLayer - direct slice coord updates
-  // #region DOM
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
       <IdetikCanvas />
