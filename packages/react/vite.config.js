@@ -79,17 +79,6 @@ export default defineConfig(() => {
     },
     test: {
       environment: "jsdom",
-      // Temporarily disable browser testing to check basic functionality
-      // browser: {
-      //   enabled: true,
-      //   provider: "playwright",
-      //   headless: true,
-      //   instances: [
-      //     {
-      //       browser: "chromium",
-      //     },
-      //   ],
-      // },
       coverage: {
         provider: "istanbul",
         include: ["src/**"],
