@@ -43,7 +43,8 @@ function examplesManifestPlugin() {
 
       try {
         generateExamplesManifest();
-        console.log("Examples manifest generated");
+        copyManifestToPublic();
+        console.log("Examples manifest generated and copied to public");
       } catch (error) {
         console.error("Failed to generate examples manifest:", error);
       }
