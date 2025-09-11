@@ -37,8 +37,8 @@ export interface OmeZarrImageViewerProps {
   shouldLoadMiddleZ?: boolean;
   initialIndex?: "start" | "middle" | "end" | "omeroDefault";
   indexIndicatorText?:
-  | string
-  | ((currentIndex: number, totalIndexes: number) => string);
+    | string
+    | ((currentIndex: number, totalIndexes: number) => string);
   loadAllButtonText?: string | (() => string);
   classNames?: {
     root?: string;
@@ -475,17 +475,16 @@ function createLayer(
 ): ImageLayer | ImageSeriesLayer {
   return seriesDimensionName === undefined
     ? new ImageLayer({
-      source,
-      region,
-      channelProps,
-      lod: resolutionLevel,
-    })
+        source,
+        region,
+        channelProps,
+        lod: resolutionLevel,
+      })
     : new ImageSeriesLayer({
-      source,
-      region,
-      channelProps,
-      seriesDimensionName,
-      lod: resolutionLevel,
-    });
+        source,
+        region,
+        channelProps,
+        seriesDimensionName,
+        lod: resolutionLevel,
+      });
 }
-
