@@ -37,8 +37,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
   private debugMode_ = false;
-  private isNavigatingZ_ = false;
-  private zNavigationTimer_?: NodeJS.Timeout;
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
@@ -82,22 +80,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const orderedByLOD = this.chunkManagerSource_.getChunks();
     const current = new Set(orderedByLOD);
 
-    // Log chunk changes for LOD analysis
-    const prevLODs = Array.from(this.visibleChunks_.keys())
-      .map((c) => c.lod)
-      .sort();
-    const newLODs = orderedByLOD.map((c) => c.lod).sort();
-    const lodsChanged = JSON.stringify(prevLODs) !== JSON.stringify(newLODs);
-
-    if (lodsChanged || orderedByLOD.length !== this.visibleChunks_.size) {
-      console.log("[ChunkedImageLayer] Chunks updated:", {
-        previousLODs: prevLODs,
-        newLODs: newLODs,
-        chunkCount: orderedByLOD.length,
-        loadedChunks: orderedByLOD.filter((c) => c.state === "loaded").length,
-      });
-    }
-
     this.visibleChunks_.forEach((image, chunk) => {
       if (!current.has(chunk)) {
         this.visibleChunks_.delete(chunk);
@@ -119,25 +101,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (zPointWorld === undefined || this.zPrevPointWorld_ === zPointWorld) {
       return;
     }
-
-    // Track z-navigation state for LOD stability
-    this.isNavigatingZ_ = true;
-    if (this.zNavigationTimer_) {
-      clearTimeout(this.zNavigationTimer_);
-    }
-    this.zNavigationTimer_ = setTimeout(() => {
-      this.isNavigatingZ_ = false;
-    }, 500); // Stop considering it "navigation" after 500ms of no changes
-
-    console.log("[ChunkedImageLayer] Reslicing:", {
-      newZWorld: zPointWorld,
-      prevZWorld: this.zPrevPointWorld_,
-      visibleChunksCount: this.visibleChunks_.size,
-      chunkLODs: Array.from(this.visibleChunks_.keys()).map(
-        (chunk) => chunk.lod
-      ),
-      isNavigatingZ: this.isNavigatingZ_,
-    });
 
     for (const [chunk, image] of this.visibleChunks_) {
       if (chunk.state !== "loaded" || !chunk.data) continue;
@@ -169,26 +132,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
     const zIdx = Math.round(zLocal);
     const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
-
-    // Log slicing details to identify interpolation issues
-    const isNonInteger = Math.abs(zLocal - zIdx) > 0.01; // More than 1% off integer
-    if (isNonInteger) {
-      console.log("[ChunkedImageLayer] Non-integer slice position:", {
-        chunkLOD: chunk.lod,
-        zValue: zValue,
-        chunkOffset: chunk.offset.z,
-        chunkScale: chunk.scale.z,
-        zLocal: zLocal,
-        zIdx: zIdx,
-        zClamped: zClamped,
-        interpolationError: Math.abs(zLocal - zIdx),
-        chunkShape: chunk.shape,
-        // Additional debug info
-        expectedAlignment: chunk.offset.z + zIdx * chunk.scale.z,
-        actualAlignment: zValue,
-        alignmentDiff: zValue - (chunk.offset.z + zIdx * chunk.scale.z),
-      });
-    }
 
     // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
     // Anything further away means the requested zValue is outside.
