@@ -44,8 +44,7 @@ export interface OmeZarrChunkedImageViewerProps {
   };
   onLayerCreated?: (
     layer: ChunkedImageLayer,
-    updateZSlice?: (zValue: number) => void,
-    getClosestValidZPosition?: (targetZ: number) => number
+    updateZSlice?: (zValue: number) => void
   ) => void;
   onFirstSliceLoaded?: () => void;
 }
@@ -111,19 +110,10 @@ export function OmeZarrChunkedImageViewer({
       const updateZSlice = (zValue: number) => {
         if (sliceCoords) {
           sliceCoords.z = zValue;
-          console.log('[OmeZarrChunkedImageViewer] Updated slice Z to:', zValue, 'sliceCoords:', sliceCoords);
         }
       };
 
-      // Create getClosestValidZPosition function for alignment
-      const getClosestValidZPosition = (targetZ: number) => {
-        console.log('[OmeZarrChunkedImageViewer] getClosestValidZPosition called with:', targetZ);
-        const result = layer.getClosestValidZPosition(targetZ);
-        console.log('[OmeZarrChunkedImageViewer] getClosestValidZPosition returned:', result);
-        return result;
-      };
-
-      onLayerCreated?.(layer, updateZSlice, getClosestValidZPosition);
+      onLayerCreated?.(layer, updateZSlice);
       if (sourceRef.current !== source) {
         return;
       }
