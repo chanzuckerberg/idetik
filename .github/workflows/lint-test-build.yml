@@ -31,6 +31,7 @@ jobs:
       - name: Compile TypeScript
         run: |
           npm run compile --workspace=@idetik/core-prerelease
+          npm run build --workspace=@idetik/core-prerelease
           npm run compile --workspace=@idetik/react-prerelease
 
       - name: Lint
