@@ -55,7 +55,10 @@ export interface OmeZarrImageViewerProps {
     visible?: boolean;
     align?: "start" | "end" | "center";
   };
-  onLayerCreated?: () => void;
+  onLayerCreated?: (
+    layer?: ChunkedImageLayer | ImageSeriesLayer,
+    updateZSlice?: (zValue: number) => void
+  ) => void;
   onFirstSliceLoaded?: () => void;
   onLoadAllSlicesClicked?: () => void;
   onAllSlicesLoaded?: () => void;
@@ -100,7 +103,9 @@ export function OmeZarrImageViewer({
     ExtraControlProps[]
   >([]);
   const sourceRef = useRef<OmeZarrImageSource | null>(null);
-  const imageLayerRef = useRef<ChunkedImageLayer | ImageSeriesLayer | null>(null);
+  const imageLayerRef = useRef<ChunkedImageLayer | ImageSeriesLayer | null>(
+    null
+  );
 
   // #region Initialization
   const { directory, path } = sourceLocalDirectory ?? {};
@@ -137,7 +142,7 @@ export function OmeZarrImageViewer({
       setUnit(xUnit);
       setZRange(zRange);
       setZValue(zValue);
-      const layer = createLayer(
+      const { layer, sliceCoords } = createLayer(
         source,
         region,
         channelProps,
@@ -145,7 +150,15 @@ export function OmeZarrImageViewer({
         seriesDimensionName
       );
       imageLayerRef.current = layer;
-      onLayerCreated?.();
+
+      // Create updateZSlice function for ChunkedImageLayer external control
+      const updateZSlice = sliceCoords
+        ? (zValue: number) => {
+            sliceCoords.z = zValue;
+          }
+        : undefined;
+
+      onLayerCreated?.(layer, updateZSlice);
       await updateSeriesIndex(zValue, zRange);
       if (sourceRef.current !== source) {
         return;
@@ -518,30 +531,36 @@ function createLayer(
   channelProps: ChannelProps[],
   resolutionLevel: number,
   seriesDimensionName?: string
-): ChunkedImageLayer | ImageSeriesLayer {
+): {
+  layer: ChunkedImageLayer | ImageSeriesLayer;
+  sliceCoords?: { [key: string]: number };
+} {
   if (seriesDimensionName === undefined) {
     // Convert region to sliceCoords for ChunkedImageLayer
     const sliceCoords: { [key: string]: number } = {};
-    region.forEach(regionDim => {
-      if (regionDim.index?.type === 'point') {
+    region.forEach((regionDim) => {
+      if (regionDim.index?.type === "point") {
         sliceCoords[regionDim.dimension.toLowerCase()] = regionDim.index.value;
       }
     });
-    
-    return new ChunkedImageLayer({
+
+    const layer = new ChunkedImageLayer({
       source,
       sliceCoords,
       channelProps,
-      lod: resolutionLevel,
     });
+
+    return { layer, sliceCoords };
   } else {
-    return new ImageSeriesLayer({
+    const layer = new ImageSeriesLayer({
       source,
       region,
       channelProps,
       seriesDimensionName,
       lod: resolutionLevel,
     });
+
+    return { layer };
   }
 }
 
