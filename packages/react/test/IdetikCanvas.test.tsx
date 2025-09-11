@@ -1,8 +1,8 @@
 import "@testing-library/jest-dom";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
-import { IdetikCanvas } from "../../src/components/IdetikCanvas";
-import { IdetikProvider } from "../../src/components/providers/IdetikProvider";
+import { IdetikCanvas } from "../src/components/IdetikCanvas";
+import { IdetikProvider } from "../src/components/providers/IdetikProvider";
 import { Idetik } from "@idetik/core-prerelease";
 
 // Mock the core library to avoid WebGL issues in jsdom
