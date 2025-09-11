@@ -17,8 +17,12 @@ vi.mock("@idetik/core-prerelease", () => ({
   PanZoomControls: vi.fn().mockImplementation(() => ({ mockControls: true })),
 }));
 
-function TestComponent({ showCanvas }: { showCanvas: boolean }) {
-  return <IdetikProvider>{showCanvas && <IdetikCanvas />}</IdetikProvider>;
+function TestComponent() {
+  return (
+    <IdetikProvider>
+      <IdetikCanvas />
+    </IdetikProvider>
+  );
 }
 
 describe("IdetikCanvas", () => {
@@ -42,45 +46,37 @@ describe("IdetikCanvas", () => {
   it("should create runtime and start it once", () => {
     const mockIdetik = vi.mocked(Idetik);
 
-    render(<TestComponent showCanvas={true} />);
+    render(<TestComponent />);
 
-    expect(mockIdetik).toHaveBeenCalled();
+    expect(mockIdetik).toHaveBeenCalledOnce();
     const mockRuntime = mockIdetik.mock.results[0]?.value;
     expect(mockRuntime.start).toHaveBeenCalledOnce();
   });
 
   it("should stop and cleanup runtime when unmounted", () => {
     const mockIdetik = vi.mocked(Idetik);
-
-    const { rerender } = render(<TestComponent showCanvas={true} />);
-
-    expect(mockIdetik).toHaveBeenCalled();
+    const { unmount } = render(<TestComponent />);
+    expect(mockIdetik).toHaveBeenCalledOnce();
     const mockRuntime = mockIdetik.mock.results[0]?.value;
-    expect(mockRuntime.start).toHaveBeenCalled();
+    expect(mockRuntime.start).toHaveBeenCalledOnce();
 
-    rerender(<TestComponent showCanvas={false} />);
+    unmount();
 
-    expect(mockRuntime.stop).toHaveBeenCalled();
+    expect(mockRuntime.stop).toHaveBeenCalledOnce();
   });
 
   it("should handle multiple canvas mount/unmount cycles", () => {
     const mockIdetik = vi.mocked(Idetik);
-
-    const { rerender } = render(<TestComponent showCanvas={false} />);
-
-    // Mount -> Unmount -> Mount cycle
-    rerender(<TestComponent showCanvas={true} />);
+    const { unmount } = render(<TestComponent />);
     expect(mockIdetik).toHaveBeenCalledOnce();
+    const mockRuntime = mockIdetik.mock.results[0]?.value;
+    expect(mockRuntime.start).toHaveBeenCalledOnce();
+    unmount();
+    expect(mockRuntime.stop).toHaveBeenCalledOnce();
 
-    rerender(<TestComponent showCanvas={false} />);
-    expect(mockIdetik.mock.results[0]?.value.stop).toHaveBeenCalledOnce();
+    render(<TestComponent />);
 
-    rerender(<TestComponent showCanvas={true} />);
     expect(mockIdetik).toHaveBeenCalledTimes(2);
-
-    // Should have created two separate runtime instances
-    expect(mockIdetik.mock.results[0]?.value).not.toBe(
-      mockIdetik.mock.results[1]?.value
-    );
+    expect(mockIdetik.mock.results[1]?.value).not.toBe(mockRuntime);
   });
 });
