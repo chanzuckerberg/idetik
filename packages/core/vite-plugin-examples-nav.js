@@ -26,18 +26,20 @@ function copyManifestToPublic() {
 }
 
 function examplesManifestPlugin() {
+  let isExamplesBuild = false;
+
   return {
     name: "examples-navigation",
     config(config, { command, mode }) {
-      // Configure build inputs for examples mode
       if (command === "build" && mode === "examples") {
+        isExamplesBuild = true;
         config.build = config.build || {};
         config.build.rollupOptions = config.build.rollupOptions || {};
         config.build.rollupOptions.input = getExampleInputs();
       }
     },
-    buildStart(options) {
-      if (options.command !== "build" || options.mode !== "examples") {
+    buildStart(_options) {
+      if (!isExamplesBuild) {
         return;
       }
 
