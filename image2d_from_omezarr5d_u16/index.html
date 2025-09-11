@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image 2D from OME-Zarr 5D U16</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
+      #scale-bar-box {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        bottom: 1em;
+        left: 1em;
+        width: 15%;
+        margin: 1em;
+        padding: 1em;
+        gap: 0.5em;
+        align-items: start;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.5);
+        user-select: none;
+      }
+      #scale-bar-text {
+        color: white;
+        text-align: start;
+      }
+      #scale-bar-line {
+        width: 100%;
+        height: 1em;
+        background-color: white;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/image2d_from_omezarr5d_u16-Dt6s0wED.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-DaKOjhqt.js">
+    <link rel="modulepreload" crossorigin href="/assets/metadata_loaders-CXLkXwNR.js">
+    <link rel="modulepreload" crossorigin href="/assets/image_source-BemCU8_Z.js">
+    <link rel="modulepreload" crossorigin href="/assets/controls-C_nkNJ-y.js">
+    <link rel="modulepreload" crossorigin href="/assets/projected_line-CtC2xUEg.js">
+    <link rel="modulepreload" crossorigin href="/assets/axes_layer-BxgIhTAV.js">
+    <link rel="modulepreload" crossorigin href="/assets/point_picking-DP3wpFCw.js">
+    <link rel="modulepreload" crossorigin href="/assets/image_layer-BUXJ6hGc.js">
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="scale-bar-box">
+      <div id="scale-bar-text"></div>
+      <div id="scale-bar-line"></div>
+    </div>
+  </body>
+</html>

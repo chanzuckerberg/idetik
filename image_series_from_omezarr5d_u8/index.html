@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Series from OME-Zarr 5D U8</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+
+      #main {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+      }
+
+      #canvas {
+        flex: 1;
+        min-height: 0;
+      }
+
+      #slider {
+        margin: 1rem 2rem;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/image_series_from_omezarr5d_u8-BRK9QGtZ.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-DaKOjhqt.js">
+    <link rel="modulepreload" crossorigin href="/assets/metadata_loaders-CXLkXwNR.js">
+    <link rel="modulepreload" crossorigin href="/assets/image_source-BemCU8_Z.js">
+    <link rel="modulepreload" crossorigin href="/assets/image_series_layer-xl760NUg.js">
+  </head>
+
+  <body>
+    <div id="main">
+      <canvas id="canvas"></canvas>
+      <input type="range" id="slider" />
+    </div>
+  </body>
+</html>
