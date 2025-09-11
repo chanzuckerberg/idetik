@@ -6,6 +6,7 @@
     "dev": "vite",
     "compile": "tsc",
     "build": "vite build && tsc && rollup -c rollup.config.js",
+    "build:examples": "vite build --mode examples",
     "test": "vitest",
     "test-with-coverage": "vitest run --coverage",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",

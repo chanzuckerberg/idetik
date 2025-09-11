@@ -61,7 +61,11 @@ export class OmeZarrImageLoader {
     return this.dimensions_;
   }
 
-  public async loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates) {
+  public async loadChunkData(
+    chunk: Chunk,
+    sliceCoords: SliceCoordinates,
+    signal: AbortSignal
+  ) {
     const chunkCoords: number[] = [];
     chunkCoords[this.dimensions_.x.index] = chunk.chunkIndex.x;
     chunkCoords[this.dimensions_.y.index] = chunk.chunkIndex.y;
@@ -92,7 +96,7 @@ export class OmeZarrImageLoader {
     }
 
     const array = this.arrays_[chunk.lod];
-    const subarray = await array.getChunk(chunkCoords);
+    const subarray = await array.getChunk(chunkCoords, { signal });
 
     const data = subarray.data;
     if (!isChunkData(data)) {

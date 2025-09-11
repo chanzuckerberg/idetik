@@ -1,1 +1,3 @@
 dist
+examples/examples-manifest.json
+public/examples-manifest.json
