@@ -107,7 +107,10 @@ class ScaleBarOverlay {
       const lineWidthWorld = scientificFloor(containerWidthWorld);
       const lineProportion = lineWidthWorld.value / containerWidthWorld;
       lineDiv.style.width = `${lineProportion * 100}%`;
-      const numDecimalPlaces = Math.max(0, -lineWidthWorld.exponent);
+      const numDecimalPlaces = Math.max(
+        0,
+        Math.min(100, -lineWidthWorld.exponent)
+      ); // Clamp between 0-100 (toFixed limit)
       textDiv.textContent = `${lineWidthWorld.value.toFixed(numDecimalPlaces)} ${this.unit_}`;
     }
   }

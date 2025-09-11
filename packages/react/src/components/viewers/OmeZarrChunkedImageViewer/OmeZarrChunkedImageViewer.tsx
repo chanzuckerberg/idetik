@@ -42,7 +42,11 @@ export interface OmeZarrChunkedImageViewerProps {
     visible?: boolean;
     align?: "start" | "end" | "center";
   };
-  onLayerCreated?: (layer: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => void;
+  onLayerCreated?: (
+    layer: ChunkedImageLayer,
+    updateZSlice?: (zValue: number) => void,
+    getClosestValidZPosition?: (targetZ: number) => number
+  ) => void;
   onFirstSliceLoaded?: () => void;
 }
 
@@ -89,10 +93,7 @@ export function OmeZarrChunkedImageViewer({
         source,
         fallbackContrastLimits
       );
-      const loadImageMetadataPromise = loadImageMetadata(
-        source,
-        region
-      );
+      const loadImageMetadataPromise = loadImageMetadata(source, region);
       const { channelProps, extraControlProps } =
         await loadChannelMetadataPromise;
       const { xUnit, yCoordRange, xCoordRange } =
@@ -102,22 +103,27 @@ export function OmeZarrChunkedImageViewer({
       }
       setExtraControlProps(extraControlProps);
       setUnit(xUnit);
-      const { layer, sliceCoords } = createLayer(
-        source,
-        region,
-        channelProps
-      );
+      const { layer, sliceCoords } = createLayer(source, region, channelProps);
       imageLayerRef.current = layer;
       sliceCoordsRef.current = sliceCoords;
-      
+
       // Create updateZSlice function for external control
       const updateZSlice = (zValue: number) => {
-        if (sliceCoordsRef.current) {
-          sliceCoordsRef.current.z = zValue;
+        if (sliceCoords) {
+          sliceCoords.z = zValue;
+          console.log('[OmeZarrChunkedImageViewer] Updated slice Z to:', zValue, 'sliceCoords:', sliceCoords);
         }
       };
-      
-      onLayerCreated?.(layer, updateZSlice);
+
+      // Create getClosestValidZPosition function for alignment
+      const getClosestValidZPosition = (targetZ: number) => {
+        console.log('[OmeZarrChunkedImageViewer] getClosestValidZPosition called with:', targetZ);
+        const result = layer.getClosestValidZPosition(targetZ);
+        console.log('[OmeZarrChunkedImageViewer] getClosestValidZPosition returned:', result);
+        return result;
+      };
+
+      onLayerCreated?.(layer, updateZSlice, getClosestValidZPosition);
       if (sourceRef.current !== source) {
         return;
       }
@@ -260,21 +266,21 @@ function createLayer(
   source: OmeZarrImageSource,
   region: Region,
   channelProps: ChannelProps[]
-): { layer: ChunkedImageLayer, sliceCoords: { [key: string]: number } } {
+): { layer: ChunkedImageLayer; sliceCoords: { [key: string]: number } } {
   // Convert region to sliceCoords for ChunkedImageLayer
   const sliceCoords: { [key: string]: number } = {};
-  region.forEach(regionDim => {
-    if (regionDim.index?.type === 'point') {
+  region.forEach((regionDim) => {
+    if (regionDim.index?.type === "point") {
       sliceCoords[regionDim.dimension.toLowerCase()] = regionDim.index.value;
     }
   });
-  
+
   const layer = new ChunkedImageLayer({
     source,
     sliceCoords,
     channelProps,
   });
-  
+
   return { layer, sliceCoords };
 }
 
