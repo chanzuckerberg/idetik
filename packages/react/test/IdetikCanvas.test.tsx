@@ -4,7 +4,6 @@ import { IdetikCanvas } from "../src/components/IdetikCanvas";
 import { IdetikProvider } from "../src/components/providers/IdetikProvider";
 import { Idetik } from "@idetik/core-prerelease";
 
-// Mock the core library to avoid hanging test runner
 vi.mock("@idetik/core-prerelease", () => ({
   Idetik: vi.fn().mockImplementation(() => ({
     start: vi.fn(),
