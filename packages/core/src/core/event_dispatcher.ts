@@ -19,14 +19,20 @@ function isEventType(type: string): type is EventType {
 function hasClientCoordinates(
   event: Event
 ): event is Event & { clientX: number; clientY: number } {
-  return "clientX" in event && "clientY" in event;
+  const mouseEvent = event as Event & { clientX?: number; clientY?: number };
+  return (
+    typeof mouseEvent.clientX === "number" &&
+    typeof mouseEvent.clientY === "number" &&
+    !Number.isNaN(mouseEvent.clientX) &&
+    !Number.isNaN(mouseEvent.clientY)
+  );
 }
 
 export class EventContext {
   private propagationStopped_: boolean = false;
   public readonly type: EventType;
   public readonly event: Event;
-  public readonly clientPos: vec2;
+  public readonly clientPos?: vec2;
   public readonly worldPos?: vec3;
   public readonly clipPos?: vec3;
   public readonly source?: EventProvider;
@@ -34,7 +40,7 @@ export class EventContext {
   constructor(
     type: EventType,
     event: Event,
-    clientPos: vec2,
+    clientPos?: vec2,
     worldPos?: vec3,
     clipPos?: vec3,
     source?: EventProvider
@@ -65,7 +71,7 @@ export class EventContext {
     }
     const clientPos = hasClientCoordinates(domEvent)
       ? vec2.fromValues(domEvent.clientX, domEvent.clientY)
-      : vec2.fromValues(0, 0);
+      : undefined;
     return new EventContext(domEvent.type, domEvent, clientPos);
   }
 }

@@ -87,7 +87,16 @@ describe("EventProvider architecture", () => {
   it("viewport provider adds coordinate transformations", () => {
     const canvas = document.createElement("canvas");
     Object.defineProperty(canvas, "getBoundingClientRect", {
-      value: () => ({ left: 0, top: 0, width: 800, height: 600 }),
+      value: () => ({
+        left: 0,
+        top: 0,
+        width: 800,
+        height: 600,
+        x: 0,
+        y: 0,
+        right: 800,
+        bottom: 600,
+      }),
     });
 
     const camera = new OrthographicCamera(0, 800, 0, 600);
@@ -143,10 +152,11 @@ describe("EventProvider architecture", () => {
     expect(receivedEvent!.clipPos).toBeUndefined();
 
     // Ensure client coordinates are preserved and valid
-    expect(Number.isNaN(receivedEvent!.clientPos[0])).toBe(false);
-    expect(Number.isNaN(receivedEvent!.clientPos[1])).toBe(false);
-    expect(receivedEvent!.clientPos[0]).toBe(150);
-    expect(receivedEvent!.clientPos[1]).toBe(250);
+    expect(receivedEvent!.clientPos).toBeDefined();
+    expect(Number.isNaN(receivedEvent!.clientPos![0])).toBe(false);
+    expect(Number.isNaN(receivedEvent!.clientPos![1])).toBe(false);
+    expect(receivedEvent!.clientPos![0]).toBe(150);
+    expect(receivedEvent!.clientPos![1]).toBe(250);
   });
 
   it("layers can stop propagation", () => {
@@ -162,5 +172,29 @@ describe("EventProvider architecture", () => {
     canvas.dispatchEvent(new PointerEvent("pointerdown"));
 
     expect(globalListener).not.toHaveBeenCalled();
+  });
+
+  it("handles events without client coordinates", () => {
+    const canvas = document.createElement("canvas");
+    const dispatcher = new EventDispatcher();
+
+    const canvasProvider = new CanvasEventProvider(canvas);
+    dispatcher.addProvider(canvasProvider);
+
+    let receivedEvent: EventContext | null = null;
+    dispatcher.addEventListener((event) => {
+      receivedEvent = event;
+    });
+
+    // Create a wheel event explicitly without clientX/clientY
+    const wheelEvent = new WheelEvent("wheel");
+    Object.defineProperty(wheelEvent, "clientX", { value: undefined });
+    Object.defineProperty(wheelEvent, "clientY", { value: undefined });
+    canvas.dispatchEvent(wheelEvent);
+
+    expect(receivedEvent).not.toBeNull();
+    expect(receivedEvent!.clientPos).toBeUndefined();
+    expect(receivedEvent!.worldPos).toBeUndefined();
+    expect(receivedEvent!.clipPos).toBeUndefined();
   });
 });

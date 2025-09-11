@@ -80,8 +80,10 @@ export class Viewport implements EventProvider {
   }
 
   public processEvent(eventContext: EventContext): EventContext {
-    const clipPos = this.clientToClip(eventContext.clientPos, 0);
-    const worldPos = this.camera.clipToWorld(clipPos);
+    const clipPos = eventContext.clientPos
+      ? this.clientToClip(eventContext.clientPos, 0)
+      : undefined;
+    const worldPos = clipPos ? this.camera.clipToWorld(clipPos) : undefined;
     const augmentedContext = new EventContext(
       eventContext.type,
       eventContext.event,
