@@ -6,28 +6,38 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const examplesDir = resolve(__dirname, 'examples');
+
+export function discoverExamples() {
+  // discover examples: any directory in /examples with an index.html file
+  const entries = readdirSync(examplesDir, { withFileTypes: true });
+  const ignoreDirs = new Set(['dist', 'node_modules', '.git']);
+
+  return entries
+    .filter(entry => entry.isDirectory() && !ignoreDirs.has(entry.name))
+    .filter(entry => {
+      const examplePath = resolve(examplesDir, entry.name, 'index.html');
+      return existsSync(examplePath);
+    })
+    .map(entry => ({
+      name: entry.name,
+      path: resolve(examplesDir, entry.name, 'index.html'),
+      htmlContent: readFileSync(resolve(examplesDir, entry.name, 'index.html'), 'utf-8')
+    }));
+}
 
 function generateExamplesManifest() {
-  const examplesDir = resolve(__dirname, 'examples');
-  const entries = readdirSync(examplesDir, { withFileTypes: true })
-    .filter(entry => entry.isDirectory() && entry.name !== 'dist');
+  const discoveredExamples = discoverExamples();
 
-  // discover examples: any directory with an index.html file
-  const examples = entries
-    .filter(entry => {
-      const htmlPath = resolve(examplesDir, entry.name, 'index.html');
-      return existsSync(htmlPath);
-    })
-    .map(entry => {
-      const htmlPath = resolve(examplesDir, entry.name, 'index.html');
-      const htmlContent = readFileSync(htmlPath, 'utf-8');
-      const title = getExampleTitle(htmlContent, entry.name);
+  const examples = discoveredExamples
+    .map(example => {
+      const title = getExampleTitle(example.htmlContent, example.name);
 
       return {
-        id: entry.name,
+        id: example.name,
         title: title,
-        path: `/${entry.name}/`,
-        directory: entry.name
+        path: `/${example.name}/`,
+        directory: example.name
       };
     });
 

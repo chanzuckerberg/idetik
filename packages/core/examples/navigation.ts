@@ -146,9 +146,16 @@ class IdetikNavigation {
   }
 }
 
-// Initialize navigation when DOM is ready
+// Initialize navigation when DOM is ready, but only if navigation elements exist
+function initializeNavigationIfPresent() {
+  const navigationElement = document.getElementById("idetik-navigation");
+  if (navigationElement) {
+    new IdetikNavigation();
+  }
+}
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => new IdetikNavigation());
+  document.addEventListener("DOMContentLoaded", initializeNavigationIfPresent);
 } else {
-  new IdetikNavigation();
+  initializeNavigationIfPresent();
 }

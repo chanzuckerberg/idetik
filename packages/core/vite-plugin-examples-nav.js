@@ -1,13 +1,41 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { copyFileSync } from "node:fs";
-import { generateExamplesManifest } from "./generate-examples-manifest.js";
+import { generateExamplesManifest, discoverExamples } from "./generate-examples-manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function getExampleInputs() {
+  const examples = discoverExamples();
+
+  const inputs = {
+    main: resolve(__dirname, 'examples/index.html'),
+  };
+
+  examples.forEach(example => {
+    inputs[example.name] = example.path;
+  });
+
+  return inputs;
+}
+
+function copyManifestToPublic() {
+  const manifestPath = resolve(__dirname, "examples", "examples-manifest.json");
+  const publicManifestPath = resolve(__dirname, "public", "examples-manifest.json");
+  copyFileSync(manifestPath, publicManifestPath);
+}
 
 function examplesManifestPlugin() {
   return {
     name: "examples-navigation",
+    config(config, { command, mode }) {
+      // Configure build inputs for examples mode
+      if (command === "build" && mode === "examples") {
+        config.build = config.build || {};
+        config.build.rollupOptions = config.build.rollupOptions || {};
+        config.build.rollupOptions.input = getExampleInputs();
+      }
+    },
     buildStart(options) {
       if (options.command !== "build" || options.mode !== "examples") {
         return;
@@ -21,36 +49,24 @@ function examplesManifestPlugin() {
       }
     },
     configureServer(server) {
-      try {
-        generateExamplesManifest();
-        // copy exaples manifest to public directory for dev server
-        const manifestPath = resolve(__dirname, "examples", "examples-manifest.json");
-        const publicManifestPath = resolve(__dirname, "public", "examples-manifest.json");
-        copyFileSync(manifestPath, publicManifestPath);
-        console.log("Examples manifest generated and copied to public for dev server");
-      } catch (error) {
-        console.error("Failed to generate examples manifest:", error);
-      }
+      const regenerateManifest = () => {
+        console.log("Regenerating examples manifest...");
+        try {
+          generateExamplesManifest();
+          copyManifestToPublic();
+          console.log("Manifest regenerated and copied to public");
+        } catch (error) {
+          console.error("Failed to regenerate manifest:", error);
+        }
+      };
+
+      regenerateManifest();
 
       // watch the entire examples directory for changes (including new files/directories)
       const fileWatcher = server.watcher;
       const examplesDir = resolve(__dirname, "examples");
       const distDir = resolve(__dirname, "examples", "dist");
       fileWatcher.add(examplesDir);
-
-      const regenerateManifest = () => {
-        console.log("Examples changed, regenerating manifest...");
-        try {
-          generateExamplesManifest();
-          // Copy to public directory for dev server
-          const manifestPath = resolve(__dirname, "examples", "examples-manifest.json");
-          const publicManifestPath = resolve(__dirname, "public", "examples-manifest.json");
-          copyFileSync(manifestPath, publicManifestPath);
-          console.log("Manifest regenerated and copied to public");
-        } catch (error) {
-          console.error("Failed to regenerate manifest:", error);
-        }
-      };
 
       fileWatcher.on("change", (path) => {
         if (

@@ -5,71 +5,43 @@ import glsl from 'vite-plugin-glsl';
 import path from 'path';
 import react from "@vitejs/plugin-react";
 import typescript from '@rollup/plugin-typescript';
-import injectExamplesNavigation from './vite-plugin-examples-nav.js';
+import examplesManifestPlugin from './vite-plugin-examples-nav.js';
 
 // __dirname is not available in ES6 modules
 // https://github.com/vitejs/vite/issues/6946#issuecomment-1041506056
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { readdirSync, existsSync } from 'node:fs'
 const _dirname = dirname(fileURLToPath(import.meta.url));
 
-// Dynamic example discovery
-function getExampleInputs() {
-  const examplesDir = path.resolve(_dirname, 'examples');
-  const entries = readdirSync(examplesDir, { withFileTypes: true });
-  
-  const inputs = {
-    main: path.resolve(_dirname, 'examples/index.html'),
-  };
-  
-  const ignoreDirs = new Set(['dist', 'node_modules', '.git']);
-  
-  entries
-    .filter(entry => entry.isDirectory() && !ignoreDirs.has(entry.name))
-    .forEach(entry => {
-      const examplePath = path.resolve(examplesDir, entry.name, 'index.html');
-      if (existsSync(examplePath)) {
-        inputs[entry.name] = examplePath;
-      }
-    });
-  
-  return inputs;
-}
-
-function getPlugins(mode) {
-  const basePlugins = [eslint(), glsl(), react()];
-  
-  if (mode === 'examples') {
-    // For examples mode, we don't need TypeScript compilation since it's handled by Vite
-    // Add navigation plugin for examples
-    return [...basePlugins, injectExamplesNavigation()];
-  } else if (mode === 'development') {
-    // For development mode (examples), include navigation plugin but keep TypeScript
-    return [
-      typescript({
-        noForceEmit: true,
-        compilerOptions: {
-          noEmit: true,
-        },
-      }),
-      ...basePlugins,
-      injectExamplesNavigation(),
-    ];
-  } else {
-    // For library mode, include TypeScript plugin
-    return [
-      typescript({
-        noForceEmit: true,
-        compilerOptions: {
-          noEmit: true,
-        },
-      }),
-      ...basePlugins,
-    ];
-  }
-}
 const MODES = ['development', 'production', 'test', 'examples'];
+
+function modeToPlugins(mode) {
+  const basePlugins = [eslint(), glsl(), react()];
+  const typescriptPlugin = typescript({
+    noForceEmit: true,
+    compilerOptions: {
+      noEmit: true,
+    },
+  });
+
+  if (mode === 'examples') {
+    // for examples mode, TypeScript compilation is handled by Vite's built-in esbuild
+    return [...basePlugins, examplesManifestPlugin()];
+  } else if (mode === 'development') {
+    return [
+      typescriptPlugin,
+      ...basePlugins,
+      examplesManifestPlugin(),
+    ];
+  } else if (!MODES.includes(mode)) {
+    console.error(`Unrecognized mode ${mode}`);
+  }
+
+  return [
+    typescriptPlugin,
+    ...basePlugins,
+  ];
+}
 
 function modeToRoot(mode) {
   if (mode === 'development' || mode === 'examples') {
@@ -82,7 +54,7 @@ function modeToRoot(mode) {
 
 export default defineConfig(({ mode }) => {
   return {
-    plugins: getPlugins(mode),
+    plugins: modeToPlugins(mode),
     root: modeToRoot(mode),
     publicDir: path.resolve(_dirname, 'public'),
     build: {
@@ -93,10 +65,6 @@ export default defineConfig(({ mode }) => {
       minify: mode === 'production',
       ...(mode === 'examples' ? {
         // Build examples as a static site
-        rollupOptions: {
-          input: getExampleInputs(),
-        },
-        // Copy manifest file
         copyPublicDir: true
       } : {
         lib: {
