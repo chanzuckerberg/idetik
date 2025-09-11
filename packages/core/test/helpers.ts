@@ -1,4 +1,4 @@
-import type { Chunk } from "@/data/chunk";
+import type { Chunk } from "../src/data/chunk";
 
 type ChunkOverrides = Partial<
   Omit<Chunk, "shape" | "chunkIndex" | "scale" | "offset" | "rowStride">
