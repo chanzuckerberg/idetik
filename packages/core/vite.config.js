@@ -53,6 +53,17 @@ function modeToRoot(mode) {
 }
 
 export default defineConfig(({ mode }) => {
+  const productionBuildOptions = {
+    sourcemap: true,
+    minify: 'esbuild',
+    copyPublicDir: false,
+    lib: {
+      entry: path.resolve(_dirname, 'src/index.ts'),
+      name: 'idetik-core',
+      fileName: "index",
+    },
+  };
+
   return {
     plugins: modeToPlugins(mode),
     root: modeToRoot(mode),
@@ -60,19 +71,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       target: 'es2022',
-      // TODO: set these by build mode or something
-      sourcemap: true,
-      minify: mode === 'production',
-      ...(mode === 'examples' ? {
-        // Build examples as a static site
-        copyPublicDir: true
-      } : {
-        lib: {
-          entry: path.resolve(_dirname, 'src/index.ts'),
-          name: 'idetik-core',
-          fileName: "index",
-        },
-      }),
+      ...(mode === 'production' ? productionBuildOptions : {}),
     },
     resolve: {
       alias: {
