@@ -1,22 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   OmeZarrImageSource,
   OrthographicCamera,
-  ImageSeriesLayer,
   Region,
   loadOmeroChannels,
-  loadOmeroDefaults,
   ChannelProps,
   Idetik,
   ChunkedImageLayer,
 } from "@idetik/core-prerelease";
 import { useIdetik } from "../../../hooks/useIdetik";
 import { IdetikCanvas } from "../../IdetikCanvas";
-import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
+import { LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
-import { MODIFIED_SLIDER_STYLES } from "../OmeZarrImageViewer/components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
 import {
   omeroToChannelProps,
   getGrayscaleChannelProp,
@@ -215,7 +212,6 @@ async function loadChannelMetadata(
 
 async function loadImageMetadata(
   source: OmeZarrImageSource,
-  region: Region
 ): Promise<{
   xUnit?: string;
   yCoordRange: [number, number];
