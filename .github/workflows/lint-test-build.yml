@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  lint-and-test:
+  lint-and-test-core:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,22 +31,18 @@ jobs:
       - name: Compile TypeScript
         run: |
           npm run compile --workspace=@idetik/core-prerelease
-          npm run compile --workspace=@idetik/react-prerelease
 
       - name: Lint
         run: |
           npm run lint --workspace=@idetik/core-prerelease
           npm run format-check --workspace=@idetik/core-prerelease
-          npm run lint --workspace=@idetik/react-prerelease
-          npm run format-check --workspace=@idetik/react-prerelease
 
       - name: Run tests with coverage
         run: |
           npm run test-with-coverage --workspace=@idetik/core-prerelease
-          npm run test-with-coverage --workspace=@idetik/react-prerelease
 
-  build:
-    needs: lint-and-test
+  build-core:
+    needs: lint-and-test-core
     runs-on: ubuntu-latest
 
     steps:
@@ -66,4 +62,66 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build:all
+        run: npm run build --workspace=@idetik/core-prerelease
+
+  lint-and-test-react:
+    needs: build-core
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npx playwright install chromium
+
+      - name: Build core
+        run: |
+          npm run build --workspace=@idetik/core-prerelease
+
+      - name: Compile TypeScript
+        run: |
+          npm run compile --workspace=@idetik/react-prerelease
+
+      - name: Lint
+        run: |
+          npm run lint --workspace=@idetik/react-prerelease
+          npm run format-check --workspace=@idetik/react-prerelease
+
+      - name: Run tests with coverage
+        run: |
+          npm run test-with-coverage --workspace=@idetik/react-prerelease
+
+  build-react:
+    needs: lint-and-test-react
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build --workspace=@idetik/react-prerelease
