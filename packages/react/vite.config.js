@@ -78,9 +78,7 @@ export default defineConfig(() => {
       },
     },
     test: {
-      globals: true,
       environment: "jsdom",
-      reporters: ['default', 'hanging-process'],
       // Temporarily disable browser testing to check basic functionality
       // browser: {
       //   enabled: true,

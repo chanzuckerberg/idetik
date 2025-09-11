@@ -1,4 +1,3 @@
-import "@testing-library/jest-dom";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { IdetikCanvas } from "../src/components/IdetikCanvas";
