@@ -18,6 +18,7 @@ export function makeChunk(overrides: ChunkOverrides = {}): Chunk {
     visible: false,
     prefetch: false,
     priority: null,
+    orderKey: null,
     shape: { x: 256, y: 256, z: 256, c: 1 },
     rowStride: 256,
     rowAlignmentBytes: 1,

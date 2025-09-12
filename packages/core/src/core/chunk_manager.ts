@@ -5,7 +5,7 @@ import {
   ChunkSource,
   SliceCoordinates,
 } from "../data/chunk";
-import { vec2, vec3 } from "gl-matrix";
+import { ReadonlyVec2, vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
@@ -76,6 +76,7 @@ export class ChunkManagerSource {
               visible: false,
               prefetch: false,
               priority: null,
+              orderKey: null,
               shape: {
                 x: chunkWidth,
                 y: chunkHeight,
@@ -199,6 +200,9 @@ export class ChunkManagerSource {
     );
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
+    const center = vec2.create();
+    vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
+
     for (const chunk of this.chunks_) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
@@ -221,6 +225,11 @@ export class ChunkManagerSource {
         chunk.state = "queued";
       } else if (chunk.priority === null && chunk.state === "queued") {
         chunk.state = "unloaded";
+        chunk.orderKey = null;
+      }
+
+      if (chunk.priority !== null) {
+        chunk.orderKey = this.orderKeyByDistance(chunk, center);
       }
 
       if (isLoaded && !isFallbackLOD) {
@@ -231,6 +240,7 @@ export class ChunkManagerSource {
           chunk.data = undefined;
           chunk.state = "unloaded";
           chunk.priority = null;
+          chunk.orderKey = null;
           Logger.debug(
             "ChunkManagerSource",
             `Disposing chunk in LOD ${chunk.lod}`
@@ -359,6 +369,16 @@ export class ChunkManagerSource {
         bounds.max[2] + padZ
       )
     );
+  }
+
+  private orderKeyByDistance(chunk: Chunk, center: ReadonlyVec2): number {
+    const chunkCenter = {
+      x: chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
+      y: chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
+    };
+    const dx = chunkCenter.x - center[0];
+    const dy = chunkCenter.y - center[1];
+    return dx * dx + dy * dy;
   }
 }
 

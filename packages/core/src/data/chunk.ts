@@ -33,6 +33,7 @@ export type Chunk = {
   visible: boolean;
   prefetch: boolean;
   priority: number | null;
+  orderKey: number | null;
   shape: {
     x: number;
     y: number;
