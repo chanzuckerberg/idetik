@@ -80,9 +80,6 @@ export function OmeZarrChunkedImageViewer({
         return;
       }
       sourceRef.current = source;
-      if (sourceRef.current !== source) {
-        return;
-      }
       setLoading(true);
       const loadChannelMetadataPromise = loadChannelMetadata(
         source,
@@ -93,6 +90,9 @@ export function OmeZarrChunkedImageViewer({
         await loadChannelMetadataPromise;
       const { xUnit, yCoordRange, xCoordRange } =
         await loadImageMetadataPromise;
+      if (sourceRef.current !== source) {
+        return;
+      }
       setExtraControlProps(extraControlProps);
       setUnit(xUnit);
       const { layer, sliceCoords } = createLayer(
