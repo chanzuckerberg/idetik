@@ -10,8 +10,8 @@ import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ChunkQueue } from "../data/chunk_queue";
+import { Viewport } from "./viewport";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -126,8 +126,10 @@ export class ChunkManagerSource {
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  public update(lodFactor: number, viewBounds2D: Box2) {
+  public update(viewport: Viewport) {
+    const lodFactor = viewport.getLodFactor();
     this.setLOD(lodFactor);
+    const viewBounds2D = viewport.getWorldViewRect();
     const zBounds = this.getZBounds();
 
     if (
@@ -396,21 +398,9 @@ export class ChunkManager {
     return existing;
   }
 
-  public update(camera: OrthographicCamera, bufferWidth: number) {
-    if (camera.type !== "OrthographicCamera") {
-      throw new Error(
-        "ChunkManager currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
-      );
-    }
-
-    const viewBounds2D = camera.getWorldViewRect();
-    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
-    const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
-
+  public update(viewport: Viewport) {
     for (const [_, source] of this.sources_) {
-      source.update(lodFactor, viewBounds2D);
+      source.update(viewport);
       for (const chunk of source.chunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);

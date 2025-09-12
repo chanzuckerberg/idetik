@@ -6,7 +6,6 @@ import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
 import { vec2, vec3 } from "gl-matrix";
-import { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 import { createStats, type Stats } from "./utilities/stats";
 import {
   parseViewportConfigs,
@@ -132,12 +131,7 @@ export class Idetik {
       }
 
       for (const viewport of this.viewports_) {
-        if (viewport.camera.type === "OrthographicCamera") {
-          this.chunkManager_.update(
-            viewport.camera as OrthographicCamera,
-            viewport.getBoxRelativeTo(this.canvas).toRect().width
-          );
-        }
+        this.chunkManager_.update(viewport);
         this.renderer_.render(viewport);
       }
 
