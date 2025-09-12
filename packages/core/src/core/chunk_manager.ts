@@ -12,6 +12,7 @@ import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ChunkQueue } from "../data/chunk_queue";
+import { clamp } from "@/utilities/clamp";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -76,6 +77,7 @@ export class ChunkManagerSource {
               visible: false,
               prefetch: false,
               priority: null,
+              orderKey: null,
               shape: {
                 x: chunkWidth,
                 y: chunkHeight,
@@ -199,6 +201,8 @@ export class ChunkManagerSource {
     );
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
+    const centerIndicies = this.getCenterIndices(viewBounds2D);
+
     for (const chunk of this.chunks_) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
@@ -221,6 +225,14 @@ export class ChunkManagerSource {
         chunk.state = "queued";
       } else if (chunk.priority === null && chunk.state === "queued") {
         chunk.state = "unloaded";
+        chunk.orderKey = null;
+      }
+
+      if (chunk.priority !== null) {
+        chunk.orderKey = Math.max(
+          Math.abs(chunk.chunkIndex.x - centerIndicies[chunk.lod].x),
+          Math.abs(chunk.chunkIndex.y - centerIndicies[chunk.lod].y)
+        );
       }
 
       if (isLoaded && !isFallbackLOD) {
@@ -231,6 +243,7 @@ export class ChunkManagerSource {
           chunk.data = undefined;
           chunk.state = "unloaded";
           chunk.priority = null;
+          chunk.orderKey = null;
           Logger.debug(
             "ChunkManagerSource",
             `Disposing chunk in LOD ${chunk.lod}`
@@ -359,6 +372,39 @@ export class ChunkManagerSource {
         bounds.max[2] + padZ
       )
     );
+  }
+
+  private getCenterIndices(bounds: Box2) {
+    const output: { x: number; y: number }[] = [];
+
+    for (let lod = 0; lod < this.lodCount; ++lod) {
+      const xLod = this.dimensions_.x.lods[lod];
+      const yLod = this.dimensions_.y.lods[lod];
+
+      const chunkWorldSizeX = xLod.chunkSize * xLod.scale;
+      const chunkWorldSizeY = yLod.chunkSize * yLod.scale;
+
+      const chunksX = Math.ceil(xLod.size / xLod.chunkSize);
+      const chunksY = Math.ceil(yLod.size / yLod.chunkSize);
+
+      const cx = (bounds.min[0] + bounds.max[0]) / 2;
+      const cy = (bounds.min[1] + bounds.max[1]) / 2;
+
+      output[lod] = {
+        x: clamp(
+          Math.floor((cx - xLod.translation) / chunkWorldSizeX),
+          0,
+          chunksX - 1
+        ),
+        y: clamp(
+          Math.floor((cy - yLod.translation) / chunkWorldSizeY),
+          0,
+          chunksY - 1
+        ),
+      };
+    }
+
+    return output;
   }
 }
 

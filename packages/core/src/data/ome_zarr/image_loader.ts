@@ -180,6 +180,7 @@ export class OmeZarrImageLoader {
       visible: true,
       prefetch: false,
       priority: null,
+      orderKey: null,
       data: subarray.data,
       shape: {
         x: subarray.shape[subarray.shape.length - 1],
