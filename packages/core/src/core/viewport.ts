@@ -22,8 +22,6 @@ export class Viewport {
   public readonly layerManager: LayerManager;
   public cameraControls?: CameraControls;
 
-  private cachedViewportBox_: Box2 | null = null;
-
   constructor(config: ViewportConfig, layerManager: LayerManager) {
     this.id = config.id || config.element.id || generateUUID();
     this.element = config.element;
@@ -38,7 +36,6 @@ export class Viewport {
   }
 
   public updateSize(): void {
-    this.cachedViewportBox_ = null;
     this.updateAspectRatio();
   }
 
@@ -84,9 +81,6 @@ export class Viewport {
   }
 
   private getBox(): Box2 {
-    if (this.cachedViewportBox_) {
-      return this.cachedViewportBox_;
-    }
     const viewportRect = this.element.getBoundingClientRect();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
@@ -95,12 +89,10 @@ export class Viewport {
     const width = viewportRect.width * devicePixelRatio;
     const height = viewportRect.height * devicePixelRatio;
 
-    this.cachedViewportBox_ = new Box2(
+    return new Box2(
       vec2.fromValues(x, y),
       vec2.fromValues(x + width, y + height)
     );
-
-    return this.cachedViewportBox_;
   }
 
   private updateAspectRatio(): void {
