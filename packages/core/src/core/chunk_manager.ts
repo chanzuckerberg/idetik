@@ -5,14 +5,13 @@ import {
   ChunkSource,
   SliceCoordinates,
 } from "../data/chunk";
-import { vec2, vec3 } from "gl-matrix";
+import { ReadonlyVec2, vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ChunkQueue } from "../data/chunk_queue";
-import { clamp } from "../utilities/clamp";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -201,7 +200,8 @@ export class ChunkManagerSource {
     );
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
-    const centerIndices = this.getCenterIndices(viewBounds2D);
+    const center = vec2.create();
+    vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
 
     for (const chunk of this.chunks_) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
@@ -229,10 +229,7 @@ export class ChunkManagerSource {
       }
 
       if (chunk.priority !== null) {
-        chunk.orderKey = Math.max(
-          Math.abs(chunk.chunkIndex.x - centerIndices[chunk.lod].x),
-          Math.abs(chunk.chunkIndex.y - centerIndices[chunk.lod].y)
-        );
+        chunk.orderKey = this.orderKeyByDistance(chunk, center);
       }
 
       if (isLoaded && !isFallbackLOD) {
@@ -374,36 +371,14 @@ export class ChunkManagerSource {
     );
   }
 
-  private getCenterIndices(bounds: Box2) {
-    const output: { x: number; y: number }[] = [];
-    const cx = (bounds.min[0] + bounds.max[0]) / 2;
-    const cy = (bounds.min[1] + bounds.max[1]) / 2;
-
-    for (let lod = 0; lod < this.lodCount; ++lod) {
-      const xLod = this.dimensions_.x.lods[lod];
-      const yLod = this.dimensions_.y.lods[lod];
-
-      const chunkWorldSizeX = xLod.chunkSize * xLod.scale;
-      const chunkWorldSizeY = yLod.chunkSize * yLod.scale;
-
-      const chunksX = Math.ceil(xLod.size / xLod.chunkSize);
-      const chunksY = Math.ceil(yLod.size / yLod.chunkSize);
-
-      output[lod] = {
-        x: clamp(
-          Math.floor((cx - xLod.translation) / chunkWorldSizeX),
-          0,
-          chunksX - 1
-        ),
-        y: clamp(
-          Math.floor((cy - yLod.translation) / chunkWorldSizeY),
-          0,
-          chunksY - 1
-        ),
-      };
-    }
-
-    return output;
+  private orderKeyByDistance(chunk: Chunk, center: ReadonlyVec2): number {
+    const chunkCenter = {
+      x: chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
+      y: chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
+    };
+    const dx = chunkCenter.x - center[0];
+    const dy = chunkCenter.y - center[1];
+    return dx * dx + dy * dy;
   }
 }
 
