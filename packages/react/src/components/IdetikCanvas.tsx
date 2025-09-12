@@ -14,7 +14,7 @@ export function IdetikCanvas({
   const contextValue = useIdetik();
   return (
     <canvas
-      ref={contextValue.onCanvasChange}
+      ref={contextValue.canvasRefCallback}
       id={canvasId}
       className={classNames}
     />

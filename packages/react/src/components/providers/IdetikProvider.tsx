@@ -12,7 +12,7 @@ import { IdetikContext } from "../../hooks/useIdetik";
 export const IdetikProvider = ({ children }: PropsWithChildren) => {
   const [runtime, setRuntime] = useState<Idetik | null>(null);
 
-  const onCanvasChange = (canvas: HTMLCanvasElement | null) => {
+  const canvasRefCallback = (canvas: HTMLCanvasElement | null) => {
     // Canvas unmounted, so stop the runtime if it has been created.
     if (canvas === null && runtime !== null) {
       runtime.stop();
@@ -35,7 +35,7 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
   };
 
   return (
-    <IdetikContext.Provider value={{ runtime, onCanvasChange }}>
+    <IdetikContext.Provider value={{ runtime, canvasRefCallback }}>
       {children}
     </IdetikContext.Provider>
   );

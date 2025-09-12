@@ -3,7 +3,7 @@ import { createContext, useContext } from "react";
 
 export type IdetikContextValue = {
   runtime: Idetik | null;
-  onCanvasChange(canvas: HTMLCanvasElement | null): void;
+  canvasRefCallback(canvas: HTMLCanvasElement | null): void;
 };
 
 export const IdetikContext = createContext<IdetikContextValue | undefined>(
