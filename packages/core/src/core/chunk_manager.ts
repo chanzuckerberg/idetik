@@ -12,7 +12,7 @@ import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ChunkQueue } from "../data/chunk_queue";
-import { clamp } from "@/utilities/clamp";
+import { clamp } from "../utilities/clamp";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -201,7 +201,7 @@ export class ChunkManagerSource {
     );
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
-    const centerIndicies = this.getCenterIndices(viewBounds2D);
+    const centerIndices = this.getCenterIndices(viewBounds2D);
 
     for (const chunk of this.chunks_) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
@@ -230,8 +230,8 @@ export class ChunkManagerSource {
 
       if (chunk.priority !== null) {
         chunk.orderKey = Math.max(
-          Math.abs(chunk.chunkIndex.x - centerIndicies[chunk.lod].x),
-          Math.abs(chunk.chunkIndex.y - centerIndicies[chunk.lod].y)
+          Math.abs(chunk.chunkIndex.x - centerIndices[chunk.lod].x),
+          Math.abs(chunk.chunkIndex.y - centerIndices[chunk.lod].y)
         );
       }
 
@@ -376,6 +376,8 @@ export class ChunkManagerSource {
 
   private getCenterIndices(bounds: Box2) {
     const output: { x: number; y: number }[] = [];
+    const cx = (bounds.min[0] + bounds.max[0]) / 2;
+    const cy = (bounds.min[1] + bounds.max[1]) / 2;
 
     for (let lod = 0; lod < this.lodCount; ++lod) {
       const xLod = this.dimensions_.x.lods[lod];
@@ -386,9 +388,6 @@ export class ChunkManagerSource {
 
       const chunksX = Math.ceil(xLod.size / xLod.chunkSize);
       const chunksY = Math.ceil(yLod.size / yLod.chunkSize);
-
-      const cx = (bounds.min[0] + bounds.max[0]) / 2;
-      const cy = (bounds.min[1] + bounds.max[1]) / 2;
 
       output[lod] = {
         x: clamp(
