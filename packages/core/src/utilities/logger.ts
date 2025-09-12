@@ -118,16 +118,16 @@ export class Logger {
 
     switch (level) {
       case "debug":
-        console.debug(...output);
+        console.debug(...output); // eslint-disable-line no-console
         break;
       case "info":
-        console.info(...output);
+        console.info(...output); // eslint-disable-line no-console
         break;
       case "warn":
-        console.warn(...output);
+        console.warn(...output); // eslint-disable-line no-console
         break;
       case "error":
-        console.error(...output);
+        console.error(...output); // eslint-disable-line no-console
         break;
     }
   }
