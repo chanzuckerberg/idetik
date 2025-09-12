@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   OmeZarrImageSource,
-  Region,
+  SliceCoordinates,
   ChannelProps,
   ChunkedImageLayer,
 } from "@idetik/core-prerelease";
@@ -27,7 +27,7 @@ export interface OmeZarrChunkedImageViewerProps {
     directory: FileSystemDirectoryHandle;
     path?: `/${string}`;
   };
-  region: Region;
+  sliceCoordinates: SliceCoordinates;
   fallbackContrastLimits?: [number, number];
   classNames?: {
     root?: string;
@@ -46,7 +46,7 @@ export interface OmeZarrChunkedImageViewerProps {
 export function OmeZarrChunkedImageViewer({
   sourceUrl,
   sourceLocalDirectory,
-  region,
+  sliceCoordinates,
   fallbackContrastLimits,
   classNames,
   onLayerCreated,
@@ -69,7 +69,7 @@ export function OmeZarrChunkedImageViewer({
   >([]);
   const sourceRef = useRef<OmeZarrImageSource | null>(null);
   const imageLayerRef = useRef<ChunkedImageLayer | null>(null);
-  const sliceCoordsRef = useRef<{ [key: string]: number } | null>(null);
+  const sliceCoordsRef = useRef<SliceCoordinates | null>(null);
 
   // #region Initialization
   const { directory, path } = sourceLocalDirectory ?? {};
@@ -96,7 +96,11 @@ export function OmeZarrChunkedImageViewer({
       }
       setExtraControlProps(extraControlProps);
       setUnit(xUnit);
-      const { layer, sliceCoords } = createLayer(source, region, channelProps);
+      const { layer, sliceCoords } = createLayer(
+        source,
+        sliceCoordinates,
+        channelProps
+      );
       imageLayerRef.current = layer;
       sliceCoordsRef.current = sliceCoords;
 
@@ -129,7 +133,7 @@ export function OmeZarrChunkedImageViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only props that trigger reinitialize
   }, [
     sourceUrl,
-    region, // TODO: Support region being unstable.
+    sliceCoordinates,
     fallbackContrastLimits,
     directory,
     path,
@@ -163,22 +167,14 @@ export function OmeZarrChunkedImageViewer({
 
 function createLayer(
   source: OmeZarrImageSource,
-  region: Region,
+  sliceCoordinates: SliceCoordinates,
   channelProps: ChannelProps[]
-): { layer: ChunkedImageLayer; sliceCoords: { [key: string]: number } } {
-  // Convert region to sliceCoords for ChunkedImageLayer
-  const sliceCoords: { [key: string]: number } = {};
-  region.forEach((regionDim) => {
-    if (regionDim.index?.type === "point") {
-      sliceCoords[regionDim.dimension.toLowerCase()] = regionDim.index.value;
-    }
-  });
-
+): { layer: ChunkedImageLayer; sliceCoords: SliceCoordinates } {
   const layer = new ChunkedImageLayer({
     source,
-    sliceCoords,
+    sliceCoords: sliceCoordinates,
     channelProps,
   });
 
-  return { layer, sliceCoords };
+  return { layer, sliceCoords: sliceCoordinates };
 }
