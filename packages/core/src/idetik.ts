@@ -1,11 +1,7 @@
 import { Camera } from "./objects/cameras/camera";
 import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
-import {
-  EventContext,
-  EventDispatcher,
-  CanvasEventProvider,
-} from "./core/event_dispatcher";
+import { EventDispatcher } from "./core/event_dispatcher";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
@@ -21,7 +17,6 @@ import {
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
-  onEvent?(event: EventContext): void;
 };
 
 type IdetikParams = {
@@ -92,22 +87,7 @@ export class Idetik {
     if (params.showStats) this.stats_ = createStats();
 
     this.events = new EventDispatcher();
-    for (const viewport of this.viewports_) {
-      this.events.addProvider(viewport);
-    }
-
-    // add canvas provider if no viewport uses the canvas as its element
-    // this handles multi-viewport cases where canvas background might be exposed
-    // i.e. when viewports don't cover the entire canvas
-    if (!this.viewports_.some((v) => v.element === canvas)) {
-      this.events.addProvider(new CanvasEventProvider(canvas));
-    }
-
-    for (const overlay of this.overlays) {
-      if (overlay.onEvent) {
-        this.events.addEventListener(overlay.onEvent.bind(overlay));
-      }
-    }
+    this.events.addProvider(this.viewports_[0]);
   }
 
   public get width() {

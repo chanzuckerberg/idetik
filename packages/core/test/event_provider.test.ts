@@ -3,7 +3,6 @@ import {
   EventDispatcher,
   EventContext,
   EventProvider,
-  CanvasEventProvider,
 } from "../src/core/event_dispatcher";
 import { OrthographicCamera } from "../src/objects/cameras/orthographic_camera";
 import { Layer } from "../src/core/layer";
@@ -127,38 +126,6 @@ describe("EventProvider architecture", () => {
     expect(Number.isNaN(receivedEvent!.clipPos![2])).toBe(false);
   });
 
-  it("canvas provider works without coordinate transforms", () => {
-    const canvas = document.createElement("canvas");
-    const dispatcher = new EventDispatcher();
-
-    const canvasProvider = new CanvasEventProvider(canvas);
-    dispatcher.addProvider(canvasProvider);
-
-    let receivedEvent: EventContext | null = null;
-    dispatcher.addEventListener((event) => {
-      receivedEvent = event;
-    });
-
-    canvas.dispatchEvent(
-      new PointerEvent("pointerdown", {
-        clientX: 150,
-        clientY: 250,
-      })
-    );
-
-    expect(receivedEvent).not.toBeNull();
-    expect(receivedEvent!.source).toBe(canvasProvider);
-    expect(receivedEvent!.worldPos).toBeUndefined();
-    expect(receivedEvent!.clipPos).toBeUndefined();
-
-    // Ensure client coordinates are preserved and valid
-    expect(receivedEvent!.clientPos).toBeDefined();
-    expect(Number.isNaN(receivedEvent!.clientPos![0])).toBe(false);
-    expect(Number.isNaN(receivedEvent!.clientPos![1])).toBe(false);
-    expect(receivedEvent!.clientPos![0]).toBe(150);
-    expect(receivedEvent!.clientPos![1]).toBe(250);
-  });
-
   it("layers can stop propagation", () => {
     const canvas = document.createElement("canvas");
     const camera = new OrthographicCamera(0, 800, 0, 600);
@@ -172,29 +139,5 @@ describe("EventProvider architecture", () => {
     canvas.dispatchEvent(new PointerEvent("pointerdown"));
 
     expect(globalListener).not.toHaveBeenCalled();
-  });
-
-  it("handles events without client coordinates", () => {
-    const canvas = document.createElement("canvas");
-    const dispatcher = new EventDispatcher();
-
-    const canvasProvider = new CanvasEventProvider(canvas);
-    dispatcher.addProvider(canvasProvider);
-
-    let receivedEvent: EventContext | null = null;
-    dispatcher.addEventListener((event) => {
-      receivedEvent = event;
-    });
-
-    // Create a wheel event explicitly without clientX/clientY
-    const wheelEvent = new WheelEvent("wheel");
-    Object.defineProperty(wheelEvent, "clientX", { value: undefined });
-    Object.defineProperty(wheelEvent, "clientY", { value: undefined });
-    canvas.dispatchEvent(wheelEvent);
-
-    expect(receivedEvent).not.toBeNull();
-    expect(receivedEvent!.clientPos).toBeUndefined();
-    expect(receivedEvent!.worldPos).toBeUndefined();
-    expect(receivedEvent!.clipPos).toBeUndefined();
   });
 });

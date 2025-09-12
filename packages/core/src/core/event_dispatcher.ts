@@ -84,25 +84,6 @@ export interface EventProvider {
   processEvent(eventContext: EventContext): EventContext;
 }
 
-export class CanvasEventProvider implements EventProvider {
-  public readonly element: HTMLCanvasElement;
-
-  constructor(element: HTMLCanvasElement) {
-    this.element = element;
-  }
-
-  processEvent(eventContext: EventContext): EventContext {
-    return new EventContext(
-      eventContext.type,
-      eventContext.event,
-      eventContext.clientPos,
-      eventContext.worldPos,
-      eventContext.clipPos,
-      this
-    );
-  }
-}
-
 export class EventDispatcher {
   private readonly listeners_: Listener[] = [];
   private readonly domListeners_: Map<EventProvider, DOMEventListener> =
