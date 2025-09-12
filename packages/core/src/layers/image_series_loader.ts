@@ -1,6 +1,7 @@
 import { Full, Interval, Region } from "../data/region";
 import { Chunk, ChunkLoader, ChunkSource } from "../data/chunk";
 import { AbortError, PromiseScheduler } from "../data/promise_scheduler";
+import { Logger } from "../utilities/logger";
 
 type SeriesAttributes = {
   start: number;
@@ -72,10 +73,14 @@ export class ImageSeriesLoader {
     const token = this.loadingToken_;
     if (token) {
       if (token.index === index && !token.canceled) {
-        console.debug("Ignoring duplicate active setIndex request");
+        Logger.debug(
+          "ImageSeriesLoader",
+          "Ignoring duplicate active setIndex request"
+        );
         return { success: false, reason: "duplicate" };
       } else {
-        console.debug(
+        Logger.debug(
+          "ImageSeriesLoader",
           `Cancelling setIndex request for index ${token.index}, new requested index is ${index}`
         );
         token.canceled = true;
@@ -179,7 +184,10 @@ export class ImageSeriesLoader {
           // reject the promise because this means the layer was closed
           return Promise.reject(result.reason);
         } else {
-          console.error(`Error loading slice: ${result.reason}`);
+          Logger.error(
+            "ImageSeriesLoader",
+            `Error loading slice: ${result.reason}`
+          );
         }
       }
     }

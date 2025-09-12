@@ -16,6 +16,8 @@ const Colors = {
 
 // Add new module names here as needed to represent different parts of the application
 type Module =
+  | "Channel"
+  | "Chunk"
   | "ChunkManager"
   | "ChunkManagerSource"
   | "ChunkQueue"
@@ -23,7 +25,9 @@ type Module =
   | "EventDispatcher"
   | "Idetik"
   | "ImageLayer"
+  | "ImageSeriesLoader"
   | "LabelImageLayer"
+  | "Layer"
   | "RenderablePool"
   | "Viewport"
   | "WebGLRenderer"
@@ -114,16 +118,16 @@ export class Logger {
 
     switch (level) {
       case "debug":
-        console.debug(...output);
+        console.debug(...output); // eslint-disable-line no-console
         break;
       case "info":
-        console.info(...output);
+        console.info(...output); // eslint-disable-line no-console
         break;
       case "warn":
-        console.warn(...output);
+        console.warn(...output); // eslint-disable-line no-console
         break;
       case "error":
-        console.error(...output);
+        console.error(...output); // eslint-disable-line no-console
         break;
     }
   }
