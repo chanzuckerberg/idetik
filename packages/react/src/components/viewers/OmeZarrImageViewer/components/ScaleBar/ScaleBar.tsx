@@ -113,7 +113,10 @@ class ScaleBarOverlay {
         displayText = `${lineWidthWorld.value.toExponential(2)} ${this.unit_}`;
       } else {
         // For reasonable scales, limit decimal places to at most 6
-        const numDecimalPlaces = Math.max(0, Math.min(6, -lineWidthWorld.exponent));
+        const numDecimalPlaces = Math.max(
+          0,
+          Math.min(6, -lineWidthWorld.exponent)
+        );
         displayText = `${lineWidthWorld.value.toFixed(numDecimalPlaces)} ${this.unit_}`;
       }
       textDiv.textContent = displayText;
