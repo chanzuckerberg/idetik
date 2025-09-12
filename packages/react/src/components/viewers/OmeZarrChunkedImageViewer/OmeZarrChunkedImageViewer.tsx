@@ -71,7 +71,6 @@ export function OmeZarrChunkedImageViewer({
   const imageLayerRef = useRef<ChunkedImageLayer | null>(null);
   const sliceCoordsRef = useRef<SliceCoordinates | null>(null);
 
-  // #region Initialization
   const { directory, path } = sourceLocalDirectory ?? {};
   useEffect(() => {
     if (!runtimeIsReady) return;
