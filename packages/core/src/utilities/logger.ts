@@ -65,7 +65,7 @@ export function getMode(): "production" | "development" | "test" {
 }
 export class Logger {
   private static logLevel_: LogLevel =
-    getMode() === "production" ? "info" : "debug";
+    getMode() === "production" ? "warn" : "debug";
 
   public static setLogLevel(level: LogLevel) {
     Logger.logLevel_ = level;
