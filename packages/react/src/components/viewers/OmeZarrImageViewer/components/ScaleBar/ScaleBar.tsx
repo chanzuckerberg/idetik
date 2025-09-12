@@ -108,15 +108,12 @@ class ScaleBarOverlay {
       const lineProportion = lineWidthWorld.value / containerWidthWorld;
       lineDiv.style.width = `${lineProportion * 100}%`;
       let displayText: string;
-      if (lineWidthWorld.exponent < -6) {
+      if (lineWidthWorld.exponent < -3) {
         // Use scientific notation for very small numbers
         displayText = `${lineWidthWorld.value.toExponential(2)} ${this.unit_}`;
       } else {
-        // For reasonable scales, limit decimal places to at most 6
-        const numDecimalPlaces = Math.max(
-          0,
-          Math.min(6, -lineWidthWorld.exponent)
-        );
+        // For reasonable scales, limit decimal places to at most 3
+        const numDecimalPlaces = Math.max(0, -lineWidthWorld.exponent);
         displayText = `${lineWidthWorld.value.toFixed(numDecimalPlaces)} ${this.unit_}`;
       }
       textDiv.textContent = displayText;
