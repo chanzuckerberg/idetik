@@ -111,6 +111,7 @@ export function OmeZarrChunkedImageViewer({
       };
 
       onLayerCreated?.(layer, updateZSlice);
+      // Bail out if a newer initialization has started while we were loading
       if (sourceRef.current !== source) {
         return;
       }
