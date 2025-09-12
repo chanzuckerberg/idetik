@@ -1,4 +1,4 @@
-import { OmeroChannel, ChannelProps, Color } from "@idetik/core";
+import { OmeroChannel, ChannelProps, Color } from "@idetik/core-prerelease";
 
 // these are the "extra" properties we need for rendering
 // the *control* that core does not track
