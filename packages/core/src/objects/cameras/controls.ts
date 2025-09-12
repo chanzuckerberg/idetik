@@ -39,6 +39,9 @@ export class PanZoomControls implements CameraControls {
     if (!event.worldPos || !event.clipPos) return;
     const e = event.event as WheelEvent;
 
+    // Prevent the page from scrolling, the default action for wheel events.
+    e.preventDefault();
+
     const posBeforeZoom = vec3.clone(event.worldPos);
     const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
 
