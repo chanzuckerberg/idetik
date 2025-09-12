@@ -1,5 +1,4 @@
 import { Camera } from "../objects/cameras/camera";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { Layer } from "./layer";
 import { LayerManager } from "./layer_manager";
 import { CameraControls } from "../objects/cameras/controls";
@@ -95,19 +94,8 @@ export class Viewport {
     );
   }
 
-  public getWorldViewRect(): Box2 {
-    if (this.camera.type !== "OrthographicCamera") {
-      throw new Error(
-        "ChunkManager currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
-      );
-    }
-    const camera = this.camera as OrthographicCamera;
-    return camera.getWorldViewRect();
-  }
-
   public getLodFactor(): number {
-    const viewBounds2D = this.getWorldViewRect();
+    const viewBounds2D = this.camera.getWorldViewRect();
     const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
     const bufferWidth = this.getBox().toRect().width;
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;

@@ -129,7 +129,7 @@ export class ChunkManagerSource {
   public update(viewport: Viewport) {
     const lodFactor = viewport.getLodFactor();
     this.setLOD(lodFactor);
-    const viewBounds2D = viewport.getWorldViewRect();
+    const viewBounds2D = viewport.camera.getWorldViewRect();
     const zBounds = this.getZBounds();
 
     if (

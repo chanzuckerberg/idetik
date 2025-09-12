@@ -1,5 +1,6 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { mat4, vec3, vec4 } from "gl-matrix";
+import { Box2 } from "../../math/box2";
 
 export type CameraType = "OrthographicCamera" | "PerspectiveCamera";
 
@@ -54,5 +55,12 @@ export abstract class Camera extends RenderableObject {
       this.transform.matrix
     );
     return vec3.fromValues(worldPos[0], worldPos[1], worldPos[2]);
+  }
+
+  public getWorldViewRect(): Box2 {
+    throw new Error(
+      "getWorldViewRect is required by some camera-aware layer types" +
+        `, but is not supported by this camera type (${this.type})`
+    );
   }
 }
