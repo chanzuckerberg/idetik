@@ -263,7 +263,7 @@ export class ChunkManagerSource {
       const rx = xDim.lods[i].scale / xDim.lods[i - 1].scale;
       const ry = yDim.lods[i].scale / yDim.lods[i - 1].scale;
 
-      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
+      if (!almostEqual(rx, 2, 0.02) || !almostEqual(ry, 2, 0.02)) {
         throw new Error(
           `Invalid downsampling factor between levels ${i - 1} → ${i}: ` +
             `expected (2× in X and Y), but got ` +
