@@ -3,13 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   OmeZarrImageSource,
-  OrthographicCamera,
   ImageSeriesLayer,
   Region,
-  loadOmeroChannels,
   loadOmeroDefaults,
   ChannelProps,
-  Idetik,
   ImageLayer,
 } from "@idetik/core-prerelease";
 import { useIdetik } from "../../../hooks/useIdetik";
@@ -17,15 +14,14 @@ import { IdetikCanvas } from "../../IdetikCanvas";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
-import {
-  omeroToChannelProps,
-  getGrayscaleChannelProp,
-  omeroToChannelControls,
-  defaultGreyscaleChannel,
-  ExtraControlProps,
-} from "./utils";
 import { ChannelControlsList } from "./components/ChannelControlsList";
 import { ScaleBar } from "./components/ScaleBar/ScaleBar";
+import {
+  createSource,
+  loadChannelMetadata as sharedLoadChannelMetadata,
+  zoomToFit,
+  ExtraControlProps,
+} from "../shared/omeZarrHelpers";
 
 export interface OmeZarrImageViewerProps {
   sourceUrl?: string;
@@ -114,7 +110,7 @@ export function OmeZarrImageViewer({
       sourceRef.current = source;
       setAllSlicesLoaded(false);
       setLoading(true);
-      const loadChannelMetadataPromise = loadChannelMetadata(
+      const loadChannelMetadataPromise = sharedLoadChannelMetadata(
         source,
         fallbackContrastLimits
       );
@@ -338,48 +334,6 @@ export function OmeZarrImageViewer({
 
 // #region Helpers
 
-function createSource(
-  sourceUrl?: string,
-  directory?: FileSystemDirectoryHandle,
-  path?: `/${string}`
-): OmeZarrImageSource | undefined {
-  if (sourceUrl !== undefined) {
-    return new OmeZarrImageSource(sourceUrl);
-  } else if (directory !== undefined) {
-    return new OmeZarrImageSource(directory, path);
-  }
-}
-
-async function loadChannelMetadata(
-  source: OmeZarrImageSource,
-  fallbackContrastLimits?: [number, number]
-): Promise<{
-  channelProps: Array<ChannelProps>;
-  extraControlProps: Array<ExtraControlProps>;
-}> {
-  try {
-    const loadedOmeroChannels = await loadOmeroChannels(source);
-    let channelProps;
-    if (loadedOmeroChannels.length === 0) {
-      console.warn(
-        "No OMERO channels found. Falling back to 1 grayscale channel."
-      );
-      channelProps = [getGrayscaleChannelProp(fallbackContrastLimits)];
-    } else {
-      channelProps = omeroToChannelProps(loadedOmeroChannels);
-    }
-    return {
-      channelProps,
-      extraControlProps: omeroToChannelControls(
-        loadedOmeroChannels,
-        defaultGreyscaleChannel(fallbackContrastLimits)
-      ),
-    };
-  } catch (err) {
-    throw new Error(`[Viewer] Failed to load OMERO metadata: ${err}`);
-  }
-}
-
 async function loadImageMetadata(
   source: OmeZarrImageSource,
   region: Region,
@@ -533,13 +487,4 @@ function createLayer(
         seriesDimensionName,
         lod: resolutionLevel,
       });
-}
-
-function zoomToFit(
-  xRange: [number, number],
-  yRange: [number, number],
-  runtime: Idetik
-) {
-  const camera = runtime.camera as OrthographicCamera;
-  camera?.setFrame(xRange[0], xRange[1], yRange[1], yRange[0]);
 }

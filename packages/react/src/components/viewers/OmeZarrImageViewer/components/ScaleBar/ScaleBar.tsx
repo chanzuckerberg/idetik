@@ -107,8 +107,16 @@ class ScaleBarOverlay {
       const lineWidthWorld = scientificFloor(containerWidthWorld);
       const lineProportion = lineWidthWorld.value / containerWidthWorld;
       lineDiv.style.width = `${lineProportion * 100}%`;
-      const numDecimalPlaces = Math.max(0, -lineWidthWorld.exponent);
-      textDiv.textContent = `${lineWidthWorld.value.toFixed(numDecimalPlaces)} ${this.unit_}`;
+      let displayText: string;
+      if (lineWidthWorld.exponent < -3) {
+        // Use scientific notation for very small numbers
+        displayText = `${lineWidthWorld.value.toExponential(2)} ${this.unit_}`;
+      } else {
+        // For reasonable scales, limit decimal places to at most 3
+        const numDecimalPlaces = Math.max(0, -lineWidthWorld.exponent);
+        displayText = `${lineWidthWorld.value.toFixed(numDecimalPlaces)} ${this.unit_}`;
+      }
+      textDiv.textContent = displayText;
     }
   }
 }
