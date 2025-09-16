@@ -84,7 +84,6 @@ export class ChunkManagerSource {
       const chunksX = Math.ceil(xLod.size / chunkWidth);
       const chunksY = Math.ceil(yLod.size / chunkHeight);
       const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
-      const chunksT = tLod?.size ?? 1;
 
       for (let x = 0; x < chunksX; ++x) {
         const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
@@ -147,8 +146,8 @@ export class ChunkManagerSource {
   // }
 
   public getChunks(): Chunk[] {
-    const chunks = this.chunks_[this.sliceCoords_.t ?? 0];
-    const currentLODChunks = chunks.filter(
+    const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
+    const currentLODChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
         chunk.visible &&
@@ -160,7 +159,7 @@ export class ChunkManagerSource {
       return currentLODChunks;
     }
 
-    const lowResChunks = chunks.filter(
+    const lowResChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === this.lowestResLOD_ &&
         chunk.visible &&
@@ -259,15 +258,15 @@ export class ChunkManagerSource {
       this.lastTCoord_ !== undefined &&
       this.lastTCoord_ !== this.sliceCoords_.t
     ) {
-      const lastChunks = this.chunks_[this.lastTCoord_ ?? 0];
-      for (const chunk of lastChunks) {
+      const lastTimeChunks = this.chunks_[this.lastTCoord_ ?? 0];
+      for (const chunk of lastTimeChunks) {
         this.disposeChunk(chunk);
       }
-      updatedChunks.push(...lastChunks);
+      updatedChunks.push(...lastTimeChunks);
     }
 
-    const newChunks = this.chunks_[this.sliceCoords_.t ?? 0];
-    for (const chunk of newChunks) {
+    const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
+    for (const chunk of currentTimeChunks) {
       const spatiallyVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const isVisible = spatiallyVisible;
       const eligibleForPrefetch =
@@ -309,7 +308,7 @@ export class ChunkManagerSource {
         this.disposeChunk(chunk);
       }
     }
-    updatedChunks.push(...newChunks);
+    updatedChunks.push(...currentTimeChunks);
     return updatedChunks;
   }
 
