@@ -257,7 +257,7 @@ export class ChunkManagerSource {
       this.lastTCoord_ !== undefined &&
       this.lastTCoord_ !== this.sliceCoords_.t
     ) {
-      const lastTimeChunks = this.chunks_[this.lastTCoord_ ?? 0];
+      const lastTimeChunks = this.chunks_[this.lastTCoord_];
       for (const chunk of lastTimeChunks) {
         chunk.visible = false;
         chunk.prefetch = false;
