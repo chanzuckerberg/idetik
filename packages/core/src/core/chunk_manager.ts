@@ -194,8 +194,8 @@ export class ChunkManagerSource {
     return this.dimensions_;
   }
 
-  public get chunks(): Chunk[] {
-    return this.chunks_.flat();
+  public get chunks(): Chunk[][] {
+    return this.chunks_;
   }
 
   public get currentLOD(): number {

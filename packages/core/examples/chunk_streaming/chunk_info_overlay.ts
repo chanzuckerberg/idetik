@@ -23,7 +23,7 @@ export class ChunkInfoOverlay {
       return;
     }
 
-    const allChunks = chunkManagerSource.chunks;
+    const allChunks = chunkManagerSource.chunks.flat();
     if (!allChunks) {
       this.textDiv_.textContent = "No chunks available";
       return;
