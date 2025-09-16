@@ -48,16 +48,21 @@ export class ChunkManagerSource {
 
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
       const tLod = this.dimensions_.t?.lods[lod];
-      if (tLod && tLod.chunkSize !== 1) {
+      if (!tLod) continue;
+      if (tLod.chunkSize !== 1) {
         throw new Error(
-          `ChunkManager only supports a chunk size of 1 in t. Found ${tLod.chunkSize}`
+          `ChunkManager only supports a chunk size of 1 in t. Found ${tLod.chunkSize} at LOD ${lod}`
+        );
+      }
+      if (tLod.scale !== 1) {
+        throw new Error(
+          `ChunkManager does not support scale in t. Found ${tLod.scale} at LOD ${lod}`
         );
       }
       const prevTLod = this.dimensions_.t?.lods[lod - 1];
-      if (tLod && prevTLod) {
-        if (tLod.size !== prevTLod.size || tLod.scale !== prevTLod.scale) {
-          throw new Error(`ChunkManager does not support downsampling in t.`);
-        }
+      if (!prevTLod) continue;
+      if (tLod.size !== prevTLod.size) {
+        throw new Error(`ChunkManager does not support downsampling in t.`);
       }
     }
 
@@ -122,17 +127,6 @@ export class ChunkManagerSource {
       }
     }
   }
-
-  // private currentTimeIndex(): number {
-  //   if (this.sliceCoords_.t === undefined || this.dimensions_.t === undefined) {
-  //     return 0;
-  //   }
-  //   const tLod = this.dimensions_.t.lods[0];
-  //   const tIndex = Math.floor(
-  //     (this.sliceCoords_.t - tLod.translation) / tLod.scale
-  //   );
-  //   return Math.max(0, Math.min(tIndex, tLod.size - 1));
-  // }
 
   public getChunks(): Chunk[] {
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
