@@ -179,7 +179,6 @@ export class OmeZarrImageLoader {
         y: subarray.shape[subarray.shape.length - 2],
         z: 1,
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
-        t: 1,
       },
       chunkIndex: { x: 0, y: 0, z: 0, t: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
@@ -188,9 +187,8 @@ export class OmeZarrImageLoader {
         x: scale[indices.length - 1],
         y: scale[indices.length - 2],
         z: 1,
-        t: 1,
       },
-      offset: { x: xOffset, y: yOffset, z: 0, t: 0 },
+      offset: { x: xOffset, y: yOffset, z: 0 },
     };
     return chunk;
   }
