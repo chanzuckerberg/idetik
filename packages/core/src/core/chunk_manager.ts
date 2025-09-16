@@ -69,7 +69,6 @@ export class ChunkManagerSource {
       const yLod = this.dimensions_.y.lods[lod];
       const zLod = this.dimensions_.z?.lods[lod];
       const cLod = this.dimensions_.c?.lods[lod];
-      const tLod = this.dimensions_.t?.lods[lod];
 
       const chunkWidth = xLod.chunkSize;
       const chunkHeight = yLod.chunkSize;
@@ -90,8 +89,6 @@ export class ChunkManagerSource {
                 ? zLod.translation + z * chunkDepth * zLod.scale
                 : 0;
             for (let t = 0; t < chunksT; ++t) {
-              const tOffset =
-                tLod !== undefined ? tLod.translation + t * tLod.scale : 0;
               this.chunks_[t].push({
                 state: "unloaded",
                 lod,
@@ -104,7 +101,6 @@ export class ChunkManagerSource {
                   y: chunkHeight,
                   z: chunkDepth,
                   c: channels,
-                  t: 1,
                 },
                 rowStride: chunkWidth,
                 rowAlignmentBytes: 1,
@@ -113,13 +109,11 @@ export class ChunkManagerSource {
                   x: xLod.scale,
                   y: yLod.scale,
                   z: zLod?.scale ?? 1,
-                  t: tLod?.scale ?? 1,
                 },
                 offset: {
                   x: xOffset,
                   y: yOffset,
                   z: zOffset,
-                  t: tOffset,
                 },
               });
             }
