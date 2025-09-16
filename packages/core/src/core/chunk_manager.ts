@@ -4,7 +4,6 @@ import {
   ChunkLoader,
   ChunkSource,
   SliceCoordinates,
-  SourceDimension,
 } from "../data/chunk";
 import { ReadonlyVec2, vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
@@ -172,20 +171,20 @@ export class ChunkManagerSource {
   public update(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
     const zBounds = this.getZBounds();
-    let chunks: Chunk[] = [];
+    let updatedChunks: Chunk[] = [];
 
     if (
       this.viewBounds2DChanged(viewBounds2D) ||
-      this.boundsChanged(zBounds, this.lastZBounds_) ||
+      this.zBoundsChanged(zBounds) ||
       this.lastTCoord_ !== this.sliceCoords_.t
     ) {
-      chunks = this.updateChunkVisibility(viewBounds2D);
+      updatedChunks = this.updateChunkVisibility(viewBounds2D);
     }
 
     this.lastViewBounds2D_ = viewBounds2D;
     this.lastZBounds_ = zBounds;
     this.lastTCoord_ = this.sliceCoords_.t;
-    return chunks;
+    return updatedChunks;
   }
 
   public get lodCount() {
@@ -260,6 +259,8 @@ export class ChunkManagerSource {
     ) {
       const lastTimeChunks = this.chunks_[this.lastTCoord_ ?? 0];
       for (const chunk of lastTimeChunks) {
+        chunk.visible = false;
+        chunk.prefetch = false;
         this.disposeChunk(chunk);
       }
       updatedChunks.push(...lastTimeChunks);
@@ -380,30 +381,25 @@ export class ChunkManagerSource {
   }
 
   private getZBounds(): [number, number] {
-    return this.getChunkBounds(this.dimensions_.z, this.sliceCoords_.z);
-  }
+    const zDim = this.dimensions_.z;
+    if (zDim === undefined || this.sliceCoords_.z === undefined) return [0, 1];
 
-  private getChunkBounds(
-    dimension?: SourceDimension,
-    coord?: number
-  ): [number, number] {
-    if (dimension === undefined || coord === undefined) return [0, 1];
-    const lod = dimension.lods[this.currentLOD_];
-    const size = lod.size;
-    const scale = lod.scale;
-    const tran = lod.translation;
-    const arrayIndex = Math.floor((coord - tran) / scale);
-    const chunkDepth = lod.chunkSize;
-    const chunkIndex = Math.max(
+    const zLod = zDim.lods[this.currentLOD_];
+    const zShape = zLod.size;
+    const zScale = zLod.scale;
+    const zTran = zLod.translation;
+    const zPoint = Math.floor((this.sliceCoords_.z - zTran) / zScale);
+    const chunkDepth = zLod.chunkSize;
+    const zChunk = Math.max(
       0,
       Math.min(
-        Math.floor(arrayIndex / chunkDepth),
-        Math.ceil(size / chunkDepth) - 1
+        Math.floor(zPoint / chunkDepth),
+        Math.ceil(zShape / chunkDepth) - 1
       )
     );
     return [
-      tran + chunkIndex * chunkDepth * scale,
-      tran + (chunkIndex + 1) * chunkDepth * scale,
+      zTran + zChunk * chunkDepth * zScale,
+      zTran + (zChunk + 1) * chunkDepth * zScale,
     ];
   }
 
@@ -415,11 +411,8 @@ export class ChunkManagerSource {
     );
   }
 
-  private boundsChanged(
-    newBounds: [number, number],
-    prevBounds?: [number, number]
-  ): boolean {
-    return prevBounds === undefined || !vec2.equals(prevBounds, newBounds);
+  private zBoundsChanged(newBounds: [number, number]): boolean {
+    return !this.lastZBounds_ || !vec2.equals(this.lastZBounds_, newBounds);
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
