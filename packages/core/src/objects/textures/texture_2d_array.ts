@@ -4,7 +4,7 @@ import {
   bufferToDataType,
 } from "../../objects/textures/texture";
 
-import { Chunk, ChunkData, ChunkSlice2D } from "../../data/chunk";
+import { Chunk, ChunkData } from "../../data/chunk";
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
@@ -71,25 +71,6 @@ export class Texture2DArray extends Texture {
     }
 
     this.data = source;
-  }
-
-  public updateWithChunkSlice(chunkSlice: ChunkSlice2D) {
-    const data = chunkSlice.data;
-    if (this.data === data) return;
-
-    const width = chunkSlice.shape.x;
-    const height = chunkSlice.shape.y;
-    const depth = data.length / (width * height);
-    if (
-      this.width != width ||
-      this.height != height ||
-      this.depth_ != depth ||
-      this.dataType != bufferToDataType(data)
-    ) {
-      throw new Error("Unable to update texture, texture buffer mismatch.");
-    }
-
-    this.data = data;
   }
 
   public static createWithChunk(chunk: Chunk, data?: ChunkData) {
