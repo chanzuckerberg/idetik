@@ -199,13 +199,12 @@ export class ChunkManagerSource {
   }
 
   private updateChunkVisibility(viewBounds2D: Box2): Chunk[] {
-    const updatedChunks: Chunk[] = [];
     if (this.chunks_.length === 0) {
       Logger.warn(
         "ChunkManagerSource",
         "updateChunkVisibility called with no chunks initialized"
       );
-      return updatedChunks;
+      return [];
     }
 
     const [zMin, zMax] = this.getZBounds();
@@ -218,18 +217,7 @@ export class ChunkManagerSource {
     const center = vec2.create();
     vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
 
-    if (
-      this.lastTCoord_ !== undefined &&
-      this.lastTCoord_ !== this.sliceCoords_.t
-    ) {
-      const lastTimeChunks = this.chunks_[this.lastTCoord_];
-      for (const chunk of lastTimeChunks) {
-        chunk.visible = false;
-        chunk.prefetch = false;
-        this.disposeChunk(chunk);
-      }
-      updatedChunks.push(...lastTimeChunks);
-    }
+    const updatedChunks = this.updatePreviousTimeChunks();
 
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
     for (const chunk of currentTimeChunks) {
@@ -271,6 +259,18 @@ export class ChunkManagerSource {
     }
     updatedChunks.push(...currentTimeChunks);
     return updatedChunks;
+  }
+
+  private updatePreviousTimeChunks(): Chunk[] {
+    if (this.lastTCoord_ === undefined) return [];
+    if (this.lastTCoord_ === this.sliceCoords_.t) return [];
+    const lastTimeChunks = Array(...this.chunks_[this.lastTCoord_]);
+    for (const chunk of lastTimeChunks) {
+      chunk.visible = false;
+      chunk.prefetch = false;
+      this.disposeChunk(chunk);
+    }
+    return lastTimeChunks;
   }
 
   private disposeChunk(chunk: Chunk) {
