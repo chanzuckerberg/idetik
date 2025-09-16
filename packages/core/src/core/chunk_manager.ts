@@ -62,7 +62,9 @@ export class ChunkManagerSource {
       const prevTLod = this.dimensions_.t?.lods[lod - 1];
       if (!prevTLod) continue;
       if (tLod.size !== prevTLod.size) {
-        throw new Error(`ChunkManager does not support downsampling in t.`);
+        throw new Error(
+          `ChunkManager does not support downsampling in t. Found ${prevTLod.size} at LOD ${lod - 1} → ${tLod.size} at LOD ${lod}`
+        );
       }
     }
 
