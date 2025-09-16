@@ -45,10 +45,9 @@ export class ChunkManagerSource {
     this.sliceCoords_ = sliceCoords;
 
     this.validateXYScaleRatios();
-    this.validateTimeDimension();
+    const { size: chunksT } = this.validateTimeDimension();
 
     // generate chunks for each LOD without loading data
-    const chunksT = this.dimensions_.t?.lods[0].size ?? 1;
     this.chunks_ = Array.from({ length: chunksT }, () => []);
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
       const xLod = this.dimensions_.x.lods[lod];
@@ -318,7 +317,7 @@ export class ChunkManagerSource {
     }
   }
 
-  private validateTimeDimension(): void {
+  private validateTimeDimension() {
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
       const tLod = this.dimensions_.t?.lods[lod];
       if (!tLod) continue;
@@ -345,6 +344,9 @@ export class ChunkManagerSource {
         );
       }
     }
+    return {
+      size: this.dimensions_.t?.lods[0].size ?? 1,
+    };
   }
 
   private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
