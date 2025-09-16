@@ -45,28 +45,7 @@ export class ChunkManagerSource {
     this.sliceCoords_ = sliceCoords;
 
     this.validateXYScaleRatios();
-
-    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-      const tLod = this.dimensions_.t?.lods[lod];
-      if (!tLod) continue;
-      if (tLod.chunkSize !== 1) {
-        throw new Error(
-          `ChunkManager only supports a chunk size of 1 in t. Found ${tLod.chunkSize} at LOD ${lod}`
-        );
-      }
-      if (tLod.scale !== 1) {
-        throw new Error(
-          `ChunkManager does not support scale in t. Found ${tLod.scale} at LOD ${lod}`
-        );
-      }
-      const prevTLod = this.dimensions_.t?.lods[lod - 1];
-      if (!prevTLod) continue;
-      if (tLod.size !== prevTLod.size) {
-        throw new Error(
-          `ChunkManager does not support downsampling in t. Found ${prevTLod.size} at LOD ${lod - 1} → ${tLod.size} at LOD ${lod}`
-        );
-      }
-    }
+    this.validateTimeDimension();
 
     // generate chunks for each LOD without loading data
     const chunksT = this.dimensions_.t?.lods[0].size ?? 1;
@@ -334,6 +313,35 @@ export class ChunkManagerSource {
             `expected (2× in X and Y), but got ` +
             `(${rx.toFixed(2)}×, ${ry.toFixed(2)}×) from scale ` +
             `[${xDim.lods[i - 1].scale}, ${yDim.lods[i - 1].scale}] → [${xDim.lods[i].scale}, ${yDim.lods[i].scale}]`
+        );
+      }
+    }
+  }
+
+  private validateTimeDimension(): void {
+    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+      const tLod = this.dimensions_.t?.lods[lod];
+      if (!tLod) continue;
+      if (tLod.chunkSize !== 1) {
+        throw new Error(
+          `ChunkManager only supports a chunk size of 1 in t. Found ${tLod.chunkSize} at LOD ${lod}`
+        );
+      }
+      if (tLod.scale !== 1) {
+        throw new Error(
+          `ChunkManager does not support scale in t. Found ${tLod.scale} at LOD ${lod}`
+        );
+      }
+      if (tLod.translation !== 0) {
+        throw new Error(
+          `ChunkManager does not support translation in t. Found ${tLod.translation} at LOD ${lod}`
+        );
+      }
+      const prevTLod = this.dimensions_.t?.lods[lod - 1];
+      if (!prevTLod) continue;
+      if (tLod.size !== prevTLod.size) {
+        throw new Error(
+          `ChunkManager does not support downsampling in t. Found ${prevTLod.size} at LOD ${lod - 1} → ${tLod.size} at LOD ${lod}`
         );
       }
     }
