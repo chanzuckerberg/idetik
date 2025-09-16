@@ -6,12 +6,13 @@ import {
   SliceCoordinates,
   SourceDimension,
 } from "../data/chunk";
-import { vec2, vec3 } from "gl-matrix";
+import { ReadonlyVec2, vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import { ChunkQueue } from "../data/chunk_queue";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -29,6 +30,9 @@ export class ChunkManagerSource {
   private readonly sliceCoords_: SliceCoordinates;
   private readonly dimensions_: SourceDimensionMap;
   private currentLOD_: number = 0;
+  // TODO: make LOD bias configurable per-source or per-layer
+  // positive values nudge towards coarser resolution (higher LOD number)
+  private lodBias_: number = 0.5;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
   private lastTBounds_?: [number, number];
@@ -86,6 +90,7 @@ export class ChunkManagerSource {
                 visible: false,
                 prefetch: false,
                 priority: null,
+                orderKey: null,
                 shape: {
                   x: chunkWidth,
                   y: chunkHeight,
@@ -173,15 +178,25 @@ export class ChunkManagerSource {
     return this.currentLOD_;
   }
 
-  public loadChunkData(chunk: Chunk) {
-    return this.loader_.loadChunkData(chunk, this.sliceCoords_);
+  public loadChunkData(chunk: Chunk, signal: AbortSignal) {
+    return this.loader_.loadChunkData(chunk, this.sliceCoords_, signal);
   }
 
   private setLOD(lodFactor: number): void {
+    // `scale` here is the x-width of an image pixel in virtual units at LOD 0.
+    // So (ignoring the bias term) subtracting `lodFactor` from `Math.log2(scale)`
+    // is effectively `Math.log2(virtualUnitsPerScreenPixel / xScale)`.
+    // That is, `adjustedLodFactor = Math.log2(imagePixelsPerScreenPixel)`;
+    // or in other words, how many image pixels (LOD 0) fit in a screen pixel.
+    // Use of log2 here and in ChunkManager relies on the assumption that
+    // each LOD is downsampled by a factor of 2 in X and Y.
+    const sourceAdjustment =
+      this.lodBias_ - Math.log2(this.dimensions_.x.lods[0].scale);
+    const sourceAdjustedLodFactor = sourceAdjustment - lodFactor;
     const maxLOD = this.lowestResLOD_;
     const targetLOD = Math.max(
       0,
-      Math.min(maxLOD, Math.floor(maxLOD - lodFactor))
+      Math.min(maxLOD, Math.floor(sourceAdjustedLodFactor))
     );
 
     if (targetLOD !== this.currentLOD_) {
@@ -211,6 +226,9 @@ export class ChunkManagerSource {
     const timeBounds: [number, number] = [tMin, tMax];
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
+    const center = vec2.create();
+    vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
+
     for (const chunk of this.chunks_) {
       const spatiallyVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const temporallyVisible = this.isChunkWithinTimeBounds(chunk, timeBounds);
@@ -238,6 +256,11 @@ export class ChunkManagerSource {
         chunk.state = "queued";
       } else if (chunk.priority === null && chunk.state === "queued") {
         chunk.state = "unloaded";
+        chunk.orderKey = null;
+      }
+
+      if (chunk.priority !== null) {
+        chunk.orderKey = this.orderKeyByDistance(chunk, center);
       }
 
       if (
@@ -253,6 +276,7 @@ export class ChunkManagerSource {
         chunk.data = undefined;
         chunk.state = "unloaded";
         chunk.priority = null;
+        chunk.orderKey = null;
         Logger.debug(
           "ChunkManagerSource",
           `Disposing chunk in LOD ${chunk.lod}`
@@ -300,7 +324,7 @@ export class ChunkManagerSource {
       const rx = xDim.lods[i].scale / xDim.lods[i - 1].scale;
       const ry = yDim.lods[i].scale / yDim.lods[i - 1].scale;
 
-      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
+      if (!almostEqual(rx, 2, 0.02) || !almostEqual(ry, 2, 0.02)) {
         throw new Error(
           `Invalid downsampling factor between levels ${i - 1} → ${i}: ` +
             `expected (2× in X and Y), but got ` +
@@ -402,13 +426,21 @@ export class ChunkManagerSource {
       )
     );
   }
-}
 
-type BucketItem = { source: ChunkManagerSource; chunk: Chunk };
-type Buckets = BucketItem[][];
+  private orderKeyByDistance(chunk: Chunk, center: ReadonlyVec2): number {
+    const chunkCenter = {
+      x: chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
+      y: chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
+    };
+    const dx = chunkCenter.x - center[0];
+    const dy = chunkCenter.y - center[1];
+    return dx * dx + dy * dy;
+  }
+}
 
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
+  private readonly queue_ = new ChunkQueue();
 
   public async addSource(source: ChunkSource, sliceCoords: SliceCoordinates) {
     let existing = this.sources_.get(source);
@@ -433,30 +465,19 @@ export class ChunkManager {
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
-    const buckets: Buckets = [[], [], [], []];
-
     for (const [_, source] of this.sources_) {
       source.update(lodFactor, viewBounds2D);
       for (const chunk of source.chunks) {
-        if (chunk.state !== "queued" || chunk.priority === null) continue;
-        buckets[chunk.priority].push({ source, chunk });
+        if (chunk.priority === null) {
+          this.queue_.cancel(chunk);
+        } else if (chunk.state === "queued") {
+          this.queue_.enqueue(chunk, (signal) =>
+            source.loadChunkData(chunk, signal)
+          );
+        }
       }
     }
 
-    for (const bucket of buckets) {
-      for (const { source, chunk } of bucket) {
-        if (chunk.state !== "queued") continue; // guard
-        chunk.state = "loading";
-        source
-          .loadChunkData(chunk)
-          .then(() => {
-            if (chunk.state === "loading") chunk.state = "loaded";
-          })
-          .catch((err) => {
-            Logger.error("ChunkManager", String(err));
-            if (chunk.state === "loading") chunk.state = "unloaded";
-          });
-      }
-    }
+    this.queue_.flush();
   }
 }
