@@ -48,25 +48,24 @@ export class ChunkManagerSource {
     const { size: chunksT } = this.validateTimeDimension();
 
     // generate chunks for each LOD without loading data
-    this.chunks_ = [];
-    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-      const xLod = this.dimensions_.x.lods[lod];
-      const yLod = this.dimensions_.y.lods[lod];
-      const zLod = this.dimensions_.z?.lods[lod];
-      const cLod = this.dimensions_.c?.lods[lod];
+    this.chunks_ = Array.from({ length: chunksT }, () => []);
+    for (let t = 0; t < chunksT; ++t) {
+      const chunksAtT = this.chunks_[t];
+      for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+        const xLod = this.dimensions_.x.lods[lod];
+        const yLod = this.dimensions_.y.lods[lod];
+        const zLod = this.dimensions_.z?.lods[lod];
+        const cLod = this.dimensions_.c?.lods[lod];
 
-      const chunkWidth = xLod.chunkSize;
-      const chunkHeight = yLod.chunkSize;
-      const chunkDepth = zLod?.chunkSize ?? 1;
+        const chunkWidth = xLod.chunkSize;
+        const chunkHeight = yLod.chunkSize;
+        const chunkDepth = zLod?.chunkSize ?? 1;
 
-      const chunksX = Math.ceil(xLod.size / chunkWidth);
-      const chunksY = Math.ceil(yLod.size / chunkHeight);
-      const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
-      const channels = cLod?.size ?? 1;
+        const chunksX = Math.ceil(xLod.size / chunkWidth);
+        const chunksY = Math.ceil(yLod.size / chunkHeight);
+        const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
+        const channels = cLod?.size ?? 1;
 
-      for (let t = 0; t < chunksT; ++t) {
-        const chunksAtT = new Array(chunksT);
-        this.chunks_.push(chunksAtT);
         for (let x = 0; x < chunksX; ++x) {
           const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
           for (let y = 0; y < chunksY; ++y) {
