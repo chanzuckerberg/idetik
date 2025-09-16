@@ -297,16 +297,12 @@ export class ChunkManagerSource {
         chunk.orderKey = this.orderKeyByDistance(chunk, center);
       }
 
-      if (
-        this.shouldDispose(
-          isLoaded,
-          isFallbackLOD,
-          isCurrentLOD,
-          isVisible,
-          eligibleForPrefetch
-        )
-      ) {
-        this.disposeChunk(chunk);
+      if (isLoaded && !isFallbackLOD) {
+        const shouldDispose =
+          !isCurrentLOD || (isCurrentLOD && !isVisible && !eligibleForPrefetch);
+        if (shouldDispose) {
+          this.disposeChunk(chunk);
+        }
       }
     }
     updatedChunks.push(...currentTimeChunks);
@@ -332,19 +328,6 @@ export class ChunkManagerSource {
     if (isFallbackLOD) return PRI_FALLBACK_BACKGROUND;
     if (isCurrentLOD && isPrefetch) return PRI_PREFETCH;
     return null;
-  }
-
-  private shouldDispose(
-    isLoaded: boolean,
-    isFallbackLOD: boolean,
-    isCurrentLOD: boolean,
-    isVisible: boolean,
-    isPrefetch: boolean
-  ) {
-    if (!isLoaded) return false;
-    if (!isFallbackLOD && !isCurrentLOD) return true;
-    if (isCurrentLOD && !isVisible && !isPrefetch) return true;
-    return false;
   }
 
   private validateXYScaleRatios(): void {
@@ -390,6 +373,7 @@ export class ChunkManagerSource {
     const zTran = zLod.translation;
     const zPoint = Math.floor((this.sliceCoords_.z - zTran) / zScale);
     const chunkDepth = zLod.chunkSize;
+
     const zChunk = Math.max(
       0,
       Math.min(
@@ -397,6 +381,7 @@ export class ChunkManagerSource {
         Math.ceil(zShape / chunkDepth) - 1
       )
     );
+
     return [
       zTran + zChunk * chunkDepth * zScale,
       zTran + (zChunk + 1) * chunkDepth * zScale,
