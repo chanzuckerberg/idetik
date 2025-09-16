@@ -181,7 +181,10 @@ export class ChunkManagerSource {
       updatedChunks = this.updateChunkVisibility(viewBounds2D);
     }
 
-    this.lastViewBounds2D_ = viewBounds2D;
+    this.lastViewBounds2D_ = new Box2(
+      vec2.clone(viewBounds2D.min),
+      vec2.clone(viewBounds2D.max)
+    );
     this.lastZBounds_ = zBounds;
     this.lastTCoord_ = this.sliceCoords_.t;
     return updatedChunks;
@@ -268,8 +271,7 @@ export class ChunkManagerSource {
 
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
     for (const chunk of currentTimeChunks) {
-      const spatiallyVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
-      const isVisible = spatiallyVisible;
+      const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
         !isVisible && this.isChunkWithinBounds(chunk, paddedBounds);
 
