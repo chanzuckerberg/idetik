@@ -146,10 +146,7 @@ export class ChunkManagerSource {
       updatedChunks = this.updateChunkVisibility(viewBounds2D);
     }
 
-    this.lastViewBounds2D_ = new Box2(
-      vec2.clone(viewBounds2D.min),
-      vec2.clone(viewBounds2D.max)
-    );
+    this.lastViewBounds2D_ = viewBounds2D.clone();
     this.lastZBounds_ = zBounds;
     this.lastTCoord_ = this.sliceCoords_.t;
     return updatedChunks;
