@@ -48,7 +48,7 @@ export class ChunkManagerSource {
     const { size: chunksT } = this.validateTimeDimension();
 
     // generate chunks for each LOD without loading data
-    this.chunks_ = Array.from({ length: chunksT }, () => []);
+    this.chunks_ = [];
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
       const xLod = this.dimensions_.x.lods[lod];
       const yLod = this.dimensions_.y.lods[lod];
@@ -64,17 +64,19 @@ export class ChunkManagerSource {
       const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
       const channels = cLod?.size ?? 1;
 
-      for (let x = 0; x < chunksX; ++x) {
-        const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
-        for (let y = 0; y < chunksY; ++y) {
-          const yOffset = yLod.translation + y * yLod.chunkSize * yLod.scale;
-          for (let z = 0; z < chunksZ; ++z) {
-            const zOffset =
-              zLod !== undefined
-                ? zLod.translation + z * chunkDepth * zLod.scale
-                : 0;
-            for (let t = 0; t < chunksT; ++t) {
-              this.chunks_[t].push({
+      for (let t = 0; t < chunksT; ++t) {
+        const chunksAtT = new Array(chunksT);
+        this.chunks_.push(chunksAtT);
+        for (let x = 0; x < chunksX; ++x) {
+          const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
+          for (let y = 0; y < chunksY; ++y) {
+            const yOffset = yLod.translation + y * yLod.chunkSize * yLod.scale;
+            for (let z = 0; z < chunksZ; ++z) {
+              const zOffset =
+                zLod !== undefined
+                  ? zLod.translation + z * chunkDepth * zLod.scale
+                  : 0;
+              chunksAtT.push({
                 state: "unloaded",
                 lod,
                 visible: false,
