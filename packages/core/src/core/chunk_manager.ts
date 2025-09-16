@@ -47,12 +47,6 @@ export class ChunkManagerSource {
     this.validateXYScaleRatios();
 
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-      const cLod = this.dimensions_.c?.lods[lod];
-      if (cLod && cLod.chunkSize !== 1) {
-        throw new Error(
-          `ChunkManager only supports a chunk size of 1 in c. Found ${cLod.chunkSize}`
-        );
-      }
       const tLod = this.dimensions_.t?.lods[lod];
       if (tLod && tLod.chunkSize !== 1) {
         throw new Error(
@@ -74,6 +68,7 @@ export class ChunkManagerSource {
       const xLod = this.dimensions_.x.lods[lod];
       const yLod = this.dimensions_.y.lods[lod];
       const zLod = this.dimensions_.z?.lods[lod];
+      const cLod = this.dimensions_.c?.lods[lod];
       const tLod = this.dimensions_.t?.lods[lod];
 
       const chunkWidth = xLod.chunkSize;
@@ -83,6 +78,7 @@ export class ChunkManagerSource {
       const chunksX = Math.ceil(xLod.size / chunkWidth);
       const chunksY = Math.ceil(yLod.size / chunkHeight);
       const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
+      const channels = cLod?.size ?? 1;
 
       for (let x = 0; x < chunksX; ++x) {
         const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
@@ -107,7 +103,7 @@ export class ChunkManagerSource {
                   x: chunkWidth,
                   y: chunkHeight,
                   z: chunkDepth,
-                  c: 1,
+                  c: channels,
                   t: 1,
                 },
                 rowStride: chunkWidth,
