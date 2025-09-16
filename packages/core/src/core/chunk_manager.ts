@@ -85,9 +85,7 @@ export class ChunkManagerSource {
                 : 0;
             for (let t = 0; t < chunksT; ++t) {
               const tOffset =
-                tLod !== undefined
-                  ? tLod.translation + t * tLod.scale
-                  : 0;
+                tLod !== undefined ? tLod.translation + t * tLod.scale : 0;
               this.chunks_.push({
                 state: "unloaded",
                 lod,
