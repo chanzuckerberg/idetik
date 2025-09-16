@@ -58,24 +58,21 @@ export class ChunkManagerSource {
       const chunkWidth = xLod.chunkSize;
       const chunkHeight = yLod.chunkSize;
       const chunkDepth = zLod?.chunkSize ?? 1;
-      const chunkTime = tLod?.chunkSize ?? 1;
-
       if (cLod && cLod.chunkSize !== 1) {
         throw new Error(
-          `ChunkManager only supports a chunk size of 1 in C. Found ${cLod.chunkSize}`
+          `ChunkManager only supports a chunk size of 1 in c. Found ${cLod.chunkSize}`
         );
       }
-
       if (tLod && tLod.chunkSize !== 1) {
         throw new Error(
-          `ChunkManager only supports a chunk size of 1 in T. Found ${tLod.chunkSize}`
+          `ChunkManager only supports a chunk size of 1 in t. Found ${tLod.chunkSize}`
         );
       }
 
       const chunksX = Math.ceil(xLod.size / chunkWidth);
       const chunksY = Math.ceil(yLod.size / chunkHeight);
       const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
-      const chunksT = Math.ceil((tLod?.size ?? 1) / chunkTime);
+      const chunksT = tLod?.size ?? 1;
 
       for (let x = 0; x < chunksX; ++x) {
         const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
@@ -89,7 +86,7 @@ export class ChunkManagerSource {
             for (let t = 0; t < chunksT; ++t) {
               const tOffset =
                 tLod !== undefined
-                  ? tLod.translation + t * chunkTime * tLod.scale
+                  ? tLod.translation + t * tLod.scale
                   : 0;
               this.chunks_.push({
                 state: "unloaded",
@@ -103,7 +100,7 @@ export class ChunkManagerSource {
                   y: chunkHeight,
                   z: chunkDepth,
                   c: 1,
-                  t: chunkTime,
+                  t: 1,
                 },
                 rowStride: chunkWidth,
                 rowAlignmentBytes: 1,
