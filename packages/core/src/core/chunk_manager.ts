@@ -59,9 +59,16 @@ export class ChunkManagerSource {
       const chunkHeight = yLod.chunkSize;
       const chunkDepth = zLod?.chunkSize ?? 1;
       const chunkTime = tLod?.chunkSize ?? 1;
+
       if (cLod && cLod.chunkSize !== 1) {
         throw new Error(
           `ChunkManager only supports a chunk size of 1 in C. Found ${cLod.chunkSize}`
+        );
+      }
+
+      if (tLod && tLod.chunkSize !== 1) {
+        throw new Error(
+          `ChunkManager only supports a chunk size of 1 in T. Found ${tLod.chunkSize}`
         );
       }
 
