@@ -45,7 +45,7 @@ export class ChunkManagerSource {
     this.sliceCoords_ = sliceCoords;
 
     this.validateXYScaleRatios();
-    const { size: chunksT } = this.validateTimeDimension();
+    const { size: chunksT } = this.getAndValidateTimeDimension();
 
     // generate chunks for each LOD without loading data
     this.chunks_ = Array.from({ length: chunksT }, () => []);
@@ -162,10 +162,6 @@ export class ChunkManagerSource {
 
   public get dimensions() {
     return this.dimensions_;
-  }
-
-  public get chunks(): Chunk[] {
-    return this.chunks_.flat();
   }
 
   public get currentLOD(): number {
@@ -319,7 +315,7 @@ export class ChunkManagerSource {
     }
   }
 
-  private validateTimeDimension() {
+  private getAndValidateTimeDimension() {
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
       const tLod = this.dimensions_.t?.lods[lod];
       if (!tLod) continue;
