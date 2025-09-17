@@ -133,6 +133,10 @@ export class ChunkManagerSource {
     return [...lowResChunks, ...currentLODChunks];
   }
 
+  public getChunksAtCurrentTime(): Chunk[] {
+    return this.chunks_[this.sliceCoords_.t ?? 0];
+  }
+
   public update(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
     const zBounds = this.getZBounds();

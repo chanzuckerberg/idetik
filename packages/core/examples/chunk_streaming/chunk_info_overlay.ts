@@ -24,8 +24,8 @@ export class ChunkInfoOverlay {
       return;
     }
 
-    const allChunks = chunkManagerSource.chunks;
-    if (!allChunks) {
+    const chunksAtCurrentTime = chunkManagerSource.getChunksAtCurrentTime();
+    if (!chunksAtCurrentTime) {
       this.textDiv_.textContent = "No chunks available";
       return;
     }
@@ -33,7 +33,7 @@ export class ChunkInfoOverlay {
     const chunkDetails: string[] = [];
     const currentLOD = chunkManagerSource.currentLOD;
     const renderedChunks = chunkManagerSource.getChunks();
-    const totalChunks = allChunks.length;
+    const totalChunks = chunksAtCurrentTime.length;
 
     let loadedChunks = 0;
     let loadingChunks = 0;
@@ -46,7 +46,7 @@ export class ChunkInfoOverlay {
       rendered: 0,
       prefetched: 0,
     }));
-    allChunks.forEach((chunk: Chunk) => {
+    chunksAtCurrentTime.forEach((chunk: Chunk) => {
       if (chunk.state === "loaded") {
         loadedChunks++;
       } else if (chunk.state === "loading") {
