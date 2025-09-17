@@ -17,13 +17,14 @@ export class ChunkInfoOverlay {
   }
 
   public update(idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
+    if (this.textDiv_.style.display === "none") return;
     const chunkManagerSource = this.imageLayer_.chunkManagerSource;
     if (!chunkManagerSource) {
       this.textDiv_.textContent = "No chunk manager source";
       return;
     }
 
-    const allChunks = chunkManagerSource.chunks.flat();
+    const allChunks = chunkManagerSource.chunks;
     if (!allChunks) {
       this.textDiv_.textContent = "No chunks available";
       return;
@@ -36,14 +37,6 @@ export class ChunkInfoOverlay {
 
     let loadedChunks = 0;
     let loadingChunks = 0;
-    allChunks.forEach((chunk: Chunk) => {
-      if (chunk.state === "loaded") {
-        loadedChunks++;
-      } else if (chunk.state === "loading") {
-        loadingChunks++;
-      }
-    });
-
     const lodCounters: {
       visible: number;
       rendered: number;
@@ -53,8 +46,12 @@ export class ChunkInfoOverlay {
       rendered: 0,
       prefetched: 0,
     }));
-
     allChunks.forEach((chunk: Chunk) => {
+      if (chunk.state === "loaded") {
+        loadedChunks++;
+      } else if (chunk.state === "loading") {
+        loadingChunks++;
+      }
       if (chunk.visible) lodCounters[chunk.lod].visible++;
       // Prefetched chunks are only counted for the current LOD,
       // since higher/lower LODs are not actively rendered.
