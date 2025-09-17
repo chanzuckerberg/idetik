@@ -110,7 +110,7 @@ export class ChunkManagerSource {
   }
 
   public getChunks(): Chunk[] {
-    const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
+    const currentTimeChunks = this.getChunksAtCurrentTime();
     const currentLODChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
