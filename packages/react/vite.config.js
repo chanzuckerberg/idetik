@@ -77,5 +77,12 @@ export default defineConfig(() => {
         include: [path.resolve(_dirname, "src/**")],
       },
     },
+    test: {
+      environment: "jsdom",
+      coverage: {
+        provider: "istanbul",
+        include: ["src/**"],
+      },
+    },
   };
 });
