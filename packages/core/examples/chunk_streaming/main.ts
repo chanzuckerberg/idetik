@@ -27,9 +27,14 @@ const sliceCoords = {
 // values copied from source
 const imageDataRange = { min: 0, max: 244 };
 const z = { translate: 0.0, scale: 1.24, shape: 448 };
-const min = z.translate;
-const max = z.translate + z.scale * z.shape - z.scale;
-const zRange = { min, max };
+const zMin = z.translate;
+const zMax = z.translate + z.scale * z.shape - z.scale;
+const zRange = { min: zMin, max: zMax };
+
+const t = { translate: 0.0, scale: 1.0, shape: 791 };
+const tMin = t.translate;
+const tMax = t.translate + t.scale * t.shape - t.scale;
+const tRange = { min: tMin, max: tMax };
 
 const initialWindow = 50;
 const initialLevel = 25;
@@ -76,6 +81,10 @@ const gui = new GUI({ width: 500 });
 gui
   .add(controls.sliceCoords, "z", zRange.min, zRange.max, z.scale)
   .name("Z-point");
+
+gui
+  .add(controls.sliceCoords, "t", tRange.min, tRange.max, t.scale)
+  .name("T-point");
 
 gui
   .add(controls, "showWireframes")
