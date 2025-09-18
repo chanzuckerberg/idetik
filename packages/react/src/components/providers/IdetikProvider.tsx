@@ -13,7 +13,6 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
   const [runtime, setRuntime] = useState<Idetik | null>(null);
 
   const canvasRefCallback = (canvas: HTMLCanvasElement | null) => {
-    console.debug("IdetikProvider: canvasRefCallback", canvas, runtime);
     // Canvas unmounted
     if (canvas === null) {
       // Stop the runtime if it has been created.
