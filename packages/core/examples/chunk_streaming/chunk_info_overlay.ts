@@ -69,7 +69,7 @@ export class ChunkInfoOverlay {
     }
 
     const status = loadingChunks > 0 ? "Loading..." : "Ready";
-    const summary = `Chunks: ${loadedChunks}/${totalChunks} ${status}`;
+    const summary = `Chunks at time point: ${loadedChunks}/${totalChunks} ${status}`;
     const counters: string[] = [];
     lodCounters.forEach((counter, lod) => {
       const prefix = lod === currentLOD ? `LOD ${lod} (current)` : `LOD ${lod}`;
