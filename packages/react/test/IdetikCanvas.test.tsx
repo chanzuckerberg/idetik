@@ -11,7 +11,6 @@ vi.mock("@idetik/core-prerelease", () => ({
     canvas: props.canvas,
     camera: props.camera,
     cameraControls: props.cameraControls,
-    layerManager: { mockLayerManager: true },
   })),
   OrthographicCamera: vi.fn().mockImplementation(() => ({ mockCamera: true })),
   PanZoomControls: vi.fn().mockImplementation(() => ({ mockControls: true })),
