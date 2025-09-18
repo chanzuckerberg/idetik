@@ -100,6 +100,37 @@ describe("ChunkQueue", () => {
     await expectCounts(queue, { pending: 0, running: 0 });
   });
 
+  test("tie-breaks by orderKey within equal priority", async () => {
+    const queue = new ChunkQueue();
+
+    const started: number[] = [];
+    const ctl2 = makeControllableLoader(() => started.push(2));
+    const ctl0 = makeControllableLoader(() => started.push(0));
+    const ctl1 = makeControllableLoader(() => started.push(1));
+
+    queue.enqueue(
+      makeChunk({ state: "queued", priority: 1, orderKey: 2 }),
+      ctl2.loader
+    );
+    queue.enqueue(
+      makeChunk({ state: "queued", priority: 1, orderKey: 0 }),
+      ctl0.loader
+    );
+    queue.enqueue(
+      makeChunk({ state: "queued", priority: 1, orderKey: 1 }),
+      ctl1.loader
+    );
+
+    queue.flush();
+    await expectCounts(queue, { pending: 0, running: 3 });
+    expect(started).toEqual([0, 1, 2]);
+
+    ctl0.resolve();
+    ctl1.resolve();
+    ctl2.resolve();
+    await expectCounts(queue, { pending: 0, running: 0 });
+  });
+
   test("does not process the same chunk twice", async () => {
     const queue = new ChunkQueue();
     const chunk = makeChunk({ state: "queued", priority: 0 });

@@ -5,7 +5,7 @@ import {
   ChunkSource,
   SliceCoordinates,
 } from "../data/chunk";
-import { vec2, vec3 } from "gl-matrix";
+import { ReadonlyVec2, vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
@@ -23,7 +23,8 @@ const PRI_FALLBACK_BACKGROUND = 2;
 const PRI_PREFETCH = 3;
 
 export class ChunkManagerSource {
-  private readonly chunks_: Chunk[];
+  // First dimension of the array is time, the others cover LOD, x, y, z, c.
+  private readonly chunks_: Chunk[][];
   private readonly loader_;
   private readonly lowestResLOD_: number;
   private readonly sliceCoords_: SliceCoordinates;
@@ -34,6 +35,7 @@ export class ChunkManagerSource {
   private lodBias_: number = 0.5;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
+  private lastTCoord_?: number;
 
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
     this.loader_ = loader;
@@ -43,59 +45,64 @@ export class ChunkManagerSource {
     this.sliceCoords_ = sliceCoords;
 
     this.validateXYScaleRatios();
+    const { size: chunksT } = this.getAndValidateTimeDimension();
 
     // generate chunks for each LOD without loading data
-    this.chunks_ = [];
-    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-      const xLod = this.dimensions_.x.lods[lod];
-      const yLod = this.dimensions_.y.lods[lod];
-      const zLod = this.dimensions_.z?.lods[lod];
-      const cLod = this.dimensions_.c?.lods[lod];
+    this.chunks_ = Array.from({ length: chunksT }, () => []);
+    for (let t = 0; t < chunksT; ++t) {
+      const chunksAtT = this.chunks_[t];
+      for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+        const xLod = this.dimensions_.x.lods[lod];
+        const yLod = this.dimensions_.y.lods[lod];
+        const zLod = this.dimensions_.z?.lods[lod];
+        const cLod = this.dimensions_.c?.lods[lod];
 
-      const chunkWidth = xLod.chunkSize;
-      const chunkHeight = yLod.chunkSize;
-      const chunkDepth = zLod?.chunkSize ?? 1;
+        const chunkWidth = xLod.chunkSize;
+        const chunkHeight = yLod.chunkSize;
+        const chunkDepth = zLod?.chunkSize ?? 1;
 
-      const chunksX = Math.ceil(xLod.size / chunkWidth);
-      const chunksY = Math.ceil(yLod.size / chunkHeight);
-      const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
-      const channels = cLod?.size ?? 1;
+        const chunksX = Math.ceil(xLod.size / chunkWidth);
+        const chunksY = Math.ceil(yLod.size / chunkHeight);
+        const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
+        const channels = cLod?.size ?? 1;
 
-      for (let x = 0; x < chunksX; ++x) {
-        const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
-        for (let y = 0; y < chunksY; ++y) {
-          const yOffset = yLod.translation + y * yLod.chunkSize * yLod.scale;
-          for (let z = 0; z < chunksZ; ++z) {
-            const zOffset =
-              zLod !== undefined
-                ? zLod.translation + z * chunkDepth * zLod.scale
-                : 0;
-            this.chunks_.push({
-              state: "unloaded",
-              lod,
-              visible: false,
-              prefetch: false,
-              priority: null,
-              shape: {
-                x: chunkWidth,
-                y: chunkHeight,
-                z: chunkDepth,
-                c: channels,
-              },
-              rowStride: chunkWidth,
-              rowAlignmentBytes: 1,
-              chunkIndex: { x, y, z },
-              scale: {
-                x: xLod.scale,
-                y: yLod.scale,
-                z: zLod?.scale ?? 1,
-              },
-              offset: {
-                x: xOffset,
-                y: yOffset,
-                z: zOffset,
-              },
-            });
+        for (let x = 0; x < chunksX; ++x) {
+          const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
+          for (let y = 0; y < chunksY; ++y) {
+            const yOffset = yLod.translation + y * yLod.chunkSize * yLod.scale;
+            for (let z = 0; z < chunksZ; ++z) {
+              const zOffset =
+                zLod !== undefined
+                  ? zLod.translation + z * chunkDepth * zLod.scale
+                  : 0;
+              chunksAtT.push({
+                state: "unloaded",
+                lod,
+                visible: false,
+                prefetch: false,
+                priority: null,
+                orderKey: null,
+                shape: {
+                  x: chunkWidth,
+                  y: chunkHeight,
+                  z: chunkDepth,
+                  c: channels,
+                },
+                rowStride: chunkWidth,
+                rowAlignmentBytes: 1,
+                chunkIndex: { x, y, z, t },
+                scale: {
+                  x: xLod.scale,
+                  y: yLod.scale,
+                  z: zLod?.scale ?? 1,
+                },
+                offset: {
+                  x: xOffset,
+                  y: yOffset,
+                  z: zOffset,
+                },
+              });
+            }
           }
         }
       }
@@ -103,7 +110,8 @@ export class ChunkManagerSource {
   }
 
   public getChunks(): Chunk[] {
-    const currentLODChunks = this.chunks_.filter(
+    const currentTimeChunks = this.getChunksAtCurrentTime();
+    const currentLODChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
         chunk.visible &&
@@ -115,7 +123,7 @@ export class ChunkManagerSource {
       return currentLODChunks;
     }
 
-    const lowResChunks = this.chunks_.filter(
+    const lowResChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === this.lowestResLOD_ &&
         chunk.visible &&
@@ -125,16 +133,28 @@ export class ChunkManagerSource {
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  public update(lodFactor: number, viewBounds2D: Box2) {
+  public getChunksAtCurrentTime(): Chunk[] {
+    return this.chunks_[this.sliceCoords_.t ?? 0];
+  }
+
+  public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
     const zBounds = this.getZBounds();
+    let updatedChunks: Chunk[] = [];
 
     if (
       this.viewBounds2DChanged(viewBounds2D) ||
-      this.zBoundsChanged(zBounds)
+      this.zBoundsChanged(zBounds) ||
+      this.lastTCoord_ !== this.sliceCoords_.t
     ) {
-      this.updateChunkVisibility(viewBounds2D);
+      updatedChunks =
+        this.updateAndCollectChunkChangesForCurrentLod(viewBounds2D);
     }
+
+    this.lastViewBounds2D_ = viewBounds2D.clone();
+    this.lastZBounds_ = zBounds;
+    this.lastTCoord_ = this.sliceCoords_.t;
+    return updatedChunks;
   }
 
   public get lodCount() {
@@ -143,10 +163,6 @@ export class ChunkManagerSource {
 
   public get dimensions() {
     return this.dimensions_;
-  }
-
-  public get chunks(): Chunk[] {
-    return this.chunks_;
   }
 
   public get currentLOD(): number {
@@ -183,13 +199,15 @@ export class ChunkManagerSource {
     }
   }
 
-  private updateChunkVisibility(viewBounds2D: Box2): void {
+  private updateAndCollectChunkChangesForCurrentLod(
+    viewBounds2D: Box2
+  ): Chunk[] {
     if (this.chunks_.length === 0) {
       Logger.warn(
         "ChunkManagerSource",
         "updateChunkVisibility called with no chunks initialized"
       );
-      return;
+      return [];
     }
 
     const [zMin, zMax] = this.getZBounds();
@@ -199,7 +217,13 @@ export class ChunkManagerSource {
     );
 
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
-    for (const chunk of this.chunks_) {
+    const center = vec2.create();
+    vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
+
+    const updatedChunks = this.updatePreviousTimeChunks();
+
+    const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
+    for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
         !isVisible && this.isChunkWithinBounds(chunk, paddedBounds);
@@ -221,23 +245,43 @@ export class ChunkManagerSource {
         chunk.state = "queued";
       } else if (chunk.priority === null && chunk.state === "queued") {
         chunk.state = "unloaded";
+        chunk.orderKey = null;
+      }
+
+      if (chunk.priority !== null) {
+        chunk.orderKey = this.orderKeyByDistance(chunk, center);
       }
 
       if (isLoaded && !isFallbackLOD) {
         const shouldDispose =
           !isCurrentLOD || (isCurrentLOD && !isVisible && !eligibleForPrefetch);
-
         if (shouldDispose) {
-          chunk.data = undefined;
-          chunk.state = "unloaded";
-          chunk.priority = null;
-          Logger.debug(
-            "ChunkManagerSource",
-            `Disposing chunk in LOD ${chunk.lod}`
-          );
+          this.disposeChunk(chunk);
         }
       }
     }
+    updatedChunks.push(...currentTimeChunks);
+    return updatedChunks;
+  }
+
+  private updatePreviousTimeChunks(): Chunk[] {
+    if (this.lastTCoord_ === undefined) return [];
+    if (this.lastTCoord_ === this.sliceCoords_.t) return [];
+    const lastTimeChunks = Array(...this.chunks_[this.lastTCoord_]);
+    for (const chunk of lastTimeChunks) {
+      chunk.visible = false;
+      chunk.prefetch = false;
+      this.disposeChunk(chunk);
+    }
+    return lastTimeChunks;
+  }
+
+  private disposeChunk(chunk: Chunk) {
+    chunk.data = undefined;
+    chunk.state = "unloaded";
+    chunk.priority = null;
+    chunk.orderKey = null;
+    Logger.debug("ChunkManagerSource", `Disposing chunk in LOD ${chunk.lod}`);
   }
 
   private computePriority(
@@ -263,7 +307,7 @@ export class ChunkManagerSource {
       const rx = xDim.lods[i].scale / xDim.lods[i - 1].scale;
       const ry = yDim.lods[i].scale / yDim.lods[i - 1].scale;
 
-      if (!almostEqual(rx, 2) || !almostEqual(ry, 2)) {
+      if (!almostEqual(rx, 2, 0.02) || !almostEqual(ry, 2, 0.02)) {
         throw new Error(
           `Invalid downsampling factor between levels ${i - 1} → ${i}: ` +
             `expected (2× in X and Y), but got ` +
@@ -272,6 +316,38 @@ export class ChunkManagerSource {
         );
       }
     }
+  }
+
+  private getAndValidateTimeDimension() {
+    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+      const tLod = this.dimensions_.t?.lods[lod];
+      if (!tLod) continue;
+      if (tLod.chunkSize !== 1) {
+        throw new Error(
+          `ChunkManager only supports a chunk size of 1 in t. Found ${tLod.chunkSize} at LOD ${lod}`
+        );
+      }
+      if (tLod.scale !== 1) {
+        throw new Error(
+          `ChunkManager does not support scale in t. Found ${tLod.scale} at LOD ${lod}`
+        );
+      }
+      if (tLod.translation !== 0) {
+        throw new Error(
+          `ChunkManager does not support translation in t. Found ${tLod.translation} at LOD ${lod}`
+        );
+      }
+      const prevTLod = this.dimensions_.t?.lods[lod - 1];
+      if (!prevTLod) continue;
+      if (tLod.size !== prevTLod.size) {
+        throw new Error(
+          `ChunkManager does not support downsampling in t. Found ${prevTLod.size} at LOD ${lod - 1} → ${tLod.size} at LOD ${lod}`
+        );
+      }
+    }
+    return {
+      size: this.dimensions_.t?.lods[0].size ?? 1,
+    };
   }
 
   private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
@@ -312,29 +388,15 @@ export class ChunkManagerSource {
   }
 
   private viewBounds2DChanged(newBounds: Box2): boolean {
-    const prev = this.lastViewBounds2D_;
-    const changed =
-      prev === null ||
-      !vec2.equals(prev.min, newBounds.min) ||
-      !vec2.equals(prev.max, newBounds.max);
-
-    if (changed) {
-      this.lastViewBounds2D_ = new Box2(
-        vec2.clone(newBounds.min),
-        vec2.clone(newBounds.max)
-      );
-    }
-
-    return changed;
+    return (
+      this.lastViewBounds2D_ === null ||
+      !vec2.equals(this.lastViewBounds2D_.min, newBounds.min) ||
+      !vec2.equals(this.lastViewBounds2D_.max, newBounds.max)
+    );
   }
 
   private zBoundsChanged(newBounds: [number, number]): boolean {
-    const prev = this.lastZBounds_;
-    const changed = !prev || !vec2.equals(prev, newBounds);
-    if (changed) {
-      this.lastZBounds_ = newBounds;
-    }
-    return changed;
+    return !this.lastZBounds_ || !vec2.equals(this.lastZBounds_, newBounds);
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
@@ -359,6 +421,16 @@ export class ChunkManagerSource {
         bounds.max[2] + padZ
       )
     );
+  }
+
+  private orderKeyByDistance(chunk: Chunk, center: ReadonlyVec2): number {
+    const chunkCenter = {
+      x: chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
+      y: chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
+    };
+    const dx = chunkCenter.x - center[0];
+    const dy = chunkCenter.y - center[1];
+    return dx * dx + dy * dy;
   }
 }
 
@@ -390,8 +462,11 @@ export class ChunkManager {
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     for (const [_, source] of this.sources_) {
-      source.update(lodFactor, viewBounds2D);
-      for (const chunk of source.chunks) {
+      const updatedChunks = source.updateAndCollectChunkChanges(
+        lodFactor,
+        viewBounds2D
+      );
+      for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
         } else if (chunk.state === "queued") {

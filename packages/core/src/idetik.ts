@@ -1,7 +1,6 @@
 import { Camera } from "./objects/cameras/camera";
 import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
-import { EventContext, EventDispatcher } from "./core/event_dispatcher";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
@@ -41,7 +40,6 @@ export class Idetik {
   private readonly renderer_: WebGLRenderer;
   private readonly viewports_: Viewport[];
   public readonly canvas: HTMLCanvasElement;
-  public readonly events: EventDispatcher;
   public readonly overlays: Overlay[];
   private readonly stats_?: Stats;
 
@@ -85,24 +83,6 @@ export class Idetik {
     this.overlays = params.overlays ?? [];
 
     if (params.showStats) this.stats_ = createStats();
-
-    this.events = new EventDispatcher(canvas);
-    this.events.addEventListener((event: EventContext) => {
-      if (
-        event.event instanceof PointerEvent ||
-        event.event instanceof WheelEvent
-      ) {
-        const { clientX, clientY } = event.event;
-        const client = vec2.fromValues(clientX, clientY);
-        event.clipPos = this.clientToClip(client, 0);
-        event.worldPos = this.camera.clipToWorld(event.clipPos);
-      }
-      for (const layer of this.layerManager.layers) {
-        layer.onEvent(event);
-        if (event.propagationStopped) return;
-      }
-      this.viewports_[0].cameraControls?.onEvent(event);
-    });
   }
 
   public get width() {
@@ -117,8 +97,12 @@ export class Idetik {
     return this.renderer_.textureInfo;
   }
 
-  // TEMP: backward-compatible getters/setter for camera, layerManager, and cameraControls
+  // TEMP: backward-compatible getters/setter for events, camera, layerManager, and cameraControls
   // to be removed on completion of multi-viewport implementation
+  public get events() {
+    return this.viewports_[0].events;
+  }
+
   public get camera() {
     return this.viewports_[0].camera;
   }

@@ -1,4 +1,4 @@
-import type { Chunk } from "@/data/chunk";
+import type { Chunk } from "../src/data/chunk";
 
 type ChunkOverrides = Partial<
   Omit<Chunk, "shape" | "chunkIndex" | "scale" | "offset" | "rowStride">
@@ -18,10 +18,11 @@ export function makeChunk(overrides: ChunkOverrides = {}): Chunk {
     visible: false,
     prefetch: false,
     priority: null,
+    orderKey: null,
     shape: { x: 256, y: 256, z: 256, c: 1 },
     rowStride: 256,
     rowAlignmentBytes: 1,
-    chunkIndex: { x: 0, y: 0, z: 0 },
+    chunkIndex: { x: 0, y: 0, z: 0, t: 0 },
     scale: { x: 1, y: 1, z: 1 },
     offset: { x: 0, y: 0, z: 0 },
   };

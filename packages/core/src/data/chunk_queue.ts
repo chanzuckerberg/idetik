@@ -62,10 +62,17 @@ export class ChunkQueue {
     }
 
     this.pending_.sort((a, b) => {
-      return (
-        (a.chunk.priority ?? Number.MAX_SAFE_INTEGER) -
-        (b.chunk.priority ?? Number.MAX_SAFE_INTEGER)
-      );
+      const priorityA = a.chunk.priority ?? Number.MAX_SAFE_INTEGER;
+      const priorityB = b.chunk.priority ?? Number.MAX_SAFE_INTEGER;
+
+      if (priorityA === priorityB) {
+        return (
+          (a.chunk.orderKey ?? Number.MAX_SAFE_INTEGER) -
+          (b.chunk.orderKey ?? Number.MAX_SAFE_INTEGER)
+        );
+      }
+
+      return priorityA - priorityB;
     });
 
     while (
