@@ -137,7 +137,7 @@ export class ChunkManagerSource {
     return this.chunks_[this.sliceCoords_.t ?? 0];
   }
 
-  public update(lodFactor: number, viewBounds2D: Box2) {
+  public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
     const zBounds = this.getZBounds();
     let updatedChunks: Chunk[] = [];
@@ -147,7 +147,8 @@ export class ChunkManagerSource {
       this.zBoundsChanged(zBounds) ||
       this.lastTCoord_ !== this.sliceCoords_.t
     ) {
-      updatedChunks = this.updateChunkVisibility(viewBounds2D);
+      updatedChunks =
+        this.updateAndCollectChunkChangesForCurrentLod(viewBounds2D);
     }
 
     this.lastViewBounds2D_ = viewBounds2D.clone();
@@ -198,7 +199,9 @@ export class ChunkManagerSource {
     }
   }
 
-  private updateChunkVisibility(viewBounds2D: Box2): Chunk[] {
+  private updateAndCollectChunkChangesForCurrentLod(
+    viewBounds2D: Box2
+  ): Chunk[] {
     if (this.chunks_.length === 0) {
       Logger.warn(
         "ChunkManagerSource",
@@ -459,7 +462,10 @@ export class ChunkManager {
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     for (const [_, source] of this.sources_) {
-      const updatedChunks = source.update(lodFactor, viewBounds2D);
+      const updatedChunks = source.updateAndCollectChunkChanges(
+        lodFactor,
+        viewBounds2D
+      );
       for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
