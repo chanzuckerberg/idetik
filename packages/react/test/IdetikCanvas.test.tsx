@@ -5,11 +5,12 @@ import { IdetikProvider } from "../src/components/providers/IdetikProvider";
 import { Idetik } from "@idetik/core-prerelease";
 
 vi.mock("@idetik/core-prerelease", () => ({
-  Idetik: vi.fn().mockImplementation(() => ({
+  Idetik: vi.fn().mockImplementation((props) => ({
     start: vi.fn(),
     stop: vi.fn(),
-    camera: { mockCamera: true },
-    cameraControls: { mockControls: true },
+    canvas: props.canvas,
+    camera: props.camera,
+    cameraControls: props.cameraControls,
     layerManager: { mockLayerManager: true },
   })),
   OrthographicCamera: vi.fn().mockImplementation(() => ({ mockCamera: true })),
@@ -37,6 +38,23 @@ describe("IdetikCanvas", () => {
 
     expect(() => {
       render(<IdetikCanvas />);
+    }).toThrow();
+
+    console.error = originalError;
+  });
+
+  it("should throw error when more than one IdetikCanvas is used", () => {
+    // Suppress console.error for this test since we expect an error
+    const originalError = console.error;
+    console.error = vi.fn();
+
+    expect(() => {
+      render(
+        <IdetikProvider>
+          <IdetikCanvas />
+          <IdetikCanvas />
+        </IdetikProvider>
+      );
     }).toThrow();
 
     console.error = originalError;
