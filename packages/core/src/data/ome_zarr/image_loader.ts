@@ -84,15 +84,7 @@ export class OmeZarrImageLoader {
       );
     }
     if (this.dimensions_.t) {
-      if (sliceCoords.t === undefined) {
-        throw new Error(
-          "Region is missing t value but t dimension exists in data"
-        );
-      }
-      chunkCoords[this.dimensions_.t.index] = sliceChunkIndex(
-        sliceCoords.t,
-        this.dimensions_.t.lods[chunk.lod]
-      );
+      chunkCoords[this.dimensions_.t.index] = chunk.chunkIndex.t;
     }
 
     const array = this.arrays_[chunk.lod];
@@ -188,7 +180,7 @@ export class OmeZarrImageLoader {
         z: 1,
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
-      chunkIndex: { x: 0, y: 0, z: 0 },
+      chunkIndex: { x: 0, y: 0, z: 0, t: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
       scale: {
