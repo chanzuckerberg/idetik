@@ -449,6 +449,8 @@ export class ChunkManager {
   }
 
   public update(camera: OrthographicCamera, bufferWidth: number) {
+    if (this.sources_.size === 0) return;
+
     if (camera.type !== "OrthographicCamera") {
       throw new Error(
         "ChunkManager currently supports only orthographic cameras. " +
