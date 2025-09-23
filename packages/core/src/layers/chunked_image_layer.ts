@@ -38,7 +38,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private zPrevPointWorld_?: number;
   private debugMode_ = false;
 
-  private static readonly STALE_PRESENTATION_MS_ = 2000;
+  private static readonly STALE_PRESENTATION_MS_ = 1000;
   private lastPresentationTimeStamp_?: DOMHighResTimeStamp;
   public lastPresentationTimeCoord?: number;
 
@@ -84,14 +84,14 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (
       this.visibleChunks_.size > 0 &&
       !this.chunkManagerSource_.allVisibleLowestLODLoaded() &&
-      !this.presentationTimedOut()
+      !this.isPresentationStale()
     ) {
       return;
     }
 
     this.lastPresentationTimeStamp_ = performance.now();
     const orderedByLOD = this.chunkManagerSource_.getChunks();
-    this.lastPresentationTimeCoord = orderedByLOD[0]?.chunkIndex.t;
+    this.lastPresentationTimeCoord = this.sliceCoords_.t;
 
     const current = new Set(orderedByLOD);
     this.visibleChunks_.forEach((image, chunk) => {
@@ -110,7 +110,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  private presentationTimedOut() {
+  private isPresentationStale() {
     if (this.lastPresentationTimeStamp_ === undefined) return false;
     return (
       performance.now() - this.lastPresentationTimeStamp_ >
