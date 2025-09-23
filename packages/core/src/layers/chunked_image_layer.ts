@@ -95,6 +95,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       this.visibleChunks_.set(chunk, image);
       this.addObject(image);
     }
+  
+    this.lastPresentationTimeCoord = orderedByLOD[0]?.chunkIndex.t;
   }
 
   private resliceIfZChanged() {
