@@ -38,6 +38,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private zPrevPointWorld_?: number;
   private debugMode_ = false;
 
+  private static readonly STALE_PRESENTATION_MS_ = 1000;
+  private lastPresentationTimeStamp_?: DOMHighResTimeStamp;
+  private lastPresentationTimeCoord_?: number;
+
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
     new Color(0.3, 0.6, 0.4),
@@ -77,9 +81,18 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (!this.chunkManagerSource_) return;
     if (this.state !== "ready") this.setState("ready");
 
+    if (
+      this.visibleChunks_.size > 0 &&
+      !this.chunkManagerSource_.allVisibleLowestLODLoaded() &&
+      !this.isPresentationStale()
+    ) {
+      return;
+    }
+    this.lastPresentationTimeStamp_ = performance.now();
+    this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
+
     const orderedByLOD = this.chunkManagerSource_.getChunks();
     const current = new Set(orderedByLOD);
-
     this.visibleChunks_.forEach((image, chunk) => {
       if (!current.has(chunk)) {
         this.visibleChunks_.delete(chunk);
@@ -94,6 +107,18 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       this.visibleChunks_.set(chunk, image);
       this.addObject(image);
     }
+  }
+
+  public get lastPresentationTimeCoord(): number | undefined {
+    return this.lastPresentationTimeCoord_;
+  }
+
+  private isPresentationStale(): boolean {
+    if (this.lastPresentationTimeStamp_ === undefined) return false;
+    return (
+      performance.now() - this.lastPresentationTimeStamp_ >
+      ChunkedImageLayer.STALE_PRESENTATION_MS_
+    );
   }
 
   private resliceIfZChanged() {

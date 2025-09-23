@@ -137,6 +137,12 @@ export class ChunkManagerSource {
     return this.chunks_[this.sliceCoords_.t ?? 0];
   }
 
+  public allVisibleLowestLODLoaded(): boolean {
+    return this.getChunksAtCurrentTime()
+      .filter((c) => c.visible && c.lod === this.lowestResLOD_)
+      .every((c) => c.state === "loaded");
+  }
+
   public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
     const zBounds = this.getZBounds();

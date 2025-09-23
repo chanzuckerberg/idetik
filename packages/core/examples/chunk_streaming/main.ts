@@ -56,12 +56,20 @@ const chunkInfoOverlay = new ChunkInfoOverlay({
   imageLayer: imageLayer,
 });
 
+const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
+const timePointOverlay = {
+  update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp) {
+    const time = imageLayer.lastPresentationTimeCoord;
+    timePointDiv.textContent = `t = ${time}`;
+  },
+};
+
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
   cameraControls: new PanZoomControls(camera),
   layers: [imageLayer],
-  overlays: [chunkInfoOverlay],
+  overlays: [chunkInfoOverlay, timePointOverlay],
   showStats: true,
 }).start();
 
@@ -69,6 +77,7 @@ const controls = {
   sliceCoords,
   showWireframes: true,
   showChunkInfoOverlay: true,
+  showTimePointOverlay: true,
   window: initialWindow,
   level: initialLevel,
   resetContrast: function () {
@@ -86,12 +95,21 @@ gui
   .add(controls.sliceCoords, "t", tRange.min, tRange.max, t.scale)
   .name("T-point");
 
-gui
+const overlaysFolder = gui.addFolder("Overlays");
+
+overlaysFolder
+  .add(controls, "showTimePointOverlay")
+  .name("Show time point overlay")
+  .onChange((show: boolean) => {
+    timePointDiv.style.display = show ? "block" : "none";
+  });
+
+overlaysFolder
   .add(controls, "showWireframes")
   .name("Show tile wireframes")
   .onChange((show: boolean) => (imageLayer.debugMode = show));
 
-gui
+overlaysFolder
   .add(controls, "showChunkInfoOverlay")
   .name("Show chunk information overlay")
   .onChange((show: boolean) => {
