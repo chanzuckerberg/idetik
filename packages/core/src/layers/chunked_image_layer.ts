@@ -40,7 +40,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   private static readonly STALE_PRESENTATION_MS_ = 1000;
   private lastPresentationTimeStamp_?: DOMHighResTimeStamp;
-  public lastPresentationTimeCoord?: number;
+  private lastPresentationTimeCoord_?: number;
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),
@@ -91,7 +91,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     this.lastPresentationTimeStamp_ = performance.now();
     const orderedByLOD = this.chunkManagerSource_.getChunks();
-    this.lastPresentationTimeCoord = this.sliceCoords_.t;
+    this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
     const current = new Set(orderedByLOD);
     this.visibleChunks_.forEach((image, chunk) => {
@@ -108,6 +108,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       this.visibleChunks_.set(chunk, image);
       this.addObject(image);
     }
+  }
+
+  public get lastPresentationTimeCoord(): number | undefined {
+    return this.lastPresentationTimeCoord_;
   }
 
   private isPresentationStale() {
