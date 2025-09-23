@@ -75,6 +75,7 @@ new Idetik({
 
 const controls = {
   sliceCoords,
+  playTime: false,
   showWireframes: true,
   showChunkInfoOverlay: true,
   showTimePointOverlay: true,
@@ -91,9 +92,54 @@ gui
   .add(controls.sliceCoords, "z", zRange.min, zRange.max, z.scale)
   .name("Z-point");
 
-gui
+const tController = gui
   .add(controls.sliceCoords, "t", tRange.min, tRange.max, t.scale)
   .name("T-point");
+
+class PlaybackController {
+  private isPlaying_: boolean = false;
+  private intervalId_?: number;
+  private intervalMs_: number = 1000;
+  private stride_: number = 1;
+
+  public play() {
+    if (this.isPlaying_) return;
+    this.intervalId_ = window.setInterval(() => {
+      this.incrementTime();
+    }, this.intervalMs_);
+    this.isPlaying_ = true;
+  }
+
+  public pause() {
+    if (!this.isPlaying_) return;
+    if (this.intervalId_) {
+      window.clearInterval(this.intervalId_);
+      this.intervalId_ = undefined;
+    }
+    this.isPlaying_ = false;
+  }
+
+  private incrementTime = () => {
+    const newValue = controls.sliceCoords.t + t.scale * this.stride_;
+    if (newValue <= tRange.max) {
+      tController.setValue(newValue);
+    } else {
+      this.pause();
+    }
+  };
+}
+
+const playbackController = new PlaybackController();
+gui
+  .add(controls, "playTime")
+  .name("Play T")
+  .onChange((play: boolean) => {
+    if (play) {
+      playbackController.play();
+    } else {
+      playbackController.pause();
+    }
+  });
 
 gui
   .add(controls, "showWireframes")
