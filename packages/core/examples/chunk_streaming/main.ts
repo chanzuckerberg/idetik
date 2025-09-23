@@ -99,7 +99,7 @@ const tController = gui
 class PlaybackController {
   private isPlaying_: boolean = false;
   private intervalId_?: number;
-  private intervalMs_: number = 1000;
+  private intervalMs_: number = 500;
   private stride_: number = 1;
 
   public play() {
