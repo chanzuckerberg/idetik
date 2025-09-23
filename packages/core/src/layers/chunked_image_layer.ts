@@ -88,13 +88,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     ) {
       return;
     }
-
-    const orderedByLOD = this.chunkManagerSource_.getChunks();
-    if (orderedByLOD.length === 0) return;
-
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
+    const orderedByLOD = this.chunkManagerSource_.getChunks();
     const current = new Set(orderedByLOD);
     this.visibleChunks_.forEach((image, chunk) => {
       if (!current.has(chunk)) {
