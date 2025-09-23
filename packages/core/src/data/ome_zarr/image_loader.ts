@@ -17,6 +17,7 @@ import { PromiseScheduler } from "../promise_scheduler";
 import { Image as OmeZarrImage } from "./0.5/image";
 
 import { Readable } from "@zarrita/storage";
+import { getChunk } from "./async_get_chunk";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -88,7 +89,7 @@ export class OmeZarrImageLoader {
     }
 
     const array = this.arrays_[chunk.lod];
-    const subarray = await array.getChunk(chunkCoords, { signal });
+    const subarray = await getChunk(array, chunkCoords, { signal });
 
     const data = subarray.data;
     if (!isChunkData(data)) {

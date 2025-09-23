@@ -13,6 +13,7 @@ const chunkDataTypes = [
   Float32Array,
 ] as const;
 export type ChunkData = InstanceType<(typeof chunkDataTypes)[number]>;
+export type ChunkDataConstructor = (typeof chunkDataTypes)[number];
 
 export function isChunkData(value: unknown): value is ChunkData {
   if (chunkDataTypes.some((ChunkData) => value instanceof ChunkData)) {

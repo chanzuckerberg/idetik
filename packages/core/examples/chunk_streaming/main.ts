@@ -4,10 +4,19 @@ import {
   ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
+  enableZarrDebug,
+  configureZarrWorkerPool,
+  forceMainThreadMode,
+  setTestDelay,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 import GUI from "lil-gui";
+
+enableZarrDebug();
+configureZarrWorkerPool(8);
+forceMainThreadMode(false);
+setTestDelay(0);
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";

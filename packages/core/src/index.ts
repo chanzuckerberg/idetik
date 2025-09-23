@@ -47,3 +47,15 @@ export type { ChannelProps, ChannelsEnabled } from "./objects/textures/channel";
 
 export { Points } from "./objects/renderable/points";
 export { Texture2DArray } from "./objects/textures/texture_2d_array";
+
+// WebWorker debugging utilities
+export {
+  getWorkerStatus,
+  enableZarrDebug,
+  disableZarrDebug,
+  terminateWorker,
+  configureZarrWorkerPool,
+  // Testing utilities
+  forceMainThreadMode,
+  setTestDelay,
+} from "./data/ome_zarr/async_get_chunk";
