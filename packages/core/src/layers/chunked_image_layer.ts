@@ -37,6 +37,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
   private debugMode_ = false;
+  public lastPresentationTimeCoord?: number;
 
   private readonly wireframeColors_ = [
     new Color(0.6, 0.3, 0.3),

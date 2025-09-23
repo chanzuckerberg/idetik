@@ -56,12 +56,20 @@ const chunkInfoOverlay = new ChunkInfoOverlay({
   imageLayer: imageLayer,
 });
 
+const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
+const timePointOverlay = {
+  update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp) {
+    const time = imageLayer.lastPresentationTimeCoord;
+    timePointDiv.textContent = `t = ${time}`;
+  },
+};
+
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
   cameraControls: new PanZoomControls(camera),
   layers: [imageLayer],
-  overlays: [chunkInfoOverlay],
+  overlays: [chunkInfoOverlay, timePointOverlay],
   showStats: true,
 }).start();
 
@@ -69,6 +77,7 @@ const controls = {
   sliceCoords,
   showWireframes: true,
   showChunkInfoOverlay: true,
+  showTimePointOverlay: true,
   window: initialWindow,
   level: initialLevel,
   resetContrast: function () {
