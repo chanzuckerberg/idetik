@@ -57,7 +57,7 @@
     "tailwindcss": "^3.4.17"
   },
   "peerDependencies": {
-    "@czi-sds/components": "^22.3.0",
+    "@czi-sds/components": "^22.11.4",
     "@idetik/core-prerelease": "^2.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
