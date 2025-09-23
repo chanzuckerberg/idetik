@@ -36,7 +36,6 @@ export class ChunkManagerSource {
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
-  private fetchedTCoords_: Set<number> = new Set();
 
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
     this.loader_ = loader;
@@ -230,7 +229,6 @@ export class ChunkManagerSource {
     const updatedChunks = this.updatePreviousTimeChunks();
 
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
-    this.fetchedTCoords_.add(this.sliceCoords_.t ?? 0);
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
