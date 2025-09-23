@@ -60,7 +60,7 @@ export function OmeZarrChunkedImageViewer({
     throw new Error("Cannot set both sourceUrl and sourceLocalDirectory.");
   }
 
-  const { isReady: runtimeIsReady, runtime } = useIdetik();
+  const { runtime } = useIdetik();
 
   const [unit, setUnit] = useState<string>();
   const [loading, setLoading] = useState(true);
@@ -73,7 +73,7 @@ export function OmeZarrChunkedImageViewer({
 
   const { directory, path } = sourceLocalDirectory ?? {};
   useEffect(() => {
-    if (!runtimeIsReady) return;
+    if (!runtime) return;
     const initialize = async () => {
       const source = createSource(sourceUrl, directory, path);
       if (source === undefined) {
@@ -137,7 +137,6 @@ export function OmeZarrChunkedImageViewer({
     fallbackContrastLimits,
     directory,
     path,
-    runtimeIsReady,
     runtime,
   ]);
 

@@ -29,7 +29,10 @@ jobs:
           npx playwright install chromium
 
       - name: Compile TypeScript
-        run: npm run compile --workspace=@idetik/core-prerelease
+        run: |
+          npm run compile --workspace=@idetik/core-prerelease
+          npm run build --workspace=@idetik/core-prerelease
+          npm run compile --workspace=@idetik/react-prerelease
 
       - name: Lint
         run: |
@@ -39,7 +42,9 @@ jobs:
           npm run format-check --workspace=@idetik/react-prerelease
 
       - name: Run tests with coverage
-        run: npm run test-with-coverage --workspace=@idetik/core-prerelease
+        run: |
+          npm run test-with-coverage --workspace=@idetik/core-prerelease
+          npm run test-with-coverage --workspace=@idetik/react-prerelease
 
   build:
     needs: lint-and-test
