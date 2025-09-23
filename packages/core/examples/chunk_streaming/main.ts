@@ -95,12 +95,21 @@ gui
   .add(controls.sliceCoords, "t", tRange.min, tRange.max, t.scale)
   .name("T-point");
 
-gui
+const overlaysFolder = gui.addFolder("Overlays");
+
+overlaysFolder
+  .add(controls, "showTimePointOverlay")
+  .name("Show time point overlay")
+  .onChange((show: boolean) => {
+    timePointDiv.style.display = show ? "block" : "none";
+  });
+
+overlaysFolder
   .add(controls, "showWireframes")
   .name("Show tile wireframes")
   .onChange((show: boolean) => (imageLayer.debugMode = show));
 
-gui
+overlaysFolder
   .add(controls, "showChunkInfoOverlay")
   .name("Show chunk information overlay")
   .onChange((show: boolean) => {
