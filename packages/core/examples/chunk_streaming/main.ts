@@ -75,9 +75,7 @@ new Idetik({
 }).start();
 
 const controls = {
-  sliceCoords,
-  playTime: false,
-  showWireframes: true,
+  showWireframes: imageLayer.debugMode,
   showChunkInfoOverlay: true,
   showTimePointOverlay: true,
   window: initialWindow,

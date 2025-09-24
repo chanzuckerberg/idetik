@@ -74,8 +74,6 @@ const idetik = new Idetik({
 }).start();
 
 const controls = {
-  sliceCoords,
-  playZ: false,
   showWireframes: layer.debugMode,
   showAxes: idetik.layerManager.layers.includes(axes),
 };
