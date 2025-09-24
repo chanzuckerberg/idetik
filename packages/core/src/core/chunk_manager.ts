@@ -15,7 +15,7 @@ import { ChunkQueue } from "../data/chunk_queue";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
-const PREFETCH_PADDING_CHUNKS = 1;
+const PREFETCH_PADDING_CHUNKS = 0;
 
 const PRI_FALLBACK_VISIBLE = 0;
 const PRI_VISIBLE_CURRENT = 1;
