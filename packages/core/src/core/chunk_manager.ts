@@ -37,6 +37,8 @@ export class ChunkManagerSource {
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
 
+  private fetchedTCoords_: Set<number> = new Set();
+
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
     this.loader_ = loader;
     this.dimensions_ = this.loader_.getSourceDimensionMap();
@@ -226,9 +228,10 @@ export class ChunkManagerSource {
     const center = vec2.create();
     vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
 
-    const updatedChunks = this.updatePreviousTimeChunks();
+    const updatedChunks = this.disposeTemporallyStaleChunks();
 
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
+    this.fetchedTCoords_.add(this.sliceCoords_.t ?? 0);
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
@@ -270,16 +273,21 @@ export class ChunkManagerSource {
     return updatedChunks;
   }
 
-  private updatePreviousTimeChunks(): Chunk[] {
-    if (this.lastTCoord_ === undefined) return [];
-    if (this.lastTCoord_ === this.sliceCoords_.t) return [];
-    const lastTimeChunks = Array(...this.chunks_[this.lastTCoord_]);
-    for (const chunk of lastTimeChunks) {
-      chunk.visible = false;
-      chunk.prefetch = false;
-      this.disposeChunk(chunk);
+  private disposeTemporallyStaleChunks(): Chunk[] {
+    if (this.sliceCoords_.t === undefined) return [];
+    const disposedChunks: Chunk[] = [];
+    for (const t of this.fetchedTCoords_) {
+      if (t >= this.sliceCoords_.t) continue;
+      const chunks = this.chunks_[t];
+      for (const chunk of chunks) {
+        chunk.visible = false;
+        chunk.prefetch = false;
+        this.disposeChunk(chunk);
+        disposedChunks.push(chunk);
+      }
+      this.fetchedTCoords_.delete(t);
     }
-    return lastTimeChunks;
+    return disposedChunks;
   }
 
   private disposeChunk(chunk: Chunk) {
