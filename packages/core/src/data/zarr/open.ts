@@ -15,11 +15,8 @@ export type ZarrArrayParams = {
       storeConfig: {
         url: string;
         fetchOptions?: {
-          overrides?: {
-            mode?: RequestMode;
-            credentials?: RequestCredentials;
-            headers?: Record<string, string>;
-          };
+          overrides?: RequestInit;
+          useSuffixRequest?: boolean;
         };
       };
     }
@@ -88,18 +85,8 @@ export async function openArrayFromParams(
 
   switch (params.type) {
     case "fetch": {
-      const fetchOptions = params.storeConfig.fetchOptions || {
-        overrides: {
-          mode: "cors" as RequestMode,
-          credentials: "same-origin" as RequestCredentials,
-          headers: {
-            Accept: "application/octet-stream, application/json, */*",
-          },
-        },
-      };
-
       rootLocation = new Location(
-        new FetchStore(params.storeConfig.url, fetchOptions)
+        new FetchStore(params.storeConfig.url, params.storeConfig.fetchOptions)
       );
       break;
     }
@@ -141,15 +128,6 @@ export function createZarrArrayParams(
           (location.store as { url?: string; root?: string }).url ||
           (location.store as { url?: string; root?: string }).root ||
           "",
-        fetchOptions: {
-          overrides: {
-            mode: "cors" as RequestMode,
-            credentials: "same-origin" as RequestCredentials,
-            headers: {
-              Accept: "application/octet-stream, application/json, */*",
-            },
-          },
-        },
       },
     };
   } else if (location.store instanceof WebFileSystemStore) {

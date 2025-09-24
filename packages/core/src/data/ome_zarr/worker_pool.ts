@@ -5,7 +5,7 @@ import { Logger } from "../../utilities/logger";
 import { ZarrArrayParams } from "../zarr/open";
 import { ZarrWorkerRequest, ZarrWorkerResponse } from "./worker_kernel";
 
-type PendingRequest = {
+type PendingGetChunkRequest = {
   resolve: (value: {
     data: ChunkData;
     shape: number[];
@@ -26,7 +26,7 @@ type WorkerInstance = {
 const DEFAULT_WORKER_COUNT = Math.min(navigator.hardwareConcurrency || 4, 8);
 let workerPool: WorkerInstance[] = [];
 let messageId = 0;
-const pendingMessages = new Map<number, PendingRequest>();
+const pendingMessages = new Map<number, PendingGetChunkRequest>();
 let poolConfigured = false;
 
 function getWorkerInstance(worker: Worker): WorkerInstance | undefined {
@@ -45,7 +45,7 @@ function handleWorkerMessage(
   worker: Worker
 ): void {
   const { id, success } = e.data;
-  const pending = pendingMessages.get(Number(id));
+  const pending = pendingMessages.get(id);
 
   if (!pending) {
     Logger.warn(
@@ -55,7 +55,7 @@ function handleWorkerMessage(
     return;
   }
 
-  pendingMessages.delete(Number(id));
+  pendingMessages.delete(id);
 
   if (pending.abortListener && pending.abortSignal) {
     pending.abortSignal.removeEventListener("abort", pending.abortListener);
@@ -170,14 +170,14 @@ async function getChunkInWorker(
     }
 
     const id = messageId++;
-    const pending: PendingRequest = { resolve, reject };
+    const pending: PendingGetChunkRequest = { resolve, reject };
     pendingMessages.set(id, pending);
 
-    // set up cancellation if AbortSignal is provided
+    // set up cancellation in the worker thread if an AbortSignal is provided
     if (options?.signal) {
       const abortListener = () => {
         workerInstance.worker.postMessage({
-          id: id.toString(),
+          id: id,
           type: "cancel",
         } as ZarrWorkerRequest);
 
@@ -203,7 +203,7 @@ async function getChunkInWorker(
     workerInstance.busy = true;
 
     workerInstance.worker.postMessage({
-      id: id.toString(),
+      id: id,
       type: "getChunk",
       arrayParams: zarrParams,
       index: chunkIndex,
@@ -211,7 +211,6 @@ async function getChunkInWorker(
   });
 }
 
-// drop-in replacement for zarr.Array.getChunk that dispatches to a WebWorker
 export async function getChunk(
   array: zarr.Array<zarr.DataType, Readable>,
   arrayParams: ZarrArrayParams,
@@ -226,7 +225,6 @@ export async function getChunk(
   try {
     return await getChunkInWorker(arrayParams, chunkCoords, options);
   } catch (error) {
-    // fall back to main thread on error, unless the operation was aborted
     if (error instanceof DOMException && error.name === "AbortError") {
       throw error;
     }

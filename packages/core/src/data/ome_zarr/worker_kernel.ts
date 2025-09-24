@@ -3,12 +3,12 @@
 import * as zarr from "zarrita";
 import { Readable } from "@zarrita/storage";
 import { openArrayFromParams, ZarrArrayParams } from "../zarr/open";
-import { isChunkData } from "../chunk";
+import { ChunkData, isChunkData } from "../chunk";
 
 type ZarrWorkerMessageType = "getChunk" | "cancel";
 
 export type ZarrWorkerRequest = {
-  id: string;
+  id: number;
 } & (
   | {
       type: "getChunk";
@@ -21,7 +21,7 @@ export type ZarrWorkerRequest = {
 );
 
 export type ZarrWorkerResponse = {
-  id: string;
+  id: number;
 } & (
   | {
       success: true;
@@ -43,7 +43,7 @@ export type ZarrWorkerResponse = {
 );
 
 const arrayCache = new Map<string, zarr.Array<zarr.DataType, Readable>>();
-const activeRequests = new Map<string, AbortController>();
+const activeRequests = new Map<number, AbortController>();
 
 self.addEventListener("message", async (e: MessageEvent<ZarrWorkerRequest>) => {
   const { id, type } = e.data;
@@ -66,7 +66,7 @@ self.addEventListener("message", async (e: MessageEvent<ZarrWorkerRequest>) => {
   }
 });
 
-async function handleCancelMessage(id: string): Promise<void> {
+async function handleCancelMessage(id: number): Promise<void> {
   const abortController = activeRequests.get(id);
   if (abortController) {
     abortController.abort();
@@ -80,7 +80,7 @@ async function handleCancelMessage(id: string): Promise<void> {
 }
 
 async function handleGetChunkMessage(
-  id: string,
+  id: number,
   arrayParams: ZarrArrayParams,
   index: number[]
 ): Promise<void> {
@@ -103,11 +103,13 @@ async function handleGetChunkMessage(
     activeRequests.delete(id);
   }
 
+  if (!isChunkData(chunk.data)) {
+    throw new Error(`Expected ChunkData, got ${typeof chunk.data}`);
+  }
   const { transferableBuffer, dataTypeName } = getTransferableBuffer(
     chunk.data
   );
 
-  // send back the result with transferable ArrayBuffer
   try {
     self.postMessage(
       {
@@ -129,8 +131,8 @@ async function handleGetChunkMessage(
 }
 
 // we need to open arrays in each worker since we can't transfer them
-// workers will cache opened arrays to avoid reopening for each chunk request
-// this cache can grow without bound, but the objects are small and we don't expect
+// workers cache opened arrays to avoid reopening for each chunk request
+// this cache is unbounded, but the objects are small and we don't expect
 // many different arrays to be used simultaneously in practice
 async function getOrOpenArray(
   params: ZarrArrayParams
@@ -154,22 +156,17 @@ function getArrayCacheKey(params: ZarrArrayParams): string {
   return `${params.type}::${JSON.stringify(params.storeConfig)}::${params.arrayPath}`;
 }
 
-// chunkData can be various types from zarrita (TypedArrays, unknown[], etc.)
-// we only support ChunkData (see chunk.ts) and validate at runtime
-function getTransferableBuffer(chunkData: unknown): {
+function getTransferableBuffer(chunkData: ChunkData): {
   transferableBuffer: ArrayBuffer;
   dataTypeName: string;
 } {
   let transferableBuffer: ArrayBuffer;
   let dataTypeName: string;
   try {
-    if (!isChunkData(chunkData)) {
-      throw new Error(`Expected ChunkData, got ${typeof chunkData}`);
-    }
     const data = chunkData;
     dataTypeName = data.constructor.name;
 
-    // transfer the underlying ArrayBuffer directly if possible
+    // zero-copy transfer the underlying ArrayBuffer directly if possible (data is entire buffer)
     if (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength) {
       transferableBuffer = data.buffer;
     } else {
