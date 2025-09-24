@@ -39,6 +39,9 @@
       border-radius: 12px;
       border: 1px solid #3a3a3a;
       transition: all 0.3s ease;
+      display: block;
+      text-decoration: none;
+      color: inherit;
     }
 
     .example:hover {
@@ -49,18 +52,9 @@
 
     .example h2 {
       margin: 0 0 1rem 0;
-      color: #fff;
-    }
-
-    .example a {
       color: #646cff;
-      text-decoration: none;
       font-weight: 600;
       font-size: 1.2rem;
-    }
-
-    .example a:hover {
-      text-decoration: underline;
     }
 
     .example p {
@@ -96,8 +90,8 @@
     <h1>Idetik React Examples</h1>
 
     <div class="examples-grid">
-      <div class="example">
-        <h2><a href="/ome-zarr-chunked-image-viewer/">OmeZarrChunkedImageViewer Example</a></h2>
+      <a href="/ome-zarr-chunked-image-viewer/" class="example">
+        <h2>OmeZarrChunkedImageViewer Example</h2>
         <p>Tomogram visualization using OmeZarrChunkedImageViewer with Z-slice navigation. Displays CZI tomogram data
           with proper contrast settings and interactive controls.</p>
         <div class="example-meta">
@@ -105,10 +99,10 @@
           <span class="tag">ChunkedImageViewer</span>
           <span class="tag">Z-Navigation</span>
         </div>
-      </div>
+      </a>
 
-      <div class="example">
-        <h2><a href="/organelle-box-time/">Organelle Box Time Series</a></h2>
+      <a href="/organelle-box-time/" class="example">
+        <h2>Organelle Box Time Series</h2>
         <p>Time series visualization using OmeZarrImageViewer. Shows organelle box dataset with time dimension controls
           and channel management.</p>
         <div class="example-meta">
@@ -116,10 +110,10 @@
           <span class="tag">Multi-channel</span>
           <span class="tag">ImageViewer</span>
         </div>
-      </div>
+      </a>
 
-      <div class="example">
-        <h2><a href="/local-files/">Local Files</a></h2>
+      <a href="/local-files/" class="example">
+        <h2>Local Files</h2>
         <p>Load local Zarr files using the file picker API. Demonstrates how to load and visualize local OME-ZARR
           datasets using the File System Access API.</p>
         <div class="example-meta">
@@ -127,10 +121,10 @@
           <span class="tag">Local Data</span>
           <span class="tag">ImageViewer</span>
         </div>
-      </div>
+      </a>
 
-      <div class="example">
-        <h2><a href="/ome-zarr-image-viewer/">OmeZarrImageViewer Example</a></h2>
+      <a href="/ome-zarr-image-viewer/" class="example">
+        <h2>OmeZarrImageViewer Example</h2>
         <p>Basic usage of OmeZarrImageViewer component with performance metrics tracking. Shows organelle box dataset
           with image switching and console logging of load times.</p>
         <div class="example-meta">
@@ -138,7 +132,7 @@
           <span class="tag">Performance</span>
           <span class="tag">Multi-image</span>
         </div>
-      </div>
+      </a>
     </div>
   </div>
 </body>

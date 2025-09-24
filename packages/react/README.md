@@ -181,11 +181,6 @@ npm run components
 
 This starts a development server at **http://localhost:5173/** with a navigation page listing all available examples.
 
-#### Available Examples
-
-- **Current App Demo** (`/current-app/`) - Tomogram visualization with OmeZarrChunkedImageViewer and Z-slice navigation
-- **Organelle Box Time Series** (`/organelle-box-time/`) - Time series visualization using OmeZarrImageViewer
-- **Local Files** (`/local-files/`) - Load local Zarr files using the File System Access API
 
 #### Adding New Examples
 
