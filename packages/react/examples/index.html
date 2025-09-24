@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Idetik React Examples</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    h1 {
+      color: #646cff;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+
+    .example {
+      padding: 2rem;
+      background: #2a2a2a;
+      border-radius: 12px;
+      border: 1px solid #3a3a3a;
+      transition: all 0.3s ease;
+    }
+
+    .example:hover {
+      background: #333;
+      border-color: #646cff;
+      transform: translateY(-2px);
+    }
+
+    .example h2 {
+      margin: 0 0 1rem 0;
+      color: #fff;
+    }
+
+    .example a {
+      color: #646cff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+
+    .example a:hover {
+      text-decoration: underline;
+    }
+
+    .example p {
+      margin: 0.5rem 0 1.5rem 0;
+      color: #ccc;
+      line-height: 1.6;
+    }
+
+    .example-meta {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #888;
+    }
+
+    .tag {
+      background: #333;
+      padding: 0.25rem 0.75rem;
+      border-radius: 16px;
+      font-size: 0.8rem;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+  <div class="container">
+    <h1>Idetik React Examples</h1>
+
+    <div class="examples-grid">
+      <div class="example">
+        <h2><a href="/ome-zarr-chunked-image-viewer/">OmeZarrChunkedImageViewer Example</a></h2>
+        <p>Tomogram visualization using OmeZarrChunkedImageViewer with Z-slice navigation. Displays CZI tomogram data
+          with proper contrast settings and interactive controls.</p>
+        <div class="example-meta">
+          <span class="tag">Tomogram</span>
+          <span class="tag">ChunkedImageViewer</span>
+          <span class="tag">Z-Navigation</span>
+        </div>
+      </div>
+
+      <div class="example">
+        <h2><a href="/organelle-box-time/">Organelle Box Time Series</a></h2>
+        <p>Time series visualization using OmeZarrImageViewer. Shows organelle box dataset with time dimension controls
+          and channel management.</p>
+        <div class="example-meta">
+          <span class="tag">Time Series</span>
+          <span class="tag">Multi-channel</span>
+          <span class="tag">ImageViewer</span>
+        </div>
+      </div>
+
+      <div class="example">
+        <h2><a href="/local-files/">Local Files</a></h2>
+        <p>Load local Zarr files using the file picker API. Demonstrates how to load and visualize local OME-ZARR
+          datasets using the File System Access API.</p>
+        <div class="example-meta">
+          <span class="tag">File Picker</span>
+          <span class="tag">Local Data</span>
+          <span class="tag">ChunkedImageViewer</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

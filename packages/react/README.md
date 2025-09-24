@@ -163,13 +163,130 @@ npm install
 npm run build
 
 # Start development server
-npm run dev
+npm run components
 ```
 
-The development server will automatically load sample data from a publicly hosted Zarr file at:
-`https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr`
+This will start the examples server at http://localhost:5173/ where you can browse and interact with all available examples.
 
-No need to host any data locally to start development.
+### Examples
+
+The React package includes interactive examples to demonstrate different features and use cases. Examples are served from the `examples/` directory when running the development server.
+
+#### Running Examples
+
+From the repository root:
+```bash
+npm run components
+```
+
+This starts a development server at **http://localhost:5173/** with a navigation page listing all available examples.
+
+#### Available Examples
+
+- **Current App Demo** (`/current-app/`) - Tomogram visualization with OmeZarrChunkedImageViewer and Z-slice navigation
+- **Organelle Box Time Series** (`/organelle-box-time/`) - Time series visualization using OmeZarrImageViewer
+- **Local Files** (`/local-files/`) - Load local Zarr files using the File System Access API
+
+#### Adding New Examples
+
+To create a new example:
+
+1. **Create example directory**:
+   ```bash
+   mkdir examples/my-new-example
+   ```
+
+2. **Create index.html**:
+   ```html
+   <!doctype html>
+   <html lang="en">
+     <head>
+       <meta charset="UTF-8" />
+       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+       <title>My New Example</title>
+       <!-- Add any example-specific styles -->
+     </head>
+     <body>
+       <div id="app"></div>
+       <script type="module" src="./Main.tsx"></script>
+     </body>
+   </html>
+   ```
+
+3. **Create Main.tsx entry point**:
+   ```tsx
+   import React from "react";
+   import { createRoot } from "react-dom/client";
+   import App from "./App";
+   import "../../src/input.css"; // Import base styles
+
+   const domNode = document.getElementById("app")!;
+   const root = createRoot(domNode);
+
+   root.render(
+     <React.StrictMode>
+       <App />
+     </React.StrictMode>
+   );
+   ```
+
+4. **Create App.tsx with your example**:
+   ```tsx
+   import { IdetikProvider, OmeZarrImageViewer } from "../../src";
+   import { Region } from "@idetik/core-prerelease";
+
+   const region: Region = [
+     // Define your region...
+   ];
+
+   export default function App() {
+     return (
+       <IdetikProvider>
+         <OmeZarrImageViewer
+           sourceUrl="your-zarr-url"
+           region={region}
+           // Add other props...
+         />
+       </IdetikProvider>
+     );
+   }
+   ```
+
+5. **Add to examples index page**:
+   Update `examples/index.html` to include your new example in the examples grid:
+   ```html
+   <div class="example">
+     <h2><a href="/my-new-example/">My New Example</a></h2>
+     <p>Description of what this example demonstrates.</p>
+     <div class="example-meta">
+       <span class="tag">Feature1</span>
+       <span class="tag">Feature2</span>
+     </div>
+   </div>
+   ```
+
+#### Example Structure
+
+Examples should follow this structure:
+```
+examples/
+├── index.html              # Examples navigation page
+├── my-example/
+│   ├── index.html          # Example entry point
+│   ├── Main.tsx           # React app setup
+│   └── App.tsx            # Example implementation
+└── another-example/
+    ├── index.html
+    ├── Main.tsx
+    └── App.tsx
+```
+
+#### Development Tips
+
+- Use relative imports to reference the React components: `import { Component } from "../../src"`
+- Import base styles with: `import "../../src/input.css"`
+- Examples automatically hot-reload during development
+- Each example runs independently and can have its own dependencies/setup
 
 ### Development with Core Package
 
