@@ -91,7 +91,6 @@ addDimensionSlider({
   stepValue: zInfo.scale,
   playback: {
     intervalMs: 50,
-    stride: 5,
   },
 });
 
