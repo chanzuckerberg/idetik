@@ -42,15 +42,21 @@ function ChunkedImageViewerDemo() {
     }
   }, []);
 
-  const handleZSliceChange = useCallback((_: any, newZ: number | number[]) => {
-    const zValue = Array.isArray(newZ) ? newZ[0] : newZ;
-    if (typeof zValue === "number" && !isNaN(zValue)) {
-      setSliceCoordinates((prev: SliceCoordinates) => ({ ...prev, z: zValue }));
-      if (updateZSliceRef.current) {
-        updateZSliceRef.current(zValue);
+  const handleZSliceChange = useCallback(
+    (_event: Event, newZ: number | number[]) => {
+      const zValue = Array.isArray(newZ) ? newZ[0] : newZ;
+      if (typeof zValue === "number" && !isNaN(zValue)) {
+        setSliceCoordinates((prev: SliceCoordinates) => ({
+          ...prev,
+          z: zValue,
+        }));
+        if (updateZSliceRef.current) {
+          updateZSliceRef.current(zValue);
+        }
       }
-    }
-  }, []);
+    },
+    []
+  );
 
   return (
     <div className="h-screen flex flex-col">
