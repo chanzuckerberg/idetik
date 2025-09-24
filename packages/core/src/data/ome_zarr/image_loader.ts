@@ -99,11 +99,6 @@ export class OmeZarrImageLoader {
     });
 
     const data = subarray.data;
-    if (!isChunkData(data)) {
-      throw new Error(
-        `Subarray has an unsupported data type, data=${data.constructor.name}`
-      );
-    }
 
     const rowAlignment = data.BYTES_PER_ELEMENT;
     if (!isTextureUnpackRowAlignment(rowAlignment)) {

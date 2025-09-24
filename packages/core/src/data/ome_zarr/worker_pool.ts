@@ -32,12 +32,18 @@ let poolConfigured = false;
 function getWorkerInstance(worker: Worker): WorkerInstance | undefined {
   const instance = workerPool.find((w) => w.worker === worker);
   if (!instance) {
-    Logger.error("ZarrWorker", "Worker not found in pool - this should not happen");
+    Logger.error(
+      "ZarrWorker",
+      "Worker not found in pool - this should not happen"
+    );
   }
   return instance;
 }
 
-function handleWorkerMessage(e: MessageEvent<ZarrWorkerResponse>, worker: Worker): void {
+function handleWorkerMessage(
+  e: MessageEvent<ZarrWorkerResponse>,
+  worker: Worker
+): void {
   const { id, success } = e.data;
   const pending = pendingMessages.get(Number(id));
 
@@ -85,9 +91,15 @@ function handleWorkerMessage(e: MessageEvent<ZarrWorkerResponse>, worker: Worker
   }
 }
 
-function handleWorkerError(error: ErrorEvent | MessageEvent, worker: Worker): void {
+function handleWorkerError(
+  error: ErrorEvent | MessageEvent,
+  worker: Worker
+): void {
   if (error instanceof MessageEvent) {
-    Logger.error("ZarrWorker", "Message serialization error occurred - worker remains active");
+    Logger.error(
+      "ZarrWorker",
+      "Message serialization error occurred - worker remains active"
+    );
     return;
   }
 
@@ -128,7 +140,9 @@ function createWorker(): Worker {
 
   worker.addEventListener("message", (e) => handleWorkerMessage(e, worker));
   worker.addEventListener("error", (error) => handleWorkerError(error, worker));
-  worker.addEventListener("messageerror", (error) => handleWorkerError(error, worker));
+  worker.addEventListener("messageerror", (error) =>
+    handleWorkerError(error, worker)
+  );
 
   return worker;
 }
@@ -210,7 +224,6 @@ export async function getChunk(
   dtype: string;
 }> {
   try {
-    Logger.debug("ZarrWorker", "Using WebWorker for chunk", { arrayParams, chunkCoords, options });
     return await getChunkInWorker(arrayParams, chunkCoords, options);
   } catch (error) {
     // fall back to main thread on error, unless the operation was aborted

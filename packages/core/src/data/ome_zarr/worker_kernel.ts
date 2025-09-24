@@ -2,7 +2,7 @@
 
 import * as zarr from "zarrita";
 import { Readable } from "@zarrita/storage";
-import { openArray, ZarrArrayParams } from "../zarr/open";
+import { openArrayFromParams, ZarrArrayParams } from "../zarr/open";
 import { isChunkData } from "../chunk";
 
 type ZarrWorkerMessageType = "getChunk" | "cancel";
@@ -139,7 +139,7 @@ async function getOrOpenArray(
   let array = arrayCache.get(cacheKey);
   if (!array) {
     try {
-      array = await openArray(params);
+      array = await openArrayFromParams(params);
       arrayCache.set(cacheKey, array);
     } catch (openError) {
       throw new Error(
@@ -151,7 +151,7 @@ async function getOrOpenArray(
 }
 
 function getArrayCacheKey(params: ZarrArrayParams): string {
-  return `${params.storeType}::${JSON.stringify(params.storeConfig)}::${params.arrayPath}`;
+  return `${params.type}::${JSON.stringify(params.storeConfig)}::${params.arrayPath}`;
 }
 
 // chunkData can be various types from zarrita (TypedArrays, unknown[], etc.)

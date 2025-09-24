@@ -2,25 +2,34 @@ import * as zarr from "zarrita";
 import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
+import WebFileSystemStore from "./web_file_system_store";
 
 export type Version = "v2" | "v3";
 
-export interface ZarrArrayParams {
-  storeType: "fetch" | "filesystem";
-  storeConfig: {
-    url?: string;
-    path?: string;
-    fetchOptions?: {
-      overrides?: {
-        mode?: RequestMode;
-        credentials?: RequestCredentials;
-        headers?: Record<string, string>;
-      };
-    };
-  };
+export type ZarrArrayParams = {
   arrayPath: string;
   zarrVersion: Version;
-}
+} & (
+  | {
+      type: "fetch";
+      storeConfig: {
+        url: string;
+        fetchOptions?: {
+          overrides?: {
+            mode?: RequestMode;
+            credentials?: RequestCredentials;
+            headers?: Record<string, string>;
+          };
+        };
+      };
+    }
+  | {
+      type: "filesystem";
+      storeConfig: {
+        path: string;
+      };
+    }
+);
 
 export async function openGroup(
   location: zarr.Location<Readable>,
@@ -50,59 +59,7 @@ export async function openGroup(
 export async function openArray(
   location: zarr.Location<Readable>,
   version?: Version
-): Promise<zarr.Array<zarr.DataType, Readable>>;
-export async function openArray(
-  params: ZarrArrayParams
-): Promise<zarr.Array<zarr.DataType, Readable>>;
-export async function openArray(
-  locationOrParams: zarr.Location<Readable> | ZarrArrayParams,
-  version?: Version
 ): Promise<zarr.Array<zarr.DataType, Readable>> {
-  // Handle structured parameters
-  if ("storeType" in locationOrParams) {
-    const params = locationOrParams;
-    let rootLocation: Location<Readable>;
-
-    if (params.storeType === "fetch") {
-      if (!params.storeConfig.url) {
-        throw new Error("Missing URL for fetch store");
-      }
-
-      const fetchOptions = params.storeConfig.fetchOptions || {
-        overrides: {
-          mode: "cors" as RequestMode,
-          credentials: "same-origin" as RequestCredentials,
-          headers: {
-            Accept: "application/octet-stream, application/json, */*",
-          },
-        },
-      };
-
-      rootLocation = new Location(
-        new FetchStore(params.storeConfig.url, fetchOptions)
-      );
-    } else if (params.storeType === "filesystem") {
-      if (typeof FileSystemDirectoryHandle === "undefined") {
-        throw new Error("FileSystem API not available in this context");
-      }
-
-      // This would need to be passed differently for filesystem stores
-      throw new Error(
-        "Filesystem stores not yet supported in openArray with params"
-      );
-    } else {
-      throw new Error(`Unsupported store type: ${params.storeType}`);
-    }
-
-    const arrayLocation = params.arrayPath
-      ? rootLocation.resolve(params.arrayPath)
-      : rootLocation;
-
-    return openArray(arrayLocation, params.zarrVersion);
-  }
-
-  // Handle traditional location + version
-  const location = locationOrParams;
   if (version === "v2") {
     try {
       return zarr.open.v2(location, { kind: "array", attrs: false });
@@ -121,5 +78,92 @@ export async function openArray(
     return zarr.open(location, { kind: "array" });
   } catch {
     throw new Error(`Failed to open Zarr array at ${location}`);
+  }
+}
+
+export async function openArrayFromParams(
+  params: ZarrArrayParams
+): Promise<zarr.Array<zarr.DataType, Readable>> {
+  let rootLocation: Location<Readable>;
+
+  switch (params.type) {
+    case "fetch": {
+      const fetchOptions = params.storeConfig.fetchOptions || {
+        overrides: {
+          mode: "cors" as RequestMode,
+          credentials: "same-origin" as RequestCredentials,
+          headers: {
+            Accept: "application/octet-stream, application/json, */*",
+          },
+        },
+      };
+
+      rootLocation = new Location(
+        new FetchStore(params.storeConfig.url, fetchOptions)
+      );
+      break;
+    }
+    case "filesystem": {
+      if (typeof FileSystemDirectoryHandle === "undefined") {
+        throw new Error("FileSystem API not available in this context");
+      }
+
+      // This would need to be passed differently for filesystem stores
+      throw new Error(
+        "Filesystem stores not yet supported in openArrayFromParams"
+      );
+    }
+    default: {
+      const exhaustiveCheck: never = params;
+      throw new Error(`Unsupported store type: ${exhaustiveCheck}`);
+    }
+  }
+
+  const arrayLocation = params.arrayPath
+    ? rootLocation.resolve(params.arrayPath)
+    : rootLocation;
+
+  return openArray(arrayLocation, params.zarrVersion);
+}
+
+export function createZarrArrayParams(
+  location: Location<Readable>,
+  arrayPath: string,
+  zarrVersion: Version
+): ZarrArrayParams {
+  if (location.store instanceof FetchStore) {
+    return {
+      type: "fetch",
+      arrayPath,
+      zarrVersion,
+      storeConfig: {
+        url:
+          (location.store as { url?: string; root?: string }).url ||
+          (location.store as { url?: string; root?: string }).root ||
+          "",
+        fetchOptions: {
+          overrides: {
+            mode: "cors" as RequestMode,
+            credentials: "same-origin" as RequestCredentials,
+            headers: {
+              Accept: "application/octet-stream, application/json, */*",
+            },
+          },
+        },
+      },
+    };
+  } else if (location.store instanceof WebFileSystemStore) {
+    return {
+      type: "filesystem",
+      arrayPath,
+      zarrVersion,
+      storeConfig: {
+        path: location.path || "",
+      },
+    };
+  } else {
+    throw new Error(
+      `Unsupported store type: ${location.store.constructor.name}`
+    );
   }
 }
