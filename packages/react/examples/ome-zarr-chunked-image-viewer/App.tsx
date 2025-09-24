@@ -3,7 +3,7 @@ import { StyledEngineProvider, ThemeProvider } from "@mui/material/styles";
 import { Theme, InputSlider } from "@czi-sds/components";
 import CssBaseline from "@mui/material/CssBaseline";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { SliceCoordinates } from "@idetik/core-prerelease";
+import { SliceCoordinates, ChunkedImageLayer } from "@idetik/core-prerelease";
 import { IdetikProvider, OmeZarrChunkedImageViewer } from "../../src";
 import { useCallback, useRef, useState } from "react";
 
@@ -25,7 +25,7 @@ function ChunkedImageViewerDemo() {
 
   console.log("Rendering App with sourceUrl:", sourceUrl);
   const handleLayerCreated = useCallback(
-    (updateZSlice?: (zValue: number) => void) => {
+    (_layer?: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
       layerCreatedTime.current = performance.now();
       console.log(`Layer created at ${layerCreatedTime.current}`);
       updateZSliceRef.current = updateZSlice || null;
