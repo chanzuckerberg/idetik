@@ -18,9 +18,13 @@ import { ChunkQueue } from "../data/chunk_queue";
 const PREFETCH_PADDING_CHUNKS = 0;
 
 const PRI_FALLBACK_VISIBLE = 0;
+const PRI_TEMPORAL_PREFETCH = 0.5;
 const PRI_VISIBLE_CURRENT = 1;
 const PRI_FALLBACK_BACKGROUND = 2;
 const PRI_PREFETCH = 3;
+
+// Fetch some number of timepoints ahead of current time.
+const PREFETCH_TEMPORAL_CHUNKS = 10;
 
 export class ChunkManagerSource {
   // First dimension of the array is time, the others cover LOD, x, y, z, c.
@@ -270,6 +274,42 @@ export class ChunkManagerSource {
       }
     }
     updatedChunks.push(...currentTimeChunks);
+
+    const futurePrefetchChunks = this.prefetchFutureTimepoints(viewBounds3D);
+    updatedChunks.push(...futurePrefetchChunks);
+
+    return updatedChunks;
+  }
+
+  private prefetchFutureTimepoints(viewBounds3D: Box3): Chunk[] {
+    if (this.sliceCoords_.t === undefined) return [];
+    const tCurrent = this.sliceCoords_.t;
+    const tEnd = Math.min(
+      this.chunks_.length,
+      tCurrent + PREFETCH_TEMPORAL_CHUNKS
+    );
+    const updatedChunks: Chunk[] = [];
+    for (let t = tCurrent + 1; t < tEnd; ++t) {
+      for (const chunk of this.chunks_[t]) {
+        const isLowestLOD = chunk.lod === this.lowestResLOD_;
+        const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
+        if (isLowestLOD && isVisible) {
+          if (this.fetchedTCoords_.has(t)) continue;
+          Logger.debug("ChunkManagerSource", "Prefetching chunk at", t);
+          chunk.priority = PRI_TEMPORAL_PREFETCH;
+          chunk.orderKey = t - tCurrent;
+          chunk.prefetch = true;
+          chunk.state = "queued";
+          this.fetchedTCoords_.add(t);
+        } else {
+          chunk.priority = null;
+          chunk.orderKey = null;
+          chunk.prefetch = false;
+          chunk.state = "unloaded";
+        }
+        updatedChunks.push(chunk);
+      }
+    }
     return updatedChunks;
   }
 
@@ -295,7 +335,10 @@ export class ChunkManagerSource {
     chunk.state = "unloaded";
     chunk.priority = null;
     chunk.orderKey = null;
-    Logger.debug("ChunkManagerSource", `Disposing chunk in LOD ${chunk.lod}`);
+    Logger.debug(
+      "ChunkManagerSource",
+      `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
+    );
   }
 
   private computePriority(
