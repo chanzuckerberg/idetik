@@ -37,7 +37,7 @@ export interface OmeZarrChunkedImageViewerProps {
     align?: "start" | "end" | "center";
   };
   onLayerCreated?: (
-    layer: ChunkedImageLayer,
+    layer?: ChunkedImageLayer,
     updateZSlice?: (zValue: number) => void
   ) => void;
   onFirstSliceLoaded?: () => void;
