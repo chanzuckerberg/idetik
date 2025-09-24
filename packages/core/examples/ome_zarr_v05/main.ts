@@ -8,6 +8,7 @@ import {
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
+import GUI from "lil-gui";
 
 const url =
   "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
@@ -64,9 +65,84 @@ const camera = new OrthographicCamera(
 );
 const cameraControls = new PanZoomControls(camera);
 
-new Idetik({
+const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   cameraControls,
   layers: [layer, axes],
 }).start();
+
+const controls = {
+  sliceCoords,
+  playZ: false,
+  showWireframes: layer.debugMode,
+  showAxes: idetik.layerManager.layers.includes(axes),
+};
+
+const gui = new GUI({ width: 500 });
+
+const zMax = zInfo.offset + zInfo.size * zInfo.scale;
+const zController = gui
+  .add(controls.sliceCoords, "z", zInfo.offset, zMax, zInfo.scale)
+  .name("Z-point");
+
+class PlaybackController {
+  private isPlaying_: boolean = false;
+  private intervalId_?: number;
+  private intervalMs_: number = 50;
+  private stride_: number = 5;
+
+  public play() {
+    if (this.isPlaying_) return;
+    this.intervalId_ = window.setInterval(() => {
+      this.incrementTime();
+    }, this.intervalMs_);
+    this.isPlaying_ = true;
+  }
+
+  public pause() {
+    if (!this.isPlaying_) return;
+    if (this.intervalId_) {
+      window.clearInterval(this.intervalId_);
+      this.intervalId_ = undefined;
+    }
+    this.isPlaying_ = false;
+  }
+
+  private incrementTime = () => {
+    const newValue = controls.sliceCoords.z + zInfo.scale * this.stride_;
+    if (newValue <= zMax) {
+      zController.setValue(newValue);
+    } else {
+      this.pause();
+    }
+  };
+}
+
+const playbackController = new PlaybackController();
+gui
+  .add(controls, "playZ")
+  .name("Play Z")
+  .onChange((play: boolean) => {
+    if (play) {
+      playbackController.play();
+    } else {
+      playbackController.pause();
+    }
+  });
+
+gui
+  .add(controls, "showWireframes")
+  .name("Show tile wireframes")
+  .onChange((show: boolean) => (layer.debugMode = show));
+
+gui
+  .add(controls, "showAxes")
+  .name("Show axes")
+  .onChange((show: boolean) => {
+    if (show && !idetik.layerManager.layers.includes(axes)) {
+      idetik.layerManager.add(axes);
+    } else if (!show && idetik.layerManager.layers.includes(axes)) {
+      idetik.layerManager.remove(axes);
+    }
+  });
