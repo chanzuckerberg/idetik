@@ -71,7 +71,8 @@
 
     .example-meta {
       display: flex;
-      gap: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
       margin-top: 1rem;
       font-size: 0.9rem;
       color: #888;
@@ -82,6 +83,7 @@
       padding: 0.25rem 0.75rem;
       border-radius: 16px;
       font-size: 0.8rem;
+      white-space: nowrap;
     }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -123,7 +125,18 @@
         <div class="example-meta">
           <span class="tag">File Picker</span>
           <span class="tag">Local Data</span>
-          <span class="tag">ChunkedImageViewer</span>
+          <span class="tag">ImageViewer</span>
+        </div>
+      </div>
+
+      <div class="example">
+        <h2><a href="/ome-zarr-image-viewer/">OmeZarrImageViewer Example</a></h2>
+        <p>Basic usage of OmeZarrImageViewer component with performance metrics tracking. Shows organelle box dataset
+          with image switching and console logging of load times.</p>
+        <div class="example-meta">
+          <span class="tag">ImageViewer</span>
+          <span class="tag">Performance</span>
+          <span class="tag">Multi-image</span>
         </div>
       </div>
     </div>
