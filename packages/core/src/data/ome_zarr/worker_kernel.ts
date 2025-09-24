@@ -153,7 +153,8 @@ async function getOrOpenArray(
 }
 
 function getArrayCacheKey(params: ZarrArrayParams): string {
-  return `${params.type}::${JSON.stringify(params.storeConfig)}::${params.arrayPath}`;
+  const storeKey = params.type === "fetch" ? params.url : params.path;
+  return `${params.type}::${storeKey}::${params.arrayPath}`;
 }
 
 function getTransferableBuffer(chunkData: ChunkData): {

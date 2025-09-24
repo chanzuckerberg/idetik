@@ -12,19 +12,15 @@ export type ZarrArrayParams = {
 } & (
   | {
       type: "fetch";
-      storeConfig: {
-        url: string;
-        fetchOptions?: {
-          overrides?: RequestInit;
-          useSuffixRequest?: boolean;
-        };
+      url: string;
+      fetchOptions?: {
+        overrides?: RequestInit;
+        useSuffixRequest?: boolean;
       };
     }
   | {
       type: "filesystem";
-      storeConfig: {
-        path: string;
-      };
+      path: string;
     }
 );
 
@@ -86,7 +82,7 @@ export async function openArrayFromParams(
   switch (params.type) {
     case "fetch": {
       rootLocation = new Location(
-        new FetchStore(params.storeConfig.url, params.storeConfig.fetchOptions)
+        new FetchStore(params.url, params.fetchOptions)
       );
       break;
     }
@@ -97,7 +93,7 @@ export async function openArrayFromParams(
 
       // This would need to be passed differently for filesystem stores
       throw new Error(
-        "Filesystem stores not yet supported in openArrayFromParams"
+        `Filesystem stores not yet supported in openArrayFromParams: ${params.path}`
       );
     }
     default: {
@@ -123,21 +119,14 @@ export function createZarrArrayParams(
       type: "fetch",
       arrayPath,
       zarrVersion,
-      storeConfig: {
-        url:
-          (location.store as { url?: string; root?: string }).url ||
-          (location.store as { url?: string; root?: string }).root ||
-          "",
-      },
+      url: (location.store as FetchStore).url.toString(),
     };
   } else if (location.store instanceof WebFileSystemStore) {
     return {
       type: "filesystem",
       arrayPath,
       zarrVersion,
-      storeConfig: {
-        path: location.path || "",
-      },
+      path: location.path,
     };
   } else {
     throw new Error(
