@@ -70,7 +70,7 @@ const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   cameraControls,
-  layers: [layer, axes],
+  layers: [layer],
 }).start();
 
 const controls = {
