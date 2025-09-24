@@ -17,7 +17,8 @@ import { PromiseScheduler } from "../promise_scheduler";
 import { Image as OmeZarrImage } from "./0.5/image";
 
 import { Readable } from "@zarrita/storage";
-import { getChunk } from "./async_get_chunk";
+import { ZarrArrayParams } from "../zarr/open";
+import { getChunk } from "./zarr_worker_pool";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -41,6 +42,7 @@ export class PromiseQueue<T> {
 type OmeZarrImageLoaderProps = {
   metadata: OmeZarrImage["ome"]["multiscales"][number];
   arrays: zarr.Array<zarr.DataType, Readable>[];
+  arrayParams: ZarrArrayParams[];
 };
 
 // Loads chunks from a multiscale image implementing OME-Zarr v0.5:
@@ -48,12 +50,14 @@ type OmeZarrImageLoaderProps = {
 export class OmeZarrImageLoader {
   private readonly metadata_: OmeZarrImage["ome"]["multiscales"][number];
   private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
+  private readonly arrayParams_: ReadonlyArray<ZarrArrayParams>;
   private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
   private readonly dimensions_: SourceDimensionMap;
 
   constructor(props: OmeZarrImageLoaderProps) {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
+    this.arrayParams_ = props.arrayParams;
     this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
     this.dimensions_ = inferSourceDimensionMap(this.loaderAttributes_);
   }
@@ -89,7 +93,10 @@ export class OmeZarrImageLoader {
     }
 
     const array = this.arrays_[chunk.lod];
-    const subarray = await getChunk(array, chunkCoords, { signal });
+    const arrayParams = this.arrayParams_[chunk.lod];
+    const subarray = await getChunk(array, arrayParams, chunkCoords, {
+      signal,
+    });
 
     const data = subarray.data;
     if (!isChunkData(data)) {

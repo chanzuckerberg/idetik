@@ -1,10 +1,11 @@
 import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
-import { openArray, openGroup } from "../zarr/open";
+import { openArray, openGroup, ZarrArrayParams } from "../zarr/open";
 import WebFileSystemStore from "../zarr/web_file_system_store";
 import { OmeZarrImageLoader } from "./image_loader";
 import { omeZarrToZarrVersion, parseOmeZarrImage } from "./metadata_loaders";
+import { ensureWorkerPool } from "./zarr_worker_pool";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
@@ -22,6 +23,7 @@ export class OmeZarrImageSource {
    */
   constructor(directory: FileSystemDirectoryHandle, path?: `/${string}`);
   constructor(source: string | FileSystemDirectoryHandle, path?: `/${string}`) {
+    ensureWorkerPool();
     this.location =
       typeof source === "string"
         ? new Location(new FetchStore(source))
@@ -43,9 +45,15 @@ export class OmeZarrImageSource {
       throw new Error(`No datasets found in the multiscale image.`);
     }
     const zarrVersion = omeZarrToZarrVersion(omeVersion);
-    const arrays = await Promise.all(
-      metadata.datasets.map((d) => openArray(root.resolve(d.path), zarrVersion))
+
+    // Create array params and arrays using shared zarrOpen function
+    const arrayParams = metadata.datasets.map((d) =>
+      this.getZarrArrayParams(d.path, zarrVersion)
     );
+    const arrays = await Promise.all(
+      arrayParams.map((params) => openArray(params))
+    );
+
     const shape = arrays[0].shape;
     const axes = metadata.axes;
     if (axes.length !== shape.length) {
@@ -56,6 +64,49 @@ export class OmeZarrImageSource {
     return new OmeZarrImageLoader({
       metadata,
       arrays,
+      arrayParams, // Pass the params to the loader
     });
+  }
+
+  public getZarrArrayParams(
+    arrayPath: string,
+    zarrVersion: "v2" | "v3" = "v2"
+  ): ZarrArrayParams {
+    if (this.location.store instanceof FetchStore) {
+      // Handle FetchStore (URL-based)
+      return {
+        storeType: "fetch",
+        storeConfig: {
+          url:
+            (this.location.store as { url?: string; root?: string }).url ||
+            (this.location.store as { url?: string; root?: string }).root,
+          fetchOptions: {
+            overrides: {
+              mode: "cors" as RequestMode,
+              credentials: "same-origin" as RequestCredentials,
+              headers: {
+                Accept: "application/octet-stream, application/json, */*",
+              },
+            },
+          },
+        },
+        arrayPath,
+        zarrVersion,
+      };
+    } else if (this.location.store instanceof WebFileSystemStore) {
+      // Handle WebFileSystemStore (local directory)
+      return {
+        storeType: "filesystem",
+        storeConfig: {
+          path: this.location.path,
+        },
+        arrayPath,
+        zarrVersion,
+      };
+    } else {
+      throw new Error(
+        `Unsupported store type: ${this.location.store.constructor.name}`
+      );
+    }
   }
 }
