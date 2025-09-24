@@ -7,6 +7,7 @@ import {
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
+import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
 const url =
@@ -88,58 +89,29 @@ const controls = {
 
 const gui = new GUI({ width: 500 });
 
-gui
-  .add(controls.sliceCoords, "z", zRange.min, zRange.max, z.scale)
-  .name("Z-point");
+addDimensionSlider({
+  gui,
+  sliceCoords,
+  dimensionName: "z",
+  minValue: zRange.min,
+  maxValue: zRange.max,
+  stepValue: z.scale,
+  playback: {
+    intervalMs: 50,
+  },
+});
 
-const tController = gui
-  .add(controls.sliceCoords, "t", tRange.min, tRange.max, t.scale)
-  .name("T-point");
-
-class PlaybackController {
-  private isPlaying_: boolean = false;
-  private intervalId_?: number;
-  private intervalMs_: number = 500;
-  private stride_: number = 1;
-
-  public play() {
-    if (this.isPlaying_) return;
-    this.intervalId_ = window.setInterval(() => {
-      this.incrementTime();
-    }, this.intervalMs_);
-    this.isPlaying_ = true;
-  }
-
-  public pause() {
-    if (!this.isPlaying_) return;
-    if (this.intervalId_) {
-      window.clearInterval(this.intervalId_);
-      this.intervalId_ = undefined;
-    }
-    this.isPlaying_ = false;
-  }
-
-  private incrementTime = () => {
-    const newValue = controls.sliceCoords.t + t.scale * this.stride_;
-    if (newValue <= tRange.max) {
-      tController.setValue(newValue);
-    } else {
-      this.pause();
-    }
-  };
-}
-
-const playbackController = new PlaybackController();
-gui
-  .add(controls, "playTime")
-  .name("Play T")
-  .onChange((play: boolean) => {
-    if (play) {
-      playbackController.play();
-    } else {
-      playbackController.pause();
-    }
-  });
+addDimensionSlider({
+  gui,
+  sliceCoords,
+  dimensionName: "t",
+  minValue: tRange.min,
+  maxValue: tRange.max,
+  stepValue: t.scale,
+  playback: {
+    intervalMs: 500,
+  },
+});
 
 const overlaysFolder = gui.addFolder("Overlays");
 

@@ -8,6 +8,7 @@ import {
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
+import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
 const url =
@@ -81,55 +82,18 @@ const controls = {
 
 const gui = new GUI({ width: 500 });
 
-const zMax = zInfo.offset + zInfo.size * zInfo.scale;
-const zController = gui
-  .add(controls.sliceCoords, "z", zInfo.offset, zMax, zInfo.scale)
-  .name("Z-point");
-
-class PlaybackController {
-  private isPlaying_: boolean = false;
-  private intervalId_?: number;
-  private intervalMs_: number = 50;
-  private stride_: number = 5;
-
-  public play() {
-    if (this.isPlaying_) return;
-    this.intervalId_ = window.setInterval(() => {
-      this.incrementTime();
-    }, this.intervalMs_);
-    this.isPlaying_ = true;
-  }
-
-  public pause() {
-    if (!this.isPlaying_) return;
-    if (this.intervalId_) {
-      window.clearInterval(this.intervalId_);
-      this.intervalId_ = undefined;
-    }
-    this.isPlaying_ = false;
-  }
-
-  private incrementTime = () => {
-    const newValue = controls.sliceCoords.z + zInfo.scale * this.stride_;
-    if (newValue <= zMax) {
-      zController.setValue(newValue);
-    } else {
-      this.pause();
-    }
-  };
-}
-
-const playbackController = new PlaybackController();
-gui
-  .add(controls, "playZ")
-  .name("Play Z")
-  .onChange((play: boolean) => {
-    if (play) {
-      playbackController.play();
-    } else {
-      playbackController.pause();
-    }
-  });
+addDimensionSlider({
+  gui,
+  sliceCoords,
+  dimensionName: "z",
+  minValue: zInfo.offset,
+  maxValue: zInfo.offset + (zInfo.size - 1) * zInfo.scale,
+  stepValue: zInfo.scale,
+  playback: {
+    intervalMs: 50,
+    stride: 5,
+  },
+});
 
 gui
   .add(controls, "showWireframes")
