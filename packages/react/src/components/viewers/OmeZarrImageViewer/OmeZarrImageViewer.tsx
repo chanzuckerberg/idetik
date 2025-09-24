@@ -412,7 +412,7 @@ async function loadImageMetadata(
 
   let initialZ: number;
   const zRegion = region.find(
-    (d) => d.dimension.toUpperCase() === seriesDimensionName.toUpperCase()
+    (d: Region[0]) => d.dimension.toUpperCase() === seriesDimensionName.toUpperCase()
   );
   const isFullZ = zRegion && zRegion.index?.type === "full";
 
