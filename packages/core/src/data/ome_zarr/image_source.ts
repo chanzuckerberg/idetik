@@ -9,7 +9,6 @@ import {
 import WebFileSystemStore from "../zarr/web_file_system_store";
 import { OmeZarrImageLoader } from "./image_loader";
 import { omeZarrToZarrVersion, parseOmeZarrImage } from "./metadata_loaders";
-import { ensureWorkerPool } from "./worker_pool";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
@@ -27,7 +26,6 @@ export class OmeZarrImageSource {
    */
   constructor(directory: FileSystemDirectoryHandle, path?: `/${string}`);
   constructor(source: string | FileSystemDirectoryHandle, path?: `/${string}`) {
-    ensureWorkerPool();
     this.location =
       typeof source === "string"
         ? new Location(new FetchStore(source))
@@ -66,7 +64,7 @@ export class OmeZarrImageSource {
     return new OmeZarrImageLoader({
       metadata,
       arrays,
-      arrayParams, // Pass the params to the loader
+      arrayParams,
     });
   }
 }

@@ -18,7 +18,7 @@ import { Image as OmeZarrImage } from "./0.5/image";
 
 import { Readable } from "@zarrita/storage";
 import { ZarrArrayParams } from "../zarr/open";
-import { getChunk } from "./worker_pool";
+import { getChunk, ensureWorkerPool } from "./worker_pool";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -55,6 +55,7 @@ export class OmeZarrImageLoader {
   private readonly dimensions_: SourceDimensionMap;
 
   constructor(props: OmeZarrImageLoaderProps) {
+    ensureWorkerPool();
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.arrayParams_ = props.arrayParams;
