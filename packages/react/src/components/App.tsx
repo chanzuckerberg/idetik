@@ -1,35 +1,34 @@
-import { SliceCoordinates, ChunkedImageLayer } from "@idetik/core-prerelease";
-import { OmeZarrChunkedImageViewer } from "./viewers/OmeZarrChunkedImageViewer";
+import { Region } from "@idetik/core-prerelease";
+import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
 import { useCallback, useRef, useState } from "react";
-import { InputSlider } from "@czi-sds/components";
 
 const sourceUrl =
-  "https://czii-onsite.czbiohub.org/krios1.processing/aretomo3/25jul30a/run002/vol003/Position_1_Vol.zarr";
-const initialSliceCoordinates: SliceCoordinates = {
-  t: 0,
-  z: 296,
-};
+  "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr";
+const wellPath = "ATG101/MeOH";
+const region: Region = [
+  { dimension: "T", index: { type: "point", value: 0 } },
+  { dimension: "C", index: { type: "full" } },
+  { dimension: "Z", index: { type: "full" } },
+  { dimension: "Y", index: { type: "full" } },
+  { dimension: "X", index: { type: "full" } },
+];
+
+const imagePaths = ["000000", "000001", "000002", "001000", "001001", "001002"];
 
 /** Demo. */
 export default function App() {
-  const [sliceCoordinates, setSliceCoordinates] = useState<SliceCoordinates>(
-    initialSliceCoordinates
-  );
-  const updateZSliceRef = useRef<((zValue: number) => void) | null>(null);
-  const zMax = 591; // 0-indexed max for 592 slices
+  const [imageIndex, setImageIndex] = useState(0);
+
+  const imagePath = imagePaths[imageIndex];
+  const imageUrl = `${sourceUrl}/${wellPath}/${imagePath}`;
 
   const layerCreatedTime = useRef<number | undefined>(undefined);
+  const loadAllSlicesClickedTime = useRef<number | undefined>(undefined);
 
-  console.log("Rendering App with sourceUrl:", sourceUrl);
-  const handleLayerCreated = useCallback(
-    (layer: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
-      layerCreatedTime.current = performance.now();
-      console.log(`Layer created at ${layerCreatedTime.current}`);
-      console.log("Layer:", layer, "updateZSlice function:", updateZSlice);
-      updateZSliceRef.current = updateZSlice || null;
-    },
-    []
-  );
+  const handleLayerCreated = useCallback(() => {
+    layerCreatedTime.current = performance.now();
+    console.log(`Layer created at ${layerCreatedTime.current}`);
+  }, []);
 
   const handleFirstSliceLoaded = useCallback(() => {
     if (layerCreatedTime.current !== undefined) {
@@ -40,44 +39,58 @@ export default function App() {
     }
   }, []);
 
-  const handleZSliceChange = useCallback((_, newZ: number | number[]) => {
-    const zValue = Array.isArray(newZ) ? newZ[0] : newZ;
-    if (typeof zValue === "number" && !isNaN(zValue)) {
-      setSliceCoordinates((prev: SliceCoordinates) => ({ ...prev, z: zValue }));
-      if (updateZSliceRef.current) {
-        updateZSliceRef.current(zValue);
-      }
+  const handleLoadAllSlicesClicked = useCallback(() => {
+    loadAllSlicesClickedTime.current = performance.now();
+    console.log(
+      `Load all slices clicked at ${loadAllSlicesClickedTime.current}`
+    );
+  }, []);
+
+  const handleAllSlicesLoaded = useCallback(() => {
+    if (loadAllSlicesClickedTime.current !== undefined) {
+      const time = performance.now() - loadAllSlicesClickedTime.current;
+      console.log(`All slices loaded after ${time} ms`);
+    } else {
+      console.log(
+        "All slices loaded, but load all slices clicked time is undefined"
+      );
+    }
+  }, []);
+
+  const handleLoadAllSlicesAborted = useCallback(() => {
+    if (loadAllSlicesClickedTime.current !== undefined) {
+      const time = performance.now() - loadAllSlicesClickedTime.current;
+      console.log(`Load all slices aborted after ${time} ms`);
+    } else {
+      console.log(
+        "Load all slices aborted, but load all slices clicked time is undefined"
+      );
     }
   }, []);
 
   return (
     <div className="h-screen flex flex-col">
-      <OmeZarrChunkedImageViewer
-        sourceUrl={sourceUrl}
-        sliceCoordinates={sliceCoordinates}
-        fallbackContrastLimits={[-0.0008789, 0.0052775]}
+      <OmeZarrImageViewer
+        sourceUrl={imageUrl}
+        region={region}
+        seriesDimensionName="Z"
+        initialIndex="omeroDefault"
         classNames={{
           root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
         }}
+        loadAllButtonText="Load 3D high-res (250MB)"
         onLayerCreated={handleLayerCreated}
         onFirstSliceLoaded={handleFirstSliceLoaded}
+        onLoadAllSlicesClicked={handleLoadAllSlicesClicked}
+        onAllSlicesLoaded={handleAllSlicesLoaded}
+        onLoadAllSlicesAborted={handleLoadAllSlicesAborted}
       />
-      <div className="h-16 shrink-0 bg-dark-sds-color-primitive-gray-200 p-4 flex items-center gap-4">
-        <label className="text-white font-semibold min-w-fit">
-          Z-Slice Navigation:
-        </label>
-        <InputSlider
-          value={sliceCoordinates.z ?? 0}
-          min={0}
-          max={zMax}
-          step={1}
-          onChange={handleZSliceChange}
-          className="flex-1"
-        />
-        <span className="text-white min-w-fit">
-          Slice {sliceCoordinates.z ?? 0} of {zMax}
-        </span>
-      </div>
+      <input
+        type="button"
+        value="Next Image"
+        onClick={() => setImageIndex((imageIndex + 1) % imagePaths.length)}
+        className="h-12 shrink-0 basis-[50px]"
+      />
     </div>
   );
 }
