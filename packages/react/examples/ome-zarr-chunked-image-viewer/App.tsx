@@ -7,7 +7,6 @@ import { SliceCoordinates } from "@idetik/core-prerelease";
 import { IdetikProvider, OmeZarrChunkedImageViewer } from "../../src";
 import { useCallback, useRef, useState } from "react";
 
-
 const sourceUrl =
   "https://czii-onsite.czbiohub.org/krios1.processing/aretomo3/25jul30a/run002/vol003/Position_1_Vol.zarr";
 const initialSliceCoordinates: SliceCoordinates = {
@@ -16,18 +15,23 @@ const initialSliceCoordinates: SliceCoordinates = {
 };
 
 function ChunkedImageViewerDemo() {
-  const [sliceCoordinates, setSliceCoordinates] = useState<SliceCoordinates>(initialSliceCoordinates);
+  const [sliceCoordinates, setSliceCoordinates] = useState<SliceCoordinates>(
+    initialSliceCoordinates
+  );
   const updateZSliceRef = useRef<((zValue: number) => void) | null>(null);
   const zMax = 591; // 0-indexed max for 592 slices
 
   const layerCreatedTime = useRef<number | undefined>(undefined);
 
   console.log("Rendering App with sourceUrl:", sourceUrl);
-  const handleLayerCreated = useCallback((updateZSlice?: (zValue: number) => void) => {
-    layerCreatedTime.current = performance.now();
-    console.log(`Layer created at ${layerCreatedTime.current}`);
-    updateZSliceRef.current = updateZSlice || null;
-  }, []);
+  const handleLayerCreated = useCallback(
+    (updateZSlice?: (zValue: number) => void) => {
+      layerCreatedTime.current = performance.now();
+      console.log(`Layer created at ${layerCreatedTime.current}`);
+      updateZSliceRef.current = updateZSlice || null;
+    },
+    []
+  );
 
   const handleFirstSliceLoaded = useCallback(() => {
     if (layerCreatedTime.current !== undefined) {
@@ -40,7 +44,7 @@ function ChunkedImageViewerDemo() {
 
   const handleZSliceChange = useCallback((_, newZ: number | number[]) => {
     const zValue = Array.isArray(newZ) ? newZ[0] : newZ;
-    if (typeof zValue === 'number' && !isNaN(zValue)) {
+    if (typeof zValue === "number" && !isNaN(zValue)) {
       setSliceCoordinates((prev: SliceCoordinates) => ({ ...prev, z: zValue }));
       if (updateZSliceRef.current) {
         updateZSliceRef.current(zValue);
@@ -61,7 +65,9 @@ function ChunkedImageViewerDemo() {
         onFirstSliceLoaded={handleFirstSliceLoaded}
       />
       <div className="h-16 shrink-0 bg-dark-sds-color-primitive-gray-200 p-4 flex items-center gap-4">
-        <label className="text-white font-semibold min-w-fit">Z-Slice Navigation:</label>
+        <label className="text-white font-semibold min-w-fit">
+          Z-Slice Navigation:
+        </label>
         <InputSlider
           value={sliceCoordinates.z ?? 0}
           min={0}

@@ -12,19 +12,24 @@ const initialSliceCoordinates: SliceCoordinates = {
 
 /** Demo. */
 export default function App() {
-  const [sliceCoordinates, setSliceCoordinates] = useState<SliceCoordinates>(initialSliceCoordinates);
+  const [sliceCoordinates, setSliceCoordinates] = useState<SliceCoordinates>(
+    initialSliceCoordinates
+  );
   const updateZSliceRef = useRef<((zValue: number) => void) | null>(null);
   const zMax = 591; // 0-indexed max for 592 slices
 
   const layerCreatedTime = useRef<number | undefined>(undefined);
 
   console.log("Rendering App with sourceUrl:", sourceUrl);
-  const handleLayerCreated = useCallback((layer: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
-    layerCreatedTime.current = performance.now();
-    console.log(`Layer created at ${layerCreatedTime.current}`);
-    console.log("Layer:", layer, "updateZSlice function:", updateZSlice);
-    updateZSliceRef.current = updateZSlice || null;
-  }, []);
+  const handleLayerCreated = useCallback(
+    (layer: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
+      layerCreatedTime.current = performance.now();
+      console.log(`Layer created at ${layerCreatedTime.current}`);
+      console.log("Layer:", layer, "updateZSlice function:", updateZSlice);
+      updateZSliceRef.current = updateZSlice || null;
+    },
+    []
+  );
 
   const handleFirstSliceLoaded = useCallback(() => {
     if (layerCreatedTime.current !== undefined) {
@@ -37,7 +42,7 @@ export default function App() {
 
   const handleZSliceChange = useCallback((_, newZ: number | number[]) => {
     const zValue = Array.isArray(newZ) ? newZ[0] : newZ;
-    if (typeof zValue === 'number' && !isNaN(zValue)) {
+    if (typeof zValue === "number" && !isNaN(zValue)) {
       setSliceCoordinates((prev: SliceCoordinates) => ({ ...prev, z: zValue }));
       if (updateZSliceRef.current) {
         updateZSliceRef.current(zValue);
@@ -58,7 +63,9 @@ export default function App() {
         onFirstSliceLoaded={handleFirstSliceLoaded}
       />
       <div className="h-16 shrink-0 bg-dark-sds-color-primitive-gray-200 p-4 flex items-center gap-4">
-        <label className="text-white font-semibold min-w-fit">Z-Slice Navigation:</label>
+        <label className="text-white font-semibold min-w-fit">
+          Z-Slice Navigation:
+        </label>
         <InputSlider
           value={sliceCoordinates.z ?? 0}
           min={0}
