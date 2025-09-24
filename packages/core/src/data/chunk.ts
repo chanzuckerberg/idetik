@@ -27,6 +27,17 @@ export function isChunkData(value: unknown): value is ChunkData {
   return false;
 }
 
+export function createChunkData(
+  arrayBuffer: ArrayBuffer,
+  dtype: string
+): ChunkData {
+  const constructor = chunkDataTypes.find((ctor) => ctor.name === dtype);
+  if (!constructor) {
+    throw new Error(`Unsupported chunk data type: ${dtype}`);
+  }
+  return new constructor(arrayBuffer);
+}
+
 export type Chunk = {
   data?: ChunkData;
   state: "unloaded" | "queued" | "loading" | "loaded";

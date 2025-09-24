@@ -5,7 +5,7 @@ import { openArray, openGroup, ZarrArrayParams } from "../zarr/open";
 import WebFileSystemStore from "../zarr/web_file_system_store";
 import { OmeZarrImageLoader } from "./image_loader";
 import { omeZarrToZarrVersion, parseOmeZarrImage } from "./metadata_loaders";
-import { ensureWorkerPool } from "./zarr_worker_pool";
+import { ensureWorkerPool } from "./worker_pool";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
