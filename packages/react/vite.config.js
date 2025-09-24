@@ -27,7 +27,7 @@ const plugins = [
 export default defineConfig(() => {
   return {
     plugins,
-    root: "examples",
+    root: ".",
     publicDir: path.resolve(_dirname, "public"),
     build: {
       outDir: "dist",
