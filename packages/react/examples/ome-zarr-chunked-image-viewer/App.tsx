@@ -67,9 +67,9 @@ function ChunkedImageViewerDemo() {
               const actualZSliceCount = zLod0.size;
 
               setZSliderConfig({
-                min: 0, // First slice index
+                min: 0,
                 max: actualZSliceCount - 1, // Last slice index (0-indexed)
-                step: 1, // One slice at a time
+                step: 1,
                 scale: zLod0.scale,
                 translation: zLod0.translation,
                 hasMetadata: true,
@@ -132,9 +132,9 @@ function ChunkedImageViewerDemo() {
           value={
             zSliderConfig.hasMetadata && sliceCoordinates.z !== undefined
               ? Math.round(
-                  (sliceCoordinates.z - zSliderConfig.translation) /
-                    zSliderConfig.scale
-                )
+                (sliceCoordinates.z - zSliderConfig.translation) /
+                zSliderConfig.scale
+              )
               : (sliceCoordinates.z ?? zSliderConfig.min)
           }
           min={zSliderConfig.min}
