@@ -248,10 +248,10 @@ To create a new example:
    ```
 
 5. **Add to examples index page**:
-   Update `examples/index.html` to include your new example in the examples grid:
+   Update `index.html` to include your new example in the examples grid:
    ```html
    <div class="example">
-     <h2><a href="/my-new-example/">My New Example</a></h2>
+     <h2><a href="/examples/my-new-example/">My New Example</a></h2>
      <p>Description of what this example demonstrates.</p>
      <div class="example-meta">
        <span class="tag">Feature1</span>
@@ -264,16 +264,16 @@ To create a new example:
 
 Examples should follow this structure:
 ```
-examples/
 ├── index.html              # Examples navigation page
-├── my-example/
-│   ├── index.html          # Example entry point
-│   ├── Main.tsx           # React app setup
-│   └── App.tsx            # Example implementation
-└── another-example/
-    ├── index.html
-    ├── Main.tsx
-    └── App.tsx
+└── examples/
+    ├── my-example/
+    │   ├── index.html          # Example entry point
+    │   ├── Main.tsx           # React app setup
+    │   └── App.tsx            # Example implementation
+    └── another-example/
+        ├── index.html
+        ├── Main.tsx
+        └── App.tsx
 ```
 
 #### Development Tips
