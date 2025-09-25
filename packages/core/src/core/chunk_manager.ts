@@ -317,7 +317,8 @@ export class ChunkManagerSource {
     if (this.sliceCoords_.t === undefined) return [];
     const disposedChunks: Chunk[] = [];
     for (const t of this.fetchedTCoords_) {
-      if (t >= this.sliceCoords_.t) continue;
+      const delta = t - this.sliceCoords_.t;
+      if (delta >= 0 && delta < PREFETCH_TEMPORAL_CHUNKS) continue;
       const chunks = this.chunks_[t];
       for (const chunk of chunks) {
         chunk.visible = false;
