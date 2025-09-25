@@ -163,7 +163,7 @@ npm install
 npm run build
 
 # Start development server
-npm run components
+npm run dev
 ```
 
 This will start the examples server at http://localhost:5173/ where you can browse and interact with all available examples.
