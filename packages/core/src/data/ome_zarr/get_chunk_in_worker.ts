@@ -176,7 +176,6 @@ export async function getChunk(
   data: ChunkData;
   shape: number[];
   stride: number[];
-  dtype: string;
 }> {
   try {
     return await getChunkInWorker(arrayParams, chunkCoords, options);
@@ -198,7 +197,6 @@ export async function getChunk(
       data: chunk.data,
       shape: chunk.shape,
       stride: chunk.stride,
-      dtype: chunk.data.constructor.name,
     };
   }
 }
