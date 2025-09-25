@@ -14,6 +14,12 @@ const initialSliceCoordinates: SliceCoordinates = {
   z: 296,
 };
 
+const fallbackContrastLimits: [number, number] = [-0.0008789, 0.0052775];
+
+const viewerClassNames = {
+  root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
+};
+
 function ChunkedImageViewerDemo() {
   const [sliceCoordinates, setSliceCoordinates] = useState<SliceCoordinates>(
     initialSliceCoordinates
@@ -109,10 +115,8 @@ function ChunkedImageViewerDemo() {
       <OmeZarrChunkedImageViewer
         sourceUrl={sourceUrl}
         sliceCoordinates={sliceCoordinates}
-        fallbackContrastLimits={[-0.0008789, 0.0052775]}
-        classNames={{
-          root: "bg-dark-sds-color-primitive-gray-100 flex-auto min-h-0",
-        }}
+        fallbackContrastLimits={fallbackContrastLimits}
+        classNames={viewerClassNames}
         onLayerCreated={handleLayerCreated}
         onFirstSliceLoaded={handleFirstSliceLoaded}
       />

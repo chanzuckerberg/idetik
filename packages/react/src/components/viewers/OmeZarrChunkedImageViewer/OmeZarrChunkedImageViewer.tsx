@@ -131,13 +131,7 @@ export function OmeZarrChunkedImageViewer({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only props that trigger reinitialize
-  }, [
-    sourceUrl,
-    fallbackContrastLimits,
-    directory,
-    path,
-    runtime,
-  ]);
+  }, [sourceUrl, fallbackContrastLimits, directory, path, runtime]);
 
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
