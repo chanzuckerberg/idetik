@@ -94,9 +94,7 @@ addDimensionSlider({
   minValue: zRange.min,
   maxValue: zRange.max,
   stepValue: z.scale,
-  playback: {
-    intervalMs: 50,
-  },
+  playback: {},
 });
 
 addDimensionSlider({
@@ -106,9 +104,7 @@ addDimensionSlider({
   minValue: tRange.min,
   maxValue: tRange.max,
   stepValue: t.scale,
-  playback: {
-    intervalMs: 500,
-  },
+  playback: {},
 });
 
 const overlaysFolder = gui.addFolder("Overlays");
