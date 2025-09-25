@@ -20,6 +20,7 @@ export type ZarrArrayParams = {
     }
   | {
       type: "filesystem";
+      directoryHandle: FileSystemDirectoryHandle;
       path: string;
     }
 );
@@ -87,14 +88,11 @@ export async function openArrayFromParams(
       break;
     }
     case "filesystem": {
-      if (typeof FileSystemDirectoryHandle === "undefined") {
-        throw new Error("FileSystem API not available in this context");
-      }
-
-      // This would need to be passed differently for filesystem stores
-      throw new Error(
-        `Filesystem stores not yet supported in openArrayFromParams: ${params.path}`
+      rootLocation = new Location(
+        new WebFileSystemStore(params.directoryHandle),
+        params.path as `/${string}`
       );
+      break;
     }
     default: {
       const exhaustiveCheck: never = params;
@@ -126,6 +124,7 @@ export function createZarrArrayParams(
       type: "filesystem",
       arrayPath,
       zarrVersion,
+      directoryHandle: location.store.directoryHandle,
       path: location.path,
     };
   } else {

@@ -15,17 +15,20 @@ type PendingGetChunkRequest = {
   reject: (error: Error) => void;
   abortListener?: () => void;
   abortSignal?: AbortSignal;
+  workerId: number;
 };
 
 type WorkerInstance = {
   worker: Worker;
   busy: boolean;
   pendingCount: number;
+  workerId: number;
 };
 
 const DEFAULT_WORKER_COUNT = Math.min(navigator.hardwareConcurrency || 4, 8);
 let workerPool: WorkerInstance[] = [];
 let messageId = 0;
+let workerId = 0;
 const pendingMessages = new Map<number, PendingGetChunkRequest>();
 let poolConfigured = false;
 
@@ -48,10 +51,13 @@ function handleWorkerMessage(
   const pending = pendingMessages.get(id);
 
   if (!pending) {
-    Logger.warn(
-      "ZarrWorker",
-      `Received response for unknown message ID ${id} (type: ${e.data.type}, success: ${success})`
-    );
+    // Don't warn for cancel responses on unknown message IDs - this is expected due to race conditions
+    if (e.data.type !== "cancel") {
+      Logger.warn(
+        "ZarrWorker",
+        `Received response for unknown message ID ${id} (type: ${e.data.type}, success: ${success})`
+      );
+    }
     return;
   }
 
@@ -115,9 +121,14 @@ function handleWorkerError(
     workerPool.splice(workerIndex, 1);
   }
 
-  for (const [id, pending] of pendingMessages.entries()) {
-    pending.reject(new Error(`Worker error: ${error.message}`));
-    pendingMessages.delete(id);
+  const failedWorkerId = workerInstance?.workerId;
+  if (failedWorkerId !== undefined) {
+    for (const [id, pending] of pendingMessages.entries()) {
+      if (pending.workerId === failedWorkerId) {
+        pending.reject(new Error(`Worker error: ${error.message}`));
+        pendingMessages.delete(id);
+      }
+    }
   }
 
   try {
@@ -126,6 +137,7 @@ function handleWorkerError(
       worker: replacementWorker,
       busy: false,
       pendingCount: 0,
+      workerId: workerId++,
     });
     Logger.debug("ZarrWorker", "Replacement worker created successfully");
   } catch (err) {
@@ -170,7 +182,11 @@ async function getChunkInWorker(
     }
 
     const id = messageId++;
-    const pending: PendingGetChunkRequest = { resolve, reject };
+    const pending: PendingGetChunkRequest = {
+      resolve,
+      reject,
+      workerId: workerInstance.workerId,
+    };
     pendingMessages.set(id, pending);
 
     // set up cancellation in the worker thread if an AbortSignal is provided
@@ -266,6 +282,7 @@ export function ensureWorkerPool(): void {
         worker,
         busy: false,
         pendingCount: 0,
+        workerId: workerId++,
       });
     }
     Logger.debug(
