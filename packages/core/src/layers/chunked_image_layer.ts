@@ -127,6 +127,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return this.chunkManagerSource_;
   }
 
+  public get source(): ChunkSource {
+    return this.source_;
+  }
+
   private slicePlane(chunk: Chunk, zValue: number) {
     if (!chunk.data) return;
     const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
