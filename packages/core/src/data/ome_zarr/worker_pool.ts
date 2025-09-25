@@ -30,6 +30,7 @@ let workerPool: WorkerInstance[] = [];
 let messageId = 0;
 let workerId = 0;
 const pendingMessages = new Map<number, PendingGetChunkRequest>();
+const canceledMessages = new Set<number>();
 let poolConfigured = false;
 
 function getWorkerInstance(worker: Worker): WorkerInstance | undefined {
@@ -51,11 +52,13 @@ function handleWorkerMessage(
   const pending = pendingMessages.get(id);
 
   if (!pending) {
-    // Don't warn for cancel responses on unknown message IDs - this is expected due to race conditions
-    if (e.data.type !== "cancel") {
+    if (canceledMessages.has(id)) {
+      canceledMessages.delete(id);
+    } else {
       Logger.warn(
         "ZarrWorker",
-        `Received response for unknown message ID ${id} (type: ${e.data.type}, success: ${success})`
+        `Received response for unknown message ID ${id}:`,
+        e.data
       );
     }
     return;
@@ -87,11 +90,6 @@ function handleWorkerMessage(
       stride,
       dtype,
     });
-  } else if (success && e.data.type === "cancel") {
-    Logger.debug(
-      "ZarrWorker",
-      `Worker acknowledged cancellation of message ID ${id}`
-    );
   } else if (!success) {
     pending.reject(new Error(e.data.error || "Unknown worker error"));
   }
@@ -198,6 +196,8 @@ async function getChunkInWorker(
         } as ZarrWorkerRequest);
 
         pendingMessages.delete(id);
+        canceledMessages.add(id);
+
         workerInstance.pendingCount--;
         workerInstance.busy = workerInstance.pendingCount > 0;
 
@@ -206,6 +206,8 @@ async function getChunkInWorker(
 
       if (options.signal.aborted) {
         abortListener();
+        // delete now, message canceled before it was even posted
+        canceledMessages.delete(id);
         return;
       }
 
