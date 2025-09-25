@@ -133,7 +133,6 @@ export function OmeZarrChunkedImageViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only props that trigger reinitialize
   }, [
     sourceUrl,
-    sliceCoordinates,
     fallbackContrastLimits,
     directory,
     path,
