@@ -61,6 +61,7 @@ self.addEventListener("message", async (e: MessageEvent<ZarrWorkerRequest>) => {
     self.postMessage({
       id,
       success: false,
+      type,
       error: error instanceof Error ? error.message : String(error),
     });
   }
@@ -74,8 +75,8 @@ async function handleCancelMessage(id: number): Promise<void> {
   }
   self.postMessage({
     id,
-    success: false,
-    error: "Operation was cancelled",
+    success: true,
+    type: "cancel",
   });
 }
 

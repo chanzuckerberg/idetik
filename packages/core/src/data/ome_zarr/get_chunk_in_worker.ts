@@ -15,43 +15,19 @@ type PendingGetChunkRequest = {
   reject: (error: Error) => void;
   abortListener?: () => void;
   abortSignal?: AbortSignal;
-  workerId: number;
 };
 
-type WorkerInstance = {
-  worker: Worker;
-  busy: boolean;
-  pendingCount: number;
-  workerId: number;
-};
-
-const DEFAULT_WORKER_COUNT = Math.min(navigator.hardwareConcurrency || 4, 8);
-let workerPool: WorkerInstance[] = [];
+let worker: Worker | null = null;
 let messageId = 0;
-let workerId = 0;
 const pendingMessages = new Map<number, PendingGetChunkRequest>();
-let poolConfigured = false;
+let workerInitialized = false;
 
-function getWorkerInstance(worker: Worker): WorkerInstance | undefined {
-  const instance = workerPool.find((w) => w.worker === worker);
-  if (!instance) {
-    Logger.error(
-      "ZarrWorker",
-      "Worker not found in pool - this should not happen"
-    );
-  }
-  return instance;
-}
-
-function handleWorkerMessage(
-  e: MessageEvent<ZarrWorkerResponse>,
-  worker: Worker
-): void {
+function handleWorkerMessage(e: MessageEvent<ZarrWorkerResponse>): void {
   const { id, success } = e.data;
   const pending = pendingMessages.get(id);
 
   if (!pending) {
-    // Don't warn for cancel responses on unknown message IDs - this is expected due to race conditions
+    // if canceled, the pending request was already removed
     if (e.data.type !== "cancel") {
       Logger.warn(
         "ZarrWorker",
@@ -65,17 +41,6 @@ function handleWorkerMessage(
 
   if (pending.abortListener && pending.abortSignal) {
     pending.abortSignal.removeEventListener("abort", pending.abortListener);
-  }
-
-  const workerInstance = getWorkerInstance(worker);
-  if (workerInstance && workerInstance.pendingCount > 0) {
-    workerInstance.pendingCount--;
-    workerInstance.busy = workerInstance.pendingCount > 0;
-  } else if (workerInstance) {
-    Logger.error(
-      "ZarrWorker",
-      "Received message but no pending tasks - this should not happen"
-    );
   }
 
   if (success && e.data.type === "getChunk") {
@@ -97,10 +62,7 @@ function handleWorkerMessage(
   }
 }
 
-function handleWorkerError(
-  error: ErrorEvent | MessageEvent,
-  worker: Worker
-): void {
+function handleWorkerError(error: ErrorEvent | MessageEvent): void {
   if (error instanceof MessageEvent) {
     Logger.error(
       "ZarrWorker",
@@ -111,57 +73,40 @@ function handleWorkerError(
 
   Logger.error(
     "ZarrWorker",
-    `Worker failed - replacing worker and canceling ${pendingMessages.size} in-flight messages`,
+    `Worker failed - canceling ${pendingMessages.size} in-flight messages and recreating worker`,
     error.message
   );
 
-  const workerInstance = getWorkerInstance(worker);
-  if (workerInstance) {
-    const workerIndex = workerPool.indexOf(workerInstance);
-    workerPool.splice(workerIndex, 1);
+  for (const [_id, pending] of pendingMessages.entries()) {
+    pending.reject(new Error(`Worker error: ${error.message}`));
   }
+  pendingMessages.clear();
 
-  const failedWorkerId = workerInstance?.workerId;
-  if (failedWorkerId !== undefined) {
-    for (const [id, pending] of pendingMessages.entries()) {
-      if (pending.workerId === failedWorkerId) {
-        pending.reject(new Error(`Worker error: ${error.message}`));
-        pendingMessages.delete(id);
-      }
-    }
+  if (worker) {
+    worker.terminate();
+    worker = null;
   }
 
   try {
-    const replacementWorker = createWorker();
-    workerPool.push({
-      worker: replacementWorker,
-      busy: false,
-      pendingCount: 0,
-      workerId: workerId++,
-    });
+    createWorker();
     Logger.debug("ZarrWorker", "Replacement worker created successfully");
   } catch (err) {
     Logger.error("ZarrWorker", "Failed to create replacement worker", err);
+    workerInitialized = false;
   }
 }
 
 function createWorker(): Worker {
-  const worker = new Worker(new URL("./worker_kernel.ts", import.meta.url), {
+  const newWorker = new Worker(new URL("./worker_kernel.ts", import.meta.url), {
     type: "module",
   });
 
-  worker.addEventListener("message", (e) => handleWorkerMessage(e, worker));
-  worker.addEventListener("error", (error) => handleWorkerError(error, worker));
-  worker.addEventListener("messageerror", (error) =>
-    handleWorkerError(error, worker)
-  );
+  newWorker.addEventListener("message", handleWorkerMessage);
+  newWorker.addEventListener("error", handleWorkerError);
+  newWorker.addEventListener("messageerror", handleWorkerError);
 
-  return worker;
-}
-
-function getAvailableWorker(): WorkerInstance | undefined {
-  if (workerPool.length === 0) return undefined;
-  return workerPool.sort((a, b) => a.pendingCount - b.pendingCount)[0];
+  worker = newWorker;
+  return newWorker;
 }
 
 async function getChunkInWorker(
@@ -175,9 +120,8 @@ async function getChunkInWorker(
   dtype: string;
 }> {
   return new Promise((resolve, reject) => {
-    const workerInstance = getAvailableWorker();
-    if (!workerInstance) {
-      reject(new Error("WebWorker pool not available"));
+    if (!worker) {
+      reject(new Error("WebWorker not available"));
       return;
     }
 
@@ -185,22 +129,20 @@ async function getChunkInWorker(
     const pending: PendingGetChunkRequest = {
       resolve,
       reject,
-      workerId: workerInstance.workerId,
     };
     pendingMessages.set(id, pending);
 
     // set up cancellation in the worker thread if an AbortSignal is provided
     if (options?.signal) {
       const abortListener = () => {
-        workerInstance.worker.postMessage({
-          id: id,
-          type: "cancel",
-        } as ZarrWorkerRequest);
+        if (worker) {
+          worker.postMessage({
+            id: id,
+            type: "cancel",
+          } as ZarrWorkerRequest);
+        }
 
         pendingMessages.delete(id);
-        workerInstance.pendingCount--;
-        workerInstance.busy = workerInstance.pendingCount > 0;
-
         reject(new DOMException("Operation was aborted", "AbortError"));
       };
 
@@ -215,10 +157,7 @@ async function getChunkInWorker(
       pending.abortSignal = options.signal;
     }
 
-    workerInstance.pendingCount++;
-    workerInstance.busy = true;
-
-    workerInstance.worker.postMessage({
+    worker.postMessage({
       id: id,
       type: "getChunk",
       arrayParams: zarrParams,
@@ -263,37 +202,25 @@ export async function getChunk(
   }
 }
 
-export function terminateWorkerPool(): void {
-  for (const workerInstance of workerPool) {
-    workerInstance.worker.terminate();
+export function terminateWorker(): void {
+  if (worker) {
+    worker.terminate();
+    worker = null;
   }
-  workerPool = [];
   pendingMessages.clear();
-  poolConfigured = false;
+  workerInitialized = false;
 }
 
-export function ensureWorkerPool(): void {
-  if (poolConfigured) return;
+export function ensureWorker(): void {
+  if (workerInitialized && worker) return;
 
   try {
-    for (let i = 0; i < DEFAULT_WORKER_COUNT; i++) {
-      const worker = createWorker();
-      workerPool.push({
-        worker,
-        busy: false,
-        pendingCount: 0,
-        workerId: workerId++,
-      });
-    }
-    Logger.debug(
-      "ZarrWorker",
-      `Initialized worker pool with ${workerPool.length} workers`
-    );
+    createWorker();
+    Logger.debug("ZarrWorker", "Initialized single worker");
+    workerInitialized = true;
   } catch {
-    Logger.warn("ZarrWorker", "Failed to create workers - clearing pool");
-    terminateWorkerPool();
+    Logger.warn("ZarrWorker", "Failed to create worker");
+    workerInitialized = false;
     return;
   }
-
-  poolConfigured = true;
 }
