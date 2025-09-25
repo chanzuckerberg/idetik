@@ -5,7 +5,6 @@ import CssBaseline from "@mui/material/CssBaseline";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { ReactNode } from "react";
 
-import App from "./App";
 import { IdetikProvider } from "./providers/IdetikProvider";
 
 interface AppWithProvidersProps {
@@ -23,7 +22,7 @@ export default function AppWithProviders({ children }: AppWithProvidersProps) {
         <EmotionThemeProvider theme={theme}>
           <CssBaseline />
           <IdetikProvider>
-            {children || <App />}
+            {children}
           </IdetikProvider>
         </EmotionThemeProvider>
       </ThemeProvider>
