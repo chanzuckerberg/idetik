@@ -294,8 +294,8 @@ export class ChunkManagerSource {
         const isLowestLOD = chunk.lod === this.lowestResLOD_;
         const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
         if (isLowestLOD && isVisible) {
-          if (this.fetchedTCoords_.has(t)) continue;
-          Logger.debug("ChunkManagerSource", "Prefetching chunk at", t);
+          if (chunk.state !== "unloaded") continue;
+          Logger.debug("ChunkManagerSource", "Prefetching chunk at", chunk.chunkIndex);
           chunk.priority = PRI_TEMPORAL_PREFETCH;
           chunk.orderKey = t - tCurrent;
           chunk.prefetch = true;
