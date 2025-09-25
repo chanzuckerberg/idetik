@@ -19,15 +19,57 @@ function ChunkedImageViewerDemo() {
     initialSliceCoordinates
   );
   const updateZSliceRef = useRef<((zValue: number) => void) | null>(null);
-  const zMax = 591; // 0-indexed max for 592 slices
+  const [zSliderConfig, setZSliderConfig] = useState<{
+    min: number;
+    max: number;
+    step: number;
+    scale: number;
+    translation: number;
+    hasMetadata: boolean;
+  }>({
+    min: 0,
+    max: 591,
+    step: 1,
+    scale: 1,
+    translation: 0,
+    hasMetadata: false,
+  }); // Default values, will be updated when metadata is loaded
 
   const layerCreatedTime = useRef<number | undefined>(undefined);
 
   console.log("Rendering App with sourceUrl:", sourceUrl);
   const handleLayerCreated = useCallback(
-    (_layer?: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
+    (layer?: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
       layerCreatedTime.current = performance.now();
       updateZSliceRef.current = updateZSlice || null;
+
+      // Update z-slider configuration based on loaded metadata
+      if (layer?.source) {
+        layer.source
+          .open()
+          .then((loader) => {
+            const dimensionMap = loader.getSourceDimensionMap();
+            const zDimension = dimensionMap.z;
+
+            if (zDimension && zDimension.lods.length > 0) {
+              // Use LOD 0 (highest resolution) as reference for slider bounds
+              const zLod0 = zDimension.lods[0];
+              const actualZSliceCount = zLod0.size;
+
+              setZSliderConfig({
+                min: 0, // First slice index
+                max: actualZSliceCount - 1, // Last slice index (0-indexed)
+                step: 1, // One slice at a time
+                scale: zLod0.scale,
+                translation: zLod0.translation,
+                hasMetadata: true,
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Failed to load z-dimension metadata:", error);
+          });
+      }
     },
     []
   );
@@ -43,18 +85,23 @@ function ChunkedImageViewerDemo() {
 
   const handleZSliceChange = useCallback(
     (_event: Event, newZ: number | number[]) => {
-      const zValue = Array.isArray(newZ) ? newZ[0] : newZ;
-      if (typeof zValue === "number" && !isNaN(zValue)) {
+      const sliderValue = Array.isArray(newZ) ? newZ[0] : newZ;
+      if (typeof sliderValue === "number" && !isNaN(sliderValue)) {
+        // Convert slider index to physical coordinate
+        const physicalZ = zSliderConfig.hasMetadata
+          ? zSliderConfig.translation + sliderValue * zSliderConfig.scale
+          : sliderValue; // Fallback to direct value if no metadata yet
+
         setSliceCoordinates((prev: SliceCoordinates) => ({
           ...prev,
-          z: zValue,
+          z: physicalZ,
         }));
         if (updateZSliceRef.current) {
-          updateZSliceRef.current(zValue);
+          updateZSliceRef.current(physicalZ);
         }
       }
     },
-    []
+    [zSliderConfig]
   );
 
   return (
@@ -74,15 +121,22 @@ function ChunkedImageViewerDemo() {
           Z-Slice Navigation:
         </label>
         <InputSlider
-          value={sliceCoordinates.z ?? 0}
-          min={0}
-          max={zMax}
-          step={1}
+          value={
+            zSliderConfig.hasMetadata && sliceCoordinates.z !== undefined
+              ? Math.round(
+                  (sliceCoordinates.z - zSliderConfig.translation) /
+                    zSliderConfig.scale
+                )
+              : (sliceCoordinates.z ?? zSliderConfig.min)
+          }
+          min={zSliderConfig.min}
+          max={zSliderConfig.max}
+          step={zSliderConfig.step}
           onChange={handleZSliceChange}
           className="flex-1"
         />
         <span className="text-white min-w-fit">
-          Slice {sliceCoordinates.z ?? 0} of {zMax}
+          Slice {sliceCoordinates.z ?? zSliderConfig.min} of {zSliderConfig.max}
         </span>
       </div>
     </div>
