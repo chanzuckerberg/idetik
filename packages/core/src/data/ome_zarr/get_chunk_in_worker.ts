@@ -20,6 +20,7 @@ type PendingGetChunkRequest = {
 let worker: Worker | null = null;
 let messageId = 0;
 const pendingMessages = new Map<number, PendingGetChunkRequest>();
+const canceledMessages = new Set<number>();
 let workerInitialized = false;
 
 function handleWorkerMessage(e: MessageEvent<ZarrWorkerResponse>): void {
@@ -27,11 +28,13 @@ function handleWorkerMessage(e: MessageEvent<ZarrWorkerResponse>): void {
   const pending = pendingMessages.get(id);
 
   if (!pending) {
-    // if canceled, the pending request was already removed
-    if (e.data.type !== "cancel") {
+    if (canceledMessages.has(id)) {
+      canceledMessages.delete(id);
+    } else {
       Logger.warn(
         "ZarrWorker",
-        `Received response for unknown message ID ${id} (type: ${e.data.type}, success: ${success})`
+        `Received response for unknown message ID ${id}:`,
+        e.data
       );
     }
     return;
@@ -52,11 +55,6 @@ function handleWorkerMessage(e: MessageEvent<ZarrWorkerResponse>): void {
       stride,
       dtype,
     });
-  } else if (success && e.data.type === "cancel") {
-    Logger.debug(
-      "ZarrWorker",
-      `Worker acknowledged cancellation of message ID ${id}`
-    );
   } else if (!success) {
     pending.reject(new Error(e.data.error || "Unknown worker error"));
   }
@@ -143,11 +141,14 @@ async function getChunkInWorker(
         }
 
         pendingMessages.delete(id);
+        canceledMessages.add(id);
         reject(new DOMException("Operation was aborted", "AbortError"));
       };
 
       if (options.signal.aborted) {
         abortListener();
+        // delete now, message canceled before it was even posted
+        canceledMessages.delete(id);
         return;
       }
 

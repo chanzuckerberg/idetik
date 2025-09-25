@@ -32,10 +32,6 @@ export type ZarrWorkerResponse = {
       stride: number[];
     }
   | {
-      success: true;
-      type: "cancel";
-    }
-  | {
       success: false;
       type: ZarrWorkerMessageType;
       error: string;
@@ -73,11 +69,6 @@ async function handleCancelMessage(id: number): Promise<void> {
     abortController.abort();
     activeRequests.delete(id);
   }
-  self.postMessage({
-    id,
-    success: true,
-    type: "cancel",
-  });
 }
 
 async function handleGetChunkMessage(
@@ -95,7 +86,7 @@ async function handleGetChunkMessage(
     chunk = await array.getChunk(index, { signal: abortController.signal });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("Operation was cancelled");
+      throw new Error("Operation was canceled");
     }
     throw new Error(
       `Failed to get chunk at index ${JSON.stringify(index)}: ${error instanceof Error ? error.message : String(error)}`
