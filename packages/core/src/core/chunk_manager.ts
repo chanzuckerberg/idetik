@@ -36,7 +36,7 @@ export class ChunkManagerSource {
   private currentLOD_: number = 0;
   // TODO: make LOD bias configurable per-source or per-layer
   // positive values nudge towards coarser resolution (higher LOD number)
-  private lodBias_: number = 0.5;
+  private lodBias_: number = 2.5;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
