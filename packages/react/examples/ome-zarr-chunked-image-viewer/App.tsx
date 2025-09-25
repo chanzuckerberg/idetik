@@ -27,7 +27,6 @@ function ChunkedImageViewerDemo() {
   const handleLayerCreated = useCallback(
     (_layer?: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
       layerCreatedTime.current = performance.now();
-      console.log(`Layer created at ${layerCreatedTime.current}`);
       updateZSliceRef.current = updateZSlice || null;
     },
     []

@@ -21,9 +21,7 @@ export default function AppWithProviders({ children }: AppWithProvidersProps) {
       <ThemeProvider theme={theme}>
         <EmotionThemeProvider theme={theme}>
           <CssBaseline />
-          <IdetikProvider>
-            {children}
-          </IdetikProvider>
+          <IdetikProvider>{children}</IdetikProvider>
         </EmotionThemeProvider>
       </ThemeProvider>
     </StyledEngineProvider>
