@@ -7,6 +7,7 @@ import {
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
+import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
 const url =
@@ -74,8 +75,7 @@ new Idetik({
 }).start();
 
 const controls = {
-  sliceCoords,
-  showWireframes: true,
+  showWireframes: imageLayer.debugMode,
   showChunkInfoOverlay: true,
   showTimePointOverlay: true,
   window: initialWindow,
@@ -87,13 +87,25 @@ const controls = {
 
 const gui = new GUI({ width: 500 });
 
-gui
-  .add(controls.sliceCoords, "z", zRange.min, zRange.max, z.scale)
-  .name("Z-point");
+addDimensionSlider({
+  gui,
+  sliceCoords,
+  dimensionName: "z",
+  minValue: zRange.min,
+  maxValue: zRange.max,
+  stepValue: z.scale,
+  playback: {},
+});
 
-gui
-  .add(controls.sliceCoords, "t", tRange.min, tRange.max, t.scale)
-  .name("T-point");
+addDimensionSlider({
+  gui,
+  sliceCoords,
+  dimensionName: "t",
+  minValue: tRange.min,
+  maxValue: tRange.max,
+  stepValue: t.scale,
+  playback: {},
+});
 
 const overlaysFolder = gui.addFolder("Overlays");
 

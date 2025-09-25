@@ -273,6 +273,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return null;
   }
 
+  public get debugMode(): boolean {
+    return this.debugMode_;
+  }
+
   public set debugMode(debug: boolean) {
     this.debugMode_ = debug;
     this.visibleChunks_.forEach((image, chunk) => {
