@@ -3,7 +3,11 @@ import { StyledEngineProvider, ThemeProvider } from "@mui/material/styles";
 import { Theme, InputSlider } from "@czi-sds/components";
 import CssBaseline from "@mui/material/CssBaseline";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { SliceCoordinates, ChunkedImageLayer } from "@idetik/core-prerelease";
+import {
+  SliceCoordinates,
+  ChunkedImageLayer,
+  ChunkLoader,
+} from "@idetik/core-prerelease";
 import { IdetikProvider, OmeZarrChunkedImageViewer } from "../../src";
 import { useCallback, useRef, useState } from "react";
 
@@ -53,7 +57,7 @@ function ChunkedImageViewerDemo() {
       if (layer?.source) {
         layer.source
           .open()
-          .then((loader) => {
+          .then((loader: ChunkLoader) => {
             const dimensionMap = loader.getSourceDimensionMap();
             const zDimension = dimensionMap.z;
 
@@ -72,7 +76,7 @@ function ChunkedImageViewerDemo() {
               });
             }
           })
-          .catch((error) => {
+          .catch((error: unknown) => {
             console.error("Failed to load z-dimension metadata:", error);
           });
       }
