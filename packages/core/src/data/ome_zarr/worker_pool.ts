@@ -1,6 +1,6 @@
 import * as zarr from "zarrita";
 import { Readable } from "@zarrita/storage";
-import { ChunkData, createChunkData, isChunkData } from "../chunk";
+import { ChunkData, isChunkData } from "../chunk";
 import { Logger } from "../../utilities/logger";
 import { ZarrArrayParams } from "../zarr/open";
 import { ZarrWorkerRequest, ZarrWorkerResponse } from "./worker_kernel";
@@ -10,7 +10,6 @@ type PendingGetChunkRequest = {
     data: ChunkData;
     shape: number[];
     stride: number[];
-    dtype: string;
   }) => void;
   reject: (error: Error) => void;
   abortListener?: () => void;
@@ -82,13 +81,11 @@ function handleWorkerMessage(
   }
 
   if (success && e.data.type === "getChunk") {
-    const { data, shape, stride, dtype } = e.data;
-    const chunkData = createChunkData(data, dtype);
+    const { data, shape, stride } = e.data;
     pending.resolve({
-      data: chunkData,
+      data,
       shape,
       stride,
-      dtype,
     });
   } else if (!success) {
     pending.reject(new Error(e.data.error || "Unknown worker error"));
@@ -170,7 +167,6 @@ async function getChunkInWorker(
   data: ChunkData;
   shape: number[];
   stride: number[];
-  dtype: string;
 }> {
   return new Promise((resolve, reject) => {
     const workerInstance = getAvailableWorker();

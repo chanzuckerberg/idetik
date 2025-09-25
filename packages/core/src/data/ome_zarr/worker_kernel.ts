@@ -26,9 +26,8 @@ export type ZarrWorkerResponse = {
   | {
       success: true;
       type: "getChunk";
-      data: ArrayBuffer;
+      data: ChunkData;
       shape: number[];
-      dtype: string;
       stride: number[];
     }
   | {
@@ -97,9 +96,6 @@ async function handleGetChunkMessage(
   if (!isChunkData(chunk.data)) {
     throw new Error(`Expected ChunkData, got ${typeof chunk.data}`);
   }
-  const { transferableBuffer, dataTypeName } = getTransferableBuffer(
-    chunk.data
-  );
 
   try {
     self.postMessage(
@@ -107,12 +103,11 @@ async function handleGetChunkMessage(
         id,
         success: true,
         type: "getChunk",
-        data: transferableBuffer,
+        data: chunk.data,
         shape: chunk.shape,
-        dtype: dataTypeName,
         stride: chunk.stride,
       },
-      [transferableBuffer]
+      [chunk.data.buffer]
     );
   } catch (postError) {
     throw new Error(
@@ -146,31 +141,4 @@ async function getOrOpenArray(
 function getArrayCacheKey(params: ZarrArrayParams): string {
   const storeKey = params.type === "fetch" ? params.url : params.path;
   return `${params.type}::${storeKey}::${params.arrayPath}`;
-}
-
-function getTransferableBuffer(chunkData: ChunkData): {
-  transferableBuffer: ArrayBuffer;
-  dataTypeName: string;
-} {
-  let transferableBuffer: ArrayBuffer;
-  let dataTypeName: string;
-  try {
-    const data = chunkData;
-    dataTypeName = data.constructor.name;
-
-    // zero-copy transfer the underlying ArrayBuffer directly if possible (data is entire buffer)
-    if (data.byteOffset === 0 && data.byteLength === data.buffer.byteLength) {
-      transferableBuffer = data.buffer;
-    } else {
-      transferableBuffer = data.buffer.slice(
-        data.byteOffset,
-        data.byteOffset + data.byteLength
-      );
-    }
-  } catch (error) {
-    throw new Error(
-      `Failed to prepare transferable data: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-  return { transferableBuffer, dataTypeName };
 }
