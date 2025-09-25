@@ -87,9 +87,7 @@ addDimensionSlider({
   minValue: zInfo.offset,
   maxValue: zInfo.offset + (zInfo.size - 1) * zInfo.scale,
   stepValue: zInfo.scale,
-  playback: {
-    intervalMs: 50,
-  },
+  playback: {},
 });
 
 gui
