@@ -28,6 +28,7 @@ type Module =
   | "ImageSeriesLoader"
   | "LabelImageLayer"
   | "Layer"
+  | "ZarrWorker"
   | "RenderablePool"
   | "Viewport"
   | "WebGLRenderer"

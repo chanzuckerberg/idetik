@@ -73,6 +73,14 @@ export default defineConfig(({ mode }) => {
       target: 'es2022',
       ...(mode === 'production' ? productionBuildOptions : {}),
     },
+    worker: {
+      format: 'es',
+      rollupOptions: {
+        output: {
+          format: 'es'
+        }
+      }
+    },
     resolve: {
       alias: {
         '@': path.resolve(_dirname, 'src'),
