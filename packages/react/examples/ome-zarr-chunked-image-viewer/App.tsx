@@ -115,7 +115,7 @@ function ChunkedImageViewerDemo() {
   );
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-screen flex flex-col">
       <OmeZarrChunkedImageViewer
         sourceUrl={sourceUrl}
         sliceCoordinates={sliceCoordinates}
@@ -124,7 +124,7 @@ function ChunkedImageViewerDemo() {
         onLayerCreated={handleLayerCreated}
         onFirstSliceLoaded={handleFirstSliceLoaded}
       />
-      <div className="h-16 shrink-0 bg-dark-sds-color-primitive-gray-200 p-4 flex items-center gap-4">
+      <div className="flex h-16 shrink-0 bg-dark-sds-color-primitive-gray-200 p-4 items-center gap-4">
         <label className="text-white font-semibold min-w-fit">
           Z-Slice Navigation:
         </label>
@@ -132,9 +132,9 @@ function ChunkedImageViewerDemo() {
           value={
             zSliderConfig.hasMetadata && sliceCoordinates.z !== undefined
               ? Math.round(
-                  (sliceCoordinates.z - zSliderConfig.translation) /
-                    zSliderConfig.scale
-                )
+                (sliceCoordinates.z - zSliderConfig.translation) /
+                zSliderConfig.scale
+              )
               : (sliceCoordinates.z ?? zSliderConfig.min)
           }
           min={zSliderConfig.min}
