@@ -282,6 +282,7 @@ Examples should follow this structure:
 - Import base styles with: `import "../../src/input.css"`
 - Examples automatically hot-reload during development
 - Each example runs independently and can have its own dependencies/setup
+- Changes to `@idetik/core` may _not_ hot-reload, and require a rebuild (`npm run build`) of that workspace
 
 ### Development with Core Package
 
