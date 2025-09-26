@@ -15,7 +15,7 @@ const root = createRoot(domNode);
 
 root.render(
   <React.StrictMode>
-    <div className={cns("font-sds-body", "h-screen")}>
+    <div className={cns("font-sds-body")}>
       <StyledEngineProvider injectFirst>
         <ThemeProvider theme={Theme("light")}>
           <EmotionThemeProvider theme={Theme("light")}>

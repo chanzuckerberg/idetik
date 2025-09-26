@@ -9,8 +9,8 @@ const root = createRoot(domNode);
 
 root.render(
   <React.StrictMode>
-    <div className={cns("font-sds-body", "h-screen")}>
-      <App />
+    <div className={cns("font-sds-body")}>
+      < App />
     </div>
-  </React.StrictMode>
+  </React.StrictMode >
 );

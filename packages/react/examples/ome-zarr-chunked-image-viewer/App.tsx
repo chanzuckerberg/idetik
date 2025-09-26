@@ -115,7 +115,7 @@ function ChunkedImageViewerDemo() {
   );
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col">
       <OmeZarrChunkedImageViewer
         sourceUrl={sourceUrl}
         sliceCoordinates={sliceCoordinates}
