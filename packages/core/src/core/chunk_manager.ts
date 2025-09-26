@@ -85,7 +85,6 @@ export class ChunkManagerSource {
                 state: "unloaded",
                 lod,
                 visible: false,
-                prefetch: false,
                 priority: null,
                 orderKey: null,
                 shape: {
