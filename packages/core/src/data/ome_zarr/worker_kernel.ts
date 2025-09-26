@@ -3,7 +3,6 @@
 import * as zarr from "zarrita";
 import { Readable } from "@zarrita/storage";
 import { openArrayFromParams, ZarrArrayParams } from "../zarr/open";
-import { ChunkData, isChunkData } from "../chunk";
 
 type ZarrWorkerMessageType = "getChunk" | "cancel";
 
@@ -26,9 +25,7 @@ export type ZarrWorkerResponse = {
   | {
       success: true;
       type: "getChunk";
-      data: ChunkData;
-      shape: number[];
-      stride: number[];
+      chunk: zarr.Chunk<zarr.DataType>;
     }
   | {
       success: false;
@@ -38,6 +35,7 @@ export type ZarrWorkerResponse = {
 );
 
 const arrayCache = new Map<string, zarr.Array<zarr.DataType, Readable>>();
+const ARRAY_CACHE_LIMIT = 100;
 const activeRequests = new Map<number, AbortController>();
 
 self.addEventListener("message", async (e: MessageEvent<ZarrWorkerRequest>) => {
@@ -93,8 +91,8 @@ async function handleGetChunkMessage(
     activeRequests.delete(id);
   }
 
-  if (!isChunkData(chunk.data)) {
-    throw new Error(`Expected ChunkData, got ${typeof chunk.data}`);
+  if (!ArrayBuffer.isView(chunk.data)) {
+    throw new Error(`Expected TypedArray, got ${typeof chunk.data}`);
   }
 
   try {
@@ -103,9 +101,7 @@ async function handleGetChunkMessage(
         id,
         success: true,
         type: "getChunk",
-        data: chunk.data,
-        shape: chunk.shape,
-        stride: chunk.stride,
+        chunk,
       },
       [chunk.data.buffer]
     );
@@ -118,14 +114,18 @@ async function handleGetChunkMessage(
 
 // we need to open arrays in each worker since we can't transfer them
 // workers cache opened arrays to avoid reopening for each chunk request
-// this cache is unbounded, but the objects are small and we don't expect
-// many different arrays to be used simultaneously in practice
+// this is a simple LRU cache relying on Map's insertion order to track usage
 async function getOrOpenArray(
   params: ZarrArrayParams
 ): Promise<zarr.Array<zarr.DataType, Readable>> {
   const cacheKey = getArrayCacheKey(params);
   let array = arrayCache.get(cacheKey);
   if (!array) {
+    if (arrayCache.size >= ARRAY_CACHE_LIMIT) {
+      const firstKey = arrayCache.keys().next().value;
+      if (firstKey) arrayCache.delete(firstKey);
+    }
+
     try {
       array = await openArrayFromParams(params);
       arrayCache.set(cacheKey, array);
@@ -134,6 +134,9 @@ async function getOrOpenArray(
         `Failed to open zarr array: ${openError instanceof Error ? openError.message : String(openError)}`
       );
     }
+  } else {
+    arrayCache.delete(cacheKey);
+    arrayCache.set(cacheKey, array);
   }
   return array;
 }

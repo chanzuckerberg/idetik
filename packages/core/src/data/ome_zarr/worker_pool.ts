@@ -1,16 +1,11 @@
 import * as zarr from "zarrita";
 import { Readable } from "@zarrita/storage";
-import { ChunkData, isChunkData } from "../chunk";
 import { Logger } from "../../utilities/logger";
 import { ZarrArrayParams } from "../zarr/open";
 import { ZarrWorkerRequest, ZarrWorkerResponse } from "./worker_kernel";
 
 type PendingGetChunkRequest = {
-  resolve: (value: {
-    data: ChunkData;
-    shape: number[];
-    stride: number[];
-  }) => void;
+  resolve: (value: zarr.Chunk<zarr.DataType>) => void;
   reject: (error: Error) => void;
   abortListener?: () => void;
   abortSignal?: AbortSignal;
@@ -19,18 +14,16 @@ type PendingGetChunkRequest = {
 
 type WorkerInstance = {
   worker: Worker;
-  busy: boolean;
   pendingCount: number;
   workerId: number;
 };
 
-const DEFAULT_WORKER_COUNT = Math.min(navigator.hardwareConcurrency || 4, 8);
+const DEFAULT_WORKER_COUNT = Math.min(navigator.hardwareConcurrency, 8);
 let workerPool: WorkerInstance[] = [];
 let messageId = 0;
 let workerId = 0;
 const pendingMessages = new Map<number, PendingGetChunkRequest>();
 const canceledMessages = new Set<number>();
-let poolConfigured = false;
 
 function getWorkerInstance(worker: Worker): WorkerInstance | undefined {
   const instance = workerPool.find((w) => w.worker === worker);
@@ -72,7 +65,6 @@ function handleWorkerMessage(
   const workerInstance = getWorkerInstance(worker);
   if (workerInstance && workerInstance.pendingCount > 0) {
     workerInstance.pendingCount--;
-    workerInstance.busy = workerInstance.pendingCount > 0;
   } else if (workerInstance) {
     Logger.error(
       "ZarrWorker",
@@ -81,12 +73,7 @@ function handleWorkerMessage(
   }
 
   if (success && e.data.type === "getChunk") {
-    const { data, shape, stride } = e.data;
-    pending.resolve({
-      data,
-      shape,
-      stride,
-    });
+    pending.resolve(e.data.chunk);
   } else if (!success) {
     pending.reject(new Error(e.data.error || "Unknown worker error"));
   }
@@ -106,7 +93,7 @@ function handleWorkerError(
 
   Logger.error(
     "ZarrWorker",
-    `Worker failed - replacing worker and canceling ${pendingMessages.size} in-flight messages`,
+    `Worker failed - replacing worker and canceling its in-flight messages`,
     error.message
   );
 
@@ -130,7 +117,6 @@ function handleWorkerError(
     const replacementWorker = createWorker();
     workerPool.push({
       worker: replacementWorker,
-      busy: false,
       pendingCount: 0,
       workerId: workerId++,
     });
@@ -154,8 +140,10 @@ function createWorker(): Worker {
   return worker;
 }
 
-function getAvailableWorker(): WorkerInstance | undefined {
-  if (workerPool.length === 0) return undefined;
+function getLeastBusyWorker(): WorkerInstance {
+  if (workerPool.length === 0) {
+    throw new Error("Worker pool is not initialized");
+  }
   return workerPool.sort((a, b) => a.pendingCount - b.pendingCount)[0];
 }
 
@@ -163,17 +151,9 @@ async function getChunkInWorker(
   zarrParams: ZarrArrayParams,
   chunkIndex: number[],
   options?: { signal?: AbortSignal }
-): Promise<{
-  data: ChunkData;
-  shape: number[];
-  stride: number[];
-}> {
+): Promise<zarr.Chunk<zarr.DataType>> {
   return new Promise((resolve, reject) => {
-    const workerInstance = getAvailableWorker();
-    if (!workerInstance) {
-      reject(new Error("WebWorker pool not available"));
-      return;
-    }
+    const workerInstance = getLeastBusyWorker();
 
     const id = messageId++;
     const pending: PendingGetChunkRequest = {
@@ -195,7 +175,6 @@ async function getChunkInWorker(
         canceledMessages.add(id);
 
         workerInstance.pendingCount--;
-        workerInstance.busy = workerInstance.pendingCount > 0;
 
         reject(new DOMException("Operation was aborted", "AbortError"));
       };
@@ -214,7 +193,6 @@ async function getChunkInWorker(
     }
 
     workerInstance.pendingCount++;
-    workerInstance.busy = true;
 
     workerInstance.worker.postMessage({
       id: id,
@@ -225,58 +203,14 @@ async function getChunkInWorker(
   });
 }
 
-export async function getChunk(
-  array: zarr.Array<zarr.DataType, Readable>,
-  arrayParams: ZarrArrayParams,
-  chunkCoords: number[],
-  options?: { signal?: AbortSignal }
-): Promise<{
-  data: ChunkData;
-  shape: number[];
-  stride: number[];
-}> {
-  try {
-    return await getChunkInWorker(arrayParams, chunkCoords, options);
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw error;
-    }
-
-    Logger.warn("ZarrWorker", "Falling back to main thread", error);
-    const chunk = await array.getChunk(chunkCoords, options);
-
-    if (!isChunkData(chunk.data)) {
-      throw new Error(
-        `Unexpected chunk data type: ${typeof chunk.data}. Expected TypedArray.`
-      );
-    }
-
-    return {
-      data: chunk.data,
-      shape: chunk.shape,
-      stride: chunk.stride,
-    };
-  }
-}
-
-export function terminateWorkerPool(): void {
-  for (const workerInstance of workerPool) {
-    workerInstance.worker.terminate();
-  }
-  workerPool = [];
-  pendingMessages.clear();
-  poolConfigured = false;
-}
-
-export function ensureWorkerPool(): void {
-  if (poolConfigured) return;
+function ensureWorkerPool(): void {
+  if (workerPool.length > 0) return;
 
   try {
     for (let i = 0; i < DEFAULT_WORKER_COUNT; i++) {
       const worker = createWorker();
       workerPool.push({
         worker,
-        busy: false,
         pendingCount: 0,
         workerId: workerId++,
       });
@@ -290,6 +224,33 @@ export function ensureWorkerPool(): void {
     terminateWorkerPool();
     return;
   }
+}
 
-  poolConfigured = true;
+export async function getChunk(
+  array: zarr.Array<zarr.DataType, Readable>,
+  arrayParams: ZarrArrayParams,
+  chunkCoords: number[],
+  options?: { signal?: AbortSignal }
+): Promise<zarr.Chunk<zarr.DataType>> {
+  ensureWorkerPool();
+  try {
+    return await getChunkInWorker(arrayParams, chunkCoords, options);
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw error;
+    }
+
+    Logger.warn("ZarrWorker", "Falling back to main thread", error);
+    const chunk = await array.getChunk(chunkCoords, options);
+
+    return chunk;
+  }
+}
+
+export function terminateWorkerPool(): void {
+  for (const workerInstance of workerPool) {
+    workerInstance.worker.terminate();
+  }
+  workerPool = [];
+  pendingMessages.clear();
 }
