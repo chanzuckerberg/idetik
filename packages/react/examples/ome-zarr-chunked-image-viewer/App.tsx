@@ -132,9 +132,9 @@ function ChunkedImageViewerDemo() {
           value={
             zSliderConfig.hasMetadata && sliceCoordinates.z !== undefined
               ? Math.round(
-                (sliceCoordinates.z - zSliderConfig.translation) /
-                zSliderConfig.scale
-              )
+                  (sliceCoordinates.z - zSliderConfig.translation) /
+                    zSliderConfig.scale
+                )
               : (sliceCoordinates.z ?? zSliderConfig.min)
           }
           min={zSliderConfig.min}
