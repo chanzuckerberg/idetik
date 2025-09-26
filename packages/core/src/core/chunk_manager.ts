@@ -246,12 +246,11 @@ export class ChunkManagerSource {
       const isLoaded = chunk.state === "loaded";
 
       chunk.visible = isVisible;
-      chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
       chunk.priority = this.computePriority(
         isFallbackLOD,
         isCurrentLOD,
         isVisible,
-        chunk.prefetch
+        eligibleForPrefetch && isCurrentLOD && !isLoaded
       );
 
       if (chunk.priority !== null && chunk.state === "unloaded") {
@@ -296,7 +295,6 @@ export class ChunkManagerSource {
         if (isLowestLOD && isVisible) {
           chunk.priority = PRI_TEMPORAL_PREFETCH;
           chunk.orderKey = t - this.sliceCoords_.t;
-          chunk.prefetch = true;
           chunk.state = "queued";
           this.fetchedTCoords_.add(t);
           updatedChunks.push(chunk);
@@ -315,7 +313,6 @@ export class ChunkManagerSource {
       const chunks = this.chunks_[t];
       for (const chunk of chunks) {
         chunk.visible = false;
-        chunk.prefetch = false;
         this.disposeChunk(chunk);
         disposedChunks.push(chunk);
       }
