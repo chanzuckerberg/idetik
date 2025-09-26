@@ -283,31 +283,24 @@ export class ChunkManagerSource {
 
   private prefetchFutureTimepoints(viewBounds3D: Box3): Chunk[] {
     if (this.sliceCoords_.t === undefined) return [];
-    const tCurrent = this.sliceCoords_.t;
     const tEnd = Math.min(
       this.chunks_.length,
-      tCurrent + PREFETCH_TEMPORAL_CHUNKS
+      this.sliceCoords_.t + PREFETCH_TEMPORAL_CHUNKS
     );
     const updatedChunks: Chunk[] = [];
-    for (let t = tCurrent + 1; t < tEnd; ++t) {
+    for (let t = this.sliceCoords_.t + 1; t < tEnd; ++t) {
       for (const chunk of this.chunks_[t]) {
+        if (chunk.state !== "unloaded") continue;
         const isLowestLOD = chunk.lod === this.lowestResLOD_;
         const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
         if (isLowestLOD && isVisible) {
-          if (chunk.state !== "unloaded") continue;
-          Logger.debug("ChunkManagerSource", "Prefetching chunk at", chunk.chunkIndex);
           chunk.priority = PRI_TEMPORAL_PREFETCH;
-          chunk.orderKey = t - tCurrent;
+          chunk.orderKey = t - this.sliceCoords_.t;
           chunk.prefetch = true;
           chunk.state = "queued";
           this.fetchedTCoords_.add(t);
-        } else {
-          chunk.priority = null;
-          chunk.orderKey = null;
-          chunk.prefetch = false;
-          chunk.state = "unloaded";
+          updatedChunks.push(chunk);
         }
-        updatedChunks.push(chunk);
       }
     }
     return updatedChunks;
