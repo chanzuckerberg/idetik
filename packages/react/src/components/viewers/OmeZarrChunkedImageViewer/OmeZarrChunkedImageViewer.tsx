@@ -150,9 +150,7 @@ export function OmeZarrChunkedImageViewer({
     if (zIndex === undefined) return;
     const sliceCoords = sliceCoordsRef.current;
     if (!sliceCoords) return;
-    const dimensionMap = dimensionMapRef.current;
-    if (!dimensionMap) return;
-    const zLod0 = dimensionMap.z?.lods[0];
+    const zLod0 = dimensionMapRef.current?.z?.lods[0];
     if (!zLod0) return;
     sliceCoords.z = zLod0.translation + zIndex * zLod0.scale;
   }, [zIndex]);
