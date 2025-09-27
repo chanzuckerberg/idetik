@@ -5,6 +5,7 @@ import {
   OmeZarrImageSource,
   SliceCoordinates,
   ChannelProps,
+  ChunkLoader,
   ChunkedImageLayer,
 } from "@idetik/core-prerelease";
 import { useIdetik } from "../../../hooks/useIdetik";
@@ -27,8 +28,9 @@ export interface OmeZarrChunkedImageViewerProps {
     directory: FileSystemDirectoryHandle;
     path?: `/${string}`;
   };
-  initZCoord?: number;
-  zCoord?: number;
+  initZIndex?: number;
+  zIndex?: number;
+  setZMaxIndex?: (max?: number) => void;
   fallbackContrastLimits?: [number, number];
   classNames?: {
     root?: string;
@@ -44,8 +46,9 @@ export interface OmeZarrChunkedImageViewerProps {
 export function OmeZarrChunkedImageViewer({
   sourceUrl,
   sourceLocalDirectory,
-  initZCoord,
-  zCoord,
+  initZIndex,
+  zIndex,
+  setZMaxIndex,
   fallbackContrastLimits,
   classNames,
   onLayerCreated,
@@ -69,6 +72,9 @@ export function OmeZarrChunkedImageViewer({
   const sourceRef = useRef<OmeZarrImageSource | null>(null);
   const imageLayerRef = useRef<ChunkedImageLayer | null>(null);
   const sliceCoordsRef = useRef<SliceCoordinates | null>(null);
+  const dimensionMapRef = useRef<ReturnType<
+    ChunkLoader["getSourceDimensionMap"]
+  > | null>(null);
 
   const { directory, path } = sourceLocalDirectory ?? {};
   useEffect(() => {
@@ -80,11 +86,13 @@ export function OmeZarrChunkedImageViewer({
       }
       sourceRef.current = source;
       setLoading(true);
+      const openPromise = source.open();
       const loadChannelMetadataPromise = loadChannelMetadata(
         source,
         fallbackContrastLimits
       );
       const loadImageMetadataPromise = loadImageMetadata(source);
+      const loader = await openPromise;
       const { channelProps, extraControlProps } =
         await loadChannelMetadataPromise;
       const { xUnit, yCoordRange, xCoordRange } =
@@ -97,11 +105,14 @@ export function OmeZarrChunkedImageViewer({
       setUnit(xUnit);
       const { layer, sliceCoords } = createLayer(
         source,
-        initZCoord,
+        initZIndex,
         channelProps
       );
       imageLayerRef.current = layer;
       sliceCoordsRef.current = sliceCoords;
+      dimensionMapRef.current = loader.getSourceDimensionMap();
+
+      setZMaxIndex?.(dimensionMapRef.current.z?.lods[0]?.size);
 
       runtime.layerManager.add(layer);
       onLayerCreated?.(layer);
@@ -125,7 +136,7 @@ export function OmeZarrChunkedImageViewer({
     };
   }, [
     sourceUrl,
-    initZCoord,
+    initZIndex,
     fallbackContrastLimits,
     directory,
     path,
@@ -135,11 +146,15 @@ export function OmeZarrChunkedImageViewer({
   ]);
 
   useEffect(() => {
+    if (zIndex === undefined) return;
     const sliceCoords = sliceCoordsRef.current;
-    if (sliceCoords !== null) {
-      sliceCoords.z = zCoord;
-    }
-  }, [zCoord]);
+    if (!sliceCoords) return;
+    const dimensionMap = dimensionMapRef.current;
+    if (!dimensionMap) return;
+    const zLod0 = dimensionMap.z?.lods[0];
+    if (!zLod0) return;
+    sliceCoords.z = zLod0.translation + zIndex * zLod0.scale;
+  }, [zIndex]);
 
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
