@@ -1,18 +1,11 @@
 import { InputSlider } from "@czi-sds/components";
-import {
-  SliceCoordinates,
-  ChunkedImageLayer,
-  ChunkLoader,
-} from "@idetik/core-prerelease";
+import { ChunkedImageLayer, ChunkLoader } from "@idetik/core-prerelease";
 import { OmeZarrChunkedImageViewer } from "../../src";
 import { useCallback, useRef, useState } from "react";
 
 const sourceUrl =
   "https://czii-onsite.czbiohub.org/krios1.processing/aretomo3/25jul30a/run002/vol003/Position_1_Vol.zarr";
-const initialSliceCoordinates: SliceCoordinates = {
-  t: 0,
-  z: 296,
-};
+const initZCoord = 296;
 
 const fallbackContrastLimits: [number, number] = [-0.0008789, 0.0052775];
 
@@ -21,62 +14,47 @@ const viewerClassNames = {
 };
 
 function ChunkedImageViewerDemo() {
-  const [sliceCoordinates, setSliceCoordinates] = useState<SliceCoordinates>(
-    initialSliceCoordinates
-  );
-  const updateZSliceRef = useRef<((zValue: number) => void) | null>(null);
-  const [zSliderConfig, setZSliderConfig] = useState<{
-    min: number;
-    max: number;
-    step: number;
-    scale: number;
-    translation: number;
-    hasMetadata: boolean;
-  }>({
-    min: 0,
-    max: 591,
-    step: 1,
-    scale: 1,
-    translation: 0,
-    hasMetadata: false,
-  }); // Default values, will be updated when metadata is loaded
+  const [zCoord, setZCoord] = useState<number>(initZCoord);
+  const [zSliderConfig, setZSliderConfig] = useState<
+    | {
+        min: number;
+        max: number;
+        step: number;
+        scale: number;
+        translation: number;
+      }
+    | undefined
+  >(undefined);
 
   const layerCreatedTime = useRef<number | undefined>(undefined);
 
   const handleLayerCreated = useCallback(
-    (layer?: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
+    (layer: ChunkedImageLayer) => {
+      console.debug("layer", layer);
       layerCreatedTime.current = performance.now();
-      updateZSliceRef.current = updateZSlice || null;
 
       // Update z-slider configuration based on loaded metadata
-      if (layer?.source) {
-        layer.source
-          .open()
-          .then((loader: ChunkLoader) => {
-            const dimensionMap = loader.getSourceDimensionMap();
-            const zDimension = dimensionMap.z;
-
-            if (zDimension && zDimension.lods.length > 0) {
-              // Use LOD 0 (highest resolution) as reference for slider bounds
-              const zLod0 = zDimension.lods[0];
-              const actualZSliceCount = zLod0.size;
-
-              setZSliderConfig({
-                min: 0,
-                max: actualZSliceCount - 1, // Last slice index (0-indexed)
-                step: 1,
-                scale: zLod0.scale,
-                translation: zLod0.translation,
-                hasMetadata: true,
-              });
-            }
-          })
-          .catch((error: unknown) => {
-            console.error("Failed to load z-dimension metadata:", error);
-          });
-      }
+      layer.source
+        .open()
+        .then((loader: ChunkLoader) => {
+          // Use LOD 0 (highest resolution) as reference for slider bounds
+          const zLod0 = loader.getSourceDimensionMap().z?.lods[0];
+          if (zLod0) {
+            const actualZSliceCount = zLod0.size;
+            setZSliderConfig({
+              min: 0,
+              max: actualZSliceCount - 1, // Last slice index (0-indexed)
+              step: 1,
+              scale: zLod0.scale,
+              translation: zLod0.translation,
+            });
+          }
+        })
+        .catch((error: unknown) => {
+          console.error("Failed to load z-dimension metadata:", error);
+        });
     },
-    []
+    [setZSliderConfig]
   );
 
   const handleFirstSliceLoaded = useCallback(() => {
@@ -90,30 +68,24 @@ function ChunkedImageViewerDemo() {
 
   const handleZSliceChange = useCallback(
     (_event: Event, newZ: number | number[]) => {
-      const sliderValue = Array.isArray(newZ) ? newZ[0] : newZ;
-      if (typeof sliderValue === "number" && !isNaN(sliderValue)) {
-        // Convert slider index to physical coordinate
-        const physicalZ = zSliderConfig.hasMetadata
-          ? zSliderConfig.translation + sliderValue * zSliderConfig.scale
-          : sliderValue; // Fallback to direct value if no metadata yet
-
-        setSliceCoordinates((prev: SliceCoordinates) => ({
-          ...prev,
-          z: physicalZ,
-        }));
-        if (updateZSliceRef.current) {
-          updateZSliceRef.current(physicalZ);
-        }
-      }
+      if (!zSliderConfig) return;
+      if (typeof newZ !== "number") return;
+      if (isNaN(newZ)) return;
+      // Convert slider index to physical coordinate
+      const physicalZ = zSliderConfig
+        ? zSliderConfig.translation + newZ * zSliderConfig.scale
+        : newZ; // Fallback to direct value if no metadata yet
+      setZCoord(physicalZ);
     },
-    [zSliderConfig]
+    [zSliderConfig, setZCoord]
   );
 
   return (
     <div className="h-screen flex flex-col">
       <OmeZarrChunkedImageViewer
         sourceUrl={sourceUrl}
-        sliceCoordinates={sliceCoordinates}
+        initZCoord={initZCoord}
+        zCoord={zCoord}
         fallbackContrastLimits={fallbackContrastLimits}
         classNames={viewerClassNames}
         onLayerCreated={handleLayerCreated}
@@ -125,21 +97,22 @@ function ChunkedImageViewerDemo() {
         </label>
         <InputSlider
           value={
-            zSliderConfig.hasMetadata && sliceCoordinates.z !== undefined
+            zSliderConfig
               ? Math.round(
-                  (sliceCoordinates.z - zSliderConfig.translation) /
-                    zSliderConfig.scale
+                  (zCoord - zSliderConfig.translation) / zSliderConfig.scale
                 )
-              : (sliceCoordinates.z ?? zSliderConfig.min)
+              : zCoord
           }
-          min={zSliderConfig.min}
-          max={zSliderConfig.max}
-          step={zSliderConfig.step}
+          min={zSliderConfig?.min}
+          max={zSliderConfig?.max}
+          step={zSliderConfig?.step}
           onChange={handleZSliceChange}
           className="flex-1"
         />
         <span className="text-white min-w-fit">
-          Slice {sliceCoordinates.z ?? zSliderConfig.min} of {zSliderConfig.max}
+          {zSliderConfig
+            ? `Slice ${zCoord} of ${zSliderConfig?.max}`
+            : "Loading..."}
         </span>
       </div>
     </div>

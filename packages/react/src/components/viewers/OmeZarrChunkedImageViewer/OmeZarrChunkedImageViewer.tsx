@@ -27,7 +27,8 @@ export interface OmeZarrChunkedImageViewerProps {
     directory: FileSystemDirectoryHandle;
     path?: `/${string}`;
   };
-  sliceCoordinates: SliceCoordinates;
+  initZCoord?: number;
+  zCoord?: number;
   fallbackContrastLimits?: [number, number];
   classNames?: {
     root?: string;
@@ -36,17 +37,15 @@ export interface OmeZarrChunkedImageViewerProps {
     visible?: boolean;
     align?: "start" | "end" | "center";
   };
-  onLayerCreated?: (
-    layer?: ChunkedImageLayer,
-    updateZSlice?: (zValue: number) => void
-  ) => void;
+  onLayerCreated?: (layer: ChunkedImageLayer) => void;
   onFirstSliceLoaded?: () => void;
 }
 
 export function OmeZarrChunkedImageViewer({
   sourceUrl,
   sourceLocalDirectory,
-  sliceCoordinates,
+  initZCoord,
+  zCoord,
   fallbackContrastLimits,
   classNames,
   onLayerCreated,
@@ -98,24 +97,17 @@ export function OmeZarrChunkedImageViewer({
       setUnit(xUnit);
       const { layer, sliceCoords } = createLayer(
         source,
-        sliceCoordinates,
+        initZCoord,
         channelProps
       );
       imageLayerRef.current = layer;
       sliceCoordsRef.current = sliceCoords;
 
-      // Create updateZSlice function for external control
-      const updateZSlice = (zValue: number) => {
-        if (sliceCoords) {
-          sliceCoords.z = zValue;
-        }
-      };
-
-      onLayerCreated?.(layer, updateZSlice);
+      runtime.layerManager.add(layer);
+      onLayerCreated?.(layer);
       if (sourceRef.current !== source) {
         return;
       }
-      runtime.layerManager.add(layer);
       zoomToFit(xCoordRange, yCoordRange, runtime);
       setLoading(false);
       onFirstSliceLoaded?.();
@@ -129,9 +121,25 @@ export function OmeZarrChunkedImageViewer({
         runtime.layerManager.remove(imageLayerRef.current);
         imageLayerRef.current = null;
       }
+      sliceCoordsRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only props that trigger reinitialize
-  }, [sourceUrl, fallbackContrastLimits, directory, path, runtime]);
+  }, [
+    sourceUrl,
+    initZCoord,
+    fallbackContrastLimits,
+    directory,
+    path,
+    runtime,
+    onFirstSliceLoaded,
+    onLayerCreated,
+  ]);
+
+  useEffect(() => {
+    const sliceCoords = sliceCoordsRef.current;
+    if (sliceCoords !== null) {
+      sliceCoords.z = zCoord;
+    }
+  }, [zCoord]);
 
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
@@ -159,14 +167,14 @@ export function OmeZarrChunkedImageViewer({
 
 function createLayer(
   source: OmeZarrImageSource,
-  sliceCoordinates: SliceCoordinates,
+  initZCoord: number | undefined,
   channelProps: ChannelProps[]
 ): { layer: ChunkedImageLayer; sliceCoords: SliceCoordinates } {
+  const sliceCoords = { z: initZCoord };
   const layer = new ChunkedImageLayer({
     source,
-    sliceCoords: sliceCoordinates,
+    sliceCoords,
     channelProps,
   });
-
-  return { layer, sliceCoords: sliceCoordinates };
+  return { layer, sliceCoords };
 }
