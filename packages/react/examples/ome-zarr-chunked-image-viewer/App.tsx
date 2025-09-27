@@ -96,6 +96,7 @@ function ChunkedImageViewerDemo() {
           Z-Slice Navigation:
         </label>
         <InputSlider
+          disabled={!zSliderConfig}
           value={
             zSliderConfig
               ? Math.round(
