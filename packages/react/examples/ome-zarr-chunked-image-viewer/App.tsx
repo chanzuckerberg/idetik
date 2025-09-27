@@ -1,14 +1,10 @@
-import { ThemeProvider as EmotionThemeProvider } from "@emotion/react";
-import { StyledEngineProvider, ThemeProvider } from "@mui/material/styles";
-import { Theme, InputSlider } from "@czi-sds/components";
-import CssBaseline from "@mui/material/CssBaseline";
-import useMediaQuery from "@mui/material/useMediaQuery";
+import { InputSlider } from "@czi-sds/components";
 import {
   SliceCoordinates,
   ChunkedImageLayer,
   ChunkLoader,
 } from "@idetik/core-prerelease";
-import { IdetikProvider, OmeZarrChunkedImageViewer } from "../../src";
+import { OmeZarrChunkedImageViewer } from "../../src";
 import { useCallback, useRef, useState } from "react";
 
 const sourceUrl =
@@ -47,7 +43,6 @@ function ChunkedImageViewerDemo() {
 
   const layerCreatedTime = useRef<number | undefined>(undefined);
 
-  console.log("Rendering App with sourceUrl:", sourceUrl);
   const handleLayerCreated = useCallback(
     (layer?: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
       layerCreatedTime.current = performance.now();
@@ -152,19 +147,9 @@ function ChunkedImageViewerDemo() {
 }
 
 export default function App() {
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const theme = prefersDarkMode ? Theme("dark") : Theme("light");
-
   return (
-    <StyledEngineProvider injectFirst>
-      <ThemeProvider theme={theme}>
-        <EmotionThemeProvider theme={theme}>
-          <CssBaseline />
-          <IdetikProvider>
-            <ChunkedImageViewerDemo />
-          </IdetikProvider>
-        </EmotionThemeProvider>
-      </ThemeProvider>
-    </StyledEngineProvider>
+    <div className="h-screen flex flex-col">
+      <ChunkedImageViewerDemo />
+    </div>
   );
 }
