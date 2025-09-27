@@ -114,11 +114,11 @@ export function OmeZarrChunkedImageViewer({
 
       setZMaxIndex?.(dimensionMapRef.current.z?.lods[0]?.size);
 
-      runtime.layerManager.add(layer);
       onLayerCreated?.(layer);
       if (sourceRef.current !== source) {
         return;
       }
+      runtime.layerManager.add(layer);
       zoomToFit(xCoordRange, yCoordRange, runtime);
       setLoading(false);
       onFirstSliceLoaded?.();
@@ -143,6 +143,7 @@ export function OmeZarrChunkedImageViewer({
     runtime,
     onFirstSliceLoaded,
     onLayerCreated,
+    setZMaxIndex,
   ]);
 
   useEffect(() => {

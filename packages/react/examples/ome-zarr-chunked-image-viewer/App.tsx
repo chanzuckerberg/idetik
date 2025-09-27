@@ -29,12 +29,11 @@ function ChunkedImageViewerDemo() {
 
   const handleZSliceChange = useCallback(
     (_event: Event, newZ: number | number[]) => {
-      if (!zMaxIndex) return;
       if (typeof newZ !== "number") return;
       if (isNaN(newZ)) return;
       setZIndex(newZ);
     },
-    [zMaxIndex, setZIndex]
+    [setZIndex]
   );
 
   return (
