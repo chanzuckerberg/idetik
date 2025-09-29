@@ -233,7 +233,7 @@ export class ChunkManagerSource {
     vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
 
     const updatedChunks: Chunk[] = [];
-    updatedChunks.push(...this.disposeStaleTimeChunks())
+    updatedChunks.push(...this.disposeStaleTimeChunks());
 
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
     this.fetchedTCoords_.add(this.sliceCoords_.t ?? 0);
