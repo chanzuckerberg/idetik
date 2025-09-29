@@ -3,6 +3,10 @@ import { Readable } from "@zarrita/storage";
 import { Logger } from "../../utilities/logger";
 import { ZarrArrayParams } from "../zarr/open";
 import { ZarrWorkerRequest, ZarrWorkerResponse } from "./worker_kernel";
+// "inline" import to ensure worker code works in dependent projects
+// this is a workaround for a vite limitation when building a library
+// see https://github.com/vitejs/vite/issues/11672
+import WorkerKernel from "./worker_kernel.ts?worker&inline";
 
 type PendingGetChunkRequest = {
   resolve: (value: zarr.Chunk<zarr.DataType>) => void;
@@ -127,9 +131,7 @@ function handleWorkerError(
 }
 
 function createWorker(): Worker {
-  const worker = new Worker(new URL("./worker_kernel.ts", import.meta.url), {
-    type: "module",
-  });
+  const worker = new WorkerKernel();
 
   worker.addEventListener("message", (e) => handleWorkerMessage(e, worker));
   worker.addEventListener("error", (error) => handleWorkerError(error, worker));
