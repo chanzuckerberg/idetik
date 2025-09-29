@@ -1,5 +1,5 @@
 import { Region } from "@idetik/core-prerelease";
-import { OmeZarrImageViewer } from "./viewers/OmeZarrImageViewer";
+import { OmeZarrImageViewer } from "../../src";
 import { useCallback, useRef, useState } from "react";
 
 const sourceUrl =
@@ -15,7 +15,6 @@ const region: Region = [
 
 const imagePaths = ["000000", "000001", "000002", "001000", "001001", "001002"];
 
-/** Demo. */
 export default function App() {
   const [imageIndex, setImageIndex] = useState(0);
 
