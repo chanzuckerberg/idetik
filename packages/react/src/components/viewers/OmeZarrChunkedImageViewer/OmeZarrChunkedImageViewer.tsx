@@ -5,6 +5,7 @@ import {
   OmeZarrImageSource,
   SliceCoordinates,
   ChannelProps,
+  ChunkLoader,
   ChunkedImageLayer,
 } from "@idetik/core-prerelease";
 import { useIdetik } from "../../../hooks/useIdetik";
@@ -27,7 +28,9 @@ export interface OmeZarrChunkedImageViewerProps {
     directory: FileSystemDirectoryHandle;
     path?: `/${string}`;
   };
-  sliceCoordinates: SliceCoordinates;
+  initZIndex?: number;
+  zIndex?: number;
+  setZMaxIndex?: (max?: number) => void;
   fallbackContrastLimits?: [number, number];
   classNames?: {
     root?: string;
@@ -36,17 +39,16 @@ export interface OmeZarrChunkedImageViewerProps {
     visible?: boolean;
     align?: "start" | "end" | "center";
   };
-  onLayerCreated?: (
-    layer: ChunkedImageLayer,
-    updateZSlice?: (zValue: number) => void
-  ) => void;
+  onLayerCreated?: (layer: ChunkedImageLayer) => void;
   onFirstSliceLoaded?: () => void;
 }
 
 export function OmeZarrChunkedImageViewer({
   sourceUrl,
   sourceLocalDirectory,
-  sliceCoordinates,
+  initZIndex,
+  zIndex,
+  setZMaxIndex,
   fallbackContrastLimits,
   classNames,
   onLayerCreated,
@@ -70,6 +72,9 @@ export function OmeZarrChunkedImageViewer({
   const sourceRef = useRef<OmeZarrImageSource | null>(null);
   const imageLayerRef = useRef<ChunkedImageLayer | null>(null);
   const sliceCoordsRef = useRef<SliceCoordinates | null>(null);
+  const dimensionMapRef = useRef<ReturnType<
+    ChunkLoader["getSourceDimensionMap"]
+  > | null>(null);
 
   const { directory, path } = sourceLocalDirectory ?? {};
   useEffect(() => {
@@ -81,11 +86,13 @@ export function OmeZarrChunkedImageViewer({
       }
       sourceRef.current = source;
       setLoading(true);
+      const openPromise = source.open();
       const loadChannelMetadataPromise = loadChannelMetadata(
         source,
         fallbackContrastLimits
       );
       const loadImageMetadataPromise = loadImageMetadata(source);
+      const loader = await openPromise;
       const { channelProps, extraControlProps } =
         await loadChannelMetadataPromise;
       const { xUnit, yCoordRange, xCoordRange } =
@@ -98,20 +105,17 @@ export function OmeZarrChunkedImageViewer({
       setUnit(xUnit);
       const { layer, sliceCoords } = createLayer(
         source,
-        sliceCoordinates,
+        initZIndex,
         channelProps
       );
       imageLayerRef.current = layer;
       sliceCoordsRef.current = sliceCoords;
+      dimensionMapRef.current = loader.getSourceDimensionMap();
 
-      // Create updateZSlice function for external control
-      const updateZSlice = (zValue: number) => {
-        if (sliceCoords) {
-          sliceCoords.z = zValue;
-        }
-      };
+      const zSize = dimensionMapRef.current.z?.lods[0]?.size;
+      setZMaxIndex?.(zSize !== undefined ? zSize - 1 : undefined);
 
-      onLayerCreated?.(layer, updateZSlice);
+      onLayerCreated?.(layer);
       if (sourceRef.current !== source) {
         return;
       }
@@ -129,16 +133,28 @@ export function OmeZarrChunkedImageViewer({
         runtime.layerManager.remove(imageLayerRef.current);
         imageLayerRef.current = null;
       }
+      sliceCoordsRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only props that trigger reinitialize
   }, [
     sourceUrl,
-    sliceCoordinates,
+    initZIndex,
     fallbackContrastLimits,
     directory,
     path,
     runtime,
+    onFirstSliceLoaded,
+    onLayerCreated,
+    setZMaxIndex,
   ]);
+
+  useEffect(() => {
+    if (zIndex === undefined) return;
+    const sliceCoords = sliceCoordsRef.current;
+    if (!sliceCoords) return;
+    const zLod0 = dimensionMapRef.current?.z?.lods[0];
+    if (!zLod0) return;
+    sliceCoords.z = zLod0.translation + zIndex * zLod0.scale;
+  }, [zIndex]);
 
   return (
     <div className={cns("w-full", "h-full", "relative", classNames?.root)}>
@@ -166,14 +182,14 @@ export function OmeZarrChunkedImageViewer({
 
 function createLayer(
   source: OmeZarrImageSource,
-  sliceCoordinates: SliceCoordinates,
+  initZCoord: number | undefined,
   channelProps: ChannelProps[]
 ): { layer: ChunkedImageLayer; sliceCoords: SliceCoordinates } {
+  const sliceCoords = { z: initZCoord };
   const layer = new ChunkedImageLayer({
     source,
-    sliceCoords: sliceCoordinates,
+    sliceCoords,
     channelProps,
   });
-
-  return { layer, sliceCoords: sliceCoordinates };
+  return { layer, sliceCoords };
 }
