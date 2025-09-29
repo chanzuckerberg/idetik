@@ -254,7 +254,7 @@ export class ChunkManagerSource {
         isFallbackLOD,
         isCurrentLOD,
         isVisible,
-        eligibleForPrefetch && isCurrentLOD && !isLoaded
+        chunk.prefetch
       );
 
       if (chunk.priority !== null && chunk.state === "unloaded") {
