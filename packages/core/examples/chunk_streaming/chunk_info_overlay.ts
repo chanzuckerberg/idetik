@@ -64,9 +64,7 @@ export class ChunkInfoOverlay {
       lodCounters[chunk.lod].rendered++;
     });
 
-    if (renderedChunks.length > 0) {
-      chunkDetails.push(`Total rendered: ${renderedChunks.length} chunks`);
-    }
+    chunkDetails.push(`Total rendered: ${renderedChunks.length} chunks`);
 
     const status = loadingChunks > 0 ? "Loading..." : "Ready";
     const summary = `Chunks at time point: ${loadedChunks}/${totalChunks} ${status}`;

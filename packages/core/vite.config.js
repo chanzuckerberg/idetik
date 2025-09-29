@@ -73,6 +73,16 @@ export default defineConfig(({ mode }) => {
       target: 'es2022',
       ...(mode === 'production' ? productionBuildOptions : {}),
     },
+    worker: {
+      format: 'es',
+      rollupOptions: {
+        output: {
+          format: 'es',
+          inlineDynamicImports: true,
+        },
+        external: []  // Bundle all dependencies for inline workers
+      }
+    },
     resolve: {
       alias: {
         '@': path.resolve(_dirname, 'src'),
