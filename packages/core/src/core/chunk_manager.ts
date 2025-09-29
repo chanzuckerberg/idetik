@@ -17,15 +17,15 @@ import { ChunkQueue } from "../data/chunk_queue";
 // These additional chunks are prefetched to improve responsiveness when panning.
 const PREFETCH_PADDING_CHUNKS = 0;
 
+// Fetch some number of timepoints ahead of current time.
+const PREFETCH_TEMPORAL_CHUNKS = 10;
+
 const PRI_FALLBACK_VISIBLE = 0;
 const PRI_PREFETCH_TIME_HIGH = 1;
 const PRI_VISIBLE_CURRENT = 2;
 const PRI_PREFETCH_TIME_LOW = 3;
 const PRI_FALLBACK_BACKGROUND = 4;
 const PRI_PREFETCH_SPACE = 5;
-
-// Fetch some number of timepoints ahead of current time.
-const PREFETCH_TEMPORAL_CHUNKS = 10;
 
 export class ChunkManagerSource {
   // First dimension of the array is time, the others cover LOD, x, y, z, c.
@@ -287,7 +287,7 @@ export class ChunkManagerSource {
     if (this.sliceCoords_.t === undefined) return [];
     const tEnd = Math.min(
       this.chunks_.length,
-      this.sliceCoords_.t + PREFETCH_TEMPORAL_CHUNKS
+      this.sliceCoords_.t + PREFETCH_TEMPORAL_CHUNKS + 1
     );
     const updatedChunks: Chunk[] = [];
     for (let t = this.sliceCoords_.t + 1; t < tEnd; ++t) {
@@ -315,7 +315,7 @@ export class ChunkManagerSource {
     const disposedChunks: Chunk[] = [];
     for (const t of this.fetchedTCoords_) {
       const delta = t - this.sliceCoords_.t;
-      if (delta >= 0 && delta < PREFETCH_TEMPORAL_CHUNKS) continue;
+      if (delta >= 0 && delta <= PREFETCH_TEMPORAL_CHUNKS) continue;
       const chunks = this.chunks_[t];
       for (const chunk of chunks) {
         chunk.visible = false;
