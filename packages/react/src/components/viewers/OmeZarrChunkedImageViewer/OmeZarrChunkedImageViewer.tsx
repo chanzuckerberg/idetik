@@ -112,7 +112,8 @@ export function OmeZarrChunkedImageViewer({
       sliceCoordsRef.current = sliceCoords;
       dimensionMapRef.current = loader.getSourceDimensionMap();
 
-      setZMaxIndex?.(dimensionMapRef.current.z?.lods[0]?.size);
+      const zSize = dimensionMapRef.current.z?.lods[0]?.size;
+      setZMaxIndex?.(zSize !== undefined ? zSize - 1 : undefined);
 
       onLayerCreated?.(layer);
       if (sourceRef.current !== source) {
