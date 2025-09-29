@@ -11,6 +11,7 @@ type DimensionSliderProps = {
   playback?: {
     maxRateHz?: number;
     stride?: number;
+    onRateChange?: (rateHz: number) => void;
   };
 };
 
@@ -35,7 +36,10 @@ export function addDimensionSlider(props: DimensionSliderProps) {
     const maxRateHz = props.playback.maxRateHz ?? 30;
     props.gui
       .add(playbackController, "rateHz", 0, maxRateHz, 1)
-      .name(`${props.dimensionName}-playback rate (Hz)`);
+      .name(`${props.dimensionName}-playback rate (Hz)`)
+      .onChange((rateHz: number) => {
+        props.playback?.onRateChange?.(rateHz);
+      });
   }
 }
 

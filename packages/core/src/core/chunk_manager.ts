@@ -18,10 +18,11 @@ import { ChunkQueue } from "../data/chunk_queue";
 const PREFETCH_PADDING_CHUNKS = 0;
 
 const PRI_FALLBACK_VISIBLE = 0;
-const PRI_TEMPORAL_PREFETCH = 0.5;
-const PRI_VISIBLE_CURRENT = 1;
-const PRI_FALLBACK_BACKGROUND = 2;
-const PRI_PREFETCH = 3;
+const PRI_PREFETCH_TIME_HIGH = 1;
+const PRI_VISIBLE_CURRENT = 2;
+const PRI_PREFETCH_TIME_LOW = 3;
+const PRI_FALLBACK_BACKGROUND = 4;
+const PRI_PREFETCH_SPACE = 5;
 
 // Fetch some number of timepoints ahead of current time.
 const PREFETCH_TEMPORAL_CHUNKS = 10;
@@ -41,6 +42,7 @@ export class ChunkManagerSource {
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
 
+  public prioritizePrefetchTime: boolean = false;
   private fetchedTCoords_: Set<number> = new Set();
 
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
@@ -295,7 +297,7 @@ export class ChunkManagerSource {
         const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
         if (isLowestLOD && isVisible) {
           chunk.prefetch = true;
-          chunk.priority = PRI_TEMPORAL_PREFETCH;
+          chunk.priority = this.prioritizePrefetchTime ? PRI_PREFETCH_TIME_HIGH : PRI_PREFETCH_TIME_LOW;
           chunk.orderKey = t - this.sliceCoords_.t;
           chunk.state = "queued";
           this.fetchedTCoords_.add(t);
@@ -344,7 +346,7 @@ export class ChunkManagerSource {
     if (isFallbackLOD && isVisible) return PRI_FALLBACK_VISIBLE;
     if (isCurrentLOD && isVisible) return PRI_VISIBLE_CURRENT;
     if (isFallbackLOD) return PRI_FALLBACK_BACKGROUND;
-    if (isCurrentLOD && isPrefetch) return PRI_PREFETCH;
+    if (isCurrentLOD && isPrefetch) return PRI_PREFETCH_SPACE;
     return null;
   }
 

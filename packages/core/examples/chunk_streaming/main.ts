@@ -104,7 +104,14 @@ addDimensionSlider({
   minValue: tRange.min,
   maxValue: tRange.max,
   stepValue: t.scale,
-  playback: {},
+  playback: {
+    onRateChange: (rateHz: number) => {
+      const source = imageLayer.chunkManagerSource;
+      if (source) {
+        source.prioritizePrefetchTime = rateHz > 0;
+      }
+    }
+  },
 });
 
 const overlaysFolder = gui.addFolder("Overlays");
