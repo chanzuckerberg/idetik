@@ -232,7 +232,8 @@ export class ChunkManagerSource {
     const center = vec2.create();
     vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
 
-    const updatedChunks = this.disposeTemporallyStaleChunks();
+    const updatedChunks: Chunk[] = [];
+    updatedChunks.push(...this.disposeStaleTimeChunks())
 
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
     this.fetchedTCoords_.add(this.sliceCoords_.t ?? 0);
@@ -275,13 +276,12 @@ export class ChunkManagerSource {
     }
     updatedChunks.push(...currentTimeChunks);
 
-    const futurePrefetchChunks = this.prefetchFutureTimepoints(viewBounds3D);
-    updatedChunks.push(...futurePrefetchChunks);
+    updatedChunks.push(...this.prefetchTimeChunks(viewBounds3D));
 
     return updatedChunks;
   }
 
-  private prefetchFutureTimepoints(viewBounds3D: Box3): Chunk[] {
+  private prefetchTimeChunks(viewBounds3D: Box3): Chunk[] {
     if (this.sliceCoords_.t === undefined) return [];
     const tEnd = Math.min(
       this.chunks_.length,
@@ -306,7 +306,7 @@ export class ChunkManagerSource {
     return updatedChunks;
   }
 
-  private disposeTemporallyStaleChunks(): Chunk[] {
+  private disposeStaleTimeChunks(): Chunk[] {
     if (this.sliceCoords_.t === undefined) return [];
     const disposedChunks: Chunk[] = [];
     for (const t of this.fetchedTCoords_) {
