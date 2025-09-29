@@ -77,8 +77,10 @@ export default defineConfig(({ mode }) => {
       format: 'es',
       rollupOptions: {
         output: {
-          format: 'es'
-        }
+          format: 'es',
+          inlineDynamicImports: true,
+        },
+        external: []  // Bundle all dependencies for inline workers
       }
     },
     resolve: {
