@@ -297,7 +297,9 @@ export class ChunkManagerSource {
         const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
         if (isLowestLOD && isVisible) {
           chunk.prefetch = true;
-          chunk.priority = this.prioritizePrefetchTime ? PRI_PREFETCH_TIME_HIGH : PRI_PREFETCH_TIME_LOW;
+          chunk.priority = this.prioritizePrefetchTime
+            ? PRI_PREFETCH_TIME_HIGH
+            : PRI_PREFETCH_TIME_LOW;
           chunk.orderKey = t - this.sliceCoords_.t;
           chunk.state = "queued";
           this.fetchedTCoords_.add(t);

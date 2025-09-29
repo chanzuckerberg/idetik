@@ -110,7 +110,7 @@ addDimensionSlider({
       if (source) {
         source.prioritizePrefetchTime = rateHz > 0;
       }
-    }
+    },
   },
 });
 
