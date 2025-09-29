@@ -1,22 +1,10 @@
-import { ThemeProvider as EmotionThemeProvider } from "@emotion/react";
-import { StyledEngineProvider, ThemeProvider } from "@mui/material/styles";
-import { Theme, InputSlider } from "@czi-sds/components";
-import CssBaseline from "@mui/material/CssBaseline";
-import useMediaQuery from "@mui/material/useMediaQuery";
-import {
-  SliceCoordinates,
-  ChunkedImageLayer,
-  ChunkLoader,
-} from "@idetik/core-prerelease";
-import { IdetikProvider, OmeZarrChunkedImageViewer } from "../../src";
+import { InputSlider } from "@czi-sds/components";
+import { OmeZarrChunkedImageViewer } from "../../src";
 import { useCallback, useRef, useState } from "react";
 
 const sourceUrl =
   "https://czii-onsite.czbiohub.org/krios1.processing/aretomo3/25jul30a/run002/vol003/Position_1_Vol.zarr";
-const initialSliceCoordinates: SliceCoordinates = {
-  t: 0,
-  z: 296,
-};
+const initZIndex = 296;
 
 const fallbackContrastLimits: [number, number] = [-0.0008789, 0.0052775];
 
@@ -25,64 +13,10 @@ const viewerClassNames = {
 };
 
 function ChunkedImageViewerDemo() {
-  const [sliceCoordinates, setSliceCoordinates] = useState<SliceCoordinates>(
-    initialSliceCoordinates
-  );
-  const updateZSliceRef = useRef<((zValue: number) => void) | null>(null);
-  const [zSliderConfig, setZSliderConfig] = useState<{
-    min: number;
-    max: number;
-    step: number;
-    scale: number;
-    translation: number;
-    hasMetadata: boolean;
-  }>({
-    min: 0,
-    max: 591,
-    step: 1,
-    scale: 1,
-    translation: 0,
-    hasMetadata: false,
-  }); // Default values, will be updated when metadata is loaded
+  const [zIndex, setZIndex] = useState<number>(initZIndex);
+  const [zMaxIndex, setZMaxIndex] = useState<number | undefined>(undefined);
 
   const layerCreatedTime = useRef<number | undefined>(undefined);
-
-  console.log("Rendering App with sourceUrl:", sourceUrl);
-  const handleLayerCreated = useCallback(
-    (layer?: ChunkedImageLayer, updateZSlice?: (zValue: number) => void) => {
-      layerCreatedTime.current = performance.now();
-      updateZSliceRef.current = updateZSlice || null;
-
-      // Update z-slider configuration based on loaded metadata
-      if (layer?.source) {
-        layer.source
-          .open()
-          .then((loader: ChunkLoader) => {
-            const dimensionMap = loader.getSourceDimensionMap();
-            const zDimension = dimensionMap.z;
-
-            if (zDimension && zDimension.lods.length > 0) {
-              // Use LOD 0 (highest resolution) as reference for slider bounds
-              const zLod0 = zDimension.lods[0];
-              const actualZSliceCount = zLod0.size;
-
-              setZSliderConfig({
-                min: 0,
-                max: actualZSliceCount - 1, // Last slice index (0-indexed)
-                step: 1,
-                scale: zLod0.scale,
-                translation: zLod0.translation,
-                hasMetadata: true,
-              });
-            }
-          })
-          .catch((error: unknown) => {
-            console.error("Failed to load z-dimension metadata:", error);
-          });
-      }
-    },
-    []
-  );
 
   const handleFirstSliceLoaded = useCallback(() => {
     if (layerCreatedTime.current !== undefined) {
@@ -95,33 +29,22 @@ function ChunkedImageViewerDemo() {
 
   const handleZSliceChange = useCallback(
     (_event: Event, newZ: number | number[]) => {
-      const sliderValue = Array.isArray(newZ) ? newZ[0] : newZ;
-      if (typeof sliderValue === "number" && !isNaN(sliderValue)) {
-        // Convert slider index to physical coordinate
-        const physicalZ = zSliderConfig.hasMetadata
-          ? zSliderConfig.translation + sliderValue * zSliderConfig.scale
-          : sliderValue; // Fallback to direct value if no metadata yet
-
-        setSliceCoordinates((prev: SliceCoordinates) => ({
-          ...prev,
-          z: physicalZ,
-        }));
-        if (updateZSliceRef.current) {
-          updateZSliceRef.current(physicalZ);
-        }
-      }
+      if (typeof newZ !== "number") return;
+      if (isNaN(newZ)) return;
+      setZIndex(newZ);
     },
-    [zSliderConfig]
+    [setZIndex]
   );
 
   return (
     <div className="h-screen flex flex-col">
       <OmeZarrChunkedImageViewer
         sourceUrl={sourceUrl}
-        sliceCoordinates={sliceCoordinates}
+        initZIndex={initZIndex}
+        zIndex={zIndex}
+        setZMaxIndex={setZMaxIndex}
         fallbackContrastLimits={fallbackContrastLimits}
         classNames={viewerClassNames}
-        onLayerCreated={handleLayerCreated}
         onFirstSliceLoaded={handleFirstSliceLoaded}
       />
       <div className="flex h-16 shrink-0 bg-dark-sds-color-primitive-gray-200 p-4 items-center gap-4">
@@ -129,22 +52,17 @@ function ChunkedImageViewerDemo() {
           Z-Slice Navigation:
         </label>
         <InputSlider
-          value={
-            zSliderConfig.hasMetadata && sliceCoordinates.z !== undefined
-              ? Math.round(
-                  (sliceCoordinates.z - zSliderConfig.translation) /
-                    zSliderConfig.scale
-                )
-              : (sliceCoordinates.z ?? zSliderConfig.min)
-          }
-          min={zSliderConfig.min}
-          max={zSliderConfig.max}
-          step={zSliderConfig.step}
+          disabled={zMaxIndex === undefined}
+          value={zIndex}
+          min={0}
+          max={zMaxIndex}
           onChange={handleZSliceChange}
           className="flex-1"
         />
         <span className="text-white min-w-fit">
-          Slice {sliceCoordinates.z ?? zSliderConfig.min} of {zSliderConfig.max}
+          {zMaxIndex !== undefined
+            ? `Slice ${zIndex} of ${zMaxIndex}`
+            : "Loading..."}
         </span>
       </div>
     </div>
@@ -152,19 +70,9 @@ function ChunkedImageViewerDemo() {
 }
 
 export default function App() {
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const theme = prefersDarkMode ? Theme("dark") : Theme("light");
-
   return (
-    <StyledEngineProvider injectFirst>
-      <ThemeProvider theme={theme}>
-        <EmotionThemeProvider theme={theme}>
-          <CssBaseline />
-          <IdetikProvider>
-            <ChunkedImageViewerDemo />
-          </IdetikProvider>
-        </EmotionThemeProvider>
-      </ThemeProvider>
-    </StyledEngineProvider>
+    <div className="h-screen flex flex-col">
+      <ChunkedImageViewerDemo />
+    </div>
   );
 }
