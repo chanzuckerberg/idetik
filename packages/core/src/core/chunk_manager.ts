@@ -85,6 +85,7 @@ export class ChunkManagerSource {
                 state: "unloaded",
                 lod,
                 visible: false,
+                prefetch: false,
                 priority: null,
                 orderKey: null,
                 shape: {
@@ -245,6 +246,7 @@ export class ChunkManagerSource {
       const isLoaded = chunk.state === "loaded";
 
       chunk.visible = isVisible;
+      chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
       chunk.priority = this.computePriority(
         isFallbackLOD,
         isCurrentLOD,
@@ -292,6 +294,7 @@ export class ChunkManagerSource {
         const isLowestLOD = chunk.lod === this.lowestResLOD_;
         const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
         if (isLowestLOD && isVisible) {
+          chunk.prefetch = true;
           chunk.priority = PRI_TEMPORAL_PREFETCH;
           chunk.orderKey = t - this.sliceCoords_.t;
           chunk.state = "queued";
@@ -325,6 +328,7 @@ export class ChunkManagerSource {
     chunk.state = "unloaded";
     chunk.priority = null;
     chunk.orderKey = null;
+    chunk.prefetch = false;
     Logger.debug(
       "ChunkManagerSource",
       `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`

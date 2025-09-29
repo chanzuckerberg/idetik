@@ -30,6 +30,7 @@ export class ChunkInfoOverlay {
       return;
     }
 
+    const chunkDetails: string[] = [];
     const currentLOD = chunkManagerSource.currentLOD;
     const renderedChunks = chunkManagerSource.getChunks();
     const totalChunks = chunksAtCurrentTime.length;
@@ -39,13 +40,11 @@ export class ChunkInfoOverlay {
     const lodCounters: {
       visible: number;
       rendered: number;
-      loading: number;
-      queued: number;
+      prefetched: number;
     }[] = Array.from({ length: chunkManagerSource.lodCount }, () => ({
       visible: 0,
       rendered: 0,
-      loading: 0,
-      queued: 0,
+      prefetched: 0,
     }));
     chunksAtCurrentTime.forEach((chunk: Chunk) => {
       if (chunk.state === "loaded") {
@@ -54,28 +53,18 @@ export class ChunkInfoOverlay {
         loadingChunks++;
       }
       if (chunk.visible) lodCounters[chunk.lod].visible++;
-      if (chunk.state === "queued") {
-        lodCounters[chunk.lod].queued++;
-      } else if (chunk.state === "loading") {
-        lodCounters[chunk.lod].loading++;
+      // Prefetched chunks are only counted for the current LOD,
+      // since higher/lower LODs are not actively rendered.
+      if (chunk.lod === currentLOD && chunk.prefetch) {
+        lodCounters[chunk.lod].prefetched++;
       }
     });
 
     renderedChunks.forEach((chunk: Chunk) => {
       lodCounters[chunk.lod].rendered++;
     });
-    const totalLoading = lodCounters.reduce(
-      (sum, counter) => sum + counter.loading,
-      0
-    );
-    const totalQueued = lodCounters.reduce(
-      (sum, counter) => sum + counter.queued,
-      0
-    );
-    const totalCounts: string[] = [];
-    totalCounts.push(
-      `Total: Visible ${renderedChunks.length} | Rendered ${renderedChunks.length}  | Loading ${totalLoading} | Queued ${totalQueued}`
-    );
+
+    chunkDetails.push(`Total rendered: ${renderedChunks.length} chunks`);
 
     const status = loadingChunks > 0 ? "Loading..." : "Ready";
     const summary = `Chunks at time point: ${loadedChunks}/${totalChunks} ${status}`;
@@ -83,7 +72,7 @@ export class ChunkInfoOverlay {
     lodCounters.forEach((counter, lod) => {
       const prefix = lod === currentLOD ? `LOD ${lod} (current)` : `LOD ${lod}`;
       counters.push(
-        `${prefix}: Visible ${counter.visible} | Rendered ${counter.rendered} | Loading ${counter.loading} | Queued ${counter.queued}`
+        `${prefix}: Visible ${counter.visible} | Rendered ${counter.rendered} | Prefetched ${counter.prefetched}`
       );
     });
 
@@ -95,7 +84,8 @@ export class ChunkInfoOverlay {
       summary,
       "",
       ...counters,
-      ...totalCounts,
+      "",
+      ...chunkDetails,
       "",
       `Number of textures ${numTextures}`,
       `GPU Texture Memory in use ${totalTextureSizeMB}MB`,

@@ -32,6 +32,7 @@ export type Chunk = {
   state: "unloaded" | "queued" | "loading" | "loaded";
   lod: number;
   visible: boolean;
+  prefetch: boolean;
   priority: number | null;
   orderKey: number | null;
   shape: {

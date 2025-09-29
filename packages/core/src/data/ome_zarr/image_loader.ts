@@ -178,6 +178,7 @@ export class OmeZarrImageLoader {
       state: "loaded",
       lod: lod,
       visible: true,
+      prefetch: false,
       priority: null,
       orderKey: null,
       data: subarray.data,
