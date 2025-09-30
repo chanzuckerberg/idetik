@@ -333,7 +333,6 @@ export class ChunkManagerSource {
       if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
       const chunks = this.chunks_[t];
       for (const chunk of chunks) {
-        chunk.visible = false;
         this.disposeChunk(chunk);
         disposedChunks.push(chunk);
       }
