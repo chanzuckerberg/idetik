@@ -12,15 +12,27 @@ import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ChunkQueue } from "../data/chunk_queue";
+import { clamp } from "../utilities/clamp";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
-const PREFETCH_PADDING_CHUNKS = 1;
+const PREFETCH_PADDING_CHUNKS = 0;
 
+// Fetch some number of time points ahead of current time.
+const PREFETCH_TIME_POINTS = 10;
+
+// Visible chunks at the fallback LOD.
 const PRI_FALLBACK_VISIBLE = 0;
-const PRI_VISIBLE_CURRENT = 1;
-const PRI_FALLBACK_BACKGROUND = 2;
-const PRI_PREFETCH = 3;
+// Prioritized prefetch chunks not at the current time (e.g. during playback).
+const PRI_PREFETCH_TIME_HIGH = 1;
+// Visible chunks at the current LOD.
+const PRI_VISIBLE_CURRENT = 2;
+// Non-prioritized prefetch chunks not at the current time.
+const PRI_PREFETCH_TIME_LOW = 3;
+// Non-visible chunks at the fallback LOD.
+const PRI_FALLBACK_BACKGROUND = 4;
+// Prefetch non-visible chunks at the current time.
+const PRI_PREFETCH_SPACE = 5;
 
 export class ChunkManagerSource {
   // First dimension of the array is time, the others cover LOD, x, y, z, c.
@@ -37,6 +49,10 @@ export class ChunkManagerSource {
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
 
+  public prioritizePrefetchTime: boolean = false;
+  private tCoordsWithQueuedChunks_: Set<number> = new Set();
+  private sourceMaxSquareDistance2D_: number;
+
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
     this.loader_ = loader;
     this.dimensions_ = this.loader_.getSourceDimensionMap();
@@ -46,6 +62,12 @@ export class ChunkManagerSource {
 
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
+
+    const xLod0 = this.dimensions.x.lods[0];
+    const yLod0 = this.dimensions.y.lods[0];
+    this.sourceMaxSquareDistance2D_ = vec2.squaredLength(
+      vec2.fromValues(xLod0.size * xLod0.scale, yLod0.size * yLod0.scale)
+    );
 
     // generate chunks for each LOD without loading data
     this.chunks_ = Array.from({ length: chunksT }, () => []);
@@ -216,19 +238,64 @@ export class ChunkManagerSource {
       return [];
     }
 
+    const viewBoundsCenter2D = vec2.create();
+    vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
+
     const [zMin, zMax] = this.getZBounds();
     const viewBounds3D = new Box3(
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
     );
 
+    const modifiedChunks: Chunk[] = [];
+
+    if (this.sliceCoords_.t !== undefined) {
+      const disposedChunks = this.disposeStaleTimeChunks(this.sliceCoords_.t);
+      modifiedChunks.push(...disposedChunks);
+    }
+
+    const currentTimeChunks = this.updateChunksAtCurrentTime(
+      viewBounds3D,
+      viewBoundsCenter2D
+    );
+    modifiedChunks.push(...currentTimeChunks);
+
+    if (this.sliceCoords_.t !== undefined) {
+      const prefetchedChunks = this.markTimeChunksForPrefetch(
+        this.sliceCoords_.t,
+        viewBounds3D,
+        viewBoundsCenter2D
+      );
+      modifiedChunks.push(...prefetchedChunks);
+    }
+
+    return modifiedChunks;
+  }
+
+  private disposeStaleTimeChunks(currentTime: number): Chunk[] {
+    const disposedChunks: Chunk[] = [];
+    for (const t of this.tCoordsWithQueuedChunks_) {
+      const delta = t - currentTime;
+      if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
+      const chunks = this.chunks_[t];
+      for (const chunk of chunks) {
+        this.disposeChunk(chunk);
+        disposedChunks.push(chunk);
+      }
+      this.tCoordsWithQueuedChunks_.delete(t);
+    }
+    return disposedChunks;
+  }
+
+  private updateChunksAtCurrentTime(
+    viewBounds3D: Box3,
+    viewBounds2DCenter: ReadonlyVec2
+  ) {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
-    const center = vec2.create();
-    vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
 
-    const updatedChunks = this.updatePreviousTimeChunks();
-
-    const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
+    const currentTime = this.sliceCoords_.t ?? 0;
+    const currentTimeChunks = this.chunks_[currentTime];
+    this.tCoordsWithQueuedChunks_.add(currentTime);
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
@@ -255,7 +322,7 @@ export class ChunkManagerSource {
       }
 
       if (chunk.priority !== null) {
-        chunk.orderKey = this.orderKeyByDistance(chunk, center);
+        chunk.orderKey = this.squareDistance2D(chunk, viewBounds2DCenter);
       }
 
       if (isLoaded && !isFallbackLOD) {
@@ -266,20 +333,41 @@ export class ChunkManagerSource {
         }
       }
     }
-    updatedChunks.push(...currentTimeChunks);
-    return updatedChunks;
+    return currentTimeChunks;
   }
 
-  private updatePreviousTimeChunks(): Chunk[] {
-    if (this.lastTCoord_ === undefined) return [];
-    if (this.lastTCoord_ === this.sliceCoords_.t) return [];
-    const lastTimeChunks = Array(...this.chunks_[this.lastTCoord_]);
-    for (const chunk of lastTimeChunks) {
-      chunk.visible = false;
-      chunk.prefetch = false;
-      this.disposeChunk(chunk);
+  private markTimeChunksForPrefetch(
+    currentTime: number,
+    viewBounds3D: Box3,
+    viewBoundsCenter2D: ReadonlyVec2
+  ): Chunk[] {
+    const tEnd = Math.min(
+      this.chunks_.length - 1,
+      currentTime + PREFETCH_TIME_POINTS
+    );
+    const prefetchedChunks: Chunk[] = [];
+    for (let t = currentTime + 1; t <= tEnd; ++t) {
+      for (const chunk of this.chunks_[t]) {
+        if (chunk.state !== "unloaded") continue;
+        if (chunk.lod !== this.lowestResLOD_) continue;
+        if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
+        chunk.prefetch = true;
+        chunk.priority = this.prioritizePrefetchTime
+          ? PRI_PREFETCH_TIME_HIGH
+          : PRI_PREFETCH_TIME_LOW;
+        const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
+        const normalizedDistance = clamp(
+          squareDistance / this.sourceMaxSquareDistance2D_,
+          0,
+          1 - Number.EPSILON
+        );
+        chunk.orderKey = t - currentTime + normalizedDistance;
+        chunk.state = "queued";
+        this.tCoordsWithQueuedChunks_.add(t);
+        prefetchedChunks.push(chunk);
+      }
     }
-    return lastTimeChunks;
+    return prefetchedChunks;
   }
 
   private disposeChunk(chunk: Chunk) {
@@ -287,7 +375,11 @@ export class ChunkManagerSource {
     chunk.state = "unloaded";
     chunk.priority = null;
     chunk.orderKey = null;
-    Logger.debug("ChunkManagerSource", `Disposing chunk in LOD ${chunk.lod}`);
+    chunk.prefetch = false;
+    Logger.debug(
+      "ChunkManagerSource",
+      `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
+    );
   }
 
   private computePriority(
@@ -299,7 +391,7 @@ export class ChunkManagerSource {
     if (isFallbackLOD && isVisible) return PRI_FALLBACK_VISIBLE;
     if (isCurrentLOD && isVisible) return PRI_VISIBLE_CURRENT;
     if (isFallbackLOD) return PRI_FALLBACK_BACKGROUND;
-    if (isCurrentLOD && isPrefetch) return PRI_PREFETCH;
+    if (isCurrentLOD && isPrefetch) return PRI_PREFETCH_SPACE;
     return null;
   }
 
@@ -429,7 +521,7 @@ export class ChunkManagerSource {
     );
   }
 
-  private orderKeyByDistance(chunk: Chunk, center: ReadonlyVec2): number {
+  private squareDistance2D(chunk: Chunk, center: ReadonlyVec2): number {
     const chunkCenter = {
       x: chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
       y: chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
