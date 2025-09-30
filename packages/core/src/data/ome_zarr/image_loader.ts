@@ -19,6 +19,7 @@ import { Image as OmeZarrImage } from "./0.5/image";
 import { Readable } from "@zarrita/storage";
 import { ZarrArrayParams } from "../zarr/open";
 import { getChunk } from "./worker_pool";
+import { Logger } from "../../utilities/logger";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -98,23 +99,68 @@ export class OmeZarrImageLoader {
       signal,
     });
 
-    const data = subarray.data;
-    if (!isChunkData(data)) {
+    this.assignChunkData(chunk, subarray);
+  }
+
+  private assignChunkData(chunk: Chunk, subarray: zarr.Chunk<zarr.DataType>) {
+    const wholeChunk = subarray.data;
+
+    if (!isChunkData(wholeChunk)) {
       throw new Error(
-        `Subarray has an unsupported data type, data=${data.constructor.name}`
+        `Subarray has an unsupported data type, data=${wholeChunk.constructor.name}`
       );
     }
 
-    const rowAlignment = data.BYTES_PER_ELEMENT;
+    if (
+      subarray.shape[this.dimensions_.x.index] === chunk.shape.x &&
+      subarray.shape[this.dimensions_.y.index] === chunk.shape.y &&
+      (!this.dimensions_.z ||
+        subarray.shape[this.dimensions_.z.index] === chunk.shape.z)
+    ) {
+      chunk.data = wholeChunk;
+      chunk.rowStride = subarray.stride[this.dimensions_.y.index];
+    } else if (
+      subarray.shape[this.dimensions_.x.index] < chunk.shape.x ||
+      subarray.shape[this.dimensions_.y.index] < chunk.shape.y ||
+      (this.dimensions_.z &&
+        subarray.shape[this.dimensions_.z.index] < chunk.shape.z)
+    ) {
+      throw new Error(
+        `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
+          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${subarray.shape} (too small)`
+      );
+    } else {
+      Logger.debug(
+        "OmeZarrImageLoader",
+        `Removing padding from chunk with chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod} (edge chunk): `,
+        `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${subarray.shape}`
+      );
+      // remove chunk padding in-place to avoid reallocation, discard unused space
+      let offset = 0;
+      const zStride = this.dimensions_.z
+        ? subarray.stride[this.dimensions_.z.index]
+        : 0;
+      const yStride = subarray.stride[this.dimensions_.y.index];
+      for (let z = 0; z < chunk.shape.z; z++) {
+        const zStart = z * zStride;
+        for (let y = 0; y < chunk.shape.y; y++) {
+          const srcStart = zStart + y * yStride;
+          const srcEnd = srcStart + chunk.shape.x;
+          wholeChunk.set(wholeChunk.subarray(srcStart, srcEnd), offset);
+          offset += chunk.shape.x;
+        }
+      }
+      chunk.data = wholeChunk.subarray(0, offset);
+      chunk.rowStride = chunk.shape.x;
+    }
+
+    const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
     if (!isTextureUnpackRowAlignment(rowAlignment)) {
       throw new Error(
         "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
       );
     }
-
     chunk.rowAlignmentBytes = rowAlignment;
-    chunk.rowStride = subarray.stride[this.dimensions_.y.index];
-    chunk.data = data;
   }
 
   public async loadRegion(
