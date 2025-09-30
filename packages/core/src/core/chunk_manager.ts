@@ -241,7 +241,11 @@ export class ChunkManagerSource {
     vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
 
     const modifiedChunks: Chunk[] = [];
-    modifiedChunks.push(...this.disposeStaleTimeChunks());
+
+    if (this.sliceCoords_.t !== undefined) {
+      const disposedChunks = this.disposeStaleTimeChunks(this.sliceCoords_.t);
+      modifiedChunks.push(...disposedChunks);
+    }
 
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
     this.tCoordsWithQueuedChunks_.add(this.sliceCoords_.t ?? 0);
@@ -284,19 +288,27 @@ export class ChunkManagerSource {
     }
     modifiedChunks.push(...currentTimeChunks);
 
-    modifiedChunks.push(...this.markTimeChunksForPrefetch(viewBounds3D));
+    if (this.sliceCoords_.t !== undefined) {
+      const prefetchedChunks = this.markTimeChunksForPrefetch(
+        this.sliceCoords_.t,
+        viewBounds3D
+      );
+      modifiedChunks.push(...prefetchedChunks);
+    }
 
     return modifiedChunks;
   }
 
-  private markTimeChunksForPrefetch(viewBounds3D: Box3): Chunk[] {
-    if (this.sliceCoords_.t === undefined) return [];
+  private markTimeChunksForPrefetch(
+    currentTime: number,
+    viewBounds3D: Box3
+  ): Chunk[] {
     const tEnd = Math.min(
       this.chunks_.length,
-      this.sliceCoords_.t + PREFETCH_TIME_POINTS + 1
+      currentTime + PREFETCH_TIME_POINTS + 1
     );
     const prefetchedChunks: Chunk[] = [];
-    for (let t = this.sliceCoords_.t + 1; t < tEnd; ++t) {
+    for (let t = currentTime + 1; t < tEnd; ++t) {
       for (const chunk of this.chunks_[t]) {
         if (chunk.state !== "unloaded") continue;
         const isLowestLOD = chunk.lod === this.lowestResLOD_;
@@ -306,7 +318,7 @@ export class ChunkManagerSource {
           chunk.priority = this.prioritizePrefetchTime
             ? PRI_PREFETCH_TIME_HIGH
             : PRI_PREFETCH_TIME_LOW;
-          chunk.orderKey = t - this.sliceCoords_.t;
+          chunk.orderKey = t - currentTime;
           chunk.state = "queued";
           this.tCoordsWithQueuedChunks_.add(t);
           prefetchedChunks.push(chunk);
@@ -316,11 +328,10 @@ export class ChunkManagerSource {
     return prefetchedChunks;
   }
 
-  private disposeStaleTimeChunks(): Chunk[] {
-    if (this.sliceCoords_.t === undefined) return [];
+  private disposeStaleTimeChunks(currentTime: number): Chunk[] {
     const disposedChunks: Chunk[] = [];
     for (const t of this.tCoordsWithQueuedChunks_) {
-      const delta = t - this.sliceCoords_.t;
+      const delta = t - currentTime;
       if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
       const chunks = this.chunks_[t];
       for (const chunk of chunks) {
