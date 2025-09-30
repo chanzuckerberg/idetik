@@ -20,11 +20,17 @@ const PREFETCH_PADDING_CHUNKS = 0;
 // Fetch some number of time points ahead of current time.
 const PREFETCH_TIME_POINTS = 10;
 
+// Visible chunks at the fallback LOD.
 const PRI_FALLBACK_VISIBLE = 0;
+// Prioritized prefetch chunks not at the current time (e.g. during playback).
 const PRI_PREFETCH_TIME_HIGH = 1;
+// Visible chunks at the current LOD.
 const PRI_VISIBLE_CURRENT = 2;
+// Non-prioritized prefetch chunks not at the current time.
 const PRI_PREFETCH_TIME_LOW = 3;
+// Non-visible chunks at the fallback LOD.
 const PRI_FALLBACK_BACKGROUND = 4;
+// Prefetch non-visible chunks at the current time.
 const PRI_PREFETCH_SPACE = 5;
 
 export class ChunkManagerSource {
