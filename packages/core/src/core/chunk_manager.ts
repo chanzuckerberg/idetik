@@ -240,8 +240,8 @@ export class ChunkManagerSource {
     const center = vec2.create();
     vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
 
-    const updatedChunks: Chunk[] = [];
-    updatedChunks.push(...this.disposeStaleTimeChunks());
+    const modifiedChunks: Chunk[] = [];
+    modifiedChunks.push(...this.disposeStaleTimeChunks());
 
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
     this.tCoordsWithQueuedChunks_.add(this.sliceCoords_.t ?? 0);
@@ -282,11 +282,11 @@ export class ChunkManagerSource {
         }
       }
     }
-    updatedChunks.push(...currentTimeChunks);
+    modifiedChunks.push(...currentTimeChunks);
 
-    updatedChunks.push(...this.prefetchTimeChunks(viewBounds3D));
+    modifiedChunks.push(...this.prefetchTimeChunks(viewBounds3D));
 
-    return updatedChunks;
+    return modifiedChunks;
   }
 
   private prefetchTimeChunks(viewBounds3D: Box3): Chunk[] {
@@ -295,7 +295,7 @@ export class ChunkManagerSource {
       this.chunks_.length,
       this.sliceCoords_.t + PREFETCH_TIME_POINTS + 1
     );
-    const updatedChunks: Chunk[] = [];
+    const prefetchedChunks: Chunk[] = [];
     for (let t = this.sliceCoords_.t + 1; t < tEnd; ++t) {
       for (const chunk of this.chunks_[t]) {
         if (chunk.state !== "unloaded") continue;
@@ -309,11 +309,11 @@ export class ChunkManagerSource {
           chunk.orderKey = t - this.sliceCoords_.t;
           chunk.state = "queued";
           this.tCoordsWithQueuedChunks_.add(t);
-          updatedChunks.push(chunk);
+          prefetchedChunks.push(chunk);
         }
       }
     }
-    return updatedChunks;
+    return prefetchedChunks;
   }
 
   private disposeStaleTimeChunks(): Chunk[] {
