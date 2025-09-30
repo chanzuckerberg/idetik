@@ -12,6 +12,7 @@ import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ChunkQueue } from "../data/chunk_queue";
+import { clamp } from "../utilities/clamp";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
 // These additional chunks are prefetched to improve responsiveness when panning.
@@ -50,6 +51,7 @@ export class ChunkManagerSource {
 
   public prioritizePrefetchTime: boolean = false;
   private tCoordsWithQueuedChunks_: Set<number> = new Set();
+  private sourceMaxSquareDistance2D_: number;
 
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
     this.loader_ = loader;
@@ -60,6 +62,12 @@ export class ChunkManagerSource {
 
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
+
+    const xLod0 = this.dimensions.x.lods[0];
+    const yLod0 = this.dimensions.y.lods[0];
+    this.sourceMaxSquareDistance2D_ = vec2.squaredLength(
+      vec2.fromValues(xLod0.size * xLod0.scale, yLod0.size * yLod0.scale)
+    );
 
     // generate chunks for each LOD without loading data
     this.chunks_ = Array.from({ length: chunksT }, () => []);
@@ -230,6 +238,9 @@ export class ChunkManagerSource {
       return [];
     }
 
+    const viewBoundsCenter2D = vec2.create();
+    vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
+
     const [zMin, zMax] = this.getZBounds();
     const viewBounds3D = new Box3(
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
@@ -244,15 +255,16 @@ export class ChunkManagerSource {
     }
 
     const currentTimeChunks = this.updateChunksAtCurrentTime(
-      viewBounds2D,
-      viewBounds3D
+      viewBounds3D,
+      viewBoundsCenter2D
     );
     modifiedChunks.push(...currentTimeChunks);
 
     if (this.sliceCoords_.t !== undefined) {
       const prefetchedChunks = this.markTimeChunksForPrefetch(
         this.sliceCoords_.t,
-        viewBounds3D
+        viewBounds3D,
+        viewBoundsCenter2D
       );
       modifiedChunks.push(...prefetchedChunks);
     }
@@ -275,10 +287,11 @@ export class ChunkManagerSource {
     return disposedChunks;
   }
 
-  private updateChunksAtCurrentTime(viewBounds2D: Box2, viewBounds3D: Box3) {
+  private updateChunksAtCurrentTime(
+    viewBounds3D: Box3,
+    viewBounds2DCenter: ReadonlyVec2
+  ) {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
-    const center = vec2.create();
-    vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
 
     const currentTime = this.sliceCoords_.t ?? 0;
     const currentTimeChunks = this.chunks_[currentTime];
@@ -309,7 +322,7 @@ export class ChunkManagerSource {
       }
 
       if (chunk.priority !== null) {
-        chunk.orderKey = this.orderKeyByDistance(chunk, center);
+        chunk.orderKey = this.squareDistance2D(chunk, viewBounds2DCenter);
       }
 
       if (isLoaded && !isFallbackLOD) {
@@ -325,7 +338,8 @@ export class ChunkManagerSource {
 
   private markTimeChunksForPrefetch(
     currentTime: number,
-    viewBounds3D: Box3
+    viewBounds3D: Box3,
+    viewBoundsCenter2D: ReadonlyVec2
   ): Chunk[] {
     const tEnd = Math.min(
       this.chunks_.length - 1,
@@ -341,7 +355,13 @@ export class ChunkManagerSource {
         chunk.priority = this.prioritizePrefetchTime
           ? PRI_PREFETCH_TIME_HIGH
           : PRI_PREFETCH_TIME_LOW;
-        chunk.orderKey = t - currentTime;
+        const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
+        const normalizedDistance = clamp(
+          squareDistance / this.sourceMaxSquareDistance2D_,
+          0,
+          1 - Number.EPSILON
+        );
+        chunk.orderKey = t - currentTime + normalizedDistance;
         chunk.state = "queued";
         this.tCoordsWithQueuedChunks_.add(t);
         prefetchedChunks.push(chunk);
@@ -501,7 +521,7 @@ export class ChunkManagerSource {
     );
   }
 
-  private orderKeyByDistance(chunk: Chunk, center: ReadonlyVec2): number {
+  private squareDistance2D(chunk: Chunk, center: ReadonlyVec2): number {
     const chunkCenter = {
       x: chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
       y: chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
