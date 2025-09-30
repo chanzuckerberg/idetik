@@ -304,11 +304,11 @@ export class ChunkManagerSource {
     viewBounds3D: Box3
   ): Chunk[] {
     const tEnd = Math.min(
-      this.chunks_.length,
-      currentTime + PREFETCH_TIME_POINTS + 1
+      this.chunks_.length - 1,
+      currentTime + PREFETCH_TIME_POINTS
     );
     const prefetchedChunks: Chunk[] = [];
-    for (let t = currentTime + 1; t < tEnd; ++t) {
+    for (let t = currentTime + 1; t <= tEnd; ++t) {
       for (const chunk of this.chunks_[t]) {
         if (chunk.state !== "unloaded") continue;
         if (chunk.lod !== this.lowestResLOD_) continue;
