@@ -311,18 +311,16 @@ export class ChunkManagerSource {
     for (let t = currentTime + 1; t < tEnd; ++t) {
       for (const chunk of this.chunks_[t]) {
         if (chunk.state !== "unloaded") continue;
-        const isLowestLOD = chunk.lod === this.lowestResLOD_;
-        const inViewBounds = this.isChunkWithinBounds(chunk, viewBounds3D);
-        if (isLowestLOD && inViewBounds) {
-          chunk.prefetch = true;
-          chunk.priority = this.prioritizePrefetchTime
-            ? PRI_PREFETCH_TIME_HIGH
-            : PRI_PREFETCH_TIME_LOW;
-          chunk.orderKey = t - currentTime;
-          chunk.state = "queued";
-          this.tCoordsWithQueuedChunks_.add(t);
-          prefetchedChunks.push(chunk);
-        }
+        if (chunk.lod !== this.lowestResLOD_) continue;
+        if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
+        chunk.prefetch = true;
+        chunk.priority = this.prioritizePrefetchTime
+          ? PRI_PREFETCH_TIME_HIGH
+          : PRI_PREFETCH_TIME_LOW;
+        chunk.orderKey = t - currentTime;
+        chunk.state = "queued";
+        this.tCoordsWithQueuedChunks_.add(t);
+        prefetchedChunks.push(chunk);
       }
     }
     return prefetchedChunks;
