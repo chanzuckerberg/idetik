@@ -284,12 +284,12 @@ export class ChunkManagerSource {
     }
     modifiedChunks.push(...currentTimeChunks);
 
-    modifiedChunks.push(...this.prefetchTimeChunks(viewBounds3D));
+    modifiedChunks.push(...this.markTimeChunksForPrefetch(viewBounds3D));
 
     return modifiedChunks;
   }
 
-  private prefetchTimeChunks(viewBounds3D: Box3): Chunk[] {
+  private markTimeChunksForPrefetch(viewBounds3D: Box3): Chunk[] {
     if (this.sliceCoords_.t === undefined) return [];
     const tEnd = Math.min(
       this.chunks_.length,
