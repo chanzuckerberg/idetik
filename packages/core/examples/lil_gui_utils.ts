@@ -26,20 +26,19 @@ export function addDimensionSlider(props: DimensionSliderProps) {
     )
     .name(`${props.dimensionName}-coord`);
 
-  const playback = props.playback;
-  if (playback) {
+  if (props.playback) {
     const playbackController = new PlaybackController({
       controller,
       start: props.minValue,
       stop: props.maxValue,
-      step: props.stepValue * (playback.stride ?? 1),
+      step: props.stepValue * (props.playback.stride ?? 1),
     });
-    const maxRateHz = playback.maxRateHz ?? 30;
+    const maxRateHz = props.playback.maxRateHz ?? 30;
     props.gui
       .add(playbackController, "rateHz", 0, maxRateHz, 1)
       .name(`${props.dimensionName}-playback rate (Hz)`)
       .onChange((rateHz: number) => {
-        playback.onRateChange?.(rateHz);
+        props.playback?.onRateChange?.(rateHz);
       });
   }
 }
