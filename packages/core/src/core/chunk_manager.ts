@@ -236,10 +236,6 @@ export class ChunkManagerSource {
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
     );
 
-    const paddedBounds = this.getPaddedBounds(viewBounds3D);
-    const center = vec2.create();
-    vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
-
     const modifiedChunks: Chunk[] = [];
 
     if (this.sliceCoords_.t !== undefined) {
@@ -247,8 +243,46 @@ export class ChunkManagerSource {
       modifiedChunks.push(...disposedChunks);
     }
 
-    const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
-    this.tCoordsWithQueuedChunks_.add(this.sliceCoords_.t ?? 0);
+    const currentTimeChunks = this.updateChunksAtCurrentTime(
+      viewBounds2D,
+      viewBounds3D
+    );
+    modifiedChunks.push(...currentTimeChunks);
+
+    if (this.sliceCoords_.t !== undefined) {
+      const prefetchedChunks = this.markTimeChunksForPrefetch(
+        this.sliceCoords_.t,
+        viewBounds3D
+      );
+      modifiedChunks.push(...prefetchedChunks);
+    }
+
+    return modifiedChunks;
+  }
+
+  private disposeStaleTimeChunks(currentTime: number): Chunk[] {
+    const disposedChunks: Chunk[] = [];
+    for (const t of this.tCoordsWithQueuedChunks_) {
+      const delta = t - currentTime;
+      if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
+      const chunks = this.chunks_[t];
+      for (const chunk of chunks) {
+        this.disposeChunk(chunk);
+        disposedChunks.push(chunk);
+      }
+      this.tCoordsWithQueuedChunks_.delete(t);
+    }
+    return disposedChunks;
+  }
+
+  private updateChunksAtCurrentTime(viewBounds2D: Box2, viewBounds3D: Box3) {
+    const paddedBounds = this.getPaddedBounds(viewBounds3D);
+    const center = vec2.create();
+    vec2.lerp(center, viewBounds2D.min, viewBounds2D.max, 0.5);
+
+    const currentTime = this.sliceCoords_.t ?? 0;
+    const currentTimeChunks = this.chunks_[currentTime];
+    this.tCoordsWithQueuedChunks_.add(currentTime);
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
@@ -286,17 +320,7 @@ export class ChunkManagerSource {
         }
       }
     }
-    modifiedChunks.push(...currentTimeChunks);
-
-    if (this.sliceCoords_.t !== undefined) {
-      const prefetchedChunks = this.markTimeChunksForPrefetch(
-        this.sliceCoords_.t,
-        viewBounds3D
-      );
-      modifiedChunks.push(...prefetchedChunks);
-    }
-
-    return modifiedChunks;
+    return currentTimeChunks;
   }
 
   private markTimeChunksForPrefetch(
@@ -324,21 +348,6 @@ export class ChunkManagerSource {
       }
     }
     return prefetchedChunks;
-  }
-
-  private disposeStaleTimeChunks(currentTime: number): Chunk[] {
-    const disposedChunks: Chunk[] = [];
-    for (const t of this.tCoordsWithQueuedChunks_) {
-      const delta = t - currentTime;
-      if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
-      const chunks = this.chunks_[t];
-      for (const chunk of chunks) {
-        this.disposeChunk(chunk);
-        disposedChunks.push(chunk);
-      }
-      this.tCoordsWithQueuedChunks_.delete(t);
-    }
-    return disposedChunks;
   }
 
   private disposeChunk(chunk: Chunk) {
