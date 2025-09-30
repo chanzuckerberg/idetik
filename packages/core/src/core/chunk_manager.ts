@@ -300,8 +300,8 @@ export class ChunkManagerSource {
       for (const chunk of this.chunks_[t]) {
         if (chunk.state !== "unloaded") continue;
         const isLowestLOD = chunk.lod === this.lowestResLOD_;
-        const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
-        if (isLowestLOD && isVisible) {
+        const inViewBounds = this.isChunkWithinBounds(chunk, viewBounds3D);
+        if (isLowestLOD && inViewBounds) {
           chunk.prefetch = true;
           chunk.priority = this.prioritizePrefetchTime
             ? PRI_PREFETCH_TIME_HIGH
