@@ -49,7 +49,7 @@ export class ChunkManagerSource {
   private lastTCoord_?: number;
 
   public prioritizePrefetchTime: boolean = false;
-  private fetchedTCoords_: Set<number> = new Set();
+  private tCoordsWithQueuedChunks_: Set<number> = new Set();
 
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
     this.loader_ = loader;
@@ -244,7 +244,7 @@ export class ChunkManagerSource {
     updatedChunks.push(...this.disposeStaleTimeChunks());
 
     const currentTimeChunks = this.chunks_[this.sliceCoords_.t ?? 0];
-    this.fetchedTCoords_.add(this.sliceCoords_.t ?? 0);
+    this.tCoordsWithQueuedChunks_.add(this.sliceCoords_.t ?? 0);
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
@@ -308,7 +308,7 @@ export class ChunkManagerSource {
             : PRI_PREFETCH_TIME_LOW;
           chunk.orderKey = t - this.sliceCoords_.t;
           chunk.state = "queued";
-          this.fetchedTCoords_.add(t);
+          this.tCoordsWithQueuedChunks_.add(t);
           updatedChunks.push(chunk);
         }
       }
@@ -319,7 +319,7 @@ export class ChunkManagerSource {
   private disposeStaleTimeChunks(): Chunk[] {
     if (this.sliceCoords_.t === undefined) return [];
     const disposedChunks: Chunk[] = [];
-    for (const t of this.fetchedTCoords_) {
+    for (const t of this.tCoordsWithQueuedChunks_) {
       const delta = t - this.sliceCoords_.t;
       if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
       const chunks = this.chunks_[t];
@@ -328,7 +328,7 @@ export class ChunkManagerSource {
         this.disposeChunk(chunk);
         disposedChunks.push(chunk);
       }
-      this.fetchedTCoords_.delete(t);
+      this.tCoordsWithQueuedChunks_.delete(t);
     }
     return disposedChunks;
   }
