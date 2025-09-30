@@ -19,7 +19,6 @@ import { Image as OmeZarrImage } from "./0.5/image";
 import { Readable } from "@zarrita/storage";
 import { ZarrArrayParams } from "../zarr/open";
 import { getChunk } from "./worker_pool";
-import { Logger } from "../../utilities/logger";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -95,62 +94,69 @@ export class OmeZarrImageLoader {
 
     const array = this.arrays_[chunk.lod];
     const arrayParams = this.arrayParams_[chunk.lod];
-    const subarray = await getChunk(array, arrayParams, chunkCoords, {
+    const receivedChunk = await getChunk(array, arrayParams, chunkCoords, {
       signal,
     });
 
-    this.assignChunkData(chunk, subarray);
+    this.assignChunkData(chunk, receivedChunk);
   }
 
-  private assignChunkData(chunk: Chunk, subarray: zarr.Chunk<zarr.DataType>) {
-    const wholeChunk = subarray.data;
+  private assignChunkData(
+    chunk: Chunk,
+    receivedChunk: zarr.Chunk<zarr.DataType>
+  ) {
+    const wholeChunk = receivedChunk.data;
 
     if (!isChunkData(wholeChunk)) {
       throw new Error(
-        `Subarray has an unsupported data type, data=${wholeChunk.constructor.name}`
+        `Received chunk has an unsupported data type, data=${wholeChunk.constructor.name}`
       );
     }
 
+    const receivedShape = {
+      x: receivedChunk.shape[this.dimensions_.x.index],
+      y: receivedChunk.shape[this.dimensions_.y.index],
+      z: this.dimensions_.z
+        ? receivedChunk.shape[this.dimensions_.z.index]
+        : chunk.shape.z,
+    };
+
     if (
-      subarray.shape[this.dimensions_.x.index] === chunk.shape.x &&
-      subarray.shape[this.dimensions_.y.index] === chunk.shape.y &&
-      (!this.dimensions_.z ||
-        subarray.shape[this.dimensions_.z.index] === chunk.shape.z)
+      receivedShape.x === chunk.shape.x &&
+      receivedShape.y === chunk.shape.y &&
+      receivedShape.z === chunk.shape.z
     ) {
       chunk.data = wholeChunk;
-      chunk.rowStride = subarray.stride[this.dimensions_.y.index];
+      chunk.rowStride = receivedChunk.stride[this.dimensions_.y.index];
     } else if (
-      subarray.shape[this.dimensions_.x.index] < chunk.shape.x ||
-      subarray.shape[this.dimensions_.y.index] < chunk.shape.y ||
-      (this.dimensions_.z &&
-        subarray.shape[this.dimensions_.z.index] < chunk.shape.z)
+      receivedShape.x < chunk.shape.x ||
+      receivedShape.y < chunk.shape.y ||
+      receivedShape.z < chunk.shape.z
     ) {
       throw new Error(
         `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
-          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${subarray.shape} (too small)`
+          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
       );
     } else {
-      Logger.debug(
-        "OmeZarrImageLoader",
-        `Removing padding from chunk with chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod} (edge chunk): `,
-        `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${subarray.shape}`
-      );
-      // remove chunk padding in-place to avoid reallocation, discard unused space
+      // remove chunk padding, copying into a compact array
+      const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
+      const compactData = wholeChunk.slice(0, compactSize);
+
       let offset = 0;
       const zStride = this.dimensions_.z
-        ? subarray.stride[this.dimensions_.z.index]
+        ? receivedChunk.stride[this.dimensions_.z.index]
         : 0;
-      const yStride = subarray.stride[this.dimensions_.y.index];
+      const yStride = receivedChunk.stride[this.dimensions_.y.index];
       for (let z = 0; z < chunk.shape.z; z++) {
         const zStart = z * zStride;
         for (let y = 0; y < chunk.shape.y; y++) {
           const srcStart = zStart + y * yStride;
           const srcEnd = srcStart + chunk.shape.x;
-          wholeChunk.set(wholeChunk.subarray(srcStart, srcEnd), offset);
+          compactData.set(wholeChunk.subarray(srcStart, srcEnd), offset);
           offset += chunk.shape.x;
         }
       }
-      chunk.data = wholeChunk.subarray(0, offset);
+      chunk.data = compactData;
       chunk.rowStride = chunk.shape.x;
     }
 

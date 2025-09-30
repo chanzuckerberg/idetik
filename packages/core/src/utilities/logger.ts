@@ -29,7 +29,6 @@ type Module =
   | "LabelImageLayer"
   | "Layer"
   | "ZarrWorker"
-  | "OmeZarrImageLoader"
   | "RenderablePool"
   | "Viewport"
   | "WebGLRenderer"
