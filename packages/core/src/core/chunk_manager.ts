@@ -68,21 +68,10 @@ export class ChunkManagerSource {
 
         for (let x = 0; x < chunksX; ++x) {
           const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
-          const actualChunkWidth = Math.min(
-            chunkWidth,
-            xLod.size - x * chunkWidth
-          );
+          const rowStride = Math.min(chunkWidth, xLod.size - x * chunkWidth);
           for (let y = 0; y < chunksY; ++y) {
-            const actualChunkHeight = Math.min(
-              chunkHeight,
-              yLod.size - y * chunkHeight
-            );
             const yOffset = yLod.translation + y * yLod.chunkSize * yLod.scale;
             for (let z = 0; z < chunksZ; ++z) {
-              const actualChunkDepth = Math.min(
-                chunkDepth,
-                (zLod?.size ?? 1) - z * chunkDepth
-              );
               const zOffset =
                 zLod !== undefined
                   ? zLod.translation + z * chunkDepth * zLod.scale
@@ -95,12 +84,12 @@ export class ChunkManagerSource {
                 priority: null,
                 orderKey: null,
                 shape: {
-                  x: actualChunkWidth,
-                  y: actualChunkHeight,
-                  z: actualChunkDepth,
+                  x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
+                  y: Math.min(chunkWidth, xLod.size - y * chunkWidth),
+                  z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
                   c: channels,
                 },
-                rowStride: actualChunkWidth,
+                rowStride,
                 rowAlignmentBytes: 1,
                 chunkIndex: { x, y, z, t },
                 scale: {

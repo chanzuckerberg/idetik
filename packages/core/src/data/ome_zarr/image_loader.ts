@@ -10,6 +10,7 @@ import {
   isChunkData,
   LoaderAttributes,
   SliceCoordinates,
+  ChunkData,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -98,18 +99,9 @@ export class OmeZarrImageLoader {
       signal,
     });
 
-    this.assignChunkData(chunk, receivedChunk);
-  }
-
-  private assignChunkData(
-    chunk: Chunk,
-    receivedChunk: zarr.Chunk<zarr.DataType>
-  ) {
-    const wholeChunk = receivedChunk.data;
-
-    if (!isChunkData(wholeChunk)) {
+    if (!isChunkData(receivedChunk.data)) {
       throw new Error(
-        `Received chunk has an unsupported data type, data=${wholeChunk.constructor.name}`
+        `Received chunk has an unsupported data type, data=${receivedChunk.data.constructor.name}`
       );
     }
 
@@ -121,43 +113,28 @@ export class OmeZarrImageLoader {
         : chunk.shape.z,
     };
 
-    if (
-      receivedShape.x === chunk.shape.x &&
-      receivedShape.y === chunk.shape.y &&
-      receivedShape.z === chunk.shape.z
-    ) {
-      chunk.data = wholeChunk;
-      chunk.rowStride = receivedChunk.stride[this.dimensions_.y.index];
-    } else if (
+    const receivedChunkTooSmall =
       receivedShape.x < chunk.shape.x ||
       receivedShape.y < chunk.shape.y ||
-      receivedShape.z < chunk.shape.z
-    ) {
+      receivedShape.z < chunk.shape.z;
+
+    if (receivedChunkTooSmall) {
       throw new Error(
         `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
           `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
       );
-    } else {
-      // remove chunk padding, copying into a compact array
-      const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
-      const compactData = wholeChunk.slice(0, compactSize);
+    }
 
-      let offset = 0;
-      const zStride = this.dimensions_.z
-        ? receivedChunk.stride[this.dimensions_.z.index]
-        : 0;
-      const yStride = receivedChunk.stride[this.dimensions_.y.index];
-      for (let z = 0; z < chunk.shape.z; z++) {
-        const zStart = z * zStride;
-        for (let y = 0; y < chunk.shape.y; y++) {
-          const srcStart = zStart + y * yStride;
-          const srcEnd = srcStart + chunk.shape.x;
-          compactData.set(wholeChunk.subarray(srcStart, srcEnd), offset);
-          offset += chunk.shape.x;
-        }
-      }
-      chunk.data = compactData;
-      chunk.rowStride = chunk.shape.x;
+    const receivedChunkHasPadding =
+      receivedShape.x > chunk.shape.x ||
+      receivedShape.y > chunk.shape.y ||
+      receivedShape.z > chunk.shape.z;
+
+    if (receivedChunkHasPadding) {
+      chunk.data = this.trimChunkPadding(chunk, receivedChunk);
+    } else {
+      chunk.data = receivedChunk.data;
+      chunk.rowStride = receivedChunk.stride[this.dimensions_.y.index];
     }
 
     const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
@@ -167,6 +144,32 @@ export class OmeZarrImageLoader {
       );
     }
     chunk.rowAlignmentBytes = rowAlignment;
+  }
+
+  private trimChunkPadding(
+    chunk: Chunk,
+    receivedChunk: zarr.Chunk<zarr.DataType>
+  ): ChunkData {
+    // type assertion is safe because we check isChunkData(receivedChunk.data) in the caller
+    const receivedChunkData = receivedChunk.data as ChunkData;
+    const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
+    const compactData = receivedChunkData.slice(0, compactSize);
+
+    let offset = 0;
+    const zStride = this.dimensions_.z
+      ? receivedChunk.stride[this.dimensions_.z.index]
+      : 0;
+    const yStride = receivedChunk.stride[this.dimensions_.y.index];
+    for (let z = 0; z < chunk.shape.z; z++) {
+      const zStart = z * zStride;
+      for (let y = 0; y < chunk.shape.y; y++) {
+        const srcStart = zStart + y * yStride;
+        const srcEnd = srcStart + chunk.shape.x;
+        compactData.set(receivedChunkData.subarray(srcStart, srcEnd), offset);
+        offset += chunk.shape.x;
+      }
+    }
+    return compactData;
   }
 
   public async loadRegion(
