@@ -164,7 +164,7 @@ export class ChunkManagerSource {
   private getCurrentTimeIndex() {
     if (this.sliceCoords_.t === undefined) return 0;
     if (this.dimensions_.t === undefined) return 0;
-    return coordToIndex(this.dimensions_.t.lods[0], this.sliceCoords_.t)
+    return coordToIndex(this.dimensions_.t.lods[0], this.sliceCoords_.t);
   }
 
   public allVisibleLowestLODLoaded(): boolean {

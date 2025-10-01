@@ -139,7 +139,10 @@ export function coordToIndex(lod: SourceDimensionLod, coord: number): number {
   return Math.floor(index + CONVERSION_TOLERANCE);
 }
 
-export function coordToChunkIndex(lod: SourceDimensionLod, coord: number): number {
+export function coordToChunkIndex(
+  lod: SourceDimensionLod,
+  coord: number
+): number {
   const index = (coord - lod.translation) / (lod.scale * lod.chunkSize);
   return Math.floor(index + CONVERSION_TOLERANCE);
 }

@@ -47,7 +47,7 @@ const sliceCoords = {
 
 const channelColor = Color.GREEN;
 const channelProps: ChannelProps[] = [
-  { 
+  {
     contrastLimits: initialContrastLimits,
     color: channelColor,
   },
@@ -149,10 +149,12 @@ function updateContrastLimits() {
     controls.window,
     controls.level
   );
-  const newChannelProps = [{ 
-    contrastLimits,
-    color: channelColor,
-  }];
+  const newChannelProps = [
+    {
+      contrastLimits,
+      color: channelColor,
+    },
+  ];
   imageLayer.setChannelProps(newChannelProps);
 }
 
