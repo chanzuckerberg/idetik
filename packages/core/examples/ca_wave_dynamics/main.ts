@@ -33,7 +33,7 @@ const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
 
 const initialWindow = 80;
-const initialLevel = 10;
+const initialLevel = 50;
 const initialContrastLimits = windowLevelToContrastLimits(
   initialWindow,
   initialLevel
