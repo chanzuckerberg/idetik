@@ -127,3 +127,19 @@ export type ChunkLoader = {
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
+
+const CONVERSION_TOLERANCE: Readonly<number> = 10 * Number.EPSILON;
+
+export function coordToIndex(lod: SourceDimensionLod, coord: number): number {
+  // We draw a 2D chunk with no translation from (0, 0), so the extent of that
+  // chunk is [0, scale), therefore we floor the conversion. We add a small
+  // multiple of floating point precision before flooring to account for loss
+  // of precision from the conversion.
+  const index = (coord - lod.translation) / lod.scale;
+  return Math.floor(index + CONVERSION_TOLERANCE);
+}
+
+export function coordToChunkIndex(lod: SourceDimensionLod, coord: number): number {
+  const index = (coord - lod.translation) / (lod.scale * lod.chunkSize);
+  return Math.floor(index + CONVERSION_TOLERANCE);
+}
