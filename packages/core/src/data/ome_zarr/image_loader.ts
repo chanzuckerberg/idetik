@@ -11,6 +11,7 @@ import {
   LoaderAttributes,
   SliceCoordinates,
   ChunkData,
+  ChunkDataConstructor,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -131,7 +132,11 @@ export class OmeZarrImageLoader {
       receivedShape.z > chunk.shape.z;
 
     if (receivedChunkHasPadding) {
-      chunk.data = this.trimChunkPadding(chunk, receivedChunk);
+      chunk.data = this.trimChunkPadding(
+        chunk,
+        receivedChunk.data,
+        receivedChunk.stride
+      );
     } else {
       chunk.data = receivedChunk.data;
       chunk.rowStride = receivedChunk.stride[this.dimensions_.y.index];
@@ -148,18 +153,18 @@ export class OmeZarrImageLoader {
 
   private trimChunkPadding(
     chunk: Chunk,
-    receivedChunk: zarr.Chunk<zarr.DataType>
+    receivedChunkData: ChunkData,
+    receivedChunkStride: number[]
   ): ChunkData {
-    // type assertion is safe because we check isChunkData(receivedChunk.data) in the caller
-    const receivedChunkData = receivedChunk.data as ChunkData;
     const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
-    const compactData = receivedChunkData.slice(0, compactSize);
+    const compactData =
+      new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
 
     let offset = 0;
     const zStride = this.dimensions_.z
-      ? receivedChunk.stride[this.dimensions_.z.index]
+      ? receivedChunkStride[this.dimensions_.z.index]
       : 0;
-    const yStride = receivedChunk.stride[this.dimensions_.y.index];
+    const yStride = receivedChunkStride[this.dimensions_.y.index];
     for (let z = 0; z < chunk.shape.z; z++) {
       const zStart = z * zStride;
       for (let y = 0; y < chunk.shape.y; y++) {
