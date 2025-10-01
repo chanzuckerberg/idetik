@@ -10,6 +10,8 @@ import {
   isChunkData,
   LoaderAttributes,
   SliceCoordinates,
+  ChunkData,
+  ChunkDataConstructor,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -94,27 +96,85 @@ export class OmeZarrImageLoader {
 
     const array = this.arrays_[chunk.lod];
     const arrayParams = this.arrayParams_[chunk.lod];
-    const subarray = await getChunk(array, arrayParams, chunkCoords, {
+    const receivedChunk = await getChunk(array, arrayParams, chunkCoords, {
       signal,
     });
 
-    const data = subarray.data;
-    if (!isChunkData(data)) {
+    if (!isChunkData(receivedChunk.data)) {
       throw new Error(
-        `Subarray has an unsupported data type, data=${data.constructor.name}`
+        `Received chunk has an unsupported data type, data=${receivedChunk.data.constructor.name}`
       );
     }
 
-    const rowAlignment = data.BYTES_PER_ELEMENT;
+    const receivedShape = {
+      x: receivedChunk.shape[this.dimensions_.x.index],
+      y: receivedChunk.shape[this.dimensions_.y.index],
+      z: this.dimensions_.z
+        ? receivedChunk.shape[this.dimensions_.z.index]
+        : chunk.shape.z,
+    };
+
+    const receivedChunkTooSmall =
+      receivedShape.x < chunk.shape.x ||
+      receivedShape.y < chunk.shape.y ||
+      receivedShape.z < chunk.shape.z;
+
+    if (receivedChunkTooSmall) {
+      throw new Error(
+        `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
+          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
+      );
+    }
+
+    const receivedChunkHasPadding =
+      receivedShape.x > chunk.shape.x ||
+      receivedShape.y > chunk.shape.y ||
+      receivedShape.z > chunk.shape.z;
+
+    if (receivedChunkHasPadding) {
+      chunk.data = this.trimChunkPadding(
+        chunk,
+        receivedChunk.data,
+        receivedChunk.stride
+      );
+    } else {
+      chunk.data = receivedChunk.data;
+      chunk.rowStride = receivedChunk.stride[this.dimensions_.y.index];
+    }
+
+    const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
     if (!isTextureUnpackRowAlignment(rowAlignment)) {
       throw new Error(
         "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
       );
     }
-
     chunk.rowAlignmentBytes = rowAlignment;
-    chunk.rowStride = subarray.stride[this.dimensions_.y.index];
-    chunk.data = data;
+  }
+
+  private trimChunkPadding(
+    chunk: Chunk,
+    receivedChunkData: ChunkData,
+    receivedChunkStride: number[]
+  ): ChunkData {
+    const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
+    const compactData =
+      new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
+
+    let offset = 0;
+    const zStride = this.dimensions_.z
+      ? receivedChunkStride[this.dimensions_.z.index]
+      : 0;
+    const yStride = receivedChunkStride[this.dimensions_.y.index];
+    for (let z = 0; z < chunk.shape.z; z++) {
+      const zStart = z * zStride;
+      for (let y = 0; y < chunk.shape.y; y++) {
+        const srcStart = zStart + y * yStride;
+        const srcEnd = srcStart + chunk.shape.x;
+        compactData.set(receivedChunkData.subarray(srcStart, srcEnd), offset);
+        offset += chunk.shape.x;
+      }
+    }
+    return compactData;
   }
 
   public async loadRegion(
