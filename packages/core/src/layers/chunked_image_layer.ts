@@ -223,11 +223,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       image.wireframeEnabled = false;
     }
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
-    image.transform.setTranslation([
-      chunk.offset.x - 0.5 * chunk.scale.x,
-      chunk.offset.y - 0.5 * chunk.scale.y,
-      0,
-    ]);
+    image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
   }
 
   public getValueAtWorld(world: vec3): number | null {
