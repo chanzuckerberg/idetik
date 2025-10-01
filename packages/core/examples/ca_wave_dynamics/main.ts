@@ -7,7 +7,6 @@ import {
   Color,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { ChunkInfoOverlay } from "./chunk_info_overlay";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
@@ -57,12 +56,6 @@ const camera = new OrthographicCamera(left, right, top, bottom);
 const imageLayer = new ChunkedImageLayer({ source, sliceCoords, channelProps });
 imageLayer.debugMode = true;
 
-const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;
-const chunkInfoOverlay = new ChunkInfoOverlay({
-  textDiv: overlaySelector,
-  imageLayer: imageLayer,
-});
-
 const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
 const timePointOverlay = {
   update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp) {
@@ -76,7 +69,7 @@ new Idetik({
   camera,
   cameraControls: new PanZoomControls(camera),
   layers: [imageLayer],
-  overlays: [chunkInfoOverlay, timePointOverlay],
+  overlays: [timePointOverlay],
   showStats: true,
 }).start();
 
@@ -123,13 +116,6 @@ overlaysFolder
   .add(controls, "showWireframes")
   .name("Show tile wireframes")
   .onChange((show: boolean) => (imageLayer.debugMode = show));
-
-overlaysFolder
-  .add(controls, "showChunkInfoOverlay")
-  .name("Show chunk information overlay")
-  .onChange((show: boolean) => {
-    overlaySelector.style.display = show ? "block" : "none";
-  });
 
 const contrastFolder = gui.addFolder("Window/Level");
 contrastFolder
