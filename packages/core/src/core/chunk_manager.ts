@@ -107,7 +107,7 @@ export class ChunkManagerSource {
                 orderKey: null,
                 shape: {
                   x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
-                  y: Math.min(chunkWidth, xLod.size - y * chunkWidth),
+                  y: Math.min(chunkHeight, yLod.size - y * chunkHeight),
                   z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
                   c: channels,
                 },
