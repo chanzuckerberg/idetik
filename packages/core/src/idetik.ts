@@ -34,6 +34,9 @@ export type IdetikContext = {
 
 export class Idetik {
   private lastAnimationId_?: number;
+  private resizeObserver_?: ResizeObserver;
+  private mediaQuery_?: MediaQueryList;
+  private onMediaQueryChange_?: (this: MediaQueryList, ev: MediaQueryListEvent) => void;
   private needsResize_ = false;
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
@@ -120,7 +123,7 @@ export class Idetik {
   }
 
   public start() {
-    Logger.info("Idetik", "Idetik runtime started");
+    Logger.info("Idetik", "Idetik runtime starting");
     if (this.lastAnimationId_ === undefined) {
       this.startLayoutObservers();
       this.animate();
@@ -161,25 +164,26 @@ export class Idetik {
   public stop() {
     Logger.info("Idetik", "Idetik runtime stopping");
     if (this.lastAnimationId_ !== undefined) {
-      Logger.info(
+      Logger.debug(
         "Idetik",
         "Cancelling animation frame",
         this.lastAnimationId_
       );
+      this.stopLayoutObservers();
       cancelAnimationFrame(this.lastAnimationId_);
       this.lastAnimationId_ = undefined;
     }
   }
 
   private startLayoutObservers() {
-    const resizeObserver = new ResizeObserver(() => {
+    this.resizeObserver_ = new ResizeObserver(() => {
       this.needsResize_ = true;
     });
 
-    resizeObserver.observe(this.canvas);
+    this.resizeObserver_.observe(this.canvas);
     for (const viewport of this.viewports_) {
       if (viewport.element !== this.canvas) {
-        resizeObserver.observe(viewport.element);
+        this.resizeObserver_.observe(viewport.element);
       }
     }
 
@@ -200,6 +204,25 @@ export class Idetik {
       );
     };
     startDevicePixelRatioObserver();
+  }
+
+  private startDevicePixelRatioObserver() {
+    // this media query needs to be updated after a change is detected, so we use a one-time
+    // event listener that re-registers itself with the new value
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio#monitoring_screen_resolution_or_zoom_level_changes
+    this.mediaQuery_ = matchMedia(
+      `(resolution: ${window.devicePixelRatio}dppx)`
+    );
+    this.onMediaQueryChange_ = () => {
+      this.needsResize_ = true;
+      this.startDevicePixelRatioObserver();
+    };
+    this.mediaQuery_.addEventListener("change", this.onMediaQueryChange_, {once: true});
+  }
+
+  private stopLayoutObservers() {
+    this.resizeObserver_?.disconnect();
+    this.mediaQuery_?.removeEventListener("change", this.onMediaQueryChange_!);
   }
 
   private updateSize() {
