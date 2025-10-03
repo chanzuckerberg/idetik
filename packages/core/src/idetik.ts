@@ -187,23 +187,7 @@ export class Idetik {
       }
     }
 
-    const startDevicePixelRatioObserver = () => {
-      // this media query needs to be updated after a change is detected, so we use a one-time
-      // event listener that re-registers itself with the new value
-      // https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio#monitoring_screen_resolution_or_zoom_level_changes
-      const mediaQuery = matchMedia(
-        `(resolution: ${window.devicePixelRatio}dppx)`
-      );
-      mediaQuery.addEventListener(
-        "change",
-        () => {
-          this.needsResize_ = true;
-          startDevicePixelRatioObserver();
-        },
-        { once: true }
-      );
-    };
-    startDevicePixelRatioObserver();
+    this.startDevicePixelRatioObserver();
   }
 
   private startDevicePixelRatioObserver() {
