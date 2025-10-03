@@ -144,9 +144,8 @@ export class Idetik {
     if (this.stats_) this.stats_.begin();
 
     // Must resize before render b/c changing canvas coordinate space clears it.
-    if (this.pixelSizeObserver_.changed) {
+    if (this.pixelSizeObserver_.getAndResetChanged()) {
       this.updateSize();
-      this.pixelSizeObserver_.changed = false;
     }
 
     for (const viewport of this.viewports_) {

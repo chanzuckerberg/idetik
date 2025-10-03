@@ -1,20 +1,26 @@
+import { Logger } from "./logger";
+
 export class PixelSizeObserver {
   private elements_: ReadonlyArray<HTMLElement>;
   private resizeObserver_?: ResizeObserver;
   private mediaQuery_?: MediaQueryList;
-  private onMediaQueryChange_?: (
-    this: MediaQueryList,
-    ev: MediaQueryListEvent
-  ) => void;
-  public changed = false;
+  private onMediaQueryChange_?: () => void;
+  private changed_ = false;
 
   constructor(elements: ReadonlyArray<HTMLElement> = []) {
     this.elements_ = elements;
   }
 
   public connect() {
+    if (this.resizeObserver_) {
+      Logger.warn(
+        "PixelSizeObserver",
+        "Attempted to connect already connected observer"
+      );
+      return;
+    }
     this.resizeObserver_ = new ResizeObserver(() => {
-      this.changed = true;
+      this.changed_ = true;
     });
 
     for (const element of this.elements_) {
@@ -22,6 +28,12 @@ export class PixelSizeObserver {
     }
 
     this.startDevicePixelRatioObserver();
+  }
+
+  public getAndResetChanged() {
+    const wasChanged = this.changed_;
+    this.changed_ = false;
+    return wasChanged;
   }
 
   private startDevicePixelRatioObserver() {
@@ -32,7 +44,7 @@ export class PixelSizeObserver {
       `(resolution: ${window.devicePixelRatio}dppx)`
     );
     this.onMediaQueryChange_ = () => {
-      this.changed = true;
+      this.changed_ = true;
       this.startDevicePixelRatioObserver();
     };
     this.mediaQuery_.addEventListener("change", this.onMediaQueryChange_, {
@@ -41,6 +53,13 @@ export class PixelSizeObserver {
   }
 
   public disconnect() {
+    if (!this.resizeObserver_) {
+      Logger.warn(
+        "PixelSizeObserver",
+        "Attempted to disconnect already disconnected observer"
+      );
+      return;
+    }
     this.resizeObserver_?.disconnect();
     if (this.mediaQuery_ && this.onMediaQueryChange_) {
       this.mediaQuery_.removeEventListener("change", this.onMediaQueryChange_);
