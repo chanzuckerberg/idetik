@@ -39,15 +39,47 @@ type Listener = (event: EventContext) => void;
 
 export class EventDispatcher {
   private readonly listeners_: Listener[] = [];
+  private readonly element_: HTMLElement;
+  private isConnected_ = false;
 
   constructor(element: HTMLElement) {
-    eventTypes.forEach((type) => {
-      element.addEventListener(type, this.handleEvent, { passive: false });
-    });
+    this.element_ = element;
   }
 
   public addEventListener(listener: Listener) {
     this.listeners_.push(listener);
+  }
+
+  public connect() {
+    if (this.isConnected_) {
+      Logger.debug(
+        "EventDispatcher",
+        "Attempted to connect already connected event dispatcher",
+        `element id: ${this.element_.id}`
+      );
+      return;
+    }
+    this.isConnected_ = true;
+    eventTypes.forEach((type) => {
+      this.element_.addEventListener(type, this.handleEvent, {
+        passive: false,
+      });
+    });
+  }
+
+  public disconnect() {
+    if (!this.isConnected_) {
+      Logger.debug(
+        "EventDispatcher",
+        "Attempted to disconnect already disconnected event dispatcher",
+        `element id: ${this.element_.id}`
+      );
+      return;
+    }
+    this.isConnected_ = false;
+    eventTypes.forEach((type) => {
+      this.element_.removeEventListener(type, this.handleEvent);
+    });
   }
 
   private readonly handleEvent = (e: Event) => {
