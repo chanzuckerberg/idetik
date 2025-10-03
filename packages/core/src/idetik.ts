@@ -85,7 +85,14 @@ export class Idetik {
 
     if (params.showStats) this.stats_ = createStats();
 
-    this.pixelSizeObserver_ = new PixelSizeObserver();
+    const pixelSizeDependents: HTMLElement[] = [this.canvas];
+    for (const viewport of this.viewports_) {
+      if (viewport.element !== this.canvas) {
+        pixelSizeDependents.push(viewport.element);
+      }
+      viewport.events.connect();
+    }
+    this.pixelSizeObserver_ = new PixelSizeObserver(pixelSizeDependents);
   }
 
   public get width() {
@@ -125,14 +132,7 @@ export class Idetik {
   public start() {
     Logger.info("Idetik", "Idetik runtime starting");
     if (this.lastAnimationId_ === undefined) {
-      const elements: HTMLElement[] = [this.canvas];
-      for (const viewport of this.viewports_) {
-        if (viewport.element !== this.canvas) {
-          elements.push(viewport.element);
-        }
-        viewport.events.connect();
-      }
-      this.pixelSizeObserver_.start(elements);
+      this.pixelSizeObserver_.connect();
       this.animate();
     } else {
       Logger.warn("Idetik", "Idetik runtime already started");
@@ -174,7 +174,7 @@ export class Idetik {
     if (this.lastAnimationId_ === undefined) {
       Logger.warn("Idetik", "Idetik runtime not started");
     } else {
-      this.pixelSizeObserver_.stop();
+      this.pixelSizeObserver_.disconnect();
       for (const viewport of this.viewports_) {
         viewport.events.disconnect();
       }

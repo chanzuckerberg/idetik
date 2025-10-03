@@ -1,4 +1,5 @@
 export class PixelSizeObserver {
+  private elements_: ReadonlyArray<HTMLElement>;
   private resizeObserver_?: ResizeObserver;
   private mediaQuery_?: MediaQueryList;
   private onMediaQueryChange_?: (
@@ -7,12 +8,16 @@ export class PixelSizeObserver {
   ) => void;
   public changed = false;
 
-  public start(elements: ReadonlyArray<HTMLElement>) {
+  constructor(elements: ReadonlyArray<HTMLElement> = []) {
+    this.elements_ = elements;
+  }
+
+  public connect() {
     this.resizeObserver_ = new ResizeObserver(() => {
       this.changed = true;
     });
 
-    for (const element of elements) {
+    for (const element of this.elements_) {
       this.resizeObserver_.observe(element);
     }
 
@@ -35,7 +40,7 @@ export class PixelSizeObserver {
     });
   }
 
-  public stop() {
+  public disconnect() {
     this.resizeObserver_?.disconnect();
     if (this.mediaQuery_ && this.onMediaQueryChange_) {
       this.mediaQuery_.removeEventListener("change", this.onMediaQueryChange_);
