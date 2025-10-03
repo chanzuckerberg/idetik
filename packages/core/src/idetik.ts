@@ -130,6 +130,7 @@ export class Idetik {
         if (viewport.element !== this.canvas) {
           elements.push(viewport.element);
         }
+        viewport.events.connect();
       }
       this.pixelSizeObserver_.start(elements);
       this.animate();
@@ -174,6 +175,9 @@ export class Idetik {
       Logger.warn("Idetik", "Idetik runtime not started");
     } else {
       this.pixelSizeObserver_.stop();
+      for (const viewport of this.viewports_) {
+        viewport.events.disconnect();
+      }
       cancelAnimationFrame(this.lastAnimationId_);
       this.lastAnimationId_ = undefined;
     }
