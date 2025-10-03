@@ -90,7 +90,6 @@ export class Idetik {
       if (viewport.element !== this.canvas) {
         sizeDependents.push(viewport.element);
       }
-      viewport.events.connect();
     }
     this.sizeObserver_ = new PixelSizeObserver(sizeDependents);
   }
@@ -132,6 +131,9 @@ export class Idetik {
   public start() {
     Logger.info("Idetik", "Idetik runtime starting");
     if (this.lastAnimationId_ === undefined) {
+      for (const viewport of this.viewports_) {
+        viewport.events.connect();
+      }
       this.sizeObserver_.connect();
       this.animate();
     } else {
