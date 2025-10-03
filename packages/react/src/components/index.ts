@@ -1,5 +1,4 @@
 // Core components
-export { default as App } from "./App";
 export { default as AppWithProviders } from "./AppWithProviders";
 export { IdetikCanvas } from "./IdetikCanvas";
 

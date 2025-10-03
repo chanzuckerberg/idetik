@@ -1,6 +1,7 @@
 import { Region } from "./region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
+import { Logger } from "../utilities/logger";
 
 const chunkDataTypes = [
   Int8Array,
@@ -11,14 +12,16 @@ const chunkDataTypes = [
   Uint32Array,
   Float32Array,
 ] as const;
-export type ChunkData = InstanceType<(typeof chunkDataTypes)[number]>;
+export type ChunkDataConstructor = (typeof chunkDataTypes)[number];
+export type ChunkData = InstanceType<ChunkDataConstructor>;
 
 export function isChunkData(value: unknown): value is ChunkData {
   if (chunkDataTypes.some((ChunkData) => value instanceof ChunkData)) {
     return true;
   }
   const supportedDataTypeNames = chunkDataTypes.map((dtype) => dtype.name);
-  console.debug(
+  Logger.debug(
+    "Chunk",
     `Unsupported chunk data type: ${value}. Supported data types: ${supportedDataTypeNames}`
   );
   return false;
@@ -31,6 +34,7 @@ export type Chunk = {
   visible: boolean;
   prefetch: boolean;
   priority: number | null;
+  orderKey: number | null;
   shape: {
     x: number;
     y: number;
@@ -43,6 +47,7 @@ export type Chunk = {
     x: number;
     y: number;
     z: number;
+    t: number;
   };
   scale: {
     x: number;
@@ -114,7 +119,11 @@ export type ChunkLoader = {
 
   getSourceDimensionMap(): SourceDimensionMap;
 
-  loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates): Promise<void>;
+  loadChunkData(
+    chunk: Chunk,
+    sliceCoords: SliceCoordinates,
+    signal: AbortSignal
+  ): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };

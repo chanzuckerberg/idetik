@@ -17,14 +17,15 @@ export class ChunkInfoOverlay {
   }
 
   public update(idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
+    if (this.textDiv_.style.display === "none") return;
     const chunkManagerSource = this.imageLayer_.chunkManagerSource;
     if (!chunkManagerSource) {
       this.textDiv_.textContent = "No chunk manager source";
       return;
     }
 
-    const allChunks = chunkManagerSource.chunks;
-    if (!allChunks) {
+    const chunksAtCurrentTime = chunkManagerSource.getChunksAtCurrentTime();
+    if (!chunksAtCurrentTime) {
       this.textDiv_.textContent = "No chunks available";
       return;
     }
@@ -32,18 +33,10 @@ export class ChunkInfoOverlay {
     const chunkDetails: string[] = [];
     const currentLOD = chunkManagerSource.currentLOD;
     const renderedChunks = chunkManagerSource.getChunks();
-    const totalChunks = allChunks.length;
+    const totalChunks = chunksAtCurrentTime.length;
 
     let loadedChunks = 0;
     let loadingChunks = 0;
-    allChunks.forEach((chunk: Chunk) => {
-      if (chunk.state === "loaded") {
-        loadedChunks++;
-      } else if (chunk.state === "loading") {
-        loadingChunks++;
-      }
-    });
-
     const lodCounters: {
       visible: number;
       rendered: number;
@@ -53,8 +46,12 @@ export class ChunkInfoOverlay {
       rendered: 0,
       prefetched: 0,
     }));
-
-    allChunks.forEach((chunk: Chunk) => {
+    chunksAtCurrentTime.forEach((chunk: Chunk) => {
+      if (chunk.state === "loaded") {
+        loadedChunks++;
+      } else if (chunk.state === "loading") {
+        loadingChunks++;
+      }
       if (chunk.visible) lodCounters[chunk.lod].visible++;
       // Prefetched chunks are only counted for the current LOD,
       // since higher/lower LODs are not actively rendered.
@@ -67,12 +64,10 @@ export class ChunkInfoOverlay {
       lodCounters[chunk.lod].rendered++;
     });
 
-    if (renderedChunks.length > 0) {
-      chunkDetails.push(`Total rendered: ${renderedChunks.length} chunks`);
-    }
+    chunkDetails.push(`Total rendered: ${renderedChunks.length} chunks`);
 
     const status = loadingChunks > 0 ? "Loading..." : "Ready";
-    const summary = `Chunks: ${loadedChunks}/${totalChunks} ${status}`;
+    const summary = `Chunks at time point: ${loadedChunks}/${totalChunks} ${status}`;
     const counters: string[] = [];
     lodCounters.forEach((counter, lod) => {
       const prefix = lod === currentLOD ? `LOD ${lod} (current)` : `LOD ${lod}`;

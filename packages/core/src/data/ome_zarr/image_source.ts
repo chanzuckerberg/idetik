@@ -1,7 +1,11 @@
 import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
-import { openArray, openGroup } from "../zarr/open";
+import {
+  openArrayFromParams,
+  openGroup,
+  createZarrArrayParams,
+} from "../zarr/open";
 import WebFileSystemStore from "../zarr/web_file_system_store";
 import { OmeZarrImageLoader } from "./image_loader";
 import { omeZarrToZarrVersion, parseOmeZarrImage } from "./metadata_loaders";
@@ -43,9 +47,13 @@ export class OmeZarrImageSource {
       throw new Error(`No datasets found in the multiscale image.`);
     }
     const zarrVersion = omeZarrToZarrVersion(omeVersion);
-    const arrays = await Promise.all(
-      metadata.datasets.map((d) => openArray(root.resolve(d.path), zarrVersion))
+    const arrayParams = metadata.datasets.map((d) =>
+      createZarrArrayParams(this.location, d.path, zarrVersion)
     );
+    const arrays = await Promise.all(
+      arrayParams.map((params) => openArrayFromParams(params))
+    );
+
     const shape = arrays[0].shape;
     const axes = metadata.axes;
     if (axes.length !== shape.length) {
@@ -56,6 +64,7 @@ export class OmeZarrImageSource {
     return new OmeZarrImageLoader({
       metadata,
       arrays,
+      arrayParams,
     });
   }
 }

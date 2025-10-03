@@ -1,3 +1,4 @@
+import { Logger } from "../utilities/logger";
 import { mat4, vec2, vec3 } from "gl-matrix";
 
 export class WebGLShaderProgram {
@@ -104,7 +105,13 @@ export class WebGLShaderProgram {
         const location = this.gl_.getUniformLocation(this.program_, info.name);
         if (location) {
           this.uniformInfo_.set(info.name, [location, info]);
-          console.debug("Uniform found:", info.name, info.type, info.size);
+          Logger.debug(
+            "WebGLShaderProgram",
+            "Uniform found:",
+            info.name,
+            info.type,
+            info.size
+          );
         }
       }
     }

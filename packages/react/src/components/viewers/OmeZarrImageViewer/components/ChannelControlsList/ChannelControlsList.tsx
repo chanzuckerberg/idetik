@@ -12,7 +12,7 @@ import {
   ChannelsEnabled,
 } from "@idetik/core-prerelease";
 import { useSyncExternalStore } from "react";
-import { ExtraControlProps } from "../../utils";
+import { ExtraControlProps } from "../../../shared/omeZarrHelpers";
 
 export interface ChannelControlsListProps {
   layer: ChannelsEnabled;

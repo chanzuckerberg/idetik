@@ -1,6 +1,7 @@
 import { IdetikContext } from "../idetik";
 import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
+import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
 
 export type LayerState = "initialized" | "loading" | "ready";
@@ -34,7 +35,8 @@ export abstract class Layer {
     blendMode = "normal",
   }: LayerOptions = {}) {
     if (opacity < 0 || opacity > 1) {
-      console.warn(
+      Logger.warn(
+        "Layer",
         `Layer opacity out of bounds: ${opacity} — clamping to [0.0, 1.0]`
       );
     }
@@ -49,7 +51,10 @@ export abstract class Layer {
 
   public set opacity(value: number) {
     if (value < 0 || value > 1) {
-      console.warn(`Opacity out of bounds: ${value} — clamping to [0.0, 1.0]`);
+      Logger.warn(
+        "Layer",
+        `Opacity out of bounds: ${value} — clamping to [0.0, 1.0]`
+      );
     }
     this.opacity_ = clamp(value, 0.0, 1.0);
   }

@@ -3,13 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   OmeZarrImageSource,
-  OrthographicCamera,
   ImageSeriesLayer,
   Region,
-  loadOmeroChannels,
   loadOmeroDefaults,
   ChannelProps,
-  Idetik,
   ImageLayer,
 } from "@idetik/core-prerelease";
 import { useIdetik } from "../../../hooks/useIdetik";
@@ -17,15 +14,14 @@ import { IdetikCanvas } from "../../IdetikCanvas";
 import { Button, InputSlider, LoadingIndicator } from "@czi-sds/components";
 import cns from "classnames";
 import { MODIFIED_SLIDER_STYLES } from "./components/ChannelControlsList/components/ChannelControl/components/ContrastSlider/styles";
-import {
-  omeroToChannelProps,
-  getGrayscaleChannelProp,
-  omeroToChannelControls,
-  defaultGreyscaleChannel,
-  ExtraControlProps,
-} from "./utils";
 import { ChannelControlsList } from "./components/ChannelControlsList";
 import { ScaleBar } from "./components/ScaleBar/ScaleBar";
+import {
+  createSource,
+  loadChannelMetadata as sharedLoadChannelMetadata,
+  zoomToFit,
+  ExtraControlProps,
+} from "../shared/omeZarrHelpers";
 
 export interface OmeZarrImageViewerProps {
   sourceUrl?: string;
@@ -89,7 +85,7 @@ export function OmeZarrImageViewer({
     throw new Error("Cannot set both sourceUrl and sourceLocalDirectory.");
   }
 
-  const { isReady: runtimeIsReady, runtime } = useIdetik();
+  const { runtime } = useIdetik();
 
   const [unit, setUnit] = useState<string>();
   const [zRange, setZRange] = useState<[number, number]>([0, 0]);
@@ -105,7 +101,7 @@ export function OmeZarrImageViewer({
   // #region Initialization
   const { directory, path } = sourceLocalDirectory ?? {};
   useEffect(() => {
-    if (!runtimeIsReady) return;
+    if (!runtime) return;
     const initialize = async () => {
       const source = createSource(sourceUrl, directory, path);
       if (source === undefined) {
@@ -114,7 +110,7 @@ export function OmeZarrImageViewer({
       sourceRef.current = source;
       setAllSlicesLoaded(false);
       setLoading(true);
-      const loadChannelMetadataPromise = loadChannelMetadata(
+      const loadChannelMetadataPromise = sharedLoadChannelMetadata(
         source,
         fallbackContrastLimits
       );
@@ -180,7 +176,6 @@ export function OmeZarrImageViewer({
     fallbackContrastLimits,
     directory,
     path,
-    runtimeIsReady,
     runtime,
   ]);
 
@@ -251,84 +246,96 @@ export function OmeZarrImageViewer({
             extraControlProps={extraControlProps}
             classNames={{ root: "absolute top-0 left-0 z-10" }}
           />
-          {scaleBar.visible && (
-            <div className="flex flex-col m-sds-l w-1/5 select-none absolute bottom-0 left-0">
-              <ScaleBar unit={unit} align={scaleBar.align} />
-            </div>
-          )}
           <div
             className={cns(
-              "flex flex-col grow items-end p-sds-l gap-sds-l absolute bottom-0 right-0",
-              classNames?.sliceMetadataContainer
+              "flex w-full absolute bottom-0 items-end justify-between gap-sds-l pointer-events-none"
             )}
           >
-            {loading && <LoadingIndicator sdsStyle="tag" />}
-            {!loading && seriesDimensionName && (
-              <div
-                // These share styles with ChannelControlsList
-                className={cns(
-                  "text-white",
-                  "text-sm",
-                  "bg-black/75",
-                  "backdrop-blur-md",
-                  "p-sds-xs",
-                  "rounded-sds-m",
-                  "shadow-sds-m",
-                  "font-sds-code",
-                  "select-none",
-                  classNames?.sliceIndicator
-                )}
-              >
-                {typeof indexIndicatorText === "string" && indexIndicatorText}
-                {typeof indexIndicatorText === "function" &&
-                  indexIndicatorText(zIndex, zRange[1] - zRange[0])}
-                {typeof indexIndicatorText === "undefined" &&
-                  `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
+            {scaleBar.visible && (
+              <div className="flex flex-col m-sds-l w-1/5 select-none">
+                <ScaleBar unit={unit} align={scaleBar.align} />
               </div>
             )}
-            {allSlicesLoaded && (
-              <div
-                className={cns(
-                  "w-full md:w-[200px]",
-                  "flex",
-                  "bg-black/75",
-                  "backdrop-blur-md",
-                  "rounded-sds-m",
-                  "shadow-sds-m",
-                  "py-sds-xs",
-                  "px-sds-m",
-                  classNames?.sliceSliderContainer
-                )}
-              >
-                <InputSlider
-                  min={0}
-                  max={1}
-                  step={1 / (zRange[1] - zRange[0])}
-                  value={zValue}
-                  {...MODIFIED_SLIDER_STYLES}
-                  onChange={(_, val: number | number[]) => {
-                    if (typeof val === "number") {
-                      setZValue(val);
-                      updateSeriesIndex(val, zRange);
-                    }
-                  }}
-                />
-              </div>
-            )}
-            {!allSlicesLoaded && seriesDimensionName && (
-              <Button
-                sdsType="primary"
-                sdsStyle="square"
-                size="small"
-                disabled={loading}
-                onClick={loadAllSlicesCallback}
-                className={cns("shadow-sds-m", classNames?.load3dButton)}
-              >
-                {typeof loadAllButtonText === "string" && loadAllButtonText}
-                {typeof loadAllButtonText === "function" && loadAllButtonText()}
-                {typeof loadAllButtonText === "undefined" && "Load 3D high-res"}
-              </Button>
-            )}
+            <div
+              className={cns(
+                "flex flex-col grow items-end p-sds-l gap-sds-l",
+                classNames?.sliceMetadataContainer
+              )}
+            >
+              {loading && <LoadingIndicator sdsStyle="tag" />}
+              {!loading && seriesDimensionName && (
+                <div
+                  // These share styles with ChannelControlsList
+                  className={cns(
+                    "text-white",
+                    "text-sm",
+                    "bg-black/75",
+                    "backdrop-blur-md",
+                    "p-sds-xs",
+                    "rounded-sds-m",
+                    "shadow-sds-m",
+                    "font-sds-code",
+                    "select-none",
+                    classNames?.sliceIndicator
+                  )}
+                >
+                  {typeof indexIndicatorText === "string" && indexIndicatorText}
+                  {typeof indexIndicatorText === "function" &&
+                    indexIndicatorText(zIndex, zRange[1] - zRange[0])}
+                  {typeof indexIndicatorText === "undefined" &&
+                    `Slice ${zIndex}/${zRange[1] - zRange[0]}`}
+                </div>
+              )}
+              {allSlicesLoaded && (
+                <div
+                  className={cns(
+                    "w-full md:w-[200px]",
+                    "flex",
+                    "bg-black/75",
+                    "backdrop-blur-md",
+                    "rounded-sds-m",
+                    "shadow-sds-m",
+                    "py-sds-xs",
+                    "px-sds-m",
+                    "pointer-events-auto",
+                    classNames?.sliceSliderContainer
+                  )}
+                >
+                  <InputSlider
+                    min={0}
+                    max={1}
+                    step={1 / (zRange[1] - zRange[0])}
+                    value={zValue}
+                    {...MODIFIED_SLIDER_STYLES}
+                    onChange={(_, val: number | number[]) => {
+                      if (typeof val === "number") {
+                        setZValue(val);
+                        updateSeriesIndex(val, zRange);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+              {!allSlicesLoaded && seriesDimensionName && (
+                <Button
+                  sdsType="primary"
+                  sdsStyle="square"
+                  size="small"
+                  disabled={loading}
+                  onClick={loadAllSlicesCallback}
+                  className={cns(
+                    "shadow-sds-m pointer-events-auto",
+                    classNames?.load3dButton
+                  )}
+                >
+                  {typeof loadAllButtonText === "string" && loadAllButtonText}
+                  {typeof loadAllButtonText === "function" &&
+                    loadAllButtonText()}
+                  {typeof loadAllButtonText === "undefined" &&
+                    "Load 3D high-res"}
+                </Button>
+              )}
+            </div>
           </div>
         </>
       )}
@@ -337,48 +344,6 @@ export function OmeZarrImageViewer({
 }
 
 // #region Helpers
-
-function createSource(
-  sourceUrl?: string,
-  directory?: FileSystemDirectoryHandle,
-  path?: `/${string}`
-): OmeZarrImageSource | undefined {
-  if (sourceUrl !== undefined) {
-    return new OmeZarrImageSource(sourceUrl);
-  } else if (directory !== undefined) {
-    return new OmeZarrImageSource(directory, path);
-  }
-}
-
-async function loadChannelMetadata(
-  source: OmeZarrImageSource,
-  fallbackContrastLimits?: [number, number]
-): Promise<{
-  channelProps: Array<ChannelProps>;
-  extraControlProps: Array<ExtraControlProps>;
-}> {
-  try {
-    const loadedOmeroChannels = await loadOmeroChannels(source);
-    let channelProps;
-    if (loadedOmeroChannels.length === 0) {
-      console.warn(
-        "No OMERO channels found. Falling back to 1 grayscale channel."
-      );
-      channelProps = [getGrayscaleChannelProp(fallbackContrastLimits)];
-    } else {
-      channelProps = omeroToChannelProps(loadedOmeroChannels);
-    }
-    return {
-      channelProps,
-      extraControlProps: omeroToChannelControls(
-        loadedOmeroChannels,
-        defaultGreyscaleChannel(fallbackContrastLimits)
-      ),
-    };
-  } catch (err) {
-    throw new Error(`[Viewer] Failed to load OMERO metadata: ${err}`);
-  }
-}
 
 async function loadImageMetadata(
   source: OmeZarrImageSource,
@@ -447,7 +412,8 @@ async function loadImageMetadata(
 
   let initialZ: number;
   const zRegion = region.find(
-    (d) => d.dimension.toUpperCase() === seriesDimensionName.toUpperCase()
+    (d: Region[number]) =>
+      d.dimension.toUpperCase() === seriesDimensionName.toUpperCase()
   );
   const isFullZ = zRegion && zRegion.index?.type === "full";
 
@@ -533,13 +499,4 @@ function createLayer(
         seriesDimensionName,
         lod: resolutionLevel,
       });
-}
-
-function zoomToFit(
-  xRange: [number, number],
-  yRange: [number, number],
-  runtime: Idetik
-) {
-  const camera = runtime.camera as OrthographicCamera;
-  camera?.setFrame(xRange[0], xRange[1], yRange[1], yRange[0]);
 }

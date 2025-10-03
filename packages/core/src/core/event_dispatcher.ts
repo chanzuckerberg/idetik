@@ -40,9 +40,9 @@ type Listener = (event: EventContext) => void;
 export class EventDispatcher {
   private readonly listeners_: Listener[] = [];
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(element: HTMLElement) {
     eventTypes.forEach((type) => {
-      canvas.addEventListener(type, this.handleEvent, { passive: false });
+      element.addEventListener(type, this.handleEvent, { passive: false });
     });
   }
 

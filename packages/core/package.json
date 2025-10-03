@@ -1,11 +1,12 @@
 {
   "name": "@idetik/core-prerelease",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "compile": "tsc",
     "build": "vite build && tsc && rollup -c rollup.config.js",
+    "build:examples": "vite build --mode examples",
     "test": "vitest",
     "test-with-coverage": "vitest run --coverage",
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",

@@ -6,6 +6,7 @@ import { Box2 } from "../math/box2";
 import { vec2, vec3 } from "gl-matrix";
 import { generateUUID } from "../utilities/uuid_generator";
 import { Logger } from "../utilities/logger";
+import { EventContext, EventDispatcher } from "./event_dispatcher";
 
 export interface ViewportConfig {
   id?: string;
@@ -20,9 +21,8 @@ export class Viewport {
   public readonly element: HTMLElement;
   public readonly camera: Camera;
   public readonly layerManager: LayerManager;
+  public readonly events: EventDispatcher;
   public cameraControls?: CameraControls;
-
-  private cachedViewportBox_: Box2 | null = null;
 
   constructor(config: ViewportConfig, layerManager: LayerManager) {
     this.id = config.id || config.element.id || generateUUID();
@@ -31,6 +31,23 @@ export class Viewport {
     this.layerManager = layerManager;
     this.cameraControls = config.cameraControls;
     this.updateAspectRatio();
+    this.events = new EventDispatcher(this.element);
+    this.events.addEventListener((event: EventContext) => {
+      if (
+        event.event instanceof PointerEvent ||
+        event.event instanceof WheelEvent
+      ) {
+        const { clientX, clientY } = event.event;
+        const client = vec2.fromValues(clientX, clientY);
+        event.clipPos = this.clientToClip(client, 0);
+        event.worldPos = this.camera.clipToWorld(event.clipPos);
+      }
+      for (const layer of this.layerManager.layers) {
+        layer.onEvent(event);
+        if (event.propagationStopped) return;
+      }
+      this.cameraControls?.onEvent(event);
+    });
 
     for (const layer of config.layers ?? []) {
       this.layerManager.add(layer);
@@ -38,7 +55,6 @@ export class Viewport {
   }
 
   public updateSize(): void {
-    this.cachedViewportBox_ = null;
     this.updateAspectRatio();
   }
 
@@ -84,9 +100,6 @@ export class Viewport {
   }
 
   private getBox(): Box2 {
-    if (this.cachedViewportBox_) {
-      return this.cachedViewportBox_;
-    }
     const viewportRect = this.element.getBoundingClientRect();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
@@ -95,12 +108,10 @@ export class Viewport {
     const width = viewportRect.width * devicePixelRatio;
     const height = viewportRect.height * devicePixelRatio;
 
-    this.cachedViewportBox_ = new Box2(
+    return new Box2(
       vec2.fromValues(x, y),
       vec2.fromValues(x + width, y + height)
     );
-
-    return this.cachedViewportBox_;
   }
 
   private updateAspectRatio(): void {

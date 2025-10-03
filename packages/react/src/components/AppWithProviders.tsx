@@ -3,12 +3,16 @@ import { StyledEngineProvider, ThemeProvider } from "@mui/material/styles";
 import { Theme } from "@czi-sds/components";
 import CssBaseline from "@mui/material/CssBaseline";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import { ReactNode } from "react";
 
-import App from "./App";
 import { IdetikProvider } from "./providers/IdetikProvider";
 
+interface AppWithProvidersProps {
+  children?: ReactNode;
+}
+
 // Create a wrapper component to handle providers
-export default function AppWithProviders() {
+export default function AppWithProviders({ children }: AppWithProvidersProps) {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const theme = prefersDarkMode ? Theme("dark") : Theme("light");
 
@@ -17,9 +21,7 @@ export default function AppWithProviders() {
       <ThemeProvider theme={theme}>
         <EmotionThemeProvider theme={theme}>
           <CssBaseline />
-          <IdetikProvider>
-            <App />
-          </IdetikProvider>
+          <IdetikProvider>{children}</IdetikProvider>
         </EmotionThemeProvider>
       </ThemeProvider>
     </StyledEngineProvider>

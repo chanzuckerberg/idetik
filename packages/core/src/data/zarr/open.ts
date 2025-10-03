@@ -1,7 +1,29 @@
 import * as zarr from "zarrita";
+import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
+import FetchStore from "@zarrita/storage/fetch";
+import WebFileSystemStore from "./web_file_system_store";
 
 export type Version = "v2" | "v3";
+
+export type ZarrArrayParams = {
+  arrayPath: string;
+  zarrVersion: Version;
+} & (
+  | {
+      type: "fetch";
+      url: string;
+      fetchOptions?: {
+        overrides?: RequestInit;
+        useSuffixRequest?: boolean;
+      };
+    }
+  | {
+      type: "filesystem";
+      directoryHandle: FileSystemDirectoryHandle;
+      path: string;
+    }
+);
 
 export async function openGroup(
   location: zarr.Location<Readable>,
@@ -50,5 +72,64 @@ export async function openArray(
     return zarr.open(location, { kind: "array" });
   } catch {
     throw new Error(`Failed to open Zarr array at ${location}`);
+  }
+}
+
+export async function openArrayFromParams(
+  params: ZarrArrayParams
+): Promise<zarr.Array<zarr.DataType, Readable>> {
+  let rootLocation: Location<Readable>;
+
+  switch (params.type) {
+    case "fetch": {
+      rootLocation = new Location(
+        new FetchStore(params.url, params.fetchOptions)
+      );
+      break;
+    }
+    case "filesystem": {
+      rootLocation = new Location(
+        new WebFileSystemStore(params.directoryHandle),
+        params.path as `/${string}`
+      );
+      break;
+    }
+    default: {
+      const exhaustiveCheck: never = params;
+      throw new Error(`Unsupported store type: ${exhaustiveCheck}`);
+    }
+  }
+
+  const arrayLocation = params.arrayPath
+    ? rootLocation.resolve(params.arrayPath)
+    : rootLocation;
+
+  return openArray(arrayLocation, params.zarrVersion);
+}
+
+export function createZarrArrayParams(
+  location: Location<Readable>,
+  arrayPath: string,
+  zarrVersion: Version
+): ZarrArrayParams {
+  if (location.store instanceof FetchStore) {
+    return {
+      type: "fetch",
+      arrayPath,
+      zarrVersion,
+      url: (location.store as FetchStore).url.toString(),
+    };
+  } else if (location.store instanceof WebFileSystemStore) {
+    return {
+      type: "filesystem",
+      arrayPath,
+      zarrVersion,
+      directoryHandle: location.store.directoryHandle,
+      path: location.path,
+    };
+  } else {
+    throw new Error(
+      `Unsupported store type: ${location.store.constructor.name}`
+    );
   }
 }

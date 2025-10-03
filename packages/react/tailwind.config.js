@@ -5,6 +5,7 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{ts,tsx,css}",
+    "./examples/**/*.{ts,tsx,css}",
   ],
   theme: {
     extend: sds,

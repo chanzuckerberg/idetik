@@ -7,6 +7,7 @@ import {
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
+import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
 const url =
@@ -27,9 +28,14 @@ const sliceCoords = {
 // values copied from source
 const imageDataRange = { min: 0, max: 244 };
 const z = { translate: 0.0, scale: 1.24, shape: 448 };
-const min = z.translate;
-const max = z.translate + z.scale * z.shape - z.scale;
-const zRange = { min, max };
+const zMin = z.translate;
+const zMax = z.translate + z.scale * z.shape - z.scale;
+const zRange = { min: zMin, max: zMax };
+
+const t = { translate: 0.0, scale: 1.0, shape: 791 };
+const tMin = t.translate;
+const tMax = t.translate + t.scale * t.shape - t.scale;
+const tRange = { min: tMin, max: tMax };
 
 const initialWindow = 50;
 const initialLevel = 25;
@@ -51,19 +57,27 @@ const chunkInfoOverlay = new ChunkInfoOverlay({
   imageLayer: imageLayer,
 });
 
+const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
+const timePointOverlay = {
+  update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp) {
+    const time = imageLayer.lastPresentationTimeCoord;
+    timePointDiv.textContent = `t = ${time}`;
+  },
+};
+
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   camera,
   cameraControls: new PanZoomControls(camera),
   layers: [imageLayer],
-  overlays: [chunkInfoOverlay],
+  overlays: [chunkInfoOverlay, timePointOverlay],
   showStats: true,
 }).start();
 
 const controls = {
-  sliceCoords,
-  showWireframes: true,
+  showWireframes: imageLayer.debugMode,
   showChunkInfoOverlay: true,
+  showTimePointOverlay: true,
   window: initialWindow,
   level: initialLevel,
   resetContrast: function () {
@@ -73,16 +87,48 @@ const controls = {
 
 const gui = new GUI({ width: 500 });
 
-gui
-  .add(controls.sliceCoords, "z", zRange.min, zRange.max, z.scale)
-  .name("Z-point");
+addDimensionSlider({
+  gui,
+  sliceCoords,
+  dimensionName: "z",
+  minValue: zRange.min,
+  maxValue: zRange.max,
+  stepValue: z.scale,
+  playback: {},
+});
 
-gui
+addDimensionSlider({
+  gui,
+  sliceCoords,
+  dimensionName: "t",
+  minValue: tRange.min,
+  maxValue: tRange.max,
+  stepValue: t.scale,
+  playback: {
+    onRateChange: (rateHz: number) => {
+      const source = imageLayer.chunkManagerSource;
+      if (source) {
+        source.prioritizePrefetchTime = rateHz > 0;
+      }
+    },
+  },
+});
+
+const overlaysFolder = gui.addFolder("Overlays");
+
+overlaysFolder
+  .add(controls, "showTimePointOverlay")
+  .name("Show time point overlay")
+  .onChange((show: boolean) => {
+    timePointDiv.style.display = show ? "block" : "none";
+  });
+
+overlaysFolder
   .add(controls, "showWireframes")
   .name("Show tile wireframes")
   .onChange((show: boolean) => (imageLayer.debugMode = show));
 
-gui
+overlaysFolder
   .add(controls, "showChunkInfoOverlay")
   .name("Show chunk information overlay")
   .onChange((show: boolean) => {

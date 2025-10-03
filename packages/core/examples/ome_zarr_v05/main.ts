@@ -8,6 +8,8 @@ import {
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
+import { addDimensionSlider } from "../lil_gui_utils";
+import GUI from "lil-gui";
 
 const url =
   "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
@@ -64,9 +66,42 @@ const camera = new OrthographicCamera(
 );
 const cameraControls = new PanZoomControls(camera);
 
-new Idetik({
+const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   cameraControls,
-  layers: [layer, axes],
+  layers: [layer],
 }).start();
+
+const controls = {
+  showWireframes: layer.debugMode,
+  showAxes: idetik.layerManager.layers.includes(axes),
+};
+
+const gui = new GUI({ width: 500 });
+
+addDimensionSlider({
+  gui,
+  sliceCoords,
+  dimensionName: "z",
+  minValue: zInfo.offset,
+  maxValue: zInfo.offset + (zInfo.size - 1) * zInfo.scale,
+  stepValue: zInfo.scale,
+  playback: {},
+});
+
+gui
+  .add(controls, "showWireframes")
+  .name("Show tile wireframes")
+  .onChange((show: boolean) => (layer.debugMode = show));
+
+gui
+  .add(controls, "showAxes")
+  .name("Show axes")
+  .onChange((show: boolean) => {
+    if (show && !idetik.layerManager.layers.includes(axes)) {
+      idetik.layerManager.add(axes);
+    } else if (!show && idetik.layerManager.layers.includes(axes)) {
+      idetik.layerManager.remove(axes);
+    }
+  });

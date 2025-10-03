@@ -6,6 +6,7 @@ import {
 } from "../../objects/textures/texture";
 import { MAX_CHANNELS } from "../../core/constants";
 import { Texture2DArray } from "./texture_2d_array";
+import { Logger } from "../../utilities/logger";
 
 export type Channel = {
   visible: boolean;
@@ -44,7 +45,8 @@ export function validateChannel(
   if (texture !== null) {
     contrastLimits = validateContrastLimits(contrastLimits, texture);
   } else if (contrastLimits === undefined) {
-    console.debug(
+    Logger.debug(
+      "Channel",
       "No texture provided, defaulting channel contrast limits to [0, 1]."
     );
     contrastLimits = [0, 1];

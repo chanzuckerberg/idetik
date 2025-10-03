@@ -16,13 +16,19 @@ const Colors = {
 
 // Add new module names here as needed to represent different parts of the application
 type Module =
+  | "Channel"
+  | "Chunk"
   | "ChunkManager"
   | "ChunkManagerSource"
+  | "ChunkQueue"
   | "ChunkedImageLayer"
   | "EventDispatcher"
   | "Idetik"
   | "ImageLayer"
+  | "ImageSeriesLoader"
   | "LabelImageLayer"
+  | "Layer"
+  | "ZarrWorker"
   | "RenderablePool"
   | "Viewport"
   | "WebGLRenderer"
@@ -30,9 +36,37 @@ type Module =
   | "WebGLTexture"
   | "WireframeGeometry";
 
+export function getMode(): "production" | "development" | "test" {
+  const nodeEnv =
+    typeof process !== "undefined" && typeof process.env?.NODE_ENV === "string"
+      ? process.env.NODE_ENV
+      : undefined;
+
+  if (
+    nodeEnv === "production" ||
+    nodeEnv === "development" ||
+    nodeEnv === "test"
+  ) {
+    return nodeEnv;
+  }
+
+  if (typeof window !== "undefined") {
+    const { NODE_ENV } = window as { NODE_ENV?: unknown };
+
+    if (
+      NODE_ENV === "production" ||
+      NODE_ENV === "development" ||
+      NODE_ENV === "test"
+    ) {
+      return NODE_ENV;
+    }
+  }
+
+  return "development";
+}
 export class Logger {
   private static logLevel_: LogLevel =
-    import.meta.env.MODE === "production" ? "warn" : "debug";
+    getMode() === "production" ? "warn" : "debug";
 
   public static setLogLevel(level: LogLevel) {
     Logger.logLevel_ = level;
@@ -85,16 +119,16 @@ export class Logger {
 
     switch (level) {
       case "debug":
-        console.debug(...output);
+        console.debug(...output); // eslint-disable-line no-console
         break;
       case "info":
-        console.info(...output);
+        console.info(...output); // eslint-disable-line no-console
         break;
       case "warn":
-        console.warn(...output);
+        console.warn(...output); // eslint-disable-line no-console
         break;
       case "error":
-        console.error(...output);
+        console.error(...output); // eslint-disable-line no-console
         break;
     }
   }

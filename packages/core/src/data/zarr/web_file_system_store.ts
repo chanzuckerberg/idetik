@@ -50,6 +50,10 @@ class WebFileSystemStore implements AsyncReadable {
     this.#root = root;
   }
 
+  get directoryHandle(): FileSystemDirectoryHandle {
+    return this.#root;
+  }
+
   async get(key: AbsolutePath): Promise<Uint8Array | undefined> {
     const fh = await resolveFileHandleForPath(this.#root, key.slice(1)).catch(
       () => {

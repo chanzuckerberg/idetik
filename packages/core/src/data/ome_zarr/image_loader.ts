@@ -10,6 +10,8 @@ import {
   isChunkData,
   LoaderAttributes,
   SliceCoordinates,
+  ChunkData,
+  ChunkDataConstructor,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -17,6 +19,8 @@ import { PromiseScheduler } from "../promise_scheduler";
 import { Image as OmeZarrImage } from "./0.5/image";
 
 import { Readable } from "@zarrita/storage";
+import { ZarrArrayParams } from "../zarr/open";
+import { getChunk } from "./worker_pool";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -40,6 +44,7 @@ export class PromiseQueue<T> {
 type OmeZarrImageLoaderProps = {
   metadata: OmeZarrImage["ome"]["multiscales"][number];
   arrays: zarr.Array<zarr.DataType, Readable>[];
+  arrayParams: ZarrArrayParams[];
 };
 
 // Loads chunks from a multiscale image implementing OME-Zarr v0.5:
@@ -47,12 +52,14 @@ type OmeZarrImageLoaderProps = {
 export class OmeZarrImageLoader {
   private readonly metadata_: OmeZarrImage["ome"]["multiscales"][number];
   private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
+  private readonly arrayParams_: ReadonlyArray<ZarrArrayParams>;
   private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
   private readonly dimensions_: SourceDimensionMap;
 
   constructor(props: OmeZarrImageLoaderProps) {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
+    this.arrayParams_ = props.arrayParams;
     this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
     this.dimensions_ = inferSourceDimensionMap(this.loaderAttributes_);
   }
@@ -61,7 +68,11 @@ export class OmeZarrImageLoader {
     return this.dimensions_;
   }
 
-  public async loadChunkData(chunk: Chunk, sliceCoords: SliceCoordinates) {
+  public async loadChunkData(
+    chunk: Chunk,
+    sliceCoords: SliceCoordinates,
+    signal: AbortSignal
+  ) {
     const chunkCoords: number[] = [];
     chunkCoords[this.dimensions_.x.index] = chunk.chunkIndex.x;
     chunkCoords[this.dimensions_.y.index] = chunk.chunkIndex.y;
@@ -80,37 +91,90 @@ export class OmeZarrImageLoader {
       );
     }
     if (this.dimensions_.t) {
-      if (sliceCoords.t === undefined) {
-        throw new Error(
-          "Region is missing t value but t dimension exists in data"
-        );
-      }
-      chunkCoords[this.dimensions_.t.index] = sliceChunkIndex(
-        sliceCoords.t,
-        this.dimensions_.t.lods[chunk.lod]
-      );
+      chunkCoords[this.dimensions_.t.index] = chunk.chunkIndex.t;
     }
 
     const array = this.arrays_[chunk.lod];
-    const subarray = await array.getChunk(chunkCoords);
+    const arrayParams = this.arrayParams_[chunk.lod];
+    const receivedChunk = await getChunk(array, arrayParams, chunkCoords, {
+      signal,
+    });
 
-    const data = subarray.data;
-    if (!isChunkData(data)) {
+    if (!isChunkData(receivedChunk.data)) {
       throw new Error(
-        `Subarray has an unsupported data type, data=${data.constructor.name}`
+        `Received chunk has an unsupported data type, data=${receivedChunk.data.constructor.name}`
       );
     }
 
-    const rowAlignment = data.BYTES_PER_ELEMENT;
+    const receivedShape = {
+      x: receivedChunk.shape[this.dimensions_.x.index],
+      y: receivedChunk.shape[this.dimensions_.y.index],
+      z: this.dimensions_.z
+        ? receivedChunk.shape[this.dimensions_.z.index]
+        : chunk.shape.z,
+    };
+
+    const receivedChunkTooSmall =
+      receivedShape.x < chunk.shape.x ||
+      receivedShape.y < chunk.shape.y ||
+      receivedShape.z < chunk.shape.z;
+
+    if (receivedChunkTooSmall) {
+      throw new Error(
+        `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
+          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
+      );
+    }
+
+    const receivedChunkHasPadding =
+      receivedShape.x > chunk.shape.x ||
+      receivedShape.y > chunk.shape.y ||
+      receivedShape.z > chunk.shape.z;
+
+    if (receivedChunkHasPadding) {
+      chunk.data = this.trimChunkPadding(
+        chunk,
+        receivedChunk.data,
+        receivedChunk.stride
+      );
+    } else {
+      chunk.data = receivedChunk.data;
+      chunk.rowStride = receivedChunk.stride[this.dimensions_.y.index];
+    }
+
+    const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
     if (!isTextureUnpackRowAlignment(rowAlignment)) {
       throw new Error(
         "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
       );
     }
-
     chunk.rowAlignmentBytes = rowAlignment;
-    chunk.rowStride = subarray.stride[this.dimensions_.y.index];
-    chunk.data = data;
+  }
+
+  private trimChunkPadding(
+    chunk: Chunk,
+    receivedChunkData: ChunkData,
+    receivedChunkStride: number[]
+  ): ChunkData {
+    const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
+    const compactData =
+      new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
+
+    let offset = 0;
+    const zStride = this.dimensions_.z
+      ? receivedChunkStride[this.dimensions_.z.index]
+      : 0;
+    const yStride = receivedChunkStride[this.dimensions_.y.index];
+    for (let z = 0; z < chunk.shape.z; z++) {
+      const zStart = z * zStride;
+      for (let y = 0; y < chunk.shape.y; y++) {
+        const srcStart = zStart + y * yStride;
+        const srcEnd = srcStart + chunk.shape.x;
+        compactData.set(receivedChunkData.subarray(srcStart, srcEnd), offset);
+        offset += chunk.shape.x;
+      }
+    }
+    return compactData;
   }
 
   public async loadRegion(
@@ -176,6 +240,7 @@ export class OmeZarrImageLoader {
       visible: true,
       prefetch: false,
       priority: null,
+      orderKey: null,
       data: subarray.data,
       shape: {
         x: subarray.shape[subarray.shape.length - 1],
@@ -183,7 +248,7 @@ export class OmeZarrImageLoader {
         z: 1,
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
-      chunkIndex: { x: 0, y: 0, z: 0 },
+      chunkIndex: { x: 0, y: 0, z: 0, t: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
       scale: {

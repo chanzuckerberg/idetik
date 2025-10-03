@@ -7,12 +7,14 @@
   "scripts": {
     "build": "npm run build --workspace=@idetik/core-prerelease",
     "build:all": "npm run build --workspaces",
+    "build:examples": "npm run build:examples --workspace=@idetik/core-prerelease",
     "examples": "npm run dev --workspace=@idetik/core-prerelease",
     "components": "npm run dev --workspace=@idetik/react-prerelease",
     "format:all": "npm run format --workspaces"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",
+    "@types/node": "^24.3.1",
     "@types/webgl2": "^0.0.11",
     "@typescript-eslint/eslint-plugin": "^8.1.0",
     "@typescript-eslint/parser": "^8.1.0",
@@ -31,7 +33,7 @@
     "rollup-plugin-dts": "^6.1.1",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.1.0",
-    "vite": "^6.3.4",
+    "vite": "^6.3.6",
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-glsl": "^1.3.0",
     "vitest": "^3.0.9"

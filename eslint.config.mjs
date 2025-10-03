@@ -43,5 +43,11 @@ export default [
       ],
     }
   },
+  {
+    files: ["packages/core/src/**/*.{js,ts,jsx,tsx}"],
+    rules: {
+      'no-console': 'error'
+    }
+  },
   { ignores: ["node_modules", "**/coverage", "**/dist"] },
 ];
