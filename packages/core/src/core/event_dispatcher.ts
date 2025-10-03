@@ -52,7 +52,7 @@ export class EventDispatcher {
 
   public connect() {
     if (this.isConnected_) {
-      Logger.debug(
+      Logger.warn(
         "EventDispatcher",
         "Attempted to connect already connected event dispatcher",
         `element id: ${this.element_.id}`
