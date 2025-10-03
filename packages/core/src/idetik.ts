@@ -36,7 +36,10 @@ export class Idetik {
   private lastAnimationId_?: number;
   private resizeObserver_?: ResizeObserver;
   private mediaQuery_?: MediaQueryList;
-  private onMediaQueryChange_?: (this: MediaQueryList, ev: MediaQueryListEvent) => void;
+  private onMediaQueryChange_?: (
+    this: MediaQueryList,
+    ev: MediaQueryListEvent
+  ) => void;
   private needsResize_ = false;
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
@@ -163,12 +166,9 @@ export class Idetik {
 
   public stop() {
     Logger.info("Idetik", "Idetik runtime stopping");
-    if (this.lastAnimationId_ !== undefined) {
-      Logger.debug(
-        "Idetik",
-        "Cancelling animation frame",
-        this.lastAnimationId_
-      );
+    if (this.lastAnimationId_ === undefined) {
+      Logger.warn("Idetik", "Idetik runtime not started");
+    } else {
       this.stopLayoutObservers();
       cancelAnimationFrame(this.lastAnimationId_);
       this.lastAnimationId_ = undefined;
@@ -217,7 +217,9 @@ export class Idetik {
       this.needsResize_ = true;
       this.startDevicePixelRatioObserver();
     };
-    this.mediaQuery_.addEventListener("change", this.onMediaQueryChange_, {once: true});
+    this.mediaQuery_.addEventListener("change", this.onMediaQueryChange_, {
+      once: true,
+    });
   }
 
   private stopLayoutObservers() {
