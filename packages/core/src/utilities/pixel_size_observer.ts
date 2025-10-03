@@ -37,6 +37,8 @@ export class PixelSizeObserver {
 
   public stop() {
     this.resizeObserver_?.disconnect();
-    this.mediaQuery_?.removeEventListener("change", this.onMediaQueryChange_!);
+    if (this.mediaQuery_ && this.onMediaQueryChange_) {
+      this.mediaQuery_.removeEventListener("change", this.onMediaQueryChange_);
+    }
   }
 }
