@@ -42,7 +42,7 @@ export class Idetik {
   public readonly canvas: HTMLCanvasElement;
   public readonly overlays: Overlay[];
   private readonly stats_?: Stats;
-  private readonly pixelSizeObserver_: PixelSizeObserver;
+  private readonly sizeObserver_: PixelSizeObserver;
 
   constructor(params: IdetikParams) {
     if (!params.canvas && !params.canvasSelector) {
@@ -85,14 +85,14 @@ export class Idetik {
 
     if (params.showStats) this.stats_ = createStats();
 
-    const pixelSizeDependents: HTMLElement[] = [this.canvas];
+    const sizeDependents: HTMLElement[] = [this.canvas];
     for (const viewport of this.viewports_) {
       if (viewport.element !== this.canvas) {
-        pixelSizeDependents.push(viewport.element);
+        sizeDependents.push(viewport.element);
       }
       viewport.events.connect();
     }
-    this.pixelSizeObserver_ = new PixelSizeObserver(pixelSizeDependents);
+    this.sizeObserver_ = new PixelSizeObserver(sizeDependents);
   }
 
   public get width() {
@@ -132,7 +132,7 @@ export class Idetik {
   public start() {
     Logger.info("Idetik", "Idetik runtime starting");
     if (this.lastAnimationId_ === undefined) {
-      this.pixelSizeObserver_.connect();
+      this.sizeObserver_.connect();
       this.animate();
     } else {
       Logger.warn("Idetik", "Idetik runtime already started");
@@ -144,7 +144,7 @@ export class Idetik {
     if (this.stats_) this.stats_.begin();
 
     // Must resize before render b/c changing canvas coordinate space clears it.
-    if (this.pixelSizeObserver_.getAndResetChanged()) {
+    if (this.sizeObserver_.getAndResetChanged()) {
       this.updateSize();
     }
 
@@ -173,7 +173,7 @@ export class Idetik {
     if (this.lastAnimationId_ === undefined) {
       Logger.warn("Idetik", "Idetik runtime not started");
     } else {
-      this.pixelSizeObserver_.disconnect();
+      this.sizeObserver_.disconnect();
       for (const viewport of this.viewports_) {
         viewport.events.disconnect();
       }
