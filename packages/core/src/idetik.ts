@@ -13,6 +13,7 @@ import {
   Viewport,
   ViewportConfig,
 } from "./core/viewport";
+import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 
 type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
@@ -34,13 +35,6 @@ export type IdetikContext = {
 
 export class Idetik {
   private lastAnimationId_?: number;
-  private resizeObserver_?: ResizeObserver;
-  private mediaQuery_?: MediaQueryList;
-  private onMediaQueryChange_?: (
-    this: MediaQueryList,
-    ev: MediaQueryListEvent
-  ) => void;
-  private needsResize_ = false;
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
@@ -48,6 +42,7 @@ export class Idetik {
   public readonly canvas: HTMLCanvasElement;
   public readonly overlays: Overlay[];
   private readonly stats_?: Stats;
+  private readonly pixelSizeObserver_: PixelSizeObserver;
 
   constructor(params: IdetikParams) {
     if (!params.canvas && !params.canvasSelector) {
@@ -89,6 +84,8 @@ export class Idetik {
     this.overlays = params.overlays ?? [];
 
     if (params.showStats) this.stats_ = createStats();
+
+    this.pixelSizeObserver_ = new PixelSizeObserver();
   }
 
   public get width() {
@@ -128,7 +125,13 @@ export class Idetik {
   public start() {
     Logger.info("Idetik", "Idetik runtime starting");
     if (this.lastAnimationId_ === undefined) {
-      this.startLayoutObservers();
+      const elements: HTMLElement[] = [this.canvas];
+      for (const viewport of this.viewports_) {
+        if (viewport.element !== this.canvas) {
+          elements.push(viewport.element);
+        }
+      }
+      this.pixelSizeObserver_.start(elements);
       this.animate();
     } else {
       Logger.warn("Idetik", "Idetik runtime already started");
@@ -140,8 +143,9 @@ export class Idetik {
     if (this.stats_) this.stats_.begin();
 
     // Must resize before render b/c changing canvas coordinate space clears it.
-    if (this.needsResize_) {
+    if (this.pixelSizeObserver_.changed) {
       this.updateSize();
+      this.pixelSizeObserver_.changed = false;
     }
 
     for (const viewport of this.viewports_) {
@@ -169,46 +173,10 @@ export class Idetik {
     if (this.lastAnimationId_ === undefined) {
       Logger.warn("Idetik", "Idetik runtime not started");
     } else {
-      this.stopLayoutObservers();
+      this.pixelSizeObserver_.stop();
       cancelAnimationFrame(this.lastAnimationId_);
       this.lastAnimationId_ = undefined;
     }
-  }
-
-  private startLayoutObservers() {
-    this.resizeObserver_ = new ResizeObserver(() => {
-      this.needsResize_ = true;
-    });
-
-    this.resizeObserver_.observe(this.canvas);
-    for (const viewport of this.viewports_) {
-      if (viewport.element !== this.canvas) {
-        this.resizeObserver_.observe(viewport.element);
-      }
-    }
-
-    this.startDevicePixelRatioObserver();
-  }
-
-  private startDevicePixelRatioObserver() {
-    // this media query needs to be updated after a change is detected, so we use a one-time
-    // event listener that re-registers itself with the new value
-    // https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio#monitoring_screen_resolution_or_zoom_level_changes
-    this.mediaQuery_ = matchMedia(
-      `(resolution: ${window.devicePixelRatio}dppx)`
-    );
-    this.onMediaQueryChange_ = () => {
-      this.needsResize_ = true;
-      this.startDevicePixelRatioObserver();
-    };
-    this.mediaQuery_.addEventListener("change", this.onMediaQueryChange_, {
-      once: true,
-    });
-  }
-
-  private stopLayoutObservers() {
-    this.resizeObserver_?.disconnect();
-    this.mediaQuery_?.removeEventListener("change", this.onMediaQueryChange_!);
   }
 
   private updateSize() {
@@ -216,6 +184,5 @@ export class Idetik {
     for (const viewport of this.viewports_) {
       viewport.updateSize();
     }
-    this.needsResize_ = false;
   }
 }
