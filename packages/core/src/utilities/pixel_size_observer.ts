@@ -1,5 +1,7 @@
 import { Logger } from "./logger";
 
+// Observes changes to the pixel size of HTML elements, including changes due to
+// window/device pixel ratio changes.
 export class PixelSizeObserver {
   private elements_: ReadonlyArray<HTMLElement>;
   private resizeObserver_?: ResizeObserver;
