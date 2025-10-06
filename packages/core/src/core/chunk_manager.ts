@@ -62,7 +62,6 @@ export class ChunkManagerSource {
 
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
-    // const { size: chunksC } = this.getAndValidateChannelDimension();
 
     const xLod0 = this.dimensions.x.lods[0];
     const yLod0 = this.dimensions.y.lods[0];
@@ -455,38 +454,6 @@ export class ChunkManagerSource {
       size: this.dimensions_.t?.lods[0].size ?? 1,
     };
   }
-
-  // private getAndValidateChannelDimension() {
-  //   for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-  //     const cLod = this.dimensions_.c?.lods[lod];
-  //     if (!cLod) continue;
-  //     if (cLod.chunkSize !== 1) {
-  //       throw new Error(
-  //         `ChunkManager only supports a chunk size of 1 in c. Found ${cLod.chunkSize} at LOD ${lod}`
-  //       );
-  //     }
-  //     if (cLod.scale !== 1) {
-  //       throw new Error(
-  //         `ChunkManager does not support scale in c. Found ${cLod.scale} at LOD ${lod}`
-  //       );
-  //     }
-  //     if (cLod.translation !== 0) {
-  //       throw new Error(
-  //         `ChunkManager does not support translation in c. Found ${cLod.translation} at LOD ${lod}`
-  //       );
-  //     }
-  //     const prevCLod = this.dimensions_.c?.lods[lod - 1];
-  //     if (!prevCLod) continue;
-  //     if (cLod.size !== prevCLod.size) {
-  //       throw new Error(
-  //         `ChunkManager does not support downsampling in c. Found ${prevCLod.size} at LOD ${lod - 1} → ${cLod.size} at LOD ${lod}`
-  //       );
-  //     }
-  //   }
-  //   return {
-  //     size: this.dimensions_.c?.lods[0].size ?? 1,
-  //   };
-  // }
 
   private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
     const chunkBounds = new Box3(
