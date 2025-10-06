@@ -30,3 +30,27 @@ A layer-based library for interactive visualization of large datasets.
    `npm run test -- --run`.
 
 4. See [package.json](package.json) for other commands available.
+
+## Release
+
+Currently, we maintain Idetik prerelease packages on npm: [@idetik/core-prerelease](https://www.npmjs.com/package/@idetik/core-prerelease?activeTab=readme) and [@idetik/react-prerelease](https://www.npmjs.com/package/@idetik/react-prerelease).
+
+Our release process is currently manual and we currently bump the major version every time to easily avoid unintentional downstream breakage.
+
+To release the core package run the following the commands
+
+```shell
+git switch -c your-name/prerelease-X-Y-Z
+cd packages/core
+npm version major
+npm build
+npm login
+npm publish
+```
+
+where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
+
+
+Then create a PR, merge it, and add a tag of the form `prerelease-X.Y.Z` to the commit on `main`.
+
+Repeat the process for `packages/react`.
