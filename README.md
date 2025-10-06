@@ -52,12 +52,33 @@ git switch -c your-name/prerelease-X-Y-Z
 cd packages/core
 npm version major
 npm build
-npm login
-npm publish
 ```
 
 where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
 
-Then create a PR, merge it, and add a tag of the form `prerelease-X.Y.Z` to the commit on `main`.
+Then repeat for `packages/react`.
 
-Repeat the process for `packages/react`.
+```shell
+cd ../react
+npm version major
+npm build
+```
+
+After both package versions have been bumped, create a PR, get it approved, and merge it to `main`.
+
+Next, checkout the corresponding commit on `main` and run the following commands for 
+
+```shell
+npm login
+cd ../core
+npm publish
+cd ../react
+npm publish
+```
+
+Finally, add a tag of the form `prerelease-X.Y.Z` to the commit on `main`.
+
+```shell
+git tag prerelease-X.Y.Z
+git push origin --tags
+```
