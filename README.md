@@ -61,7 +61,7 @@ Then repeat for `packages/react`.
 ```shell
 cd ../react
 npm version major
-npm build
+npm run build
 ```
 
 After both package versions have been bumped, create a PR, get it approved, and merge it to `main`.
