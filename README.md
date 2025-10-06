@@ -51,6 +51,7 @@ To release the core package run the following the commands
 git switch -c your-name/prerelease-X-Y-Z
 cd packages/core
 npm version major
+npm install
 npm run build
 ```
 
@@ -61,6 +62,7 @@ Then repeat for `packages/react`.
 ```shell
 cd ../react
 npm version major
+npm install
 npm run build
 ```
 
