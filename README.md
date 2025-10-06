@@ -71,9 +71,9 @@ Next, checkout the corresponding commit on `main` and run the following commands
 ```shell
 npm login
 cd ../core
-npm publish
+npm run pub
 cd ../react
-npm publish
+npm run pub
 ```
 
 Finally, add a tag of the form `prerelease-X.Y.Z` to the commit on `main`.
