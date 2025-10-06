@@ -51,7 +51,7 @@ To release the core package run the following the commands
 git switch -c your-name/prerelease-X-Y-Z
 cd packages/core
 npm version major
-npm build
+npm run build
 ```
 
 where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
