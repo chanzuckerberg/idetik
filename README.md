@@ -57,6 +57,8 @@ npm run build
 
 where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
 
+Now, manually modify `packages/react/package.json` so that any dependencies (including dev and peer dependencies) are bumped to `^X.Y.Z`.
+
 Then repeat for `packages/react`.
 
 ```shell
