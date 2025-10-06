@@ -62,6 +62,7 @@ export class ChunkManagerSource {
 
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
+    // const { size: chunksC } = this.getAndValidateChannelDimension();
 
     const xLod0 = this.dimensions.x.lods[0];
     const yLod0 = this.dimensions.y.lods[0];
@@ -82,11 +83,12 @@ export class ChunkManagerSource {
         const chunkWidth = xLod.chunkSize;
         const chunkHeight = yLod.chunkSize;
         const chunkDepth = zLod?.chunkSize ?? 1;
+        const chunkChannels = cLod?.chunkSize ?? 1;
 
         const chunksX = Math.ceil(xLod.size / chunkWidth);
         const chunksY = Math.ceil(yLod.size / chunkHeight);
         const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
-        const channels = cLod?.size ?? 1;
+        const chunksC = Math.ceil((cLod?.size ?? 1) / chunkChannels);
 
         for (let x = 0; x < chunksX; ++x) {
           const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
@@ -98,33 +100,38 @@ export class ChunkManagerSource {
                 zLod !== undefined
                   ? zLod.translation + z * chunkDepth * zLod.scale
                   : 0;
-              chunksAtT.push({
-                state: "unloaded",
-                lod,
-                visible: false,
-                prefetch: false,
-                priority: null,
-                orderKey: null,
-                shape: {
-                  x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
-                  y: Math.min(chunkHeight, yLod.size - y * chunkHeight),
-                  z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
-                  c: channels,
-                },
-                rowStride,
-                rowAlignmentBytes: 1,
-                chunkIndex: { x, y, z, t },
-                scale: {
-                  x: xLod.scale,
-                  y: yLod.scale,
-                  z: zLod?.scale ?? 1,
-                },
-                offset: {
-                  x: xOffset,
-                  y: yOffset,
-                  z: zOffset,
-                },
-              });
+              for (let c = 0; c < chunksC; ++c) {
+                chunksAtT.push({
+                  state: "unloaded",
+                  lod,
+                  visible: false,
+                  prefetch: false,
+                  priority: null,
+                  orderKey: null,
+                  shape: {
+                    x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
+                    y: Math.min(chunkHeight, yLod.size - y * chunkHeight),
+                    z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
+                    c: Math.min(
+                      chunkChannels,
+                      (cLod?.size ?? 1) - c * chunkChannels
+                    ),
+                  },
+                  rowStride,
+                  rowAlignmentBytes: 1,
+                  chunkIndex: { x, y, z, c, t },
+                  scale: {
+                    x: xLod.scale,
+                    y: yLod.scale,
+                    z: zLod?.scale ?? 1,
+                  },
+                  offset: {
+                    x: xOffset,
+                    y: yOffset,
+                    z: zOffset,
+                  },
+                });
+              }
             }
           }
         }
@@ -199,7 +206,7 @@ export class ChunkManagerSource {
   }
 
   public loadChunkData(chunk: Chunk, signal: AbortSignal) {
-    return this.loader_.loadChunkData(chunk, this.sliceCoords_, signal);
+    return this.loader_.loadChunkData(chunk, signal);
   }
 
   private setLOD(lodFactor: number): void {
@@ -448,6 +455,38 @@ export class ChunkManagerSource {
       size: this.dimensions_.t?.lods[0].size ?? 1,
     };
   }
+
+  // private getAndValidateChannelDimension() {
+  //   for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+  //     const cLod = this.dimensions_.c?.lods[lod];
+  //     if (!cLod) continue;
+  //     if (cLod.chunkSize !== 1) {
+  //       throw new Error(
+  //         `ChunkManager only supports a chunk size of 1 in c. Found ${cLod.chunkSize} at LOD ${lod}`
+  //       );
+  //     }
+  //     if (cLod.scale !== 1) {
+  //       throw new Error(
+  //         `ChunkManager does not support scale in c. Found ${cLod.scale} at LOD ${lod}`
+  //       );
+  //     }
+  //     if (cLod.translation !== 0) {
+  //       throw new Error(
+  //         `ChunkManager does not support translation in c. Found ${cLod.translation} at LOD ${lod}`
+  //       );
+  //     }
+  //     const prevCLod = this.dimensions_.c?.lods[lod - 1];
+  //     if (!prevCLod) continue;
+  //     if (cLod.size !== prevCLod.size) {
+  //       throw new Error(
+  //         `ChunkManager does not support downsampling in c. Found ${prevCLod.size} at LOD ${lod - 1} → ${cLod.size} at LOD ${lod}`
+  //       );
+  //     }
+  //   }
+  //   return {
+  //     size: this.dimensions_.c?.lods[0].size ?? 1,
+  //   };
+  // }
 
   private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
     const chunkBounds = new Box3(

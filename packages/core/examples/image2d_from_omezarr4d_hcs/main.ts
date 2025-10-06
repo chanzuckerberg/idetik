@@ -1,14 +1,14 @@
 import {
   Idetik,
-  ImageLayer,
   OrthographicCamera,
   OmeZarrImageSource,
   PanZoomControls,
-  Region,
   loadOmeroChannels,
   loadOmeroDefaults,
   loadOmeZarrPlate,
   loadOmeZarrWell,
+  ChunkedImageLayer,
+  Color,
 } from "@";
 
 const plateUrl =
@@ -17,6 +17,11 @@ const initialWellPath = "CLTA/PFA";
 const initialImagePath = "002000";
 const LOW_RES_Z_SCALE = 0.78939; // micrometers per pixel
 const HIGH_RES_NUM_SLICES = 38;
+
+const yScale = 0.1028358051168038;
+const xScale = 0.10319840632897595;
+const ySize = 800;
+const xSize = 800;
 
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
@@ -33,21 +38,13 @@ wellPaths.forEach((path) => {
   wellSelector.value = initialWellPath;
 });
 
-const camera = new OrthographicCamera(0, 840, 0, 360);
+const camera = new OrthographicCamera(0, xSize * xScale, 0, ySize * yScale);
 const controls = new PanZoomControls(camera);
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   camera,
   cameraControls: controls,
 }).start();
-
-const region: Region = [
-  { dimension: "T", index: { type: "point", value: 0 } },
-  { dimension: "C", index: { type: "interval", start: 1, stop: 3 } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
-  { dimension: "Y", index: { type: "full" } },
-  { dimension: "X", index: { type: "full" } },
-];
 
 const imageSelector = document.querySelector("#image") as HTMLSelectElement;
 
@@ -59,34 +56,21 @@ const onImageChange = async () => {
   const source = new OmeZarrImageSource(imageUrl);
   const omeroDefaults = await loadOmeroDefaults(source);
   const omeroDefaultZ = omeroDefaults?.defaultZ ?? 0;
-  region[2] = {
-    dimension: "Z",
-    index: {
-      type: "point",
-      value: (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE,
-    },
+  const sliceCoords = {
+    t: 0,
+    z: (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE,
   };
   const omeroChannels = await loadOmeroChannels(source);
-  const contrastLimits: [number, number][] = [
-    [omeroChannels[1].window!.start, omeroChannels[1].window!.end],
-    [omeroChannels[2].window!.start, omeroChannels[2].window!.end],
-  ];
-  const newLayer = new ImageLayer({
+  const channelProps = omeroChannels.map((ch) => ({
+    color: Color.fromRgbHex(ch.color!),
+    contrastLimits: [ch.window!.start, ch.window!.end] as [number, number],
+  }));
+  const newLayer = new ChunkedImageLayer({
     source,
-    region,
-    channelProps: [
-      { color: [0, 1, 1], contrastLimits: contrastLimits[0] },
-      { color: [1, 0, 1], contrastLimits: contrastLimits[1] },
-    ],
-    lod: 0,
+    sliceCoords,
+    channelProps,
   });
   app.layerManager.add(newLayer);
-  newLayer.addStateChangeCallback((state) => {
-    if (state === "ready" && newLayer.extent) {
-      camera.setFrame(0, newLayer.extent.x, 0, newLayer.extent.y);
-      camera.update();
-    }
-  });
 };
 
 const onWellChange = async () => {

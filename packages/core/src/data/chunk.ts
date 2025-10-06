@@ -47,6 +47,7 @@ export type Chunk = {
     x: number;
     y: number;
     z: number;
+    c: number;
     t: number;
   };
   scale: {
@@ -60,6 +61,78 @@ export type Chunk = {
     z: number;
   };
 };
+
+export type SlicedChunk2D = {
+  data: ChunkData;
+  shape: {
+    x: number;
+    y: number;
+    c: number;
+  };
+  lod: number;
+  rowStride: number;
+  rowAlignmentBytes: TextureUnpackRowAlignment;
+  scale: {
+    x: number;
+    y: number;
+  };
+  offset: {
+    x: number;
+    y: number;
+    c: number;
+  };
+};
+
+export type ChunkSlice2D = {
+  z?: number;
+  c?: number;
+};
+
+export function sliceChunk2D(chunk: Chunk, slice: ChunkSlice2D): SlicedChunk2D {
+  if (!chunk.data) {
+    throw new Error("Cannot slice an unloaded chunk");
+  }
+
+  const z = slice.z === undefined ? 0 : slice.z;
+  const zLocal = (z - chunk.offset.z) / chunk.scale.z;
+  const zIndex = Math.floor(zLocal + 10 * Number.EPSILON);
+  if (zIndex < 0 || zIndex >= chunk.shape.z) {
+    throw new Error(
+      `z ${z} is out of bounds for chunk with shape.z ${chunk.shape.z}`
+    );
+  }
+
+  const c = slice.c ? slice.c : 0;
+  if (c < 0 || c >= chunk.shape.c) {
+    throw new Error(
+      `c ${c} is out of bounds for chunk with shape.c ${chunk.shape.c}`
+    );
+  }
+
+  // TODO: use strides across all dimensions.
+  const sliceSize = chunk.rowStride * chunk.shape.y;
+
+  // C is assumed to change more slowly than z.
+  const offset = (c * chunk.shape.z + zIndex) * sliceSize;
+  const slicedData = chunk.data.slice(offset, offset + sliceSize);
+  return {
+    data: slicedData,
+    lod: chunk.lod,
+    shape: {
+      x: chunk.shape.x,
+      y: chunk.shape.y,
+      c: slice.c ? 1 : chunk.shape.c,
+    },
+    rowStride: chunk.rowStride,
+    rowAlignmentBytes: chunk.rowAlignmentBytes,
+    scale: { x: chunk.scale.x, y: chunk.scale.y },
+    offset: {
+      x: chunk.offset.x,
+      y: chunk.offset.y,
+      c: slice.c ?? chunk.chunkIndex.c * chunk.shape.c,
+    },
+  };
+}
 
 // Maps Idetik spatial dimensions (x, y, z) and non-spatial dimensions (c, t)
 // dimensions to a chunk source's dimensions.
@@ -119,11 +192,7 @@ export type ChunkLoader = {
 
   getSourceDimensionMap(): SourceDimensionMap;
 
-  loadChunkData(
-    chunk: Chunk,
-    sliceCoords: SliceCoordinates,
-    signal: AbortSignal
-  ): Promise<void>;
+  loadChunkData(chunk: Chunk, signal: AbortSignal): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };

@@ -5,11 +5,9 @@ import { Region } from "../region";
 import {
   Chunk,
   SourceDimension,
-  SourceDimensionLod,
   SourceDimensionMap,
   isChunkData,
   LoaderAttributes,
-  SliceCoordinates,
   ChunkData,
   ChunkDataConstructor,
 } from "../chunk";
@@ -68,11 +66,7 @@ export class OmeZarrImageLoader {
     return this.dimensions_;
   }
 
-  public async loadChunkData(
-    chunk: Chunk,
-    sliceCoords: SliceCoordinates,
-    signal: AbortSignal
-  ) {
+  public async loadChunkData(chunk: Chunk, signal: AbortSignal) {
     const chunkCoords: number[] = [];
     chunkCoords[this.dimensions_.x.index] = chunk.chunkIndex.x;
     chunkCoords[this.dimensions_.y.index] = chunk.chunkIndex.y;
@@ -80,15 +74,7 @@ export class OmeZarrImageLoader {
       chunkCoords[this.dimensions_.z.index] = chunk.chunkIndex.z;
     }
     if (this.dimensions_.c) {
-      if (sliceCoords.c === undefined) {
-        throw new Error(
-          "Region is missing c value but c dimension exists in data"
-        );
-      }
-      chunkCoords[this.dimensions_.c.index] = sliceChunkIndex(
-        sliceCoords.c,
-        this.dimensions_.c.lods[chunk.lod]
-      );
+      chunkCoords[this.dimensions_.c.index] = chunk.chunkIndex.c;
     }
     if (this.dimensions_.t) {
       chunkCoords[this.dimensions_.t.index] = chunk.chunkIndex.t;
@@ -248,7 +234,7 @@ export class OmeZarrImageLoader {
         z: 1,
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
-      chunkIndex: { x: 0, y: 0, z: 0, t: 0 },
+      chunkIndex: { x: 0, y: 0, z: 0, c: 0, t: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
       scale: {
@@ -368,11 +354,6 @@ function getSourceDimension(
       translation: attr.translation[index],
     })),
   };
-}
-
-function sliceChunkIndex(value: number, lod: SourceDimensionLod): number {
-  const dataIndex = Math.round((value - lod.translation) / lod.scale);
-  return Math.floor(dataIndex / lod.chunkSize);
 }
 
 function compareDimensions(a: string, b: string): boolean {
