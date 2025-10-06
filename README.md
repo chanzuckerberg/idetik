@@ -35,6 +35,14 @@ A layer-based library for interactive visualization of large datasets.
 
 Currently, we maintain Idetik prerelease packages on npm: [@idetik/core-prerelease](https://www.npmjs.com/package/@idetik/core-prerelease?activeTab=readme) and [@idetik/react-prerelease](https://www.npmjs.com/package/@idetik/react-prerelease).
 
+### Pre-requirements
+
+First, you must have cloned this repository and must be able to build the core and react packages.
+
+Second, you must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM.
+
+### Process
+
 Our release process is currently manual and we currently bump the major version every time to easily avoid unintentional downstream breakage.
 
 To release the core package run the following the commands
@@ -49,7 +57,6 @@ npm publish
 ```
 
 where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
-
 
 Then create a PR, merge it, and add a tag of the form `prerelease-X.Y.Z` to the commit on `main`.
 
