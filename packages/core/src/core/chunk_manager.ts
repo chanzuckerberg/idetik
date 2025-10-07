@@ -364,11 +364,7 @@ export class ChunkManagerSource {
       for (const chunk of this.chunks_[t]) {
         if (chunk.state !== "unloaded") continue;
         if (chunk.lod !== this.lowestResLOD_) continue;
-        if (
-          this.sliceCoords_.c !== undefined &&
-          chunk.chunkIndex.c !== this.sliceCoords_.c
-        )
-          if (!this.isChunkChannelVisible(chunk)) continue;
+        if (!this.isChunkChannelVisible(chunk)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
         chunk.prefetch = true;
         chunk.priority = this.prioritizePrefetchTime
