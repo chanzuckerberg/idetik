@@ -305,8 +305,11 @@ export class ChunkManagerSource {
     this.tCoordsWithQueuedChunks_.add(currentTime);
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
+      const isChannelVisible = this.isChunkChannelVisible(chunk);
       const eligibleForPrefetch =
-        !isVisible && this.isChunkWithinBounds(chunk, paddedBounds);
+        !isVisible &&
+        isChannelVisible &&
+        this.isChunkWithinBounds(chunk, paddedBounds);
 
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === this.lowestResLOD_;
@@ -320,6 +323,9 @@ export class ChunkManagerSource {
         isVisible,
         chunk.prefetch
       );
+      if (!isChannelVisible) {
+        chunk.priority = null;
+      }
 
       if (chunk.priority !== null && chunk.state === "unloaded") {
         chunk.state = "queued";
@@ -357,6 +363,11 @@ export class ChunkManagerSource {
       for (const chunk of this.chunks_[t]) {
         if (chunk.state !== "unloaded") continue;
         if (chunk.lod !== this.lowestResLOD_) continue;
+        if (
+          this.sliceCoords_.c !== undefined &&
+          chunk.chunkIndex.c !== this.sliceCoords_.c
+        )
+          if (!this.isChunkChannelVisible(chunk)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
         chunk.prefetch = true;
         chunk.priority = this.prioritizePrefetchTime
@@ -375,6 +386,11 @@ export class ChunkManagerSource {
       }
     }
     return prefetchedChunks;
+  }
+
+  private isChunkChannelVisible(chunk: Chunk): boolean {
+    if (this.sliceCoords_.c === undefined) return true;
+    return this.sliceCoords_.c === chunk.chunkIndex.c;
   }
 
   private disposeChunk(chunk: Chunk) {
