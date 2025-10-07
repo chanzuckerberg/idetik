@@ -106,10 +106,19 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     });
 
     this.clearObjects();
+    const visibleImages = new Set<ImageRenderable>();
     for (const chunk of orderedByLOD) {
       if (chunk.state !== "loaded") continue;
-      const image = this.getImageForChunk(chunk);
+      let image = this.visibleChunks_.get(chunk);
+      if (image) {
+        visibleImages.add(image);
+        continue;
+      }
+      image = this.getImageForChunk(chunk);
+      visibleImages.add(image);
       this.visibleChunks_.set(chunk, image);
+    }
+    for (const image of visibleImages) {
       this.addObject(image);
     }
   }
@@ -162,9 +171,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getImageForChunk(chunk: Chunk) {
-    Logger.debug("ChunkedImageLayer", "getImageForChunk", chunk);
     const key = chunkKey(chunk);
     const existing = this.images_.get(key);
+    Logger.debug("ChunkedImageLayer", "getImageForChunk", chunk, key, existing);
     if (existing) {
       const texture = existing.textures[0] as Texture2DArray;
       texture.updateWithChunk(chunk, this.getDataForImage(chunk));
@@ -196,15 +205,13 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         this.chunkManagerSource_?.dimensions.c?.lods[chunk.lod].size ?? 1;
     }
     Logger.debug("ChunkedImageLayer", "createImage", chunk, numChannels);
+    const texture = Texture2DArray.createWithChunk(chunk, numChannels);
     const image = new ImageRenderable(
       geometry,
-      Texture2DArray.createWithChunk(
-        chunk,
-        numChannels,
-        this.getDataForImage(chunk)
-      ),
+      texture,
       this.channelProps_ ?? [{}]
     );
+    texture.updateWithChunk(chunk, this.getDataForImage(chunk));
     this.updateImageChunk(image, chunk);
     return image;
   }
