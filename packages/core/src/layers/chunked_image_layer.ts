@@ -202,16 +202,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   private createImage(chunk: Chunk) {
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-    let numChannels = 1;
-    if (this.sliceCoords_.c === undefined) {
-      numChannels =
-        this.chunkManagerSource_?.dimensions.c?.lods[chunk.lod].size ?? 1;
-    }
-    Logger.debug("ChunkedImageLayer", "createImage", chunk, numChannels);
     if (chunk.data === undefined) {
       throw new Error("Chunk data is not loaded");
     }
-    const data = this.getTextureData(chunk, numChannels);
+    const data = this.getTextureData(chunk);
     const image = new ImageRenderable(
       geometry,
       Texture2DArray.createWithChunk(chunk, data),
@@ -221,18 +215,28 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return image;
   }
 
-  private getTextureData(chunk: Chunk, numChannels: number) {
-    const chunkData = sliceChunk2D(chunk, this.sliceCoords_);
-    if (!chunkData) {
+  private getTextureData(chunk: Chunk) {
+    const slicedData = sliceChunk2D(chunk, this.sliceCoords_);
+    if (!slicedData) {
       throw new Error("Chunk data is not loaded");
     }
+    let numChannels = 1;
+    if (this.sliceCoords_.c === undefined) {
+      numChannels =
+        this.chunkManagerSource_?.dimensions.c?.lods[chunk.lod].size ?? 1;
+    }
     if (numChannels === 1) {
-      return chunkData;
+      return slicedData;
     }
     const fullSize = numChannels * chunk.shape.y * chunk.shape.x;
-    const TypedArray = chunkData.constructor as new (size: number) => ChunkData;
+    const TypedArray = slicedData.constructor as new (
+      size: number
+    ) => ChunkData;
     const fullData = new TypedArray(fullSize);
-    fullData.set(chunkData, chunk.chunkIndex.c * chunk.shape.x * chunk.shape.y);
+    fullData.set(
+      slicedData,
+      chunk.chunkIndex.c * chunk.shape.x * chunk.shape.y
+    );
     return fullData;
   }
 
