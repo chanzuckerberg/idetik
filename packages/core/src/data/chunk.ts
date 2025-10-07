@@ -66,9 +66,14 @@ export function sliceChunk2D(
   chunk: Chunk,
   sliceCoords: SliceCoordinates
 ): ChunkData | undefined {
-  if (!chunk.data) return chunk.data;
-  if (sliceCoords.c === undefined && sliceCoords.z === undefined)
+  if (!chunk.data) {
+    Logger.warn("Chunk", "No data for image");
     return chunk.data;
+  }
+
+  if (sliceCoords.c === undefined && sliceCoords.z === undefined) {
+    return chunk.data;
+  }
 
   const z = sliceCoords.z === undefined ? 0 : sliceCoords.z;
   const zLocal = (z - chunk.offset.z) / chunk.scale.z;

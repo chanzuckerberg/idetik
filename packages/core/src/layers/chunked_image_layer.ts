@@ -2,6 +2,7 @@ import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import {
   Chunk,
+  ChunkData,
   ChunkSource,
   sliceChunk2D,
   SliceCoordinates,
@@ -176,14 +177,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     Logger.debug("ChunkedImageLayer", "getImageForChunk", chunk, key, existing);
     if (existing) {
       const texture = existing.textures[0] as Texture2DArray;
-      texture.updateWithChunk(chunk, this.getDataForImage(chunk));
+      const data = sliceChunk2D(chunk, this.sliceCoords_);
+      texture.updateWithChunk(chunk, data);
       return existing;
     }
 
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
       const texture = pooled.textures[0] as Texture2DArray;
-      texture.updateWithChunk(chunk, this.getDataForImage(chunk));
+      const data = sliceChunk2D(chunk, this.sliceCoords_);
+      texture.updateWithChunk(chunk, data);
       this.updateImageChunk(pooled, chunk);
       if (this.channelProps_) {
         pooled.setChannelProps(this.channelProps_);
@@ -205,22 +208,32 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         this.chunkManagerSource_?.dimensions.c?.lods[chunk.lod].size ?? 1;
     }
     Logger.debug("ChunkedImageLayer", "createImage", chunk, numChannels);
-    const texture = Texture2DArray.createWithChunk(chunk, numChannels);
+    if (chunk.data === undefined) {
+      throw new Error("Chunk data is not loaded");
+    }
+    const data = this.getTextureData(chunk, numChannels);
     const image = new ImageRenderable(
       geometry,
-      texture,
+      Texture2DArray.createWithChunk(chunk, data),
       this.channelProps_ ?? [{}]
     );
-    texture.updateWithChunk(chunk, this.getDataForImage(chunk));
     this.updateImageChunk(image, chunk);
     return image;
   }
 
-  private getDataForImage(chunk: Chunk) {
-    const data = sliceChunk2D(chunk, this.sliceCoords_);
-    if (!data) {
-      Logger.warn("ChunkedImageLayer", "No data for image");
+  private getTextureData(chunk: Chunk, numChannels: number) {
+    if (!chunk.data) {
+      throw new Error("Chunk data is not loaded");
     }
+    if (numChannels === 1) {
+      return chunk.data;
+    }
+    const bufferSize = numChannels * chunk.shape.y * chunk.shape.x;
+    const TypedArray = chunk.data.constructor as new (
+      size: number
+    ) => ChunkData;
+    const data = new TypedArray(bufferSize);
+    data.set(chunk.data, chunk.chunkIndex.c * chunk.shape.x * chunk.shape.y);
     return data;
   }
 
