@@ -358,5 +358,5 @@ export function poolKeyForImageRenderable(chunk: Chunk) {
 
 // Generates a unique key for a chunk ignoring the channel index.
 function chunkKey(chunk: Chunk): string {
-  return `${chunk.chunkIndex.x},${chunk.chunkIndex.y},${chunk.chunkIndex.z},${chunk.lod}`;
+  return `${chunk.lod},${chunk.chunkIndex.t},${chunk.chunkIndex.z},${chunk.chunkIndex.y},${chunk.chunkIndex.x}`;
 }
