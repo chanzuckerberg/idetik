@@ -317,13 +317,14 @@ export class ChunkManagerSource {
 
       chunk.visible = isVisible && isChannelVisible;
       chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
-      chunk.priority = this.computePriority(
-        isFallbackLOD,
-        isCurrentLOD,
-        isVisible,
-        chunk.prefetch
-      );
-      if (!isChannelVisible) {
+      if (isChannelVisible) {
+        chunk.priority = this.computePriority(
+          isFallbackLOD,
+          isCurrentLOD,
+          isVisible,
+          chunk.prefetch
+        );
+      } else {
         chunk.priority = null;
       }
 
