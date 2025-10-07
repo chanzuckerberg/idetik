@@ -22,7 +22,6 @@ type Module =
   | "ChunkManagerSource"
   | "ChunkQueue"
   | "ChunkedImageLayer"
-  | "Texture2DArray"
   | "EventDispatcher"
   | "Idetik"
   | "ImageLayer"
