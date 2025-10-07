@@ -386,8 +386,10 @@ export class ChunkManagerSource {
   }
 
   private isChunkChannelVisible(chunk: Chunk): boolean {
-    if (this.sliceCoords_.c === undefined) return true;
-    return this.sliceCoords_.c === chunk.chunkIndex.c;
+    return (
+      this.sliceCoords_.c === undefined ||
+      this.sliceCoords_.c === chunk.chunkIndex.c
+    );
   }
 
   private disposeChunk(chunk: Chunk) {
