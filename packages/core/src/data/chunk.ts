@@ -62,27 +62,6 @@ export type Chunk = {
   };
 };
 
-export type SlicedChunk2D = {
-  data: ChunkData;
-  shape: {
-    x: number;
-    y: number;
-    c: number;
-  };
-  lod: number;
-  rowStride: number;
-  rowAlignmentBytes: TextureUnpackRowAlignment;
-  scale: {
-    x: number;
-    y: number;
-  };
-  offset: {
-    x: number;
-    y: number;
-    c: number;
-  };
-};
-
 export function sliceChunk2D(
   chunk: Chunk,
   sliceCoords: SliceCoordinates
