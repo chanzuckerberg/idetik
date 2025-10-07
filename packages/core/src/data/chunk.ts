@@ -75,7 +75,7 @@ export function sliceChunk2D(
     return chunk.data;
   }
 
-  const z = sliceCoords.z === undefined ? 0 : sliceCoords.z;
+  const z = sliceCoords.z ?? 0;
   const zLocal = (z - chunk.offset.z) / chunk.scale.z;
   const zIndex = Math.floor(zLocal + 10 * Number.EPSILON);
   if (zIndex < 0 || zIndex >= chunk.shape.z) {
@@ -84,7 +84,7 @@ export function sliceChunk2D(
     );
   }
 
-  const c = sliceCoords.c ? sliceCoords.c : 0;
+  const c = sliceCoords.c ?? 0;
   if (c < 0 || c >= chunk.shape.c) {
     throw new Error(
       `c ${c} is out of bounds for chunk with shape.c ${chunk.shape.c}`

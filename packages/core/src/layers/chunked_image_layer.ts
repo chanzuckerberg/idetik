@@ -222,19 +222,18 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getTextureData(chunk: Chunk, numChannels: number) {
-    if (!chunk.data) {
+    const chunkData = sliceChunk2D(chunk, this.sliceCoords_);
+    if (!chunkData) {
       throw new Error("Chunk data is not loaded");
     }
     if (numChannels === 1) {
-      return chunk.data;
+      return chunkData;
     }
-    const bufferSize = numChannels * chunk.shape.y * chunk.shape.x;
-    const TypedArray = chunk.data.constructor as new (
-      size: number
-    ) => ChunkData;
-    const data = new TypedArray(bufferSize);
-    data.set(chunk.data, chunk.chunkIndex.c * chunk.shape.x * chunk.shape.y);
-    return data;
+    const fullSize = numChannels * chunk.shape.y * chunk.shape.x;
+    const TypedArray = chunkData.constructor as new (size: number) => ChunkData;
+    const fullData = new TypedArray(fullSize);
+    fullData.set(chunkData, chunk.chunkIndex.c * chunk.shape.x * chunk.shape.y);
+    return fullData;
   }
 
   private updateImageChunk(image: ImageRenderable, chunk: Chunk) {

@@ -5,7 +5,6 @@ import {
 } from "../../objects/textures/texture";
 
 import { Chunk, ChunkData } from "../../data/chunk";
-
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
