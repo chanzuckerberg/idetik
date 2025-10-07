@@ -315,7 +315,7 @@ export class ChunkManagerSource {
       const isFallbackLOD = chunk.lod === this.lowestResLOD_;
       const isLoaded = chunk.state === "loaded";
 
-      chunk.visible = isVisible;
+      chunk.visible = isVisible && isChannelVisible;
       chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
       chunk.priority = this.computePriority(
         isFallbackLOD,
