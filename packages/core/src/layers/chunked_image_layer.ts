@@ -143,7 +143,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     for (const [chunk, image] of this.visibleChunks_) {
       if (chunk.state !== "loaded" || !chunk.data) continue;
-      const data = sliceChunk2D(chunk, this.sliceCoords_).data;
+      const data = sliceChunk2D(chunk, this.sliceCoords_);
       if (data) {
         const texture = image.textures[0] as Texture2DArray;
         texture.updateWithChunk(chunk, data);
@@ -217,13 +217,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getDataForImage(chunk: Chunk) {
-    const data =
-      this.sliceCoords_?.z !== undefined || this.sliceCoords_?.c !== undefined
-        ? sliceChunk2D(chunk, this.sliceCoords_).data
-        : chunk.data;
+    const data = sliceChunk2D(chunk, this.sliceCoords_);
     if (!data) {
       Logger.warn("ChunkedImageLayer", "No data for image");
-      return;
     }
     return data;
   }
@@ -278,12 +274,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     // Check if this chunk contains the requested position
     if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-      const data =
-        this.sliceCoords_.z !== undefined
-          ? sliceChunk2D(chunk, this.sliceCoords_).data
-          : chunk.data;
+      const data = sliceChunk2D(chunk, this.sliceCoords_)!;
       const pixelIndex = y * chunk.rowStride + x;
-
       // For multi-channel images, take the first channel value
       return data[pixelIndex];
     }
