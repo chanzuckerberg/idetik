@@ -83,9 +83,9 @@ export abstract class Texture extends Node {
   public mipmapLevels = 1;
   public unpackAlignment: TextureUnpackRowAlignment = 4;
   public unpackRowLength = 0;
-  public wrapR: TextureWrapMode = "clamp_to_edge";
-  public wrapS: TextureWrapMode = "clamp_to_edge";
-  public wrapT: TextureWrapMode = "clamp_to_edge";
+  public wrapR: TextureWrapMode = "repeat";
+  public wrapS: TextureWrapMode = "repeat";
+  public wrapT: TextureWrapMode = "repeat";
   public needsUpdate = true;
 
   public abstract get width(): number;
