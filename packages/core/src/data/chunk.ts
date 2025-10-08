@@ -128,7 +128,7 @@ export type ChunkLoader = {
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
 
-const CONVERSION_TOLERANCE: Readonly<number> = 10 * Number.EPSILON;
+const CONVERSION_TOLERANCE = 10 * Number.EPSILON;
 
 export function coordToIndex(lod: SourceDimensionLod, coord: number): number {
   // We draw a 2D chunk with no translation from (0, 0), so the extent of that
