@@ -220,11 +220,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (!slicedData) {
       throw new Error("Chunk data is not loaded");
     }
-    let numChannels = 1;
-    if (this.sliceCoords_.c === undefined) {
-      numChannels =
-        this.chunkManagerSource_?.dimensions.c?.lods[chunk.lod].size ?? 1;
-    }
+    const numChannels = this.numImageChannels(chunk);
     if (numChannels === 1) {
       return slicedData;
     }
@@ -238,6 +234,13 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       chunk.chunkIndex.c * chunk.shape.x * chunk.shape.y
     );
     return fullData;
+  }
+
+  private numImageChannels(chunk: Chunk) {
+    if (!this.chunkManagerSource_) return 1;
+    if (!this.chunkManagerSource_.dimensions.c) return 1;
+    if (this.sliceCoords_.c !== undefined) return 1;
+    return this.chunkManagerSource_.dimensions.c.lods[chunk.lod].size;
   }
 
   private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
