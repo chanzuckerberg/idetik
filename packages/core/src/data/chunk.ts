@@ -2,8 +2,8 @@ import { Region } from "./region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 import { Logger } from "../utilities/logger";
-import { clamp } from "@/utilities/clamp";
-import { almostEqual } from "@/utilities/almost_equal";
+import { clamp } from "../utilities/clamp";
+import { almostEqual } from "../utilities/almost_equal";
 
 const chunkDataTypes = [
   Int8Array,
