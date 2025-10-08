@@ -28,6 +28,7 @@ type Module =
   | "ImageSeriesLoader"
   | "LabelImageLayer"
   | "Layer"
+  | "PixelSizeObserver"
   | "ZarrWorker"
   | "RenderablePool"
   | "Viewport"
