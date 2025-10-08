@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pydetik"
+authors = [
+    {name = "Andrew Sweet", email = "andrewdsweet@gmail.com"}
+]
+license = {text = "MIT License"}
+description = "Python wrapper and tools for Idetik"
+readme = "README.md"
+requires-python = ">=3.11"
+dynamic = ["version"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "boto3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "ty",
+    "build",
+]
+
+[project.scripts]
+s3serve = "pydetik._s3_server:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["pydetik"]
+include-package-data = true
+
+[tool.ruff]
+target-version = "py311"
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "F",   # pyflakes
+    "E",   # pycodestyle
+    "I",   # isort
+    "UP",  # pyupgrade
+    "RUF", # ruff specific rules
+    "D",   # pydocstyle
+]
+ignore = [
+    "D100", # Missing docstring in public mod
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D107", # Missing docstring in `__init__`
+    "D205", # 1 blank line required between summary line and description
+    "D417", # Missing argument description in docstring
+    "E402", # Module level import not at top of file
+    "E501", # Line too long
+]
+exclude = [
+    "_version.py",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.setuptools_scm]
+write_to = "src/pydetik/_version.py"
