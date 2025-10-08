@@ -13,12 +13,9 @@ import GUI from "lil-gui";
 const url =
   "https://uk1s3.embassy.ebi.ac.uk/ebi-ngff-challenge-2024/c0e5d621-62cc-43a6-9dad-2ddab8959d17.zarr";
 
-// Source is 5D, so provide indices at 3 dimensions to project to 2D.
 const source = new OmeZarrImageSource(url);
 
-// values copied from source
-const imageDataRange = { min: 0, max: 3000 };
-
+// Values copied from source metadata
 const xyScale = 6.8746696041186794;
 const left = 0;
 const right = 1024 * xyScale;
@@ -31,15 +28,8 @@ const tMin = t.translate;
 const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
 
-const initialWindow = 80;
-const initialLevel = 50;
-const initialContrastLimits = windowLevelToContrastLimits(
-  initialWindow,
-  initialLevel
-);
-
 const sliceCoords = {
-  t: 0.5 * (tMin + tMax),
+  t: tMin,
   z: 0,
   c: 1,
 };
@@ -47,7 +37,7 @@ const sliceCoords = {
 const channelColor = Color.GREEN;
 const channelProps: ChannelProps[] = [
   {
-    contrastLimits: initialContrastLimits,
+    contrastLimits: [409, 3000],
     color: channelColor,
   },
 ];
@@ -75,13 +65,7 @@ new Idetik({
 
 const controls = {
   showWireframes: imageLayer.debugMode,
-  showChunkInfoOverlay: true,
   showTimePointOverlay: true,
-  window: initialWindow,
-  level: initialLevel,
-  resetContrast: function () {
-    contrastFolder.reset();
-  },
 };
 
 const gui = new GUI({ width: 500 });
@@ -104,54 +88,13 @@ addDimensionSlider({
 });
 
 const overlaysFolder = gui.addFolder("Overlays");
-
 overlaysFolder
   .add(controls, "showTimePointOverlay")
   .name("Show time point overlay")
   .onChange((show: boolean) => {
     timePointDiv.style.display = show ? "block" : "none";
   });
-
 overlaysFolder
   .add(controls, "showWireframes")
   .name("Show tile wireframes")
   .onChange((show: boolean) => (imageLayer.debugMode = show));
-
-const contrastFolder = gui.addFolder("Window/Level");
-contrastFolder
-  .add(controls, "window", 1, 100, 1)
-  .name("Window (%)")
-  .onChange(updateContrastLimits);
-
-contrastFolder
-  .add(controls, "level", 0, 100, 1)
-  .name("Level (%)")
-  .onChange(updateContrastLimits);
-
-contrastFolder.add(controls, "resetContrast").name("Reset");
-
-function updateContrastLimits() {
-  const contrastLimits = windowLevelToContrastLimits(
-    controls.window,
-    controls.level
-  );
-  const newChannelProps = [
-    {
-      contrastLimits,
-      color: channelColor,
-    },
-  ];
-  imageLayer.setChannelProps(newChannelProps);
-}
-
-function windowLevelToContrastLimits(
-  window: number,
-  level: number
-): [number, number] {
-  return [
-    (imageDataRange.max - imageDataRange.min) *
-      (level / 100 - window / 100 / 2),
-    (imageDataRange.max - imageDataRange.min) *
-      (level / 100 + window / 100 / 2),
-  ];
-}

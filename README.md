@@ -30,3 +30,59 @@ A layer-based library for interactive visualization of large datasets.
    `npm run test -- --run`.
 
 4. See [package.json](package.json) for other commands available.
+
+## Release
+
+Currently, we maintain Idetik prerelease packages on npm: [@idetik/core-prerelease](https://www.npmjs.com/package/@idetik/core-prerelease?activeTab=readme) and [@idetik/react-prerelease](https://www.npmjs.com/package/@idetik/react-prerelease).
+
+### Pre-requirements
+
+First, you must have cloned this repository and must be able to build the core and react packages.
+
+Second, you must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM.
+
+### Process
+
+Our release process is currently manual and we currently bump the major version every time to easily avoid unintentional downstream breakage.
+
+To release the core package run the following the commands
+
+```shell
+git switch -c your-name/prerelease-X-Y-Z
+cd packages/core
+npm version major
+npm install
+npm run build
+```
+
+where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
+
+Now, manually modify `packages/react/package.json` so that any dependencies (including dev and peer dependencies) are bumped to `^X.Y.Z`.
+
+Then repeat for `packages/react`.
+
+```shell
+cd ../react
+npm version major
+npm install
+npm run build
+```
+
+After both package versions have been bumped, create a PR, get it approved, and merge it to `main`.
+
+Next, checkout the corresponding commit on `main` and run the following commands for 
+
+```shell
+npm login
+cd ../core
+npm run pub
+cd ../react
+npm run pub
+```
+
+Finally, add a tag of the form `prerelease-X.Y.Z` to the commit on `main`.
+
+```shell
+git tag prerelease-X.Y.Z
+git push origin --tags
+```
