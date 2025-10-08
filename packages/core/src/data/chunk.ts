@@ -2,6 +2,8 @@ import { Region } from "./region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 import { Logger } from "../utilities/logger";
+import { clamp } from "@/utilities/clamp";
+import { almostEqual } from "@/utilities/almost_equal";
 
 const chunkDataTypes = [
   Int8Array,
@@ -77,11 +79,13 @@ export function sliceChunk2D(
 
   const z = sliceCoords.z ?? 0;
   const zLocal = (z - chunk.offset.z) / chunk.scale.z;
-  const zIndex = Math.floor(zLocal + 10 * Number.EPSILON);
-  if (zIndex < 0 || zIndex >= chunk.shape.z) {
-    throw new Error(
-      `z ${z} is out of bounds for chunk with shape.z ${chunk.shape.z}`
-    );
+  const zIndex = Math.round(zLocal);
+  const zClamped = clamp(zIndex, 0, chunk.shape.z - 1);
+
+  // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
+  // Anything further away means the requested zValue is outside.
+  if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
+    Logger.error("Chunk", "slicePlane zValue outside extent");
   }
 
   const c = sliceCoords.c ?? 0;
@@ -95,7 +99,7 @@ export function sliceChunk2D(
   const sliceSize = chunk.rowStride * chunk.shape.y;
 
   // C is assumed to change more slowly than z.
-  const offset = (c * chunk.shape.z + zIndex) * sliceSize;
+  const offset = (c * chunk.shape.z + zClamped) * sliceSize;
   return chunk.data.slice(offset, offset + sliceSize);
 }
 
