@@ -5,13 +5,13 @@ import { Region } from "../region";
 import {
   Chunk,
   SourceDimension,
-  SourceDimensionLod,
   SourceDimensionMap,
   isChunkData,
   LoaderAttributes,
   SliceCoordinates,
   ChunkData,
   ChunkDataConstructor,
+  coordToChunkIndex,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -85,9 +85,9 @@ export class OmeZarrImageLoader {
           "Region is missing c value but c dimension exists in data"
         );
       }
-      chunkCoords[this.dimensions_.c.index] = sliceChunkIndex(
-        sliceCoords.c,
-        this.dimensions_.c.lods[chunk.lod]
+      chunkCoords[this.dimensions_.c.index] = coordToChunkIndex(
+        this.dimensions_.c.lods[chunk.lod],
+        sliceCoords.c
       );
     }
     if (this.dimensions_.t) {
@@ -368,11 +368,6 @@ function getSourceDimension(
       translation: attr.translation[index],
     })),
   };
-}
-
-function sliceChunkIndex(value: number, lod: SourceDimensionLod): number {
-  const dataIndex = Math.round((value - lod.translation) / lod.scale);
-  return Math.floor(dataIndex / lod.chunkSize);
 }
 
 function compareDimensions(a: string, b: string): boolean {
