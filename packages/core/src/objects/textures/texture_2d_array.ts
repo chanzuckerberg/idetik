@@ -65,10 +65,27 @@ export class Texture2DArray extends Texture {
       this.height != height ||
       this.dataType != bufferToDataType(source)
     ) {
-      throw new Error("Unable to update texture, texture buffer mismatch.");
+      throw new Error(
+        `Unable to update texture, shape mismatch. Current: ${this.width}x${this.height} vs. new: ${width}x${height}`
+      );
     }
 
-    const offset = chunk.chunkIndex.c * width * height;
+    // Allow source data with a depth of 1 to be updated into a texture with greater depth
+    // to allow for single-channel updates.
+    const depth = source.length / (width * height);
+    if (depth > 1 && this.depth != depth) {
+      throw new Error(
+        `Unable to update texture, depth mismatch. Current: ${this.depth} vs. new: ${depth}`
+      );
+    }
+
+    if (this.dataType != bufferToDataType(source)) {
+      throw new Error(
+        "Unable to update texture, data type mismatch. Current: ${this.dataType} vs. new: ${bufferToDataType(source)}"
+      );
+    }
+
+    const offset = chunk.chunkIndex.c * width * height * depth;
     this.data.set(source, offset);
     this.needsUpdate = true;
     return;
