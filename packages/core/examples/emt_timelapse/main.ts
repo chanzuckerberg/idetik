@@ -12,7 +12,7 @@ import GUI from "lil-gui";
 
 // Locally hosted s3 bucket: czi-dynamic-cell-atlas-staging
 const url =
-  "http://localhost:8000/emt_timelapse_dataset/3500006071_45_raw_converted.ome.zarr"
+  "http://localhost:8000/emt_timelapse_dataset/3500006071_45_raw_converted.ome.zarr";
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
 const source = new OmeZarrImageSource(url);
