@@ -292,6 +292,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
       const data = sliceChunk2D(chunk, this.sliceCoords_)!;
       const pixelIndex = y * chunk.rowStride + x;
+
       // For multi-channel images, take the first channel value
       return data[pixelIndex];
     }
