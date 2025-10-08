@@ -78,4 +78,5 @@ convention = "google"
 "__init__.py" = ["F401"]
 
 [tool.setuptools_scm]
-write_to = "src/pydetik/_version.py"
+root = "../.."
+write_to = "packages/pydetik/src/pydetik/_version.py"
