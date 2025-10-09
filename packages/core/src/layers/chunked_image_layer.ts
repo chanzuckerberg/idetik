@@ -1,7 +1,12 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
+<<<<<<< HEAD
 import { Chunk, ChunkData, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
+=======
+import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import { ChunkManagerSource } from "../core/chunk_manager_source";
+>>>>>>> main
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
