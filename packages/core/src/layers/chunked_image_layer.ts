@@ -117,12 +117,14 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const loadedChunks = new Map<string, Chunk[]>();
     const numImageChannels = this.numImageChannels();
     for (const chunk of orderedByLOD) {
-      const key = chunkKey(chunk);
-      if (!loadedChunks.has(key)) {
-        loadedChunks.set(key, []);
-      }
       if (chunk.state === "loaded") {
-        loadedChunks.get(key)!.push(chunk);
+        const key = chunkKey(chunk);
+        let chunks = loadedChunks.get(key);
+        if (!chunks) {
+          chunks = [];
+          loadedChunks.set(key, chunks);
+        }
+        chunks.push(chunk);
       }
     }
 
@@ -130,9 +132,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.clearObjects();
     for (const [key, chunks] of loadedChunks) {
       if (chunks.length !== numImageChannels) continue;
-      const image = this.getImage(key, chunks);
-      this.visibleImages_.set(key, { image, chunks });
-      this.addObject(image);
+      const chunkedImage = this.getChunkedImage(key, chunks);
+      this.addObject(chunkedImage.image);
     }
   }
 
@@ -204,12 +205,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return chunk.data.slice(offset, offset + sliceSize);
   }
 
-  private getImage(key: string, chunks: Chunk[]): ImageRenderable {
+  private getChunkedImage(
+    key: string,
+    chunks: Chunk[]
+  ): ChunkedImageRenderable {
     const existing = this.visibleImages_.get(key);
-    if (existing) return existing.image;
-    const pooled = this.getPooledImage(chunks);
-    if (pooled) return pooled;
-    return this.createImage(chunks);
+    if (existing) return existing;
+    const image = this.getPooledImage(chunks) ?? this.createImage(chunks);
+    const chunkedImage = { image, chunks };
+    this.visibleImages_.set(key, chunkedImage);
+    return chunkedImage;
   }
 
   private getPooledImage(chunks: Chunk[]): ImageRenderable | undefined {
