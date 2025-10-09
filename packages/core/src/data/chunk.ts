@@ -2,8 +2,6 @@ import { Region } from "./region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 import { Logger } from "../utilities/logger";
-import { clamp } from "../utilities/clamp";
-import { almostEqual } from "../utilities/almost_equal";
 
 const chunkDataTypes = [
   Int8Array,
@@ -63,45 +61,6 @@ export type Chunk = {
     z: number;
   };
 };
-
-export function sliceChunk2D(
-  chunk: Chunk,
-  sliceCoords: SliceCoordinates
-): ChunkData | undefined {
-  if (!chunk.data) {
-    Logger.warn("Chunk", "No data for image");
-    return chunk.data;
-  }
-
-  if (sliceCoords.c === undefined && sliceCoords.z === undefined) {
-    return chunk.data;
-  }
-
-  const z = sliceCoords.z ?? 0;
-  const zLocal = (z - chunk.offset.z) / chunk.scale.z;
-  const zIndex = Math.round(zLocal);
-  const zClamped = clamp(zIndex, 0, chunk.shape.z - 1);
-
-  // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
-  // Anything further away means the requested zValue is outside.
-  if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
-    Logger.error("Chunk", "slicePlane zValue outside extent");
-  }
-
-  const c = sliceCoords.c ?? 0;
-  if (c < 0 || c >= chunk.shape.c) {
-    throw new Error(
-      `c ${c} is out of bounds for chunk with shape.c ${chunk.shape.c}`
-    );
-  }
-
-  // TODO: use strides across all dimensions.
-  const sliceSize = chunk.rowStride * chunk.shape.y;
-
-  // C is assumed to change more slowly than z.
-  const offset = (c * chunk.shape.z + zClamped) * sliceSize;
-  return chunk.data.slice(offset, offset + sliceSize);
-}
 
 // Maps Idetik spatial dimensions (x, y, z) and non-spatial dimensions (c, t)
 // dimensions to a chunk source's dimensions.

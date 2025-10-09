@@ -1,12 +1,6 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
-import {
-  Chunk,
-  ChunkData,
-  ChunkSource,
-  sliceChunk2D,
-  SliceCoordinates,
-} from "../data/chunk";
+import { Chunk, ChunkData, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -18,6 +12,8 @@ import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { RenderablePool } from "../utilities/renderable_pool";
+import { clamp } from "../utilities/clamp";
+import { almostEqual } from "../utilities/almost_equal";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -149,7 +145,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     for (const [_, chunked] of this.visibleChunks_) {
       for (const chunk of chunked.chunks) {
         if (chunk.state !== "loaded" || !chunk.data) continue;
-        const data = sliceChunk2D(chunk, this.sliceCoords_);
+        const data = this.slicePlane(chunk, zPointWorld);
         if (data && chunked.image) {
           const texture = chunked.image.textures[0] as Texture2DArray;
           texture.updateWithChunk(chunk, data);
@@ -177,10 +173,27 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return this.source_;
   }
 
+  private slicePlane(chunk: Chunk, zValue?: number) {
+    if (!chunk.data) return;
+    if (zValue === undefined) return chunk.data;
+    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
+    const zIdx = Math.round(zLocal);
+    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
+
+    // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
+    // Anything further away means the requested zValue is outside.
+    if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
+      Logger.error("ImageLayer", "slicePlane zValue outside extent");
+    }
+
+    const sliceSize = chunk.shape.x * chunk.shape.y;
+    const offset = sliceSize * zClamped;
+    return chunk.data.slice(offset, offset + sliceSize);
+  }
+
   private getImageForChunk(chunk: Chunk): ImageRenderable | undefined {
     const key = chunkKey(chunk);
     let chunked = this.visibleChunks_.get(key);
-    Logger.debug("ChunkedImageLayer", "getImageForChunk", chunk, key, chunked);
 
     // Initialize if needed
     if (!chunked) {
@@ -220,7 +233,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (!pooled) return;
     const texture = pooled.textures[0] as Texture2DArray;
     for (const chunk of chunks) {
-      const data = sliceChunk2D(chunk, this.sliceCoords_);
+      const data = this.slicePlane(chunk, this.sliceCoords_.z);
       texture.updateWithChunk(chunk, data);
     }
     this.updateImageChunk(pooled, chunks[0]);
@@ -252,7 +265,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       this.numImageChannels(chunk) * chunk.shape.x * chunk.shape.y
     );
     for (const chunk of chunks) {
-      const chunkData = sliceChunk2D(chunk, this.sliceCoords_);
+      const chunkData = this.slicePlane(chunk, this.sliceCoords_.z);
       if (!chunkData) {
         throw new Error("Chunk data is not loaded");
       }
