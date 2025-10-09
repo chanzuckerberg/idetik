@@ -162,7 +162,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         const data = this.slicePlane(chunk, zPointWorld);
         if (data) {
           const texture = chunkedImage.image.textures[0] as Texture2DArray;
-          texture.updateWithChunk(chunk, data);
+          const cIndex = this.getTextureChannelIndex(chunk);
+          texture.updateWithChunk(chunk, data, cIndex);
         }
       }
     }
@@ -221,7 +222,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const texture = pooled.textures[0] as Texture2DArray;
     for (const chunk of chunks) {
       const data = this.slicePlane(chunk, this.sliceCoords_.z);
-      texture.updateWithChunk(chunk, data);
+      const cIndex = this.getTextureChannelIndex(chunk);
+      texture.updateWithChunk(chunk, data, cIndex);
     }
     this.updateImageChunk(pooled, chunk);
     if (this.channelProps_) {
@@ -257,9 +259,15 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       if (!chunkData) {
         throw new Error("Chunk data is not loaded");
       }
-      data.set(chunkData, chunk.chunkIndex.c * chunk.shape.x * chunk.shape.y);
+      const cIndex = this.getTextureChannelIndex(chunk);
+      data.set(chunkData, cIndex * chunk.shape.x * chunk.shape.y);
     }
     return data;
+  }
+
+  private getTextureChannelIndex(chunk: Chunk): number {
+    if (this.sliceCoords_.c) return 0;
+    return chunk.chunkIndex.c;
   }
 
   private numImageChannels() {

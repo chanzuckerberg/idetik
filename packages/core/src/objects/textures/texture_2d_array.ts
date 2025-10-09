@@ -48,7 +48,11 @@ export class Texture2DArray extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunk(chunk: Chunk, data?: ChunkData) {
+  public updateWithChunk(
+    chunk: Chunk,
+    data?: ChunkData,
+    channelIndex?: number
+  ) {
     const source = data ?? chunk.data;
     if (!source) {
       throw new Error(
@@ -85,7 +89,8 @@ export class Texture2DArray extends Texture {
       );
     }
 
-    const offset = chunk.chunkIndex.c * width * height * depth;
+    const cIndex = channelIndex ?? 0;
+    const offset = cIndex * width * height * depth;
     this.data.set(source, offset);
     this.needsUpdate = true;
     return;
