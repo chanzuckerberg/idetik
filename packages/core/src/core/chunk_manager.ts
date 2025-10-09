@@ -467,7 +467,7 @@ export class ChunkManagerSource {
 
   private getAndValidateChannelDimension() {
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-      const cLod = this.dimensions_.t?.lods[lod];
+      const cLod = this.dimensions_.c?.lods[lod];
       if (!cLod) continue;
       if (cLod.chunkSize !== 1) {
         throw new Error(
@@ -484,11 +484,11 @@ export class ChunkManagerSource {
           `ChunkManager does not support translation in c. Found ${cLod.translation} at LOD ${lod}`
         );
       }
-      const prevTLod = this.dimensions_.t?.lods[lod - 1];
-      if (!prevTLod) continue;
-      if (cLod.size !== prevTLod.size) {
+      const prevCLod = this.dimensions_.c?.lods[lod - 1];
+      if (!prevCLod) continue;
+      if (cLod.size !== prevCLod.size) {
         throw new Error(
-          `ChunkManager does not support downsampling in c. Found ${prevTLod.size} at LOD ${lod - 1} → ${cLod.size} at LOD ${lod}`
+          `ChunkManager does not support downsampling in c. Found ${prevCLod.size} at LOD ${lod - 1} → ${cLod.size} at LOD ${lod}`
         );
       }
     }
