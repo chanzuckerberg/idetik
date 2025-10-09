@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerOptions, RenderContext } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager_source";
@@ -72,7 +72,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
-  public update() {
+  public update(_: RenderContext) {
     this.updateChunks();
     this.resliceIfZChanged();
   }
