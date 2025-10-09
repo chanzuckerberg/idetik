@@ -126,10 +126,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       }
     }
 
-    // Then clear all objects.
+    // Finally add objects from scratch for all complete loaded chunk sets.
     this.clearObjects();
-
-    // Finally add images for all complete loaded chunk sets.
     for (const [key, chunks] of loadedChunks) {
       if (chunks.length !== numImageChannels) continue;
       const image = this.getImage(key, chunks);
@@ -209,7 +207,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private getImage(key: string, chunks: Chunk[]): ImageRenderable {
     const existing = this.visibleImages_.get(key);
     if (existing) return existing.image;
-    Logger.debug("ChunkedImageLayer", `Creating image for chunk key ${key}`);
     const pooled = this.getPooledImage(chunks);
     if (pooled) return pooled;
     return this.createImage(chunks);
