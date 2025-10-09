@@ -124,3 +124,15 @@ export type ChunkLoader = {
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
+
+export function coordToIndex(lod: SourceDimensionLod, coord: number): number {
+  return Math.round((coord - lod.translation) / lod.scale);
+}
+
+export function coordToChunkIndex(
+  lod: SourceDimensionLod,
+  coord: number
+): number {
+  const index = coordToIndex(lod, coord);
+  return Math.floor(index / lod.chunkSize);
+}

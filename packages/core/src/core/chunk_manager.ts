@@ -4,6 +4,7 @@ import {
   ChunkLoader,
   ChunkSource,
   SliceCoordinates,
+  coordToIndex,
 } from "../data/chunk";
 import { ReadonlyVec2, vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
@@ -50,7 +51,7 @@ export class ChunkManagerSource {
   private lastTCoord_?: number;
 
   public prioritizePrefetchTime: boolean = false;
-  private tCoordsWithQueuedChunks_: Set<number> = new Set();
+  private tIndicesWithQueuedChunks_: Set<number> = new Set();
   private sourceMaxSquareDistance2D_: number;
 
   constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
@@ -158,7 +159,13 @@ export class ChunkManagerSource {
   }
 
   public getChunksAtCurrentTime(): Chunk[] {
-    return this.chunks_[this.sliceCoords_.t ?? 0];
+    return this.chunks_[this.getCurrentTimeIndex()];
+  }
+
+  private getCurrentTimeIndex() {
+    if (this.sliceCoords_.t === undefined) return 0;
+    if (this.dimensions_.t === undefined) return 0;
+    return coordToIndex(this.dimensions_.t.lods[0], this.sliceCoords_.t);
   }
 
   public allVisibleLowestLODLoaded(): boolean {
@@ -251,12 +258,15 @@ export class ChunkManagerSource {
 
     const modifiedChunks: Chunk[] = [];
 
+    const currentTimeIndex = this.getCurrentTimeIndex();
+
     if (this.sliceCoords_.t !== undefined) {
-      const disposedChunks = this.disposeStaleTimeChunks(this.sliceCoords_.t);
+      const disposedChunks = this.disposeStaleTimeChunks(currentTimeIndex);
       modifiedChunks.push(...disposedChunks);
     }
 
-    const currentTimeChunks = this.updateChunksAtCurrentTime(
+    const currentTimeChunks = this.updateChunksAtTimeIndex(
+      currentTimeIndex,
       viewBounds3D,
       viewBoundsCenter2D
     );
@@ -264,7 +274,7 @@ export class ChunkManagerSource {
 
     if (this.sliceCoords_.t !== undefined) {
       const prefetchedChunks = this.markTimeChunksForPrefetch(
-        this.sliceCoords_.t,
+        currentTimeIndex,
         viewBounds3D,
         viewBoundsCenter2D
       );
@@ -274,30 +284,30 @@ export class ChunkManagerSource {
     return modifiedChunks;
   }
 
-  private disposeStaleTimeChunks(currentTime: number): Chunk[] {
+  private disposeStaleTimeChunks(currentTimeIndex: number): Chunk[] {
     const disposedChunks: Chunk[] = [];
-    for (const t of this.tCoordsWithQueuedChunks_) {
-      const delta = t - currentTime;
+    for (const t of this.tIndicesWithQueuedChunks_) {
+      const delta = t - currentTimeIndex;
       if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
       const chunks = this.chunks_[t];
       for (const chunk of chunks) {
         this.disposeChunk(chunk);
         disposedChunks.push(chunk);
       }
-      this.tCoordsWithQueuedChunks_.delete(t);
+      this.tIndicesWithQueuedChunks_.delete(t);
     }
     return disposedChunks;
   }
 
-  private updateChunksAtCurrentTime(
+  private updateChunksAtTimeIndex(
+    timeIndex: number,
     viewBounds3D: Box3,
     viewBounds2DCenter: ReadonlyVec2
   ) {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
 
-    const currentTime = this.sliceCoords_.t ?? 0;
-    const currentTimeChunks = this.chunks_[currentTime];
-    this.tCoordsWithQueuedChunks_.add(currentTime);
+    const currentTimeChunks = this.chunks_[timeIndex];
+    this.tIndicesWithQueuedChunks_.add(timeIndex);
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const isChannelInSlice = this.isChunkChannelInSlice(chunk);
@@ -346,16 +356,16 @@ export class ChunkManagerSource {
   }
 
   private markTimeChunksForPrefetch(
-    currentTime: number,
+    currentTimeIndex: number,
     viewBounds3D: Box3,
     viewBoundsCenter2D: ReadonlyVec2
   ): Chunk[] {
     const tEnd = Math.min(
       this.chunks_.length - 1,
-      currentTime + PREFETCH_TIME_POINTS
+      currentTimeIndex + PREFETCH_TIME_POINTS
     );
     const prefetchedChunks: Chunk[] = [];
-    for (let t = currentTime + 1; t <= tEnd; ++t) {
+    for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.chunks_[t]) {
         if (chunk.state !== "unloaded") continue;
         if (chunk.lod !== this.lowestResLOD_) continue;
@@ -371,9 +381,9 @@ export class ChunkManagerSource {
           0,
           1 - Number.EPSILON
         );
-        chunk.orderKey = t - currentTime + normalizedDistance;
+        chunk.orderKey = t - currentTimeIndex + normalizedDistance;
         chunk.state = "queued";
-        this.tCoordsWithQueuedChunks_.add(t);
+        this.tIndicesWithQueuedChunks_.add(t);
         prefetchedChunks.push(chunk);
       }
     }
@@ -440,16 +450,6 @@ export class ChunkManagerSource {
       if (tLod.chunkSize !== 1) {
         throw new Error(
           `ChunkManager only supports a chunk size of 1 in t. Found ${tLod.chunkSize} at LOD ${lod}`
-        );
-      }
-      if (tLod.scale !== 1) {
-        throw new Error(
-          `ChunkManager does not support scale in t. Found ${tLod.scale} at LOD ${lod}`
-        );
-      }
-      if (tLod.translation !== 0) {
-        throw new Error(
-          `ChunkManager does not support translation in t. Found ${tLod.translation} at LOD ${lod}`
         );
       }
       const prevTLod = this.dimensions_.t?.lods[lod - 1];
