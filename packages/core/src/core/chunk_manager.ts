@@ -62,6 +62,7 @@ export class ChunkManagerSource {
 
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
+    const { size: chunksC } = this.getAndValidateChannelDimension();
 
     const xLod0 = this.dimensions.x.lods[0];
     const yLod0 = this.dimensions.y.lods[0];
@@ -77,17 +78,14 @@ export class ChunkManagerSource {
         const xLod = this.dimensions_.x.lods[lod];
         const yLod = this.dimensions_.y.lods[lod];
         const zLod = this.dimensions_.z?.lods[lod];
-        const cLod = this.dimensions_.c?.lods[lod];
 
         const chunkWidth = xLod.chunkSize;
         const chunkHeight = yLod.chunkSize;
         const chunkDepth = zLod?.chunkSize ?? 1;
-        const chunkChannels = cLod?.chunkSize ?? 1;
 
         const chunksX = Math.ceil(xLod.size / chunkWidth);
         const chunksY = Math.ceil(yLod.size / chunkHeight);
         const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
-        const chunksC = Math.ceil((cLod?.size ?? 1) / chunkChannels);
 
         for (let x = 0; x < chunksX; ++x) {
           const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
@@ -111,10 +109,7 @@ export class ChunkManagerSource {
                     x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
                     y: Math.min(chunkHeight, yLod.size - y * chunkHeight),
                     z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
-                    c: Math.min(
-                      chunkChannels,
-                      (cLod?.size ?? 1) - c * chunkChannels
-                    ),
+                    c: 1,
                   },
                   rowStride,
                   rowAlignmentBytes: 1,
@@ -467,6 +462,38 @@ export class ChunkManagerSource {
     }
     return {
       size: this.dimensions_.t?.lods[0].size ?? 1,
+    };
+  }
+
+  private getAndValidateChannelDimension() {
+    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+      const cLod = this.dimensions_.t?.lods[lod];
+      if (!cLod) continue;
+      if (cLod.chunkSize !== 1) {
+        throw new Error(
+          `ChunkManager only supports a chunk size of 1 in c. Found ${cLod.chunkSize} at LOD ${lod}`
+        );
+      }
+      if (cLod.scale !== 1) {
+        throw new Error(
+          `ChunkManager does not support scale in c. Found ${cLod.scale} at LOD ${lod}`
+        );
+      }
+      if (cLod.translation !== 0) {
+        throw new Error(
+          `ChunkManager does not support translation in c. Found ${cLod.translation} at LOD ${lod}`
+        );
+      }
+      const prevTLod = this.dimensions_.t?.lods[lod - 1];
+      if (!prevTLod) continue;
+      if (cLod.size !== prevTLod.size) {
+        throw new Error(
+          `ChunkManager does not support downsampling in c. Found ${prevTLod.size} at LOD ${lod - 1} → ${cLod.size} at LOD ${lod}`
+        );
+      }
+    }
+    return {
+      size: this.dimensions_.c?.lods[0].size ?? 1,
     };
   }
 
