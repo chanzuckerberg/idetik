@@ -24,7 +24,7 @@ export type ChunkedImageLayerProps = LayerOptions & {
 
 type MultiChannelChunkedImage = {
   image?: ImageRenderable;
-  chunks: Array<Chunk>;
+  chunks: Array<Chunk | undefined>;
 };
 
 export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
@@ -103,6 +103,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.visibleChunks_.forEach((chunked, key) => {
       const image = chunked.image;
       for (const chunk of chunked.chunks) {
+        if (!chunk) continue;
         if (!current.has(chunk)) {
           this.visibleChunks_.delete(key);
           if (image) {
@@ -115,10 +116,12 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     this.clearObjects();
 
+    const visibleImages = new Set<ImageRenderable>();
     for (const chunk of orderedByLOD) {
       if (chunk.state !== "loaded") continue;
       const image = this.getImageForChunk(chunk);
-      if (image) {
+      if (image && !visibleImages.has(image)) {
+        visibleImages.add(image);
         this.addObject(image);
       }
     }
@@ -143,7 +146,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     }
 
     for (const [_, chunked] of this.visibleChunks_) {
-      for (const chunk of chunked.chunks) {
+      for (const chunk of chunked.chunks.filter((c) => c !== undefined)) {
         if (chunk.state !== "loaded" || !chunk.data) continue;
         const data = this.slicePlane(chunk, zPointWorld);
         if (data && chunked.image) {
@@ -206,18 +209,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       return chunked.image;
     }
 
-    // Add chunk if needed
+    // Add chunk
     const chunks = chunked.chunks;
-    if (!chunks[chunk.chunkIndex.c]) {
-      chunks[chunk.chunkIndex.c] = chunk;
-    }
+    chunks[chunk.chunkIndex.c] = chunk;
 
     // If we are missing channels, we won't create the image yet.
     if (chunks.length !== this.numImageChannels(chunk)) {
       return;
     }
 
-    // Otherwise, create or reuse an image.
+    // Otherwise, reuse or create an image.
     const pooled = this.getPooledImage(chunks);
     if (pooled) {
       chunked.image = pooled;
@@ -228,23 +229,30 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return chunked.image;
   }
 
-  private getPooledImage(chunks: Chunk[]): ImageRenderable | undefined {
-    const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunks[0]));
+  private getPooledImage(
+    chunks: Array<Chunk | undefined>
+  ): ImageRenderable | undefined {
+    const chunk = chunks.find((c) => c !== undefined);
+    if (!chunk) return;
+    const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (!pooled) return;
     const texture = pooled.textures[0] as Texture2DArray;
-    for (const chunk of chunks) {
+    for (const chunk of chunks.filter((c) => c !== undefined)) {
       const data = this.slicePlane(chunk, this.sliceCoords_.z);
       texture.updateWithChunk(chunk, data);
     }
-    this.updateImageChunk(pooled, chunks[0]);
+    this.updateImageChunk(pooled, chunk);
     if (this.channelProps_) {
       pooled.setChannelProps(this.channelProps_);
     }
     return pooled;
   }
 
-  private createImage(chunks: Chunk[]): ImageRenderable {
-    const chunk = chunks[0];
+  private createImage(
+    chunks: Array<Chunk | undefined>
+  ): ImageRenderable | undefined {
+    const chunk = chunks.find((c) => c !== undefined);
+    if (!chunk) return;
     const data = this.getTextureData(chunks);
     const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(
@@ -256,15 +264,19 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return image;
   }
 
-  private getTextureData(chunks: Chunk[]) {
-    const chunk = chunks[0];
-    const TypedArray = chunk.data!.constructor as new (
+  private getTextureData(chunks: Array<Chunk | undefined>): ChunkData {
+    const chunk = chunks.find((c) => c !== undefined);
+    if (!chunk || !chunk.data) {
+      throw new Error("Chunk data is not loaded");
+    }
+    const TypedArray = chunk.data.constructor as new (
       size: number
     ) => ChunkData;
     const data = new TypedArray(
       this.numImageChannels(chunk) * chunk.shape.x * chunk.shape.y
     );
     for (const chunk of chunks) {
+      if (!chunk) continue;
       const chunkData = this.slicePlane(chunk, this.sliceCoords_.z);
       if (!chunkData) {
         throw new Error("Chunk data is not loaded");
@@ -300,7 +312,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     for (const [_key, chunked] of this.visibleChunks_) {
       const image = chunked.image;
       if (!image) continue;
-      for (const chunk of chunked.chunks) {
+      for (const chunk of chunked.chunks.filter((c) => c !== undefined)) {
         if (chunk.lod !== currentLOD) continue;
         const value = this.getValueFromChunk(chunk, image, world);
         if (value !== null) return value;
@@ -311,7 +323,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     for (const [_key, chunked] of this.visibleChunks_) {
       const image = chunked.image;
       if (!image) continue;
-      for (const chunk of chunked.chunks) {
+      for (const chunk of chunked.chunks.filter((c) => c !== undefined)) {
         if (chunk.lod === currentLOD) continue;
         const value = this.getValueFromChunk(chunk, image, world);
         if (value !== null) return value;
@@ -339,7 +351,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     // Check if this chunk contains the requested position
     if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-      const data = sliceChunk2D(chunk, this.sliceCoords_)!;
+      const data = this.slicePlane(chunk, this.sliceCoords_.z)!;
       const pixelIndex = y * chunk.rowStride + x;
 
       // For multi-channel images, take the first channel value
@@ -357,8 +369,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.debugMode_ = debug;
     this.visibleChunks_.forEach((chunked, _key) => {
       const image = chunked.image;
-      const chunk = chunked.chunks[0];
       if (!image) return;
+      const chunk = chunked.chunks.find((c) => c !== undefined);
+      if (!chunk) return;
       image.wireframeEnabled = this.debugMode_;
       if (this.debugMode_) {
         image.wireframeColor =
