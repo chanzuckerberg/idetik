@@ -317,9 +317,7 @@ export class ChunkManagerSource {
       const isFallbackLOD = chunk.lod === this.lowestResLOD_;
       const isLoaded = chunk.state === "loaded";
 
-      // TODO: chunk.visible should not be dependent on the channel slice,
-      // but this currently prevents us from loading unnecessary channels.
-      chunk.visible = isVisible && isChannelInSlice;
+      chunk.visible = isVisible;
       chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
       chunk.priority = this.computePriority(
         isFallbackLOD,
