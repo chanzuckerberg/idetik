@@ -9,6 +9,7 @@ import {
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { addDimensionSlider } from "../lil_gui_utils";
+import { createExplorationPolicy } from "@/core/image_source_policy";
 import GUI from "lil-gui";
 
 const url =
@@ -51,6 +52,7 @@ const onPickValue = (info: PointPickingResult) => {
 const layer = new ChunkedImageLayer({
   source,
   sliceCoords,
+  policy: createExplorationPolicy(),
   channelProps,
   onPickValue,
 });

@@ -2,6 +2,7 @@ import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager_source";
+import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
@@ -18,6 +19,7 @@ import { RenderablePool } from "../utilities/renderable_pool";
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
+  policy: ImageSourcePolicy;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
 };
@@ -25,6 +27,7 @@ export type ChunkedImageLayerProps = LayerOptions & {
 export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ChunkedImageLayer";
 
+  private readonly policy_: ImageSourcePolicy;
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
@@ -52,6 +55,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   constructor({
     source,
     sliceCoords,
+    policy,
     channelProps,
     onPickValue,
     ...layerOptions
@@ -59,6 +63,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
+    this.policy_ = policy;
     this.sliceCoords_ = sliceCoords;
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
@@ -68,7 +73,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public async onAttached(context: IdetikContext) {
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_,
-      this.sliceCoords_
+      this.sliceCoords_,
+      this.policy_
     );
   }
 

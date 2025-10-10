@@ -7,6 +7,7 @@ import {
   ChannelProps,
   ChunkLoader,
   ChunkedImageLayer,
+  createExplorationPolicy,
 } from "@idetik/core-prerelease";
 import { useIdetik } from "../../../hooks/useIdetik";
 import { IdetikCanvas } from "../../IdetikCanvas";
@@ -189,6 +190,7 @@ function createLayer(
   const layer = new ChunkedImageLayer({
     source,
     sliceCoords,
+    policy: createExplorationPolicy(),
     channelProps,
   });
   return { layer, sliceCoords };
