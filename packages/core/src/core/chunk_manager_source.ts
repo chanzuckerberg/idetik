@@ -344,7 +344,7 @@ export class ChunkManagerSource {
           isFallbackLOD,
           isCurrentLOD,
           isVisible,
-          eligibleForPrefetch,
+          chunk.prefetch,
           isChannelInSlice
         )
       ) {
@@ -401,14 +401,14 @@ export class ChunkManagerSource {
     isFallbackLOD: boolean,
     isCurrentLOD: boolean,
     isVisible: boolean,
-    eligibleForPrefetch: boolean,
+    isPrefetch: boolean,
     isChannelInSlice: boolean
   ) {
     if (!isLoaded) return false;
     if (!isChannelInSlice) return true;
     if (isFallbackLOD) return false;
     if (!isCurrentLOD) return true;
-    return !isVisible && !eligibleForPrefetch;
+    return !isVisible && !isPrefetch;
   }
 
   private disposeChunk(chunk: Chunk) {
