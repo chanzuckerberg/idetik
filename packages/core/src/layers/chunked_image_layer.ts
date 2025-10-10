@@ -70,6 +70,15 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       this.source_,
       this.sliceCoords_
     );
+
+    // TODO: Support rendering multiple channels
+    const numChannels =
+      this.chunkManagerSource_.dimensions.c?.lods[0].size ?? 1;
+    if (numChannels > 1) {
+      throw new Error(
+        `ChunkedImageLayer does not yet support multiple channels. Found ${numChannels} channels.`
+      );
+    }
   }
 
   public update() {

@@ -164,15 +164,15 @@ export class ChunkManagerSource {
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  public getCurrentTimeIndex() {
-    if (this.sliceCoords_.t === undefined) return 0;
-    if (this.dimensions_.t === undefined) return 0;
-    return coordToIndex(this.dimensions_.t.lods[0], this.sliceCoords_.t);
-  }
-
   public getChunksAtCurrentTime(): Chunk[] {
     const timeIndex = this.getCurrentTimeIndex();
     return this.chunks_[timeIndex].flat();
+  }
+
+  private getCurrentTimeIndex() {
+    if (this.sliceCoords_.t === undefined) return 0;
+    if (this.dimensions_.t === undefined) return 0;
+    return coordToIndex(this.dimensions_.t.lods[0], this.sliceCoords_.t);
   }
 
   public allVisibleLowestLODLoaded(): boolean {
@@ -317,7 +317,6 @@ export class ChunkManagerSource {
 
     this.tIndicesWithQueuedChunks_.add(timeIndex);
 
-    // Update chunks for all channels
     for (const chunk of this.chunks_[timeIndex].flat()) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
@@ -373,7 +372,6 @@ export class ChunkManagerSource {
     const prefetchedChunks: Chunk[] = [];
 
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
-      // Prefetch for all channels
       for (const chunk of this.chunks_[t].flat()) {
         if (chunk.state !== "unloaded") continue;
         if (chunk.lod !== this.lowestResLOD_) continue;
