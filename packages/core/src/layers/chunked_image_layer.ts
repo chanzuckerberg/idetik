@@ -1,4 +1,5 @@
 import { Layer, LayerOptions } from "../core/layer";
+import { IdetikContext } from "../idetik";
 import { Chunk, ChunkData, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager_source";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
@@ -32,7 +33,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
-  private readonly visibleImages_: Map<string, ChunkedImageRenderable> = new Map();
+  private readonly visibleImages_: Map<string, ChunkedImageRenderable> =
+    new Map();
   private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
