@@ -317,20 +317,15 @@ export class ChunkManagerSource {
       const isFallbackLOD = chunk.lod === this.lowestResLOD_;
       const isLoaded = chunk.state === "loaded";
 
-      // TODO: chunk.visible should not be dependent on the channel slice,
-      // but this currently prevents us from loading unnecessary channels.
-      chunk.visible = isVisible && isChannelInSlice;
+      chunk.visible = isVisible;
       chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
-      if (isChannelInSlice) {
-        chunk.priority = this.computePriority(
-          isFallbackLOD,
-          isCurrentLOD,
-          isVisible,
-          chunk.prefetch
-        );
-      } else {
-        chunk.priority = null;
-      }
+      chunk.priority = this.computePriority(
+        isFallbackLOD,
+        isCurrentLOD,
+        isVisible,
+        chunk.prefetch,
+        isChannelInSlice
+      );
 
       if (chunk.priority !== null && chunk.state === "unloaded") {
         chunk.state = "queued";
@@ -343,12 +338,17 @@ export class ChunkManagerSource {
         chunk.orderKey = this.squareDistance2D(chunk, viewBounds2DCenter);
       }
 
-      if (isLoaded && !isFallbackLOD) {
-        const shouldDispose =
-          !isCurrentLOD || (isCurrentLOD && !isVisible && !eligibleForPrefetch);
-        if (shouldDispose) {
-          this.disposeChunk(chunk);
-        }
+      if (
+        this.shouldDispose(
+          isLoaded,
+          isFallbackLOD,
+          isCurrentLOD,
+          isVisible,
+          eligibleForPrefetch,
+          isChannelInSlice
+        )
+      ) {
+        this.disposeChunk(chunk);
       }
     }
     return currentTimeChunks;
@@ -396,6 +396,21 @@ export class ChunkManagerSource {
     );
   }
 
+  private shouldDispose(
+    isLoaded: boolean,
+    isFallbackLOD: boolean,
+    isCurrentLOD: boolean,
+    isVisible: boolean,
+    eligibleForPrefetch: boolean,
+    isChannelInSlice: boolean
+  ) {
+    if (!isLoaded) return false;
+    if (!isChannelInSlice) return true;
+    if (isFallbackLOD) return false;
+    if (!isCurrentLOD) return true;
+    return !isVisible && !eligibleForPrefetch;
+  }
+
   private disposeChunk(chunk: Chunk) {
     chunk.data = undefined;
     chunk.state = "unloaded";
@@ -412,8 +427,10 @@ export class ChunkManagerSource {
     isFallbackLOD: boolean,
     isCurrentLOD: boolean,
     isVisible: boolean,
-    isPrefetch: boolean
+    isPrefetch: boolean,
+    isChannelInSlice: boolean
   ) {
+    if (!isChannelInSlice) return null;
     if (isFallbackLOD && isVisible) return PRI_FALLBACK_VISIBLE;
     if (isCurrentLOD && isVisible) return PRI_VISIBLE_CURRENT;
     if (isFallbackLOD) return PRI_FALLBACK_BACKGROUND;
