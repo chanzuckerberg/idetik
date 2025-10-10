@@ -18,21 +18,26 @@ export class ChunkInfoOverlay {
 
   public update(idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
     if (this.textDiv_.style.display === "none") return;
-    const chunkManagerSource = this.imageLayer_.chunkManagerSource;
-    if (!chunkManagerSource) {
-      this.textDiv_.textContent = "No chunk manager source";
+    const chunkStore = this.imageLayer_.chunkStore;
+    const chunkStoreView = this.imageLayer_.chunkStoreView;
+    if (!chunkStore || !chunkStoreView) {
+      this.textDiv_.textContent = "No chunk store";
       return;
     }
 
-    const chunksAtCurrentTime = chunkManagerSource.getChunksAtCurrentTime();
+    // Get the current time index from the layer's slice coordinates
+    const sliceCoords = this.imageLayer_.sliceCoords;
+    const timeIndex = chunkStore.getTimeIndex(sliceCoords);
+    const chunksAtCurrentTime = chunkStore.getChunksAtTime(timeIndex);
+
     if (!chunksAtCurrentTime) {
       this.textDiv_.textContent = "No chunks available";
       return;
     }
 
     const chunkDetails: string[] = [];
-    const currentLOD = chunkManagerSource.currentLOD;
-    const renderedChunks = chunkManagerSource.getChunks();
+    const currentLOD = chunkStoreView.currentLOD;
+    const renderedChunks = chunkStoreView.getChunks(sliceCoords);
     const totalChunks = chunksAtCurrentTime.length;
 
     let loadedChunks = 0;
@@ -41,7 +46,7 @@ export class ChunkInfoOverlay {
       visible: number;
       rendered: number;
       prefetched: number;
-    }[] = Array.from({ length: chunkManagerSource.lodCount }, () => ({
+    }[] = Array.from({ length: chunkStore.lodCount }, () => ({
       visible: 0,
       rendered: 0,
       prefetched: 0,

@@ -79,9 +79,9 @@ addDimensionSlider({
   stepValue: t.scale,
   playback: {
     onRateChange: (rateHz: number) => {
-      const source = imageLayer.chunkManagerSource;
-      if (source) {
-        source.prioritizePrefetchTime = rateHz > 0;
+      const view = imageLayer.chunkStoreView;
+      if (view) {
+        view.prioritizePrefetchTime = rateHz > 0;
       }
     },
   },

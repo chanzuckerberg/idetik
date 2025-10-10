@@ -1,53 +1,48 @@
-import { ChunkSource, SliceCoordinates } from "../data/chunk";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import { ChunkSource } from "../data/chunk";
 import { ChunkQueue } from "../data/chunk_queue";
-import { ChunkManagerSource } from "./chunk_manager_source";
+import { ChunkStore } from "./chunk_store";
 
 export class ChunkManager {
-  private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
+  private readonly sources_ = new Map<ChunkSource, ChunkStore>();
   private readonly queue_ = new ChunkQueue();
 
-  public async addSource(source: ChunkSource, sliceCoords: SliceCoordinates) {
+  public async addSource(source: ChunkSource) {
     let existing = this.sources_.get(source);
     if (!existing) {
       const loader = await source.open();
-      existing = new ChunkManagerSource(loader, sliceCoords);
+      existing = new ChunkStore(loader);
       this.sources_.set(source, existing);
     }
     return existing;
   }
 
-  public update(camera: OrthographicCamera, bufferWidth: number) {
-    if (this.sources_.size === 0) return;
+  /**
+   * Update all chunk stores by collecting updated chunks from their views
+   * and enqueueing/cancelling them based on priority.
+   * This should be called once per frame before rendering.
+   */
+  public update() {
+    for (const store of this.sources_.values()) {
+      const updatedChunks = store.consumeUpdatedChunks();
 
-    if (camera.type !== "OrthographicCamera") {
-      throw new Error(
-        "ChunkManager currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
-      );
-    }
-
-    const viewBounds2D = camera.getWorldViewRect();
-    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
-    const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
-
-    for (const [_, source] of this.sources_) {
-      const updatedChunks = source.updateAndCollectChunkChanges(
-        lodFactor,
-        viewBounds2D
-      );
-      for (const chunk of updatedChunks) {
+      // Enqueue/cancel chunks based on their priority
+      for (const { chunk, sliceCoords } of updatedChunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
         } else if (chunk.state === "queued") {
           this.queue_.enqueue(chunk, (signal) =>
-            source.loadChunkData(chunk, signal)
+            store.loadChunkData(chunk, sliceCoords, signal)
           );
         }
       }
     }
+  }
 
+  /**
+   * Process all pending chunk load requests in the queue.
+   * This should be called once per frame after all layers have updated.
+   */
+  public flush() {
     this.queue_.flush();
   }
 }

@@ -43,15 +43,23 @@ export class LayerManager {
     if (index === -1) {
       throw new Error(`Layer to remove not found: ${layer}`);
     }
+    layer.onDetached();
     this.removeByIndex(index);
   }
 
   public removeByIndex(index: number) {
+    const layer = this.layers_[index];
+    if (layer) {
+      layer.onDetached();
+    }
     this.layers_ = this.layers_.filter((_, i) => i !== index);
     this.notifyLayersChanged();
   }
 
   public removeAll() {
+    for (const layer of this.layers_) {
+      layer.onDetached();
+    }
     this.layers_ = [];
     this.notifyLayersChanged();
   }

@@ -1,7 +1,8 @@
 import { Layer, LayerOptions, RenderContext } from "../core/layer";
-import { IdetikContext } from "../idetik";
+import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { ChunkManagerSource } from "../core/chunk_manager_source";
+import { ChunkStore } from "../core/chunk_store";
+import type { ChunkStoreView } from "../core/chunk_store_view";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
@@ -33,7 +34,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
   private channelProps_?: ChannelProps[];
-  private chunkManagerSource_?: ChunkManagerSource;
+  private chunkStore_?: ChunkStore;
+  private chunkStoreView_?: ChunkStoreView;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
   private debugMode_ = false;
@@ -66,24 +68,42 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public async onAttached(context: IdetikContext) {
-    this.chunkManagerSource_ = await context.chunkManager.addSource(
-      this.source_,
-      this.sliceCoords_
-    );
+    this.chunkStore_ = await context.chunkManager.addSource(this.source_);
   }
 
-  public update(_: RenderContext) {
+  public onDetached(): void {
+    if (this.chunkStoreView_ && this.chunkStore_) {
+      this.chunkStore_.removeView(this.chunkStoreView_);
+    }
+    this.chunkStoreView_ = undefined;
+    this.chunkStore_ = undefined;
+  }
+
+  public update(context: RenderContext) {
+    const { viewport } = context;
+
+    if (!this.chunkStoreView_ && this.chunkStore_) {
+      this.chunkStoreView_ = this.chunkStore_.createView(viewport);
+    }
+
+    // Update chunk visibility - ChunkManager will handle enqueueing
+    if (this.chunkStoreView_) {
+      this.chunkStoreView_.updateAndCollectChunkChanges(this.sliceCoords_);
+    }
+
     this.updateChunks();
     this.resliceIfZChanged();
   }
 
   private updateChunks() {
-    if (!this.chunkManagerSource_) return;
+    if (!this.chunkStoreView_ || !this.chunkStore_) return;
     if (this.state !== "ready") this.setState("ready");
 
+    // Check if we should update presentation
+    const currentTimeIndex = this.chunkStore_.getTimeIndex(this.sliceCoords_);
     if (
       this.visibleChunks_.size > 0 &&
-      !this.chunkManagerSource_.allVisibleLowestLODLoaded() &&
+      !this.chunkStore_.allVisibleLowestLODLoaded(currentTimeIndex) &&
       !this.isPresentationStale()
     ) {
       return;
@@ -91,7 +111,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
-    const orderedByLOD = this.chunkManagerSource_.getChunks();
+    // Get chunks to render and update visible chunks
+    const orderedByLOD = this.chunkStoreView_.getChunks(this.sliceCoords_);
     const current = new Set(orderedByLOD);
     this.visibleChunks_.forEach((image, chunk) => {
       if (!current.has(chunk)) {
@@ -148,8 +169,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
-  public get chunkManagerSource(): ChunkManagerSource | undefined {
-    return this.chunkManagerSource_;
+  public get chunkStore(): ChunkStore | undefined {
+    return this.chunkStore_;
+  }
+
+  public get chunkStoreView(): ChunkStoreView | undefined {
+    return this.chunkStoreView_;
+  }
+
+  public get sliceCoords(): SliceCoordinates {
+    return this.sliceCoords_;
   }
 
   public get source(): ChunkSource {
@@ -227,7 +256,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public getValueAtWorld(world: vec3): number | null {
-    const currentLOD = this.chunkManagerSource_?.currentLOD ?? 0;
+    const currentLOD = this.chunkStoreView_?.currentLOD ?? 0;
 
     // First, try to find the value in current LOD chunks (highest priority)
     for (const [chunk, image] of this.visibleChunks_) {
