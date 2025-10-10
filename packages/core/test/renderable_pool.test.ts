@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
-import { RenderablePool } from "@/utilities/renderable_pool";
+import { Pool } from "@/utilities/pool";
 import { RenderableObject } from "@/core/renderable_object";
 import { poolKeyForImageRenderable } from "@/layers/chunked_image_layer";
 import { makeChunk } from "./helpers";
@@ -9,10 +9,10 @@ class RenderableStub extends RenderableObject {
 }
 
 describe("RenderablePool", () => {
-  let pool: RenderablePool<RenderableStub>;
+  let pool: Pool<RenderableStub>;
 
   beforeEach(() => {
-    pool = new RenderablePool<RenderableStub>();
+    pool = new Pool<RenderableStub>();
     vi.restoreAllMocks();
   });
 

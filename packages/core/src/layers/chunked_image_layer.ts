@@ -1,19 +1,21 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
-import { Chunk, ChunkData, ChunkSource, SliceCoordinates } from "../data/chunk";
+import {
+  Chunk,
+  ChunkSource,
+  SliceCoordinates,
+  SlicedChunk,
+} from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager_source";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { PlaneGeometry } from "../objects/geometry/plane_geometry";
-import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
-import { almostEqual } from "../utilities/almost_equal";
-import { clamp } from "../utilities/clamp";
-import { RenderablePool } from "../utilities/renderable_pool";
+import { Pool } from "../utilities/pool";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -24,6 +26,8 @@ export type ChunkedImageLayerProps = LayerOptions & {
 
 type ChunkedImageRenderable = {
   image: ImageRenderable;
+  texture: Texture2DArray;
+  data: SlicedChunk;
   chunks: Chunk[];
 };
 
@@ -35,7 +39,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleImages_: Map<string, ChunkedImageRenderable> =
     new Map();
-  private readonly pool_ = new RenderablePool<ImageRenderable>();
+  private readonly pool_ = new Pool<ChunkedImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
   private channelProps_?: ChannelProps[];
@@ -102,11 +106,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     // First clean up any images that are no longer visible.
     const current = new Set(orderedByLOD);
     this.visibleImages_.forEach((chunked, key) => {
-      const image = chunked.image;
       for (const chunk of chunked.chunks) {
         if (!current.has(chunk)) {
           this.visibleImages_.delete(key);
-          this.pool_.release(poolKeyForImageRenderable(chunk), image);
+          this.pool_.release(poolKeyForImageRenderable(chunk), chunked);
           break;
         }
       }
@@ -114,25 +117,26 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     // Next, iterate through all chunks and group them by their key,
     // maintaining order by LOD.
-    const loadedChunks = new Map<string, Chunk[]>();
+    const loadedChunks = new Map<string, Array<Chunk | undefined>>();
     const numImageChannels = this.numImageChannels();
     for (const chunk of orderedByLOD) {
       if (chunk.state === "loaded") {
         const key = chunkKey(chunk);
         let chunks = loadedChunks.get(key);
         if (!chunks) {
-          chunks = [];
+          chunks = new Array<Chunk | undefined>(numImageChannels);
           loadedChunks.set(key, chunks);
         }
-        chunks.push(chunk);
+        const cIndex = numImageChannels === 1 ? 0 : chunk.chunkIndex.c;
+        chunks[cIndex] = chunk;
       }
     }
 
     // Finally add objects from scratch for all complete loaded chunk sets.
     this.clearObjects();
     for (const [key, chunks] of loadedChunks) {
-      if (chunks.length !== numImageChannels) continue;
-      const chunkedImage = this.getChunkedImage(key, chunks);
+      if (chunks.some((c) => c === undefined)) continue;
+      const chunkedImage = this.getChunkedImage(key, chunks as Chunk[]);
       this.addObject(chunkedImage.image);
     }
   }
@@ -156,15 +160,21 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     }
 
     for (const [_, chunkedImage] of this.visibleImages_) {
-      for (const chunk of chunkedImage.chunks) {
-        if (chunk.state !== "loaded" || !chunk.data) continue;
-        const data = this.slicePlane(chunk, zPointWorld);
-        if (data) {
-          const texture = chunkedImage.image.textures[0] as Texture2DArray;
-          const cIndex = this.getTextureChannelIndex(chunk);
-          texture.updateWithChunk(chunk, data, cIndex);
-        }
+      if (
+        chunkedImage.chunks.some(
+          (chunk) => chunk.state !== "loaded" || !chunk.data
+        )
+      ) {
+        continue;
       }
+      const slicedChunk = SlicedChunk.fromChunks(
+        chunkedImage.chunks,
+        zPointWorld
+      );
+      chunkedImage.texture.updateWithChunk(
+        chunkedImage.chunks[0],
+        slicedChunk.data
+      );
     }
 
     this.zPrevPointWorld_ = zPointWorld;
@@ -187,89 +197,47 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return this.source_;
   }
 
-  private slicePlane(chunk: Chunk, zValue?: number) {
-    if (!chunk.data) return;
-    if (zValue === undefined) return chunk.data;
-    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
-    const zIdx = Math.round(zLocal);
-    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
-
-    // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
-    // Anything further away means the requested zValue is outside.
-    if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
-      Logger.error("ImageLayer", "slicePlane zValue outside extent");
-    }
-
-    const sliceSize = chunk.shape.x * chunk.shape.y;
-    const offset = sliceSize * zClamped;
-    return chunk.data.slice(offset, offset + sliceSize);
-  }
-
   private getChunkedImage(
     key: string,
     chunks: Chunk[]
   ): ChunkedImageRenderable {
     const existing = this.visibleImages_.get(key);
     if (existing) return existing;
-    const image = this.getPooledImage(chunks) ?? this.createImage(chunks);
-    const chunkedImage = { image, chunks };
+    const chunkedImage =
+      this.getPooledImage(chunks) ?? this.createImage(chunks);
     this.visibleImages_.set(key, chunkedImage);
     return chunkedImage;
   }
 
-  private getPooledImage(chunks: Chunk[]): ImageRenderable | undefined {
+  private getPooledImage(chunks: Chunk[]): ChunkedImageRenderable | undefined {
     const chunk = chunks[0];
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (!pooled) return;
-    const texture = pooled.textures[0] as Texture2DArray;
-    for (const chunk of chunks) {
-      const data = this.slicePlane(chunk, this.sliceCoords_.z);
-      const cIndex = this.getTextureChannelIndex(chunk);
-      texture.updateWithChunk(chunk, data, cIndex);
-    }
-    this.updateImageChunk(pooled, chunk);
+    const slicedChunk = SlicedChunk.fromChunks(chunks, this.sliceCoords_.z);
+    pooled.texture.updateWithChunk(chunk, slicedChunk.data);
+    this.updateImageChunk(pooled.image, slicedChunk);
     if (this.channelProps_) {
-      pooled.setChannelProps(this.channelProps_);
+      pooled.image.setChannelProps(this.channelProps_);
     }
     return pooled;
   }
 
-  private createImage(chunks: Chunk[]): ImageRenderable {
-    const chunk = chunks[0];
-    const data = this.getTextureData(chunks);
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
+  private createImage(chunks: Chunk[]): ChunkedImageRenderable {
+    const slicedChunk = SlicedChunk.fromChunks(chunks, this.sliceCoords_.z);
+    const texture = Texture2DArray.createWithChunk(chunks[0], slicedChunk.data);
+    const geometry = new PlaneGeometry(
+      slicedChunk.shape.x,
+      slicedChunk.shape.y,
+      1,
+      1
+    );
     const image = new ImageRenderable(
       geometry,
-      Texture2DArray.createWithChunk(chunk, data),
+      texture,
       this.channelProps_ ?? [{}]
     );
-    this.updateImageChunk(image, chunk);
-    return image;
-  }
-
-  private getTextureData(chunks: Chunk[]): ChunkData {
-    const chunk = chunks[0];
-    if (!chunk.data) {
-      throw new Error("Chunk data is not loaded");
-    }
-    const TypedArray = chunk.data.constructor as new (
-      size: number
-    ) => ChunkData;
-    const data = new TypedArray(chunks.length * chunk.shape.x * chunk.shape.y);
-    for (const chunk of chunks) {
-      const chunkData = this.slicePlane(chunk, this.sliceCoords_.z);
-      if (!chunkData) {
-        throw new Error("Chunk data is not loaded");
-      }
-      const cIndex = this.getTextureChannelIndex(chunk);
-      data.set(chunkData, cIndex * chunk.shape.x * chunk.shape.y);
-    }
-    return data;
-  }
-
-  private getTextureChannelIndex(chunk: Chunk): number {
-    if (this.sliceCoords_.c) return 0;
-    return chunk.chunkIndex.c;
+    this.updateImageChunk(image, slicedChunk);
+    return { image, texture, data: slicedChunk, chunks };
   }
 
   private numImageChannels() {
@@ -279,7 +247,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return this.chunkManagerSource_.dimensions.c.lods[0].size;
   }
 
-  private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
+  private updateImageChunk(image: ImageRenderable, chunk: SlicedChunk) {
     if (this.debugMode_) {
       image.wireframeEnabled = true;
       image.wireframeColor =
@@ -296,29 +264,25 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     // First, try to find the value in current LOD chunks (highest priority)
     for (const [_, chunkedImage] of this.visibleImages_) {
-      const image = chunkedImage.image;
-      for (const chunk of chunkedImage.chunks) {
-        if (chunk.lod !== currentLOD) continue;
-        const value = this.getValueFromChunk(chunk, image, world);
-        if (value !== null) return value;
-      }
+      const data = chunkedImage.data;
+      if (data.lod !== currentLOD) continue;
+      const value = this.getValueFromChunk(data, chunkedImage.image, world);
+      if (value !== null) return value;
     }
 
     // Fallback to low-res chunks if no current LOD chunk contains the position
     for (const [_, chunkedImage] of this.visibleImages_) {
-      const image = chunkedImage.image;
-      for (const chunk of chunkedImage.chunks) {
-        if (chunk.lod === currentLOD) continue;
-        const value = this.getValueFromChunk(chunk, image, world);
-        if (value !== null) return value;
-      }
+      const data = chunkedImage.data;
+      if (data.lod === currentLOD) continue;
+      const value = this.getValueFromChunk(data, chunkedImage.image, world);
+      if (value !== null) return value;
     }
 
     return null;
   }
 
   private getValueFromChunk(
-    chunk: Chunk,
+    chunk: SlicedChunk,
     image: ImageRenderable,
     world: vec3
   ): number | null {
@@ -335,7 +299,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     // Check if this chunk contains the requested position
     if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-      const data = this.slicePlane(chunk, this.sliceCoords_.z)!;
+      const data = chunk.data;
       const pixelIndex = y * chunk.rowStride + x;
 
       // For multi-channel images, take the first channel value

@@ -1,14 +1,13 @@
-import { RenderableObject } from "../core/renderable_object";
 import { Logger } from "./logger";
 
-export class RenderablePool<T extends RenderableObject> {
+export class Pool<T> {
   private readonly bins_ = new Map<string, T[]>();
 
   acquire(key: string) {
     const bin = this.bins_.get(key);
     const item = bin?.pop();
     if (item) {
-      Logger.debug("RenderablePool", "Renderable object acquired");
+      Logger.debug("Pool", "Object acquired");
     }
     return item;
   }
@@ -20,7 +19,7 @@ export class RenderablePool<T extends RenderableObject> {
       this.bins_.set(key, bin);
     }
     bin.push(item);
-    Logger.debug("RenderablePool", "Renderable object released");
+    Logger.debug("Pool", "Object released");
   }
 
   clearAll(disposer?: (t: T) => void) {

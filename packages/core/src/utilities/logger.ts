@@ -29,6 +29,7 @@ type Module =
   | "LabelImageLayer"
   | "Layer"
   | "PixelSizeObserver"
+  | "Pool"
   | "ZarrWorker"
   | "RenderablePool"
   | "Viewport"
