@@ -108,7 +108,7 @@ export class OmeZarrImageLoader {
     if (receivedChunkTooSmall) {
       throw new Error(
         `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
-        `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
+          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
       );
     }
 

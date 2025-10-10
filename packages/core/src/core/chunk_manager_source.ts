@@ -140,7 +140,8 @@ export class ChunkManagerSource {
   }
 
   public getChunks(): Chunk[] {
-    const currentTimeChunks = this.getChunksAtCurrentTime();
+    const timeIndex = this.getCurrentTimeIndex();
+    const currentTimeChunks = this.chunks_[timeIndex].flat();
     const currentLODChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
@@ -163,26 +164,21 @@ export class ChunkManagerSource {
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  public getChunksAtCurrentTime(): Chunk[] {
-    const timeIndex = this.getCurrentTimeIndex();
-    const channelIndex = this.getCurrentChannelIndex();
-    return this.chunks_[timeIndex][channelIndex];
-  }
-
-  private getCurrentTimeIndex() {
+  public getCurrentTimeIndex() {
     if (this.sliceCoords_.t === undefined) return 0;
     if (this.dimensions_.t === undefined) return 0;
     return coordToIndex(this.dimensions_.t.lods[0], this.sliceCoords_.t);
   }
 
-  private getCurrentChannelIndex() {
-    if (this.sliceCoords_.c === undefined) return 0;
-    if (this.dimensions_.c === undefined) return 0;
-    return coordToIndex(this.dimensions_.c.lods[0], this.sliceCoords_.c);
+  public getChunksAtCurrentTime(): Chunk[] {
+    const timeIndex = this.getCurrentTimeIndex();
+    return this.chunks_[timeIndex].flat();
   }
 
   public allVisibleLowestLODLoaded(): boolean {
-    return this.getChunksAtCurrentTime()
+    const timeIndex = this.getCurrentTimeIndex();
+    return this.chunks_[timeIndex]
+      .flat()
       .filter((c) => c.visible && c.lod === this.lowestResLOD_)
       .every((c) => c.state === "loaded");
   }
@@ -317,11 +313,12 @@ export class ChunkManagerSource {
     viewBounds2DCenter: ReadonlyVec2
   ) {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
+    const modifiedChunks: Chunk[] = [];
 
-    const channelIndex = this.getCurrentChannelIndex();
-    const currentTimeChunks = this.chunks_[timeIndex][channelIndex];
     this.tIndicesWithQueuedChunks_.add(timeIndex);
-    for (const chunk of currentTimeChunks) {
+
+    // Update chunks for all channels
+    for (const chunk of this.chunks_[timeIndex].flat()) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
         !isVisible && this.isChunkWithinBounds(chunk, paddedBounds);
@@ -357,8 +354,11 @@ export class ChunkManagerSource {
           this.disposeChunk(chunk);
         }
       }
+
+      modifiedChunks.push(chunk);
     }
-    return currentTimeChunks;
+
+    return modifiedChunks;
   }
 
   private markTimeChunksForPrefetch(
@@ -370,10 +370,11 @@ export class ChunkManagerSource {
       this.chunks_.length - 1,
       currentTimeIndex + PREFETCH_TIME_POINTS
     );
-    const channelIndex = this.getCurrentChannelIndex();
     const prefetchedChunks: Chunk[] = [];
+
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
-      for (const chunk of this.chunks_[t][channelIndex]) {
+      // Prefetch for all channels
+      for (const chunk of this.chunks_[t].flat()) {
         if (chunk.state !== "unloaded") continue;
         if (chunk.lod !== this.lowestResLOD_) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
