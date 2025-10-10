@@ -1,5 +1,4 @@
 import { Layer, LayerOptions } from "../core/layer";
-import { IdetikContext } from "../idetik";
 import { Chunk, ChunkData, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkManagerSource } from "../core/chunk_manager_source";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
@@ -11,8 +10,8 @@ import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
-import { clamp } from "../utilities/clamp";
 import { almostEqual } from "../utilities/almost_equal";
+import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
 
 export type ChunkedImageLayerProps = LayerOptions & {
@@ -33,9 +32,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
-  private readonly visibleImages_: Map<string, ChunkedImageRenderable> =
+  private readonly visibleImages_: Map<string, ChunkedImageRenderable> = new Map();
   private readonly pool_ = new RenderablePool<ImageRenderable>();
-    new Map();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
   private channelProps_?: ChannelProps[];
