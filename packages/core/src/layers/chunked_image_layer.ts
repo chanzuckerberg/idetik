@@ -11,9 +11,9 @@ import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
-import { RenderablePool } from "../utilities/renderable_pool";
 import { clamp } from "../utilities/clamp";
 import { almostEqual } from "../utilities/almost_equal";
+import { RenderablePool } from "../utilities/renderable_pool";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -33,8 +33,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
-  private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly visibleImages_: Map<string, ChunkedImageRenderable> =
+  private readonly pool_ = new RenderablePool<ImageRenderable>();
     new Map();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
