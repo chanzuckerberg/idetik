@@ -1,4 +1,4 @@
-import { Chunk, SliceCoordinates } from "../data/chunk";
+import { Chunk, SliceCoordinates, ChunkUpdate } from "../data/chunk";
 import { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
@@ -47,8 +47,7 @@ export class ChunkStoreView {
   public prioritizePrefetchTime: boolean = false;
   private tIndicesWithQueuedChunks_: Set<number> = new Set();
   private sourceMaxSquareDistance2D_: number;
-  private updatedChunks_: Chunk[] = [];
-  private lastSliceCoords_?: SliceCoordinates;
+  private pendingUpdates_: ChunkUpdate[] = [];
 
   constructor(store: ChunkStore, viewport: Viewport) {
     this.store_ = store;
@@ -65,6 +64,7 @@ export class ChunkStoreView {
   /**
    * Returns the chunks to render for the current viewport and slice position.
    * This includes both current LOD chunks and fallback chunks.
+   * Uses per-view visibility state rather than aggregated state.
    */
   public getChunks(sliceCoords: SliceCoordinates): Chunk[] {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
@@ -72,7 +72,7 @@ export class ChunkStoreView {
     const currentLODChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
-        chunk.visible &&
+        chunk.viewStates.get(this)?.visible === true &&
         chunk.state === "loaded"
     );
 
@@ -84,7 +84,9 @@ export class ChunkStoreView {
 
     const lowResChunks = currentTimeChunks.filter(
       (chunk) =>
-        chunk.lod === lowestResLOD && chunk.visible && chunk.state === "loaded"
+        chunk.lod === lowestResLOD &&
+        chunk.viewStates.get(this)?.visible === true &&
+        chunk.state === "loaded"
     );
 
     return [...lowResChunks, ...currentLODChunks];
@@ -123,13 +125,12 @@ export class ChunkStoreView {
       this.zBoundsChanged(zBounds) ||
       this.lastTCoord_ !== sliceCoords.t
     ) {
-      this.updatedChunks_ = this.updateAndCollectChunkChangesForCurrentLod(
+      this.pendingUpdates_ = this.updateAndCollectChunkChangesForCurrentLod(
         sliceCoords,
         viewBounds2D
       );
-      this.lastSliceCoords_ = sliceCoords;
     } else {
-      this.updatedChunks_ = [];
+      this.pendingUpdates_ = [];
     }
 
     this.lastViewBounds2D_ = viewBounds2D.clone();
@@ -144,20 +145,11 @@ export class ChunkStoreView {
   /**
    * Consumes and clears the list of updated chunks.
    * This should be called by ChunkStore during ChunkManager.update().
-   * TODO: Return ChunkUpdate[] instead of Chunk[] for proper multi-view aggregation.
    */
-  public consumeUpdatedChunks(): Chunk[] {
-    const chunks = this.updatedChunks_;
-    this.updatedChunks_ = [];
-    return chunks;
-  }
-
-  /**
-   * Gets the last sliceCoords used during updateAndCollectChunkChanges.
-   * This is needed by ChunkManager to pass to chunk loading.
-   */
-  public get lastSliceCoords(): SliceCoordinates | undefined {
-    return this.lastSliceCoords_;
+  public consumeUpdatedChunks(): ChunkUpdate[] {
+    const updates = this.pendingUpdates_;
+    this.pendingUpdates_ = [];
+    return updates;
   }
 
   private setLOD(lodFactor: number): void {
@@ -190,7 +182,7 @@ export class ChunkStoreView {
   private updateAndCollectChunkChangesForCurrentLod(
     sliceCoords: SliceCoordinates,
     viewBounds2D: Box2
-  ): Chunk[] {
+  ): ChunkUpdate[] {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
 
@@ -211,59 +203,80 @@ export class ChunkStoreView {
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
     );
 
-    const modifiedChunks: Chunk[] = [];
+    const updates: ChunkUpdate[] = [];
 
     if (sliceCoords.t !== undefined) {
-      const disposedChunks = this.disposeStaleTimeChunks(currentTimeIndex);
-      modifiedChunks.push(...disposedChunks);
+      const staleTimeUpdates = this.updateStaleTimeChunks(currentTimeIndex);
+      updates.push(...staleTimeUpdates);
     }
 
-    const currentTimeChunksModified = this.updateChunksAtTimeIndex(
+    const currentTimeUpdates = this.updateChunksAtTimeIndex(
       currentTimeIndex,
       viewBounds3D,
-      viewBoundsCenter2D
+      viewBoundsCenter2D,
+      sliceCoords
     );
-    modifiedChunks.push(...currentTimeChunksModified);
+    updates.push(...currentTimeUpdates);
 
     if (sliceCoords.t !== undefined) {
-      const prefetchedChunks = this.markTimeChunksForPrefetch(
+      const prefetchUpdates = this.markTimeChunksForPrefetch(
         currentTimeIndex,
         viewBounds3D,
         viewBoundsCenter2D
       );
-      modifiedChunks.push(...prefetchedChunks);
+      updates.push(...prefetchUpdates);
     }
 
-    return modifiedChunks;
+    return updates;
   }
 
-  private disposeStaleTimeChunks(currentTimeIndex: number): Chunk[] {
-    const disposedChunks: Chunk[] = [];
+  private updateStaleTimeChunks(currentTimeIndex: number): ChunkUpdate[] {
+    const updates: ChunkUpdate[] = [];
     for (const t of this.tIndicesWithQueuedChunks_) {
       const delta = t - currentTimeIndex;
       if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
       const chunks = this.store_.getChunksAtTime(t);
       for (const chunk of chunks) {
-        this.store_.disposeChunk(chunk);
-        disposedChunks.push(chunk);
+        // Mark this chunk as not needed by this view anymore
+        updates.push({
+          chunk,
+          viewState: {
+            visible: false,
+            prefetch: false,
+            priority: null,
+            orderKey: null,
+          },
+        });
       }
       this.tIndicesWithQueuedChunks_.delete(t);
     }
-    return disposedChunks;
+    return updates;
+  }
+
+  private isChunkChannelInSlice(
+    chunk: Chunk,
+    sliceCoords: SliceCoordinates
+  ): boolean {
+    return (
+      sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c
+    );
   }
 
   private updateChunksAtTimeIndex(
     timeIndex: number,
     viewBounds3D: Box3,
-    viewBounds2DCenter: ReadonlyVec2
-  ) {
+    viewBounds2DCenter: ReadonlyVec2,
+    sliceCoords: SliceCoordinates
+  ): ChunkUpdate[] {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
+    const updates: ChunkUpdate[] = [];
 
     const currentTimeChunks = this.store_.getChunksAtTime(timeIndex);
     this.tIndicesWithQueuedChunks_.add(timeIndex);
+
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
-      const isChannelInSlice = this.isChunkChannelInSlice(chunk);
+      const isChannelInSlice = this.isChunkChannelInSlice(chunk, sliceCoords);
       const eligibleForPrefetch =
         !isVisible &&
         isChannelInSlice &&
@@ -273,56 +286,52 @@ export class ChunkStoreView {
       const isFallbackLOD = chunk.lod === this.store_.getLowestResLOD();
       const isLoaded = chunk.state === "loaded";
 
-      chunk.visible = isVisible;
-      chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
-      chunk.priority = this.computePriority(
+      const visible = isVisible && isChannelInSlice;
+      const prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
+      const priority = this.computePriority(
         isFallbackLOD,
         isCurrentLOD,
         isVisible,
-        chunk.prefetch,
+        prefetch,
         isChannelInSlice
       );
 
-      if (chunk.priority !== null && chunk.state === "unloaded") {
-        chunk.state = "queued";
-      } else if (chunk.priority === null && chunk.state === "queued") {
-        chunk.state = "unloaded";
-        chunk.orderKey = null;
-      }
+      const orderKey = priority !== null
+        ? this.squareDistance2D(chunk, viewBounds2DCenter)
+        : null;
 
-      if (chunk.priority !== null) {
-        chunk.orderKey = this.squareDistance2D(chunk, viewBounds2DCenter);
-      }
-
-      if (isLoaded && !isFallbackLOD) {
-        const shouldDispose =
-          !isCurrentLOD || (isCurrentLOD && !isVisible && !eligibleForPrefetch);
-        if (shouldDispose) {
-          this.store_.disposeChunk(chunk);
-        }
-      }
+      updates.push({
+        chunk,
+        viewState: {
+          visible,
+          prefetch,
+          priority,
+          orderKey,
+        },
+      });
     }
-    return currentTimeChunks;
+
+    return updates;
   }
 
   private markTimeChunksForPrefetch(
     currentTimeIndex: number,
     viewBounds3D: Box3,
     viewBoundsCenter2D: ReadonlyVec2
-  ): Chunk[] {
+  ): ChunkUpdate[] {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const tEnd = Math.min(
       numTimePoints - 1,
       currentTimeIndex + PREFETCH_TIME_POINTS
     );
-    const prefetchedChunks: Chunk[] = [];
+    const updates: ChunkUpdate[] = [];
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.store_.getChunksAtTime(t)) {
         if (chunk.state !== "unloaded") continue;
         if (chunk.lod !== this.store_.getLowestResLOD()) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
-        chunk.prefetch = true;
-        chunk.priority = this.prioritizePrefetchTime
+
+        const priority = this.prioritizePrefetchTime
           ? PRI_PREFETCH_TIME_HIGH
           : PRI_PREFETCH_TIME_LOW;
         const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
@@ -331,13 +340,21 @@ export class ChunkStoreView {
           0,
           1 - Number.EPSILON
         );
-        chunk.orderKey = t - currentTimeIndex + normalizedDistance;
-        chunk.state = "queued";
+        const orderKey = t - currentTimeIndex + normalizedDistance;
+
         this.tIndicesWithQueuedChunks_.add(t);
-        prefetchedChunks.push(chunk);
+        updates.push({
+          chunk,
+          viewState: {
+            visible: false,
+            prefetch: true,
+            priority,
+            orderKey,
+          },
+        });
       }
     }
-    return prefetchedChunks;
+    return updates;
   }
 
   private computePriority(

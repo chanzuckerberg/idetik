@@ -80,16 +80,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public update(context: RenderContext) {
-    const { viewport } = context;
+    if (!this.chunkStore_) return;
 
-    if (!this.chunkStoreView_ && this.chunkStore_) {
-      this.chunkStoreView_ = this.chunkStore_.createView(viewport);
-    }
+    this.chunkStoreView_ ??= this.chunkStore_.createView(context.viewport);
 
-    // Update chunk visibility - ChunkManager will handle enqueueing
-    if (this.chunkStoreView_) {
-      this.chunkStoreView_.updateAndCollectChunkChanges(this.sliceCoords_);
-    }
+    this.chunkStoreView_.updateAndCollectChunkChanges(this.sliceCoords_);
 
     this.updateChunks();
     this.resliceIfZChanged();

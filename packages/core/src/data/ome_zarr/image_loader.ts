@@ -227,6 +227,7 @@ export class OmeZarrImageLoader {
       prefetch: false,
       priority: null,
       orderKey: null,
+      viewStates: new Map(),
       data: subarray.data,
       shape: {
         x: subarray.shape[subarray.shape.length - 1],

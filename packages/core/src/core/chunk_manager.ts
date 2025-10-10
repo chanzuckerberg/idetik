@@ -26,12 +26,12 @@ export class ChunkManager {
       const updatedChunks = store.consumeUpdatedChunks();
 
       // Enqueue/cancel chunks based on their priority
-      for (const { chunk, sliceCoords } of updatedChunks) {
+      for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
         } else if (chunk.state === "queued") {
           this.queue_.enqueue(chunk, (signal) =>
-            store.loadChunkData(chunk, sliceCoords, signal)
+            store.loadChunkData(chunk, signal)
           );
         }
       }

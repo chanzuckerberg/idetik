@@ -69,6 +69,7 @@ export class ChunkStore {
                   prefetch: false,
                   priority: null,
                   orderKey: null,
+                  viewStates: new Map(),
                   shape: {
                     x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
                     y: Math.min(chunkHeight, yLod.size - y * chunkHeight),
@@ -125,12 +126,8 @@ export class ChunkStore {
     return this.lowestResLOD_;
   }
 
-  public loadChunkData(
-    chunk: Chunk,
-    sliceCoords: SliceCoordinates,
-    signal: AbortSignal
-  ) {
-    return this.loader_.loadChunkData(chunk, sliceCoords, signal);
+  public loadChunkData(chunk: Chunk, signal: AbortSignal) {
+    return this.loader_.loadChunkData(chunk, signal);
   }
 
   public disposeChunk(chunk: Chunk) {
@@ -158,9 +155,28 @@ export class ChunkStore {
   /**
    * Remove a view from tracking when it's no longer needed.
    * This should be called when a viewport is destroyed or a layer is detached.
+   *
+   * Cleans up the view's state from all chunks and re-aggregates to potentially
+   * dispose chunks that are no longer needed by any view.
    */
   public removeView(view: ChunkStoreView): void {
     this.views_.delete(view);
+
+    // Clean up this view's state from all chunks and re-aggregate
+    const affectedChunks: Chunk[] = [];
+    for (const timeChunks of this.chunks_) {
+      for (const chunk of timeChunks) {
+        if (chunk.viewStates.has(view)) {
+          chunk.viewStates.delete(view);
+          affectedChunks.push(chunk);
+        }
+      }
+    }
+
+    // Re-aggregate affected chunks to potentially dispose them
+    for (const chunk of affectedChunks) {
+      this.aggregateChunkViewStates(chunk);
+    }
   }
 
   /**
@@ -171,26 +187,90 @@ export class ChunkStore {
   }
 
   /**
-   * Collects updated chunks from all views and clears their update lists.
-   * Returns chunks along with their associated sliceCoords from each view.
-   * This is called by ChunkManager during its update cycle.
-   * TODO: Aggregate conflicting updates when multiple views affect the same chunk
-   * (take highest priority, mark visible if any view needs it).
+   * Collects updated chunks from all views and aggregates their view states.
+   * Updates per-view state on each chunk, aggregates to compute final chunk state,
+   * and returns chunks that need loading/cancellation by ChunkManager.
    */
-  public consumeUpdatedChunks(): Array<{
-    chunk: Chunk;
-    sliceCoords: SliceCoordinates;
-  }> {
-    const allUpdated: Array<{ chunk: Chunk; sliceCoords: SliceCoordinates }> =
-      [];
+  public consumeUpdatedChunks(): Chunk[] {
+    // Collect all updates from all views
+    const affectedChunks = new Set<Chunk>();
     for (const view of this.views_) {
-      const chunks = view.consumeUpdatedChunks();
-      const sliceCoords = view.lastSliceCoords ?? {};
-      for (const chunk of chunks) {
-        allUpdated.push({ chunk, sliceCoords });
+      const updates = view.consumeUpdatedChunks();
+      for (const { chunk, viewState } of updates) {
+        // If view doesn't want this chunk anymore, delete its entry
+        if (viewState.priority === null && !viewState.visible && !viewState.prefetch) {
+          chunk.viewStates.delete(view);
+        } else {
+          chunk.viewStates.set(view, viewState);
+        }
+
+        affectedChunks.add(chunk);
       }
     }
-    return allUpdated;
+
+    // Aggregate view states for each affected chunk
+    for (const chunk of affectedChunks) {
+      this.aggregateChunkViewStates(chunk);
+    }
+
+    return Array.from(affectedChunks);
+  }
+
+  /**
+   * Aggregates per-view states to compute the chunk's final state.
+   * - visible: true if ANY view wants it visible
+   * - priority: MIN priority across all views (lower number = higher priority)
+   * - prefetch: true if ANY view wants prefetch
+   * - orderKey: MIN orderKey across views that want it (closest to camera)
+   *
+   * Iterates over this.views_ (all active views) and checks if each has state for this chunk.
+   */
+  private aggregateChunkViewStates(chunk: Chunk): void {
+    let anyVisible = false;
+    let anyPrefetch = false;
+    let minPriority: number | null = null;
+    let minOrderKey: number | null = null;
+
+    // Iterate over all active views and check if they have state for this chunk
+    for (const view of this.views_) {
+      const viewState = chunk.viewStates.get(view);
+      if (!viewState) continue; // This view doesn't have state for this chunk
+
+      if (viewState.visible) anyVisible = true;
+      if (viewState.prefetch) anyPrefetch = true;
+
+      // Priority: take the minimum non-null value (lower number = higher priority)
+      if (viewState.priority !== null) {
+        if (minPriority === null || viewState.priority < minPriority) {
+          minPriority = viewState.priority;
+        }
+      }
+
+      // OrderKey: take the minimum (closest to camera/most urgent)
+      if (viewState.orderKey !== null) {
+        if (minOrderKey === null || viewState.orderKey < minOrderKey) {
+          minOrderKey = viewState.orderKey;
+        }
+      }
+    }
+
+    // Apply aggregated state
+    chunk.visible = anyVisible;
+    chunk.prefetch = anyPrefetch;
+    chunk.priority = minPriority;
+    chunk.orderKey = minOrderKey;
+
+    // Update state based on aggregated priority
+    if (chunk.priority !== null && chunk.state === "unloaded") {
+      chunk.state = "queued";
+    } else if (chunk.priority === null && chunk.state === "queued") {
+      chunk.state = "unloaded";
+    }
+
+    // Dispose if no view needs it anymore
+    if (chunk.priority === null && chunk.state === "loaded") {
+      this.disposeChunk(chunk);
+    }
   }
 
   private validateXYScaleRatios(): void {
