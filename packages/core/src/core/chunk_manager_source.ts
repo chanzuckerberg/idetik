@@ -313,11 +313,10 @@ export class ChunkManagerSource {
     viewBounds2DCenter: ReadonlyVec2
   ) {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
-    const modifiedChunks: Chunk[] = [];
+    const currentTimeChunks = this.chunks_[timeIndex].flat();
 
     this.tIndicesWithQueuedChunks_.add(timeIndex);
-
-    for (const chunk of this.chunks_[timeIndex].flat()) {
+    for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const eligibleForPrefetch =
         !isVisible && this.isChunkWithinBounds(chunk, paddedBounds);
@@ -353,11 +352,8 @@ export class ChunkManagerSource {
           this.disposeChunk(chunk);
         }
       }
-
-      modifiedChunks.push(chunk);
     }
-
-    return modifiedChunks;
+    return currentTimeChunks;
   }
 
   private markTimeChunksForPrefetch(
@@ -370,7 +366,6 @@ export class ChunkManagerSource {
       currentTimeIndex + PREFETCH_TIME_POINTS
     );
     const prefetchedChunks: Chunk[] = [];
-
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.chunks_[t].flat()) {
         if (chunk.state !== "unloaded") continue;
