@@ -31,6 +31,7 @@ export type Chunk = {
   data?: ChunkData;
   state: "unloaded" | "queued" | "loading" | "loaded";
   lod: number;
+  channel: number;
   visible: boolean;
   prefetch: boolean;
   priority: number | null;
@@ -39,7 +40,6 @@ export type Chunk = {
     x: number;
     y: number;
     z: number;
-    c: number;
   };
   rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
@@ -47,6 +47,7 @@ export type Chunk = {
     x: number;
     y: number;
     z: number;
+    c: number;
     t: number;
   };
   scale: {
@@ -119,11 +120,7 @@ export type ChunkLoader = {
 
   getSourceDimensionMap(): SourceDimensionMap;
 
-  loadChunkData(
-    chunk: Chunk,
-    sliceCoords: SliceCoordinates,
-    signal: AbortSignal
-  ): Promise<void>;
+  loadChunkData(chunk: Chunk, signal: AbortSignal): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };

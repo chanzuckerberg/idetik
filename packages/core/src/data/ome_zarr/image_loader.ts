@@ -8,10 +8,8 @@ import {
   SourceDimensionMap,
   isChunkData,
   LoaderAttributes,
-  SliceCoordinates,
   ChunkData,
   ChunkDataConstructor,
-  coordToChunkIndex,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -68,11 +66,7 @@ export class OmeZarrImageLoader {
     return this.dimensions_;
   }
 
-  public async loadChunkData(
-    chunk: Chunk,
-    sliceCoords: SliceCoordinates,
-    signal: AbortSignal
-  ) {
+  public async loadChunkData(chunk: Chunk, signal: AbortSignal) {
     const chunkCoords: number[] = [];
     chunkCoords[this.dimensions_.x.index] = chunk.chunkIndex.x;
     chunkCoords[this.dimensions_.y.index] = chunk.chunkIndex.y;
@@ -80,15 +74,7 @@ export class OmeZarrImageLoader {
       chunkCoords[this.dimensions_.z.index] = chunk.chunkIndex.z;
     }
     if (this.dimensions_.c) {
-      if (sliceCoords.c === undefined) {
-        throw new Error(
-          "Region is missing c value but c dimension exists in data"
-        );
-      }
-      chunkCoords[this.dimensions_.c.index] = coordToChunkIndex(
-        this.dimensions_.c.lods[chunk.lod],
-        sliceCoords.c
-      );
+      chunkCoords[this.dimensions_.c.index] = chunk.chunkIndex.c;
     }
     if (this.dimensions_.t) {
       chunkCoords[this.dimensions_.t.index] = chunk.chunkIndex.t;
@@ -122,7 +108,7 @@ export class OmeZarrImageLoader {
     if (receivedChunkTooSmall) {
       throw new Error(
         `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
-          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
+        `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
       );
     }
 
@@ -131,11 +117,16 @@ export class OmeZarrImageLoader {
       receivedShape.y > chunk.shape.y ||
       receivedShape.z > chunk.shape.z;
 
-    if (receivedChunkHasPadding) {
-      chunk.data = this.trimChunkPadding(
+    const cChunkSize = this.dimensions_.c?.lods[chunk.lod].chunkSize ?? 1;
+    const needsChannelExtraction = cChunkSize > 1;
+
+    if (needsChannelExtraction || receivedChunkHasPadding) {
+      const cOffsetInChunk = chunk.channel % cChunkSize;
+      chunk.data = this.extractAndTrim(
         chunk,
         receivedChunk.data,
-        receivedChunk.stride
+        receivedChunk.stride,
+        cOffsetInChunk
       );
     } else {
       chunk.data = receivedChunk.data;
@@ -151,29 +142,33 @@ export class OmeZarrImageLoader {
     chunk.rowAlignmentBytes = rowAlignment;
   }
 
-  private trimChunkPadding(
+  private extractAndTrim(
     chunk: Chunk,
-    receivedChunkData: ChunkData,
-    receivedChunkStride: number[]
+    data: ChunkData,
+    stride: readonly number[],
+    channelOffset: number
   ): ChunkData {
     const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
-    const compactData =
-      new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
+    const compactData = new (data.constructor as ChunkDataConstructor)(
+      compactSize
+    );
 
-    let offset = 0;
-    const zStride = this.dimensions_.z
-      ? receivedChunkStride[this.dimensions_.z.index]
-      : 0;
-    const yStride = receivedChunkStride[this.dimensions_.y.index];
+    const cStride = this.dimensions_.c ? stride[this.dimensions_.c.index] : 0;
+    const zStride = this.dimensions_.z ? stride[this.dimensions_.z.index] : 0;
+    const yStride = stride[this.dimensions_.y.index];
+    const channelBaseOffset = channelOffset * cStride;
+
+    let destOffset = 0;
     for (let z = 0; z < chunk.shape.z; z++) {
-      const zStart = z * zStride;
+      const zOffset = channelBaseOffset + z * zStride;
       for (let y = 0; y < chunk.shape.y; y++) {
-        const srcStart = zStart + y * yStride;
+        const srcStart = zOffset + y * yStride;
         const srcEnd = srcStart + chunk.shape.x;
-        compactData.set(receivedChunkData.subarray(srcStart, srcEnd), offset);
-        offset += chunk.shape.x;
+        compactData.set(data.subarray(srcStart, srcEnd), destOffset);
+        destOffset += chunk.shape.x;
       }
     }
+
     return compactData;
   }
 
@@ -237,6 +232,7 @@ export class OmeZarrImageLoader {
     const chunk: Chunk = {
       state: "loaded",
       lod: lod,
+      channel: 0,
       visible: true,
       prefetch: false,
       priority: null,
@@ -246,9 +242,8 @@ export class OmeZarrImageLoader {
         x: subarray.shape[subarray.shape.length - 1],
         y: subarray.shape[subarray.shape.length - 2],
         z: 1,
-        c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
-      chunkIndex: { x: 0, y: 0, z: 0, t: 0 },
+      chunkIndex: { x: 0, y: 0, z: 0, c: 0, t: 0 },
       rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
       scale: {

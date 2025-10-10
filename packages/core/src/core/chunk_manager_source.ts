@@ -33,8 +33,9 @@ const PRI_FALLBACK_BACKGROUND = 4;
 const PRI_PREFETCH_SPACE = 5;
 
 export class ChunkManagerSource {
-  // First dimension of the array is time, the others cover LOD, x, y, z, c.
-  private readonly chunks_: Chunk[][];
+  // chunks_ is indexed as [time][channel][spatial]
+  // where 'spatial' is a linear index, but chunks vary by LOD, x, y, z
+  private readonly chunks_: Chunk[][][];
   private readonly loader_;
   private readonly lowestResLOD_: number;
   private readonly sliceCoords_: SliceCoordinates;
@@ -60,6 +61,8 @@ export class ChunkManagerSource {
 
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
+    const { size: numChannels, chunkSize: channelChunkSize } =
+      this.getAndValidateChannelDimension();
 
     const xLod0 = this.dimensions.x.lods[0];
     const yLod0 = this.dimensions.y.lods[0];
@@ -68,61 +71,67 @@ export class ChunkManagerSource {
     );
 
     // generate chunks for each LOD without loading data
-    this.chunks_ = Array.from({ length: chunksT }, () => []);
+    this.chunks_ = Array.from({ length: chunksT }, () =>
+      Array.from({ length: numChannels }, () => [])
+    );
+
     for (let t = 0; t < chunksT; ++t) {
-      const chunksAtT = this.chunks_[t];
-      for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-        const xLod = this.dimensions_.x.lods[lod];
-        const yLod = this.dimensions_.y.lods[lod];
-        const zLod = this.dimensions_.z?.lods[lod];
-        const cLod = this.dimensions_.c?.lods[lod];
+      for (let channel = 0; channel < numChannels; ++channel) {
+        const spatialChunks = this.chunks_[t][channel];
+        const cChunkIndex = Math.floor(channel / channelChunkSize);
 
-        const chunkWidth = xLod.chunkSize;
-        const chunkHeight = yLod.chunkSize;
-        const chunkDepth = zLod?.chunkSize ?? 1;
+        for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+          const xLod = this.dimensions_.x.lods[lod];
+          const yLod = this.dimensions_.y.lods[lod];
+          const zLod = this.dimensions_.z?.lods[lod];
 
-        const chunksX = Math.ceil(xLod.size / chunkWidth);
-        const chunksY = Math.ceil(yLod.size / chunkHeight);
-        const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
-        const channels = cLod?.size ?? 1;
+          const chunkWidth = xLod.chunkSize;
+          const chunkHeight = yLod.chunkSize;
+          const chunkDepth = zLod?.chunkSize ?? 1;
 
-        for (let x = 0; x < chunksX; ++x) {
-          const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
-          const rowStride = Math.min(chunkWidth, xLod.size - x * chunkWidth);
-          for (let y = 0; y < chunksY; ++y) {
-            const yOffset = yLod.translation + y * yLod.chunkSize * yLod.scale;
-            for (let z = 0; z < chunksZ; ++z) {
-              const zOffset =
-                zLod !== undefined
-                  ? zLod.translation + z * chunkDepth * zLod.scale
-                  : 0;
-              chunksAtT.push({
-                state: "unloaded",
-                lod,
-                visible: false,
-                prefetch: false,
-                priority: null,
-                orderKey: null,
-                shape: {
-                  x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
-                  y: Math.min(chunkHeight, yLod.size - y * chunkHeight),
-                  z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
-                  c: channels,
-                },
-                rowStride,
-                rowAlignmentBytes: 1,
-                chunkIndex: { x, y, z, t },
-                scale: {
-                  x: xLod.scale,
-                  y: yLod.scale,
-                  z: zLod?.scale ?? 1,
-                },
-                offset: {
-                  x: xOffset,
-                  y: yOffset,
-                  z: zOffset,
-                },
-              });
+          const chunksX = Math.ceil(xLod.size / chunkWidth);
+          const chunksY = Math.ceil(yLod.size / chunkHeight);
+          const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
+
+          for (let x = 0; x < chunksX; ++x) {
+            const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
+            const rowStride = Math.min(chunkWidth, xLod.size - x * chunkWidth);
+            for (let y = 0; y < chunksY; ++y) {
+              const yOffset =
+                yLod.translation + y * yLod.chunkSize * yLod.scale;
+              for (let z = 0; z < chunksZ; ++z) {
+                const zOffset =
+                  zLod !== undefined
+                    ? zLod.translation + z * chunkDepth * zLod.scale
+                    : 0;
+                spatialChunks.push({
+                  state: "unloaded",
+                  lod,
+                  channel,
+                  visible: false,
+                  prefetch: false,
+                  priority: null,
+                  orderKey: null,
+                  shape: {
+                    x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
+                    y: Math.min(chunkHeight, yLod.size - y * chunkHeight),
+                    z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
+                  },
+                  rowStride,
+                  rowAlignmentBytes: 1,
+                  chunkIndex: { x, y, z, c: cChunkIndex, t },
+                  scale: {
+                    x: xLod.scale,
+                    y: yLod.scale,
+                    z: zLod?.scale ?? 1,
+                  },
+                  offset: {
+                    x: xOffset,
+                    y: yOffset,
+                    z: zOffset,
+                  },
+                });
+              }
             }
           }
         }
@@ -155,13 +164,21 @@ export class ChunkManagerSource {
   }
 
   public getChunksAtCurrentTime(): Chunk[] {
-    return this.chunks_[this.getCurrentTimeIndex()];
+    const timeIndex = this.getCurrentTimeIndex();
+    const channelIndex = this.getCurrentChannelIndex();
+    return this.chunks_[timeIndex][channelIndex];
   }
 
   private getCurrentTimeIndex() {
     if (this.sliceCoords_.t === undefined) return 0;
     if (this.dimensions_.t === undefined) return 0;
     return coordToIndex(this.dimensions_.t.lods[0], this.sliceCoords_.t);
+  }
+
+  private getCurrentChannelIndex() {
+    if (this.sliceCoords_.c === undefined) return 0;
+    if (this.dimensions_.c === undefined) return 0;
+    return coordToIndex(this.dimensions_.c.lods[0], this.sliceCoords_.c);
   }
 
   public allVisibleLowestLODLoaded(): boolean {
@@ -203,7 +220,7 @@ export class ChunkManagerSource {
   }
 
   public loadChunkData(chunk: Chunk, signal: AbortSignal) {
-    return this.loader_.loadChunkData(chunk, this.sliceCoords_, signal);
+    return this.loader_.loadChunkData(chunk, signal);
   }
 
   private setLOD(lodFactor: number): void {
@@ -285,8 +302,7 @@ export class ChunkManagerSource {
     for (const t of this.tIndicesWithQueuedChunks_) {
       const delta = t - currentTimeIndex;
       if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
-      const chunks = this.chunks_[t];
-      for (const chunk of chunks) {
+      for (const chunk of this.chunks_[t].flat()) {
         this.disposeChunk(chunk);
         disposedChunks.push(chunk);
       }
@@ -302,7 +318,8 @@ export class ChunkManagerSource {
   ) {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
 
-    const currentTimeChunks = this.chunks_[timeIndex];
+    const channelIndex = this.getCurrentChannelIndex();
+    const currentTimeChunks = this.chunks_[timeIndex][channelIndex];
     this.tIndicesWithQueuedChunks_.add(timeIndex);
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
@@ -353,9 +370,10 @@ export class ChunkManagerSource {
       this.chunks_.length - 1,
       currentTimeIndex + PREFETCH_TIME_POINTS
     );
+    const channelIndex = this.getCurrentChannelIndex();
     const prefetchedChunks: Chunk[] = [];
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
-      for (const chunk of this.chunks_[t]) {
+      for (const chunk of this.chunks_[t][channelIndex]) {
         if (chunk.state !== "unloaded") continue;
         if (chunk.lod !== this.lowestResLOD_) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
@@ -443,6 +461,34 @@ export class ChunkManagerSource {
     }
     return {
       size: this.dimensions_.t?.lods[0].size ?? 1,
+    };
+  }
+
+  private getAndValidateChannelDimension() {
+    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+      const cLod = this.dimensions_.c?.lods[lod];
+      if (!cLod) continue;
+      if (cLod.scale !== 1) {
+        throw new Error(
+          `ChunkManager does not support scale in c. Found ${cLod.scale} at LOD ${lod}`
+        );
+      }
+      if (cLod.translation !== 0) {
+        throw new Error(
+          `ChunkManager does not support translation in c. Found ${cLod.translation} at LOD ${lod}`
+        );
+      }
+      const prevCLod = this.dimensions_.c?.lods[lod - 1];
+      if (!prevCLod) continue;
+      if (cLod.size !== prevCLod.size) {
+        throw new Error(
+          `ChunkManager does not support downsampling in c. Found ${prevCLod.size} at LOD ${lod - 1} → ${cLod.size} at LOD ${lod}`
+        );
+      }
+    }
+    return {
+      size: this.dimensions_.c?.lods[0].size ?? 1,
+      chunkSize: this.dimensions_.c?.lods[0].chunkSize ?? 1,
     };
   }
 
