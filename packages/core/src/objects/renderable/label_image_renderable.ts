@@ -1,12 +1,13 @@
 import { RenderableObject } from "../../core/renderable_object";
-import { Geometry } from "../../core/geometry";
+import { PlaneGeometry } from "../../objects/geometry/plane_geometry";
 import { Texture, TextureDataType } from "../../objects/textures/texture";
 import { Color } from "../../core/color";
 import { Texture2D } from "../textures/texture_2d";
 import { LabelColorMap } from "./label_color_map";
 
 type LabelImageRenderableProps = {
-  geometry: Geometry;
+  width: number;
+  height: number;
   imageData: Texture;
   colorMap: LabelColorMap;
   outlineSelected?: boolean;
@@ -39,7 +40,7 @@ export class LabelImageRenderable extends RenderableObject {
 
   constructor(props: LabelImageRenderableProps) {
     super();
-    this.geometry = props.geometry;
+    this.geometry = new PlaneGeometry(props.width, props.height, 1, 1);
     this.setTexture(0, validateImageData(props.imageData));
     const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
     this.setTexture(1, colorCycleTexture);

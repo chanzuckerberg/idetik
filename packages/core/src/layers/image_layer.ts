@@ -4,7 +4,6 @@ import { Chunk, ChunkSource } from "../data/chunk";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
@@ -134,9 +133,9 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private createImage(chunk: Chunk) {
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(
-      geometry,
+      chunk.shape.x,
+      chunk.shape.y,
       Texture2DArray.createWithChunk(chunk),
       this.channelProps
     );
