@@ -93,7 +93,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
     const orderedByLOD = this.chunkManagerSource_.getChunks();
-
     const current = new Set(orderedByLOD);
     this.visibleChunks_.forEach((chunks, key) => {
       for (const chunk of chunks) {
