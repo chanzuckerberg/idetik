@@ -196,13 +196,15 @@ export class ChunkManagerSource {
   }
 
   public set imageSourcePolicy(policy: ImageSourcePolicy) {
-    this.policy_ = policy;
+    if (this.policy_ != policy) {
+      this.policy_ = policy;
 
-    Logger.info(
-      "ChunkManagerSource",
-      "Using image source policy:",
-      this.policy_.profile
-    );
+      Logger.info(
+        "ChunkManagerSource",
+        "Using image source policy:",
+        this.policy_.profile
+      );
+    }
   }
 
   public loadChunkData(chunk: Chunk, signal: AbortSignal) {

@@ -6,7 +6,7 @@ const ALL_CATEGORIES = [
   "prefetchSpace",
 ] as const;
 
-type PriorityCategory = (typeof ALL_CATEGORIES)[number];
+export type PriorityCategory = (typeof ALL_CATEGORIES)[number];
 
 export type ImageSourcePolicyConfig = {
   profile?: string;
@@ -81,40 +81,6 @@ export function createImageSourcePolicy(
   return Object.freeze(resolved);
 }
 
-function validatePolicyConfig(config: ImageSourcePolicyConfig) {
-  for (const [k, v] of Object.entries(config.prefetch)) {
-    if (v === null) continue; // z/t may be omitted
-    if (v < 0) {
-      throw new Error(`prefetch.${k} must be a non-negative number`);
-    }
-  }
-
-  const lod = config.lod;
-  if (lod?.min != null && lod?.max != null && lod.min > lod.max) {
-    throw new Error(`lod.min must be <= lod.max`);
-  }
-
-  const order = config.priorityOrder;
-  if (
-    order.length !== ALL_CATEGORIES.length ||
-    new Set(order).size !== order.length
-  ) {
-    throw new Error(`priorityOrder must include all categories exactly once`);
-  }
-}
-
-function mergeConfig(
-  base: ImageSourcePolicyConfig,
-  overrides: Partial<ImageSourcePolicyConfig> = {}
-): ImageSourcePolicyConfig {
-  return {
-    profile: overrides.profile ?? base.profile,
-    prefetch: { ...base.prefetch, ...(overrides.prefetch ?? {}) },
-    lod: { ...base.lod, ...(overrides.lod ?? {}) },
-    priorityOrder: overrides.priorityOrder ?? base.priorityOrder,
-  };
-}
-
 export function createExplorationPolicy(
   overrides: Partial<ImageSourcePolicyConfig> = {}
 ): ImageSourcePolicy {
@@ -147,4 +113,38 @@ export function createPlaybackPolicy(
     ],
   };
   return createImageSourcePolicy(mergeConfig(base, overrides));
+}
+
+function validatePolicyConfig(config: ImageSourcePolicyConfig) {
+  for (const [k, v] of Object.entries(config.prefetch)) {
+    if (v === null) continue; // z/t may be omitted
+    if (v < 0) {
+      throw new Error(`prefetch.${k} must be a non-negative number`);
+    }
+  }
+
+  const lod = config.lod;
+  if (lod?.min != null && lod?.max != null && lod.min > lod.max) {
+    throw new Error(`lod.min must be <= lod.max`);
+  }
+
+  const order = config.priorityOrder;
+  if (
+    order.length !== ALL_CATEGORIES.length ||
+    new Set(order).size !== order.length
+  ) {
+    throw new Error(`priorityOrder must include all categories exactly once`);
+  }
+}
+
+function mergeConfig(
+  base: ImageSourcePolicyConfig,
+  overrides: Partial<ImageSourcePolicyConfig> = {}
+): ImageSourcePolicyConfig {
+  return {
+    profile: overrides.profile ?? base.profile,
+    prefetch: { ...base.prefetch, ...(overrides.prefetch ?? {}) },
+    lod: { ...base.lod, ...(overrides.lod ?? {}) },
+    priorityOrder: overrides.priorityOrder ?? base.priorityOrder,
+  };
 }
