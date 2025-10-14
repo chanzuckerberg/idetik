@@ -137,16 +137,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     }
 
     for (const [key, image] of this.visibleImages_) {
-      const chunks = this.visibleChunks_.get(key);
-      for (const chunk of chunks!) {
-        if (chunk.state !== "loaded" || !chunk.data) continue;
-        const data = this.slicePlane(chunk, zPointWorld);
-        if (data) {
-          const texture = image.textures[0] as Texture2DArray;
-          const cIndex = this.getTextureChannelIndex(chunk);
-          texture.updateWithChunk(chunk, data, cIndex);
-        }
-      }
+      const chunks = this.visibleChunks_.get(key)!;
+      const data = this.getTextureData(chunks);
+      const texture = image.textures[0] as Texture2DArray;
+      texture.updateWithChunk(chunks[0], data);
     }
 
     this.zPrevPointWorld_ = zPointWorld;
@@ -216,11 +210,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (!pooled) return;
     const texture = pooled.textures[0] as Texture2DArray;
-    for (const chunk of chunks) {
-      const data = this.slicePlane(chunk, this.sliceCoords_.z);
-      const cIndex = this.getTextureChannelIndex(chunk);
-      texture.updateWithChunk(chunk, data, cIndex);
-    }
+    const data = this.getTextureData(chunks);
+    texture.updateWithChunk(chunk, data);
     this.updateImageChunk(pooled, chunk);
     if (this.channelProps_) {
       pooled.setChannelProps(this.channelProps_);
