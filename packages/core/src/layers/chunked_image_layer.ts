@@ -33,8 +33,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
-  private readonly loadedChunks_: Map<string, Array<Chunk | undefined>> =
-    new Map();
+  private readonly loadedChunks_: Map<string, Set<Chunk>> = new Map();
   private readonly visibleImages_: Map<string, ChunkedImage> = new Map();
   private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
@@ -191,42 +190,28 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getChunkedImage(chunk: Chunk): ChunkedImage | undefined {
+    if (chunk.state !== "loaded") return;
+
     const key = chunkKeyIgnoringChannel(chunk);
 
     const existing = this.visibleImages_.get(key);
     if (existing) return existing;
 
-    let chunks = this.loadedChunks_.get(key);
-    if (!chunks) {
-      chunks = [];
-      this.loadedChunks_.set(key, chunks);
+    let loaded = this.loadedChunks_.get(key);
+    if (!loaded) {
+      loaded = new Set();
+      this.loadedChunks_.set(key, loaded);
     }
-    const cIndex = this.getTextureChannelIndex(chunk);
-    chunks[cIndex] = chunk;
+    loaded.add(chunk);
+    if (loaded.size < this.numImageChannels()) return;
 
-    const completeChunks = this.getCompleteChunks(chunks);
-    if (!completeChunks) return;
+    const chunks = Array.from(loaded);
 
-    const image =
-      this.getPooledImage(completeChunks) ?? this.createImage(completeChunks);
+    const image = this.getPooledImage(chunks) ?? this.createImage(chunks);
 
-    const chunkedImage = { image, chunks: completeChunks };
+    const chunkedImage = { image, chunks };
     this.visibleImages_.set(key, chunkedImage);
     return chunkedImage;
-  }
-
-  private getCompleteChunks(
-    chunks: Array<Chunk | undefined>
-  ): ReadonlyArray<Chunk> | undefined {
-    const complete: Chunk[] = [];
-    for (let c = 0; c < this.numImageChannels(); c++) {
-      const chunk = chunks[c];
-      if (!chunk || chunk.state !== "loaded") {
-        return;
-      }
-      complete.push(chunk);
-    }
-    return complete;
   }
 
   private getPooledImage(
