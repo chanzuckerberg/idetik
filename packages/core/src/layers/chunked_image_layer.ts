@@ -188,7 +188,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getImageForChunk(chunk: Chunk): ImageRenderable | undefined {
-    const key = chunkKey(chunk);
+    const key = chunkKeyIgnoringChannel(chunk);
 
     const existing = this.visibleImages_.get(key);
     if (existing) return existing;
@@ -397,7 +397,6 @@ export function poolKeyForImageRenderable(chunk: Chunk) {
   ].join(":");
 }
 
-// Generates a unique key for a chunk ignoring the channel index.
-function chunkKey(chunk: Chunk): string {
+function chunkKeyIgnoringChannel(chunk: Chunk): string {
   return `${chunk.lod},${chunk.chunkIndex.t},${chunk.chunkIndex.z},${chunk.chunkIndex.y},${chunk.chunkIndex.x}`;
 }
