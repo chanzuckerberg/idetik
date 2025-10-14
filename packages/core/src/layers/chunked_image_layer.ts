@@ -94,7 +94,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     const orderedByLOD = this.chunkManagerSource_.getChunks();
 
-    // First clean up any chunks or images that are no longer visible.
     const current = new Set(orderedByLOD);
     this.visibleChunks_.forEach((chunks, key) => {
       for (const chunk of chunks) {
@@ -110,7 +109,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       }
     });
 
-    // Finally add objects from scratch for all complete loaded chunk sets.
     this.clearObjects();
     for (const chunk of orderedByLOD) {
       const image = this.getImageForChunk(chunk);
