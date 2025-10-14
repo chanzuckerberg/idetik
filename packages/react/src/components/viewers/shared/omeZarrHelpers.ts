@@ -174,6 +174,6 @@ export function zoomToFit(
   yRange: [number, number],
   runtime: Idetik
 ) {
-  const camera = runtime.camera as OrthographicCamera;
+  const camera = runtime.viewports[0].camera as OrthographicCamera;
   camera?.setFrame(xRange[0], xRange[1], yRange[1], yRange[0]);
 }

@@ -95,15 +95,21 @@ zSlider.addEventListener("input", (event) => {
 const camera = new OrthographicCamera(0, 128, 0, 128);
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
-  camera,
-  layers: [imageLayer, maskLayer],
+  viewports: [
+    {
+      camera,
+      layers: [imageLayer, maskLayer],
+    },
+  ],
 }).start();
+
+const viewport = app.viewports[0];
 
 imageLayer.setIndex(zSlider.valueAsNumber);
 const setCameraFrame = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
     camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
-    app.cameraControls = new PanZoomControls(camera);
+    viewport.cameraControls = new PanZoomControls(camera);
     camera.update();
     // remove the callback to only set the camera frame once
     imageLayer.removeStateChangeCallback(setCameraFrame);

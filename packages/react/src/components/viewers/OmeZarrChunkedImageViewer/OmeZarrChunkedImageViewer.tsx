@@ -119,7 +119,7 @@ export function OmeZarrChunkedImageViewer({
       if (sourceRef.current !== source) {
         return;
       }
-      runtime.layerManager.add(layer);
+      runtime.viewports[0].layerManager.add(layer);
       zoomToFit(xCoordRange, yCoordRange, runtime);
       setLoading(false);
       onFirstSliceLoaded?.();
@@ -128,9 +128,9 @@ export function OmeZarrChunkedImageViewer({
     return () => {
       if (
         imageLayerRef.current &&
-        runtime.layerManager.layers.includes(imageLayerRef.current)
+        runtime.viewports[0].layerManager.layers.includes(imageLayerRef.current)
       ) {
-        runtime.layerManager.remove(imageLayerRef.current);
+        runtime.viewports[0].layerManager.remove(imageLayerRef.current);
         imageLayerRef.current = null;
       }
       sliceCoordsRef.current = null;

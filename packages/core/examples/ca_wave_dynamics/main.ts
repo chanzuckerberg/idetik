@@ -56,10 +56,13 @@ const timePointOverlay = {
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
-  camera,
-  cameraControls: new PanZoomControls(camera),
-  layers: [imageLayer],
-  overlays: [timePointOverlay],
+  viewports: [
+    {
+      camera,
+      cameraControls: new PanZoomControls(camera),
+      layers: [imageLayer],
+    },
+  ],  overlays: [timePointOverlay],
   showStats: true,
 }).start();
 

@@ -37,8 +37,12 @@ export const IdetikProvider = ({ children }: PropsWithChildren) => {
     const cameraControls = new PanZoomControls(camera);
     const newRuntime = new Idetik({
       canvas,
-      camera,
-      cameraControls,
+      viewports: [
+        {
+          camera,
+          cameraControls,
+        },
+      ],
     });
     newRuntime.start();
     setRuntime(newRuntime);

@@ -1,11 +1,7 @@
-import { Camera } from "./objects/cameras/camera";
-import { Layer } from "./core/layer";
 import { LayerManager } from "./core/layer_manager";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
-import { CameraControls } from "./objects/cameras/controls";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
-import { vec2, vec3 } from "gl-matrix";
 import { createStats, type Stats } from "./utilities/stats";
 import {
   parseViewportConfigs,
@@ -21,9 +17,8 @@ type Overlay = {
 type IdetikParams = {
   canvas?: HTMLCanvasElement;
   canvasSelector?: string;
-  camera: Camera;
-  cameraControls?: CameraControls;
-  layers?: Layer[];
+  /** Viewport configurations. For single viewport, pass array with one element. */
+  viewports: ViewportConfig[];
   overlays?: Overlay[];
   showStats?: boolean;
 };
@@ -44,6 +39,7 @@ export class Idetik {
   private readonly sizeObserver_: PixelSizeObserver;
 
   constructor(params: IdetikParams) {
+    // Validate canvas parameters
     if (!params.canvas && !params.canvasSelector) {
       throw new Error("Either canvas or canvasSelector must be provided");
     }
@@ -59,31 +55,30 @@ export class Idetik {
     }
     this.canvas = canvas;
 
+    // Validate viewport parameters
+    if (!params.viewports || params.viewports.length === 0) {
+      throw new Error("At least one viewport must be provided");
+    }
+
     this.renderer_ = new WebGLRenderer(canvas);
     this.chunkManager_ = new ChunkManager();
     this.context_ = {
       chunkManager: this.chunkManager_,
     };
 
-    // TEMP: creating a single viewport for now to maintain the existing API
-    const viewportConfigs: ViewportConfig[] = [
-      {
-        id: "main",
-        element: canvas,
-        camera: params.camera,
-        layers: params.layers,
-        cameraControls: params.cameraControls,
-      },
-    ];
-    // TEMP: pass closure to reuse the main LayerManager instead of creating new ones
-    // This avoids circular import issues while maintaining shared context
+    // Create layer managers with shared context
     const createLayerManager = () => new LayerManager(this.context_);
-    this.viewports_ = parseViewportConfigs(viewportConfigs, createLayerManager);
+    this.viewports_ = parseViewportConfigs(
+      params.viewports,
+      canvas,
+      createLayerManager
+    );
 
     this.overlays = params.overlays ?? [];
 
     if (params.showStats) this.stats_ = createStats();
 
+    // Track all elements that need size observation
     const sizeDependents: HTMLElement[] = [this.canvas];
     for (const viewport of this.viewports_) {
       if (viewport.element !== this.canvas) {
@@ -105,26 +100,18 @@ export class Idetik {
     return this.renderer_.textureInfo;
   }
 
-  // TEMP: backward-compatible getters/setter for events, camera, layerManager, and cameraControls
-  // to be removed on completion of multi-viewport implementation
-  public get events() {
-    return this.viewports_[0].events;
+  /**
+   * Get all viewports managed by this Idetik instance.
+   */
+  public get viewports(): readonly Viewport[] {
+    return this.viewports_;
   }
 
-  public get camera() {
-    return this.viewports_[0].camera;
-  }
-
-  public get layerManager() {
-    return this.viewports_[0].layerManager;
-  }
-
-  public set cameraControls(controls: CameraControls | undefined) {
-    this.viewports_[0].cameraControls = controls;
-  }
-
-  public clientToClip(position: vec2, depth: number = 0): vec3 {
-    return this.viewports_[0].clientToClip(position, depth);
+  /**
+   * Get a viewport by ID. Returns undefined if not found.
+   */
+  public getViewport(id: string): Viewport | undefined {
+    return this.viewports_.find((v) => v.id === id);
   }
 
   public start() {
