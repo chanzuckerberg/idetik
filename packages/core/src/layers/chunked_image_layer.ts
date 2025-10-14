@@ -104,11 +104,15 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       for (const chunk of chunks) {
         if (chunk && !current.has(chunk)) {
           this.loadedChunks_.delete(key);
-          const image = this.visibleImages_.get(key)?.image;
-          if (image) {
-            this.pool_.release(poolKeyForImageRenderable(chunk), image);
-            this.visibleImages_.delete(key);
-          }
+          break;
+        }
+      }
+    });
+    this.visibleImages_.forEach(({ image, chunks }, key) => {
+      for (const chunk of chunks) {
+        if (!current.has(chunk)) {
+          this.pool_.release(poolKeyForImageRenderable(chunk), image);
+          this.visibleImages_.delete(key);
           break;
         }
       }
