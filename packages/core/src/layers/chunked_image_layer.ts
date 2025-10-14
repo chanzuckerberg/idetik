@@ -269,10 +269,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private numImageChannels() {
-    if (!this.chunkManagerSource_) return 1;
-    if (!this.chunkManagerSource_.dimensions.c) return 1;
     if (this.sliceCoords_.c !== undefined) return 1;
-    return this.chunkManagerSource_.dimensions.c.lods[0].size;
+    return this.chunkManagerSource_?.dimensions.c?.lods[0].size ?? 1;
   }
 
   private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
