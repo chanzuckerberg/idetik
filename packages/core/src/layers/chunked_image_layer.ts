@@ -216,8 +216,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private numImageChannels() {
+    if (this.chunkManagerSource_ === undefined) {
+      throw new Error("ChunkManagerSource is not initialized.");
+    }
     if (this.sliceCoords_.c !== undefined) return 1;
-    return this.chunkManagerSource_?.dimensions.c?.lods[0].size ?? 1;
+    return this.chunkManagerSource_.dimensions.c?.lods[0].size ?? 1;
   }
 
   private updateImageChunk(image: ImageRenderable, chunk: SlicedChunk) {
