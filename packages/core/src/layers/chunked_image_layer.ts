@@ -176,16 +176,15 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const existing = this.visibleImages_.get(key);
     if (existing) return existing;
 
-    let loaded = this.loadedChunks_.get(key);
-    if (!loaded) {
-      loaded = new Set();
-      this.loadedChunks_.set(key, loaded);
+    let chunks = this.loadedChunks_.get(key);
+    if (!chunks) {
+      chunks = new Set();
+      this.loadedChunks_.set(key, chunks);
     }
-    loaded.add(chunk);
-    if (loaded.size < this.numImageChannels()) return;
+    chunks.add(chunk);
+    if (chunks.size < this.numImageChannels()) return;
 
-    const chunks = Array.from(loaded);
-    const sliced = SlicedChunk.fromChunks(chunks, this.sliceCoords_.z);
+    const sliced = SlicedChunk.fromChunks([...chunks], this.sliceCoords_.z);
     const image = this.getPooledImage(sliced) ?? this.createImage(sliced);
     this.visibleImages_.set(key, image);
     this.loadedChunks_.delete(key);
