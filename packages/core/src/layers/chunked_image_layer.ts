@@ -107,7 +107,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.visibleImages_.forEach(({ image, sliced }, key) => {
       for (const chunk of sliced.chunks) {
         if (!current.has(chunk)) {
-          this.pool_.release(poolKeyForImageRenderable(chunk), image);
+          this.pool_.release(poolKeyForImageRenderable(sliced), image);
           this.visibleImages_.delete(key);
           break;
         }
@@ -183,37 +183,32 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (loaded.size < this.numImageChannels()) return;
 
     const chunks = Array.from(loaded);
-    const image = this.getPooledImage(chunks) ?? this.createImage(chunks);
+    const sliced = SlicedChunk.fromChunks(chunks, this.sliceCoords_.z);
+    const image = this.getPooledImage(sliced) ?? this.createImage(sliced);
     this.visibleImages_.set(key, image);
-    return this.createImage(chunks);
+    return image;
   }
 
-  private getPooledImage(
-    chunks: ReadonlyArray<Chunk>
-  ): ChunkedImage | undefined {
-    const chunk = chunks[0];
-    const image = this.pool_.acquire(poolKeyForImageRenderable(chunk));
+  private getPooledImage(sliced: SlicedChunk): ChunkedImage | undefined {
+    const image = this.pool_.acquire(poolKeyForImageRenderable(sliced));
     if (!image) return;
     const texture = image.textures[0] as Texture2DArray;
-    const sliced = SlicedChunk.fromChunks(chunks, this.sliceCoords_.z);
     texture.updateWithSlicedChunk(sliced);
-    this.updateImageChunk(image, chunk);
+    this.updateImageChunk(image, sliced);
     if (this.channelProps_) {
       image.setChannelProps(this.channelProps_);
     }
     return { image, sliced };
   }
 
-  private createImage(chunks: ReadonlyArray<Chunk>): ChunkedImage {
-    const chunk = chunks[0];
-    const sliced = SlicedChunk.fromChunks(chunks, this.sliceCoords_.z);
+  private createImage(sliced: SlicedChunk): ChunkedImage {
     const image = new ImageRenderable(
-      chunk.shape.x,
-      chunk.shape.y,
+      sliced.shape.x,
+      sliced.shape.y,
       Texture2DArray.createWithSlicedChunk(sliced),
       this.channelProps_ ?? [{}]
     );
-    this.updateImageChunk(image, chunk);
+    this.updateImageChunk(image, sliced);
     return { image, sliced };
   }
 
@@ -222,7 +217,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return this.chunkManagerSource_?.dimensions.c?.lods[0].size ?? 1;
   }
 
-  private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
+  private updateImageChunk(image: ImageRenderable, chunk: SlicedChunk) {
     if (this.debugMode_) {
       image.wireframeEnabled = true;
       image.wireframeColor =
@@ -327,7 +322,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 }
 
-export function poolKeyForImageRenderable(chunk: Chunk) {
+export function poolKeyForImageRenderable(chunk: Chunk | SlicedChunk) {
   return [
     `lod${chunk.lod}`,
     `shape${chunk.shape.x}x${chunk.shape.y}`,
