@@ -98,7 +98,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const current = new Set(orderedByLOD);
     this.loadedChunks_.forEach((chunks, key) => {
       for (const chunk of chunks) {
-        if (chunk && !current.has(chunk)) {
+        if (!current.has(chunk)) {
           this.loadedChunks_.delete(key);
           break;
         }
