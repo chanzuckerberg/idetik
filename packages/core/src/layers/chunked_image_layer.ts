@@ -6,7 +6,6 @@ import { ChunkManagerSource } from "../core/chunk_manager_source";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
@@ -186,7 +185,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const chunks = Array.from(loaded);
     const image = this.getPooledImage(chunks) ?? this.createImage(chunks);
     this.visibleImages_.set(key, image);
-    return image;
+    return this.createImage(chunks);
   }
 
   private getPooledImage(
@@ -208,9 +207,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private createImage(chunks: ReadonlyArray<Chunk>): ChunkedImage {
     const chunk = chunks[0];
     const sliced = SlicedChunk.fromChunks(chunks, this.sliceCoords_.z);
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(
-      geometry,
+      chunk.shape.x,
+      chunk.shape.y,
       Texture2DArray.createWithChunk(chunk, sliced.data),
       this.channelProps_ ?? [{}]
     );

@@ -2,7 +2,6 @@ import { Layer, LayerOptions } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
-import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import {
   LabelColorMap,
   LabelColorMapProps,
@@ -117,9 +116,9 @@ export class LabelImageLayer extends Layer {
 
   private createImage(chunk: Chunk) {
     this.imageChunk_ = chunk; // Store chunk for value picking
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new LabelImageRenderable({
-      geometry,
+      width: chunk.shape.x,
+      height: chunk.shape.y,
       imageData: Texture2D.createWithChunk(chunk),
       colorMap: this.colorMap_,
       outlineSelected: this.outlineSelected_,

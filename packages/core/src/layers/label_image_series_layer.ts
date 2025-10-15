@@ -3,7 +3,6 @@ import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
-import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import {
   LabelColorMap,
   LabelColorMapProps,
@@ -110,9 +109,9 @@ export class LabelImageSeriesLayer extends Layer {
   }
 
   private createImage(chunk: Chunk, texture: Texture2D) {
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new LabelImageRenderable({
-      geometry,
+      width: chunk.shape.x,
+      height: chunk.shape.y,
       imageData: texture,
       colorMap: this.colorMap_,
     });
