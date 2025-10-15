@@ -115,10 +115,12 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     });
 
     this.clearObjects();
+    const addedImages = new Set<ImageRenderable>();
     for (const chunk of orderedByLOD) {
       const image = this.getChunkedImage(chunk)?.image;
-      if (image) {
+      if (image && !addedImages.has(image)) {
         this.addObject(image);
+        addedImages.add(image);
       }
     }
   }
