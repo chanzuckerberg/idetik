@@ -5,7 +5,6 @@ import {
 } from "../../objects/textures/texture";
 
 import { Chunk } from "../../data/chunk";
-import { SlicedChunk } from "../../data/sliced_chunk";
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
@@ -29,6 +28,12 @@ export class Texture2DArray extends Texture {
   }
 
   public set data(data: DataTextureTypedArray) {
+    if (this.dataType != bufferToDataType(data)) {
+      throw new Error("Unable to set texture data, data type mismatch.");
+    }
+    if (this.width_ * this.height_ * this.depth_ !== data.length) {
+      throw new Error("Unable to set texture data, data length mismatch.");
+    }
     this.data_ = data;
     this.needsUpdate = true;
   }
@@ -73,20 +78,6 @@ export class Texture2DArray extends Texture {
     this.data = chunk.data;
   }
 
-  public updateWithSlicedChunk(sliced: SlicedChunk) {
-    // TODO: if a sliced chunk always copies, then this is fine.
-    // if (this.data === sliced.data) return;
-    if (
-      this.width != sliced.shape.x ||
-      this.height != sliced.shape.y ||
-      this.depth_ != sliced.shape.c ||
-      this.dataType != bufferToDataType(sliced.data)
-    ) {
-      throw new Error("Unable to update texture, texture buffer mismatch.");
-    }
-    this.data = sliced.data;
-  }
-
   public static createWithChunk(chunk: Chunk) {
     if (!chunk.data) {
       throw new Error(
@@ -100,17 +91,6 @@ export class Texture2DArray extends Texture {
     );
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
-    return texture;
-  }
-
-  public static createWithSlicedChunk(sliced: SlicedChunk) {
-    const texture = new Texture2DArray(
-      sliced.data,
-      sliced.shape.x,
-      sliced.shape.y
-    );
-    texture.unpackRowLength = sliced.rowStride;
-    texture.unpackAlignment = sliced.rowAlignmentBytes;
     return texture;
   }
 }

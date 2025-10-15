@@ -1,7 +1,7 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { SlicedChunk } from "../data/sliced_chunk";
+import { VirtualChunk } from "../data/virtual_chunk";
 import { ChunkManagerSource } from "../core/chunk_manager_source";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -21,7 +21,7 @@ export type ChunkedImageLayerProps = LayerOptions & {
 
 type ChunkedImage = {
   image: ImageRenderable;
-  sliced: SlicedChunk;
+  chunk: VirtualChunk;
 };
 
 export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
@@ -104,10 +104,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         }
       }
     });
-    this.visibleImages_.forEach(({ image, sliced }, key) => {
-      for (const chunk of sliced.chunks) {
-        if (!current.has(chunk)) {
-          this.pool_.release(poolKeyForImageRenderable(sliced), image);
+    this.visibleImages_.forEach(({ image, chunk }, key) => {
+      for (const c of chunk.chunks) {
+        if (!current.has(c)) {
+          this.pool_.release(poolKeyForImageRenderable(chunk), image);
           this.visibleImages_.delete(key);
           break;
         }
@@ -143,9 +143,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       return;
     }
 
-    for (const { image, sliced } of this.visibleImages_.values()) {
-      sliced.sliceChunks(zPointWorld);
-      (image.textures[0] as Texture2DArray).updateWithSlicedChunk(sliced);
+    for (const { image, chunk } of this.visibleImages_.values()) {
+      const data = chunk.slicePlane(zPointWorld);
+      image.textures[0].data = data;
     }
 
     this.zPrevPointWorld_ = zPointWorld;
@@ -184,34 +184,42 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     chunks.add(chunk);
     if (chunks.size < this.numImageChannels()) return;
 
-    const sliced = SlicedChunk.fromChunks([...chunks], this.sliceCoords_.z);
-    const image = this.getPooledImage(sliced) ?? this.createImage(sliced);
+    const virtualChunk = VirtualChunk.fromChunks([...chunks]);
+    const image =
+      this.getPooledImage(virtualChunk) ?? this.createImage(virtualChunk);
     this.visibleImages_.set(key, image);
     this.loadedChunks_.delete(key);
     return image;
   }
 
-  private getPooledImage(sliced: SlicedChunk): ChunkedImage | undefined {
+  private getPooledImage(sliced: VirtualChunk): ChunkedImage | undefined {
     const image = this.pool_.acquire(poolKeyForImageRenderable(sliced));
     if (!image) return;
     const texture = image.textures[0] as Texture2DArray;
-    texture.updateWithSlicedChunk(sliced);
+    texture.data = sliced.slicePlane(this.sliceCoords_.z);
     this.updateImageChunk(image, sliced);
     if (this.channelProps_) {
       image.setChannelProps(this.channelProps_);
     }
-    return { image, sliced };
+    return { image, chunk: sliced };
   }
 
-  private createImage(sliced: SlicedChunk): ChunkedImage {
+  private createImage(chunk: VirtualChunk): ChunkedImage {
+    const texture = new Texture2DArray(
+      chunk.slicePlane(this.sliceCoords_.z),
+      chunk.shape.x,
+      chunk.shape.y
+    );
+    texture.unpackRowLength = chunk.rowStride;
+    texture.unpackAlignment = chunk.rowAlignmentBytes;
     const image = new ImageRenderable(
-      sliced.shape.x,
-      sliced.shape.y,
-      Texture2DArray.createWithSlicedChunk(sliced),
+      chunk.shape.x,
+      chunk.shape.y,
+      texture,
       this.channelProps_ ?? [{}]
     );
-    this.updateImageChunk(image, sliced);
-    return { image, sliced };
+    this.updateImageChunk(image, chunk);
+    return { image, chunk: chunk };
   }
 
   private numImageChannels() {
@@ -222,7 +230,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return this.chunkManagerSource_.dimensions.c?.lods[0].size ?? 1;
   }
 
-  private updateImageChunk(image: ImageRenderable, chunk: SlicedChunk) {
+  private updateImageChunk(image: ImageRenderable, chunk: VirtualChunk) {
     if (this.debugMode_) {
       image.wireframeEnabled = true;
       image.wireframeColor =
@@ -238,14 +246,14 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const currentLOD = this.chunkManagerSource_?.currentLOD ?? 0;
 
     // First, try to find the value in current LOD chunks (highest priority)
-    for (const { image, sliced } of this.visibleImages_.values()) {
+    for (const { image, chunk: sliced } of this.visibleImages_.values()) {
       if (sliced.lod !== currentLOD) continue;
       const value = this.getValueFromChunk(sliced, image, world);
       if (value !== null) return value;
     }
 
     // Fallback to low-res chunks if no current LOD chunk contains the position
-    for (const { image, sliced } of this.visibleImages_.values()) {
+    for (const { image, chunk: sliced } of this.visibleImages_.values()) {
       if (sliced.lod === currentLOD) continue;
       const value = this.getValueFromChunk(sliced, image, world);
       if (value !== null) return value;
@@ -255,7 +263,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getValueFromChunk(
-    sliced: SlicedChunk,
+    sliced: VirtualChunk,
     image: ImageRenderable,
     world: vec3
   ): number | null {
@@ -273,7 +281,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       const pixelIndex = y * sliced.rowStride + x;
 
       // For multi-channel images, take the first channel value
-      return sliced.data[pixelIndex];
+      const data = sliced.slicePlane(this.sliceCoords_.z);
+      return data[pixelIndex];
     }
 
     return null;
@@ -285,7 +294,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   public set debugMode(debug: boolean) {
     this.debugMode_ = debug;
-    this.visibleImages_.forEach(({ image, sliced }) => {
+    this.visibleImages_.forEach(({ image, chunk: sliced }) => {
       image.wireframeEnabled = this.debugMode_;
       if (this.debugMode_) {
         image.wireframeColor =
@@ -327,7 +336,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 }
 
-export function poolKeyForImageRenderable(chunk: Chunk | SlicedChunk) {
+export function poolKeyForImageRenderable(chunk: Chunk | VirtualChunk) {
   return [
     `lod${chunk.lod}`,
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.c}`,
