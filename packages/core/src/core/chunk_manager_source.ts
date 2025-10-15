@@ -5,6 +5,7 @@ import {
   SliceCoordinates,
   coordToIndex,
 } from "../data/chunk";
+import { ImageSourcePolicy } from "./image_source_policy";
 import { ReadonlyVec2, vec2, vec3 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
@@ -12,58 +13,53 @@ import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
 
-// Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
-// These additional chunks are prefetched to improve responsiveness when panning.
-const PREFETCH_PADDING_CHUNKS = 0;
-
-// Fetch some number of time points ahead of current time.
-const PREFETCH_TIME_POINTS = 10;
-
-// Visible chunks at the fallback LOD.
-const PRI_FALLBACK_VISIBLE = 0;
-// Prioritized prefetch chunks not at the current time (e.g. during playback).
-const PRI_PREFETCH_TIME_HIGH = 1;
-// Visible chunks at the current LOD.
-const PRI_VISIBLE_CURRENT = 2;
-// Non-prioritized prefetch chunks not at the current time.
-const PRI_PREFETCH_TIME_LOW = 3;
-// Non-visible chunks at the fallback LOD.
-const PRI_FALLBACK_BACKGROUND = 4;
-// Prefetch non-visible chunks at the current time.
-const PRI_PREFETCH_SPACE = 5;
+/*
+Unique symbol used as a capability token to allow internal modules to update
+the image source policy. Only code that imports this symbol can call
+setImageSourcePolicy; all other callers will be rejected. Acts like a "friend"
+access key, preventing accidental external mutation.
+*/
+export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
 
 export class ChunkManagerSource {
-  // First dimension of the array is time, the others cover LOD, x, y, z, c.
   private readonly chunks_: Chunk[][];
   private readonly loader_;
   private readonly lowestResLOD_: number;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly dimensions_: SourceDimensionMap;
+  private readonly tIndicesWithQueuedChunks_: Set<number> = new Set();
+  private readonly sourceMaxSquareDistance2D_: number;
+  private policy_: ImageSourcePolicy;
+  private policyChanged_ = false;
   private currentLOD_: number = 0;
-  // TODO: make LOD bias configurable per-source or per-layer
-  // positive values nudge towards coarser resolution (higher LOD number)
-  private lodBias_: number = 0.5;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
 
-  public prioritizePrefetchTime: boolean = false;
-  private tIndicesWithQueuedChunks_: Set<number> = new Set();
-  private sourceMaxSquareDistance2D_: number;
-
-  constructor(loader: ChunkLoader, sliceCoords: SliceCoordinates) {
+  constructor(
+    loader: ChunkLoader,
+    sliceCoords: SliceCoordinates,
+    policy: ImageSourcePolicy
+  ) {
     this.loader_ = loader;
+    this.policy_ = policy;
     this.dimensions_ = this.loader_.getSourceDimensionMap();
     this.lowestResLOD_ = this.dimensions_.numLods - 1;
     this.currentLOD_ = 0;
     this.sliceCoords_ = sliceCoords;
 
+    Logger.info(
+      "ChunkManagerSource",
+      "Using image source policy:",
+      this.policy_.profile
+    );
+
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
     const { size: chunksC } = this.getAndValidateChannelDimension();
 
-    const xLod0 = this.dimensions.x.lods[0];
-    const yLod0 = this.dimensions.y.lods[0];
+    const xLod0 = this.dimensions_.x.lods[0];
+    const yLod0 = this.dimensions_.y.lods[0];
     this.sourceMaxSquareDistance2D_ = vec2.squaredLength(
       vec2.fromValues(xLod0.size * xLod0.scale, yLod0.size * yLod0.scale)
     );
@@ -173,21 +169,23 @@ export class ChunkManagerSource {
 
   public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
-    const zBounds = this.getZBounds();
-    let updatedChunks: Chunk[] = [];
 
-    if (
+    const zBounds = this.getZBounds();
+    const changed =
+      this.policyChanged_ ||
       this.viewBounds2DChanged(viewBounds2D) ||
       this.zBoundsChanged(zBounds) ||
-      this.lastTCoord_ !== this.sliceCoords_.t
-    ) {
-      updatedChunks =
-        this.updateAndCollectChunkChangesForCurrentLod(viewBounds2D);
-    }
+      this.lastTCoord_ !== this.sliceCoords_.t;
 
+    const updatedChunks = changed
+      ? this.updateAndCollectChunkChangesForCurrentLod(viewBounds2D)
+      : [];
+
+    this.policyChanged_ = false;
     this.lastViewBounds2D_ = viewBounds2D.clone();
     this.lastZBounds_ = zBounds;
     this.lastTCoord_ = this.sliceCoords_.t;
+
     return updatedChunks;
   }
 
@@ -203,33 +201,50 @@ export class ChunkManagerSource {
     return this.currentLOD_;
   }
 
+  public setImageSourcePolicy(newPolicy: ImageSourcePolicy, key: symbol) {
+    if (key !== INTERNAL_POLICY_KEY) {
+      throw new Error("Unauthorized policy mutation");
+    }
+
+    if (this.policy_ !== newPolicy) {
+      this.policy_ = newPolicy;
+      this.policyChanged_ = true;
+
+      Logger.info(
+        "ChunkManagerSource",
+        "Using image source policy:",
+        this.policy_.profile
+      );
+    }
+  }
+
   public loadChunkData(chunk: Chunk, signal: AbortSignal) {
     return this.loader_.loadChunkData(chunk, signal);
   }
 
   private setLOD(lodFactor: number): void {
-    // `scale` here is the x-width of an image pixel in virtual units at LOD 0.
-    // So (ignoring the bias term) subtracting `lodFactor` from `Math.log2(scale)`
-    // is effectively `Math.log2(virtualUnitsPerScreenPixel / xScale)`.
-    // That is, `adjustedLodFactor = Math.log2(imagePixelsPerScreenPixel)`;
-    // or in other words, how many image pixels (LOD 0) fit in a screen pixel.
-    // Use of log2 here and in ChunkManager relies on the assumption that
-    // each LOD is downsampled by a factor of 2 in X and Y.
-    const sourceAdjustment =
-      this.lodBias_ - Math.log2(this.dimensions_.x.lods[0].scale);
-    const sourceAdjustedLodFactor = sourceAdjustment - lodFactor;
-    const maxLOD = this.lowestResLOD_;
-    const targetLOD = Math.max(
+    // `scale0` is the x pixel size (world units) at LOD 0.
+    // With 2x downsampling per LOD, selection happens in log2 space.
+    const scale0 = this.dimensions_.x.lods[0].scale;
+    const bias = this.policy_.lod.bias;
+
+    // How many LOD 0 pixels per screen pixel, normalized by source scale and bias.
+    const sourceAdjusted = bias - Math.log2(scale0) - lodFactor;
+    const desiredLOD = Math.floor(sourceAdjusted);
+
+    // Intersect dataset bounds with policy bounds.
+    const minPolicyLOD = Math.max(
       0,
-      Math.min(maxLOD, Math.floor(sourceAdjustedLodFactor))
+      Math.min(this.lowestResLOD_, this.policy_.lod.min)
+    );
+    const maxPolicyLOD = Math.max(
+      minPolicyLOD,
+      Math.min(this.lowestResLOD_, this.policy_.lod.max)
     );
 
-    if (targetLOD !== this.currentLOD_) {
-      Logger.debug(
-        "ChunkManagerSource",
-        `LOD changed from ${this.currentLOD_} to ${targetLOD}`
-      );
-      this.currentLOD_ = targetLOD;
+    const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
+    if (target !== this.currentLOD_) {
+      this.currentLOD_ = target;
     }
   }
 
@@ -285,7 +300,7 @@ export class ChunkManagerSource {
     const disposedChunks: Chunk[] = [];
     for (const t of this.tIndicesWithQueuedChunks_) {
       const delta = t - currentTimeIndex;
-      if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
+      if (delta >= 0 && delta <= this.policy_.prefetch.t) continue;
       const chunks = this.chunks_[t];
       for (const chunk of chunks) {
         this.disposeChunk(chunk);
@@ -361,7 +376,7 @@ export class ChunkManagerSource {
   ): Chunk[] {
     const tEnd = Math.min(
       this.chunks_.length - 1,
-      currentTimeIndex + PREFETCH_TIME_POINTS
+      currentTimeIndex + this.policy_.prefetch.t
     );
     const prefetchedChunks: Chunk[] = [];
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
@@ -371,9 +386,7 @@ export class ChunkManagerSource {
         if (!this.isChunkChannelInSlice(chunk)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
         chunk.prefetch = true;
-        chunk.priority = this.prioritizePrefetchTime
-          ? PRI_PREFETCH_TIME_HIGH
-          : PRI_PREFETCH_TIME_LOW;
+        chunk.priority = this.policy_.priorityMap["prefetchTime"];
         const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
         const normalizedDistance = clamp(
           squareDistance / this.sourceMaxSquareDistance2D_,
@@ -417,10 +430,6 @@ export class ChunkManagerSource {
     chunk.priority = null;
     chunk.orderKey = null;
     chunk.prefetch = false;
-    Logger.debug(
-      "ChunkManagerSource",
-      `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
-    );
   }
 
   private computePriority(
@@ -431,10 +440,13 @@ export class ChunkManagerSource {
     isChannelInSlice: boolean
   ) {
     if (!isChannelInSlice) return null;
-    if (isFallbackLOD && isVisible) return PRI_FALLBACK_VISIBLE;
-    if (isCurrentLOD && isVisible) return PRI_VISIBLE_CURRENT;
-    if (isFallbackLOD) return PRI_FALLBACK_BACKGROUND;
-    if (isCurrentLOD && isPrefetch) return PRI_PREFETCH_SPACE;
+
+    const m = this.policy_.priorityMap;
+    if (isFallbackLOD && isVisible) return m["fallbackVisible"];
+    if (isCurrentLOD && isVisible) return m["visibleCurrent"];
+    if (isFallbackLOD) return m["fallbackBackground"];
+    if (isCurrentLOD && isPrefetch) return m["prefetchSpace"];
+
     return null;
   }
 
@@ -565,12 +577,15 @@ export class ChunkManagerSource {
   private getPaddedBounds(bounds: Box3): Box3 {
     const xLod = this.dimensions_.x.lods[this.currentLOD_];
     const yLod = this.dimensions_.y.lods[this.currentLOD_];
+    const zLod = this.dimensions_.z?.lods[this.currentLOD_];
 
-    const padX = xLod.chunkSize * xLod.scale * PREFETCH_PADDING_CHUNKS;
-    const padY = yLod.chunkSize * yLod.scale * PREFETCH_PADDING_CHUNKS;
+    const padX = xLod.chunkSize * xLod.scale * this.policy_.prefetch.x;
+    const padY = yLod.chunkSize * yLod.scale * this.policy_.prefetch.y;
 
-    // Disable prefetching in Z until chunk prioritization exists.
-    const padZ = 0;
+    let padZ = 0;
+    if (zLod) {
+      padZ = zLod.chunkSize * zLod.scale * this.policy_.prefetch.z;
+    }
 
     return new Box3(
       vec3.fromValues(

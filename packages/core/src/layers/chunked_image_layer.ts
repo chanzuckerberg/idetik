@@ -1,7 +1,11 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { ChunkManagerSource } from "../core/chunk_manager_source";
+import {
+  ChunkManagerSource,
+  INTERNAL_POLICY_KEY,
+} from "../core/chunk_manager_source";
+import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
@@ -17,6 +21,7 @@ import { RenderablePool } from "../utilities/renderable_pool";
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
+  policy: ImageSourcePolicy;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
 };
@@ -31,6 +36,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
+  private policy_: ImageSourcePolicy;
   private channelProps_?: ChannelProps[];
   private chunkManagerSource_?: ChunkManagerSource;
   private pointerDownPos_: vec2 | null = null;
@@ -51,6 +57,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   constructor({
     source,
     sliceCoords,
+    policy,
     channelProps,
     onPickValue,
     ...layerOptions
@@ -58,6 +65,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
+    this.policy_ = policy;
     this.sliceCoords_ = sliceCoords;
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
@@ -67,7 +75,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public async onAttached(context: IdetikContext) {
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_,
-      this.sliceCoords_
+      this.sliceCoords_,
+      this.policy_
     );
   }
 
@@ -153,6 +162,22 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   public get source(): ChunkSource {
     return this.source_;
+  }
+
+  public get imageSourcePolicy(): Readonly<ImageSourcePolicy> {
+    return this.policy_;
+  }
+
+  public set imageSourcePolicy(newPolicy: ImageSourcePolicy) {
+    if (this.policy_ !== newPolicy) {
+      this.policy_ = newPolicy;
+      if (this.chunkManagerSource_) {
+        this.chunkManagerSource_.setImageSourcePolicy(
+          newPolicy,
+          INTERNAL_POLICY_KEY
+        );
+      }
+    }
   }
 
   private slicePlane(chunk: Chunk, zValue: number) {

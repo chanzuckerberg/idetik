@@ -25,6 +25,18 @@ export type { PointPickingResult } from "./layers/point_picking";
 export { ImageSeriesLayer } from "./layers/image_series_layer";
 export { OmeZarrImageSource } from "./data/ome_zarr/image_source";
 
+export type {
+  PriorityCategory,
+  ImageSourcePolicyConfig,
+} from "./core/image_source_policy";
+
+export {
+  createImageSourcePolicy,
+  createExplorationPolicy,
+  createNoPrefetchPolicy,
+  createPlaybackPolicy,
+} from "./core/image_source_policy";
+
 export { Box2 } from "./math/box2";
 export { Box3 } from "./math/box3";
 

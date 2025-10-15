@@ -8,6 +8,11 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
 import { addDimensionSlider } from "../lil_gui_utils";
+import {
+  createExplorationPolicy,
+  createPlaybackPolicy,
+} from "@/core/image_source_policy";
+
 import GUI from "lil-gui";
 
 const url =
@@ -48,7 +53,12 @@ const channelProps: ChannelProps[] = [
 ];
 
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkedImageLayer({ source, sliceCoords, channelProps });
+const imageLayer = new ChunkedImageLayer({
+  source,
+  sliceCoords,
+  policy: createExplorationPolicy(),
+  channelProps,
+});
 imageLayer.debugMode = true;
 
 const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;
@@ -106,10 +116,8 @@ addDimensionSlider({
   stepValue: t.scale,
   playback: {
     onRateChange: (rateHz: number) => {
-      const source = imageLayer.chunkManagerSource;
-      if (source) {
-        source.prioritizePrefetchTime = rateHz > 0;
-      }
+      imageLayer.imageSourcePolicy =
+        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
     },
   },
 });
