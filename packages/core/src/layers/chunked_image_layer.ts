@@ -196,7 +196,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const image = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (!image) return;
     const texture = image.textures[0] as Texture2DArray;
-    const sliced = SlicedChunk.fromChunk(chunk, this.sliceCoords_.z);
+    const sliced = SlicedChunk.fromChunks(chunks, this.sliceCoords_.z);
     texture.updateWithChunk(chunk, sliced.data);
     this.updateImageChunk(image, chunk);
     if (this.channelProps_) {
