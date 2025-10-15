@@ -115,16 +115,33 @@ export function createPlaybackPolicy(
   return createImageSourcePolicy(mergeConfig(base, overrides));
 }
 
+export function createNoPrefetchPolicy(
+  overrides: Partial<ImageSourcePolicyConfig> = {}
+): ImageSourcePolicy {
+  const base: ImageSourcePolicyConfig = {
+    profile: "no-prefetch",
+    prefetch: { x: 0, y: 0, z: 0, t: 0 },
+    priorityOrder: [
+      "fallbackVisible",
+      "visibleCurrent",
+      "fallbackBackground",
+      "prefetchSpace",
+      "prefetchTime",
+    ],
+  };
+  return createImageSourcePolicy(mergeConfig(base, overrides));
+}
+
 function validatePolicyConfig(config: ImageSourcePolicyConfig) {
   for (const [k, v] of Object.entries(config.prefetch)) {
-    if (v === null) continue; // z/t may be omitted
+    if (v === undefined) continue; // z/t may be omitted
     if (v < 0) {
       throw new Error(`prefetch.${k} must be a non-negative number`);
     }
   }
 
   const lod = config.lod;
-  if (lod?.min != null && lod?.max != null && lod.min > lod.max) {
+  if (lod?.min !== undefined && lod?.max !== undefined && lod.min > lod.max) {
     throw new Error(`lod.min must be <= lod.max`);
   }
 

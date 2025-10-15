@@ -13,21 +13,28 @@ import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
 
+/*
+Unique symbol used as a capability token to allow internal modules to update
+the image source policy. Only code that imports this symbol can call
+setImageSourcePolicy; all other callers will be rejected. Acts like a "friend"
+access key, preventing accidental external mutation.
+*/
+export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
+
 export class ChunkManagerSource {
   private readonly chunks_: Chunk[][];
   private readonly loader_;
   private readonly lowestResLOD_: number;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly dimensions_: SourceDimensionMap;
+  private readonly tIndicesWithQueuedChunks_: Set<number> = new Set();
+  private readonly sourceMaxSquareDistance2D_: number;
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
-
-  private tIndicesWithQueuedChunks_: Set<number> = new Set();
-  private sourceMaxSquareDistance2D_: number;
 
   constructor(
     loader: ChunkLoader,
@@ -194,14 +201,14 @@ export class ChunkManagerSource {
     return this.currentLOD_;
   }
 
-  public get imageSourcePolicy(): Readonly<ImageSourcePolicy> {
-    return this.policy_;
-  }
+  public setImageSourcePolicy(newPolicy: ImageSourcePolicy, key: symbol) {
+    if (key !== INTERNAL_POLICY_KEY) {
+      throw new Error("Unauthorized policy mutation");
+    }
 
-  public set imageSourcePolicy(policy: ImageSourcePolicy) {
-    if (this.policy_ !== policy) {
+    if (this.policy_ !== newPolicy) {
+      this.policy_ = newPolicy;
       this.policyChanged_ = true;
-      this.policy_ = policy;
 
       Logger.info(
         "ChunkManagerSource",
@@ -235,13 +242,8 @@ export class ChunkManagerSource {
       Math.min(this.lowestResLOD_, this.policy_.lod.max)
     );
 
-    const target = Math.max(minPolicyLOD, Math.min(maxPolicyLOD, desiredLOD));
-
+    const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
     if (target !== this.currentLOD_) {
-      Logger.debug(
-        "ChunkManagerSource",
-        `LOD changed from ${this.currentLOD_} to ${target}`
-      );
       this.currentLOD_ = target;
     }
   }
@@ -428,10 +430,6 @@ export class ChunkManagerSource {
     chunk.priority = null;
     chunk.orderKey = null;
     chunk.prefetch = false;
-    Logger.debug(
-      "ChunkManagerSource",
-      `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
-    );
   }
 
   private computePriority(

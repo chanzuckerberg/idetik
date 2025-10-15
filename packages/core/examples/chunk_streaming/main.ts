@@ -116,11 +116,8 @@ addDimensionSlider({
   stepValue: t.scale,
   playback: {
     onRateChange: (rateHz: number) => {
-      const source = imageLayer.chunkManagerSource;
-      if (source) {
-        source.imageSourcePolicy =
-          rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
-      }
+      imageLayer.imageSourcePolicy =
+        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
     },
   },
 });

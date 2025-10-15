@@ -3,6 +3,7 @@ import {
   PriorityCategory,
   createImageSourcePolicy,
   createExplorationPolicy,
+  createNoPrefetchPolicy,
   createPlaybackPolicy,
 } from "@";
 
@@ -39,6 +40,21 @@ test("createExplorationPolicy sets exploration defaults", () => {
     prefetchSpace: 2,
     prefetchTime: 3,
     fallbackBackground: 4,
+  });
+});
+
+test("createNoPrefetchPolicy sets playback defaults", () => {
+  const p = createNoPrefetchPolicy();
+
+  expect(p.profile).toBe("no-prefetch");
+  expect(p.prefetch).toEqual({ x: 0, y: 0, z: 0, t: 0 });
+  expect(Object.keys(p.priorityMap)).toHaveLength(5);
+  expect(p.priorityMap).toEqual({
+    fallbackVisible: 0,
+    visibleCurrent: 1,
+    fallbackBackground: 2,
+    prefetchSpace: 3,
+    prefetchTime: 4,
   });
 });
 

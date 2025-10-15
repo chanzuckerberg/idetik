@@ -33,6 +33,7 @@ export type {
 export {
   createImageSourcePolicy,
   createExplorationPolicy,
+  createNoPrefetchPolicy,
   createPlaybackPolicy,
 } from "./core/image_source_policy";
 
