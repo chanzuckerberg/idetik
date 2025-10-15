@@ -55,17 +55,6 @@ export class SlicedChunk {
     this.rowAlignmentBytes = props.rowAlignmentBytes;
   }
 
-  public setChannelData(channel: number, data: ChunkData) {
-    if (channel < 0 || channel >= this.shape.c) {
-      throw new Error("Channel index out of bounds");
-    }
-    if (data.length !== this.rowStride * this.shape.y) {
-      throw new Error("Data length does not match chunk shape");
-    }
-    const channelOffset = channel * this.rowStride * this.shape.y;
-    this.data.set(data, channelOffset);
-  }
-
   public sliceChunks(zCoord?: number) {
     for (let c = 0; c < this.chunks.length; c++) {
       const chunk = this.chunks[c];
