@@ -20,6 +20,7 @@ export class ChunkManagerSource {
   private readonly sliceCoords_: SliceCoordinates;
   private readonly dimensions_: SourceDimensionMap;
   private policy_: ImageSourcePolicy;
+  private policyChanged_ = false;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
@@ -161,21 +162,23 @@ export class ChunkManagerSource {
 
   public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
-    const zBounds = this.getZBounds();
-    let updatedChunks: Chunk[] = [];
 
-    if (
+    const zBounds = this.getZBounds();
+    const changed =
+      this.policyChanged_ ||
       this.viewBounds2DChanged(viewBounds2D) ||
       this.zBoundsChanged(zBounds) ||
-      this.lastTCoord_ !== this.sliceCoords_.t
-    ) {
-      updatedChunks =
-        this.updateAndCollectChunkChangesForCurrentLod(viewBounds2D);
-    }
+      this.lastTCoord_ !== this.sliceCoords_.t;
 
+    const updatedChunks = changed
+      ? this.updateAndCollectChunkChangesForCurrentLod(viewBounds2D)
+      : [];
+
+    this.policyChanged_ = false;
     this.lastViewBounds2D_ = viewBounds2D.clone();
     this.lastZBounds_ = zBounds;
     this.lastTCoord_ = this.sliceCoords_.t;
+
     return updatedChunks;
   }
 
@@ -196,7 +199,8 @@ export class ChunkManagerSource {
   }
 
   public set imageSourcePolicy(policy: ImageSourcePolicy) {
-    if (this.policy_ != policy) {
+    if (this.policy_ !== policy) {
+      this.policyChanged_ = true;
       this.policy_ = policy;
 
       Logger.info(
