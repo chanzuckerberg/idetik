@@ -28,7 +28,7 @@ type SlicedChunkProps = {
 export class SlicedChunk {
   readonly chunks: ReadonlyArray<Chunk>;
   readonly data: ChunkData;
-  readonly lod: number = 0;
+  readonly lod: number;
   readonly shape: {
     x: number;
     y: number;
@@ -48,6 +48,7 @@ export class SlicedChunk {
   private constructor(props: SlicedChunkProps) {
     this.chunks = props.chunks;
     this.data = props.data;
+    this.lod = props.lod;
     this.shape = props.shape;
     this.scale = props.scale;
     this.offset = props.offset;
