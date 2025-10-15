@@ -4,7 +4,8 @@ import {
   bufferToDataType,
 } from "../../objects/textures/texture";
 
-import { Chunk, ChunkData } from "../../data/chunk";
+import { Chunk } from "../../data/chunk";
+import { SlicedChunk } from "../../data/sliced_chunk";
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
@@ -48,41 +49,68 @@ export class Texture2DArray extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunk(chunk: Chunk, data?: ChunkData) {
-    const source = data ?? chunk.data;
-    if (!source) {
+  public updateWithChunk(chunk: Chunk) {
+    if (!chunk.data) {
       throw new Error(
         "Unable to update texture, chunk data is not initialized."
       );
     }
 
-    if (this.data === source) return;
+    if (this.data === chunk.data) return;
 
     const width = chunk.shape.x;
     const height = chunk.shape.y;
-    const depth = source.length / (width * height);
+    const depth = chunk.data.length / (width * height);
     if (
       this.width != width ||
       this.height != height ||
       this.depth_ != depth ||
-      this.dataType != bufferToDataType(source)
+      this.dataType != bufferToDataType(chunk.data)
     ) {
       throw new Error("Unable to update texture, texture buffer mismatch.");
     }
 
-    this.data = source;
+    this.data = chunk.data;
   }
 
-  public static createWithChunk(chunk: Chunk, data?: ChunkData) {
-    const source = data ?? chunk.data;
-    if (!source) {
+  public updateWithSlicedChunk(sliced: SlicedChunk) {
+    // TODO: if a sliced chunk always copies, then this is fine.
+    // if (this.data === sliced.data) return;
+    if (
+      this.width != sliced.shape.x ||
+      this.height != sliced.shape.y ||
+      this.depth_ != sliced.shape.c ||
+      this.dataType != bufferToDataType(sliced.data)
+    ) {
+      throw new Error("Unable to update texture, texture buffer mismatch.");
+    }
+    this.data = sliced.data;
+  }
+
+  public static createWithChunk(chunk: Chunk) {
+    if (!chunk.data) {
       throw new Error(
         "Unable to create texture, chunk data is not initialized."
       );
     }
-    const texture = new Texture2DArray(source, chunk.shape.x, chunk.shape.y);
+    const texture = new Texture2DArray(
+      chunk.data,
+      chunk.shape.x,
+      chunk.shape.y
+    );
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
+    return texture;
+  }
+
+  public static createWithSlicedChunk(sliced: SlicedChunk) {
+    const texture = new Texture2DArray(
+      sliced.data,
+      sliced.shape.x,
+      sliced.shape.y
+    );
+    texture.unpackRowLength = sliced.rowStride;
+    texture.unpackAlignment = sliced.rowAlignmentBytes;
     return texture;
   }
 }

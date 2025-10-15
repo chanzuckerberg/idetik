@@ -143,7 +143,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     for (const { image, sliced } of this.visibleImages_.values()) {
       sliced.sliceChunks(zPointWorld);
-      image.textures[0].needsUpdate = true;
+      (image.textures[0] as Texture2DArray).updateWithSlicedChunk(sliced);
     }
 
     this.zPrevPointWorld_ = zPointWorld;
@@ -196,7 +196,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (!image) return;
     const texture = image.textures[0] as Texture2DArray;
     const sliced = SlicedChunk.fromChunks(chunks, this.sliceCoords_.z);
-    texture.updateWithChunk(chunk, sliced.data);
+    texture.updateWithSlicedChunk(sliced);
     this.updateImageChunk(image, chunk);
     if (this.channelProps_) {
       image.setChannelProps(this.channelProps_);
@@ -210,7 +210,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const image = new ImageRenderable(
       chunk.shape.x,
       chunk.shape.y,
-      Texture2DArray.createWithChunk(chunk, sliced.data),
+      Texture2DArray.createWithSlicedChunk(sliced),
       this.channelProps_ ?? [{}]
     );
     this.updateImageChunk(image, chunk);
