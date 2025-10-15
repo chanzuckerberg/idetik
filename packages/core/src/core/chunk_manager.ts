@@ -1,19 +1,45 @@
 import { ChunkSource } from "../data/chunk";
 import { ChunkQueue } from "../data/chunk_queue";
 import { ChunkStore } from "./chunk_store";
+import { Logger } from "../utilities/logger";
 
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkStore>();
+  private readonly pendingSources_ = new Map<ChunkSource, Promise<ChunkStore>>();
   private readonly queue_ = new ChunkQueue();
 
-  public async addSource(source: ChunkSource) {
-    let existing = this.sources_.get(source);
-    if (!existing) {
-      const loader = await source.open();
-      existing = new ChunkStore(loader);
-      this.sources_.set(source, existing);
+  public async addSource(source: ChunkSource): Promise<ChunkStore> {
+    // Check if already loaded
+    const existing = this.sources_.get(source);
+    if (existing) {
+      Logger.info("ChunkManager", "REUSING existing ChunkStore for source");
+      return existing;
     }
-    return existing;
+
+    // Check if already being loaded (prevents race condition)
+    const pending = this.pendingSources_.get(source);
+    if (pending) {
+      Logger.info("ChunkManager", "WAITING for pending ChunkStore creation");
+      return pending;
+    }
+
+    // Create new ChunkStore
+    Logger.info("ChunkManager", "Creating NEW ChunkStore for source");
+    const promise = (async () => {
+      const loader = await source.open();
+      const store = new ChunkStore(loader);
+
+      // Store the result and clean up pending
+      this.sources_.set(source, store);
+      this.pendingSources_.delete(source);
+
+      return store;
+    })();
+
+    // Track the pending promise
+    this.pendingSources_.set(source, promise);
+
+    return promise;
   }
 
   /**

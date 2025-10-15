@@ -2,7 +2,6 @@ import { Region } from "./region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { PromiseScheduler } from "./promise_scheduler";
 import { Logger } from "../utilities/logger";
-import type { ChunkStoreView } from "../core/chunk_store_view";
 
 const chunkDataTypes = [
   Int8Array,
@@ -35,11 +34,6 @@ export type ChunkViewState = {
   orderKey: number | null;
 };
 
-export type ChunkUpdate = {
-  chunk: Chunk;
-  viewState: ChunkViewState;
-};
-
 export type Chunk = {
   data?: ChunkData;
   state: "unloaded" | "queued" | "loading" | "loaded";
@@ -48,9 +42,6 @@ export type Chunk = {
   prefetch: boolean;
   priority: number | null;
   orderKey: number | null;
-  // Per-view state for multi-viewport support. The chunk's visible/priority/prefetch
-  // fields are aggregated from all view states.
-  viewStates: Map<ChunkStoreView, ChunkViewState>;
   shape: {
     x: number;
     y: number;
