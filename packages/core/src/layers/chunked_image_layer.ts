@@ -330,7 +330,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 export function poolKeyForImageRenderable(chunk: Chunk | SlicedChunk) {
   return [
     `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.c}`,
     `stride${chunk.rowStride}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
