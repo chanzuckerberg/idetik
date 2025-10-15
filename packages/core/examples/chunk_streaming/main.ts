@@ -73,7 +73,8 @@ new Idetik({
       cameraControls: new PanZoomControls(camera),
       layers: [imageLayer],
     },
-  ],  overlays: [chunkInfoOverlay, timePointOverlay],
+  ],
+  overlays: [chunkInfoOverlay, timePointOverlay],
   showStats: true,
 }).start();
 

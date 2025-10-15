@@ -9,33 +9,19 @@ import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
 
 // Number of chunks to extend beyond the visible bounds in each direction (x/y/z)
-// These additional chunks are prefetched to improve responsiveness when panning.
 const PREFETCH_PADDING_CHUNKS = 0;
-
-// Fetch some number of time points ahead of current time.
 const PREFETCH_TIME_POINTS = 10;
 
-// Visible chunks at the fallback LOD.
 const PRI_FALLBACK_VISIBLE = 0;
-// Prioritized prefetch chunks not at the current time (e.g. during playback).
 const PRI_PREFETCH_TIME_HIGH = 1;
-// Visible chunks at the current LOD.
 const PRI_VISIBLE_CURRENT = 2;
-// Non-prioritized prefetch chunks not at the current time.
 const PRI_PREFETCH_TIME_LOW = 3;
-// Non-visible chunks at the fallback LOD.
 const PRI_FALLBACK_BACKGROUND = 4;
-// Prefetch non-visible chunks at the current time.
 const PRI_PREFETCH_SPACE = 5;
 
-/**
- * ChunkStoreView provides a viewport-specific view into a ChunkStore.
- * It handles LOD calculation, chunk visibility determination, and prefetching
- * for a single viewport viewing the data source managed by the ChunkStore.
- */
 export class ChunkStoreView {
   private readonly store_: ChunkStore;
-  private readonly _viewport_: Viewport;
+  private readonly viewport_: Viewport;
   private currentLOD_: number = 0;
   // TODO: make LOD bias configurable per-source or per-layer
   // positive values nudge towards coarser resolution (higher LOD number)
@@ -47,11 +33,11 @@ export class ChunkStoreView {
   public prioritizePrefetchTime: boolean = false;
   private tIndicesWithQueuedChunks_: Set<number> = new Set();
   private sourceMaxSquareDistance2D_: number;
-  public readonly chunkViewStates: Map<Chunk, ChunkViewState> = new Map();
+  private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
 
   constructor(store: ChunkStore, viewport: Viewport) {
     this.store_ = store;
-    this._viewport_ = viewport;
+    this.viewport_ = viewport;
 
     const dimensions = this.store_.dimensions;
     const xLod0 = dimensions.x.lods[0];
@@ -61,18 +47,21 @@ export class ChunkStoreView {
     );
   }
 
-  /**
-   * Returns the chunks to render for the current viewport and slice position.
-   * This includes both current LOD chunks and fallback chunks.
-   * Uses per-view visibility state rather than aggregated state.
-   */
+  public get chunkViewStates(): ReadonlyMap<Chunk, ChunkViewState> {
+    return this.chunkViewStates_;
+  }
+
+  public get viewport(): Viewport {
+    return this.viewport_;
+  }
+
   public getChunks(sliceCoords: SliceCoordinates): Chunk[] {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
     const currentLODChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
-        this.chunkViewStates.get(chunk)?.visible === true &&
+        this.chunkViewStates_.get(chunk)?.visible === true &&
         chunk.state === "loaded"
     );
 
@@ -85,20 +74,15 @@ export class ChunkStoreView {
     const lowResChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === lowestResLOD &&
-        this.chunkViewStates.get(chunk)?.visible === true &&
+        this.chunkViewStates_.get(chunk)?.visible === true &&
         chunk.state === "loaded"
     );
 
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  /**
-   * Updates chunk visibility and priority based on viewport camera and slice coordinates.
-   * Chunk view states are stored in the chunkViewStates map.
-   */
   public updateChunkStates(sliceCoords: SliceCoordinates): void {
-    // Calculate LOD from viewport camera
-    const camera = this._viewport_.camera;
+    const camera = this.viewport_.camera;
     if (camera.type !== "OrthographicCamera") {
       throw new Error(
         "ChunkStoreView currently supports only orthographic cameras. " +
@@ -109,8 +93,8 @@ export class ChunkStoreView {
     const orthoCamera = camera as OrthographicCamera;
     const viewBounds2D = orthoCamera.getWorldViewRect();
     const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const canvasElement = this._viewport_.element as HTMLCanvasElement;
-    const bufferWidth = this._viewport_
+    const canvasElement = this.viewport_.element as HTMLCanvasElement;
+    const bufferWidth = this.viewport_
       .getBoxRelativeTo(canvasElement)
       .toRect().width;
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
@@ -124,38 +108,27 @@ export class ChunkStoreView {
       this.zBoundsChanged(zBounds) ||
       this.lastTCoord_ !== sliceCoords.t
     ) {
-      this.updateChunkViewStatesForCurrentLod(
-        sliceCoords,
-        viewBounds2D
-      );
+      this.updateChunkViewStatesForCurrentLod(sliceCoords, viewBounds2D);
 
       this.lastViewBounds2D_ = viewBounds2D.clone();
       this.lastZBounds_ = zBounds;
       this.lastTCoord_ = sliceCoords.t;
     }
-    // else: nothing changed, keep existing chunk view states
   }
 
   public get currentLOD(): number {
     return this.currentLOD_;
   }
 
-  /**
-   * Removes a chunk from this view's tracking.
-   * Should only be called by ChunkStore when a chunk is being disposed.
-   *
-   * If the chunk is still needed by this view (due to a race condition where the view
-   * was updated between aggregation and disposal), this is a no-op. The chunk will
-   * remain in the view's map and be re-aggregated on the next update cycle.
-   */
   public forgetChunk(chunk: Chunk): void {
-    const viewState = this.chunkViewStates.get(chunk);
-    if (viewState && (viewState.visible || viewState.prefetch || viewState.priority !== null)) {
-      // Chunk is needed again - don't forget it. This can happen during rapid camera
-      // movement when the view updates between aggregation and disposal (TOCTOU).
+    const viewState = this.chunkViewStates_.get(chunk);
+    if (
+      viewState &&
+      (viewState.visible || viewState.prefetch || viewState.priority !== null)
+    ) {
       return;
     }
-    this.chunkViewStates.delete(chunk);
+    this.chunkViewStates_.delete(chunk);
   }
 
   private setLOD(lodFactor: number): void {
@@ -197,7 +170,7 @@ export class ChunkStoreView {
         "ChunkStoreView",
         "updateChunkVisibility called with no chunks initialized"
       );
-      this.chunkViewStates.clear();
+      this.chunkViewStates_.clear();
       return;
     }
 
@@ -210,8 +183,7 @@ export class ChunkStoreView {
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
     );
 
-    // Clear the map and recompute chunk view states
-    this.chunkViewStates.clear();
+    this.chunkViewStates_.clear();
 
     if (sliceCoords.t !== undefined) {
       this.updateStaleTimeChunks(currentTimeIndex);
@@ -233,11 +205,7 @@ export class ChunkStoreView {
     }
   }
 
-  private updateStaleTimeChunks(
-    currentTimeIndex: number
-  ): void {
-    // Remove stale time indices from tracking.
-    // The chunks themselves will be cleaned up during ChunkStore aggregation.
+  private updateStaleTimeChunks(currentTimeIndex: number): void {
     for (const t of this.tIndicesWithQueuedChunks_) {
       const delta = t - currentTimeIndex;
       if (delta >= 0 && delta <= PREFETCH_TIME_POINTS) continue;
@@ -249,9 +217,7 @@ export class ChunkStoreView {
     chunk: Chunk,
     sliceCoords: SliceCoordinates
   ): boolean {
-    return (
-      sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c
-    );
+    return sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
   }
 
   private updateChunksAtTimeIndex(
@@ -275,10 +241,9 @@ export class ChunkStoreView {
 
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === this.store_.getLowestResLOD();
-      const isLoaded = chunk.state === "loaded";
-
       const visible = isVisible && isChannelInSlice;
-      const prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
+      const prefetch =
+        eligibleForPrefetch && isCurrentLOD && chunk.state !== "loaded";
       const priority = this.computePriority(
         isFallbackLOD,
         isCurrentLOD,
@@ -287,24 +252,23 @@ export class ChunkStoreView {
         isChannelInSlice
       );
 
-      // Only store non-default states (sparse storage optimization)
-      // Default state: not visible, not prefetch, no priority (or background priority that doesn't require loading)
-      // PRI_FALLBACK_BACKGROUND chunks don't need state tracking - they're already loaded fallbacks
-      const isNonDefault = visible || prefetch || (priority !== null && priority !== PRI_FALLBACK_BACKGROUND);
+      if (
+        visible ||
+        prefetch ||
+        (priority !== null && priority !== PRI_FALLBACK_BACKGROUND)
+      ) {
+        const orderKey =
+          priority !== null
+            ? this.squareDistance2D(chunk, viewBounds2DCenter)
+            : null;
 
-      if (isNonDefault) {
-        const orderKey = priority !== null
-          ? this.squareDistance2D(chunk, viewBounds2DCenter)
-          : null;
-
-        this.chunkViewStates.set(chunk, {
+        this.chunkViewStates_.set(chunk, {
           visible,
           prefetch,
           priority,
           orderKey,
         });
       }
-      // else: chunk is in default state - not added to map
     }
   }
 
@@ -336,7 +300,7 @@ export class ChunkStoreView {
         const orderKey = t - currentTimeIndex + normalizedDistance;
 
         this.tIndicesWithQueuedChunks_.add(t);
-        this.chunkViewStates.set(chunk, {
+        this.chunkViewStates_.set(chunk, {
           visible: false,
           prefetch: true,
           priority,
@@ -417,7 +381,6 @@ export class ChunkStoreView {
 
     const padX = xLod.chunkSize * xLod.scale * PREFETCH_PADDING_CHUNKS;
     const padY = yLod.chunkSize * yLod.scale * PREFETCH_PADDING_CHUNKS;
-
     // Disable prefetching in Z until chunk prioritization exists.
     const padZ = 0;
 

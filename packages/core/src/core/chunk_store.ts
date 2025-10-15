@@ -10,13 +10,7 @@ import { almostEqual } from "../utilities/almost_equal";
 import { ChunkStoreView } from "./chunk_store_view";
 import { Viewport } from "./viewport";
 
-/**
- * ChunkStore manages chunk data for a single data source.
- * It owns the chunks in memory, handles loading, and provides access to metadata.
- * This is the heavy, shared resource that multiple viewports can reference.
- */
 export class ChunkStore {
-  // First dimension of the array is time, the others cover LOD, x, y, z, c.
   private readonly chunks_: Chunk[][];
   private readonly loader_: ChunkLoader;
   private readonly lowestResLOD_: number;
@@ -31,7 +25,6 @@ export class ChunkStore {
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
 
-    // generate chunks for each LOD without loading data
     this.chunks_ = Array.from({ length: chunksT }, () => []);
     for (let t = 0; t < chunksT; ++t) {
       const chunksAtT = this.chunks_[t];
@@ -73,7 +66,7 @@ export class ChunkStore {
                     x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
                     y: Math.min(chunkHeight, yLod.size - y * chunkHeight),
                     z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
-                    c: 1, // Each chunk is single-channel
+                    c: 1,
                   },
                   rowStride,
                   rowAlignmentBytes: 1,
@@ -141,52 +134,26 @@ export class ChunkStore {
     );
   }
 
-  /**
-   * Create a ChunkStoreView for a specific viewport.
-   * This factory method encapsulates the relationship between ChunkStore and ChunkStoreView.
-   */
   public createView(viewport: Viewport): ChunkStoreView {
     const view = new ChunkStoreView(this, viewport);
     this.views_.add(view);
     return view;
   }
 
-  /**
-   * Remove a view from tracking when it's no longer needed.
-   * This should be called when a viewport is destroyed or a layer is detached.
-   *
-   * Collects chunks from the view's map and re-aggregates to potentially
-   * dispose chunks that are no longer needed by any view.
-   */
   public removeView(view: ChunkStoreView): void {
+    const affectedChunks = Array.from(view.chunkViewStates.keys());
     this.views_.delete(view);
 
-    // Collect all chunks this view had state for
-    const affectedChunks = Array.from(view.chunkViewStates.keys());
-
-    // Clear the view's map
-    view.chunkViewStates.clear();
-
-    // Re-aggregate affected chunks to potentially dispose them
     for (const chunk of affectedChunks) {
       this.aggregateChunkViewStates(chunk);
     }
   }
 
-  /**
-   * Get all active views of this chunk store.
-   */
   public get views(): ReadonlySet<ChunkStoreView> {
     return this.views_;
   }
 
-  /**
-   * Collects updated chunks from all views and aggregates their view states.
-   * Reads view states from each view's chunkViewStates map, aggregates to compute
-   * final chunk state, and returns chunks that need loading/cancellation by ChunkManager.
-   */
   public consumeUpdatedChunks(): Chunk[] {
-    // Collect all chunks that have state in any view
     const affectedChunks = new Set<Chunk>();
     for (const view of this.views_) {
       for (const [chunk, _viewState] of view.chunkViewStates) {
@@ -194,7 +161,6 @@ export class ChunkStore {
       }
     }
 
-    // Aggregate view states for each affected chunk
     for (const chunk of affectedChunks) {
       this.aggregateChunkViewStates(chunk);
     }
@@ -202,37 +168,25 @@ export class ChunkStore {
     return Array.from(affectedChunks);
   }
 
-  /**
-   * Aggregates per-view states to compute the chunk's final state.
-   * - visible: true if ANY view wants it visible
-   * - priority: MIN priority across all views (lower number = higher priority)
-   * - prefetch: true if ANY view wants prefetch
-   * - orderKey: MIN orderKey across views that want it (closest to camera)
-   *
-   * Reads from each view's chunkViewStates map to aggregate state.
-   */
   private aggregateChunkViewStates(chunk: Chunk): void {
     let anyVisible = false;
     let anyPrefetch = false;
     let minPriority: number | null = null;
     let minOrderKey: number | null = null;
 
-    // Iterate over all active views and check if they have state for this chunk
     for (const view of this.views_) {
       const viewState = view.chunkViewStates.get(chunk);
-      if (!viewState) continue; // This view doesn't have state for this chunk
+      if (!viewState) continue;
 
       if (viewState.visible) anyVisible = true;
       if (viewState.prefetch) anyPrefetch = true;
 
-      // Priority: take the minimum non-null value (lower number = higher priority)
       if (viewState.priority !== null) {
         if (minPriority === null || viewState.priority < minPriority) {
           minPriority = viewState.priority;
         }
       }
 
-      // OrderKey: take the minimum (closest to camera/most urgent)
       if (viewState.orderKey !== null) {
         if (minOrderKey === null || viewState.orderKey < minOrderKey) {
           minOrderKey = viewState.orderKey;
@@ -240,20 +194,17 @@ export class ChunkStore {
       }
     }
 
-    // Apply aggregated state
     chunk.visible = anyVisible;
     chunk.prefetch = anyPrefetch;
     chunk.priority = minPriority;
     chunk.orderKey = minOrderKey;
 
-    // Update state based on aggregated priority
     if (chunk.priority !== null && chunk.state === "unloaded") {
       chunk.state = "queued";
     } else if (chunk.priority === null && chunk.state === "queued") {
       chunk.state = "unloaded";
     }
 
-    // Dispose if no view needs it anymore and tell all views to forget it
     if (chunk.priority === null && chunk.state === "loaded") {
       this.disposeChunk(chunk);
       for (const view of this.views_) {
@@ -264,8 +215,7 @@ export class ChunkStore {
 
   private validateXYScaleRatios(): void {
     // Validates that each LOD level is downsampled by a factor of 2 in X and Y.
-    // Z downsampling is not validated here because it may be inconsistent or
-    // completely absent in some pyramids.
+    // Z downsampling is not validated here because it's not guaranteed.
     const xDim = this.dimensions_.x;
     const yDim = this.dimensions_.y;
     for (let i = 1; i < this.dimensions_.numLods; i++) {

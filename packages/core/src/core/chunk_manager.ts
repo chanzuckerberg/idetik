@@ -5,7 +5,10 @@ import { Logger } from "../utilities/logger";
 
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkStore>();
-  private readonly pendingSources_ = new Map<ChunkSource, Promise<ChunkStore>>();
+  private readonly pendingSources_ = new Map<
+    ChunkSource,
+    Promise<ChunkStore>
+  >();
   private readonly queue_ = new ChunkQueue();
 
   public async addSource(source: ChunkSource): Promise<ChunkStore> {

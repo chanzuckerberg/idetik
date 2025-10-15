@@ -25,7 +25,11 @@ export class Viewport {
   public readonly events: EventDispatcher;
   public cameraControls?: CameraControls;
 
-  constructor(config: Required<Pick<ViewportConfig, "element" | "camera">> & ViewportConfig, layerManager: LayerManager) {
+  constructor(
+    config: Required<Pick<ViewportConfig, "element" | "camera">> &
+      ViewportConfig,
+    layerManager: LayerManager
+  ) {
     this.id = config.id || config.element.id || generateUUID();
     this.element = config.element;
     this.camera = config.camera;
@@ -129,7 +133,11 @@ export class Viewport {
   }
 }
 
-function validateViewportConfigs(viewportConfigs: Array<Required<Pick<ViewportConfig, "element" | "camera">> & ViewportConfig>): void {
+function validateViewportConfigs(
+  viewportConfigs: Array<
+    Required<Pick<ViewportConfig, "element" | "camera">> & ViewportConfig
+  >
+): void {
   const elementToViewportId = new Map<HTMLElement, string>();
   const seenViewportIds = new Set<string>();
 
@@ -170,7 +178,9 @@ export function parseViewportConfigs(
   createLayerManager: () => LayerManager
 ): Viewport[] {
   // Fill in missing elements with canvas for single-viewport setup
-  const configsWithElements: Array<Required<Pick<ViewportConfig, "element" | "camera">> & ViewportConfig> = viewportConfigs.map((config) => {
+  const configsWithElements: Array<
+    Required<Pick<ViewportConfig, "element" | "camera">> & ViewportConfig
+  > = viewportConfigs.map((config) => {
     if (!config.element) {
       if (viewportConfigs.length === 1) {
         return { ...config, element: canvas, camera: config.camera };
