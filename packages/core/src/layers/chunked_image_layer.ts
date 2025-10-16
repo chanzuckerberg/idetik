@@ -194,19 +194,12 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getChunkedImage(chunk: Chunk): ChunkedImage | undefined {
-    if (chunk.state !== "loaded") return;
-
     const key = chunkKeyIgnoringChannel(chunk);
 
     const existing = this.visibleImages_.get(key);
     if (existing) return existing;
 
-    let chunks = this.loadedChunks_.get(key);
-    if (!chunks) {
-      chunks = new Set();
-      this.loadedChunks_.set(key, chunks);
-    }
-    chunks.add(chunk);
+    const chunks = this.updateLoadedChunks(key, chunk);
     if (chunks.size < this.numImageChannels()) return;
 
     const virtualChunk = VirtualChunk.fromChunks([...chunks]);
@@ -214,7 +207,18 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       this.getPooledImage(virtualChunk) ?? this.createImage(virtualChunk);
     this.visibleImages_.set(key, image);
     this.loadedChunks_.delete(key);
+
     return image;
+  }
+
+  private updateLoadedChunks(key: string, chunk: Chunk): Set<Chunk> {
+    let chunks = this.loadedChunks_.get(key);
+    if (!chunks) {
+      chunks = new Set();
+      this.loadedChunks_.set(key, chunks);
+    }
+    chunks.add(chunk);
+    return chunks;
   }
 
   private numImageChannels() {
