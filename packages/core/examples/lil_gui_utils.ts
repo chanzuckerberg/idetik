@@ -1,6 +1,17 @@
 import { SliceCoordinates } from "@/index";
 import { Controller, GUI } from "lil-gui";
 
+export function preventGUIEventPropagation(gui: GUI) {
+  const element = gui.domElement;
+  const events = ['pointerdown', 'pointermove', 'pointerup', 'wheel', 'click'];
+
+  events.forEach(eventType => {
+    element.addEventListener(eventType, (e) => {
+      e.stopPropagation();
+    }, { capture: true });
+  });
+}
+
 type DimensionSliderProps = {
   gui: GUI;
   sliceCoords: SliceCoordinates;
