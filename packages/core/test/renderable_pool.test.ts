@@ -1,8 +1,8 @@
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { RenderablePool } from "@/utilities/renderable_pool";
 import { RenderableObject } from "@/core/renderable_object";
-import { poolKeyForImageRenderable } from "@/layers/chunked_image_layer";
 import { SlicedChunk2D } from "@/data/sliced_chunk_2d";
+import { poolKeyForImageRenderable } from "@/layers/chunked_image_layer";
 import { makeChunk } from "./helpers";
 
 class RenderableStub extends RenderableObject {
