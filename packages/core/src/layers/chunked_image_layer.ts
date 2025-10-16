@@ -85,11 +85,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public update() {
-    this.updateChunks();
-    this.resliceIfZChanged();
-  }
-
-  private updateChunks() {
     if (!this.chunkManagerSource_) return;
     if (this.state !== "ready") this.setState("ready");
 
@@ -104,7 +99,13 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
     const orderedByLOD = this.chunkManagerSource_.getChunks();
-    const current = new Set(orderedByLOD);
+    this.releaseNonCurrentChunks(orderedByLOD);
+    this.reAddImagesFromChunks(orderedByLOD);
+    this.resliceIfZChanged();
+  }
+
+  private releaseNonCurrentChunks(chunks: ReadonlyArray<Chunk>) {
+    const current = new Set(chunks);
     this.loadedChunks_.forEach((chunks, key) => {
       for (const chunk of chunks) {
         if (!current.has(chunk)) {
@@ -122,7 +123,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         }
       }
     });
+  }
 
+  private reAddImagesFromChunks(orderedByLOD: ReadonlyArray<Chunk>) {
     this.clearObjects();
     const addedImages = new Set<ImageRenderable>();
     for (const chunk of orderedByLOD) {
