@@ -192,15 +192,15 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return image;
   }
 
-  private getPooledImage(sliced: VirtualChunk): ChunkedImage | undefined {
-    const image = this.pool_.acquire(poolKeyForImageRenderable(sliced));
+  private getPooledImage(chunk: VirtualChunk): ChunkedImage | undefined {
+    const image = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (!image) return;
-    image.textures[0].data = sliced.slicePlane(this.sliceCoords_.z);
-    this.updateImageChunk(image, sliced);
+    image.textures[0].data = chunk.slicePlane(this.sliceCoords_.z);
+    this.updateImageChunk(image, chunk);
     if (this.channelProps_) {
       image.setChannelProps(this.channelProps_);
     }
-    return { image, chunk: sliced };
+    return { image, chunk: chunk };
   }
 
   private createImage(chunk: VirtualChunk): ChunkedImage {
@@ -245,16 +245,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const currentLOD = this.chunkManagerSource_?.currentLOD ?? 0;
 
     // First, try to find the value in current LOD chunks (highest priority)
-    for (const { image, chunk: sliced } of this.visibleImages_.values()) {
-      if (sliced.lod !== currentLOD) continue;
-      const value = this.getValueFromChunk(sliced, image, world);
+    for (const { image, chunk } of this.visibleImages_.values()) {
+      if (chunk.lod !== currentLOD) continue;
+      const value = this.getValueFromChunk(chunk, image, world);
       if (value !== null) return value;
     }
 
     // Fallback to low-res chunks if no current LOD chunk contains the position
-    for (const { image, chunk: sliced } of this.visibleImages_.values()) {
-      if (sliced.lod === currentLOD) continue;
-      const value = this.getValueFromChunk(sliced, image, world);
+    for (const { image, chunk } of this.visibleImages_.values()) {
+      if (chunk.lod === currentLOD) continue;
+      const value = this.getValueFromChunk(chunk, image, world);
       if (value !== null) return value;
     }
 
@@ -262,7 +262,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getValueFromChunk(
-    sliced: VirtualChunk,
+    chunk: VirtualChunk,
     image: ImageRenderable,
     world: vec3
   ): number | null {
@@ -276,11 +276,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const y = Math.floor(localPos[1]);
 
     // Check if this chunk contains the requested position
-    if (x >= 0 && x < sliced.shape.x && y >= 0 && y < sliced.shape.y) {
-      const pixelIndex = y * sliced.rowStride + x;
+    if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
+      const pixelIndex = y * chunk.rowStride + x;
 
       // For multi-channel images, take the first channel value
-      const data = sliced.slicePlane(this.sliceCoords_.z);
+      const data = chunk.slicePlane(this.sliceCoords_.z);
       return data[pixelIndex];
     }
 
@@ -293,11 +293,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   public set debugMode(debug: boolean) {
     this.debugMode_ = debug;
-    this.visibleImages_.forEach(({ image, chunk: sliced }) => {
+    this.visibleImages_.forEach(({ image, chunk }) => {
       image.wireframeEnabled = this.debugMode_;
       if (this.debugMode_) {
         image.wireframeColor =
-          this.wireframeColors_[sliced.lod % this.wireframeColors_.length];
+          this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
       }
     });
   }
