@@ -73,11 +73,24 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public async onAttached(context: IdetikContext) {
+    if (this.chunkManagerSource_) {
+      throw new Error(
+        `ChunkedImageLayer cannot be attached to multiple viewports. ` +
+          `Layer is already attached. ` +
+          `Create separate layer instances for each viewport.`
+      );
+    }
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_,
       this.sliceCoords_,
       this.policy_
     );
+  }
+
+  public onDetached(): void {
+    this.chunkManagerSource_ = undefined;
+    this.visibleChunks_.clear();
+    this.clearObjects();
   }
 
   public update() {

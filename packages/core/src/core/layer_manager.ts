@@ -30,10 +30,10 @@ export class LayerManager {
     return { opaque, transparent };
   }
 
-  public add(layer: Layer) {
+  public async add(layer: Layer) {
     this.layers_ = [...this.layers_, layer];
     if (this.context_) {
-      layer.onAttached(this.context_);
+      await layer.onAttached(this.context_);
     }
     this.notifyLayersChanged();
   }
@@ -47,11 +47,18 @@ export class LayerManager {
   }
 
   public removeByIndex(index: number) {
+    const layer = this.layers_[index];
+    if (layer) {
+      layer.onDetached();
+    }
     this.layers_ = this.layers_.filter((_, i) => i !== index);
     this.notifyLayersChanged();
   }
 
   public removeAll() {
+    for (const layer of this.layers_) {
+      layer.onDetached();
+    }
     this.layers_ = [];
     this.notifyLayersChanged();
   }
