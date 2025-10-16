@@ -30,10 +30,10 @@ export class LayerManager {
     return { opaque, transparent };
   }
 
-  public async add(layer: Layer) {
+  public add(layer: Layer) {
     this.layers_ = [...this.layers_, layer];
     if (this.context_) {
-      await layer.onAttached(this.context_);
+      layer.onAttached(this.context_);
     }
     this.notifyLayersChanged();
   }
