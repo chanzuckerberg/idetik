@@ -192,6 +192,14 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return image;
   }
 
+  private numImageChannels() {
+    if (this.chunkManagerSource_ === undefined) {
+      throw new Error("ChunkManagerSource is not initialized.");
+    }
+    if (this.sliceCoords_.c !== undefined) return 1;
+    return this.chunkManagerSource_.dimensions.c?.lods[0].size ?? 1;
+  }
+
   private getPooledImage(chunk: VirtualChunk): ChunkedImage | undefined {
     const image = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (!image) return;
@@ -200,7 +208,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (this.channelProps_) {
       image.setChannelProps(this.channelProps_);
     }
-    return { image, chunk: chunk };
+    return { image, chunk };
   }
 
   private createImage(chunk: VirtualChunk): ChunkedImage {
@@ -218,15 +226,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       this.channelProps_ ?? [{}]
     );
     this.updateImageChunk(image, chunk);
-    return { image, chunk: chunk };
-  }
-
-  private numImageChannels() {
-    if (this.chunkManagerSource_ === undefined) {
-      throw new Error("ChunkManagerSource is not initialized.");
-    }
-    if (this.sliceCoords_.c !== undefined) return 1;
-    return this.chunkManagerSource_.dimensions.c?.lods[0].size ?? 1;
+    return { image, chunk };
   }
 
   private updateImageChunk(image: ImageRenderable, chunk: VirtualChunk) {
