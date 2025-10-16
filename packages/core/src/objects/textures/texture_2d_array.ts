@@ -4,7 +4,7 @@ import {
   bufferToDataType,
 } from "../../objects/textures/texture";
 
-import { Chunk, ChunkData } from "../../data/chunk";
+import { Chunk } from "../../data/chunk";
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
@@ -28,6 +28,12 @@ export class Texture2DArray extends Texture {
   }
 
   public set data(data: DataTextureTypedArray) {
+    if (this.dataType != bufferToDataType(data)) {
+      throw new Error("Unable to set texture data, data type mismatch.");
+    }
+    if (this.width_ * this.height_ * this.depth_ !== data.length) {
+      throw new Error("Unable to set texture data, data length mismatch.");
+    }
     this.data_ = data;
     this.needsUpdate = true;
   }
@@ -48,62 +54,36 @@ export class Texture2DArray extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunk(
-    chunk: Chunk,
-    data?: ChunkData,
-    channelIndex?: number
-  ) {
-    const source = data ?? chunk.data;
-    if (!source) {
+  public updateWithChunk(chunk: Chunk) {
+    if (!chunk.data) {
       throw new Error(
         "Unable to update texture, chunk data is not initialized."
       );
     }
 
-    if (this.data === source) return;
+    if (this.data === chunk.data) return;
 
     const width = chunk.shape.x;
     const height = chunk.shape.y;
-    if (
-      this.width != width ||
-      this.height != height ||
-      this.dataType != bufferToDataType(source)
-    ) {
-      throw new Error(
-        `Unable to update texture, shape mismatch. Current: ${this.width}x${this.height} vs. new: ${width}x${height}`
-      );
+    const depth = chunk.data.length / (width * height);
+    if (this.width != width || this.height != height || this.depth_ != depth) {
+      throw new Error("Unable to update texture, data shape mismatch.");
     }
 
-    // Allow source data with a depth of 1 to be updated into a texture with greater depth
-    // to allow for single-channel updates.
-    const depth = source.length / (width * height);
-    if (depth > 1 && this.depth != depth) {
-      throw new Error(
-        `Unable to update texture, depth mismatch. Current: ${this.depth} vs. new: ${depth}`
-      );
-    }
-
-    if (this.dataType != bufferToDataType(source)) {
-      throw new Error(
-        "Unable to update texture, data type mismatch. Current: ${this.dataType} vs. new: ${bufferToDataType(source)}"
-      );
-    }
-
-    const cIndex = channelIndex ?? 0;
-    const offset = cIndex * width * height * depth;
-    this.data.set(source, offset);
-    this.needsUpdate = true;
-    return;
+    this.data = chunk.data;
   }
 
-  public static createWithChunk(chunk: Chunk, data?: ChunkData) {
-    const source = data ?? chunk.data;
-    if (!source) {
+  public static createWithChunk(chunk: Chunk) {
+    if (!chunk.data) {
       throw new Error(
         "Unable to create texture, chunk data is not initialized."
       );
     }
-    const texture = new Texture2DArray(source, chunk.shape.x, chunk.shape.y);
+    const texture = new Texture2DArray(
+      chunk.data,
+      chunk.shape.x,
+      chunk.shape.y
+    );
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;

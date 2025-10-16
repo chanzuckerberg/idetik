@@ -9,6 +9,7 @@ import {
   loadOmeZarrWell,
   ChunkedImageLayer,
   Color,
+  createNoPrefetchPolicy,
 } from "@";
 
 const plateUrl =
@@ -69,6 +70,7 @@ const onImageChange = async () => {
     source,
     sliceCoords,
     channelProps,
+    policy: createNoPrefetchPolicy(),
   });
   app.layerManager.add(newLayer);
 };

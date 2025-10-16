@@ -4,7 +4,6 @@ import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
-import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
 export type ImageSeriesLayerProps = LayerOptions & {
@@ -133,8 +132,12 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
     texture: Texture2DArray,
     channelProps?: ChannelProps[]
   ) {
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
-    const image = new ImageRenderable(geometry, texture, channelProps);
+    const image = new ImageRenderable(
+      chunk.shape.x,
+      chunk.shape.y,
+      texture,
+      channelProps
+    );
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;
