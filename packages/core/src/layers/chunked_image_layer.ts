@@ -206,7 +206,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.visibleImages_.set(key, image);
     this.loadedChunks_.delete(key);
 
-    return image;
+    return image
   }
 
   private updateLoadedChunks(key: string, chunk: Chunk): Set<Chunk> {
