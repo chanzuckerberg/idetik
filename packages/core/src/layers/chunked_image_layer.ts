@@ -360,7 +360,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 }
 
-export function poolKeyForImageRenderable(chunk: Chunk | VirtualChunk) {
+export function poolKeyForImageRenderable(chunk: VirtualChunk) {
   return [
     `lod${chunk.lod}`,
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.c}`,
@@ -370,5 +370,11 @@ export function poolKeyForImageRenderable(chunk: Chunk | VirtualChunk) {
 }
 
 function chunkKeyIgnoringChannel(chunk: Chunk): string {
-  return `${chunk.lod},${chunk.chunkIndex.t},${chunk.chunkIndex.z},${chunk.chunkIndex.y},${chunk.chunkIndex.x}`;
+  return [
+    chunk.lod,
+    chunk.chunkIndex.t,
+    chunk.chunkIndex.z,
+    chunk.chunkIndex.y,
+    chunk.chunkIndex.x,
+  ].join(":");
 }

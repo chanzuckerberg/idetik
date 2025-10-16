@@ -8,7 +8,7 @@ export class RenderablePool<T extends RenderableObject> {
     const bin = this.bins_.get(key);
     const item = bin?.pop();
     if (item) {
-      Logger.debug("RenderablePool", "Renderable object acquired", key);
+      Logger.debug("RenderablePool", "Renderable object acquired");
     }
     return item;
   }
@@ -20,7 +20,7 @@ export class RenderablePool<T extends RenderableObject> {
       this.bins_.set(key, bin);
     }
     bin.push(item);
-    Logger.debug("RenderablePool", "Renderable object released", key);
+    Logger.debug("RenderablePool", "Renderable object released");
   }
 
   clearAll(disposer?: (t: T) => void) {
