@@ -101,9 +101,10 @@ export class ChunkStore {
   }
 
   public allVisibleLowestLODLoaded(timeIndex: number): boolean {
-    return this.getChunksAtTime(timeIndex)
-      .filter((c) => c.visible && c.lod === this.lowestResLOD_)
-      .every((c) => c.state === "loaded");
+    const visibleChunks = this.getChunksAtTime(timeIndex)
+      .filter((c) => c.visible && c.lod === this.lowestResLOD_);
+    // Return false if there are no visible chunks (empty array .every() returns true)
+    return visibleChunks.length > 0 && visibleChunks.every((c) => c.state === "loaded");
   }
 
   public get lodCount() {

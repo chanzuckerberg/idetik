@@ -108,7 +108,7 @@ export class ChunkStoreView {
       this.zBoundsChanged(zBounds) ||
       this.lastTCoord_ !== sliceCoords.t
     ) {
-      this.updateChunkViewStatesForCurrentLod(sliceCoords, viewBounds2D);
+      this.updateChunkViewStates(sliceCoords, viewBounds2D);
 
       this.lastViewBounds2D_ = viewBounds2D.clone();
       this.lastZBounds_ = zBounds;
@@ -158,7 +158,7 @@ export class ChunkStoreView {
     }
   }
 
-  private updateChunkViewStatesForCurrentLod(
+  private updateChunkViewStates(
     sliceCoords: SliceCoordinates,
     viewBounds2D: Box2
   ): void {
@@ -168,7 +168,7 @@ export class ChunkStoreView {
     if (currentTimeChunks.length === 0) {
       Logger.warn(
         "ChunkStoreView",
-        "updateChunkVisibility called with no chunks initialized"
+        "updateChunkViewStates called with no chunks initialized"
       );
       this.chunkViewStates_.clear();
       return;
@@ -183,7 +183,9 @@ export class ChunkStoreView {
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
     );
 
-    this.chunkViewStates_.clear();
+    // reset all existing chunk view states to "not needed" to start
+    // logic below will override this for chunks that are actually visible/prefetch
+    this.chunkViewStates_.forEach(markUnused);
 
     if (sliceCoords.t !== undefined) {
       this.updateStaleTimeChunks(currentTimeIndex);
@@ -284,7 +286,6 @@ export class ChunkStoreView {
     );
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.store_.getChunksAtTime(t)) {
-        if (chunk.state !== "unloaded") continue;
         if (chunk.lod !== this.store_.getLowestResLOD()) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
 
@@ -300,6 +301,8 @@ export class ChunkStoreView {
         const orderKey = t - currentTimeIndex + normalizedDistance;
 
         this.tIndicesWithQueuedChunks_.add(t);
+        // Always set priority/orderKey to keep loaded chunks alive
+        // Only unloaded chunks will be queued for loading
         this.chunkViewStates_.set(chunk, {
           visible: false,
           prefetch: true,
@@ -407,4 +410,11 @@ export class ChunkStoreView {
     const dy = chunkCenter.y - center[1];
     return dx * dx + dy * dy;
   }
+}
+
+function markUnused(state: ChunkViewState): void {
+  state.visible = false;
+  state.prefetch = false;
+  state.priority = null;
+  state.orderKey = null;
 }
