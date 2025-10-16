@@ -2,16 +2,21 @@ import { ChunkSource, SliceCoordinates } from "../data/chunk";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ChunkQueue } from "../data/chunk_queue";
 import { ChunkManagerSource } from "./chunk_manager_source";
+import { ImageSourcePolicy } from "./image_source_policy";
 
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
   private readonly queue_ = new ChunkQueue();
 
-  public async addSource(source: ChunkSource, sliceCoords: SliceCoordinates) {
+  public async addSource(
+    source: ChunkSource,
+    sliceCoords: SliceCoordinates,
+    policy: ImageSourcePolicy
+  ) {
     let existing = this.sources_.get(source);
     if (!existing) {
       const loader = await source.open();
-      existing = new ChunkManagerSource(loader, sliceCoords);
+      existing = new ChunkManagerSource(loader, sliceCoords, policy);
       this.sources_.set(source, existing);
     }
     return existing;

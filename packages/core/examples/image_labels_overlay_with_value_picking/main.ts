@@ -9,6 +9,7 @@ import {
 import { LabelImageLayer } from "@/layers/label_image_layer";
 import { PointPickingResult } from "@/layers/point_picking";
 import { PanZoomControls } from "@/objects/cameras/controls";
+import { createExplorationPolicy } from "@/core/image_source_policy";
 
 // These roughly correspond in terms of content and the number of time-points.
 // But the image is smaller in XY than the labels, and has a Z-stack, so it
@@ -83,6 +84,7 @@ infoBox.appendChild(toggleDiv);
 const imageLayer = new ChunkedImageLayer({
   source: imageSource,
   sliceCoords,
+  policy: createExplorationPolicy(),
   transparent: true,
   channelProps: [{ contrastLimits: phaseContrastLimits }],
 });
