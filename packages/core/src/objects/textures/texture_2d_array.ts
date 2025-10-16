@@ -31,7 +31,9 @@ export class Texture2DArray extends Texture {
     if (this.dataType != bufferToDataType(data)) {
       throw new Error("Unable to set texture data, data type mismatch.");
     }
-    if (this.width_ * this.height_ * this.depth_ !== data.length) {
+    const rowStride =
+      this.unpackRowLength > 0 ? this.unpackRowLength : this.width_;
+    if (rowStride * this.height_ * this.depth_ !== data.length) {
       throw new Error("Unable to set texture data, data length mismatch.");
     }
     this.data_ = data;
