@@ -69,8 +69,7 @@ export class Texture2DArray extends Texture {
     if (
       this.width != width ||
       this.height != height ||
-      this.depth_ != depth ||
-      this.dataType != bufferToDataType(chunk.data)
+      this.depth_ != depth
     ) {
       throw new Error("Unable to update texture, texture buffer mismatch.");
     }
