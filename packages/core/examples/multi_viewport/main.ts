@@ -7,7 +7,10 @@ import {
   ViewportConfig,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { addDimensionSlider, preventGUIEventPropagation } from "../lil_gui_utils";
+import {
+  addDimensionSlider,
+  preventGUIEventPropagation,
+} from "../lil_gui_utils";
 import GUI from "lil-gui";
 
 const url =
@@ -34,8 +37,9 @@ const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
-const viewportContainer =
-  document.querySelector<HTMLDivElement>("#viewport-container")!;
+const viewportContainer = document.querySelector<HTMLDivElement>(
+  "#viewport-container"
+)!;
 
 const sharedSource = new OmeZarrImageSource(url);
 
