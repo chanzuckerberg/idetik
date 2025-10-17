@@ -1,6 +1,6 @@
 {
   "name": "@idetik/react-prerelease",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -52,7 +52,7 @@
     "idetik"
   ],
   "devDependencies": {
-    "@idetik/core-prerelease": "^5.0.0",
+    "@idetik/core-prerelease": "^6.0.0",
     "@testing-library/react": "^16.3.0",
     "@types/classnames": "^2.3.0",
     "autoprefixer": "^10.4.20",
@@ -61,7 +61,7 @@
   },
   "peerDependencies": {
     "@czi-sds/components": "^22.11.4",
-    "@idetik/core-prerelease": "^5.0.0",
+    "@idetik/core-prerelease": "^6.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   }
