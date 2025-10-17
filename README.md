@@ -33,11 +33,13 @@ A layer-based library for interactive visualization of large datasets.
 
 ## Release
 
-Currently, we maintain Idetik prerelease packages on npm: [@idetik/core-prerelease](https://www.npmjs.com/package/@idetik/core-prerelease?activeTab=readme) and [@idetik/react-prerelease](https://www.npmjs.com/package/@idetik/react-prerelease).
+Currently, we maintain the [@idetik/core-prerelease](https://www.npmjs.com/package/@idetik/core-prerelease?activeTab=readme) package on npm.
+
+**Note:** The React package ([@idetik/react-prerelease](https://www.npmjs.com/package/@idetik/react-prerelease)) has been moved to its own repository at https://github.com/chanzuckerberg/idetik-react. See that repository for React package release instructions.
 
 ### Pre-requirements
 
-First, you must have cloned this repository and must be able to build the core and react packages.
+First, you must have cloned this repository and must be able to build the core package.
 
 Second, you must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM.
 
@@ -45,7 +47,7 @@ Second, you must be a member of the [idetik developer team](https://www.npmjs.co
 
 Our release process is currently manual and we currently bump the major version every time to easily avoid unintentional downstream breakage.
 
-To release the core package run the following the commands
+To update and release the core package, run the following commands:
 
 ```shell
 git switch -c your-name/prerelease-X-Y-Z
@@ -53,34 +55,13 @@ cd packages/core
 npm version major
 npm install
 npm run build
+npm login
+npm run pub
 ```
 
 where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
 
-Now, manually modify `packages/react/package.json` so that any dependencies (including dev and peer dependencies) are bumped to `^X.Y.Z`.
-
-Then repeat for `packages/react`.
-
-```shell
-cd ../react
-npm version major
-npm install
-npm run build
-```
-
-After both package versions have been bumped, create a PR, get it approved, and merge it to `main`.
-
-Next, checkout the corresponding commit on `main` and run the following commands for 
-
-```shell
-npm login
-cd ../core
-npm run pub
-cd ../react
-npm run pub
-```
-
-Finally, add a tag of the form `prerelease-X.Y.Z` to the commit on `main`.
+After publishing, add a tag of the form `prerelease-X.Y.Z` to the commit on `main`:
 
 ```shell
 git tag prerelease-X.Y.Z
