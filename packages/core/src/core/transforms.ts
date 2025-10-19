@@ -1,4 +1,6 @@
-import { mat4, vec3, quat } from "gl-matrix";
+import { mat4, mat3, vec3, quat } from "gl-matrix";
+
+const WORLD_UP = vec3.fromValues(0, 1, 0);
 
 export class TrsTransform {
   private dirty_ = true;
@@ -42,6 +44,21 @@ export class TrsTransform {
 
   public setScale(vec: vec3) {
     vec3.copy(this.scale_, vec);
+    this.dirty_ = true;
+  }
+
+  public targetTo(target: vec3) {
+    // Avoid zero-length forward vector
+    if (vec3.equals(this.translation_, target)) {
+      target = vec3.clone(target);
+      target[2] += 1e-3;
+    }
+
+    const m = mat4.targetTo(mat4.create(), this.translation_, target, WORLD_UP);
+    const rotation = mat3.fromMat4(mat3.create(), m);
+    quat.fromMat3(this.rotation_, rotation);
+    quat.normalize(this.rotation_, this.rotation_);
+
     this.dirty_ = true;
   }
 
