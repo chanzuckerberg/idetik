@@ -1,6 +1,6 @@
-import { Idetik } from "../../src/idetik";
-import { ChunkedImageLayer } from "../../src/layers/chunked_image_layer";
-import { Chunk } from "../../src/data/chunk";
+import { Idetik } from "../src/idetik";
+import { ChunkedImageLayer } from "../src/layers/chunked_image_layer";
+import { Chunk } from "../src/data/chunk";
 
 export interface ChunkInfoOverlayOptions {
   textDiv: HTMLDivElement;

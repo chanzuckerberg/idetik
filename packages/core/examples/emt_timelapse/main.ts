@@ -8,7 +8,7 @@ import {
   createExplorationPolicy,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { ChunkInfoOverlay } from "./chunk_info_overlay";
+import { ChunkInfoOverlay } from "../chunk_info_overlay";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 

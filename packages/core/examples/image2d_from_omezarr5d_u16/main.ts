@@ -7,7 +7,7 @@ import {
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { ScaleBar } from "./scale_bar";
+import { ScaleBar } from "../scale_bar";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
