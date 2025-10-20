@@ -4,6 +4,8 @@ import {
   ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
+  createPlaybackPolicy,
+  createExplorationPolicy,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
@@ -54,7 +56,7 @@ const sliceCoords = {
 };
 
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkedImageLayer({ source, sliceCoords, channelProps });
+const imageLayer = new ChunkedImageLayer({ source, sliceCoords, policy: createExplorationPolicy(), channelProps });
 imageLayer.debugMode = true;
 
 const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;
@@ -112,10 +114,8 @@ addDimensionSlider({
   stepValue: t.scale,
   playback: {
     onRateChange: (rateHz: number) => {
-      const source = imageLayer.chunkManagerSource;
-      if (source) {
-        source.prioritizePrefetchTime = rateHz > 0;
-      }
+      imageLayer.imageSourcePolicy =
+        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
     },
   },
 });
