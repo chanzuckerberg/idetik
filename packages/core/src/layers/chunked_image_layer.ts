@@ -75,9 +75,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public async onAttached(context: IdetikContext) {
     if (this.chunkManagerSource_) {
       throw new Error(
-        `ChunkedImageLayer cannot be attached to multiple viewports. ` +
-          `Layer is already attached. ` +
-          `Create separate layer instances for each viewport.`
+        "ChunkedImageLayer is already attached. " +
+          "A layer cannot be attached to multiple LayerManagers simultaneously."
       );
     }
     this.chunkManagerSource_ = await context.chunkManager.addSource(
@@ -89,7 +88,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   public onDetached(): void {
     this.chunkManagerSource_ = undefined;
-    this.visibleChunks_.clear();
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
   }
 
@@ -114,12 +113,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     const orderedByLOD = this.chunkManagerSource_.getChunks();
     const current = new Set(orderedByLOD);
-    this.visibleChunks_.forEach((image, chunk) => {
-      if (!current.has(chunk)) {
-        this.visibleChunks_.delete(chunk);
-        this.pool_.release(poolKeyForImageRenderable(chunk), image);
-      }
-    });
+    const nonVisibleChunks = Array.from(this.visibleChunks_.keys()).filter(
+      (chunk) => !current.has(chunk)
+    );
+    this.releaseAndRemoveChunks(nonVisibleChunks);
 
     this.clearObjects();
     for (const chunk of orderedByLOD) {
@@ -359,6 +356,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
+  }
+
+  private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
+    for (const chunk of chunks) {
+      const image = this.visibleChunks_.get(chunk);
+      if (image) {
+        this.pool_.release(poolKeyForImageRenderable(chunk), image);
+        this.visibleChunks_.delete(chunk);
+      }
+    }
   }
 }
 
