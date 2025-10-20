@@ -3,7 +3,6 @@ import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
-import { Viewport } from "./viewport";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
@@ -18,10 +17,6 @@ export interface LayerOptions {
   opacity?: number;
   blendMode?: blendMode;
 }
-
-export type RenderContext = {
-  viewport: Viewport;
-};
 
 export abstract class Layer {
   public abstract readonly type: string;
@@ -64,7 +59,7 @@ export abstract class Layer {
     this.opacity_ = clamp(value, 0.0, 1.0);
   }
 
-  public abstract update(context?: RenderContext): void;
+  public abstract update(): void;
 
   public onEvent(_: EventContext): void {}
 
