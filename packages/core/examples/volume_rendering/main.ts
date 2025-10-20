@@ -1,0 +1,13 @@
+import { Idetik, VolumeLayer, PerspectiveCamera } from "@";
+import { OrbitControls } from "@/objects/cameras/orbit_controls";
+
+const camera = new PerspectiveCamera();
+
+new Idetik({
+  canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
+  camera,
+  cameraControls: new OrbitControls(camera, { radius: 3 }),
+  layers: [new VolumeLayer()],
+  overlays: [],
+  showStats: true,
+}).start();

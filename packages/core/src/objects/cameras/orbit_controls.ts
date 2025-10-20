@@ -14,6 +14,12 @@ const ORBIT_SPEED = 0.009;
 const PAN_SPEED = 0.001;
 const ZOOM_SPEED = 0.0009;
 
+type OrbitParams = {
+  radius?: number;
+  yaw?: number;
+  pitch?: number;
+};
+
 export class OrbitControls implements CameraControls {
   private readonly camera_: PerspectiveCamera;
   private readonly sphericalPos_: Spherical;
@@ -21,9 +27,13 @@ export class OrbitControls implements CameraControls {
 
   private currMouseButton_ = MOUSE_BUTTON_NONE;
 
-  constructor(camera: PerspectiveCamera, radius = 1, yaw = 0, pitch = 0) {
+  constructor(camera: PerspectiveCamera, params?: OrbitParams) {
     this.camera_ = camera;
-    this.sphericalPos_ = new Spherical(radius, yaw, pitch);
+    this.sphericalPos_ = new Spherical(
+      params?.radius ?? 1,
+      params?.yaw ?? 0,
+      params?.pitch ?? 0
+    );
     this.update();
   }
 
