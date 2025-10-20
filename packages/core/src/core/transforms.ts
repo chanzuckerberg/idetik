@@ -1,5 +1,6 @@
-import { mat4, mat3, vec3, quat } from "gl-matrix";
+import { mat4, mat3, vec3, quat, glMatrix } from "gl-matrix";
 
+// +Y is world up to match gl-matrix
 const WORLD_UP = vec3.fromValues(0, 1, 0);
 
 export class TrsTransform {
@@ -48,10 +49,11 @@ export class TrsTransform {
   }
 
   public targetTo(target: vec3) {
-    // Avoid zero-length forward vector
+    // Prevent zero-length forward vector by nudging
+    // target slightly along +Z
     if (vec3.equals(this.translation_, target)) {
       target = vec3.clone(target);
-      target[2] += 1e-3;
+      target[2] += glMatrix.EPSILON;
     }
 
     const m = mat4.targetTo(mat4.create(), this.translation_, target, WORLD_UP);

@@ -1,4 +1,3 @@
-import { clamp } from "@/utilities/clamp";
 import { vec3 } from "gl-matrix";
 
 export class Spherical {
@@ -10,12 +9,6 @@ export class Spherical {
     this.radius = radius;
     this.phi = phi;
     this.theta = theta;
-  }
-
-  public makeSafe() {
-    const ε = 1e-3;
-    const limit = Math.PI / 2 - ε;
-    this.theta = clamp(this.theta, -limit, limit);
   }
 
   public toVec3() {

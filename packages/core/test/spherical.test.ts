@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { glMatrix, vec3 } from "gl-matrix";
+import { vec3 } from "gl-matrix";
 
 import { Spherical } from "@";
 
@@ -12,44 +12,6 @@ function expectVec3Close(v: vec3, [x, y, z]: [number, number, number]) {
   expect(v[1]).toBeCloseTo(y);
   expect(v[2]).toBeCloseTo(z);
 }
-
-test("makeSafe clamps when theta > +π/2", () => {
-  const phi = glMatrix.toRadian(30);
-  const theta = PI_OVER_2 + Number.EPSILON;
-  const s = new Spherical(2, phi, theta);
-
-  s.makeSafe();
-  const expected = PI_OVER_2 - Number.EPSILON;
-
-  expect(s.phi).toBe(glMatrix.toRadian(30));
-  expect(s.theta).toBeCloseTo(expected);
-  expect(s.radius).toBe(2);
-});
-
-test("makeSafe clamps when theta < -π/2", () => {
-  const phi = glMatrix.toRadian(30);
-  const theta = -PI_OVER_2 - Number.EPSILON;
-  const s = new Spherical(2, phi, theta);
-
-  s.makeSafe();
-  const expected = -PI_OVER_2 + Number.EPSILON;
-
-  expect(s.phi).toBeCloseTo(glMatrix.toRadian(30));
-  expect(s.theta).toBeCloseTo(expected);
-  expect(s.radius).toBeCloseTo(2);
-});
-
-test("makeSafe leaves theta unchanged when already in range", () => {
-  const phi = glMatrix.toRadian(30);
-  const theta = glMatrix.toRadian(30);
-  const s = new Spherical(2, phi, theta);
-
-  s.makeSafe();
-
-  expect(s.phi).toBe(glMatrix.toRadian(30));
-  expect(s.theta).toBe(glMatrix.toRadian(30));
-  expect(s.radius).toBe(2);
-});
 
 test("toVec3 basic", () => {
   const phi = PI_OVER_4;
