@@ -24,6 +24,16 @@ export abstract class Camera extends RenderableObject {
     return this.transform.inverse;
   }
 
+  get right() {
+    const m = this.transform.matrix;
+    return vec3.fromValues(m[0], m[1], m[2]);
+  }
+
+  get up() {
+    const m = this.transform.matrix;
+    return vec3.fromValues(m[4], m[5], m[6]);
+  }
+
   public abstract setAspectRatio(aspectRatio: number): void;
   public abstract zoom(factor: number): void;
 

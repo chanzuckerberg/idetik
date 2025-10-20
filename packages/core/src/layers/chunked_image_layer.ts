@@ -1,11 +1,14 @@
 import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { ChunkManagerSource } from "../core/chunk_manager";
+import {
+  ChunkManagerSource,
+  INTERNAL_POLICY_KEY,
+} from "../core/chunk_manager_source";
+import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { PlaneGeometry } from "../objects/geometry/plane_geometry";
 import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
@@ -18,6 +21,7 @@ import { RenderablePool } from "../utilities/renderable_pool";
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
+  policy: ImageSourcePolicy;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
 };
@@ -32,6 +36,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
+  private policy_: ImageSourcePolicy;
   private channelProps_?: ChannelProps[];
   private chunkManagerSource_?: ChunkManagerSource;
   private pointerDownPos_: vec2 | null = null;
@@ -52,6 +57,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   constructor({
     source,
     sliceCoords,
+    policy,
     channelProps,
     onPickValue,
     ...layerOptions
@@ -59,6 +65,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
+    this.policy_ = policy;
     this.sliceCoords_ = sliceCoords;
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
@@ -66,10 +73,23 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public async onAttached(context: IdetikContext) {
+    if (this.chunkManagerSource_) {
+      throw new Error(
+        "ChunkedImageLayer is already attached. " +
+          "A layer cannot be attached to multiple LayerManagers simultaneously."
+      );
+    }
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_,
-      this.sliceCoords_
+      this.sliceCoords_,
+      this.policy_
     );
+  }
+
+  public onDetached(): void {
+    this.chunkManagerSource_ = undefined;
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.clearObjects();
   }
 
   public update() {
@@ -93,12 +113,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     const orderedByLOD = this.chunkManagerSource_.getChunks();
     const current = new Set(orderedByLOD);
-    this.visibleChunks_.forEach((image, chunk) => {
-      if (!current.has(chunk)) {
-        this.visibleChunks_.delete(chunk);
-        this.pool_.release(poolKeyForImageRenderable(chunk), image);
-      }
-    });
+    const nonVisibleChunks = Array.from(this.visibleChunks_.keys()).filter(
+      (chunk) => !current.has(chunk)
+    );
+    this.releaseAndRemoveChunks(nonVisibleChunks);
 
     this.clearObjects();
     for (const chunk of orderedByLOD) {
@@ -156,6 +174,22 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     return this.source_;
   }
 
+  public get imageSourcePolicy(): Readonly<ImageSourcePolicy> {
+    return this.policy_;
+  }
+
+  public set imageSourcePolicy(newPolicy: ImageSourcePolicy) {
+    if (this.policy_ !== newPolicy) {
+      this.policy_ = newPolicy;
+      if (this.chunkManagerSource_) {
+        this.chunkManagerSource_.setImageSourcePolicy(
+          newPolicy,
+          INTERNAL_POLICY_KEY
+        );
+      }
+    }
+  }
+
   private slicePlane(chunk: Chunk, zValue: number) {
     if (!chunk.data) return;
     const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
@@ -192,9 +226,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private createImage(chunk: Chunk) {
-    const geometry = new PlaneGeometry(chunk.shape.x, chunk.shape.y, 1, 1);
     const image = new ImageRenderable(
-      geometry,
+      chunk.shape.x,
+      chunk.shape.y,
       Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
       this.channelProps_ ?? [{}]
     );
@@ -322,6 +356,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
+  }
+
+  private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
+    for (const chunk of chunks) {
+      const image = this.visibleChunks_.get(chunk);
+      if (image) {
+        this.pool_.release(poolKeyForImageRenderable(chunk), image);
+        this.visibleChunks_.delete(chunk);
+      }
+    }
   }
 }
 

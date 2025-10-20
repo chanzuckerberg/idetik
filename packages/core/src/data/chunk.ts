@@ -47,6 +47,7 @@ export type Chunk = {
     x: number;
     y: number;
     z: number;
+    c: number;
     t: number;
   };
   scale: {
@@ -119,11 +120,7 @@ export type ChunkLoader = {
 
   getSourceDimensionMap(): SourceDimensionMap;
 
-  loadChunkData(
-    chunk: Chunk,
-    sliceCoords: SliceCoordinates,
-    signal: AbortSignal
-  ): Promise<void>;
+  loadChunkData(chunk: Chunk, signal: AbortSignal): Promise<void>;
 
   getAttributes(): ReadonlyArray<LoaderAttributes>;
 };

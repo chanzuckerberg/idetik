@@ -1,5 +1,5 @@
 import { RenderableObject } from "../../core/renderable_object";
-import { Geometry } from "../../core/geometry";
+import { PlaneGeometry } from "../../objects/geometry/plane_geometry";
 import { Texture, TextureDataType } from "../../objects/textures/texture";
 import {
   Channel,
@@ -29,12 +29,13 @@ export class ImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
 
   constructor(
-    geometry: Geometry,
+    width: number,
+    height: number,
     texture: Texture,
     channels: ChannelProps[] = []
   ) {
     super();
-    this.geometry = geometry;
+    this.geometry = new PlaneGeometry(width, height, 1, 1);
     this.setTexture(0, texture);
     this.channels_ = validateChannels(texture, channels);
     this.programName = textureToShader(texture);
