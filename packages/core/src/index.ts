@@ -39,6 +39,7 @@ export {
 
 export { Box2 } from "./math/box2";
 export { Box3 } from "./math/box3";
+export { Spherical } from "./math/spherical";
 
 export type { Region } from "./data/region";
 export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";
