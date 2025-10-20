@@ -35,8 +35,9 @@ export class ChunkManager {
       return chunkManagerSource;
     };
 
-    this.pendingSources_.set(source, initializeSource());
-    return this.pendingSources_.get(source)!;
+    const pending = initializeSource();
+    this.pendingSources_.set(source, pending);
+    return pending;
   }
 
   public update(camera: OrthographicCamera, bufferWidth: number) {
