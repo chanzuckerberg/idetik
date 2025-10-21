@@ -8,6 +8,5 @@ new Idetik({
   camera,
   cameraControls: new OrbitControls(camera, { radius: 3 }),
   layers: [new VolumeLayer()],
-  overlays: [],
   showStats: true,
 }).start();
