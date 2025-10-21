@@ -7,10 +7,11 @@ import { vec2, vec3 } from "gl-matrix";
 import { generateUUID } from "../utilities/uuid_generator";
 import { Logger } from "../utilities/logger";
 import { EventContext, EventDispatcher } from "./event_dispatcher";
+import { IdetikContext } from "../idetik";
 
 export interface ViewportConfig {
   id?: string;
-  element: HTMLElement;
+  element?: HTMLElement;  // defaults to canvas for single-viewport setups
   camera: Camera;
   layers?: Layer[];
   cameraControls?: CameraControls;
@@ -24,7 +25,10 @@ export class Viewport {
   public readonly events: EventDispatcher;
   public cameraControls?: CameraControls;
 
-  constructor(config: ViewportConfig, layerManager: LayerManager) {
+  constructor(
+    config: ViewportConfig & { element: HTMLElement },
+    layerManager: LayerManager
+  ) {
     this.id = config.id || config.element.id || generateUUID();
     this.element = config.element;
     this.camera = config.camera;
@@ -128,7 +132,11 @@ export class Viewport {
   }
 }
 
-function validateViewportConfigs(viewportConfigs: ViewportConfig[]): void {
+function validateViewportConfigs(
+  viewportConfigs: Array<
+    Required<Pick<ViewportConfig, "element" | "camera">> & ViewportConfig
+  >
+): void {
   const elementToViewportId = new Map<HTMLElement, string>();
   const seenViewportIds = new Set<string>();
 
@@ -155,7 +163,7 @@ function validateViewportConfigs(viewportConfigs: ViewportConfig[]): void {
         config.element.tagName.toLowerCase() +
         (config.element.id ? `#${config.element.id}` : "[element has no id]");
       throw new Error(
-        `Multiple viewports cannot share the same HTML element: ` +
+        "Multiple viewports cannot share the same HTML element: " +
           `viewports "${existingViewportId}" and "${newViewportId}" both use ${elementDescription}`
       );
     }
@@ -165,12 +173,27 @@ function validateViewportConfigs(viewportConfigs: ViewportConfig[]): void {
 
 export function parseViewportConfigs(
   viewportConfigs: ViewportConfig[],
-  createLayerManager: () => LayerManager
+  canvas: HTMLCanvasElement,
+  context: IdetikContext
 ): Viewport[] {
-  validateViewportConfigs(viewportConfigs);
+  const configsWithElements: Array<ViewportConfig & { element: HTMLElement }> =
+    viewportConfigs.map((config) => {
+      if (viewportConfigs.length === 1 && !config.element) {
+        // single-viewport setup with no explicit element uses the whole canvas
+        return { ...config, element: canvas };
+      } else if (!config.element) {
+        throw new Error(
+          "Multi-viewport configurations require an explicit element for each viewport. " +
+            "Use element: canvas to render a viewport on the full canvas."
+        );
+      }
+      return { ...config, element: config.element };
+    });
 
-  return viewportConfigs.map((config) => {
-    const layerManager = createLayerManager();
+  validateViewportConfigs(configsWithElements);
+
+  return configsWithElements.map((config) => {
+    const layerManager = new LayerManager(context);
     return new Viewport(config, layerManager);
   });
 }

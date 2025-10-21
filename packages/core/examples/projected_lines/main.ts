@@ -21,8 +21,12 @@ const layer = new ProjectedLineLayer([
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
-  camera: new PerspectiveCamera({ fov: 60 }),
-  layers: [layer],
+  viewports: [
+    {
+      camera: new PerspectiveCamera({ fov: 60 }),
+      layers: [layer],
+    },
+  ],
 }).start();
 
 function generateHelix(params: {

@@ -20,7 +20,14 @@ export class ChunkManager {
     const existingOrPending =
       this.sources_.get(source) ?? this.pendingSources_.get(source);
     if (existingOrPending) {
-      return existingOrPending;
+      // TODO: this is a temporary limitation because currently ChunkManagerSource is not designed
+      // to be shared across multiple layers or viewports. We need to refactor ChunkManagerSource
+      // to support reuse with a shared collection of chunks.
+      throw new Error(
+        "ChunkSource cannot be reused across multiple layers or viewports. " +
+          "Each ChunkedImageLayer must have a unique ChunkSource instance. " +
+          "This limitation will be removed in a future update."
+      );
     }
 
     const initializeSource = async () => {

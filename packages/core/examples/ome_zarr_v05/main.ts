@@ -70,14 +70,20 @@ const cameraControls = new PanZoomControls(camera);
 
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
-  camera,
-  cameraControls,
-  layers: [layer],
+  viewports: [
+    {
+      camera,
+      cameraControls,
+      layers: [layer],
+    },
+  ],
 }).start();
+
+const viewport = idetik.viewports[0];
 
 const controls = {
   showWireframes: layer.debugMode,
-  showAxes: idetik.layerManager.layers.includes(axes),
+  showAxes: viewport.layerManager.layers.includes(axes),
 };
 
 const gui = new GUI({ width: 500 });
@@ -101,9 +107,9 @@ gui
   .add(controls, "showAxes")
   .name("Show axes")
   .onChange((show: boolean) => {
-    if (show && !idetik.layerManager.layers.includes(axes)) {
-      idetik.layerManager.add(axes);
-    } else if (!show && idetik.layerManager.layers.includes(axes)) {
-      idetik.layerManager.remove(axes);
+    if (show && !viewport.layerManager.layers.includes(axes)) {
+      viewport.layerManager.add(axes);
+    } else if (!show && viewport.layerManager.layers.includes(axes)) {
+      viewport.layerManager.remove(axes);
     }
   });

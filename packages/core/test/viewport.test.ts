@@ -7,6 +7,7 @@ import {
   LayerManager,
   OrthographicCamera,
 } from "@";
+import type { IdetikContext } from "@/idetik";
 import { ChunkManager } from "@/core/chunk_manager";
 
 function createTestElement(id: string): HTMLElement {
@@ -19,6 +20,10 @@ function createTestCamera(): OrthographicCamera {
   return new OrthographicCamera(-1, 1, -1, 1);
 }
 
+function createTestContext(): IdetikContext {
+  return { chunkManager: new ChunkManager() };
+}
+
 function createTestLayerManager(): LayerManager {
   const chunkManager = new ChunkManager();
   return new LayerManager({ chunkManager });
@@ -29,7 +34,7 @@ test("Viewport constructor uses provided ID", () => {
   const camera = createTestCamera();
   const layerManager = createTestLayerManager();
 
-  const config: ViewportConfig = {
+  const config = {
     id: "custom-viewport",
     element,
     camera,
@@ -44,7 +49,7 @@ test("Viewport constructor falls back to element ID", () => {
   const camera = createTestCamera();
   const layerManager = createTestLayerManager();
 
-  const config: ViewportConfig = {
+  const config = {
     element,
     camera,
   };
@@ -59,7 +64,7 @@ test("Viewport constructor generates a fallback ID when not provided or availabl
   const camera = createTestCamera();
   const layerManager = createTestLayerManager();
 
-  const config: ViewportConfig = {
+  const config = {
     element,
     camera,
   };
@@ -70,19 +75,19 @@ test("Viewport constructor generates a fallback ID when not provided or availabl
 });
 
 test("parseViewportConfigs creates viewports with validation", () => {
+  const canvas = document.createElement("canvas");
   const element1 = createTestElement("viewport1");
   const element2 = createTestElement("viewport2");
   const camera1 = createTestCamera();
   const camera2 = createTestCamera();
+  const context = createTestContext();
 
   const configs: ViewportConfig[] = [
     { id: "viewport1", element: element1, camera: camera1 },
     { id: "viewport2", element: element2, camera: camera2 },
   ];
 
-  const viewports = parseViewportConfigs(configs, () =>
-    createTestLayerManager()
-  );
+  const viewports = parseViewportConfigs(configs, canvas, context);
 
   expect(viewports).toHaveLength(2);
   expect(viewports[0].id).toBe("viewport1");
@@ -92,50 +97,54 @@ test("parseViewportConfigs creates viewports with validation", () => {
 });
 
 test("parseViewportConfigs throws on duplicate IDs", () => {
+  const canvas = document.createElement("canvas");
   const element1 = createTestElement("viewport1");
   const element2 = createTestElement("viewport2");
   const camera1 = createTestCamera();
   const camera2 = createTestCamera();
+  const context = createTestContext();
 
   const configs: ViewportConfig[] = [
     { id: "duplicate", element: element1, camera: camera1 },
     { id: "duplicate", element: element2, camera: camera2 },
   ];
 
-  expect(() =>
-    parseViewportConfigs(configs, () => createTestLayerManager())
-  ).toThrow('Duplicate viewport ID "duplicate"');
+  expect(() => parseViewportConfigs(configs, canvas, context)).toThrow(
+    'Duplicate viewport ID "duplicate"'
+  );
 });
 
 test("parseViewportConfigs throws on shared elements", () => {
+  const canvas = document.createElement("canvas");
   const sharedElement = createTestElement("shared");
   const camera1 = createTestCamera();
   const camera2 = createTestCamera();
+  const context = createTestContext();
 
   const configs: ViewportConfig[] = [
     { id: "viewport1", element: sharedElement, camera: camera1 },
     { id: "viewport2", element: sharedElement, camera: camera2 },
   ];
 
-  expect(() =>
-    parseViewportConfigs(configs, () => createTestLayerManager())
-  ).toThrow("Multiple viewports cannot share the same HTML element");
+  expect(() => parseViewportConfigs(configs, canvas, context)).toThrow(
+    "Multiple viewports cannot share the same HTML element"
+  );
 });
 
 test("parseViewportConfigs allows viewports without explicit IDs", () => {
+  const canvas = document.createElement("canvas");
   const element1 = createTestElement("element1");
   const element2 = createTestElement("element2");
   const camera1 = createTestCamera();
   const camera2 = createTestCamera();
+  const context = createTestContext();
 
   const configs: ViewportConfig[] = [
     { element: element1, camera: camera1 },
     { element: element2, camera: camera2 },
   ];
 
-  const viewports = parseViewportConfigs(configs, () =>
-    createTestLayerManager()
-  );
+  const viewports = parseViewportConfigs(configs, canvas, context);
 
   expect(viewports).toHaveLength(2);
   expect(viewports[0].id).toBe("element1");
