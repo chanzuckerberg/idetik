@@ -58,7 +58,12 @@ const sliceCoords = {
 };
 
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkedImageLayer({ source, sliceCoords, policy: createNoPrefetchPolicy(), channelProps });
+const imageLayer = new ChunkedImageLayer({
+  source,
+  sliceCoords,
+  policy: createNoPrefetchPolicy(),
+  channelProps,
+});
 imageLayer.debugMode = true;
 
 const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;
@@ -117,7 +122,7 @@ addDimensionSlider({
   playback: {
     onRateChange: (rateHz: number) => {
       imageLayer.imageSourcePolicy =
-        rateHz > 0 ? createPlaybackPolicy() : createNoPrefetchPolicy ();
+        rateHz > 0 ? createPlaybackPolicy() : createNoPrefetchPolicy();
     },
   },
 });

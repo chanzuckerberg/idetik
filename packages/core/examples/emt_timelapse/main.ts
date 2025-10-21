@@ -56,7 +56,12 @@ const sliceCoords = {
 };
 
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkedImageLayer({ source, sliceCoords, policy: createExplorationPolicy(), channelProps });
+const imageLayer = new ChunkedImageLayer({
+  source,
+  sliceCoords,
+  policy: createExplorationPolicy(),
+  channelProps,
+});
 imageLayer.debugMode = true;
 
 const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;
