@@ -6,6 +6,10 @@ import { ImageSourcePolicy } from "./image_source_policy";
 
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
+  private readonly pendingSources_ = new Map<
+    ChunkSource,
+    Promise<ChunkManagerSource>
+  >();
   private readonly queue_ = new ChunkQueue();
 
   public async addSource(
@@ -13,13 +17,27 @@ export class ChunkManager {
     sliceCoords: SliceCoordinates,
     policy: ImageSourcePolicy
   ) {
-    let existing = this.sources_.get(source);
-    if (!existing) {
-      const loader = await source.open();
-      existing = new ChunkManagerSource(loader, sliceCoords, policy);
-      this.sources_.set(source, existing);
+    const existingOrPending =
+      this.sources_.get(source) ?? this.pendingSources_.get(source);
+    if (existingOrPending) {
+      return existingOrPending;
     }
-    return existing;
+
+    const initializeSource = async () => {
+      const loader = await source.open();
+      const chunkManagerSource = new ChunkManagerSource(
+        loader,
+        sliceCoords,
+        policy
+      );
+      this.sources_.set(source, chunkManagerSource);
+      this.pendingSources_.delete(source);
+      return chunkManagerSource;
+    };
+
+    const pending = initializeSource();
+    this.pendingSources_.set(source, pending);
+    return pending;
   }
 
   public update(camera: OrthographicCamera, bufferWidth: number) {

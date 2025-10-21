@@ -18,6 +18,7 @@ export { AxesLayer } from "./layers/axes_layer";
 export { ProjectedLineLayer } from "./layers/projected_line_layer";
 export { TracksLayer } from "./layers/tracks_layer";
 export { ChunkedImageLayer } from "./layers/chunked_image_layer";
+export { VolumeLayer } from "./layers/volume_layer";
 export { ImageLayer } from "./layers/image_layer";
 export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
 export { LabelImageLayer } from "./layers/label_image_layer";
@@ -39,6 +40,7 @@ export {
 
 export { Box2 } from "./math/box2";
 export { Box3 } from "./math/box3";
+export { Spherical } from "./math/spherical";
 
 export type { Region } from "./data/region";
 export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";

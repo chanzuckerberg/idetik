@@ -29,13 +29,14 @@ type Module =
   | "LabelImageLayer"
   | "Layer"
   | "PixelSizeObserver"
-  | "ZarrWorker"
   | "RenderablePool"
   | "Viewport"
+  | "VolumeLayer"
   | "WebGLRenderer"
   | "WebGLShaderProgram"
   | "WebGLTexture"
-  | "WireframeGeometry";
+  | "WireframeGeometry"
+  | "ZarrWorker";
 
 export function getMode(): "production" | "development" | "test" {
   const nodeEnv =
