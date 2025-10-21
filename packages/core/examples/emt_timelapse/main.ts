@@ -5,7 +5,7 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   createPlaybackPolicy,
-  createExplorationPolicy,
+  createNoPrefetchPolicy,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "../chunk_info_overlay";
@@ -60,7 +60,7 @@ const camera = new OrthographicCamera(left, right, top, bottom);
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords,
-  policy: createExplorationPolicy(),
+  policy: createNoPrefetchPolicy(),
   channelProps,
 });
 imageLayer.debugMode = true;
@@ -121,7 +121,7 @@ addDimensionSlider({
   playback: {
     onRateChange: (rateHz: number) => {
       imageLayer.imageSourcePolicy =
-        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
+        rateHz > 0 ? createPlaybackPolicy() : createNoPrefetchPolicy();
     },
   },
 });
