@@ -19,27 +19,28 @@ const url =
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
 const source = new OmeZarrImageSource(url);
 
-// values copied from source
+const loader = await source.open();
+const dimensions = loader.getSourceDimensionMap();
+const x = dimensions.x.lods[0];
+const y = dimensions.y.lods[0];
+const z = dimensions.z!.lods[0];
+const t = dimensions.t!.lods[0];
+
 const imageDataRange = { min: 0, max: 512 };
-const z = { translate: 0.0, scale: 2.88, shape: 30 };
-const zMin = z.translate;
-const zMax = z.translate + z.scale * z.shape - z.scale;
+const zMin = z.translation;
+const zMax = z.translation + z.scale * z.size - z.scale;
 const zRange = { min: zMin, max: zMax };
 
-const t = { translate: 0.0, scale: 30, shape: 121 };
-const tMin = t.translate;
-const tMax = t.translate + t.scale * t.shape - t.scale;
+const tMin = t.translation;
+const tMax = t.translation + t.scale * t.size - t.scale;
 const tRange = { min: tMin, max: tMax };
 
-const xyScale = 0.2708333333333333;
-const xSize = 1848;
-const ySize = 1248;
-const left = 0;
-const right = xyScale * xSize;
-const top = 0;
-const bottom = xyScale * ySize;
+const left = x.translation;
+const right = x.translation + x.scale * x.size;
+const top = y.translation;
+const bottom = y.translation + y.scale * y.size;
 
-const initialWindow = 50;
+const initialWindow = 60;
 const initialLevel = 50;
 const initialContrastLimits = windowLevelToContrastLimits(
   initialWindow,
