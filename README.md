@@ -35,7 +35,6 @@ A layer-based library for interactive visualization of large datasets.
 
 Currently, we maintain the [@idetik/core-prerelease](https://www.npmjs.com/package/@idetik/core-prerelease?activeTab=readme) package on npm.
 
-**Note:** The React package ([@idetik/react-prerelease](https://www.npmjs.com/package/@idetik/react-prerelease)) has been moved to its own repository at https://github.com/chanzuckerberg/idetik-react. See that repository for React package release instructions.
 
 ### Pre-requirements
 
