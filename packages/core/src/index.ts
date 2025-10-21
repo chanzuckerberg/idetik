@@ -18,6 +18,7 @@ export { AxesLayer } from "./layers/axes_layer";
 export { ProjectedLineLayer } from "./layers/projected_line_layer";
 export { TracksLayer } from "./layers/tracks_layer";
 export { ChunkedImageLayer } from "./layers/chunked_image_layer";
+export { VolumeLayer } from "./layers/volume_layer";
 export { ImageLayer } from "./layers/image_layer";
 export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
 export { LabelImageLayer } from "./layers/label_image_layer";
