@@ -60,7 +60,7 @@ npm run pub
 
 where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
 
-After publishing, add a tag of the form `prerelease-X.Y.Z` to the commit on `main`:
+After publishing, create a PR, get it approved, and merge it to `main`. Next add a tag of the form `prerelease-X.Y.Z` to the relevant commit on `main`:
 
 ```shell
 git tag prerelease-X.Y.Z
