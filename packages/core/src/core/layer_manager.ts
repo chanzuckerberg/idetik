@@ -5,10 +5,9 @@ export class LayerManager {
   private layers_: ReadonlyArray<Layer> = [];
   private callbacks_: Array<() => void> = [];
 
-  // TODO: Make this non-optional when react components use the Idetik Runtime
-  private readonly context_?: IdetikContext;
+  private readonly context_: IdetikContext;
 
-  constructor(context?: IdetikContext) {
+  constructor(context: IdetikContext) {
     this.context_ = context;
   }
 
