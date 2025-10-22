@@ -1,16 +1,13 @@
 {
   "private": true,
   "workspaces": [
-    "packages/core",
-    "packages/react"
+    "packages/core"
   ],
   "scripts": {
     "build": "npm run build --workspace=@idetik/core-prerelease",
-    "build:all": "npm run build --workspaces",
     "build:examples": "npm run build:examples --workspace=@idetik/core-prerelease",
     "examples": "npm run dev --workspace=@idetik/core-prerelease",
-    "components": "npm run dev --workspace=@idetik/react-prerelease",
-    "format:all": "npm run format --workspaces"
+    "format": "npm run format --workspaces=@idetik/core-prerelease"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",

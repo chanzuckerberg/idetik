@@ -69,6 +69,8 @@ export abstract class Layer {
   // placeholder implementations.
   public async onAttached(_context: IdetikContext) {}
 
+  public onDetached(): void {}
+
   public get objects() {
     return this.objects_;
   }

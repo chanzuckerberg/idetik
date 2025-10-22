@@ -7,19 +7,22 @@ import pointsVertexShader from "./points_vert.glsl";
 import pointsFragmentShader from "./points_frag.glsl";
 import wireframeVertexShader from "./wireframe_vert.glsl";
 import wireframeFragmentShader from "./wireframe_frag.glsl";
+import volumeVertexShader from "./volume_vert.glsl";
+import volumeFragmentShader from "./volume_frag.glsl";
 import labelImage from "./label_image_frag.glsl";
 
 export type Shader =
-  | "projectedLine"
-  | "points"
-  | "wireframe"
   | "floatScalarImage"
   | "floatScalarImageArray"
   | "intScalarImage"
   | "intScalarImageArray"
+  | "labelImage"
+  | "points"
+  | "projectedLine"
   | "uintScalarImage"
   | "uintScalarImageArray"
-  | "labelImage";
+  | "volume"
+  | "wireframe";
 
 type ShaderCode = {
   vertex: string;
@@ -72,5 +75,9 @@ export const shaderCode: Record<Shader, ShaderCode> = {
   labelImage: {
     vertex: meshVertexShader,
     fragment: labelImage,
+  },
+  volume: {
+    vertex: volumeVertexShader,
+    fragment: volumeFragmentShader,
   },
 };

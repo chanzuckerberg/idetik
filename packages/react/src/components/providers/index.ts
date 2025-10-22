@@ -1,1 +1,0 @@
-export { IdetikProvider } from "./IdetikProvider";
