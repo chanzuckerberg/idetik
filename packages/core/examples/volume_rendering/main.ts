@@ -5,8 +5,12 @@ const camera = new PerspectiveCamera();
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
-  camera,
-  cameraControls: new OrbitControls(camera, { radius: 3 }),
-  layers: [new VolumeLayer()],
+  viewports: [
+    {
+      camera,
+      cameraControls: new OrbitControls(camera, { radius: 3 }),
+      layers: [new VolumeLayer()],
+    },
+  ],
   showStats: true,
 }).start();
