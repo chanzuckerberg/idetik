@@ -219,6 +219,7 @@ export class WebGLTextures {
   private getTextureType(texture: Texture) {
     if (this.isTexture2D(texture)) return this.gl_.TEXTURE_2D;
     if (this.isTexture2DArray(texture)) return this.gl_.TEXTURE_2D_ARRAY;
+    // TODO (SKM) add the check here for texture 3D
     throw new Error(`Unknown texture type ${texture.type}`);
   }
 

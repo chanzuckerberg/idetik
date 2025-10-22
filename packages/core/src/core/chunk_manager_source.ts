@@ -167,6 +167,18 @@ export class ChunkManagerSource {
       .every((c) => c.state === "loaded");
   }
 
+  public getAllChunksAtLowestRes(): Chunk[] {
+    const chunks = this.getChunksAtCurrentTime().filter(
+      (c) => c.lod === this.lowestResLOD_
+    );
+    // TODO (SKM): mark all chunks as visible and force load
+    for (const chunk of chunks) {
+      chunk.visible = true;
+      this.loadChunkData(chunk, new AbortController().signal);
+    }
+    return chunks;
+  }
+
   public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
     this.setLOD(lodFactor);
 
