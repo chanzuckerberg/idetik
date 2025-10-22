@@ -114,10 +114,10 @@ export class MultiChannelChunkedImageLayer
   }
 
   private releaseChunksExcept(chunks?: Iterable<Chunk>) {
-    const exceptions = chunks === undefined ? undefined : new Set(chunks);
+    const exceptions = chunks ? new Set(chunks) : new Set<Chunk>();
     this.loadedChunks_.forEach((chunks, key) => {
       for (const chunk of chunks) {
-        if (exceptions && !exceptions.has(chunk)) {
+        if (!exceptions.has(chunk)) {
           this.loadedChunks_.delete(key);
           break;
         }
@@ -125,7 +125,7 @@ export class MultiChannelChunkedImageLayer
     });
     this.visibleImages_.forEach(({ image, chunk }, key) => {
       for (const c of chunk.chunks) {
-        if (exceptions && !exceptions.has(c)) {
+        if (!exceptions.has(c)) {
           this.pool_.release(poolKeyForImageRenderable(chunk), image);
           this.visibleImages_.delete(key);
           break;
