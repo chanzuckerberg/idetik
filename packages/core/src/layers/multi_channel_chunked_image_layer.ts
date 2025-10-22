@@ -87,6 +87,12 @@ export class MultiChannelChunkedImageLayer
     );
   }
 
+  public onDetached(): void {
+    this.chunkManagerSource_ = undefined;
+    this.releaseChunksExcept();
+    this.clearObjects();
+  }
+
   public update() {
     if (!this.chunkManagerSource_) return;
     if (this.state !== "ready") this.setState("ready");
@@ -102,16 +108,16 @@ export class MultiChannelChunkedImageLayer
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
     const orderedByLOD = this.chunkManagerSource_.getChunks();
-    this.releaseNonCurrentChunks(orderedByLOD);
+    this.releaseChunksExcept(orderedByLOD);
     this.reAddImagesFromChunks(orderedByLOD);
     this.resliceIfZChanged();
   }
 
-  private releaseNonCurrentChunks(chunks: ReadonlyArray<Chunk>) {
-    const current = new Set(chunks);
+  private releaseChunksExcept(chunks?: Iterable<Chunk>) {
+    const exceptions = chunks === undefined ? undefined : new Set(chunks);
     this.loadedChunks_.forEach((chunks, key) => {
       for (const chunk of chunks) {
-        if (!current.has(chunk)) {
+        if (exceptions && !exceptions.has(chunk)) {
           this.loadedChunks_.delete(key);
           break;
         }
@@ -119,7 +125,7 @@ export class MultiChannelChunkedImageLayer
     });
     this.visibleImages_.forEach(({ image, chunk }, key) => {
       for (const c of chunk.chunks) {
-        if (!current.has(c)) {
+        if (exceptions && !exceptions.has(c)) {
           this.pool_.release(poolKeyForImageRenderable(chunk), image);
           this.visibleImages_.delete(key);
           break;
