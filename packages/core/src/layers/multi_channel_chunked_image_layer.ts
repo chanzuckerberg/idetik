@@ -373,12 +373,14 @@ export class MultiChannelChunkedImageLayer
   }
 }
 
-export function poolKeyForImageRenderable(chunk: SlicedChunk2D) {
+function poolKeyForImageRenderable(chunk: SlicedChunk2D) {
   return [
-    `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.c}`,
-    `stride${chunk.rowStride}`,
-    `align${chunk.rowAlignmentBytes}`,
+    chunk.lod,
+    chunk.shape.x,
+    chunk.shape.y,
+    chunk.shape.c,
+    chunk.rowStride,
+    chunk.rowAlignmentBytes,
   ].join(":");
 }
 
