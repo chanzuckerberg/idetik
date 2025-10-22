@@ -24,7 +24,7 @@
     "globals": "^15.9.0",
     "jsdom": "^24.1.1",
     "lil-gui": "^0.20.0",
-    "playwright": "1.46.0",
+    "playwright": "1.56.1",
     "prettier": "^3.3.2",
     "rollup": "^4.34.9",
     "rollup-plugin-dts": "^6.1.1",
