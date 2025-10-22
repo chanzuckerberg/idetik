@@ -41,7 +41,8 @@ export class Idetik {
    *
    * @param params - Configuration parameters for the Idetik instance
    * @param params.canvas - HTMLCanvasElement to render to
-   * @param params.viewports - Array of viewport configurations. Each viewport renders with its own camera, layers, and controls.
+   * @param params.viewports - Array of viewport configurations. (At least one required.)
+   *   Each viewport renders with its own camera, layers, and controls.
    *   The `element` property is optional and defaults to the canvas if not provided.
    *   Elements must be unique across viewports.
    *   The `id` property is optional but useful for referencing specific viewports later.
@@ -50,10 +51,11 @@ export class Idetik {
    *
    * @example
    * // Single viewport (element defaults to canvas)
+   *  const camera = new OrthographicCamera(0, 1024, 0, 1024);
    * const idetik = new Idetik({
    *   canvas: document.querySelector('canvas')!,
    *   viewports: [{
-   *     camera: new OrthographicCamera(0, 1024, 0, 1024),
+   *     camera: camera,
    *     layers: [imageLayer],
    *     cameraControls: new PanZoomControls(camera)
    *   }]
