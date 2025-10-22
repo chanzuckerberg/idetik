@@ -7,9 +7,9 @@ import {
   loadOmeroDefaults,
   loadOmeZarrPlate,
   loadOmeZarrWell,
-  ChunkedImageLayer,
   Color,
   createNoPrefetchPolicy,
+  MultiChannelChunkedImageLayer,
 } from "@";
 
 const plateUrl =
@@ -66,7 +66,7 @@ const onImageChange = async () => {
     color: Color.fromRgbHex(ch.color!),
     contrastLimits: [ch.window!.start, ch.window!.end] as [number, number],
   }));
-  const newLayer = new ChunkedImageLayer({
+  const newLayer = new MultiChannelChunkedImageLayer({
     source,
     sliceCoords,
     channelProps,

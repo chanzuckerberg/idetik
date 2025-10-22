@@ -4,7 +4,7 @@ import {
   bufferToDataType,
 } from "../../objects/textures/texture";
 
-import { Chunk } from "../../data/chunk";
+import { Chunk, ChunkData } from "../../data/chunk";
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
@@ -56,36 +56,39 @@ export class Texture2DArray extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunk(chunk: Chunk) {
-    if (!chunk.data) {
+  public updateWithChunk(chunk: Chunk, data?: ChunkData) {
+    const source = data ?? chunk.data;
+    if (!source) {
       throw new Error(
         "Unable to update texture, chunk data is not initialized."
       );
     }
 
-    if (this.data === chunk.data) return;
+    if (this.data === source) return;
 
     const width = chunk.shape.x;
     const height = chunk.shape.y;
-    const depth = chunk.data.length / (width * height);
-    if (this.width != width || this.height != height || this.depth_ != depth) {
-      throw new Error("Unable to update texture, data shape mismatch.");
+    const depth = source.length / (width * height);
+    if (
+      this.width != width ||
+      this.height != height ||
+      this.depth_ != depth ||
+      this.dataType != bufferToDataType(source)
+    ) {
+      throw new Error("Unable to update texture, texture buffer mismatch.");
     }
 
-    this.data = chunk.data;
+    this.data = source;
   }
 
-  public static createWithChunk(chunk: Chunk) {
-    if (!chunk.data) {
+  public static createWithChunk(chunk: Chunk, data?: ChunkData) {
+    const source = data ?? chunk.data;
+    if (!source) {
       throw new Error(
         "Unable to create texture, chunk data is not initialized."
       );
     }
-    const texture = new Texture2DArray(
-      chunk.data,
-      chunk.shape.x,
-      chunk.shape.y
-    );
+    const texture = new Texture2DArray(source, chunk.shape.x, chunk.shape.y);
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
