@@ -7,7 +7,7 @@
     "build": "npm run build --workspace=@idetik/core-prerelease",
     "build:examples": "npm run build:examples --workspace=@idetik/core-prerelease",
     "examples": "npm run dev --workspace=@idetik/core-prerelease",
-    "format": "npm run format --workspaces=@idetik/core-prerelease"
+    "format": "npm run format --workspace=@idetik/core-prerelease"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",
