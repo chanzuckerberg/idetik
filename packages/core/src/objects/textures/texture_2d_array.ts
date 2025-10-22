@@ -69,12 +69,7 @@ export class Texture2DArray extends Texture {
     const width = chunk.shape.x;
     const height = chunk.shape.y;
     const depth = source.length / (width * height);
-    if (
-      this.width != width ||
-      this.height != height ||
-      this.depth_ != depth ||
-      this.dataType != bufferToDataType(source)
-    ) {
+    if (this.width != width || this.height != height || this.depth_ != depth) {
       throw new Error("Unable to update texture, texture buffer mismatch.");
     }
 
