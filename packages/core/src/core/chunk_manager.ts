@@ -3,6 +3,7 @@ import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ChunkQueue } from "../data/chunk_queue";
 import { ChunkManagerSource } from "./chunk_manager_source";
 import { ImageSourcePolicy } from "./image_source_policy";
+import { Logger } from "../utilities/logger";
 
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
@@ -20,14 +21,11 @@ export class ChunkManager {
     const existingOrPending =
       this.sources_.get(source) ?? this.pendingSources_.get(source);
     if (existingOrPending) {
-      // TODO: this is a temporary limitation because currently ChunkManagerSource is not designed
-      // to be shared across multiple layers or viewports. We need to refactor ChunkManagerSource
-      // to support reuse with a shared collection of chunks.
-      throw new Error(
-        "ChunkSource cannot be reused across multiple layers or viewports. " +
-          "Each ChunkedImageLayer must have a unique ChunkSource instance. " +
-          "This limitation will be removed in a future update."
+      Logger.warn(
+        "ChunkManager",
+        "ChunkSource is being reused across multiple layers. This may cause unexpected behavior."
       );
+      return existingOrPending;
     }
 
     const initializeSource = async () => {

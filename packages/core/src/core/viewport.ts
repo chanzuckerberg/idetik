@@ -11,7 +11,7 @@ import { IdetikContext } from "../idetik";
 
 export interface ViewportConfig {
   id?: string;
-  element?: HTMLElement;  // defaults to canvas for single-viewport setups
+  element?: HTMLElement;
   camera: Camera;
   layers?: Layer[];
   cameraControls?: CameraControls;
@@ -133,9 +133,7 @@ export class Viewport {
 }
 
 function validateViewportConfigs(
-  viewportConfigs: Array<
-    Required<Pick<ViewportConfig, "element" | "camera">> & ViewportConfig
-  >
+  viewportConfigs: Array<ViewportConfig & { element: HTMLElement }>
 ): void {
   const elementToViewportId = new Map<HTMLElement, string>();
   const seenViewportIds = new Set<string>();
@@ -177,18 +175,10 @@ export function parseViewportConfigs(
   context: IdetikContext
 ): Viewport[] {
   const configsWithElements: Array<ViewportConfig & { element: HTMLElement }> =
-    viewportConfigs.map((config) => {
-      if (viewportConfigs.length === 1 && !config.element) {
-        // single-viewport setup with no explicit element uses the whole canvas
-        return { ...config, element: canvas };
-      } else if (!config.element) {
-        throw new Error(
-          "Multi-viewport configurations require an explicit element for each viewport. " +
-            "Use element: canvas to render a viewport on the full canvas."
-        );
-      }
-      return { ...config, element: config.element };
-    });
+    viewportConfigs.map((config) => ({
+      ...config,
+      element: config.element ?? canvas,
+    }));
 
   validateViewportConfigs(configsWithElements);
 

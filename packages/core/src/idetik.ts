@@ -16,7 +16,7 @@ type Overlay = {
 
 type IdetikParams = {
   canvas: HTMLCanvasElement;
-  viewports: [ViewportConfig, ...ViewportConfig[]];  // at least one viewport required
+  viewports: [ViewportConfig, ...ViewportConfig[]]; // at least one viewport required
   overlays?: Overlay[];
   showStats?: boolean;
 };
@@ -41,15 +41,15 @@ export class Idetik {
    *
    * @param params - Configuration parameters for the Idetik instance
    * @param params.canvas - HTMLCanvasElement to render to
-   * @param params.viewports - Array of viewport configurations. Each viewport renders to a specific area with its own camera, layers, and controls.
-   *   - For single-viewport applications, pass an array with one element
-   *   - For multi-viewport applications, each viewport must specify an `element` property
-   *   - Single-viewport configs can omit `element` (defaults to the canvas)
+   * @param params.viewports - Array of viewport configurations. Each viewport renders with its own camera, layers, and controls.
+   *   The `element` property is optional and defaults to the canvas if not provided.
+   *   Elements must be unique across viewports.
+   *   The `id` property is optional but useful for referencing specific viewports later.
    * @param params.overlays - Optional array of overlay objects that update each frame (e.g., for HUD elements)
    * @param params.showStats - Optional flag to display performance statistics
    *
    * @example
-   * // Single viewport (element optional, defaults to canvas)
+   * // Single viewport (element defaults to canvas)
    * const idetik = new Idetik({
    *   canvas: document.querySelector('canvas')!,
    *   viewports: [{
@@ -60,28 +60,27 @@ export class Idetik {
    * });
    *
    * @example
-   * // Multiple viewports (element required for each, one can be the canvas)
-   * const canvas = document.querySelector('canvas')!,
+   * // Multiple viewports - one defaults to canvas, others use separate elements
    * const idetik = new Idetik({
-   *   canvas,
+   *   canvas: document.querySelector('canvas')!,
    *   viewports: [
    *     {
    *       id: 'main',
-   *       element: canvas,
+   *       // element omitted - defaults to canvas
    *       camera: camera1,
    *       layers: [layer1]
    *     },
    *     {
    *       id: 'minimap',
-   *       element: document.querySelector('#viewport2')!,
+   *       element: document.querySelector('#minimap')!,
    *       camera: camera2,
    *       layers: [layer2]
    *     }
    *   ]
    * });
    *
-   * @throws {Error} If viewports array is empty
-   * @throws {Error} If viewports fail validation (e.g. missing elements, duplicate IDs or elements)
+   * @throws {Error} If viewports array is empty or not provided
+   * @throws {Error} If viewports have duplicate IDs or shared elements
    */
   constructor(params: IdetikParams) {
     this.canvas = params.canvas;
