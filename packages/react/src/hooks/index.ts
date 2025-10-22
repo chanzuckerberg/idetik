@@ -1,1 +1,0 @@
-export { useIdetik } from "./useIdetik";
