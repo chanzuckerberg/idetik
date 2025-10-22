@@ -54,15 +54,23 @@ cd packages/core
 npm version major
 npm install
 npm run build
-npm login
-npm run pub
 ```
 
 where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
 
-After publishing, create a PR, get it approved, and merge it to `main`. Next add a tag of the form `prerelease-X.Y.Z` to the relevant commit on `main`:
+After package version has been bumped, create a PR, get it approved, and merge it to `main`.
+
+Next, checkout the corresponding commit on main and run the following commands to publish to npm (from `core` directory):
+```
+npm login
+npm run pub
+```
+
+Finally add a tag of the form `prerelease-X.Y.Z` to the relevant commit on `main`:
 
 ```shell
 git tag prerelease-X.Y.Z
 git push origin --tags
 ```
+
+
