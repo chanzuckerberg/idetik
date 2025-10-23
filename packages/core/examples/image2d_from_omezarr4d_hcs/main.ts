@@ -34,12 +34,17 @@ wellPaths.forEach((path) => {
 });
 
 const camera = new OrthographicCamera(0, 840, 0, 360);
-const controls = new PanZoomControls(camera);
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
-  camera,
-  cameraControls: controls,
+  viewports: [
+    {
+      camera,
+      cameraControls: new PanZoomControls(camera),
+    },
+  ],
 }).start();
+
+const viewport = app.viewports[0];
 
 const region: Region = [
   { dimension: "T", index: { type: "point", value: 0 } },
@@ -53,7 +58,7 @@ const imageSelector = document.querySelector("#image") as HTMLSelectElement;
 
 const onImageChange = async () => {
   console.debug("onImageChange: ", imageSelector.value);
-  app.layerManager.removeAll();
+  viewport.layerManager.removeAll();
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
   const source = new OmeZarrImageSource(imageUrl);
@@ -80,7 +85,7 @@ const onImageChange = async () => {
     ],
     lod: 0,
   });
-  app.layerManager.add(newLayer);
+  viewport.layerManager.add(newLayer);
   newLayer.addStateChangeCallback((state) => {
     if (state === "ready" && newLayer.extent) {
       camera.setFrame(0, newLayer.extent.x, 0, newLayer.extent.y);
@@ -91,7 +96,7 @@ const onImageChange = async () => {
 
 const onWellChange = async () => {
   console.debug("onWellChange: ", wellSelector.value);
-  app.layerManager.removeAll();
+  viewport.layerManager.removeAll();
   const path = wellSelector.value;
   const well = await loadOmeZarrWell(plateUrl, path);
   console.debug("well", well);

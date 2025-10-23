@@ -217,19 +217,25 @@ const imageLayer = new ImageSeriesLayer({
 const camera = new OrthographicCamera(0, 1024, 0, 1024, -10000, 10000);
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
-  camera,
-  layers: [imageLayer],
+  viewports: [
+    {
+      camera,
+      layers: [imageLayer],
+    },
+  ],
 }).start();
+
+const viewport = app.viewports[0];
 
 const onFirstImageLoad = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
     camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
-    app.cameraControls = new PanZoomControls(camera);
+    viewport.cameraControls = new PanZoomControls(camera);
     camera.update();
 
-    app.layerManager.add(ribosomes);
-    app.layerManager.add(ferritin);
-    app.layerManager.add(virusLike);
+    viewport.layerManager.add(ribosomes);
+    viewport.layerManager.add(ferritin);
+    viewport.layerManager.add(virusLike);
 
     // remove the callback to only set the camera frame once
     imageLayer.removeStateChangeCallback(onFirstImageLoad);

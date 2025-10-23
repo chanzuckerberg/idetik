@@ -126,10 +126,16 @@ let labelsLayer = createLabelsLayer();
 // Create Idetik instance
 const idetik = new Idetik({
   canvas,
-  camera,
-  layers: [imageLayer, labelsLayer],
-  cameraControls: new PanZoomControls(camera),
+  viewports: [
+    {
+      camera,
+      cameraControls: new PanZoomControls(camera),
+      layers: [imageLayer, labelsLayer],
+    },
+  ],
 });
+
+const viewport = idetik.viewports[0];
 
 // Add toggle functionality
 const modeText = document.querySelector<HTMLSpanElement>("#mode-text")!;
@@ -138,9 +144,9 @@ toggleDiv.addEventListener("click", () => {
   modeText.textContent = outlineMode ? "Outline" : "Fill";
 
   // Remove old layer and create new one with updated mode
-  idetik.layerManager.remove(labelsLayer);
+  viewport.layerManager.remove(labelsLayer);
   labelsLayer = createLabelsLayer();
-  idetik.layerManager.add(labelsLayer);
+  viewport.layerManager.add(labelsLayer);
 });
 
 idetik.start();

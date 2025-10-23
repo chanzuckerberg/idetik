@@ -77,9 +77,13 @@ const timePointOverlay = {
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
-  camera,
-  cameraControls: new PanZoomControls(camera),
-  layers: [imageLayer],
+  viewports: [
+    {
+      camera,
+      cameraControls: new PanZoomControls(camera),
+      layers: [imageLayer],
+    },
+  ],
   overlays: [chunkInfoOverlay, timePointOverlay],
   showStats: true,
 }).start();
