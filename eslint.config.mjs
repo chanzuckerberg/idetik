@@ -31,7 +31,7 @@ export default [
     }
   },
   {
-    files: ["packages/core/src/**/*.{js,ts,jsx,tsx}"],
+    files: ["packages/core/src/**/*.{js,ts}"],
     rules: {
       'no-console': 'error'
     }
