@@ -17,6 +17,12 @@ export interface ViewportConfig {
   cameraControls?: CameraControls;
 }
 
+interface ViewportProps extends ViewportConfig {
+  id: string;
+  element: HTMLElement;
+  layerManager: LayerManager;
+}
+
 export class Viewport {
   public readonly id: string;
   public readonly element: HTMLElement;
@@ -25,15 +31,12 @@ export class Viewport {
   public readonly events: EventDispatcher;
   public cameraControls?: CameraControls;
 
-  constructor(
-    config: ViewportConfig & { element: HTMLElement },
-    layerManager: LayerManager
-  ) {
-    this.id = config.id || config.element.id || generateUUID();
-    this.element = config.element;
-    this.camera = config.camera;
-    this.layerManager = layerManager;
-    this.cameraControls = config.cameraControls;
+  constructor(props: ViewportProps) {
+    this.id = props.id;
+    this.element = props.element;
+    this.camera = props.camera;
+    this.layerManager = props.layerManager;
+    this.cameraControls = props.cameraControls;
     this.updateAspectRatio();
     this.events = new EventDispatcher(this.element);
     this.events.addEventListener((event: EventContext) => {
@@ -53,7 +56,7 @@ export class Viewport {
       this.cameraControls?.onEvent(event);
     });
 
-    for (const layer of config.layers ?? []) {
+    for (const layer of props.layers ?? []) {
       this.layerManager.add(layer);
     }
   }
@@ -132,40 +135,29 @@ export class Viewport {
   }
 }
 
-function validateViewportConfigs(
-  viewportConfigs: Array<ViewportConfig & { element: HTMLElement }>
-): void {
+function validateViewportProps(viewportProps: ViewportProps[]): void {
   const elementToViewportId = new Map<HTMLElement, string>();
   const seenViewportIds = new Set<string>();
 
-  for (const config of viewportConfigs) {
-    const viewportId = config.id || config.element.id;
-
-    // check for duplicate viewport IDs if we have an explicit ID
-    // (viewports without IDs will get unique generated IDs)
-    if (viewportId && seenViewportIds.has(viewportId)) {
+  for (const props of viewportProps) {
+    if (seenViewportIds.has(props.id)) {
       throw new Error(
-        `Duplicate viewport ID "${viewportId}". Each viewport must have a unique ID.`
+        `Duplicate viewport ID "${props.id}". Each viewport must have a unique ID.`
       );
     }
-    if (viewportId) {
-      seenViewportIds.add(viewportId);
-    }
+    seenViewportIds.add(props.id);
 
-    const newViewportId = viewportId || "unnamed-viewport";
-
-    // check for multiple viewports specified with the same element
-    if (elementToViewportId.has(config.element)) {
-      const existingViewportId = elementToViewportId.get(config.element)!;
+    if (elementToViewportId.has(props.element)) {
+      const existingViewportId = elementToViewportId.get(props.element)!;
       const elementDescription =
-        config.element.tagName.toLowerCase() +
-        (config.element.id ? `#${config.element.id}` : "[element has no id]");
+        props.element.tagName.toLowerCase() +
+        (props.element.id ? `#${props.element.id}` : "[element has no id]");
       throw new Error(
         "Multiple viewports cannot share the same HTML element: " +
-          `viewports "${existingViewportId}" and "${newViewportId}" both use ${elementDescription}`
+          `viewports "${existingViewportId}" and "${props.id}" both use ${elementDescription}`
       );
     }
-    elementToViewportId.set(config.element, newViewportId);
+    elementToViewportId.set(props.element, props.id);
   }
 }
 
@@ -174,16 +166,15 @@ export function parseViewportConfigs(
   canvas: HTMLCanvasElement,
   context: IdetikContext
 ): Viewport[] {
-  const configsWithElements: Array<ViewportConfig & { element: HTMLElement }> =
-    viewportConfigs.map((config) => ({
+  const viewportProps: ViewportProps[] = viewportConfigs.map((config) => {
+    const element = config.element ?? canvas;
+    return {
       ...config,
-      element: config.element ?? canvas,
-    }));
-
-  validateViewportConfigs(configsWithElements);
-
-  return configsWithElements.map((config) => {
-    const layerManager = new LayerManager(context);
-    return new Viewport(config, layerManager);
+      element,
+      id: config.id ?? element.id ?? generateUUID(),
+      layerManager: new LayerManager(context),
+    };
   });
+  validateViewportProps(viewportProps);
+  return viewportProps.map((props) => new Viewport(props));
 }

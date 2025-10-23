@@ -34,13 +34,12 @@ wellPaths.forEach((path) => {
 });
 
 const camera = new OrthographicCamera(0, 840, 0, 360);
-const controls = new PanZoomControls(camera);
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
     {
       camera,
-      cameraControls: controls,
+      cameraControls: new PanZoomControls(camera),
     },
   ],
 }).start();
