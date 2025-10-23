@@ -6,6 +6,8 @@ import { ChunkManagerSource } from "@/core/chunk_manager_source";
 import { ImageSourcePolicy } from "@/core/image_source_policy";
 import { Logger } from "@/utilities/logger";
 import { Texture2D } from "@/objects/textures/texture_2d";
+import { clamp } from "@/utilities/clamp";
+import { almostEqual } from "@/utilities/almost_equal";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -65,14 +67,38 @@ export class VolumeLayer extends Layer {
         //   chunk.shape.y,
         //   chunk.shape.z
         // );
-        const texture = Texture2D.createWithChunk(chunk);
+        // In theory we should slice here, but instead make an array
+        // of ones that is of size x*y
+        const data =
+          this.sliceCoords_?.z !== undefined
+            ? this.slicePlane(chunk, this.sliceCoords_.z)
+            : chunk.data;
+        const texture = Texture2D.createWithChunk(chunk, data);
         const renderable = new VolumeRenderable(texture);
         renderable.wireframeEnabled = true;
         this.addObject(renderable);
+        break; // For now just one chunk - could later transform
       }
       this.setState("ready");
     }
     // No actual update for now, just loading the chunks really
+  }
+
+  private slicePlane(chunk: Chunk, zValue: number) {
+    if (!chunk.data) return;
+    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
+    const zIdx = Math.round(zLocal);
+    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
+
+    // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
+    // Anything further away means the requested zValue is outside.
+    if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
+      Logger.error("ImageLayer", "slicePlane zValue outside extent");
+    }
+
+    const sliceSize = chunk.shape.x * chunk.shape.y;
+    const offset = sliceSize * zClamped;
+    return chunk.data.slice(offset, offset + sliceSize);
   }
 
   public async onAttached(context: IdetikContext) {
