@@ -25,8 +25,7 @@ function createTestContext(): IdetikContext {
 }
 
 function createTestLayerManager(): LayerManager {
-  const chunkManager = new ChunkManager();
-  return new LayerManager({ chunkManager });
+  return new LayerManager(createTestContext());
 }
 
 test("Viewport constructor uses provided ID", () => {
