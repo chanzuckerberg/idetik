@@ -5,9 +5,10 @@ import { IdetikContext } from "@/idetik";
 import { ChunkManagerSource } from "@/core/chunk_manager_source";
 import { ImageSourcePolicy } from "@/core/image_source_policy";
 import { Logger } from "@/utilities/logger";
-import { Texture2D } from "@/objects/textures/texture_2d";
-import { clamp } from "@/utilities/clamp";
-import { almostEqual } from "@/utilities/almost_equal";
+// import { Texture2D } from "@/objects/textures/texture_2d";
+// import { clamp } from "@/utilities/clamp";
+import { Texture3D } from "@/objects/textures/texture_3d";
+import { vec3 } from "gl-matrix";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -24,6 +25,10 @@ export class VolumeLayer extends Layer {
 
   // TODO (SKM): temp cache
   public chunks: Chunk[] = [];
+
+  // TODO (SKM): very temp change for uniforms
+  public zUV: number = 0;
+  public tickCount: number = 0;
 
   constructor({
     source,
@@ -59,47 +64,57 @@ export class VolumeLayer extends Layer {
     }
     if (allReady && this.state === "loading") {
       // Bind chunks to renderable
-      for (const chunk of this.chunks) {
+      for (let i = 0; i < this.chunks.length; i++) {
+        const chunk = this.chunks[i];
         // TODO (SKM) use the 3d texture, but needs changes in the webgl renderer
-        // const texture = new Texture3D(
-        //   chunk.data!,
-        //   chunk.shape.x,
-        //   chunk.shape.y,
-        //   chunk.shape.z
-        // );
-        // In theory we should slice here, but instead make an array
-        // of ones that is of size x*y
-        const data =
-          this.sliceCoords_?.z !== undefined
-            ? this.slicePlane(chunk, this.sliceCoords_.z)
-            : chunk.data;
-        const texture = Texture2D.createWithChunk(chunk, data);
+        const texture = new Texture3D(
+          chunk.data!,
+          chunk.shape.x,
+          chunk.shape.y,
+          chunk.shape.z
+        );
+        // const data =
+        //   this.sliceCoords_?.z !== undefined
+        //     ? this.slicePlane(chunk, this.sliceCoords_.z)
+        //     : chunk.data;
+        // const texture = Texture2D.createWithChunk(chunk, data);
         const renderable = new VolumeRenderable(texture);
+        renderable.transform.setTranslation(vec3.fromValues(i, 0, 0));
         renderable.wireframeEnabled = true;
         this.addObject(renderable);
-        break; // For now just one chunk - could later transform
       }
       this.setState("ready");
     }
+    // this.tickCount++;
+    // if (this.tickCount > 100000) this.tickCount = 0;
+    // if (this.tickCount % 30 === 0) {
+    //   this.zUV += 0.001;
+    //   this.zUV = clamp(this.zUV, 0, 1);
+    // for (const object of this.objects) {
+    //   object.uniforms = {
+    //     u_zSlice: this.zUV,
+    //   };
+    // }
+    // }
     // No actual update for now, just loading the chunks really
   }
 
-  private slicePlane(chunk: Chunk, zValue: number) {
-    if (!chunk.data) return;
-    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
-    const zIdx = Math.round(zLocal);
-    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
+  // private slicePlane(chunk: Chunk, zValue: number) {
+  //   if (!chunk.data) return;
+  //   const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
+  //   const zIdx = Math.round(zLocal);
+  //   const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
 
-    // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
-    // Anything further away means the requested zValue is outside.
-    if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
-      Logger.error("ImageLayer", "slicePlane zValue outside extent");
-    }
+  //   // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
+  //   // Anything further away means the requested zValue is outside.
+  //   if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
+  //     Logger.error("ImageLayer", "slicePlane zValue outside extent");
+  //   }
 
-    const sliceSize = chunk.shape.x * chunk.shape.y;
-    const offset = sliceSize * zClamped;
-    return chunk.data.slice(offset, offset + sliceSize);
-  }
+  //   const sliceSize = chunk.shape.x * chunk.shape.y;
+  //   const offset = sliceSize * zClamped;
+  //   return chunk.data.slice(offset, offset + sliceSize);
+  // }
 
   public async onAttached(context: IdetikContext) {
     if (this.chunkManagerSource_) {

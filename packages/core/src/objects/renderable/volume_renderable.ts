@@ -13,4 +13,8 @@ export class VolumeRenderable extends RenderableObject {
   public get type() {
     return "VolumeRenderable";
   }
+
+  public override getUniforms(): Record<string, unknown> {
+    return {};
+  }
 }

@@ -9,6 +9,7 @@ import {
 
 import { Texture2D } from "../objects/textures/texture_2d";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
+import { Texture3D } from "@/objects/textures/texture_3d";
 
 type TextureFormatInfo = {
   internalFormat: number;
@@ -123,6 +124,15 @@ export class WebGLTextures {
         texture.height,
         texture.depth
       );
+    } else if (this.isTexture3D(texture)) {
+      this.gl_.texStorage3D(
+        type,
+        texture.mipmapLevels,
+        info.internalFormat,
+        texture.width,
+        texture.height,
+        texture.depth
+      );
     } else {
       throw new Error(`Unknown texture type ${texture.type}`);
     }
@@ -188,6 +198,23 @@ export class WebGLTextures {
         info.type,
         texture.data as ArrayBufferView
       );
+    } else if (this.isTexture3D(texture)) {
+      // TODO(SKM) I'd usually to texImage3D not subimage here. I guess offset
+      // is for future proofing since currently 0?
+      // TODO (SMK) so far the tex3d is the same as the 2d array mostly, maybe should combine
+      this.gl_.texSubImage3D(
+        type,
+        mipmapLevel,
+        offset.x,
+        offset.y,
+        offset.z,
+        texture.width,
+        texture.height,
+        texture.depth,
+        info.format,
+        info.type,
+        texture.data as ArrayBufferView
+      );
     } else {
       throw new Error(
         "Attempting to upload data for an unsupported texture type"
@@ -219,7 +246,7 @@ export class WebGLTextures {
   private getTextureType(texture: Texture) {
     if (this.isTexture2D(texture)) return this.gl_.TEXTURE_2D;
     if (this.isTexture2DArray(texture)) return this.gl_.TEXTURE_2D_ARRAY;
-    // TODO (SKM) add the check here for texture 3D
+    if (this.isTexture3D(texture)) return this.gl_.TEXTURE_3D;
     throw new Error(`Unknown texture type ${texture.type}`);
   }
 
@@ -351,5 +378,9 @@ export class WebGLTextures {
 
   private isTexture2DArray(texture: Texture): texture is Texture2DArray {
     return texture.type === "Texture2DArray";
+  }
+
+  private isTexture3D(texture: Texture): texture is Texture3D {
+    return texture.type === "Texture3D";
   }
 }

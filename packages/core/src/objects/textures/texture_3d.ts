@@ -11,7 +11,12 @@ export class Texture3D extends Texture {
   private readonly height_: number;
   private readonly depth_: number;
 
-  constructor(data: DataTextureTypedArray, width: number, height: number, depth: number) {
+  constructor(
+    data: DataTextureTypedArray,
+    width: number,
+    height: number,
+    depth: number
+  ) {
     super();
     this.dataFormat = "scalar";
     this.dataType = bufferToDataType(data);
@@ -77,7 +82,12 @@ export class Texture3D extends Texture {
       );
     }
 
-    const texture = new Texture3D(source, chunk.shape.x, chunk.shape.y, chunk.shape.z);
+    const texture = new Texture3D(
+      source,
+      chunk.shape.x,
+      chunk.shape.y,
+      chunk.shape.z
+    );
     texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
