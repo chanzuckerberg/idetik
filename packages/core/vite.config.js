@@ -3,7 +3,6 @@ import { defineConfig } from 'vite';
 import eslint from 'vite-plugin-eslint';
 import glsl from 'vite-plugin-glsl';
 import path from 'path';
-import react from "@vitejs/plugin-react";
 import typescript from '@rollup/plugin-typescript';
 import examplesManifestPlugin from './vite-plugin-examples-nav.js';
 
@@ -16,7 +15,7 @@ const _dirname = dirname(fileURLToPath(import.meta.url));
 const MODES = ['development', 'production', 'test', 'examples'];
 
 function modeToPlugins(mode) {
-  const basePlugins = [eslint(), glsl(), react()];
+  const basePlugins = [eslint(), glsl()];
   const typescriptPlugin = typescript({
     noForceEmit: true,
     compilerOptions: {
