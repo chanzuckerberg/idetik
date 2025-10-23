@@ -51,7 +51,7 @@ export class Idetik {
    *
    * @example
    * // Single viewport (element defaults to canvas)
-   *  const camera = new OrthographicCamera(0, 1024, 0, 1024);
+   * const camera = new OrthographicCamera(0, 1024, 0, 1024);
    * const idetik = new Idetik({
    *   canvas: document.querySelector('canvas')!,
    *   viewports: [{
