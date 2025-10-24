@@ -12,18 +12,93 @@
         font-family: sans-serif;
       }
 
-      #container {
-        display: flex;
+      #app {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
         width: 100vw;
         height: 100vh;
+        gap: 0;
       }
 
       .viewport {
-        flex: 1;
+        position: relative;
         border: 3px solid black;
       }
       .viewport:hover {
         border: 3px solid #aaaa00;
+      }
+
+      #viewport-slice1 {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      #viewport-slice2 {
+        grid-column: 2;
+        grid-row: 1;
+      }
+
+      #viewport-volume {
+        grid-column: 1;
+        grid-row: 2;
+      }
+
+      #controls {
+        grid-column: 2;
+        grid-row: 2;
+        background: #1a1a1a;
+        border: 3px solid black;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .tabs {
+        display: flex;
+        background: #0a0a0a;
+        border-bottom: 2px solid #333;
+      }
+
+      .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        color: #888;
+        border: none;
+        background: none;
+        font-family: sans-serif;
+        font-size: 13px;
+        transition: all 0.2s;
+      }
+
+      .tab:hover {
+        color: #fff;
+        background: #222;
+      }
+
+      .tab.active {
+        color: #fff;
+        background: #1a1a1a;
+        border-bottom: 2px solid #aaaa00;
+      }
+
+      .tab-content {
+        display: none;
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      #chunk-info {
+        background: #1a1a1a;
+        color: #ffffff;
+        font-family: monospace;
+        font-size: 11px;
+        line-height: 1.5;
       }
 
       canvas {
@@ -37,9 +112,22 @@
     </style>
   </head>
   <body>
-    <div id="container">
-      <div class="viewport" id="viewport-left"></div>
-      <div class="viewport" id="viewport-right"></div>
+    <div id="app">
+      <div class="viewport" id="viewport-slice1"></div>
+      <div class="viewport" id="viewport-slice2"></div>
+      <div class="viewport" id="viewport-volume"></div>
+      <div id="controls">
+        <div class="tabs">
+          <button class="tab active" data-tab="settings">Settings</button>
+          <button class="tab" data-tab="chunk-info">Chunk Info</button>
+        </div>
+        <div id="tab-settings" class="tab-content active">
+          <div id="gui-container"></div>
+        </div>
+        <div id="tab-chunk-info" class="tab-content">
+          <div id="chunk-info"></div>
+        </div>
+      </div>
     </div>
     <canvas id="canvas"></canvas>
     <script type="module" src="./main.ts"></script>

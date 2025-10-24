@@ -41,6 +41,8 @@ export function addDimensionSlider(props: DimensionSliderProps) {
         props.playback?.onRateChange?.(rateHz);
       });
   }
+
+  return controller;
 }
 
 type PlaybackControllerProps = {
