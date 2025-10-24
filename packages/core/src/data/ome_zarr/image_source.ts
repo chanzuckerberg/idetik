@@ -8,7 +8,11 @@ import {
 } from "../zarr/open";
 import WebFileSystemStore from "../zarr/web_file_system_store";
 import { OmeZarrImageLoader } from "./image_loader";
-import { omeZarrToZarrVersion, parseOmeZarrImage } from "./metadata_loaders";
+import {
+  omeZarrToZarrVersion,
+  parseOmeZarrImage,
+  Version as OmeZarrVersion,
+} from "./metadata_loaders";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
@@ -32,10 +36,10 @@ export class OmeZarrImageSource {
         : new Location(new WebFileSystemStore(source), path);
   }
 
-  public async open(): Promise<OmeZarrImageLoader> {
-    const root = await openGroup(this.location);
+  public async open(version?: OmeZarrVersion): Promise<OmeZarrImageLoader> {
+    let zarrVersion = version ? omeZarrToZarrVersion(version) : undefined;
+    const root = await openGroup(this.location, zarrVersion);
     const adaptedOmeImage = parseOmeZarrImage(root.attrs);
-    const omeVersion = adaptedOmeImage.originalVersion;
     const images = adaptedOmeImage.multiscales;
     if (images.length !== 1) {
       throw new Error(
@@ -46,7 +50,9 @@ export class OmeZarrImageSource {
     if (metadata.datasets.length === 0) {
       throw new Error(`No datasets found in the multiscale image.`);
     }
-    const zarrVersion = omeZarrToZarrVersion(omeVersion);
+    if (!zarrVersion) {
+      zarrVersion = omeZarrToZarrVersion(adaptedOmeImage.originalVersion);
+    }
     const arrayParams = metadata.datasets.map((d) =>
       createZarrArrayParams(this.location, d.path, zarrVersion)
     );
