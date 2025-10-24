@@ -3,11 +3,8 @@ import {
   ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
-  PerspectiveCamera,
-  VolumeLayer,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { addDimensionSlider } from "../lil_gui_utils";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 
@@ -26,47 +23,68 @@ const zMin = z.translate;
 const zMax = z.translate + z.scale * z.shape - z.scale;
 const zRange = { min: zMin, max: zMax };
 
+// Shared source between two viewports
 const source = new OmeZarrImageSource(url);
-const sliceCoords = { t: 400, z: 200, c: 0 };
-const camera2D = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkedImageLayer({
+
+// Each viewport has its own slice coordinates
+const sliceCoords1 = { t: 400, z: 200, c: 0 };
+const sliceCoords2 = { t: 400, z: 300, c: 0 };
+
+// First viewport
+const camera2D1 = new OrthographicCamera(left, right, top, bottom);
+const imageLayer1 = new ChunkedImageLayer({
   source,
-  sliceCoords,
+  sliceCoords: sliceCoords1,
   policy: createExplorationPolicy(),
   channelProps: [{ contrastLimits: [0, 200] }],
 });
 
-// TODO: the reason this example works is that the volume viewport uses a perspective camera
-// otherwise the ChunkManager update causes interference between the two viewports
-// this example can be updated to include multiple views of the same volume once we have
-// better handling of multiple viewports using the same source
-const camera3D = new PerspectiveCamera();
+// Second viewport with same source
+const camera2D2 = new OrthographicCamera(left, right, top, bottom);
+const imageLayer2 = new ChunkedImageLayer({
+  source,
+  sliceCoords: sliceCoords2,
+  policy: createExplorationPolicy(),
+  channelProps: [{ contrastLimits: [0, 200] }],
+});
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
-      id: "volume",
+      id: "slice1",
       element: document.querySelector<HTMLDivElement>("#viewport-left")!,
-      camera: camera3D,
-      cameraControls: new OrbitControls(camera3D, { radius: 3 }),
-      layers: [new VolumeLayer()],
+      camera: camera2D1,
+      cameraControls: new PanZoomControls(camera2D1),
+      layers: [imageLayer1],
     },
     {
-      id: "slice",
+      id: "slice2",
       element: document.querySelector<HTMLDivElement>("#viewport-right")!,
-      camera: camera2D,
-      cameraControls: new PanZoomControls(camera2D),
-      layers: [imageLayer],
+      camera: camera2D2,
+      cameraControls: new PanZoomControls(camera2D2),
+      layers: [imageLayer2],
     },
   ],
   showStats: true,
 }).start();
 
 const gui = new GUI({ width: 300 });
+
+gui.add({ label: "Slice 1" }, "label").disable();
 addDimensionSlider({
   gui,
-  sliceCoords,
+  sliceCoords: sliceCoords1,
+  dimensionName: "z",
+  minValue: zRange.min,
+  maxValue: zRange.max,
+  stepValue: z.scale,
+});
+
+gui.add({ label: "Slice 2" }, "label").disable();
+addDimensionSlider({
+  gui,
+  sliceCoords: sliceCoords2,
   dimensionName: "z",
   minValue: zRange.min,
   maxValue: zRange.max,

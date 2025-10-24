@@ -140,7 +140,10 @@ export class ChunkStore {
     );
   }
 
-  public createView(viewport: Viewport, policy: ImageSourcePolicy): ChunkStoreView {
+  public createView(
+    viewport: Viewport,
+    policy: ImageSourcePolicy
+  ): ChunkStoreView {
     const view = new ChunkStoreView(this, viewport, policy);
     this.views_.add(view);
     return view;
@@ -199,7 +202,11 @@ export class ChunkStore {
         }
       }
 
-      if (!viewState.visible && !viewState.prefetch && viewState.priority === null) {
+      if (
+        !viewState.visible &&
+        !viewState.prefetch &&
+        viewState.priority === null
+      ) {
         view.forgetChunk(chunk);
       }
     }
