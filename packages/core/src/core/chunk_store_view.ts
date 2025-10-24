@@ -33,7 +33,11 @@ export class ChunkStoreView {
   private sourceMaxSquareDistance2D_: number;
   private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
 
-  constructor(store: ChunkStore, viewport: Viewport, policy: ImageSourcePolicy) {
+  constructor(
+    store: ChunkStore,
+    viewport: Viewport,
+    policy: ImageSourcePolicy
+  ) {
     this.store_ = store;
     this.viewport_ = viewport;
     this.policy_ = policy;

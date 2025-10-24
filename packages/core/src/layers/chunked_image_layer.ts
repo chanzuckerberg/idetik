@@ -2,10 +2,7 @@ import { Layer, LayerOptions, RenderContext } from "../core/layer";
 import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkStore } from "../core/chunk_store";
-import {
-  ChunkStoreView,
-  INTERNAL_POLICY_KEY,
-} from "../core/chunk_store_view";
+import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -94,7 +91,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public update(context?: RenderContext) {
     if (!context || !this.chunkStore_) return;
 
-    this.chunkStoreView_ ??= this.chunkStore_.createView(context.viewport, this.policy_);
+    this.chunkStoreView_ ??= this.chunkStore_.createView(
+      context.viewport,
+      this.policy_
+    );
 
     this.chunkStoreView_.updateChunkStates(this.sliceCoords_);
 

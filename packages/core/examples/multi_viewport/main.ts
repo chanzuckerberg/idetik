@@ -214,7 +214,9 @@ document.querySelectorAll(".tab").forEach((tab) => {
     if (!tabName) return;
 
     // Update tab buttons
-    document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+    document
+      .querySelectorAll(".tab")
+      .forEach((t) => t.classList.remove("active"));
     tab.classList.add("active");
 
     // Update tab content

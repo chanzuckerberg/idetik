@@ -13,7 +13,11 @@ export class ChunkSharingOverlay {
   private readonly imageLayers_: ChunkedImageLayer[];
   private readonly viewportNames_: string[];
 
-  constructor({ textDiv, imageLayers, viewportNames }: ChunkSharingOverlayOptions) {
+  constructor({
+    textDiv,
+    imageLayers,
+    viewportNames,
+  }: ChunkSharingOverlayOptions) {
     this.textDiv_ = textDiv;
     this.imageLayers_ = imageLayers;
     this.viewportNames_ = viewportNames;
@@ -95,7 +99,9 @@ export class ChunkSharingOverlay {
 
       lines.push(`<strong>${viewportName}</strong> (LOD ${currentLOD})`);
       lines.push(`Rendering: ${chunks.length} chunks`);
-      lines.push(`View state: ${visibleCount} visible, ${prefetchCount} prefetch`);
+      lines.push(
+        `View state: ${visibleCount} visible, ${prefetchCount} prefetch`
+      );
       lines.push("");
     });
 
