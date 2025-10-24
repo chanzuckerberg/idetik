@@ -74,18 +74,18 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public async onAttached(context: IdetikContext) {
     if (this.chunkStore_) {
       throw new Error(
-        "ChunkedImageLayer cannot be attached to multiple contexts simultaneously."
+        "ChunkedImageLayer is already attached. " +
+          "A layer cannot be attached to multiple LayerManagers simultaneously."
       );
     }
     this.chunkStore_ = await context.chunkManager.addSource(this.source_);
   }
 
   public onDetached(): void {
-    if (this.chunkStoreView_ && this.chunkStore_) {
-      this.chunkStore_.removeView(this.chunkStoreView_);
-    }
     this.chunkStoreView_ = undefined;
     this.chunkStore_ = undefined;
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.clearObjects();
   }
 
   public update(context?: RenderContext) {
@@ -117,15 +117,12 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
-    // Get chunks to render and update visible chunks
     const orderedByLOD = this.chunkStoreView_.getChunks(this.sliceCoords_);
     const current = new Set(orderedByLOD);
-    this.visibleChunks_.forEach((image, chunk) => {
-      if (!current.has(chunk)) {
-        this.visibleChunks_.delete(chunk);
-        this.pool_.release(poolKeyForImageRenderable(chunk), image);
-      }
-    });
+    const nonVisibleChunks = Array.from(this.visibleChunks_.keys()).filter(
+      (chunk) => !current.has(chunk)
+    );
+    this.releaseAndRemoveChunks(nonVisibleChunks);
 
     this.clearObjects();
     for (const chunk of orderedByLOD) {
@@ -373,6 +370,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
+  }
+
+  private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
+    for (const chunk of chunks) {
+      const image = this.visibleChunks_.get(chunk);
+      if (image) {
+        this.pool_.release(poolKeyForImageRenderable(chunk), image);
+        this.visibleChunks_.delete(chunk);
+      }
+    }
   }
 }
 

@@ -34,7 +34,6 @@ export class ChunkManager {
     for (const [_, source] of this.sources_) {
       const updatedChunks = source.updateAndCollectChunkChanges();
 
-      // Enqueue/cancel chunks based on their priority
       for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
@@ -45,6 +44,7 @@ export class ChunkManager {
         }
       }
     }
+
     this.queue_.flush();
   }
 }
