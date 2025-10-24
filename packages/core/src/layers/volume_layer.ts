@@ -79,6 +79,8 @@ export class VolumeLayer extends Layer {
     }
     if (allReady && this.state === "loading") {
       // Bind chunks to renderable - we only do it once for now
+      let max_x = 0;
+      let max_y = 0;
       for (let i = 0; i < this.chunks.length; i++) {
         const chunk = this.chunks[i];
         const texture = new Texture3D(
@@ -87,10 +89,22 @@ export class VolumeLayer extends Layer {
           chunk.shape.y,
           chunk.shape.z
         );
-        const renderable = new VolumeRenderable(texture);
+        // Divide by 100 to scale down for visualization purposes
+        const renderable = new VolumeRenderable(
+          chunk.shape.x / 100,
+          chunk.shape.y / 100,
+          chunk.shape.z / 100,
+          texture
+        );
         // TODO (SKM): positioning needs to be fixed properly using chunk info
+        max_x = Math.max(max_x, chunk.shape.x / 100);
+        max_y = Math.max(max_y, chunk.shape.y / 100);
         renderable.transform.setTranslation(
-          vec3.fromValues(Math.floor(i / 2), i % 2, 0)
+          vec3.fromValues(
+            Math.floor(i / 2) * (max_x / 2 + chunk.shape.x / 200),
+            (i % 2) * (max_y / 2 + chunk.shape.y / 200),
+            0
+          )
         );
         renderable.wireframeEnabled = true;
         this.addObject(renderable);
