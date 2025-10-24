@@ -21,6 +21,8 @@ type Module =
   | "ChunkManager"
   | "ChunkManagerSource"
   | "ChunkQueue"
+  | "ChunkStore"
+  | "ChunkStoreView"
   | "ChunkedImageLayer"
   | "EventDispatcher"
   | "Idetik"

@@ -1,22 +1,16 @@
-import { ChunkSource, SliceCoordinates } from "../data/chunk";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import { ChunkSource } from "../data/chunk";
 import { ChunkQueue } from "../data/chunk_queue";
-import { ChunkManagerSource } from "./chunk_manager_source";
-import { ImageSourcePolicy } from "./image_source_policy";
+import { ChunkStore } from "./chunk_store";
 
 export class ChunkManager {
-  private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
+  private readonly sources_ = new Map<ChunkSource, ChunkStore>();
   private readonly pendingSources_ = new Map<
     ChunkSource,
-    Promise<ChunkManagerSource>
+    Promise<ChunkStore>
   >();
   private readonly queue_ = new ChunkQueue();
 
-  public async addSource(
-    source: ChunkSource,
-    sliceCoords: SliceCoordinates,
-    policy: ImageSourcePolicy
-  ) {
+  public async addSource(source: ChunkSource): Promise<ChunkStore> {
     const existingOrPending =
       this.sources_.get(source) ?? this.pendingSources_.get(source);
     if (existingOrPending) {
@@ -25,14 +19,10 @@ export class ChunkManager {
 
     const initializeSource = async () => {
       const loader = await source.open();
-      const chunkManagerSource = new ChunkManagerSource(
-        loader,
-        sliceCoords,
-        policy
-      );
-      this.sources_.set(source, chunkManagerSource);
+      const store = new ChunkStore(loader);
+      this.sources_.set(source, store);
       this.pendingSources_.delete(source);
-      return chunkManagerSource;
+      return store;
     };
 
     const pending = initializeSource();
@@ -40,26 +30,11 @@ export class ChunkManager {
     return pending;
   }
 
-  public update(camera: OrthographicCamera, bufferWidth: number) {
-    if (this.sources_.size === 0) return;
-
-    if (camera.type !== "OrthographicCamera") {
-      throw new Error(
-        "ChunkManager currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
-      );
-    }
-
-    const viewBounds2D = camera.getWorldViewRect();
-    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
-    const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
-
+  public update() {
     for (const [_, source] of this.sources_) {
-      const updatedChunks = source.updateAndCollectChunkChanges(
-        lodFactor,
-        viewBounds2D
-      );
+      const updatedChunks = source.updateAndCollectChunkChanges();
+
+      // Enqueue/cancel chunks based on their priority
       for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
@@ -70,7 +45,6 @@ export class ChunkManager {
         }
       }
     }
-
     this.queue_.flush();
   }
 }

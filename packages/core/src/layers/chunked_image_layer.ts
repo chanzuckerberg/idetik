@@ -1,10 +1,11 @@
-import { Layer, LayerOptions } from "../core/layer";
-import { IdetikContext } from "../idetik";
+import { Layer, LayerOptions, RenderContext } from "../core/layer";
+import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import { ChunkStore } from "../core/chunk_store";
 import {
-  ChunkManagerSource,
+  ChunkStoreView,
   INTERNAL_POLICY_KEY,
-} from "../core/chunk_manager_source";
+} from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -38,7 +39,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly channelChangeCallbacks_: (() => void)[] = [];
   private policy_: ImageSourcePolicy;
   private channelProps_?: ChannelProps[];
-  private chunkManagerSource_?: ChunkManagerSource;
+  private chunkStore_?: ChunkStore;
+  private chunkStoreView_?: ChunkStoreView;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
   private debugMode_ = false;
@@ -73,37 +75,41 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public async onAttached(context: IdetikContext) {
-    if (this.chunkManagerSource_) {
+    if (this.chunkStore_) {
       throw new Error(
-        "ChunkedImageLayer is already attached. " +
-          "A layer cannot be attached to multiple LayerManagers simultaneously."
+        "ChunkedImageLayer cannot be attached to multiple contexts simultaneously."
       );
     }
-    this.chunkManagerSource_ = await context.chunkManager.addSource(
-      this.source_,
-      this.sliceCoords_,
-      this.policy_
-    );
+    this.chunkStore_ = await context.chunkManager.addSource(this.source_);
   }
 
   public onDetached(): void {
-    this.chunkManagerSource_ = undefined;
-    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
-    this.clearObjects();
+    if (this.chunkStoreView_ && this.chunkStore_) {
+      this.chunkStore_.removeView(this.chunkStoreView_);
+    }
+    this.chunkStoreView_ = undefined;
+    this.chunkStore_ = undefined;
   }
 
-  public update() {
+  public update(context?: RenderContext) {
+    if (!context || !this.chunkStore_) return;
+
+    this.chunkStoreView_ ??= this.chunkStore_.createView(context.viewport, this.policy_);
+
+    this.chunkStoreView_.updateChunkStates(this.sliceCoords_);
+
     this.updateChunks();
     this.resliceIfZChanged();
   }
 
   private updateChunks() {
-    if (!this.chunkManagerSource_) return;
+    if (!this.chunkStoreView_ || !this.chunkStore_) return;
     if (this.state !== "ready") this.setState("ready");
 
+    const currentTimeIndex = this.chunkStore_.getTimeIndex(this.sliceCoords_);
     if (
       this.visibleChunks_.size > 0 &&
-      !this.chunkManagerSource_.allVisibleLowestLODLoaded() &&
+      !this.chunkStore_.allVisibleLowestLODLoaded(currentTimeIndex) &&
       !this.isPresentationStale()
     ) {
       return;
@@ -111,12 +117,15 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
-    const orderedByLOD = this.chunkManagerSource_.getChunks();
+    // Get chunks to render and update visible chunks
+    const orderedByLOD = this.chunkStoreView_.getChunks(this.sliceCoords_);
     const current = new Set(orderedByLOD);
-    const nonVisibleChunks = Array.from(this.visibleChunks_.keys()).filter(
-      (chunk) => !current.has(chunk)
-    );
-    this.releaseAndRemoveChunks(nonVisibleChunks);
+    this.visibleChunks_.forEach((image, chunk) => {
+      if (!current.has(chunk)) {
+        this.visibleChunks_.delete(chunk);
+        this.pool_.release(poolKeyForImageRenderable(chunk), image);
+      }
+    });
 
     this.clearObjects();
     for (const chunk of orderedByLOD) {
@@ -166,8 +175,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
-  public get chunkManagerSource(): ChunkManagerSource | undefined {
-    return this.chunkManagerSource_;
+  public get chunkStore(): ChunkStore | undefined {
+    return this.chunkStore_;
+  }
+
+  public get chunkStoreView(): ChunkStoreView | undefined {
+    return this.chunkStoreView_;
+  }
+
+  public get sliceCoords(): SliceCoordinates {
+    return this.sliceCoords_;
   }
 
   public get source(): ChunkSource {
@@ -181,8 +198,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public set imageSourcePolicy(newPolicy: ImageSourcePolicy) {
     if (this.policy_ !== newPolicy) {
       this.policy_ = newPolicy;
-      if (this.chunkManagerSource_) {
-        this.chunkManagerSource_.setImageSourcePolicy(
+      if (this.chunkStoreView_) {
+        this.chunkStoreView_.setImageSourcePolicy(
           newPolicy,
           INTERNAL_POLICY_KEY
         );
@@ -261,7 +278,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public getValueAtWorld(world: vec3): number | null {
-    const currentLOD = this.chunkManagerSource_?.currentLOD ?? 0;
+    const currentLOD = this.chunkStoreView_?.currentLOD ?? 0;
 
     // First, try to find the value in current LOD chunks (highest priority)
     for (const [chunk, image] of this.visibleChunks_) {
@@ -356,16 +373,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
-  }
-
-  private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
-    for (const chunk of chunks) {
-      const image = this.visibleChunks_.get(chunk);
-      if (image) {
-        this.pool_.release(poolKeyForImageRenderable(chunk), image);
-        this.visibleChunks_.delete(chunk);
-      }
-    }
   }
 }
 
