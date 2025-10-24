@@ -115,16 +115,7 @@ export class WebGLTextures {
         texture.width,
         texture.height
       );
-    } else if (this.isTexture2DArray(texture)) {
-      this.gl_.texStorage3D(
-        type,
-        texture.mipmapLevels,
-        info.internalFormat,
-        texture.width,
-        texture.height,
-        texture.depth
-      );
-    } else if (this.isTexture3D(texture)) {
+    } else if (this.isTexture2DArray(texture) || this.isTexture3D(texture)) {
       this.gl_.texStorage3D(
         type,
         texture.mipmapLevels,
@@ -190,7 +181,7 @@ export class WebGLTextures {
         // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D#syntax
         texture.data as ArrayBufferView
       );
-    } else if (this.isTexture2DArray(texture)) {
+    } else if (this.isTexture2DArray(texture) || this.isTexture3D(texture)) {
       this.gl_.texSubImage3D(
         type,
         mipmapLevel,
@@ -204,23 +195,8 @@ export class WebGLTextures {
         info.type,
         texture.data as ArrayBufferView
       );
-    } else if (this.isTexture3D(texture)) {
-      // TODO(SKM) I'd usually to texImage3D not subimage here. I guess offset
-      // is for future proofing since currently 0?
-      // TODO (SMK) so far the tex3d is the same as the 2d array mostly, maybe should combine
-      this.gl_.texSubImage3D(
-        type,
-        mipmapLevel,
-        offset.x,
-        offset.y,
-        offset.z,
-        texture.width,
-        texture.height,
-        texture.depth,
-        info.format,
-        info.type,
-        texture.data as ArrayBufferView
-      );
+      // TODO (SMK) so far the texture3d handles are the same as 2d array
+      // Is there anywhere we see this deviating? Where we would want to keep the two paths separate?
     } else {
       throw new Error(
         "Attempting to upload data for an unsupported texture type"
