@@ -1,7 +1,6 @@
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
-import { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 import { createStats, type Stats } from "./utilities/stats";
 import {
   parseViewportConfigs,
@@ -158,13 +157,10 @@ export class Idetik {
       this.updateSize();
     }
 
+    // Update chunk manager before rendering to process all views
+    this.chunkManager_.update();
+
     for (const viewport of this.viewports_) {
-      if (viewport.camera.type === "OrthographicCamera") {
-        this.chunkManager_.update(
-          viewport.camera as OrthographicCamera,
-          viewport.getBoxRelativeTo(this.canvas).toRect().width
-        );
-      }
       this.renderer_.render(viewport);
     }
 
