@@ -167,11 +167,12 @@ export class ChunkManagerSource {
       .every((c) => c.state === "loaded");
   }
 
+  // TODO (SKM): this is a temporary method to get all lowest res chunks
+  // for testing initial volume rendering
   public getAllChunksAtLowestRes(): Chunk[] {
     const chunks = this.getChunksAtCurrentTime().filter(
       (c) => c.lod === this.lowestResLOD_
     );
-    // TODO (SKM): mark all chunks as visible and force load
     for (const chunk of chunks) {
       chunk.visible = true;
       this.loadChunkData(chunk, new AbortController().signal);

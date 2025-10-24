@@ -1,31 +1,28 @@
 #version 300 es
+#pragma inject_defines
 
 precision mediump float;
 
 layout (location = 0) out vec4 fragColor;
 
-// TODO (SKM): Support other texture data types
-uniform mediump usampler3D abc;
-//uniform float u_zslice;
+#if defined TEXTURE_DATA_TYPE_INT
+uniform mediump isampler3D ImageSampler;
+#elif defined TEXTURE_DATA_TYPE_UINT
+uniform mediump usampler3D ImageSampler;
+#else
+uniform mediump sampler3D ImageSampler;
+#endif
 
 in vec2 TexCoords;
 
 void main() {
-    //float texel = float(texture(ImageSampler, vec3(TexCoords, u_zSlice)).r);
-    float accum = 0.0;
+    float alpha = 0.0;
     for (int i = 0; i < 256; i++) {
         float z = float(i) / 255.0;
-        float texel = float(texture(abc, vec3(TexCoords, z)).r);
-        accum += texel;
+        float texel = float(texture(ImageSampler, vec3(TexCoords, z)).r);
+        float newAlpha = clamp(texel / 1000.0, 0.0, 1.0);
+        alpha = (1.0 - alpha) * newAlpha + alpha;
     }
-    //float texel = float(texture(abc, vec3(TexCoords, 0.5)).r);
-    //float texel2 = float(texture(abc, vec3(TexCoords, 0.8)).r);
-    float displayValue = accum / 100.0;
-    //if (TexCoords.x > 0.5 && TexCoords.y > 0.5) {
-        //fragColor = vec4(TexCoords.r, TexCoords.g, 0.0, 1.0);
-    //}
-    //else {
-    //    fragColor = vec4(displayValue, displayValue, displayValue, 1.0);
-    //}
+    float displayValue = alpha;
     fragColor = vec4(displayValue, displayValue, displayValue, 1.0);
 }

@@ -148,6 +148,12 @@ export class WebGLTextures {
     const minFilter = this.getFilter(texture.minFilter, texture);
     const maxFilter = this.getFilter(texture.maxFilter, texture);
 
+    // TODO (SKM): unsure when unpack_row_length is used where it
+    // is different from the texture width
+    // Depending on the use case for this, for 3D textures we
+    // may need to store a columnStride on the chunk and then
+    // pass it in here as the UNPACK_IMAGE_HEIGHT
+    // Similar to what is currently happening in the chunk manager
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
     gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.unpackRowLength);
     gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, minFilter);
