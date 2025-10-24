@@ -35,7 +35,9 @@ export class ChunkInfoOverlay {
 
     const chunkDetails: string[] = [];
     const currentLOD = chunkStoreView.currentLOD;
-    const renderedChunks = chunkStoreView.getChunks(this.imageLayer_.sliceCoords);
+    const renderedChunks = chunkStoreView.getChunks(
+      this.imageLayer_.sliceCoords
+    );
     const totalChunks = chunksAtCurrentTime.length;
 
     let loadedChunks = 0;
