@@ -64,7 +64,7 @@ export class ChunkStoreView {
     return this.viewport_;
   }
 
-  public getChunks(sliceCoords: SliceCoordinates): Chunk[] {
+  public getChunksToRender(sliceCoords: SliceCoordinates): Chunk[] {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
     const currentLODChunks = currentTimeChunks.filter(

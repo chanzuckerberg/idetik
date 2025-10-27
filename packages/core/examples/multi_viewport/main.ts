@@ -26,11 +26,7 @@ const zRange = { min: zMin, max: zMax };
 // Shared source between two viewports
 const source = new OmeZarrImageSource(url);
 
-// Each viewport has its own slice coordinates
 const sliceCoords1 = { t: 400, z: 200, c: 0 };
-const sliceCoords2 = { t: 400, z: 300, c: 0 };
-
-// First viewport
 const camera2D1 = new OrthographicCamera(left, right, top, bottom);
 const imageLayer1 = new ChunkedImageLayer({
   source,
@@ -39,7 +35,7 @@ const imageLayer1 = new ChunkedImageLayer({
   channelProps: [{ contrastLimits: [0, 200] }],
 });
 
-// Second viewport with same source
+const sliceCoords2 = { t: 400, z: 300, c: 0 };
 const camera2D2 = new OrthographicCamera(left, right, top, bottom);
 const imageLayer2 = new ChunkedImageLayer({
   source,
@@ -71,22 +67,24 @@ new Idetik({
 
 const gui = new GUI({ width: 300 });
 
-gui.add({ label: "Slice 1" }, "label").disable();
+const leftViewportFolder = gui.addFolder("Left Viewport");
 addDimensionSlider({
-  gui,
+  gui: leftViewportFolder,
   sliceCoords: sliceCoords1,
   dimensionName: "z",
   minValue: zRange.min,
   maxValue: zRange.max,
   stepValue: z.scale,
 });
+leftViewportFolder.open();
 
-gui.add({ label: "Slice 2" }, "label").disable();
+const rightViewportFolder = gui.addFolder("Right Viewport");
 addDimensionSlider({
-  gui,
+  gui: rightViewportFolder,
   sliceCoords: sliceCoords2,
   dimensionName: "z",
   minValue: zRange.min,
   maxValue: zRange.max,
   stepValue: z.scale,
 });
+rightViewportFolder.open();
