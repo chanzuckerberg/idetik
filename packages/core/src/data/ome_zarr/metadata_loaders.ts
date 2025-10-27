@@ -51,10 +51,12 @@ function removeProperty<O, P extends keyof O>(obj: O, prop: P): Omit<O, P> {
 }
 
 export async function loadOmeZarrPlate(
-  url: string
+  url: string,
+  version?: Version
 ): Promise<AdaptedOme<Plate["ome"]>> {
   const location = new zarr.Location(new zarr.FetchStore(url));
-  const group = await openGroup(location);
+  const zarrVersion = version ? omeZarrToZarrVersion(version) : undefined;
+  const group = await openGroup(location, zarrVersion);
   try {
     return parsePlate(group.attrs);
   } catch {
@@ -124,10 +126,12 @@ function parseWell(attrs: Record<string, unknown>): AdaptedOme<Well["ome"]> {
 
 export async function loadOmeZarrWell(
   url: string,
-  path: string
+  path: string,
+  version?: Version
 ): Promise<AdaptedOme<Well["ome"]>> {
   const location = new zarr.Location(new zarr.FetchStore(url + "/" + path));
-  const group = await openGroup(location);
+  const zarrVersion = version ? omeZarrToZarrVersion(version) : undefined;
+  const group = await openGroup(location, zarrVersion);
   try {
     return parseWell(group.attrs);
   } catch {
@@ -143,7 +147,10 @@ export type OmeroChannel = OmeroMetadata["channels"][number];
 export async function loadOmeroChannels(
   source: OmeZarrImageSource
 ): Promise<OmeroChannel[]> {
-  const group = await openGroup(source.location);
+  const zarrVersion = source.version
+    ? omeZarrToZarrVersion(source.version)
+    : undefined;
+  const group = await openGroup(source.location, zarrVersion);
   const image = parseOmeZarrImage(group.attrs);
   return image.omero?.channels ?? [];
 }
@@ -151,7 +158,10 @@ export async function loadOmeroChannels(
 export async function loadOmeroDefaults(
   source: OmeZarrImageSource
 ): Promise<OmeroMetadata["rdefs"]> {
-  const group = await openGroup(source.location);
+  const zarrVersion = source.version
+    ? omeZarrToZarrVersion(source.version)
+    : undefined;
+  const group = await openGroup(source.location, zarrVersion);
   const image = parseOmeZarrImage(group.attrs);
   return image.omero?.rdefs;
 }
