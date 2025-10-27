@@ -1,4 +1,4 @@
-import { vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 
 export class Box3 {
   public min: vec3;
@@ -37,5 +37,38 @@ export class Box3 {
     if (a.max[1] <= b.min[1] || a.min[1] >= b.max[1]) return false;
     if (a.max[2] <= b.min[2] || a.min[2] >= b.max[2]) return false;
     return true;
+  }
+
+  public expandWithPoint(p: vec3) {
+    if (p[0] < this.min[0]) this.min[0] = p[0];
+    if (p[1] < this.min[1]) this.min[1] = p[1];
+    if (p[2] < this.min[2]) this.min[2] = p[2];
+    if (p[0] > this.max[0]) this.max[0] = p[0];
+    if (p[1] > this.max[1]) this.max[1] = p[1];
+    if (p[2] > this.max[2]) this.max[2] = p[2];
+  }
+
+  public applyTransform(matrix: mat4) {
+    const { min, max } = this;
+    const corners: vec3[] = [
+      vec3.fromValues(min[0], min[1], min[2]),
+      vec3.fromValues(min[0], min[1], max[2]),
+      vec3.fromValues(min[0], max[1], min[2]),
+      vec3.fromValues(min[0], max[1], max[2]),
+      vec3.fromValues(max[0], min[1], min[2]),
+      vec3.fromValues(max[0], min[1], max[2]),
+      vec3.fromValues(max[0], max[1], min[2]),
+      vec3.fromValues(max[0], max[1], max[2]),
+    ];
+
+    // "Empty" box before expanding
+    this.min = vec3.fromValues(+Infinity, +Infinity, +Infinity);
+    this.max = vec3.fromValues(-Infinity, -Infinity, -Infinity);
+
+    const tmp = vec3.create();
+    for (const c of corners) {
+      vec3.transformMat4(tmp, c, matrix);
+      this.expandWithPoint(tmp);
+    }
   }
 }
