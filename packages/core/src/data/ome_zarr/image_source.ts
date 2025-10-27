@@ -29,8 +29,16 @@ export class OmeZarrImageSource {
    * @param path path to image, beginning with "/". This argument allows the application to only
    *    ask the user once for permission to the root directory
    */
-  constructor(directory: FileSystemDirectoryHandle, version?: OmeZarrVersion, path?: `/${string}`);
-  constructor(source: string | FileSystemDirectoryHandle, version?: OmeZarrVersion, path?: `/${string}`) {
+  constructor(
+    directory: FileSystemDirectoryHandle,
+    version?: OmeZarrVersion,
+    path?: `/${string}`
+  );
+  constructor(
+    source: string | FileSystemDirectoryHandle,
+    version?: OmeZarrVersion,
+    path?: `/${string}`
+  ) {
     this.location =
       typeof source === "string"
         ? new Location(new FetchStore(source))
@@ -39,7 +47,9 @@ export class OmeZarrImageSource {
   }
 
   public async open(): Promise<OmeZarrImageLoader> {
-    let zarrVersion = this.version ? omeZarrToZarrVersion(this.version) : undefined;
+    let zarrVersion = this.version
+      ? omeZarrToZarrVersion(this.version)
+      : undefined;
     const root = await openGroup(this.location, zarrVersion);
     const adaptedOmeImage = parseOmeZarrImage(root.attrs);
     const images = adaptedOmeImage.multiscales;
