@@ -1,5 +1,5 @@
 import { Logger } from "../utilities/logger";
-import {
+import type {
   Texture,
   TextureFilter,
   TextureWrapMode,
@@ -7,9 +7,9 @@ import {
   TextureDataFormat,
 } from "../objects/textures/texture";
 
-import { Texture2D } from "../objects/textures/texture_2d";
-import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { Texture3D } from "@/objects/textures/texture_3d";
+import type { Texture2D } from "../objects/textures/texture_2d";
+import type { Texture2DArray } from "../objects/textures/texture_2d_array";
+import type { Texture3D } from "@/objects/textures/texture_3d";
 
 type TextureFormatInfo = {
   internalFormat: number;
