@@ -20,7 +20,6 @@ export function makeChunk(overrides: ChunkOverrides = {}): Chunk {
     priority: null,
     orderKey: null,
     shape: { x: 256, y: 256, z: 256, c: 1 },
-    rowStride: 256,
     rowAlignmentBytes: 1,
     chunkIndex: { x: 0, y: 0, z: 0, c: 0, t: 0 },
     scale: { x: 1, y: 1, z: 1 },
@@ -36,7 +35,6 @@ export function makeChunk(overrides: ChunkOverrides = {}): Chunk {
     chunkIndex: { ...defaultChunk.chunkIndex, ...(chunkIndex ?? {}) },
     scale: { ...defaultChunk.scale, ...(scale ?? {}) },
     offset: { ...defaultChunk.offset, ...(offset ?? {}) },
-    rowStride: mergedShape.x,
   };
 }
 
