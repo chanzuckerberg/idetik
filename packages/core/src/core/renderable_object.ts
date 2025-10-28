@@ -59,6 +59,12 @@ export abstract class RenderableObject extends Node {
     return this.programName_;
   }
 
+  public get boundingBox() {
+    const box = this.geometry_.boundingBox.clone();
+    box.applyTransform(this.transform_.matrix);
+    return box;
+  }
+
   protected set programName(programName: Shader) {
     this.programName_ = programName;
   }
