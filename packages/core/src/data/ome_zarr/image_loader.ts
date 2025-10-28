@@ -92,6 +92,8 @@ export class OmeZarrImageLoader {
       );
     }
 
+    validateTightlyPackedChunk(receivedChunk);
+
     const receivedShape = {
       x: receivedChunk.shape[this.dimensions_.x.index],
       y: receivedChunk.shape[this.dimensions_.y.index],
@@ -125,7 +127,6 @@ export class OmeZarrImageLoader {
       );
     } else {
       chunk.data = receivedChunk.data;
-      chunk.rowStride = receivedChunk.stride[this.dimensions_.y.index];
     }
 
     const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
@@ -194,6 +195,8 @@ export class OmeZarrImageLoader {
       );
     }
 
+    validateTightlyPackedChunk(subarray);
+
     if (subarray.shape.length !== 2 && subarray.shape.length !== 3) {
       throw new Error(
         `Expected to receive a 2D or 3D subarray. Instead chunk has shape ${subarray.shape}`
@@ -235,7 +238,6 @@ export class OmeZarrImageLoader {
         c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
       },
       chunkIndex: { x: 0, y: 0, z: 0, c: 0, t: 0 },
-      rowStride: subarray.stride[subarray.stride.length - 2],
       rowAlignmentBytes: rowAlignment,
       scale: {
         x: scale[indices.length - 1],
@@ -372,4 +374,16 @@ function findDimensionIndex(dimensions: string[], target: string): number {
 
 function findDimensionIndexSafe(dimensions: string[], target: string): number {
   return dimensions.findIndex((d) => compareDimensions(d, target));
+}
+
+function validateTightlyPackedChunk(chunk: zarr.Chunk<zarr.DataType>): void {
+  let stride = 1;
+  for (let i = chunk.shape.length - 1; i >= 0; i--) {
+    if (chunk.stride[i] !== stride) {
+      throw new Error(
+        `Chunk data is not tightly packed, stride=${JSON.stringify(chunk.stride)}, shape=${JSON.stringify(chunk.shape)}`
+      );
+    }
+    stride *= chunk.shape[i];
+  }
 }
