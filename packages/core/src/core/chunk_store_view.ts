@@ -124,6 +124,18 @@ export class ChunkStoreView {
     }
   }
 
+  public allVisibleLowestLODLoaded(sliceCoords: SliceCoordinates): boolean {
+    const timeIndex = this.store_.getTimeIndex(sliceCoords);
+    const visibleChunks = this.store_
+      .getChunksAtTime(timeIndex)
+      .filter((c) => c.visible && c.lod === this.store_.getLowestResLOD());
+    // Return false if there are no visible chunks (empty array .every() returns true)
+    return (
+      visibleChunks.length > 0 &&
+      visibleChunks.every((c) => c.state === "loaded")
+    );
+  }
+
   public get currentLOD(): number {
     return this.currentLOD_;
   }

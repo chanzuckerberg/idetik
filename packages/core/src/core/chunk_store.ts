@@ -100,17 +100,6 @@ export class ChunkStore {
     return coordToIndex(this.dimensions_.t.lods[0], sliceCoords.t);
   }
 
-  public allVisibleLowestLODLoaded(timeIndex: number): boolean {
-    const visibleChunks = this.getChunksAtTime(timeIndex).filter(
-      (c) => c.visible && c.lod === this.lowestResLOD_
-    );
-    // Return false if there are no visible chunks (empty array .every() returns true)
-    return (
-      visibleChunks.length > 0 &&
-      visibleChunks.every((c) => c.state === "loaded")
-    );
-  }
-
   public get lodCount() {
     return this.lowestResLOD_ + 1;
   }

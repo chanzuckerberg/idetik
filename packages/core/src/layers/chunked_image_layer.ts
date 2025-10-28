@@ -108,10 +108,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (!this.chunkStoreView_ || !this.chunkStore_) return;
     if (this.state !== "ready") this.setState("ready");
 
-    const currentTimeIndex = this.chunkStore_.getTimeIndex(this.sliceCoords_);
     if (
       this.visibleChunks_.size > 0 &&
-      !this.chunkStore_.allVisibleLowestLODLoaded(currentTimeIndex) &&
+      !this.chunkStoreView_.allVisibleLowestLODLoaded(this.sliceCoords_) &&
       !this.isPresentationStale()
     ) {
       return;
