@@ -128,7 +128,7 @@ export class ChunkStoreView {
     return this.currentLOD_;
   }
 
-  public forgetChunk(chunk: Chunk): void {
+  public maybeForgetChunk(chunk: Chunk): void {
     const viewState = this.chunkViewStates_.get(chunk);
     if (
       viewState &&

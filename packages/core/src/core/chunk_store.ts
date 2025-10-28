@@ -158,10 +158,6 @@ export class ChunkStore {
     }
   }
 
-  public get views(): ReadonlySet<ChunkStoreView> {
-    return this.views_;
-  }
-
   public updateAndCollectChunkChanges(): Chunk[] {
     const affectedChunks = new Set<Chunk>();
     for (const view of this.views_) {
@@ -202,7 +198,7 @@ export class ChunkStore {
         !viewState.prefetch &&
         viewState.priority === null
       ) {
-        view.forgetChunk(chunk);
+        view.maybeForgetChunk(chunk);
       }
     }
 

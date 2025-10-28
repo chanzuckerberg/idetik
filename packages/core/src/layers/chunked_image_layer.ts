@@ -84,6 +84,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (this.chunkStoreView_ && this.chunkStore_) {
       this.chunkStore_.removeView(this.chunkStoreView_);
     }
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.clearObjects();
     this.chunkStoreView_ = undefined;
     this.chunkStore_ = undefined;
   }
@@ -117,17 +119,14 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
-    // Get chunks to render and update visible chunks
     const orderedByLOD = this.chunkStoreView_.getChunksToRender(
       this.sliceCoords_
     );
     const current = new Set(orderedByLOD);
-    this.visibleChunks_.forEach((image, chunk) => {
-      if (!current.has(chunk)) {
-        this.visibleChunks_.delete(chunk);
-        this.pool_.release(poolKeyForImageRenderable(chunk), image);
-      }
-    });
+    const nonVisibleChunks = Array.from(this.visibleChunks_.keys()).filter(
+      (chunk) => !current.has(chunk)
+    );
+    this.releaseAndRemoveChunks(nonVisibleChunks);
 
     this.clearObjects();
     for (const chunk of orderedByLOD) {
@@ -166,6 +165,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     }
 
     this.zPrevPointWorld_ = zPointWorld;
+  }
+
+  private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
+    for (const chunk of chunks) {
+      const image = this.visibleChunks_.get(chunk);
+      if (image) {
+        this.pool_.release(poolKeyForImageRenderable(chunk), image);
+        this.visibleChunks_.delete(chunk);
+      }
+    }
   }
 
   public onEvent(event: EventContext) {
