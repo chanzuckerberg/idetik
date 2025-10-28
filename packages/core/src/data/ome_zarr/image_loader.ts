@@ -92,7 +92,7 @@ export class OmeZarrImageLoader {
       );
     }
 
-    validateCompactChunk(receivedChunk);
+    validateTightlyPackedChunk(receivedChunk);
 
     const receivedShape = {
       x: receivedChunk.shape[this.dimensions_.x.index],
@@ -195,7 +195,7 @@ export class OmeZarrImageLoader {
       );
     }
 
-    validateCompactChunk(subarray);
+    validateTightlyPackedChunk(subarray);
 
     if (subarray.shape.length !== 2 && subarray.shape.length !== 3) {
       throw new Error(
@@ -376,12 +376,12 @@ function findDimensionIndexSafe(dimensions: string[], target: string): number {
   return dimensions.findIndex((d) => compareDimensions(d, target));
 }
 
-function validateCompactChunk(chunk: zarr.Chunk<zarr.DataType>): void {
+function validateTightlyPackedChunk(chunk: zarr.Chunk<zarr.DataType>): void {
   let stride = 1;
   for (let i = chunk.shape.length - 1; i >= 0; i--) {
     if (chunk.stride[i] !== stride) {
       throw new Error(
-        `Chunk is not compact, stride=${JSON.stringify(chunk.stride)}, shape=${JSON.stringify(chunk.shape)}`
+        `Chunk data is not tightly packed, stride=${JSON.stringify(chunk.stride)}, shape=${JSON.stringify(chunk.shape)}`
       );
     }
     stride *= chunk.shape[i];
