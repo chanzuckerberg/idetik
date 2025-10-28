@@ -82,7 +82,6 @@ export abstract class Texture extends Node {
   public minFilter: TextureFilter = "nearest";
   public mipmapLevels = 1;
   public unpackAlignment: TextureUnpackRowAlignment = 4;
-  public unpackRowLength = 0;
   public wrapR: TextureWrapMode = "clamp_to_edge";
   public wrapS: TextureWrapMode = "clamp_to_edge";
   public wrapT: TextureWrapMode = "clamp_to_edge";

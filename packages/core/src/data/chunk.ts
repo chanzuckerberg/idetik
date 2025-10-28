@@ -41,7 +41,6 @@ export type Chunk = {
     z: number;
     c: number;
   };
-  rowStride: number;
   rowAlignmentBytes: TextureUnpackRowAlignment;
   chunkIndex: {
     x: number;
