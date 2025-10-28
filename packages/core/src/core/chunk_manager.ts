@@ -4,29 +4,26 @@ import { ChunkStore } from "./chunk_store";
 
 export class ChunkManager {
   private readonly stores_ = new Map<ChunkSource, ChunkStore>();
-  private readonly pendingSources_ = new Map<
-    ChunkSource,
-    Promise<ChunkStore>
-  >();
+  private readonly pendingStores_ = new Map<ChunkSource, Promise<ChunkStore>>();
   private readonly queue_ = new ChunkQueue();
 
   public async addSource(source: ChunkSource): Promise<ChunkStore> {
     const existingOrPending =
-      this.stores_.get(source) ?? this.pendingSources_.get(source);
+      this.stores_.get(source) ?? this.pendingStores_.get(source);
     if (existingOrPending) {
       return existingOrPending;
     }
 
-    const initializeSource = async () => {
+    const initializeStore = async () => {
       const loader = await source.open();
       const store = new ChunkStore(loader);
       this.stores_.set(source, store);
-      this.pendingSources_.delete(source);
+      this.pendingStores_.delete(source);
       return store;
     };
 
-    const pending = initializeSource();
-    this.pendingSources_.set(source, pending);
+    const pending = initializeStore();
+    this.pendingStores_.set(source, pending);
     return pending;
   }
 
