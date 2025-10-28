@@ -181,7 +181,7 @@ export class ChunkStore {
     let anyVisible = false;
     let anyPrefetch = false;
     let minPriority: number | null = null;
-    let minOrderKey: number | null = null;
+    let orderKeyForMinPriority: number | null = null;
 
     for (const view of this.views_) {
       const viewState = view.chunkViewStates.get(chunk);
@@ -193,12 +193,7 @@ export class ChunkStore {
       if (viewState.priority !== null) {
         if (minPriority === null || viewState.priority < minPriority) {
           minPriority = viewState.priority;
-        }
-      }
-
-      if (viewState.orderKey !== null) {
-        if (minOrderKey === null || viewState.orderKey < minOrderKey) {
-          minOrderKey = viewState.orderKey;
+          orderKeyForMinPriority = viewState.orderKey;
         }
       }
 
@@ -214,7 +209,7 @@ export class ChunkStore {
     chunk.visible = anyVisible;
     chunk.prefetch = anyPrefetch;
     chunk.priority = minPriority;
-    chunk.orderKey = minOrderKey;
+    chunk.orderKey = orderKeyForMinPriority;
 
     if (chunk.priority !== null && chunk.state === "unloaded") {
       chunk.state = "queued";

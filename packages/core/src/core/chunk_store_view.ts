@@ -60,10 +60,6 @@ export class ChunkStoreView {
     return this.chunkViewStates_;
   }
 
-  public get viewport(): Viewport {
-    return this.viewport_;
-  }
-
   public getChunksToRender(sliceCoords: SliceCoordinates): Chunk[] {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
