@@ -9,6 +9,7 @@ import {
 
 import { Texture2D } from "../objects/textures/texture_2d";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
+import { Texture3D } from "../objects/textures/texture_3d";
 
 type TextureFormatInfo = {
   internalFormat: number;
@@ -114,7 +115,7 @@ export class WebGLTextures {
         texture.width,
         texture.height
       );
-    } else if (this.isTexture2DArray(texture)) {
+    } else if (this.isTexture2DArray(texture) || this.isTexture3D(texture)) {
       this.gl_.texStorage3D(
         type,
         texture.mipmapLevels,
@@ -174,7 +175,7 @@ export class WebGLTextures {
         // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D#syntax
         texture.data as ArrayBufferView
       );
-    } else if (this.isTexture2DArray(texture)) {
+    } else if (this.isTexture2DArray(texture) || this.isTexture3D(texture)) {
       this.gl_.texSubImage3D(
         type,
         mipmapLevel,
@@ -219,6 +220,7 @@ export class WebGLTextures {
   private getTextureType(texture: Texture) {
     if (this.isTexture2D(texture)) return this.gl_.TEXTURE_2D;
     if (this.isTexture2DArray(texture)) return this.gl_.TEXTURE_2D_ARRAY;
+    if (this.isTexture3D(texture)) return this.gl_.TEXTURE_3D;
     throw new Error(`Unknown texture type ${texture.type}`);
   }
 
@@ -350,5 +352,9 @@ export class WebGLTextures {
 
   private isTexture2DArray(texture: Texture): texture is Texture2DArray {
     return texture.type === "Texture2DArray";
+  }
+
+  private isTexture3D(texture: Texture): texture is Texture3D {
+    return texture.type === "Texture3D";
   }
 }
