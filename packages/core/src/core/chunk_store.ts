@@ -7,16 +7,12 @@ import {
 } from "../data/chunk";
 import { Logger } from "../utilities/logger";
 import { almostEqual } from "../utilities/almost_equal";
-import { ChunkStoreView } from "./chunk_store_view";
-import { Viewport } from "./viewport";
-import { ImageSourcePolicy } from "./image_source_policy";
 
 export class ChunkStore {
   private readonly chunks_: Chunk[][];
   private readonly loader_: ChunkLoader;
   private readonly lowestResLOD_: number;
   private readonly dimensions_: SourceDimensionMap;
-  private readonly views_: Set<ChunkStoreView> = new Set();
 
   constructor(loader: ChunkLoader) {
     this.loader_ = loader;
@@ -25,6 +21,7 @@ export class ChunkStore {
 
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
+    const { size: chunksC } = this.getAndValidateChannelDimension();
 
     this.chunks_ = Array.from({ length: chunksT }, () => []);
     for (let t = 0; t < chunksT; ++t) {
@@ -33,7 +30,6 @@ export class ChunkStore {
         const xLod = this.dimensions_.x.lods[lod];
         const yLod = this.dimensions_.y.lods[lod];
         const zLod = this.dimensions_.z?.lods[lod];
-        const cLod = this.dimensions_.c?.lods[lod];
 
         const chunkWidth = xLod.chunkSize;
         const chunkHeight = yLod.chunkSize;
@@ -42,12 +38,10 @@ export class ChunkStore {
         const chunksX = Math.ceil(xLod.size / chunkWidth);
         const chunksY = Math.ceil(yLod.size / chunkHeight);
         const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
-        const channels = cLod?.size ?? 1;
 
-        for (let c = 0; c < channels; ++c) {
+        for (let c = 0; c < chunksC; ++c) {
           for (let x = 0; x < chunksX; ++x) {
             const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
-            const rowStride = Math.min(chunkWidth, xLod.size - x * chunkWidth);
             for (let y = 0; y < chunksY; ++y) {
               const yOffset =
                 yLod.translation + y * yLod.chunkSize * yLod.scale;
@@ -69,7 +63,6 @@ export class ChunkStore {
                     z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
                     c: 1,
                   },
-                  rowStride,
                   rowAlignmentBytes: 1,
                   chunkIndex: { x, y, z, c, t },
                   scale: {
@@ -101,17 +94,6 @@ export class ChunkStore {
     return coordToIndex(this.dimensions_.t.lods[0], sliceCoords.t);
   }
 
-  public allVisibleLowestLODLoaded(timeIndex: number): boolean {
-    const visibleChunks = this.getChunksAtTime(timeIndex).filter(
-      (c) => c.visible && c.lod === this.lowestResLOD_
-    );
-    // Return false if there are no visible chunks (empty array .every() returns true)
-    return (
-      visibleChunks.length > 0 &&
-      visibleChunks.every((c) => c.state === "loaded")
-    );
-  }
-
   public get lodCount() {
     return this.lowestResLOD_ + 1;
   }
@@ -138,88 +120,6 @@ export class ChunkStore {
       "ChunkStore",
       `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
     );
-  }
-
-  public createView(
-    viewport: Viewport,
-    policy: ImageSourcePolicy
-  ): ChunkStoreView {
-    const view = new ChunkStoreView(this, viewport, policy);
-    this.views_.add(view);
-    return view;
-  }
-
-  public removeView(view: ChunkStoreView): void {
-    const affectedChunks = Array.from(view.chunkViewStates.keys());
-    this.views_.delete(view);
-
-    for (const chunk of affectedChunks) {
-      this.aggregateChunkViewStates(chunk);
-    }
-  }
-
-  public get views(): ReadonlySet<ChunkStoreView> {
-    return this.views_;
-  }
-
-  public updateAndCollectChunkChanges(): Chunk[] {
-    const affectedChunks = new Set<Chunk>();
-    for (const view of this.views_) {
-      for (const [chunk, _viewState] of view.chunkViewStates) {
-        affectedChunks.add(chunk);
-      }
-    }
-
-    for (const chunk of affectedChunks) {
-      this.aggregateChunkViewStates(chunk);
-    }
-
-    return Array.from(affectedChunks);
-  }
-
-  private aggregateChunkViewStates(chunk: Chunk): void {
-    let anyVisible = false;
-    let anyPrefetch = false;
-    let minPriority: number | null = null;
-    let orderKeyForMinPriority: number | null = null;
-
-    for (const view of this.views_) {
-      const viewState = view.chunkViewStates.get(chunk);
-      if (!viewState) continue;
-
-      if (viewState.visible) anyVisible = true;
-      if (viewState.prefetch) anyPrefetch = true;
-
-      if (viewState.priority !== null) {
-        if (minPriority === null || viewState.priority < minPriority) {
-          minPriority = viewState.priority;
-          orderKeyForMinPriority = viewState.orderKey;
-        }
-      }
-
-      if (
-        !viewState.visible &&
-        !viewState.prefetch &&
-        viewState.priority === null
-      ) {
-        view.forgetChunk(chunk);
-      }
-    }
-
-    chunk.visible = anyVisible;
-    chunk.prefetch = anyPrefetch;
-    chunk.priority = minPriority;
-    chunk.orderKey = orderKeyForMinPriority;
-
-    if (chunk.priority !== null && chunk.state === "unloaded") {
-      chunk.state = "queued";
-    } else if (chunk.priority === null && chunk.state === "queued") {
-      chunk.state = "unloaded";
-    }
-
-    if (chunk.priority === null && chunk.state === "loaded") {
-      this.disposeChunk(chunk);
-    }
   }
 
   private validateXYScaleRatios(): void {
@@ -261,6 +161,38 @@ export class ChunkStore {
     }
     return {
       size: this.dimensions_.t?.lods[0].size ?? 1,
+    };
+  }
+
+  private getAndValidateChannelDimension() {
+    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+      const cLod = this.dimensions_.c?.lods[lod];
+      if (!cLod) continue;
+      if (cLod.chunkSize !== 1) {
+        throw new Error(
+          `ChunkStore only supports a chunk size of 1 in c. Found ${cLod.chunkSize} at LOD ${lod}`
+        );
+      }
+      if (cLod.scale !== 1) {
+        throw new Error(
+          `ChunkStore does not support scale in c. Found ${cLod.scale} at LOD ${lod}`
+        );
+      }
+      if (cLod.translation !== 0) {
+        throw new Error(
+          `ChunkStore does not support translation in c. Found ${cLod.translation} at LOD ${lod}`
+        );
+      }
+      const prevCLod = this.dimensions_.c?.lods[lod - 1];
+      if (!prevCLod) continue;
+      if (cLod.size !== prevCLod.size) {
+        throw new Error(
+          `ChunkStore does not support downsampling in c. Found ${prevCLod.size} at LOD ${lod - 1} → ${cLod.size} at LOD ${lod}`
+        );
+      }
+    }
+    return {
+      size: this.dimensions_.c?.lods[0].size ?? 1,
     };
   }
 }

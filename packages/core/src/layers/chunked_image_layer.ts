@@ -36,7 +36,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly channelChangeCallbacks_: (() => void)[] = [];
   private policy_: ImageSourcePolicy;
   private channelProps_?: ChannelProps[];
-  private chunkStore_?: ChunkStore;
   private chunkStoreView_?: ChunkStoreView;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
@@ -72,44 +71,41 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public async onAttached(context: IdetikContext) {
-    if (this.chunkStore_) {
+    if (this.chunkStoreView_) {
       throw new Error(
         "ChunkedImageLayer cannot be attached to multiple contexts simultaneously."
       );
     }
-    this.chunkStore_ = await context.chunkManager.addSource(this.source_);
+    this.chunkStoreView_ = await context.chunkManager.addView(
+      this.source_,
+      this.policy_
+    );
   }
 
-  public onDetached(): void {
-    if (this.chunkStoreView_ && this.chunkStore_) {
-      this.chunkStore_.removeView(this.chunkStoreView_);
-    }
+  public onDetached(context: IdetikContext): void {
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.clearObjects();
+    if (!this.chunkStoreView_) return;
+    context.chunkManager.removeView(this.chunkStoreView_);
     this.chunkStoreView_ = undefined;
-    this.chunkStore_ = undefined;
   }
 
   public update(context?: RenderContext) {
-    if (!context || !this.chunkStore_) return;
+    if (!context || !this.chunkStoreView_) return;
 
-    this.chunkStoreView_ ??= this.chunkStore_.createView(
-      context.viewport,
-      this.policy_
-    );
-
-    this.chunkStoreView_.updateChunkStates(this.sliceCoords_);
+    this.chunkStoreView_.updateChunkStates(this.sliceCoords_, context.viewport);
 
     this.updateChunks();
     this.resliceIfZChanged();
   }
 
   private updateChunks() {
-    if (!this.chunkStoreView_ || !this.chunkStore_) return;
+    if (!this.chunkStoreView_) return;
     if (this.state !== "ready") this.setState("ready");
 
-    const currentTimeIndex = this.chunkStore_.getTimeIndex(this.sliceCoords_);
     if (
       this.visibleChunks_.size > 0 &&
-      !this.chunkStore_.allVisibleLowestLODLoaded(currentTimeIndex) &&
+      !this.chunkStoreView_.allVisibleLowestLODLoaded(this.sliceCoords_) &&
       !this.isPresentationStale()
     ) {
       return;
@@ -117,17 +113,14 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
-    // Get chunks to render and update visible chunks
     const orderedByLOD = this.chunkStoreView_.getChunksToRender(
       this.sliceCoords_
     );
     const current = new Set(orderedByLOD);
-    this.visibleChunks_.forEach((image, chunk) => {
-      if (!current.has(chunk)) {
-        this.visibleChunks_.delete(chunk);
-        this.pool_.release(poolKeyForImageRenderable(chunk), image);
-      }
-    });
+    const nonVisibleChunks = Array.from(this.visibleChunks_.keys()).filter(
+      (chunk) => !current.has(chunk)
+    );
+    this.releaseAndRemoveChunks(nonVisibleChunks);
 
     this.clearObjects();
     for (const chunk of orderedByLOD) {
@@ -178,7 +171,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public get chunkStore(): ChunkStore | undefined {
-    return this.chunkStore_;
+    return this.chunkStoreView_?.store;
   }
 
   public get chunkStoreView(): ChunkStoreView | undefined {
@@ -375,6 +368,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
+  }
+
+  private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
+    for (const chunk of chunks) {
+      const image = this.visibleChunks_.get(chunk);
+      if (image) {
+        this.pool_.release(poolKeyForImageRenderable(chunk), image);
+        this.visibleChunks_.delete(chunk);
+      }
+    }
   }
 }
 
