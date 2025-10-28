@@ -3,7 +3,7 @@ import { ChunkQueue } from "../data/chunk_queue";
 import { ChunkStore } from "./chunk_store";
 
 export class ChunkManager {
-  private readonly sources_ = new Map<ChunkSource, ChunkStore>();
+  private readonly stores_ = new Map<ChunkSource, ChunkStore>();
   private readonly pendingSources_ = new Map<
     ChunkSource,
     Promise<ChunkStore>
@@ -12,7 +12,7 @@ export class ChunkManager {
 
   public async addSource(source: ChunkSource): Promise<ChunkStore> {
     const existingOrPending =
-      this.sources_.get(source) ?? this.pendingSources_.get(source);
+      this.stores_.get(source) ?? this.pendingSources_.get(source);
     if (existingOrPending) {
       return existingOrPending;
     }
@@ -20,7 +20,7 @@ export class ChunkManager {
     const initializeSource = async () => {
       const loader = await source.open();
       const store = new ChunkStore(loader);
-      this.sources_.set(source, store);
+      this.stores_.set(source, store);
       this.pendingSources_.delete(source);
       return store;
     };
@@ -31,20 +31,20 @@ export class ChunkManager {
   }
 
   public update() {
-    for (const [_, source] of this.sources_) {
-      const updatedChunks = source.updateAndCollectChunkChanges();
+    for (const [_, store] of this.stores_) {
+      const updatedChunks = store.updateAndCollectChunkChanges();
 
-      // Enqueue/cancel chunks based on their priority
       for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
         } else if (chunk.state === "queued") {
           this.queue_.enqueue(chunk, (signal) =>
-            source.loadChunkData(chunk, signal)
+            store.loadChunkData(chunk, signal)
           );
         }
       }
     }
+
     this.queue_.flush();
   }
 }

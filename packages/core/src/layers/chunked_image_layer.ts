@@ -167,16 +167,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.zPrevPointWorld_ = zPointWorld;
   }
 
-  private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
-    for (const chunk of chunks) {
-      const image = this.visibleChunks_.get(chunk);
-      if (image) {
-        this.pool_.release(poolKeyForImageRenderable(chunk), image);
-        this.visibleChunks_.delete(chunk);
-      }
-    }
-  }
-
   public onEvent(event: EventContext) {
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
@@ -384,6 +374,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
+  }
+
+  private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
+    for (const chunk of chunks) {
+      const image = this.visibleChunks_.get(chunk);
+      if (image) {
+        this.pool_.release(poolKeyForImageRenderable(chunk), image);
+        this.visibleChunks_.delete(chunk);
+      }
+    }
   }
 }
 

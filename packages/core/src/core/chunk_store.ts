@@ -25,6 +25,7 @@ export class ChunkStore {
 
     this.validateXYScaleRatios();
     const { size: chunksT } = this.getAndValidateTimeDimension();
+    const { size: chunksC } = this.getAndValidateChannelDimension();
 
     this.chunks_ = Array.from({ length: chunksT }, () => []);
     for (let t = 0; t < chunksT; ++t) {
@@ -33,7 +34,6 @@ export class ChunkStore {
         const xLod = this.dimensions_.x.lods[lod];
         const yLod = this.dimensions_.y.lods[lod];
         const zLod = this.dimensions_.z?.lods[lod];
-        const cLod = this.dimensions_.c?.lods[lod];
 
         const chunkWidth = xLod.chunkSize;
         const chunkHeight = yLod.chunkSize;
@@ -42,9 +42,8 @@ export class ChunkStore {
         const chunksX = Math.ceil(xLod.size / chunkWidth);
         const chunksY = Math.ceil(yLod.size / chunkHeight);
         const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
-        const channels = cLod?.size ?? 1;
 
-        for (let c = 0; c < channels; ++c) {
+        for (let c = 0; c < chunksC; ++c) {
           for (let x = 0; x < chunksX; ++x) {
             const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
             const rowStride = Math.min(chunkWidth, xLod.size - x * chunkWidth);
@@ -257,6 +256,38 @@ export class ChunkStore {
     }
     return {
       size: this.dimensions_.t?.lods[0].size ?? 1,
+    };
+  }
+
+  private getAndValidateChannelDimension() {
+    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
+      const cLod = this.dimensions_.c?.lods[lod];
+      if (!cLod) continue;
+      if (cLod.chunkSize !== 1) {
+        throw new Error(
+          `ChunkStore only supports a chunk size of 1 in c. Found ${cLod.chunkSize} at LOD ${lod}`
+        );
+      }
+      if (cLod.scale !== 1) {
+        throw new Error(
+          `ChunkStore does not support scale in c. Found ${cLod.scale} at LOD ${lod}`
+        );
+      }
+      if (cLod.translation !== 0) {
+        throw new Error(
+          `ChunkStore does not support translation in c. Found ${cLod.translation} at LOD ${lod}`
+        );
+      }
+      const prevCLod = this.dimensions_.c?.lods[lod - 1];
+      if (!prevCLod) continue;
+      if (cLod.size !== prevCLod.size) {
+        throw new Error(
+          `ChunkStore does not support downsampling in c. Found ${prevCLod.size} at LOD ${lod - 1} → ${cLod.size} at LOD ${lod}`
+        );
+      }
+    }
+    return {
+      size: this.dimensions_.c?.lods[0].size ?? 1,
     };
   }
 }
