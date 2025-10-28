@@ -381,9 +381,7 @@ function validateCompactChunk(chunk: zarr.Chunk<zarr.DataType>): void {
   for (let i = chunk.shape.length - 1; i >= 0; i--) {
     if (chunk.stride[i] !== stride) {
       throw new Error(
-        `Chunk is not compact, stride=${JSON.stringify(
-          chunk.stride
-        )}, shape=${JSON.stringify(chunk.shape)}`
+        `Chunk is not compact, stride=${JSON.stringify(chunk.stride)}, shape=${JSON.stringify(chunk.shape)}`
       );
     }
     stride *= chunk.shape[i];
