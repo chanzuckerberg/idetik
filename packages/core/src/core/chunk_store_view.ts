@@ -21,7 +21,6 @@ const PRI_FALLBACK_BACKGROUND = 4;
 
 export class ChunkStoreView {
   private readonly store_: ChunkStore;
-  private readonly viewport_: Viewport;
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
   private currentLOD_: number = 0;
@@ -29,17 +28,11 @@ export class ChunkStoreView {
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
 
-  private tIndicesWithQueuedChunks_: Set<number> = new Set();
   private sourceMaxSquareDistance2D_: number;
   private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
 
-  constructor(
-    store: ChunkStore,
-    viewport: Viewport,
-    policy: ImageSourcePolicy
-  ) {
+  constructor(store: ChunkStore, policy: ImageSourcePolicy) {
     this.store_ = store;
-    this.viewport_ = viewport;
     this.policy_ = policy;
 
     Logger.info(
@@ -86,8 +79,11 @@ export class ChunkStoreView {
     return [...lowResChunks, ...currentLODChunks];
   }
 
-  public updateChunkStates(sliceCoords: SliceCoordinates): void {
-    const camera = this.viewport_.camera;
+  public updateChunkStates(
+    sliceCoords: SliceCoordinates,
+    viewport: Viewport
+  ): void {
+    const camera = viewport.camera;
     if (camera.type !== "OrthographicCamera") {
       throw new Error(
         "ChunkStoreView currently supports only orthographic cameras. " +
@@ -98,10 +94,8 @@ export class ChunkStoreView {
     const orthoCamera = camera as OrthographicCamera;
     const viewBounds2D = orthoCamera.getWorldViewRect();
     const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const canvasElement = this.viewport_.element as HTMLCanvasElement;
-    const bufferWidth = this.viewport_
-      .getBoxRelativeTo(canvasElement)
-      .toRect().width;
+    const canvasElement = viewport.element as HTMLCanvasElement;
+    const bufferWidth = viewport.getBoxRelativeTo(canvasElement).toRect().width;
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
@@ -225,10 +219,6 @@ export class ChunkStoreView {
     // logic below will override this for chunks that are actually visible/prefetch
     this.chunkViewStates_.forEach(markUnused);
 
-    if (sliceCoords.t !== undefined) {
-      this.updateStaleTimeChunks(currentTimeIndex);
-    }
-
     this.updateChunksAtTimeIndex(
       currentTimeIndex,
       sliceCoords,
@@ -242,14 +232,6 @@ export class ChunkStoreView {
         viewBounds3D,
         viewBoundsCenter2D
       );
-    }
-  }
-
-  private updateStaleTimeChunks(currentTimeIndex: number): void {
-    for (const t of this.tIndicesWithQueuedChunks_) {
-      const delta = t - currentTimeIndex;
-      if (delta >= 0 && delta <= this.policy_.prefetch.t) continue;
-      this.tIndicesWithQueuedChunks_.delete(t);
     }
   }
 
@@ -269,7 +251,6 @@ export class ChunkStoreView {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
 
     const currentTimeChunks = this.store_.getChunksAtTime(timeIndex);
-    this.tIndicesWithQueuedChunks_.add(timeIndex);
 
     for (const chunk of currentTimeChunks) {
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
@@ -336,7 +317,6 @@ export class ChunkStoreView {
         );
         const orderKey = t - currentTimeIndex + normalizedDistance;
 
-        this.tIndicesWithQueuedChunks_.add(t);
         // Always set priority/orderKey to keep loaded chunks alive
         // Only unloaded chunks will be queued for loading
         this.chunkViewStates_.set(chunk, {

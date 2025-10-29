@@ -77,35 +77,31 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         "ChunkedImageLayer cannot be attached to multiple contexts simultaneously."
       );
     }
-    this.chunkStore_ = await context.chunkManager.addSource(this.source_);
+    this.chunkStoreView_ = await context.chunkManager.addView(
+      this.source_,
+      this.policy_
+    );
   }
 
-  public onDetached(): void {
-    if (this.chunkStoreView_ && this.chunkStore_) {
-      this.chunkStore_.removeView(this.chunkStoreView_);
-    }
+  public onDetached(context: IdetikContext): void {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
+    if (!this.chunkStoreView_) return;
+    context.chunkManager.removeView(this.source_, this.chunkStoreView_);
     this.chunkStoreView_ = undefined;
-    this.chunkStore_ = undefined;
   }
 
   public update(context?: RenderContext) {
-    if (!context || !this.chunkStore_) return;
+    if (!context || !this.chunkStoreView_) return;
 
-    this.chunkStoreView_ ??= this.chunkStore_.createView(
-      context.viewport,
-      this.policy_
-    );
-
-    this.chunkStoreView_.updateChunkStates(this.sliceCoords_);
+    this.chunkStoreView_.updateChunkStates(this.sliceCoords_, context.viewport);
 
     this.updateChunks();
     this.resliceIfZChanged();
   }
 
   private updateChunks() {
-    if (!this.chunkStoreView_ || !this.chunkStore_) return;
+    if (!this.chunkStoreView_) return;
     if (this.state !== "ready") this.setState("ready");
 
     if (
