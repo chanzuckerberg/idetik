@@ -36,7 +36,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly channelChangeCallbacks_: (() => void)[] = [];
   private policy_: ImageSourcePolicy;
   private channelProps_?: ChannelProps[];
-  private chunkStore_?: ChunkStore;
   private chunkStoreView_?: ChunkStoreView;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
@@ -72,7 +71,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public async onAttached(context: IdetikContext) {
-    if (this.chunkStore_) {
+    if (this.chunkStoreView_) {
       throw new Error(
         "ChunkedImageLayer cannot be attached to multiple contexts simultaneously."
       );
@@ -172,7 +171,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public get chunkStore(): ChunkStore | undefined {
-    return this.chunkStore_;
+    return this.chunkStoreView_?.store;
   }
 
   public get chunkStoreView(): ChunkStoreView | undefined {

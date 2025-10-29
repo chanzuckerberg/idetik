@@ -10,7 +10,40 @@ export class ChunkManager {
   private readonly views_ = new Map<ChunkStore, ChunkStoreView[]>();
   private readonly queue_ = new ChunkQueue();
 
-  public async addSource(source: ChunkSource): Promise<ChunkStore> {
+  public async addView(
+    source: ChunkSource,
+    policy: ImageSourcePolicy
+  ): Promise<ChunkStoreView> {
+    const store = await this.addSource(source);
+    const view = new ChunkStoreView(store, policy);
+    this.views_.set(store, (this.views_.get(store) ?? []).concat(view));
+    return view;
+  }
+
+  public removeView(view: ChunkStoreView): void {
+    // TODO: log or throw if store or view is not found
+    const store = view.store;
+    const views = this.views_.get(store);
+    if (!views) return;
+    const index = views.indexOf(view);
+    if (index === -1) return;
+
+    const affectedChunks = Array.from(view.chunkViewStates.keys());
+
+    views.splice(index, 1);
+
+    for (const chunk of affectedChunks) {
+      this.aggregateChunkViewStates(chunk, store);
+    }
+
+    if (views.length === 0) {
+      const source = this.getSourceForStore(store);
+      this.stores_.delete(source);
+      this.views_.delete(store);
+    }
+  }
+
+  private async addSource(source: ChunkSource): Promise<ChunkStore> {
     const existingOrPending =
       this.stores_.get(source) ?? this.pendingStores_.get(source);
     if (existingOrPending) {
@@ -30,38 +63,13 @@ export class ChunkManager {
     return pending;
   }
 
-  public async addView(
-    source: ChunkSource,
-    policy: ImageSourcePolicy
-  ): Promise<ChunkStoreView> {
-    const store = await this.addSource(source);
-    const view = new ChunkStoreView(store, policy);
-    this.views_.set(store, (this.views_.get(store) ?? []).concat(view));
-    return view;
-  }
-
-  public removeView(source: ChunkSource, view: ChunkStoreView): void {
-    // TODO: log or throw error if source/view not found
-    const store = this.stores_.get(source);
-    if (!store) return;
-
-    const views = this.views_.get(store);
-    if (!views) return;
-
-    const index = views.indexOf(view);
-    if (index === -1) return;
-
-    const affectedChunks = Array.from(view.chunkViewStates.keys());
-
-    views.splice(index, 1);
-
-    for (const chunk of affectedChunks) {
-      this.aggregateChunkViewStates(chunk, store);
+  private getSourceForStore(store: ChunkStore): ChunkSource {
+    for (const [source, s] of this.stores_) {
+      if (s === store) {
+        return source;
+      }
     }
-    if (views.length === 0) {
-      this.stores_.delete(source);
-      this.views_.delete(store);
-    }
+    throw new Error("Source not found for the given store.");
   }
 
   public update() {

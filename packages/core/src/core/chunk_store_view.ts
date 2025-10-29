@@ -49,6 +49,10 @@ export class ChunkStoreView {
     );
   }
 
+  public get store(): ChunkStore {
+    return this.store_;
+  }
+
   public get chunkViewStates(): ReadonlyMap<Chunk, ChunkViewState> {
     return this.chunkViewStates_;
   }
