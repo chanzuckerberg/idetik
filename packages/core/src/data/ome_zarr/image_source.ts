@@ -47,9 +47,7 @@ export class OmeZarrImageSource {
   }
 
   public async open(): Promise<OmeZarrImageLoader> {
-    let zarrVersion = this.version
-      ? omeZarrToZarrVersion(this.version)
-      : undefined;
+    let zarrVersion = omeZarrToZarrVersion(this.version);
     const root = await openGroup(this.location, zarrVersion);
     const adaptedOmeImage = parseOmeZarrImage(root.attrs);
     const images = adaptedOmeImage.multiscales;

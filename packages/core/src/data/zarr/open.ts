@@ -8,7 +8,7 @@ export type Version = "v2" | "v3";
 
 export type ZarrArrayParams = {
   arrayPath: string;
-  zarrVersion: Version;
+  zarrVersion: Version | undefined;
 } & (
   | {
       type: "fetch";
@@ -110,7 +110,7 @@ export async function openArrayFromParams(
 export function createZarrArrayParams(
   location: Location<Readable>,
   arrayPath: string,
-  zarrVersion: Version
+  zarrVersion: Version | undefined
 ): ZarrArrayParams {
   if (location.store instanceof FetchStore) {
     return {
