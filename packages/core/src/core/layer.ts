@@ -59,7 +59,7 @@ export abstract class Layer {
     this.opacity_ = clamp(value, 0.0, 1.0);
   }
 
-  public abstract update(): void;
+  public abstract update(timestamp?: DOMHighResTimeStamp): void;
 
   public onEvent(_: EventContext): void {}
 

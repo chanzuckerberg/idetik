@@ -21,6 +21,10 @@ export { ChunkedImageLayer } from "./layers/chunked_image_layer";
 export { VolumeLayer } from "./layers/volume_layer";
 export { ImageLayer } from "./layers/image_layer";
 export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
+export {
+  PlaybackController,
+  type PlaybackControllerProps,
+} from "./core/playback_controller";
 export { LabelImageLayer } from "./layers/label_image_layer";
 export type { PointPickingResult } from "./layers/point_picking";
 export { ImageSeriesLayer } from "./layers/image_series_layer";

@@ -165,7 +165,7 @@ export class Idetik {
           viewport.getBoxRelativeTo(this.canvas).toRect().width
         );
       }
-      this.renderer_.render(viewport);
+      this.renderer_.render(viewport, timestamp);
     }
 
     for (const overlay of this.overlays) {

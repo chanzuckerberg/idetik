@@ -9,7 +9,6 @@ import {
   createPlaybackPolicy,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
 const url =
@@ -50,6 +49,12 @@ const imageLayer = new ChunkedImageLayer({
   sliceCoords,
   policy: createExplorationPolicy(),
   channelProps,
+  playback: {
+    start: tMin,
+    stop: tMax,
+    step: t.scale,
+    rateHz: 0,
+  },
 });
 imageLayer.debugMode = true;
 
@@ -81,20 +86,21 @@ const controls = {
 
 const gui = new GUI({ width: 500 });
 
-addDimensionSlider({
-  gui,
-  sliceCoords,
-  dimensionName: "t",
-  minValue: tRange.min,
-  maxValue: tRange.max,
-  stepValue: t.scale,
-  playback: {
-    onRateChange: (rateHz: number) => {
-      imageLayer.imageSourcePolicy =
-        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
-    },
-  },
-});
+// Manual control slider - updates when user drags or when playback is active
+gui
+  .add(sliceCoords, "t", tRange.min, tRange.max, t.scale)
+  .name("t-coord")
+  .listen(); // listen() makes it update when sliceCoords.t changes from playback
+
+// Playback rate control
+const playbackController = imageLayer.playbackController!;
+gui
+  .add(playbackController, "rateHz", 0, 30, 1)
+  .name("t-playback rate (Hz)")
+  .onChange((rateHz: number) => {
+    imageLayer.imageSourcePolicy =
+      rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
+  });
 
 const overlaysFolder = gui.addFolder("Overlays");
 overlaysFolder

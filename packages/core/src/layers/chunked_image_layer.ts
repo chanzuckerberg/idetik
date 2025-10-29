@@ -17,6 +17,10 @@ import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
+import {
+  PlaybackController,
+  PlaybackControllerProps,
+} from "../core/playback_controller";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -24,6 +28,7 @@ export type ChunkedImageLayerProps = LayerOptions & {
   policy: ImageSourcePolicy;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
+  playback?: PlaybackControllerProps;
 };
 
 export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
@@ -36,6 +41,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
+  private readonly playbackController_?: PlaybackController;
   private policy_: ImageSourcePolicy;
   private channelProps_?: ChannelProps[];
   private chunkManagerSource_?: ChunkManagerSource;
@@ -60,6 +66,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     policy,
     channelProps,
     onPickValue,
+    playback,
     ...layerOptions
   }: ChunkedImageLayerProps) {
     super(layerOptions);
@@ -70,6 +77,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
+    if (playback) {
+      this.playbackController_ = new PlaybackController(playback);
+    }
   }
 
   public async onAttached(context: IdetikContext) {
@@ -92,7 +102,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.clearObjects();
   }
 
-  public update() {
+  public update(timestamp?: DOMHighResTimeStamp) {
+    if (this.playbackController_ && timestamp !== undefined) {
+      this.playbackController_.update(timestamp);
+      this.sliceCoords_.t = this.playbackController_.getValue();
+    }
     this.updateChunks();
     this.resliceIfZChanged();
   }
@@ -356,6 +370,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
+  }
+
+  public get playbackController(): PlaybackController | undefined {
+    return this.playbackController_;
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {

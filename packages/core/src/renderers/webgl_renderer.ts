@@ -57,7 +57,7 @@ export class WebGLRenderer extends Renderer {
     this.resize(this.canvas.width, this.canvas.height);
   }
 
-  public render(viewport: Viewport) {
+  public render(viewport: Viewport, timestamp?: DOMHighResTimeStamp) {
     const viewportBox = viewport.getBoxRelativeTo(this.canvas);
     const rendererBox = new Box2(
       vec2.fromValues(0, 0),
@@ -83,7 +83,7 @@ export class WebGLRenderer extends Renderer {
 
     this.state_.setDepthMask(true);
     for (const layer of opaque) {
-      layer.update();
+      layer.update(timestamp);
       if (layer.state === "ready") {
         this.renderLayer(layer, viewport.camera);
       }
@@ -91,7 +91,7 @@ export class WebGLRenderer extends Renderer {
 
     this.state_.setDepthMask(false);
     for (const layer of transparent) {
-      layer.update();
+      layer.update(timestamp);
       if (layer.state !== "ready") continue;
       this.renderLayer(layer, viewport.camera);
     }
