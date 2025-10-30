@@ -146,7 +146,6 @@ export class WebGLTextures {
     // pass it in here as the UNPACK_IMAGE_HEIGHT
     // Similar to what is currently happening in the chunk manager
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
-    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.unpackRowLength);
     gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, minFilter);
     gl.texParameteri(type, gl.TEXTURE_MAG_FILTER, maxFilter);
     gl.texParameteri(type, gl.TEXTURE_WRAP_S, this.getWrapMode(texture.wrapS));

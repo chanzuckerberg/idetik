@@ -8,34 +8,48 @@ import {
 } from "../zarr/open";
 import WebFileSystemStore from "../zarr/web_file_system_store";
 import { OmeZarrImageLoader } from "./image_loader";
-import { omeZarrToZarrVersion, parseOmeZarrImage } from "./metadata_loaders";
+import {
+  omeZarrToZarrVersion,
+  parseOmeZarrImage,
+  Version as OmeZarrVersion,
+} from "./metadata_loaders";
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
   readonly location: Location<Readable>;
+  readonly version?: OmeZarrVersion;
 
   /**
    * @param url URL of Zarr root
    */
-  constructor(url: string);
+  constructor(url: string, version?: OmeZarrVersion);
   /**
    * @param directory return value of `window.showDirectoryPicker()` which gives the browser
    *    permission to access a directory (only works in Chrome/Edge)
    * @param path path to image, beginning with "/". This argument allows the application to only
    *    ask the user once for permission to the root directory
    */
-  constructor(directory: FileSystemDirectoryHandle, path?: `/${string}`);
-  constructor(source: string | FileSystemDirectoryHandle, path?: `/${string}`) {
+  constructor(
+    directory: FileSystemDirectoryHandle,
+    version?: OmeZarrVersion,
+    path?: `/${string}`
+  );
+  constructor(
+    source: string | FileSystemDirectoryHandle,
+    version?: OmeZarrVersion,
+    path?: `/${string}`
+  ) {
     this.location =
       typeof source === "string"
         ? new Location(new FetchStore(source))
         : new Location(new WebFileSystemStore(source), path);
+    this.version = version;
   }
 
   public async open(): Promise<OmeZarrImageLoader> {
-    const root = await openGroup(this.location);
+    let zarrVersion = omeZarrToZarrVersion(this.version);
+    const root = await openGroup(this.location, zarrVersion);
     const adaptedOmeImage = parseOmeZarrImage(root.attrs);
-    const omeVersion = adaptedOmeImage.originalVersion;
     const images = adaptedOmeImage.multiscales;
     if (images.length !== 1) {
       throw new Error(
@@ -46,7 +60,9 @@ export class OmeZarrImageSource {
     if (metadata.datasets.length === 0) {
       throw new Error(`No datasets found in the multiscale image.`);
     }
-    const zarrVersion = omeZarrToZarrVersion(omeVersion);
+    if (!zarrVersion) {
+      zarrVersion = omeZarrToZarrVersion(adaptedOmeImage.originalVersion);
+    }
     const arrayParams = metadata.datasets.map((d) =>
       createZarrArrayParams(this.location, d.path, zarrVersion)
     );

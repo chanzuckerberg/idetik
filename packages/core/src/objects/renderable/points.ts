@@ -51,17 +51,17 @@ export class Points extends RenderableObject {
     geometry.addAttribute({
       type: "color",
       itemSize: 4,
-      offset: geometry.stride,
+      offset: geometry.strideBytes,
     });
     geometry.addAttribute({
       type: "size",
       itemSize: 1,
-      offset: geometry.stride,
+      offset: geometry.strideBytes,
     });
     geometry.addAttribute({
       type: "marker",
       itemSize: 1,
-      offset: geometry.stride,
+      offset: geometry.strideBytes,
     });
 
     this.geometry = geometry;

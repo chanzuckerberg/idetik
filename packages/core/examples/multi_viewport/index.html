@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multiple Viewports</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: sans-serif;
+      }
+
+      #container {
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .viewport {
+        flex: 1;
+        border: 3px solid black;
+      }
+      .viewport:hover {
+        border: 3px solid #aaaa00;
+      }
+
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div class="viewport" id="viewport-left"></div>
+      <div class="viewport" id="viewport-right"></div>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

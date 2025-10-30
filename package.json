@@ -1,16 +1,13 @@
 {
   "private": true,
   "workspaces": [
-    "packages/core",
-    "packages/react"
+    "packages/core"
   ],
   "scripts": {
     "build": "npm run build --workspace=@idetik/core-prerelease",
-    "build:all": "npm run build --workspaces",
     "build:examples": "npm run build:examples --workspace=@idetik/core-prerelease",
     "examples": "npm run dev --workspace=@idetik/core-prerelease",
-    "components": "npm run dev --workspace=@idetik/react-prerelease",
-    "format:all": "npm run format --workspaces"
+    "format": "npm run format --workspace=@idetik/core-prerelease"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",
@@ -18,22 +15,19 @@
     "@types/webgl2": "^0.0.11",
     "@typescript-eslint/eslint-plugin": "^8.1.0",
     "@typescript-eslint/parser": "^8.1.0",
-    "@vitejs/plugin-react": "^4.3.1",
     "@vitest/browser": "^3.0.9",
     "@vitest/coverage-istanbul": "^3.0.9",
     "eslint": "^9.9.0",
-    "eslint-plugin-react-hooks": "^5.1.0",
-    "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.9.0",
     "jsdom": "^24.1.1",
     "lil-gui": "^0.20.0",
-    "playwright": "1.46.0",
+    "playwright": "1.56.1",
     "prettier": "^3.3.2",
     "rollup": "^4.34.9",
     "rollup-plugin-dts": "^6.1.1",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.1.0",
-    "vite": "^6.3.6",
+    "vite": "^6.4.1",
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-glsl": "^1.3.0",
     "vitest": "^3.0.9"

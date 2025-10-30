@@ -115,6 +115,10 @@ overlayLayer.preloadSeries();
 const camera = new OrthographicCamera(0, 1920, 0, 1440);
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
-  camera,
-  layers: [layer, overlayLayer],
+  viewports: [
+    {
+      camera,
+      layers: [layer, overlayLayer],
+    },
+  ],
 }).start();

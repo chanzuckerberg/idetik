@@ -15,7 +15,7 @@ import GUI from "lil-gui";
 const url =
   "https://uk1s3.embassy.ebi.ac.uk/ebi-ngff-challenge-2024/c0e5d621-62cc-43a6-9dad-2ddab8959d17.zarr";
 
-const source = new OmeZarrImageSource(url);
+const source = new OmeZarrImageSource(url, "0.5");
 
 // Values copied from source metadata
 const xyScale = 6.8746696041186794;
@@ -63,9 +63,13 @@ const timePointOverlay = {
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
-  camera,
-  cameraControls: new PanZoomControls(camera),
-  layers: [imageLayer],
+  viewports: [
+    {
+      camera,
+      cameraControls: new PanZoomControls(camera),
+      layers: [imageLayer],
+    },
+  ],
   overlays: [timePointOverlay],
   showStats: true,
 }).start();

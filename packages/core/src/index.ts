@@ -28,6 +28,7 @@ export { OmeZarrImageSource } from "./data/ome_zarr/image_source";
 
 export type {
   PriorityCategory,
+  ImageSourcePolicy,
   ImageSourcePolicyConfig,
 } from "./core/image_source_policy";
 

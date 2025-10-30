@@ -14,7 +14,7 @@ import GUI from "lil-gui";
 
 const url =
   "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
-const source = new OmeZarrImageSource(url);
+const source = new OmeZarrImageSource(url, "0.5");
 const loader = await source.open();
 const attributes = loader.getAttributes();
 const attributesAtLod0 = attributes[0];
@@ -70,14 +70,20 @@ const cameraControls = new PanZoomControls(camera);
 
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
-  camera,
-  cameraControls,
-  layers: [layer],
+  viewports: [
+    {
+      camera,
+      cameraControls,
+      layers: [layer],
+    },
+  ],
 }).start();
+
+const viewport = idetik.viewports[0];
 
 const controls = {
   showWireframes: layer.debugMode,
-  showAxes: idetik.layerManager.layers.includes(axes),
+  showAxes: viewport.layerManager.layers.includes(axes),
 };
 
 const gui = new GUI({ width: 500 });
@@ -101,9 +107,9 @@ gui
   .add(controls, "showAxes")
   .name("Show axes")
   .onChange((show: boolean) => {
-    if (show && !idetik.layerManager.layers.includes(axes)) {
-      idetik.layerManager.add(axes);
-    } else if (!show && idetik.layerManager.layers.includes(axes)) {
-      idetik.layerManager.remove(axes);
+    if (show && !viewport.layerManager.layers.includes(axes)) {
+      viewport.layerManager.add(axes);
+    } else if (!show && viewport.layerManager.layers.includes(axes)) {
+      viewport.layerManager.remove(axes);
     }
   });

@@ -163,7 +163,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       y >= 0 &&
       y < this.chunk_.shape.y
     ) {
-      const pixelIndex = y * this.chunk_.rowStride + x;
+      const pixelIndex = y * this.chunk_.shape.x + x;
       // For multi-channel images, take the first channel value
       return this.chunk_.data[pixelIndex];
     }
