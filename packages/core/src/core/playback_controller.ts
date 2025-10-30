@@ -79,14 +79,11 @@ export class PlaybackController {
   }
 
   private advanceSteps(count: number): void {
-    for (let i = 0; i < count; i++) {
-      const newValue = this.value_ + this.step_;
-      if (newValue <= this.stop_) {
-        this.value_ = newValue;
-      } else {
-        // Wrap around to start
-        this.value_ = this.start_;
-      }
+    const newValue = this.value_ + this.step_ * count;
+    if (newValue <= this.stop_) {
+      this.value_ = newValue;
+    } else {
+      this.value_ = this.start_;
     }
   }
 }
