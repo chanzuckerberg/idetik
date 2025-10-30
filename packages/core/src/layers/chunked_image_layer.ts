@@ -105,7 +105,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public update(timestamp?: DOMHighResTimeStamp) {
     if (this.playbackController_ && timestamp !== undefined) {
       this.playbackController_.update(timestamp);
-      this.sliceCoords_.t = this.playbackController_.getValue();
+      this.sliceCoords_.t = this.playbackController_.value;
     }
     this.updateChunks();
     this.resliceIfZChanged();
