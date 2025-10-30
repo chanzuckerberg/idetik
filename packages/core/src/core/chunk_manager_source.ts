@@ -12,6 +12,7 @@ import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
+import { PlaybackController } from "./playback_controller";
 
 /*
 Unique symbol used as a capability token to allow internal modules to update
@@ -29,6 +30,7 @@ export class ChunkManagerSource {
   private readonly dimensions_: SourceDimensionMap;
   private readonly tIndicesWithQueuedChunks_: Set<number> = new Set();
   private readonly sourceMaxSquareDistance2D_: number;
+  private readonly tPlayback_?: PlaybackController;
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
   private currentLOD_: number = 0;
@@ -39,7 +41,8 @@ export class ChunkManagerSource {
   constructor(
     loader: ChunkLoader,
     sliceCoords: SliceCoordinates,
-    policy: ImageSourcePolicy
+    policy: ImageSourcePolicy,
+    tPlayback?: PlaybackController
   ) {
     this.loader_ = loader;
     this.policy_ = policy;
@@ -47,6 +50,7 @@ export class ChunkManagerSource {
     this.lowestResLOD_ = this.dimensions_.numLods - 1;
     this.currentLOD_ = 0;
     this.sliceCoords_ = sliceCoords;
+    this.tPlayback_ = tPlayback;
 
     Logger.info(
       "ChunkManagerSource",
@@ -165,7 +169,16 @@ export class ChunkManagerSource {
       .every((c) => c.state === "loaded");
   }
 
-  public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
+  public updateAndCollectChunkChanges(
+    lodFactor: number,
+    viewBounds2D: Box2,
+    timestamp?: DOMHighResTimeStamp
+  ): Chunk[] {
+    if (this.tPlayback_ && timestamp !== undefined) {
+      this.tPlayback_.update(timestamp);
+      this.sliceCoords_.t = this.tPlayback_.value;
+    }
+
     this.setLOD(lodFactor);
 
     const zBounds = this.getZBounds();

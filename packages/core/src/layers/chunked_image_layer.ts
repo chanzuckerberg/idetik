@@ -41,7 +41,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
-  private readonly playbackController_?: PlaybackController;
+  private readonly tPlayback_?: PlaybackController;
   private policy_: ImageSourcePolicy;
   private channelProps_?: ChannelProps[];
   private chunkManagerSource_?: ChunkManagerSource;
@@ -78,7 +78,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
     if (playback) {
-      this.playbackController_ = new PlaybackController(playback);
+      this.tPlayback_ = new PlaybackController(playback);
     }
   }
 
@@ -92,7 +92,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_,
       this.sliceCoords_,
-      this.policy_
+      this.policy_,
+      this.tPlayback_
     );
   }
 
@@ -102,11 +103,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.clearObjects();
   }
 
-  public update(timestamp?: DOMHighResTimeStamp) {
-    if (this.playbackController_ && timestamp !== undefined) {
-      this.playbackController_.update(timestamp);
-      this.sliceCoords_.t = this.playbackController_.value;
-    }
+  public update() {
     this.updateChunks();
     this.resliceIfZChanged();
   }
@@ -373,7 +370,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public get playbackController(): PlaybackController | undefined {
-    return this.playbackController_;
+    return this.tPlayback_;
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {

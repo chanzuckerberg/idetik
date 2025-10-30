@@ -162,7 +162,8 @@ export class Idetik {
       if (viewport.camera.type === "OrthographicCamera") {
         this.chunkManager_.update(
           viewport.camera as OrthographicCamera,
-          viewport.getBoxRelativeTo(this.canvas).toRect().width
+          viewport.getBoxRelativeTo(this.canvas).toRect().width,
+          timestamp
         );
       }
       this.renderer_.render(viewport, timestamp);

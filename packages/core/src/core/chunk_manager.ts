@@ -3,6 +3,7 @@ import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ChunkQueue } from "../data/chunk_queue";
 import { ChunkManagerSource } from "./chunk_manager_source";
 import { ImageSourcePolicy } from "./image_source_policy";
+import { PlaybackController } from "./playback_controller";
 
 export class ChunkManager {
   private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
@@ -15,7 +16,8 @@ export class ChunkManager {
   public async addSource(
     source: ChunkSource,
     sliceCoords: SliceCoordinates,
-    policy: ImageSourcePolicy
+    policy: ImageSourcePolicy,
+    tPlayback?: PlaybackController
   ) {
     const existingOrPending =
       this.sources_.get(source) ?? this.pendingSources_.get(source);
@@ -28,7 +30,8 @@ export class ChunkManager {
       const chunkManagerSource = new ChunkManagerSource(
         loader,
         sliceCoords,
-        policy
+        policy,
+        tPlayback
       );
       this.sources_.set(source, chunkManagerSource);
       this.pendingSources_.delete(source);
@@ -40,7 +43,11 @@ export class ChunkManager {
     return pending;
   }
 
-  public update(camera: OrthographicCamera, bufferWidth: number) {
+  public update(
+    camera: OrthographicCamera,
+    bufferWidth: number,
+    timestamp?: DOMHighResTimeStamp
+  ) {
     if (this.sources_.size === 0) return;
 
     if (camera.type !== "OrthographicCamera") {
@@ -58,7 +65,8 @@ export class ChunkManager {
     for (const [_, source] of this.sources_) {
       const updatedChunks = source.updateAndCollectChunkChanges(
         lodFactor,
-        viewBounds2D
+        viewBounds2D,
+        timestamp
       );
       for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
