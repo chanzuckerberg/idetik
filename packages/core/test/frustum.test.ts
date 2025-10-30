@@ -3,8 +3,34 @@ import { mat4, vec3 } from "gl-matrix";
 
 import { Box3, Frustum } from "@";
 
+function identity(): mat4 {
+  return mat4.create();
+}
+
+function ortho(p: {
+  left: number;
+  right: number;
+  bottom: number;
+  top: number;
+  near: number;
+  far: number;
+}): mat4 {
+  const { left, right, bottom, top, near, far } = p;
+  return mat4.ortho(mat4.create(), left, right, bottom, top, near, far);
+}
+
+function perspective(p: {
+  fov: number; // radians
+  aspect: number;
+  near: number;
+  far: number;
+}): mat4 {
+  const { fov, aspect, near, far } = p;
+  return mat4.perspective(mat4.create(), fov, aspect, near, far);
+}
+
 test("identity frustum with box fully inside", () => {
-  const vp = mat4.create();
+  const vp = identity();
   const frustum = new Frustum(vp);
 
   const b = new Box3(
@@ -15,7 +41,7 @@ test("identity frustum with box fully inside", () => {
 });
 
 test("identity frustum with box fully outside on +X", () => {
-  const vp = mat4.create();
+  const vp = identity();
   const frustum = new Frustum(vp);
 
   const b = new Box3(
@@ -26,7 +52,7 @@ test("identity frustum with box fully outside on +X", () => {
 });
 
 test("identity frustum with box touching +X plane counts as intersecting", () => {
-  const vp = mat4.create();
+  const vp = identity();
   const frustum = new Frustum(vp);
 
   const b = new Box3(
@@ -37,7 +63,14 @@ test("identity frustum with box touching +X plane counts as intersecting", () =>
 });
 
 test("orthographic frustum with inside box", () => {
-  const vp = mat4.ortho(mat4.create(), -1, 1, -1, 1, 1, 10);
+  const vp = ortho({
+    left: -1,
+    right: 1,
+    bottom: -1,
+    top: 1,
+    near: 1,
+    far: 10,
+  });
   const frustum = new Frustum(vp);
 
   const b = new Box3(
@@ -48,7 +81,14 @@ test("orthographic frustum with inside box", () => {
 });
 
 test("orthographic frustum rejects box fully outside on -X", () => {
-  const vp = mat4.ortho(mat4.create(), -1, 1, -1, 1, 1, 10);
+  const vp = ortho({
+    left: -1,
+    right: 1,
+    bottom: -1,
+    top: 1,
+    near: 1,
+    far: 10,
+  });
   const frustum = new Frustum(vp);
 
   const b = new Box3(
@@ -59,7 +99,14 @@ test("orthographic frustum rejects box fully outside on -X", () => {
 });
 
 test("orthographic frustum rejects box in front of near plane", () => {
-  const vp = mat4.ortho(mat4.create(), -1, 1, -1, 1, 1, 10);
+  const vp = ortho({
+    left: -1,
+    right: 1,
+    bottom: -1,
+    top: 1,
+    near: 1,
+    far: 10,
+  });
   const frustum = new Frustum(vp);
 
   const b = new Box3(
@@ -70,7 +117,14 @@ test("orthographic frustum rejects box in front of near plane", () => {
 });
 
 test("orthographic frustum rejects box beyond far plane", () => {
-  const vp = mat4.ortho(mat4.create(), -1, 1, -1, 1, 1, 10);
+  const vp = ortho({
+    left: -1,
+    right: 1,
+    bottom: -1,
+    top: 1,
+    near: 1,
+    far: 10,
+  });
   const frustum = new Frustum(vp);
 
   const b = new Box3(
@@ -81,8 +135,8 @@ test("orthographic frustum rejects box beyond far plane", () => {
 });
 
 test("perspective frustum with small box at z = -3 inside", () => {
-  const proj = mat4.perspective(mat4.create(), Math.PI / 2, 1, 1, 10);
-  const frustum = new Frustum(proj);
+  const vp = perspective({ fov: Math.PI / 2, aspect: 1, near: 1, far: 10 });
+  const frustum = new Frustum(vp);
 
   const b = new Box3(
     vec3.fromValues(-0.2, -0.2, -3.2),
@@ -92,8 +146,8 @@ test("perspective frustum with small box at z = -3 inside", () => {
 });
 
 test("perspective frustum rejects far left box at z = -3", () => {
-  const proj = mat4.perspective(mat4.create(), Math.PI / 2, 1, 1, 10);
-  const frustum = new Frustum(proj);
+  const vp = perspective({ fov: Math.PI / 2, aspect: 1, near: 1, far: 10 });
+  const frustum = new Frustum(vp);
 
   const b = new Box3(
     vec3.fromValues(-4.25, -0.25, -3.25),
@@ -103,8 +157,8 @@ test("perspective frustum rejects far left box at z = -3", () => {
 });
 
 test("perspective frustum rejects boxes in front of near and beyond far", () => {
-  const proj = mat4.perspective(mat4.create(), Math.PI / 2, 1, 1, 10);
-  const frustum = new Frustum(proj);
+  const vp = perspective({ fov: Math.PI / 2, aspect: 1, near: 1, far: 10 });
+  const frustum = new Frustum(vp);
 
   const tooNear = new Box3(
     vec3.fromValues(-0.1, -0.1, -0.6),
@@ -120,8 +174,8 @@ test("perspective frustum rejects boxes in front of near and beyond far", () => 
 });
 
 test("perspective frustum with box touching side plane counts as intersecting", () => {
-  const proj = mat4.perspective(mat4.create(), Math.PI / 2, 1, 1, 10);
-  const frustum = new Frustum(proj);
+  const vp = perspective({ fov: Math.PI / 2, aspect: 1, near: 1, far: 10 });
+  const frustum = new Frustum(vp);
 
   const b = new Box3(
     vec3.fromValues(1.5, -0.2, -2.2),
