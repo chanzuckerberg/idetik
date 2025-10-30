@@ -10,7 +10,7 @@ export class PlaybackController {
   private readonly stop_: number;
   private readonly step_: number;
   private rateHz_: number;
-  private currentValue_: number;
+  private value_: number;
   private lastTimestamp_?: DOMHighResTimeStamp;
   private secondsSinceLastStep_: number = 0;
 
@@ -19,7 +19,7 @@ export class PlaybackController {
     this.stop_ = props.stop;
     this.step_ = props.step;
     this.rateHz_ = props.rateHz ?? 0;
-    this.currentValue_ = props.start;
+    this.value_ = props.start;
   }
 
   public get rateHz(): number {
@@ -37,18 +37,18 @@ export class PlaybackController {
     }
   }
 
-  public getValue(): number {
-    return this.currentValue_;
+  public get value(): number {
+    return this.value_;
   }
 
-  public setValue(value: number): void {
-    this.currentValue_ = value;
+  public set value(value: number) {
+    this.value_ = value;
     this.secondsSinceLastStep_ = 0;
     this.lastTimestamp_ = undefined;
   }
 
   public reset(): void {
-    this.setValue(this.start_);
+    this.value = this.start_;
   }
 
   public update(timestamp: DOMHighResTimeStamp): void {
@@ -80,12 +80,12 @@ export class PlaybackController {
 
   private advanceSteps(count: number): void {
     for (let i = 0; i < count; i++) {
-      const newValue = this.currentValue_ + this.step_;
+      const newValue = this.value_ + this.step_;
       if (newValue <= this.stop_) {
-        this.currentValue_ = newValue;
+        this.value_ = newValue;
       } else {
         // Wrap around to start
-        this.currentValue_ = this.start_;
+        this.value_ = this.start_;
       }
     }
   }
