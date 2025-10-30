@@ -5,10 +5,6 @@ export type PlaybackControllerProps = {
   rateHz?: number;
 };
 
-/**
- * Controls playback of a time-varying parameter using requestAnimationFrame timestamps.
- * The controller advances the current value based on elapsed time and the specified rate.
- */
 export class PlaybackController {
   private readonly start_: number;
   private readonly stop_: number;
@@ -16,7 +12,7 @@ export class PlaybackController {
   private rateHz_: number;
   private currentValue_: number;
   private lastTimestamp_?: DOMHighResTimeStamp;
-  private accumulatedTime_: number = 0;
+  private secondsSinceLastStep_: number = 0;
 
   constructor(props: PlaybackControllerProps) {
     this.start_ = props.start;
@@ -26,55 +22,35 @@ export class PlaybackController {
     this.currentValue_ = props.start;
   }
 
-  /**
-   * Gets the current playback rate in Hz (steps per second).
-   */
   public get rateHz(): number {
     return this.rateHz_;
   }
 
-  /**
-   * Sets the playback rate in Hz (steps per second).
-   * A rate of 0 pauses playback.
-   */
   public set rateHz(rateHz: number) {
     if (rateHz < 0) {
       throw new Error(`Rate must be non-negative: ${rateHz}`);
     }
     if (rateHz !== this.rateHz_) {
       this.rateHz_ = rateHz;
-      this.accumulatedTime_ = 0;
+      this.secondsSinceLastStep_ = 0;
       this.lastTimestamp_ = undefined;
     }
   }
 
-  /**
-   * Gets the current value.
-   */
   public getValue(): number {
     return this.currentValue_;
   }
 
-  /**
-   * Sets the current value.
-   */
   public setValue(value: number): void {
     this.currentValue_ = value;
-    this.accumulatedTime_ = 0;
+    this.secondsSinceLastStep_ = 0;
     this.lastTimestamp_ = undefined;
   }
 
-  /**
-   * Resets playback to the start value.
-   */
   public reset(): void {
     this.setValue(this.start_);
   }
 
-  /**
-   * Updates the playback state based on the current timestamp.
-   * Should be called once per frame from the animation loop.
-   */
   public update(timestamp: DOMHighResTimeStamp): void {
     if (this.rateHz_ === 0) {
       this.lastTimestamp_ = undefined;
@@ -89,15 +65,15 @@ export class PlaybackController {
     const deltaMs = timestamp - this.lastTimestamp_;
     this.lastTimestamp_ = timestamp;
 
-    // Accumulate time in seconds
-    this.accumulatedTime_ += deltaMs / 1000;
+    this.secondsSinceLastStep_ += deltaMs / 1000;
 
-    // Calculate how many steps we should advance based on rate
-    const timePerStep = 1 / this.rateHz_;
-    const stepsToAdvance = Math.floor(this.accumulatedTime_ / timePerStep);
+    const secondsPerStep = 1 / this.rateHz_;
+    const stepsToAdvance = Math.floor(
+      this.secondsSinceLastStep_ / secondsPerStep
+    );
 
     if (stepsToAdvance > 0) {
-      this.accumulatedTime_ -= stepsToAdvance * timePerStep;
+      this.secondsSinceLastStep_ -= stepsToAdvance * secondsPerStep;
       this.advanceSteps(stepsToAdvance);
     }
   }
