@@ -89,6 +89,7 @@ export class ChunkInfoOverlay {
       "",
       `Number of textures ${numTextures}`,
       `GPU Texture Memory in use ${totalTextureSizeMB}MB`,
+      `Rendered objects: ${idetik.renderedObjects}`,
     ].join("<br>");
   }
 }
