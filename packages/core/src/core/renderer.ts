@@ -9,6 +9,7 @@ export abstract class Renderer {
   private height_ = 0;
   private backgroundColor_: Color = new Color(0, 0, 0, 0);
 
+  protected renderedObjects_ = 0;
   protected abstract resize(width: number, height: number): void;
   protected abstract renderObject(
     layer: Layer,
@@ -51,6 +52,10 @@ export abstract class Renderer {
 
   public get backgroundColor(): Color {
     return this.backgroundColor_;
+  }
+
+  public get renderedObjects() {
+    return this.renderedObjects_;
   }
 
   public set backgroundColor(color: ColorLike) {

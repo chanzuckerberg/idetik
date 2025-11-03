@@ -116,6 +116,10 @@ export class Idetik {
     this.sizeObserver_ = new PixelSizeObserver(sizeDependents);
   }
 
+  public get renderedObjects() {
+    return this.renderer_.renderedObjects;
+  }
+
   public get width() {
     return this.renderer_.width;
   }

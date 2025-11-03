@@ -1,4 +1,5 @@
 import { RenderableObject } from "../../core/renderable_object";
+import { Frustum } from "../../math/frustum";
 import { mat4, vec3, vec4 } from "gl-matrix";
 
 export type CameraType = "OrthographicCamera" | "PerspectiveCamera";
@@ -32,6 +33,12 @@ export abstract class Camera extends RenderableObject {
   get up() {
     const m = this.transform.matrix;
     return vec3.fromValues(m[4], m[5], m[6]);
+  }
+
+  get frustum() {
+    return new Frustum(
+      mat4.multiply(mat4.create(), this.projectionMatrix, this.viewMatrix)
+    );
   }
 
   public abstract setAspectRatio(aspectRatio: number): void;

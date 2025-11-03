@@ -45,6 +45,8 @@ export {
 
 export { Box2 } from "./math/box2";
 export { Box3 } from "./math/box3";
+export { Frustum } from "./math/frustum";
+export { Plane } from "./math/plane";
 export { Spherical } from "./math/spherical";
 
 export type { Region } from "./data/region";
