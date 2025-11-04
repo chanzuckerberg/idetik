@@ -164,9 +164,15 @@ export class WebGLRenderer extends Renderer {
       axisDirection,
       camera.projectionMatrix
     );
+    const inverseProjection = mat4.invert(mat4.create(), projection);
     const resolution = [this.canvas.width, this.canvas.height];
+    const inverseView = mat4.invert(mat4.create(), camera.viewMatrix);
+    const worldToVolume = mat4.invert(mat4.create(), object.transform.matrix);
 
     const objectUniforms = object.getUniforms();
+    const cameraUniforms = camera.getUniforms();
+    const allUniforms = { ...objectUniforms, ...cameraUniforms };
+
     for (const uniformName of program.uniformNames) {
       switch (uniformName) {
         case "ModelView":
@@ -181,9 +187,21 @@ export class WebGLRenderer extends Renderer {
         case "u_opacity":
           program.setUniform(uniformName, layer.opacity);
           break;
+        case "CameraPosition":
+          program.setUniform(uniformName, camera.position);
+          break;
+        case "InverseView":
+          program.setUniform(uniformName, inverseView);
+          break;
+        case "InverseProjection":
+          program.setUniform(uniformName, inverseProjection);
+          break;
+        case "WorldToVolume":
+          program.setUniform(uniformName, worldToVolume);
+          break;
         default:
-          if (uniformName in objectUniforms) {
-            program.setUniform(uniformName, objectUniforms[uniformName]);
+          if (uniformName in allUniforms) {
+            program.setUniform(uniformName, allUniforms[uniformName]);
           }
       }
     }
