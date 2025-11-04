@@ -84,7 +84,6 @@ export class Texture3D extends Texture {
       chunk.shape.y,
       chunk.shape.z
     );
-    texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
   }
