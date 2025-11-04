@@ -72,4 +72,25 @@ export class Frustum {
     }
     return true;
   }
+
+  /**
+   * Get the width of the frustum (distance between left and right planes).
+   * For orthographic frustums, this gives the visible width in world space.
+   */
+  public getWidth(): number {
+    // For parallel planes with opposite normals (left points right, right points left),
+    // the distance is the absolute value of the sum of their signed distances
+    const left = this.planes_[0];
+    const right = this.planes_[1];
+
+    // Take a point on the left plane and measure distance to right plane
+    // Point on left plane: any point where left.normal · p + left.signedDistance = 0
+    // We can use a point along the normal direction: p = -left.signedDistance * left.normal
+    const pointOnLeft = vec3.scale(
+      vec3.create(),
+      left.normal,
+      -left.signedDistance
+    );
+    return Math.abs(right.signedDistanceToPoint(pointOnLeft));
+  }
 }

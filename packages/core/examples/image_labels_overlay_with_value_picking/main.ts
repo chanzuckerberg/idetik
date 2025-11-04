@@ -5,6 +5,7 @@ import {
   Region,
   Color,
   ChunkedImageLayer,
+  SliceCoordinates,
 } from "@";
 import { LabelImageLayer } from "@/layers/label_image_layer";
 import { PointPickingResult } from "@/layers/point_picking";
@@ -39,7 +40,8 @@ const xStopPoint = xLod.size * xLod.scale;
 const yLod = dimensions.y.lods[0];
 const yStopPoint = yLod.size * yLod.scale;
 
-const sliceCoords = {
+const sliceCoords: SliceCoordinates = {
+  orientation: "xy",
   t: tStartPoint,
   c: phaseChannelIndex,
   z: zMidPoint,

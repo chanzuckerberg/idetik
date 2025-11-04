@@ -94,12 +94,6 @@ export type SourceDimensionLod = {
   translation: number;
 };
 
-export type SliceCoordinates = {
-  z?: number;
-  c?: number;
-  t?: number;
-};
-
 export type ChunkSource = {
   open(): Promise<ChunkLoader>;
 };

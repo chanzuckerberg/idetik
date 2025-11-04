@@ -5,6 +5,7 @@ import {
 } from "../../objects/textures/texture";
 
 import { Chunk, ChunkData } from "../../data/chunk";
+import { getTextureDimensions } from "../../data/slice_coordinates";
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
@@ -48,7 +49,11 @@ export class Texture2DArray extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunk(chunk: Chunk, data?: ChunkData) {
+  public updateWithChunk(
+    chunk: Chunk,
+    data?: ChunkData,
+    orientation: "xy" | "xz" | "yz" = "xy"
+  ) {
     const source = data ?? chunk.data;
     if (!source) {
       throw new Error(
@@ -58,8 +63,7 @@ export class Texture2DArray extends Texture {
 
     if (this.data === source) return;
 
-    const width = chunk.shape.x;
-    const height = chunk.shape.y;
+    const { width, height } = getTextureDimensions(chunk, orientation);
     const depth = source.length / (width * height);
     if (
       this.width != width ||
@@ -73,14 +77,20 @@ export class Texture2DArray extends Texture {
     this.data = source;
   }
 
-  public static createWithChunk(chunk: Chunk, data?: ChunkData) {
+  public static createWithChunk(
+    chunk: Chunk,
+    data?: ChunkData,
+    orientation: "xy" | "xz" | "yz" = "xy"
+  ) {
     const source = data ?? chunk.data;
     if (!source) {
       throw new Error(
         "Unable to create texture, chunk data is not initialized."
       );
     }
-    const texture = new Texture2DArray(source, chunk.shape.x, chunk.shape.y);
+
+    const { width, height } = getTextureDimensions(chunk, orientation);
+    const texture = new Texture2DArray(source, width, height);
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
   }

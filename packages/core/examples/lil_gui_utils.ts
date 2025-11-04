@@ -1,10 +1,9 @@
-import { SliceCoordinates } from "@/index";
 import { Controller, GUI } from "lil-gui";
 
 type DimensionSliderProps = {
   gui: GUI;
-  sliceCoords: SliceCoordinates;
-  dimensionName: "z" | "t";
+  sliceCoords: Record<string, unknown>; // Generic object - discriminated union doesn't work with lil-gui's dynamic property access
+  dimensionName: "x" | "y" | "z" | "t" | "c";
   minValue: number;
   maxValue: number;
   stepValue: number;
@@ -26,6 +25,7 @@ export function addDimensionSlider(props: DimensionSliderProps) {
     )
     .name(`${props.dimensionName}-coord`);
 
+  let playbackRateController: Controller | undefined;
   if (props.playback) {
     const playbackController = new PlaybackController({
       controller,
@@ -34,13 +34,20 @@ export function addDimensionSlider(props: DimensionSliderProps) {
       step: props.stepValue * (props.playback.stride ?? 1),
     });
     const maxRateHz = props.playback.maxRateHz ?? 30;
-    props.gui
+    playbackRateController = props.gui
       .add(playbackController, "rateHz", 0, maxRateHz, 1)
       .name(`${props.dimensionName}-playback rate (Hz)`)
       .onChange((rateHz: number) => {
         props.playback?.onRateChange?.(rateHz);
       });
   }
+
+  return {
+    destroy: () => {
+      controller.destroy();
+      playbackRateController?.destroy();
+    },
+  };
 }
 
 type PlaybackControllerProps = {

@@ -1,6 +1,5 @@
 import { Camera, CameraType } from "./camera";
-import { vec2, vec4, mat4 } from "gl-matrix";
-import { Box2 } from "../../math/box2";
+import { mat4 } from "gl-matrix";
 
 const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 const DEFAULT_WIDTH = 128;
@@ -19,7 +18,7 @@ export class OrthographicCamera extends Camera {
     top: number,
     bottom: number,
     near = 0.0,
-    far = 100.0
+    far = 10000.0
   ) {
     super();
     this.near_ = near;
@@ -58,26 +57,6 @@ export class OrthographicCamera extends Camera {
     }
     const inverseFactor = 1.0 / factor;
     this.transform.addScale([inverseFactor, inverseFactor, 1.0]);
-  }
-
-  public getWorldViewRect(): Box2 {
-    let topLeft = vec4.fromValues(-1.0, -1.0, 0.0, 1.0);
-    let bottomRight = vec4.fromValues(1.0, 1.0, 0.0, 1.0);
-
-    const viewProjection = mat4.multiply(
-      mat4.create(),
-      this.projectionMatrix,
-      this.viewMatrix
-    );
-
-    const inv = mat4.invert(mat4.create(), viewProjection);
-    topLeft = vec4.transformMat4(vec4.create(), topLeft, inv);
-    bottomRight = vec4.transformMat4(vec4.create(), bottomRight, inv);
-
-    return new Box2(
-      vec2.fromValues(topLeft[0], topLeft[1]),
-      vec2.fromValues(bottomRight[0], bottomRight[1])
-    );
   }
 
   protected updateProjectionMatrix() {

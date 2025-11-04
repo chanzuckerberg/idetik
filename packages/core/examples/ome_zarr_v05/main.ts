@@ -5,6 +5,7 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   PointPickingResult,
+  SliceCoordinates,
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
@@ -24,7 +25,7 @@ const zMidPoint = zLod.translation + 0.5 * zLod.size * zLod.scale;
 const yLod = dimensions.y.lods[lod];
 const xLod = dimensions.x.lods[lod];
 
-const sliceCoords = { z: zMidPoint };
+const sliceCoords: SliceCoordinates = { orientation: "xy", z: zMidPoint };
 const channelProps: ChannelProps[] = [{ contrastLimits: [0, 200] }];
 
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;

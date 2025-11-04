@@ -2,9 +2,9 @@ import {
   Chunk,
   SourceDimensionMap,
   ChunkLoader,
-  SliceCoordinates,
   coordToIndex,
 } from "../data/chunk";
+import { SliceCoordinates } from "../data/slice_coordinates";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { ChunkStoreView } from "./chunk_store_view";

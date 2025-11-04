@@ -4,6 +4,7 @@ import {
   ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
+  SliceCoordinates,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
@@ -24,7 +25,8 @@ const bottom = 900;
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
 const source = OmeZarrImageSource.fromHttp({ url });
-const sliceCoords = {
+const sliceCoords: SliceCoordinates = {
+  orientation: "xy",
   t: 400,
   z: 300,
   c: 0,
@@ -52,7 +54,7 @@ const channelProps: ChannelProps[] = [
   { contrastLimits: initialContrastLimits },
 ];
 
-const camera = new OrthographicCamera(left, right, top, bottom);
+const camera = new OrthographicCamera(left, right, top, bottom, -1000, 1000);
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords,
