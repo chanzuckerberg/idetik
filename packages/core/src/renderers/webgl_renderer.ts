@@ -15,6 +15,7 @@ import { Viewport } from "../core/viewport";
 import { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2 } from "gl-matrix";
+import { Frustum } from "../math/frustum";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -34,6 +35,7 @@ export class WebGLRenderer extends Renderer {
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
+  private renderedObjectsPerFrame_ = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -76,16 +78,19 @@ export class WebGLRenderer extends Renderer {
       return;
     }
     this.state_.setViewport(viewportBox);
-
+    this.renderedObjectsPerFrame_ = 0;
     this.clear();
 
     const { opaque, transparent } = viewport.layerManager.partitionLayers();
 
     this.state_.setDepthMask(true);
+
+    const frustum = viewport.camera.frustum;
+
     for (const layer of opaque) {
       layer.update();
       if (layer.state === "ready") {
-        this.renderLayer(layer, viewport.camera);
+        this.renderLayer(layer, viewport.camera, frustum);
       }
     }
 
@@ -93,18 +98,26 @@ export class WebGLRenderer extends Renderer {
     for (const layer of transparent) {
       layer.update();
       if (layer.state !== "ready") continue;
-      this.renderLayer(layer, viewport.camera);
+      this.renderLayer(layer, viewport.camera, frustum);
     }
     this.state_.setDepthMask(true);
+
+    this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
   public get textureInfo() {
     return this.textures_.textureInfo;
   }
 
-  private renderLayer(layer: Layer, camera: Camera) {
+  private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
-    layer.objects.forEach((_, i) => this.renderObject(layer, i, camera));
+
+    layer.objects.forEach((object, i) => {
+      if (frustum.intersectsWithBox3(object.boundingBox)) {
+        this.renderObject(layer, i, camera);
+        this.renderedObjectsPerFrame_ += 1;
+      }
+    });
   }
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
