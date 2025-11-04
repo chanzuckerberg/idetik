@@ -328,7 +328,9 @@ describe("ChunkManagerDataAvailability", () => {
     );
 
     const dataAvailability = new ChunkManagerDataAvailability(
-      mockSource as unknown as ChunkManagerSourceLike & { lowestResLOD: number },
+      mockSource as unknown as ChunkManagerSourceLike & {
+        lowestResLOD: number;
+      },
       1
     );
 
