@@ -24,6 +24,11 @@ export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
 export {
   PlaybackController,
   type PlaybackControllerProps,
+  type DataAvailability,
+  LoadingStatistics,
+  BufferHealth,
+  AdaptiveBufferStrategy,
+  AdaptiveBufferManager,
 } from "./core/playback_controller";
 export { LabelImageLayer } from "./layers/label_image_layer";
 export type { PointPickingResult } from "./layers/point_picking";
