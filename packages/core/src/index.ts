@@ -30,6 +30,7 @@ export {
   AdaptiveBufferStrategy,
   AdaptiveBufferManager,
 } from "./core/playback_controller";
+export { ChunkManagerDataAvailability } from "./core/chunk_manager_source";
 export { LabelImageLayer } from "./layers/label_image_layer";
 export type { PointPickingResult } from "./layers/point_picking";
 export { ImageSeriesLayer } from "./layers/image_series_layer";

@@ -12,7 +12,7 @@ import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
-import { PlaybackController } from "./playback_controller";
+import { PlaybackController, DataAvailability } from "./playback_controller";
 
 /*
 Unique symbol used as a capability token to allow internal modules to update
@@ -35,6 +35,7 @@ export class ChunkManagerSource {
   private policyChanged_ = false;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
+  private lastViewBounds3D_: Box3 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
 
@@ -169,6 +170,62 @@ export class ChunkManagerSource {
       .every((c) => c.state === "loaded");
   }
 
+  /**
+   * Check if all chunks at a specific time index and LOD within the last known
+   * view bounds are loaded. Used by DataAvailability implementation.
+   */
+  public areChunksLoadedAtTimeIndex(timeIndex: number, lod: number): boolean {
+    if (timeIndex < 0 || timeIndex >= this.chunks_.length) {
+      return false;
+    }
+
+    // If no view bounds have been set yet, we can't determine visibility
+    if (this.lastViewBounds3D_ === null) {
+      return false;
+    }
+
+    const chunks = this.chunks_[timeIndex];
+    const requiredChunks = chunks.filter((chunk) => {
+      // Must be at the specified LOD
+      if (chunk.lod !== lod) return false;
+
+      // Must be in the current channel slice
+      if (!this.isChunkChannelInSlice(chunk)) return false;
+
+      // Must be within the last known view bounds
+      return this.isChunkWithinBounds(chunk, this.lastViewBounds3D_!);
+    });
+
+    // If no chunks are required, consider it loaded
+    if (requiredChunks.length === 0) {
+      return true;
+    }
+
+    // All required chunks must be loaded
+    return requiredChunks.every((chunk) => chunk.state === "loaded");
+  }
+
+  /**
+   * Get the last known view bounds in 3D. Returns null if no bounds have been set.
+   */
+  public get lastViewBounds3D(): Box3 | null {
+    return this.lastViewBounds3D_;
+  }
+
+  /**
+   * Get the time dimension size (number of time points).
+   */
+  public get timeSize(): number {
+    return this.chunks_.length;
+  }
+
+  /**
+   * Get the lowest resolution LOD.
+   */
+  public get lowestResLOD(): number {
+    return this.lowestResLOD_;
+  }
+
   public updateAndCollectChunkChanges(
     lodFactor: number,
     viewBounds2D: Box2,
@@ -196,6 +253,13 @@ export class ChunkManagerSource {
     this.lastViewBounds2D_ = viewBounds2D.clone();
     this.lastZBounds_ = zBounds;
     this.lastTCoord_ = this.sliceCoords_.t;
+
+    // Store 3D bounds for DataAvailability queries
+    const [zMin, zMax] = zBounds;
+    this.lastViewBounds3D_ = new Box3(
+      vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
+      vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
+    );
 
     return updatedChunks;
   }
@@ -620,5 +684,69 @@ export class ChunkManagerSource {
     const dx = chunkCenter.x - center[0];
     const dy = chunkCenter.y - center[1];
     return dx * dx + dy * dy;
+  }
+}
+
+/**
+ * Implementation of DataAvailability interface for ChunkManagerSource.
+ * Tracks which time points have fully loaded data based on the last known view bounds.
+ */
+export class ChunkManagerDataAvailability implements DataAvailability {
+  private chunkManager_: ChunkManagerSource;
+  private lod_: number;
+
+  /**
+   * @param chunkManager The ChunkManagerSource to query for chunk loading state
+   * @param lod The level of detail to check. Defaults to lowest resolution LOD for conservative buffering.
+   */
+  constructor(chunkManager: ChunkManagerSource, lod?: number) {
+    this.chunkManager_ = chunkManager;
+    this.lod_ = lod ?? chunkManager.lowestResLOD;
+  }
+
+  /**
+   * Check if a specific time index has all required chunks loaded.
+   */
+  isLoaded(index: number): boolean {
+    return this.chunkManager_.areChunksLoadedAtTimeIndex(index, this.lod_);
+  }
+
+  /**
+   * Get the count of contiguous loaded time indices starting from position.
+   * Returns the number of indices ahead (not including position itself) that are loaded.
+   */
+  getLoadedAheadOf(position: number): number {
+    const timeSize = this.chunkManager_.timeSize;
+    const startIndex = Math.floor(position);
+
+    // If position is out of bounds, return 0
+    if (startIndex < 0 || startIndex >= timeSize) {
+      return 0;
+    }
+
+    let count = 0;
+    for (let i = startIndex + 1; i < timeSize; i++) {
+      if (this.isLoaded(i)) {
+        count++;
+      } else {
+        break; // Stop at first non-loaded index
+      }
+    }
+
+    return count;
+  }
+
+  /**
+   * Update the LOD level to check.
+   */
+  setLOD(lod: number): void {
+    this.lod_ = lod;
+  }
+
+  /**
+   * Get the current LOD being checked.
+   */
+  get lod(): number {
+    return this.lod_;
   }
 }
