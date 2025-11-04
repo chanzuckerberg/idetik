@@ -88,9 +88,6 @@ export class Texture3D extends Texture {
       chunk.shape.y,
       chunk.shape.z
     );
-    // TODO (SKM): here is where we'd store the columnStride if needed
-    // for 3D textures.
-    texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
   }
