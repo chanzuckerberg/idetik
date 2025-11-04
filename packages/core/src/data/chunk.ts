@@ -95,11 +95,43 @@ export type SourceDimensionLod = {
   translation: number;
 };
 
-export type SliceCoordinates = {
-  z?: number;
-  c?: number;
+export type SliceCoordinatesXY = {
+  z: number;
   t?: number;
+  c?: number;
+  x?: undefined;
+  y?: undefined;
 };
+
+export type SliceCoordinatesXZ = {
+  y: number;
+  t?: number;
+  c?: number;
+  x?: undefined;
+  z?: undefined;
+};
+
+export type SliceCoordinatesYZ = {
+  x: number;
+  t?: number;
+  c?: number;
+  y?: undefined;
+  z?: undefined;
+};
+
+export type SliceCoordinatesVolume = {
+  x?: undefined;
+  y?: undefined;
+  z?: undefined;
+  t?: number;
+  c?: number;
+};
+
+export type SliceCoordinates =
+  | SliceCoordinatesXY
+  | SliceCoordinatesXZ
+  | SliceCoordinatesYZ
+  | SliceCoordinatesVolume;
 
 export type ChunkSource = {
   open(): Promise<ChunkLoader>;
@@ -138,4 +170,29 @@ export function coordToChunkIndex(
 ): number {
   const index = coordToIndex(lod, coord);
   return Math.floor(index / lod.chunkSize);
+}
+
+export function getOrientation(
+  coords: SliceCoordinates
+): "xy" | "xz" | "yz" | "volume" {
+  if ("z" in coords && coords.z !== undefined) {
+    return "xy";
+  } else if ("y" in coords && coords.y !== undefined) {
+    return "xz";
+  } else if ("x" in coords && coords.x !== undefined) {
+    return "yz";
+  } else {
+    return "volume";
+  }
+}
+
+export function getSlicePosition(coords: SliceCoordinates): number | undefined {
+  if ("z" in coords && coords.z !== undefined) {
+    return coords.z;
+  } else if ("y" in coords && coords.y !== undefined) {
+    return coords.y;
+  } else if ("x" in coords && coords.x !== undefined) {
+    return coords.x;
+  }
+  return undefined;
 }

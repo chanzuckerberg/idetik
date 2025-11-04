@@ -48,7 +48,7 @@ export class Texture2DArray extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunk(chunk: Chunk, data?: ChunkData) {
+  public updateWithChunk(chunk: Chunk, data?: ChunkData, orientation: "xy" | "xz" | "yz" = "xy") {
     const source = data ?? chunk.data;
     if (!source) {
       throw new Error(
@@ -58,8 +58,22 @@ export class Texture2DArray extends Texture {
 
     if (this.data === source) return;
 
-    const width = chunk.shape.x;
-    const height = chunk.shape.y;
+    let width, height;
+    switch (orientation) {
+      case "xy":
+        width = chunk.shape.x;
+        height = chunk.shape.y;
+        break;
+      case "xz":
+        width = chunk.shape.x;
+        height = chunk.shape.z;
+        break;
+      case "yz":
+        width = chunk.shape.z;
+        height = chunk.shape.y;
+        break;
+    }
+
     const depth = source.length / (width * height);
     if (
       this.width != width ||
@@ -73,16 +87,41 @@ export class Texture2DArray extends Texture {
     this.data = source;
   }
 
-  public static createWithChunk(chunk: Chunk, data?: ChunkData) {
+  public static createWithChunk(
+    chunk: Chunk,
+    data?: ChunkData,
+    orientation: "xy" | "xz" | "yz" = "xy"
+  ) {
     const source = data ?? chunk.data;
     if (!source) {
       throw new Error(
         "Unable to create texture, chunk data is not initialized."
       );
     }
-    const texture = new Texture2DArray(source, chunk.shape.x, chunk.shape.y);
-    texture.unpackRowLength = chunk.rowStride;
-    texture.unpackAlignment = chunk.rowAlignmentBytes;
+
+    let width, height;
+    switch (orientation) {
+      case "xy":
+        width = chunk.shape.x;
+        height = chunk.shape.y;
+        break;
+      case "xz":
+        width = chunk.shape.x;
+        height = chunk.shape.z;
+        break;
+      case "yz":
+        width = chunk.shape.z;
+        height = chunk.shape.y;
+        break;
+    }
+
+    const texture = new Texture2DArray(source, width, height);
+
+    if (orientation === "xy") {
+      texture.unpackRowLength = chunk.rowStride;
+      texture.unpackAlignment = chunk.rowAlignmentBytes;
+    }
+
     return texture;
   }
 }

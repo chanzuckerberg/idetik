@@ -1,6 +1,13 @@
 import { Layer, LayerOptions, RenderContext } from "../core/layer";
 import type { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import {
+  Chunk,
+  ChunkSource,
+  SliceCoordinates,
+  getSlicePosition,
+  getOrientation,
+  ChunkDataConstructor,
+} from "../data/chunk";
 import { ChunkStore } from "../core/chunk_store";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
@@ -10,11 +17,14 @@ import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
-import { vec2, vec3 } from "gl-matrix";
+import { vec2, vec3, quat } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
+
+const VOLUME_NOT_SUPPORTED_ERROR =
+  "Volume rendering not supported. Use VolumeLayer for volume rendering.";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -38,7 +48,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private channelProps_?: ChannelProps[];
   private chunkStoreView_?: ChunkStoreView;
   private pointerDownPos_: vec2 | null = null;
-  private zPrevPointWorld_?: number;
+  private prevSlicePosition_?: number;
   private debugMode_ = false;
 
   private static readonly STALE_PRESENTATION_MS_ = 1000;
@@ -86,7 +96,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
     if (!this.chunkStoreView_) return;
-    context.chunkManager.removeView(this.source_, this.chunkStoreView_);
+    context.chunkManager.removeView(this.chunkStoreView_);
     this.chunkStoreView_ = undefined;
   }
 
@@ -96,7 +106,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.chunkStoreView_.updateChunkStates(this.sliceCoords_, context.viewport);
 
     this.updateChunks();
-    this.resliceIfZChanged();
+    this.resliceIfCoordinateChanged();
   }
 
   private updateChunks() {
@@ -143,22 +153,31 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
-  private resliceIfZChanged() {
-    const zPointWorld = this.sliceCoords_.z;
-    if (zPointWorld === undefined || this.zPrevPointWorld_ === zPointWorld) {
+  private resliceIfCoordinateChanged() {
+    const slicePosition = getSlicePosition(this.sliceCoords_);
+    if (
+      slicePosition === undefined ||
+      this.prevSlicePosition_ === slicePosition
+    ) {
       return;
     }
 
+    const orientation = getOrientation(this.sliceCoords_);
+    if (orientation === "volume") {
+      throw new Error(VOLUME_NOT_SUPPORTED_ERROR);
+    }
     for (const [chunk, image] of this.visibleChunks_) {
       if (chunk.state !== "loaded" || !chunk.data) continue;
-      const data = this.slicePlane(chunk, zPointWorld);
+      const data = this.slicePlane(chunk, slicePosition);
       if (data) {
         const texture = image.textures[0] as Texture2DArray;
-        texture.updateWithChunk(chunk, data);
+        texture.updateWithChunk(chunk, data, orientation);
+        // Update the position to match the new slice
+        this.updateImageChunk(image, chunk);
       }
     }
 
-    this.zPrevPointWorld_ = zPointWorld;
+    this.prevSlicePosition_ = slicePosition;
   }
 
   public onEvent(event: EventContext) {
@@ -202,31 +221,98 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  private slicePlane(chunk: Chunk, zValue: number) {
+  private slicePlane(chunk: Chunk, sliceValue: number) {
     if (!chunk.data) return;
-    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
-    const zIdx = Math.round(zLocal);
-    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
 
-    // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
-    // Anything further away means the requested zValue is outside.
-    if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
-      Logger.error("ImageLayer", "slicePlane zValue outside extent");
+    const orientation = getOrientation(this.sliceCoords_);
+
+    switch (orientation) {
+      case "xy": {
+        const zLocal = (sliceValue - chunk.offset.z) / chunk.scale.z;
+        const zIdx = Math.round(zLocal);
+        const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
+
+        // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
+        if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
+          Logger.error("ImageLayer", "slicePlane value outside extent");
+        }
+
+        const sliceSize = chunk.shape.x * chunk.shape.y;
+        const offset = sliceSize * zClamped;
+        return chunk.data.slice(offset, offset + sliceSize);
+      }
+
+      case "xz": {
+        const yLocal = (sliceValue - chunk.offset.y) / chunk.scale.y;
+        const yIdx = Math.round(yLocal);
+        const yClamped = clamp(yIdx, 0, chunk.shape.y - 1);
+
+        if (!almostEqual(yLocal, yClamped, 1 + 1e-6)) {
+          Logger.error("ImageLayer", "slicePlane value outside extent");
+        }
+
+        const sliceSize = chunk.shape.x * chunk.shape.z;
+        const result = new (chunk.data.constructor as ChunkDataConstructor)(
+          sliceSize
+        );
+        const rowSize = chunk.shape.x;
+        const xyPlaneSize = chunk.shape.x * chunk.shape.y;
+
+        for (let z = 0; z < chunk.shape.z; z++) {
+          const srcOffset = z * xyPlaneSize + yClamped * rowSize;
+          const dstOffset = z * rowSize;
+          for (let x = 0; x < chunk.shape.x; x++) {
+            result[dstOffset + x] = chunk.data[srcOffset + x];
+          }
+        }
+        return result;
+      }
+
+      case "yz": {
+        const xLocal = (sliceValue - chunk.offset.x) / chunk.scale.x;
+        const xIdx = Math.round(xLocal);
+        const xClamped = clamp(xIdx, 0, chunk.shape.x - 1);
+
+        if (!almostEqual(xLocal, xClamped, 1 + 1e-6)) {
+          Logger.error("ImageLayer", "slicePlane value outside extent");
+        }
+
+        const sliceSize = chunk.shape.y * chunk.shape.z;
+        const result = new (chunk.data.constructor as ChunkDataConstructor)(
+          sliceSize
+        );
+        const rowSize = chunk.shape.x;
+        const xyPlaneSize = chunk.shape.x * chunk.shape.y;
+
+        // Output data with Z varying fast (width) and Y varying slow (height)
+        // so that after rotateY(-90°), Z maps to world Z and Y maps to world Y
+        for (let y = 0; y < chunk.shape.y; y++) {
+          for (let z = 0; z < chunk.shape.z; z++) {
+            const srcOffset = z * xyPlaneSize + y * rowSize + xClamped;
+            const dstOffset = y * chunk.shape.z + z;
+            result[dstOffset] = chunk.data[srcOffset];
+          }
+        }
+        return result;
+      }
+
+      case "volume":
+        throw new Error(VOLUME_NOT_SUPPORTED_ERROR);
     }
-
-    const sliceSize = chunk.shape.x * chunk.shape.y;
-    const offset = sliceSize * zClamped;
-    return chunk.data.slice(offset, offset + sliceSize);
   }
 
   private getImageForChunk(chunk: Chunk) {
     const existing = this.visibleChunks_.get(chunk);
     if (existing) return existing;
 
+    const orientation = getOrientation(this.sliceCoords_);
+    if (orientation === "volume") {
+      throw new Error(VOLUME_NOT_SUPPORTED_ERROR);
+    }
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
       const texture = pooled.textures[0] as Texture2DArray;
-      texture.updateWithChunk(chunk, this.getDataForImage(chunk));
+      texture.updateWithChunk(chunk, this.getDataForImage(chunk), orientation);
       this.updateImageChunk(pooled, chunk);
       if (this.channelProps_) {
         pooled.setChannelProps(this.channelProps_);
@@ -238,10 +324,23 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private createImage(chunk: Chunk) {
+    const orientation = getOrientation(this.sliceCoords_);
+
+    if (orientation === "volume") {
+      throw new Error(VOLUME_NOT_SUPPORTED_ERROR);
+    }
+
+    const data = this.getDataForImage(chunk);
+    if (!data) {
+      throw new Error("No data available for image");
+    }
+
+    const texture = Texture2DArray.createWithChunk(chunk, data, orientation);
+
     const image = new ImageRenderable(
-      chunk.shape.x,
-      chunk.shape.y,
-      Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
+      texture.width,
+      texture.height,
+      texture,
       this.channelProps_ ?? [{}]
     );
     this.updateImageChunk(image, chunk);
@@ -249,9 +348,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private getDataForImage(chunk: Chunk) {
+    const slicePosition = getSlicePosition(this.sliceCoords_);
     const data =
-      this.sliceCoords_?.z !== undefined
-        ? this.slicePlane(chunk, this.sliceCoords_.z)
+      slicePosition !== undefined
+        ? this.slicePlane(chunk, slicePosition)
         : chunk.data;
     if (!data) {
       Logger.warn("ChunkedImageLayer", "No data for image");
@@ -268,8 +368,45 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     } else {
       image.wireframeEnabled = false;
     }
-    image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
-    image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
+
+    const orientation = getOrientation(this.sliceCoords_);
+    const slicePosition = getSlicePosition(this.sliceCoords_) ?? 0;
+
+    switch (orientation) {
+      case "xy":
+        image.transform.setScale(vec3.fromValues(chunk.scale.x, chunk.scale.y, 1));
+        image.transform.setTranslation(
+          vec3.fromValues(chunk.offset.x, chunk.offset.y, slicePosition)
+        );
+        image.transform.setRotation(quat.create());
+        break;
+
+      case "xz": {
+        image.transform.setScale(vec3.fromValues(chunk.scale.x, chunk.scale.z, 1));
+        image.transform.setTranslation(
+          vec3.fromValues(chunk.offset.x, slicePosition, chunk.offset.z)
+        );
+        const rotation = quat.create();
+        quat.rotateX(rotation, rotation, Math.PI / 2);
+        image.transform.setRotation(rotation);
+        break;
+      }
+
+      case "yz": {
+        // Texture has width=Z, height=Y to match rotateY(-90°) transformation
+        image.transform.setScale(vec3.fromValues(chunk.scale.z, chunk.scale.y, 1));
+        image.transform.setTranslation(
+          vec3.fromValues(slicePosition, chunk.offset.y, chunk.offset.z)
+        );
+        const rotation = quat.create();
+        quat.rotateY(rotation, rotation, -Math.PI / 2);
+        image.transform.setRotation(rotation);
+        break;
+      }
+
+      case "volume":
+        throw new Error(VOLUME_NOT_SUPPORTED_ERROR);
+    }
   }
 
   public getValueAtWorld(world: vec3): number | null {
@@ -384,7 +521,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 export function poolKeyForImageRenderable(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `stride${chunk.rowStride}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");

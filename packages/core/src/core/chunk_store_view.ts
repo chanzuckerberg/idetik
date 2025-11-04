@@ -1,4 +1,4 @@
-import { Chunk, SliceCoordinates, ChunkViewState } from "../data/chunk";
+import { Chunk, SliceCoordinates, ChunkViewState, getOrientation, getSlicePosition, SourceDimension } from "../data/chunk";
 import { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
@@ -25,7 +25,7 @@ export class ChunkStoreView {
   private policyChanged_ = false;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
-  private lastZBounds_?: [number, number];
+  private lastSliceBounds_?: [number, number];
   private lastTCoord_?: number;
 
   private sourceMaxSquareDistance2D_: number;
@@ -97,27 +97,36 @@ export class ChunkStoreView {
 
     const orthoCamera = camera as OrthographicCamera;
     const viewBounds2D = orthoCamera.getWorldViewRect();
-    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
+
+    // For YZ orientation with rotated camera, axes are swapped in viewBounds2D
+    // viewBounds2D[0] = Z, viewBounds2D[1] = Y
+    // We need the Y range (horizontal) for LOD calculation
+    const orientation = getOrientation(sliceCoords);
+    const virtualWidth =
+      orientation === "yz"
+        ? Math.abs(viewBounds2D.max[1] - viewBounds2D.min[1]) // Use Y (index 1)
+        : Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]); // Use X (index 0)
+
     const canvasElement = viewport.element as HTMLCanvasElement;
     const bufferWidth = viewport.getBoxRelativeTo(canvasElement).toRect().width;
     const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
-    this.setLOD(lodFactor);
+    this.setLOD(lodFactor, sliceCoords);
 
-    const zBounds = this.getZBounds(sliceCoords);
+    const sliceBounds = this.getSliceBounds(sliceCoords);
     const changed =
       this.policyChanged_ ||
       this.viewBounds2DChanged(viewBounds2D) ||
-      this.zBoundsChanged(zBounds) ||
+      this.sliceBoundsChanged(sliceBounds) ||
       this.lastTCoord_ !== sliceCoords.t;
 
     if (changed) {
-      this.updateChunkViewStates(sliceCoords, viewBounds2D);
+      this.updateChunkViewStates(sliceCoords, viewBounds2D, viewport);
 
       this.policyChanged_ = false;
       this.lastViewBounds2D_ = viewBounds2D.clone();
-      this.lastZBounds_ = zBounds;
+      this.lastSliceBounds_ = sliceBounds;
       this.lastTCoord_ = sliceCoords.t;
     }
   }
@@ -166,11 +175,30 @@ export class ChunkStoreView {
     }
   }
 
-  private setLOD(lodFactor: number): void {
-    // `scale0` is the x pixel size (world units) at LOD 0.
-    // With 2x downsampling per LOD, selection happens in log2 space.
+  private setLOD(lodFactor: number, sliceCoords: SliceCoordinates): void {
+    // Get the horizontal dimension scale based on orientation
+    // For orthographic camera, we use the horizontal (X) screen dimension
     const dimensions = this.store_.dimensions;
-    const scale0 = dimensions.x.lods[0].scale;
+    const orientation = getOrientation(sliceCoords);
+
+    // Determine which dimension corresponds to horizontal screen space
+    let scale0: number;
+    switch (orientation) {
+      case "xy":
+        scale0 = dimensions.x.lods[0].scale;
+        break;
+      case "xz":
+        scale0 = dimensions.x.lods[0].scale;
+        break;
+      case "yz":
+        // For YZ orientation, Y is horizontal (after rotation)
+        scale0 = dimensions.y.lods[0].scale;
+        break;
+      case "volume":
+        scale0 = dimensions.x.lods[0].scale;
+        break;
+    }
+
     const bias = this.policy_.lod.bias;
 
     // How many LOD 0 pixels per screen pixel, normalized by source scale and bias.
@@ -196,7 +224,8 @@ export class ChunkStoreView {
 
   private updateChunkViewStates(
     sliceCoords: SliceCoordinates,
-    viewBounds2D: Box2
+    viewBounds2D: Box2,
+    _viewport: Viewport
   ): void {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
@@ -213,11 +242,54 @@ export class ChunkStoreView {
     const viewBoundsCenter2D = vec2.create();
     vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
 
-    const [zMin, zMax] = this.getZBounds(sliceCoords);
-    const viewBounds3D = new Box3(
-      vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
-      vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
-    );
+    const [sliceMin, sliceMax] = this.getSliceBounds(sliceCoords);
+    const orientation = getOrientation(sliceCoords);
+
+    // Construct 3D bounds based on orientation
+    let viewBounds3D: Box3;
+    switch (orientation) {
+      case "xy":
+        // XY plane: 2D viewport shows X and Y, slice along Z
+        viewBounds3D = new Box3(
+          vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], sliceMin),
+          vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], sliceMax)
+        );
+        break;
+      case "xz":
+        // XZ plane: 2D viewport shows X and Z, slice along Y
+        viewBounds3D = new Box3(
+          vec3.fromValues(viewBounds2D.min[0], sliceMin, viewBounds2D.min[1]),
+          vec3.fromValues(viewBounds2D.max[0], sliceMax, viewBounds2D.max[1])
+        );
+        break;
+      case "yz": {
+        // YZ plane: 2D viewport shows Y (horizontal) and Z (vertical), slice along X
+        // After camera rotation, getWorldViewRect returns [constant, Y_range]
+        // We need to get Z range from the data dimensions
+        const dimensions = this.store_.dimensions;
+        const zDim = dimensions.z;
+        const zMin = zDim ? zDim.lods[0].translation : 0;
+        const zMax = zDim
+          ? zDim.lods[0].translation + zDim.lods[0].scale * (zDim.lods[0].size - 1)
+          : 0;
+        viewBounds3D = new Box3(
+          vec3.fromValues(sliceMin, viewBounds2D.min[1], zMin),
+          vec3.fromValues(sliceMax, viewBounds2D.max[1], zMax)
+        );
+        Logger.debug(
+          "ChunkStoreView",
+          `YZ viewBounds: 2D=[${viewBounds2D.min[0].toFixed(1)},${viewBounds2D.min[1].toFixed(1)}]-[${viewBounds2D.max[0].toFixed(1)},${viewBounds2D.max[1].toFixed(1)}], 3D(XYZ)=[${viewBounds3D.min[0].toFixed(1)},${viewBounds3D.min[1].toFixed(1)},${viewBounds3D.min[2].toFixed(1)}]-[${viewBounds3D.max[0].toFixed(1)},${viewBounds3D.max[1].toFixed(1)},${viewBounds3D.max[2].toFixed(1)}], sliceRange=[${sliceMin.toFixed(1)},${sliceMax.toFixed(1)}]`
+        );
+        break;
+      }
+      case "volume":
+        // Volume: use full bounds (shouldn't happen in practice)
+        viewBounds3D = new Box3(
+          vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], sliceMin),
+          vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], sliceMax)
+        );
+        break;
+    }
 
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
@@ -363,28 +435,48 @@ export class ChunkStoreView {
     return Box3.intersects(chunkBounds, bounds);
   }
 
-  private getZBounds(sliceCoords: SliceCoordinates): [number, number] {
-    const zDim = this.store_.dimensions.z;
-    if (zDim === undefined || sliceCoords.z === undefined) return [0, 1];
+  private getSliceBounds(sliceCoords: SliceCoordinates): [number, number] {
+    const orientation = getOrientation(sliceCoords);
+    const slicePosition = getSlicePosition(sliceCoords);
 
-    const zLod = zDim.lods[this.currentLOD_];
-    const zShape = zLod.size;
-    const zScale = zLod.scale;
-    const zTran = zLod.translation;
-    const zPoint = Math.floor((sliceCoords.z - zTran) / zScale);
-    const chunkDepth = zLod.chunkSize;
+    // Determine which dimension to slice based on orientation
+    let dim: SourceDimension | undefined;
+    switch (orientation) {
+      case "xy":
+        dim = this.store_.dimensions.z;
+        break;
+      case "xz":
+        dim = this.store_.dimensions.y;
+        break;
+      case "yz":
+        dim = this.store_.dimensions.x;
+        break;
+      case "volume":
+        return [0, 1];
+    }
 
-    const zChunk = Math.max(
+    if (dim === undefined || slicePosition === undefined) {
+      return [0, 1];
+    }
+
+    const lod = dim.lods[this.currentLOD_];
+    const shape = lod.size;
+    const scale = lod.scale;
+    const translation = lod.translation;
+    const point = Math.floor((slicePosition - translation) / scale);
+    const chunkSize = lod.chunkSize;
+
+    const chunkIndex = Math.max(
       0,
       Math.min(
-        Math.floor(zPoint / chunkDepth),
-        Math.ceil(zShape / chunkDepth) - 1
+        Math.floor(point / chunkSize),
+        Math.ceil(shape / chunkSize) - 1
       )
     );
 
     return [
-      zTran + zChunk * chunkDepth * zScale,
-      zTran + (zChunk + 1) * chunkDepth * zScale,
+      translation + chunkIndex * chunkSize * scale,
+      translation + (chunkIndex + 1) * chunkSize * scale,
     ];
   }
 
@@ -396,8 +488,8 @@ export class ChunkStoreView {
     );
   }
 
-  private zBoundsChanged(newBounds: [number, number]): boolean {
-    return !this.lastZBounds_ || !vec2.equals(this.lastZBounds_, newBounds);
+  private sliceBoundsChanged(newBounds: [number, number]): boolean {
+    return !this.lastSliceBounds_ || !vec2.equals(this.lastSliceBounds_, newBounds);
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
