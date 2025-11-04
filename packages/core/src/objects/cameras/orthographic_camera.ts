@@ -19,7 +19,7 @@ export class OrthographicCamera extends Camera {
     top: number,
     bottom: number,
     near = 0.0,
-    far = 100.0
+    far = 10000.0
   ) {
     super();
     this.near_ = near;

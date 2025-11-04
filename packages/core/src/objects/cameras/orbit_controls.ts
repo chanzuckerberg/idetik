@@ -18,6 +18,7 @@ type OrbitParams = {
   radius?: number;
   yaw?: number;
   pitch?: number;
+  target?: [number, number, number];
 };
 
 export class OrbitControls implements CameraControls {
@@ -29,6 +30,9 @@ export class OrbitControls implements CameraControls {
 
   constructor(camera: PerspectiveCamera, params?: OrbitParams) {
     this.camera_ = camera;
+    if (params?.target) {
+      vec3.set(this.target_, params.target[0], params.target[1], params.target[2]);
+    }
     this.sphericalPos_ = new Spherical(
       params?.radius ?? 1,
       params?.yaw ?? 0,

@@ -13,24 +13,15 @@
       }
 
       #container {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
         width: 100vw;
         height: 100vh;
-      }
-
-      #viewport-left {
-        flex: 1;
-        border: 3px solid black;
-      }
-
-      #right-panel {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
+        gap: 0;
       }
 
       .viewport {
-        flex: 1;
         border: 3px solid black;
       }
       .viewport:hover {
@@ -49,11 +40,10 @@
   </head>
   <body>
     <div id="container">
-      <div class="viewport" id="viewport-left"></div>
-      <div id="right-panel">
-        <div class="viewport" id="viewport-top-right"></div>
-        <div class="viewport" id="viewport-bottom-right"></div>
-      </div>
+      <div class="viewport" id="viewport-xy"></div>
+      <div class="viewport" id="viewport-xz"></div>
+      <div class="viewport" id="viewport-yz"></div>
+      <div class="viewport" id="viewport-3d"></div>
     </div>
     <canvas id="canvas"></canvas>
     <script type="module" src="./main.ts"></script>
