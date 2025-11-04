@@ -72,7 +72,7 @@ export class WebGLBuffers {
     this.gl_.bindBuffer(vboType, vbo);
     this.gl_.bufferData(vboType, vertexData, this.gl_.STATIC_DRAW);
 
-    const { attributes, stride } = geometry;
+    const { attributes, strideBytes } = geometry;
     attributes.forEach((attr) => {
       const idx = GeometryAttributeIndex[attr.type];
       this.gl_.vertexAttribPointer(
@@ -80,7 +80,7 @@ export class WebGLBuffers {
         attr.itemSize,
         this.gl_.FLOAT,
         false,
-        stride,
+        strideBytes,
         attr.offset
       );
       this.gl_.enableVertexAttribArray(idx);

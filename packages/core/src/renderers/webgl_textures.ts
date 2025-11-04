@@ -140,7 +140,6 @@ export class WebGLTextures {
     const maxFilter = this.getFilter(texture.maxFilter, texture);
 
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
-    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, texture.unpackRowLength);
     gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, minFilter);
     gl.texParameteri(type, gl.TEXTURE_MAG_FILTER, maxFilter);
     gl.texParameteri(type, gl.TEXTURE_WRAP_S, this.getWrapMode(texture.wrapS));

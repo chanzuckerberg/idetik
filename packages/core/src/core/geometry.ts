@@ -1,4 +1,6 @@
 import { Node } from "./node";
+import { Box3 } from "../math/box3";
+import { vec3 } from "gl-matrix";
 
 export type Primitive = "triangles" | "points" | "lines";
 
@@ -34,6 +36,7 @@ type GeometryAttribute = {
 };
 
 export class Geometry extends Node {
+  private boundingBox_: Box3 | null = null;
   protected primitive_: Primitive;
   protected attributes_: GeometryAttribute[];
   protected vertexData_: Float32Array;
@@ -53,18 +56,21 @@ export class Geometry extends Node {
 
   public addAttribute(attr: GeometryAttribute) {
     this.attributes_.push(attr);
+    this.boundingBox_ = null;
   }
 
   public get vertexCount() {
-    return this.vertexData_.byteLength / this.stride;
+    return this.vertexData_.byteLength / this.strideBytes;
   }
 
   public get stride() {
-    return (
-      this.attributes_.reduce((acc, curr) => {
-        return acc + curr.itemSize;
-      }, 0) * Float32Array.BYTES_PER_ELEMENT
-    );
+    return this.attributes_.reduce((acc, curr) => {
+      return acc + curr.itemSize;
+    }, 0);
+  }
+
+  public get strideBytes() {
+    return this.stride * Float32Array.BYTES_PER_ELEMENT;
   }
 
   public get primitive() {
@@ -83,7 +89,33 @@ export class Geometry extends Node {
     return this.attributes_;
   }
 
+  public get boundingBox() {
+    if (this.boundingBox_ === null) {
+      const attr = this.getAttribute("position");
+      if (!attr || this.vertexCount === 0) {
+        throw new Error("Failed to generate bounding box");
+      }
+
+      const offset = (attr.offset ?? 0) / Float32Array.BYTES_PER_ELEMENT;
+      const box = new Box3();
+      const point = vec3.create();
+      for (let i = 0; i < this.vertexData_.length; i += this.stride) {
+        point[0] = this.vertexData_[i + offset + 0];
+        point[1] = this.vertexData_[i + offset + 1];
+        point[2] = this.vertexData_[i + offset + 2];
+        box.expandWithPoint(point);
+      }
+
+      this.boundingBox_ = box;
+    }
+    return this.boundingBox_;
+  }
+
   public get type() {
     return "Geometry";
+  }
+
+  private getAttribute(type: GeometryAttributeType) {
+    return this.attributes_.find((a) => a.type === type);
   }
 }

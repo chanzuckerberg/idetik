@@ -71,7 +71,6 @@ export class Texture2D extends Texture {
     }
 
     const texture = new Texture2D(source, chunk.shape.x, chunk.shape.y);
-    texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
   }

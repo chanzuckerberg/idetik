@@ -302,7 +302,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         this.sliceCoords_.z !== undefined
           ? this.slicePlane(chunk, this.sliceCoords_.z)!
           : chunk.data;
-      const pixelIndex = y * chunk.rowStride + x;
+      const pixelIndex = y * chunk.shape.x + x;
 
       // For multi-channel images, take the first channel value
       return data[pixelIndex];
@@ -373,7 +373,6 @@ export function poolKeyForImageRenderable(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
     `shape${chunk.shape.x}x${chunk.shape.y}`,
-    `stride${chunk.rowStride}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }

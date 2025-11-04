@@ -76,6 +76,6 @@ describe("poolKeyForImageRenderable", () => {
       })
     );
 
-    expect(key).toBe("lod2:shape256x128:stride256:align4");
+    expect(key).toBe("lod2:shape256x128:align4");
   });
 });

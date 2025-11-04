@@ -81,7 +81,6 @@ export class Texture2DArray extends Texture {
       );
     }
     const texture = new Texture2DArray(source, chunk.shape.x, chunk.shape.y);
-    texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
   }
