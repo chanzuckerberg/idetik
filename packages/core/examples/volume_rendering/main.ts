@@ -22,7 +22,13 @@ new Idetik({
     {
       camera,
       cameraControls: new OrbitControls(camera, { radius: 3 }),
-      layers: [new VolumeLayer({ source, sliceCoords, policy: createExplorationPolicy() })],
+      layers: [
+        new VolumeLayer({
+          source,
+          sliceCoords,
+          policy: createExplorationPolicy(),
+        }),
+      ],
     },
   ],
   showStats: true,
