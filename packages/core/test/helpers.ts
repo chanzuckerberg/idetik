@@ -17,11 +17,6 @@ export function makeChunk(overrides: ChunkOverrides = {}): Chunk {
   const defaultScale = { x: 1, y: 1, z: 1 };
   const defaultOffset = { x: 0, y: 0, z: 0 };
 
-  const mergedShape = { ...defaultShape, ...(shape ?? {}) };
-  const mergedChunkIndex = { ...defaultChunkIndex, ...(chunkIndex ?? {}) };
-  const mergedScale = { ...defaultScale, ...(scale ?? {}) };
-  const mergedOffset = { ...defaultOffset, ...(offset ?? {}) };
-
   return new Chunk({
     state: "unloaded",
     lod: 0,
@@ -31,10 +26,10 @@ export function makeChunk(overrides: ChunkOverrides = {}): Chunk {
     orderKey: null,
     rowAlignmentBytes: 1,
     ...rest,
-    shape: mergedShape,
-    chunkIndex: mergedChunkIndex,
-    scale: mergedScale,
-    offset: mergedOffset,
+    shape: { ...defaultShape, ...(shape ?? {}) },
+    chunkIndex: { ...defaultChunkIndex, ...(chunkIndex ?? {}) },
+    scale: { ...defaultScale, ...(scale ?? {}) },
+    offset: { ...defaultOffset, ...(offset ?? {}) },
   });
 }
 
