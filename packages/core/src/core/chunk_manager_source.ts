@@ -357,7 +357,7 @@ export class ChunkManagerSource {
           isFallbackLOD,
           isCurrentLOD,
           isVisible,
-          chunk.prefetch,
+          eligibleForPrefetch,
           isChannelInSlice
         )
       ) {
