@@ -35,51 +35,26 @@ export class ChunkInfoOverlay {
     const currentLOD = chunkManagerSource.currentLOD;
     const lodCount = chunkManagerSource.lodCount;
 
-    // Calculate totals across all LODs for this time point
-    let totalChunks = 0;
-    let totalLoaded = 0;
-    let totalLoading = 0;
-    let totalQueued = 0;
-
-    for (let lod = 0; lod < lodCount; lod++) {
-      const lodStats = stats.getStats(currentTimeIndex, lod);
-      totalChunks += lodStats.totalChunks;
-      totalLoaded += lodStats.loadedChunks;
-      totalLoading += lodStats.loadingChunks;
-      totalQueued += lodStats.queuedChunks;
-    }
-
-    const status = totalLoading > 0 ? "Loading..." : "Ready";
-    const summary = `Chunks at time point: ${totalLoaded}/${totalChunks} ${status}`;
-
     // Per-LOD breakdown
     const counters: string[] = [];
     for (let lod = 0; lod < lodCount; lod++) {
       const lodStats = stats.getStats(currentTimeIndex, lod);
 
-      const prefix = lod === currentLOD ? `LOD ${lod} (current)` : `LOD ${lod}`;
+      const prefix = lod === currentLOD ? `LOD ${lod}*:` : `LOD ${lod} :`;
       counters.push(
-        `${prefix}: Loaded ${lodStats.loadedChunks}/${lodStats.totalChunks} | ` +
-          `Visible ${lodStats.visibleChunks} | Prefetched ${lodStats.prefetchedChunks}`
+        `${prefix} Visible ${lodStats.visibleChunks} | ` +
+          `Loaded ${lodStats.loadedChunks} | ` +
+          `Loading ${lodStats.loadingChunks} | ` +
+          `Queued ${lodStats.queuedChunks}`
       );
     }
-
-    const stateDetails = [
-      `Loaded: ${totalLoaded}`,
-      `Loading: ${totalLoading}`,
-      `Queued: ${totalQueued}`,
-    ];
 
     const numTextures = idetik.textureInfo.textures;
     const totalTextureSize = idetik.textureInfo.totalBytes;
     const totalTextureSizeMB = Math.round(totalTextureSize / (1024 * 1024));
 
     this.textDiv_.innerHTML = [
-      summary,
-      "",
       ...counters,
-      "",
-      ...stateDetails,
       "",
       `Number of textures ${numTextures}`,
       `GPU Texture Memory in use ${totalTextureSizeMB}MB`,
