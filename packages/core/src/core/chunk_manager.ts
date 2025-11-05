@@ -10,16 +10,7 @@ export class ChunkManager {
     ChunkSource,
     Promise<ChunkManagerSource>
   >();
-  private readonly chunkToSource_ = new Map<
-    import("../data/chunk").Chunk,
-    ChunkManagerSource
-  >();
-  private readonly queue_ = new ChunkQueue(8, (chunk, oldState, newState) => {
-    const source = this.chunkToSource_.get(chunk);
-    if (source) {
-      source.statistics.recordStateTransition(chunk, oldState, newState);
-    }
-  });
+  private readonly queue_ = new ChunkQueue();
 
   public async addSource(
     source: ChunkSource,
@@ -72,9 +63,7 @@ export class ChunkManager {
       for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
-          this.chunkToSource_.delete(chunk);
         } else if (chunk.state === "queued") {
-          this.chunkToSource_.set(chunk, source);
           this.queue_.enqueue(chunk, (signal) =>
             source.loadChunkData(chunk, signal)
           );
@@ -83,31 +72,6 @@ export class ChunkManager {
     }
 
     this.queue_.flush();
-  }
-
-  /**
-   * Gets aggregate statistics across all sources.
-   * Returns aggregate counts summed across all sources.
-   */
-  public getAggregateStatistics(): import("./chunk_statistics").AggregateStats {
-    const aggregated: import("./chunk_statistics").AggregateStats = {
-      totalChunks: 0,
-      unloadedChunks: 0,
-      queuedChunks: 0,
-      loadingChunks: 0,
-      loadedChunks: 0,
-    };
-
-    for (const [_, source] of this.sources_) {
-      const stats = source.statistics.getAggregateStats();
-      aggregated.totalChunks += stats.totalChunks;
-      aggregated.unloadedChunks += stats.unloadedChunks;
-      aggregated.queuedChunks += stats.queuedChunks;
-      aggregated.loadingChunks += stats.loadingChunks;
-      aggregated.loadedChunks += stats.loadedChunks;
-    }
-
-    return aggregated;
   }
 
   /**

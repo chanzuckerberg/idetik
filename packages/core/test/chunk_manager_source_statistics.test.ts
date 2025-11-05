@@ -117,13 +117,13 @@ describe("ChunkManagerSource with Statistics", () => {
     const sliceCoords: SliceCoordinates = {};
 
     const source = new ChunkManagerSource(loader, sliceCoords, policy);
-    const stats = source.statistics.getAggregateStats();
+    const stats = source.statistics.getStatsForTime(0);
 
     // Calculate expected chunk count:
     // LOD 0: 512/256 = 2 chunks per dimension = 2 * 2 = 4 chunks
     // LOD 1: 256/256 = 1 chunk per dimension = 1 * 1 = 1 chunk
     // Total: 4 + 1 = 5 chunks per time/channel
-    // With t=1, c=1: 5 chunks total
+    // With t=1, c=1: 5 chunks total at time 0
     const expectedChunks = 5;
 
     expect(stats.totalChunks).toBe(expectedChunks);
@@ -183,7 +183,7 @@ describe("ChunkManagerSource with Statistics", () => {
     const source = new ChunkManagerSource(loader, sliceCoords, policy);
 
     // Initial state: 1 chunk, unloaded
-    let stats = source.statistics.getAggregateStats();
+    let stats = source.statistics.getStatsForTime(0);
     expect(stats.totalChunks).toBe(1);
     expect(stats.unloadedChunks).toBe(1);
 
@@ -196,13 +196,12 @@ describe("ChunkManagerSource with Statistics", () => {
 
     source.updateAndCollectChunkChanges(10, viewBounds); // lodFactor=10 to ensure LOD 0
 
-    stats = source.statistics.getAggregateStats();
+    stats = source.statistics.getStatsForTime(0);
     expect(stats.queuedChunks).toBe(1);
     expect(stats.unloadedChunks).toBe(0);
 
     // Verify visibility is tracked
-    const timeStats = source.statistics.getStatsForTime(0);
-    const lod0Stats = timeStats.perLOD.get(0);
+    const lod0Stats = stats.perLOD.get(0);
     expect(lod0Stats?.visibleChunks).toBe(1);
   });
 
@@ -220,11 +219,6 @@ describe("ChunkManagerSource with Statistics", () => {
     const sliceCoords: SliceCoordinates = {};
 
     const source = new ChunkManagerSource(loader, sliceCoords, policy);
-
-    const stats = source.statistics.getAggregateStats();
-
-    // Should have 1 chunk * 3 time points = 3 chunks
-    expect(stats.totalChunks).toBe(3);
 
     // Each time index should have 1 chunk
     for (let t = 0; t < 3; t++) {
@@ -364,56 +358,6 @@ describe("ChunkManagerSource with Statistics", () => {
     expect(visible2).toBeGreaterThan(0);
   });
 
-  test("aggregate statistics match sum of time statistics", () => {
-    const loader = createMockLoader({
-      numLods: 2,
-      xSize: 512,
-      ySize: 512,
-      xChunkSize: 256,
-      yChunkSize: 256,
-      tSize: 3,
-      cSize: 1,
-    });
-    const policy = createTestPolicy();
-    const sliceCoords: SliceCoordinates = {};
-
-    const source = new ChunkManagerSource(loader, sliceCoords, policy);
-
-    // Make some chunks visible at different time indices
-    const viewBounds = new Box2();
-    viewBounds.min[0] = 0;
-    viewBounds.min[1] = 0;
-    viewBounds.max[0] = 512;
-    viewBounds.max[1] = 512;
-
-    // Update only time index 0 and 1
-    source.updateAndCollectChunkChanges(0, viewBounds);
-
-    const aggregate = source.statistics.getAggregateStats();
-
-    // Manually sum up time statistics
-    let sumTotal = 0;
-    let sumUnloaded = 0;
-    let sumQueued = 0;
-    let sumLoading = 0;
-    let sumLoaded = 0;
-
-    for (let t = 0; t < 3; t++) {
-      const timeStats = source.statistics.getStatsForTime(t);
-      sumTotal += timeStats.totalChunks;
-      sumUnloaded += timeStats.unloadedChunks;
-      sumQueued += timeStats.queuedChunks;
-      sumLoading += timeStats.loadingChunks;
-      sumLoaded += timeStats.loadedChunks;
-    }
-
-    expect(aggregate.totalChunks).toBe(sumTotal);
-    expect(aggregate.unloadedChunks).toBe(sumUnloaded);
-    expect(aggregate.queuedChunks).toBe(sumQueued);
-    expect(aggregate.loadingChunks).toBe(sumLoading);
-    expect(aggregate.loadedChunks).toBe(sumLoaded);
-  });
-
   test("statistics remain consistent after multiple operations", () => {
     const loader = createMockLoader({
       numLods: 2,
@@ -440,7 +384,7 @@ describe("ChunkManagerSource with Statistics", () => {
 
       source.updateAndCollectChunkChanges(0, viewBounds);
 
-      const stats = source.statistics.getAggregateStats();
+      const stats = source.statistics.getStatsForTime(0);
 
       // Invariant: sum of all state counts should equal total chunks
       const stateSum =
@@ -467,9 +411,9 @@ describe("ChunkManagerSource with Statistics", () => {
 
     const source = new ChunkManagerSource(loader, sliceCoords, policy);
 
-    const stats = source.statistics.getAggregateStats();
+    const stats = source.statistics.getStatsForTime(0);
 
-    // Should have 1 chunk * 3 channels = 3 chunks total
+    // Should have 1 chunk * 3 channels = 3 chunks at time 0
     expect(stats.totalChunks).toBe(3);
 
     // Make chunks visible

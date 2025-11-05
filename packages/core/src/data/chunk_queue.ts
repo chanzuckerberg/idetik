@@ -7,12 +7,6 @@ type LoaderFn = (signal: AbortSignal) => Promise<void>;
 
 type PendingItem = { chunk: Chunk; fn: LoaderFn };
 
-type StateChangeCallback = (
-  chunk: Chunk,
-  oldState: Chunk["state"],
-  newState: Chunk["state"]
-) => void;
-
 export class ChunkQueue {
   private readonly maxConcurrent_: number;
   private readonly pending_: PendingItem[] = [];
@@ -20,14 +14,9 @@ export class ChunkQueue {
     Chunk,
     { controller: AbortController; promise: Promise<void> }
   >();
-  private readonly onStateChange_?: StateChangeCallback;
 
-  constructor(
-    maxConcurrent = MAX_CONCURRENT,
-    onStateChange?: StateChangeCallback
-  ) {
+  constructor(maxConcurrent = MAX_CONCURRENT) {
     this.maxConcurrent_ = Math.max(1, maxConcurrent);
-    this.onStateChange_ = onStateChange;
   }
 
   public enqueue(chunk: Chunk, fn: LoaderFn) {
@@ -96,9 +85,9 @@ export class ChunkQueue {
 
   private start(item: PendingItem) {
     const { chunk, fn } = item;
-    const oldState = chunk.state;
+
+    // State changes are automatically observed
     chunk.state = "loading";
-    this.onStateChange_?.(chunk, oldState, "loading");
 
     const controller = new AbortController();
     const promise = Promise.resolve()
@@ -106,16 +95,14 @@ export class ChunkQueue {
       .then(
         () => {
           if (chunk.state === "loading") {
-            const prevState = chunk.state;
+            // State change is automatically observed
             chunk.state = "loaded";
-            this.onStateChange_?.(chunk, prevState, "loaded");
           }
         },
         (err) => {
           if (chunk.state === "loading") {
-            const prevState = chunk.state;
+            // State change is automatically observed
             chunk.state = "unloaded";
-            this.onStateChange_?.(chunk, prevState, "unloaded");
           }
           if (err.name !== "AbortError") {
             Logger.error("ChunkQueue", String(err));

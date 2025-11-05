@@ -93,7 +93,7 @@ export class ChunkManagerSource {
                   ? zLod.translation + z * chunkDepth * zLod.scale
                   : 0;
               for (let c = 0; c < chunksC; ++c) {
-                const chunk: Chunk = {
+                const chunk = new Chunk({
                   state: "unloaded",
                   lod,
                   visible: false,
@@ -118,9 +118,9 @@ export class ChunkManagerSource {
                     y: yOffset,
                     z: zOffset,
                   },
-                };
+                });
                 chunksAtT.push(chunk);
-                this.statistics_.recordChunkCreated(chunk);
+                this.statistics_.trackChunk(chunk);
               }
             }
           }
@@ -330,11 +330,6 @@ export class ChunkManagerSource {
     const currentTimeChunks = this.chunks_[timeIndex];
     this.tIndicesWithQueuedChunks_.add(timeIndex);
     for (const chunk of currentTimeChunks) {
-      // Capture old values for change tracking
-      const oldVisible = chunk.visible;
-      const oldPrefetch = chunk.prefetch;
-      const oldState = chunk.state;
-
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const isChannelInSlice = this.isChunkChannelInSlice(chunk);
       const eligibleForPrefetch =
@@ -346,6 +341,7 @@ export class ChunkManagerSource {
       const isFallbackLOD = chunk.lod === this.lowestResLOD_;
       const isLoaded = chunk.state === "loaded";
 
+      // Assign properties directly - observers are notified automatically
       chunk.visible = isVisible;
       chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
       chunk.priority = this.computePriority(
@@ -365,17 +361,6 @@ export class ChunkManagerSource {
 
       if (chunk.priority !== null) {
         chunk.orderKey = this.squareDistance2D(chunk, viewBounds2DCenter);
-      }
-
-      // Record changes to statistics
-      if (oldState !== chunk.state) {
-        this.statistics_.recordStateTransition(chunk, oldState, chunk.state);
-      }
-      if (oldVisible !== chunk.visible) {
-        this.statistics_.recordVisibilityChange(chunk, chunk.visible);
-      }
-      if (oldPrefetch !== chunk.prefetch) {
-        this.statistics_.recordPrefetchChange(chunk, chunk.prefetch);
       }
 
       if (
@@ -411,9 +396,7 @@ export class ChunkManagerSource {
         if (!this.isChunkChannelInSlice(chunk)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
 
-        // Capture old values for change tracking
-        const oldPrefetch = chunk.prefetch;
-
+        // Assign properties directly - observers are notified automatically
         chunk.prefetch = true;
         chunk.priority = this.policy_.priorityMap["prefetchTime"];
         const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
@@ -423,15 +406,7 @@ export class ChunkManagerSource {
           1 - Number.EPSILON
         );
         chunk.orderKey = t - currentTimeIndex + normalizedDistance;
-
-        // Record state transition (we know it's "unloaded" -> "queued" from the continue check above)
-        this.statistics_.recordStateTransition(chunk, chunk.state, "queued");
         chunk.state = "queued";
-
-        // Record prefetch change if needed
-        if (oldPrefetch !== chunk.prefetch) {
-          this.statistics_.recordPrefetchChange(chunk, chunk.prefetch);
-        }
 
         this.tIndicesWithQueuedChunks_.add(t);
         prefetchedChunks.push(chunk);
@@ -463,27 +438,13 @@ export class ChunkManagerSource {
   }
 
   private disposeChunk(chunk: Chunk) {
-    // Capture old values for change tracking
-    const oldState = chunk.state;
-    const oldPrefetch = chunk.prefetch;
-    const oldVisible = chunk.visible;
-
+    // Reset chunk properties
     chunk.data = undefined;
     chunk.state = "unloaded";
     chunk.priority = null;
     chunk.orderKey = null;
     chunk.prefetch = false;
-
-    // Record changes to statistics
-    if (oldState !== chunk.state) {
-      this.statistics_.recordStateTransition(chunk, oldState, chunk.state);
-    }
-    if (oldPrefetch !== chunk.prefetch) {
-      this.statistics_.recordPrefetchChange(chunk, chunk.prefetch);
-    }
-    if (oldVisible !== chunk.visible) {
-      this.statistics_.recordVisibilityChange(chunk, chunk.visible);
-    }
+    chunk.visible = false;
   }
 
   private computePriority(

@@ -1,4 +1,4 @@
-import { Chunk } from "../data/chunk";
+import { Chunk, ChunkObserver, ChunkState } from "../data/chunk";
 
 /**
  * Statistics for chunks at a specific LOD (Level of Detail).
@@ -28,22 +28,6 @@ export interface TimeIndexStats {
 
   /** Per-LOD breakdown of statistics */
   perLOD: ReadonlyMap<number, LODStats>;
-}
-
-/**
- * Aggregated statistics across all time indices.
- */
-export interface AggregateStats {
-  /** Total number of chunks across all time indices */
-  totalChunks: number;
-  /** Number of chunks in "unloaded" state */
-  unloadedChunks: number;
-  /** Number of chunks in "queued" state */
-  queuedChunks: number;
-  /** Number of chunks in "loading" state */
-  loadingChunks: number;
-  /** Number of chunks in "loaded" state */
-  loadedChunks: number;
 }
 
 /**
@@ -104,62 +88,90 @@ class TimeIndexStatsImpl implements TimeIndexStats {
 }
 
 /**
- * Tracks chunk statistics incrementally by monitoring chunk state changes.
+ * Tracks chunk statistics incrementally by observing chunk property changes.
  * This provides O(1) access to statistics instead of O(n) iteration over all chunks.
+ *
+ * Implements ChunkObserver to automatically receive notifications when
+ * chunk properties change (state, visible, prefetch, lod).
  */
-export class ChunkStatistics {
+export class ChunkStatistics implements ChunkObserver {
   /** Statistics per time index */
   private perTimeStats_ = new Map<number, TimeIndexStatsImpl>();
 
-  /** Aggregated statistics across all time indices */
-  private aggregateStats_: AggregateStats = {
-    totalChunks: 0,
-    unloadedChunks: 0,
-    queuedChunks: 0,
-    loadingChunks: 0,
-    loadedChunks: 0,
-  };
-
   /**
-   * Records the creation of a new chunk.
-   * Should be called when a chunk is first created (in "unloaded" state).
+   * Begins tracking a chunk. Registers as an observer and initializes counts.
+   * Should be called when a chunk is created.
    */
-  recordChunkCreated(chunk: Chunk): void {
+  trackChunk(chunk: Chunk): void {
+    chunk.addObserver(this);
+
     const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
     timeStats.totalChunks++;
-    timeStats.unloadedChunks++;
+    this.incrementStateCount(timeStats, chunk.state);
 
-    this.aggregateStats_.totalChunks++;
-    this.aggregateStats_.unloadedChunks++;
+    // Initialize visibility/prefetch counts if applicable
+    if (chunk.visible) {
+      const lodStats = timeStats.getOrCreateLODStats(chunk.lod);
+      lodStats.visibleChunks++;
+    }
+    if (chunk.prefetch) {
+      const lodStats = timeStats.getOrCreateLODStats(chunk.lod);
+      lodStats.prefetchedChunks++;
+    }
   }
 
   /**
-   * Records a state transition for a chunk.
+   * Stops tracking a chunk. Removes observer and decrements counts.
    */
-  recordStateTransition(
-    chunk: Chunk,
-    oldState: Chunk["state"],
-    newState: Chunk["state"]
-  ): void {
-    if (oldState === newState) {
+  untrackChunk(chunk: Chunk): void {
+    chunk.removeObserver(this);
+
+    const timeStats = this.perTimeStats_.get(chunk.chunkIndex.t);
+    if (!timeStats) {
       return;
     }
 
-    const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
+    // Decrement state counts
+    this.decrementStateCount(timeStats, chunk.state);
 
-    // Decrement old state counts
-    this.decrementStateCount(timeStats, oldState);
-    this.decrementAggregateStateCount(oldState);
+    // Decrement visibility/prefetch counts
+    if (chunk.visible || chunk.prefetch) {
+      const lodStats = timeStats.getLODStats(chunk.lod);
+      if (lodStats) {
+        if (chunk.visible) {
+          lodStats.visibleChunks--;
+        }
+        if (chunk.prefetch) {
+          lodStats.prefetchedChunks--;
+        }
+      }
+    }
 
-    // Increment new state counts
-    this.incrementStateCount(timeStats, newState);
-    this.incrementAggregateStateCount(newState);
+    // Decrement total count
+    timeStats.totalChunks--;
   }
 
   /**
-   * Records a change in chunk visibility.
+   * ChunkObserver callback: invoked automatically when chunk state changes.
    */
-  recordVisibilityChange(chunk: Chunk, nowVisible: boolean): void {
+  onStateChange(
+    chunk: Chunk,
+    oldState: ChunkState,
+    newState: ChunkState
+  ): void {
+    const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
+
+    // Decrement old state count
+    this.decrementStateCount(timeStats, oldState);
+
+    // Increment new state count
+    this.incrementStateCount(timeStats, newState);
+  }
+
+  /**
+   * ChunkObserver callback: invoked automatically when chunk visibility changes.
+   */
+  onVisibilityChange(chunk: Chunk, nowVisible: boolean): void {
     const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
     const lodStats = timeStats.getOrCreateLODStats(chunk.lod);
 
@@ -171,9 +183,9 @@ export class ChunkStatistics {
   }
 
   /**
-   * Records a change in chunk prefetch status.
+   * ChunkObserver callback: invoked automatically when chunk prefetch status changes.
    */
-  recordPrefetchChange(chunk: Chunk, nowPrefetched: boolean): void {
+  onPrefetchChange(chunk: Chunk, nowPrefetched: boolean): void {
     const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
     const lodStats = timeStats.getOrCreateLODStats(chunk.lod);
 
@@ -185,14 +197,10 @@ export class ChunkStatistics {
   }
 
   /**
-   * Records a change in chunk LOD.
+   * ChunkObserver callback: invoked automatically when chunk LOD changes.
    * Updates the per-LOD statistics by moving the chunk from one LOD to another.
    */
-  recordLODChange(chunk: Chunk, oldLOD: number, newLOD: number): void {
-    if (oldLOD === newLOD) {
-      return;
-    }
-
+  onLODChange(chunk: Chunk, oldLOD: number, newLOD: number): void {
     const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
     const oldLodStats = timeStats.getOrCreateLODStats(oldLOD);
     const newLodStats = timeStats.getOrCreateLODStats(newLOD);
@@ -211,55 +219,10 @@ export class ChunkStatistics {
   }
 
   /**
-   * Records the disposal of a chunk.
-   * This should be called when a chunk is removed from tracking entirely.
-   */
-  recordChunkDisposed(chunk: Chunk): void {
-    const timeStats = this.perTimeStats_.get(chunk.chunkIndex.t);
-    if (!timeStats) {
-      return;
-    }
-
-    // Decrement state counts
-    this.decrementStateCount(timeStats, chunk.state);
-    this.decrementAggregateStateCount(chunk.state);
-
-    // Decrement visibility/prefetch counts
-    if (chunk.visible || chunk.prefetch) {
-      const lodStats = timeStats.getLODStats(chunk.lod);
-      if (lodStats) {
-        if (chunk.visible) {
-          lodStats.visibleChunks--;
-        }
-        if (chunk.prefetch) {
-          lodStats.prefetchedChunks--;
-        }
-      }
-    }
-
-    // Decrement total count
-    timeStats.totalChunks--;
-    this.aggregateStats_.totalChunks--;
-  }
-
-  /**
    * Disposes all statistics for a specific time index.
    * Should be called when an entire time index is no longer tracked.
    */
   disposeTimeIndex(timeIndex: number): void {
-    const timeStats = this.perTimeStats_.get(timeIndex);
-    if (!timeStats) {
-      return;
-    }
-
-    // Subtract time stats from aggregate
-    this.aggregateStats_.totalChunks -= timeStats.totalChunks;
-    this.aggregateStats_.unloadedChunks -= timeStats.unloadedChunks;
-    this.aggregateStats_.queuedChunks -= timeStats.queuedChunks;
-    this.aggregateStats_.loadingChunks -= timeStats.loadingChunks;
-    this.aggregateStats_.loadedChunks -= timeStats.loadedChunks;
-
-    // Remove time stats
     this.perTimeStats_.delete(timeIndex);
   }
 
@@ -284,14 +247,6 @@ export class ChunkStatistics {
   }
 
   /**
-   * Gets aggregate statistics across all time indices.
-   * Returns a snapshot of the statistics.
-   */
-  getAggregateStats(): AggregateStats {
-    return { ...this.aggregateStats_ };
-  }
-
-  /**
    * Gets all tracked time indices.
    */
   getTrackedTimeIndices(): ReadonlySet<number> {
@@ -309,7 +264,7 @@ export class ChunkStatistics {
 
   private incrementStateCount(
     timeStats: TimeIndexStatsImpl,
-    state: Chunk["state"]
+    state: ChunkState
   ): void {
     switch (state) {
       case "unloaded":
@@ -329,7 +284,7 @@ export class ChunkStatistics {
 
   private decrementStateCount(
     timeStats: TimeIndexStatsImpl,
-    state: Chunk["state"]
+    state: ChunkState
   ): void {
     switch (state) {
       case "unloaded":
@@ -343,40 +298,6 @@ export class ChunkStatistics {
         break;
       case "loaded":
         timeStats.loadedChunks--;
-        break;
-    }
-  }
-
-  private incrementAggregateStateCount(state: Chunk["state"]): void {
-    switch (state) {
-      case "unloaded":
-        this.aggregateStats_.unloadedChunks++;
-        break;
-      case "queued":
-        this.aggregateStats_.queuedChunks++;
-        break;
-      case "loading":
-        this.aggregateStats_.loadingChunks++;
-        break;
-      case "loaded":
-        this.aggregateStats_.loadedChunks++;
-        break;
-    }
-  }
-
-  private decrementAggregateStateCount(state: Chunk["state"]): void {
-    switch (state) {
-      case "unloaded":
-        this.aggregateStats_.unloadedChunks--;
-        break;
-      case "queued":
-        this.aggregateStats_.queuedChunks--;
-        break;
-      case "loading":
-        this.aggregateStats_.loadingChunks--;
-        break;
-      case "loaded":
-        this.aggregateStats_.loadedChunks--;
         break;
     }
   }

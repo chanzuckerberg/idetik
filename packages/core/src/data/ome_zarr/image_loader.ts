@@ -223,7 +223,7 @@ export class OmeZarrImageLoader {
     const xOffset = calculateOffset(indices.length - 1);
     const yOffset = calculateOffset(indices.length - 2);
 
-    const chunk: Chunk = {
+    const chunk = new Chunk({
       state: "loaded",
       lod: lod,
       visible: true,
@@ -245,7 +245,7 @@ export class OmeZarrImageLoader {
         z: 1,
       },
       offset: { x: xOffset, y: yOffset, z: 0 },
-    };
+    });
     return chunk;
   }
 

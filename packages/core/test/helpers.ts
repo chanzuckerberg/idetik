@@ -1,41 +1,41 @@
-import type { Chunk } from "../src/data/chunk";
+import { Chunk, type ChunkParams } from "../src/data/chunk";
 
 type ChunkOverrides = Partial<
-  Omit<Chunk, "shape" | "chunkIndex" | "scale" | "offset">
+  Omit<ChunkParams, "shape" | "chunkIndex" | "scale" | "offset">
 > & {
-  shape?: Partial<Chunk["shape"]>;
-  chunkIndex?: Partial<Chunk["chunkIndex"]>;
-  scale?: Partial<Chunk["scale"]>;
-  offset?: Partial<Chunk["offset"]>;
+  shape?: Partial<ChunkParams["shape"]>;
+  chunkIndex?: Partial<ChunkParams["chunkIndex"]>;
+  scale?: Partial<ChunkParams["scale"]>;
+  offset?: Partial<ChunkParams["offset"]>;
 };
 
 export function makeChunk(overrides: ChunkOverrides = {}): Chunk {
   const { shape, chunkIndex, scale, offset, ...rest } = overrides;
 
-  const defaultChunk: Chunk = {
+  const defaultShape = { x: 256, y: 256, z: 256, c: 1 };
+  const defaultChunkIndex = { x: 0, y: 0, z: 0, c: 0, t: 0 };
+  const defaultScale = { x: 1, y: 1, z: 1 };
+  const defaultOffset = { x: 0, y: 0, z: 0 };
+
+  const mergedShape = { ...defaultShape, ...(shape ?? {}) };
+  const mergedChunkIndex = { ...defaultChunkIndex, ...(chunkIndex ?? {}) };
+  const mergedScale = { ...defaultScale, ...(scale ?? {}) };
+  const mergedOffset = { ...defaultOffset, ...(offset ?? {}) };
+
+  return new Chunk({
     state: "unloaded",
     lod: 0,
     visible: false,
     prefetch: false,
     priority: null,
     orderKey: null,
-    shape: { x: 256, y: 256, z: 256, c: 1 },
     rowAlignmentBytes: 1,
-    chunkIndex: { x: 0, y: 0, z: 0, c: 0, t: 0 },
-    scale: { x: 1, y: 1, z: 1 },
-    offset: { x: 0, y: 0, z: 0 },
-  };
-
-  const mergedShape = { ...defaultChunk.shape, ...(shape ?? {}) };
-
-  return {
-    ...defaultChunk,
     ...rest,
     shape: mergedShape,
-    chunkIndex: { ...defaultChunk.chunkIndex, ...(chunkIndex ?? {}) },
-    scale: { ...defaultChunk.scale, ...(scale ?? {}) },
-    offset: { ...defaultChunk.offset, ...(offset ?? {}) },
-  };
+    chunkIndex: mergedChunkIndex,
+    scale: mergedScale,
+    offset: mergedOffset,
+  });
 }
 
 export function makeControllableLoader(onStart?: () => void) {
