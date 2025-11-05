@@ -32,6 +32,18 @@ export class ChunkStatistics implements ChunkObserver {
     stats.total--;
   }
 
+  allPrefetchLoaded(timeIndex: number, lod: number): boolean {
+    const stats = this.stats_[lod][timeIndex];
+    if (!stats) return false;
+    return stats.prefetch === stats.loaded;
+  }
+
+  allVisibleLoaded(timeIndex: number, lod: number): boolean {
+    const stats = this.stats_[lod][timeIndex];
+    if (!stats) return false;
+    return stats.visible === stats.loaded;
+  }
+
   onStateChange(
     chunk: Chunk,
     oldState: ChunkState,

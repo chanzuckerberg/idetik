@@ -163,10 +163,18 @@ export class ChunkManagerSource {
     return coordToIndex(this.dimensions_.t.lods[0], this.sliceCoords_.t);
   }
 
+  public allPrefetchedLowestLODLoaded(): boolean {
+    return this.statistics_.allVisibleLoaded(
+      this.getCurrentTimeIndex(),
+      this.lowestResLOD_
+    );
+  }
+
   public allVisibleLowestLODLoaded(): boolean {
-    return this.getChunksAtCurrentTime()
-      .filter((c) => c.visible && c.lod === this.lowestResLOD_)
-      .every((c) => c.state === "loaded");
+    return this.statistics_.allVisibleLoaded(
+      this.getCurrentTimeIndex(),
+      this.lowestResLOD_
+    );
   }
 
   public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
