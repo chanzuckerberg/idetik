@@ -7,13 +7,13 @@ describe("ChunkStatistics", () => {
     const statistics = new ChunkStatistics();
     const stats = statistics.getStats(0, 0);
 
-    expect(stats.totalChunks).toBe(0);
-    expect(stats.unloadedChunks).toBe(0);
-    expect(stats.queuedChunks).toBe(0);
-    expect(stats.loadingChunks).toBe(0);
-    expect(stats.loadedChunks).toBe(0);
-    expect(stats.visibleChunks).toBe(0);
-    expect(stats.prefetchedChunks).toBe(0);
+    expect(stats.total).toBe(0);
+    expect(stats.unloaded).toBe(0);
+    expect(stats.queued).toBe(0);
+    expect(stats.loading).toBe(0);
+    expect(stats.loaded).toBe(0);
+    expect(stats.visible).toBe(0);
+    expect(stats.prefetch).toBe(0);
   });
 
   test("tracks chunk and initializes counts", () => {
@@ -27,8 +27,8 @@ describe("ChunkStatistics", () => {
     statistics.trackChunk(chunk);
 
     const stats = statistics.getStats(0, 0);
-    expect(stats.totalChunks).toBe(1);
-    expect(stats.unloadedChunks).toBe(1);
+    expect(stats.total).toBe(1);
+    expect(stats.unloaded).toBe(1);
   });
 
   test("tracks multiple chunks at same (time, LOD)", () => {
@@ -44,8 +44,8 @@ describe("ChunkStatistics", () => {
     }
 
     const stats = statistics.getStats(0, 0);
-    expect(stats.totalChunks).toBe(10);
-    expect(stats.unloadedChunks).toBe(10);
+    expect(stats.total).toBe(10);
+    expect(stats.unloaded).toBe(10);
   });
 
   test("tracks chunks at different time indices", () => {
@@ -64,8 +64,8 @@ describe("ChunkStatistics", () => {
 
     for (let t = 0; t < 5; t++) {
       const stats = statistics.getStats(t, 0);
-      expect(stats.totalChunks).toBe(3);
-      expect(stats.unloadedChunks).toBe(3);
+      expect(stats.total).toBe(3);
+      expect(stats.unloaded).toBe(3);
     }
   });
 
@@ -83,9 +83,9 @@ describe("ChunkStatistics", () => {
       }
     }
 
-    expect(statistics.getStats(0, 0).totalChunks).toBe(1);
-    expect(statistics.getStats(0, 1).totalChunks).toBe(2);
-    expect(statistics.getStats(0, 2).totalChunks).toBe(3);
+    expect(statistics.getStats(0, 0).total).toBe(1);
+    expect(statistics.getStats(0, 1).total).toBe(2);
+    expect(statistics.getStats(0, 2).total).toBe(3);
   });
 
   test("automatically observes state transition from unloaded to queued", () => {
@@ -100,8 +100,8 @@ describe("ChunkStatistics", () => {
     chunk.state = "queued";
 
     const stats = statistics.getStats(0, 0);
-    expect(stats.unloadedChunks).toBe(0);
-    expect(stats.queuedChunks).toBe(1);
+    expect(stats.unloaded).toBe(0);
+    expect(stats.queued).toBe(1);
   });
 
   test("automatically observes state transition from queued to loading", () => {
@@ -117,8 +117,8 @@ describe("ChunkStatistics", () => {
     chunk.state = "loading";
 
     const stats = statistics.getStats(0, 0);
-    expect(stats.queuedChunks).toBe(0);
-    expect(stats.loadingChunks).toBe(1);
+    expect(stats.queued).toBe(0);
+    expect(stats.loading).toBe(1);
   });
 
   test("automatically observes state transition from loading to loaded", () => {
@@ -135,8 +135,8 @@ describe("ChunkStatistics", () => {
     chunk.state = "loaded";
 
     const stats = statistics.getStats(0, 0);
-    expect(stats.loadingChunks).toBe(0);
-    expect(stats.loadedChunks).toBe(1);
+    expect(stats.loading).toBe(0);
+    expect(stats.loaded).toBe(1);
   });
 
   test("automatically observes state transition from loading to unloaded on error", () => {
@@ -153,8 +153,8 @@ describe("ChunkStatistics", () => {
     chunk.state = "unloaded";
 
     const stats = statistics.getStats(0, 0);
-    expect(stats.loadingChunks).toBe(0);
-    expect(stats.unloadedChunks).toBe(1);
+    expect(stats.loading).toBe(0);
+    expect(stats.unloaded).toBe(1);
   });
 
   test("ignores state change to same state", () => {
@@ -166,11 +166,11 @@ describe("ChunkStatistics", () => {
     });
 
     statistics.trackChunk(chunk);
-    const beforeCount = statistics.getStats(0, 0).unloadedChunks;
+    const beforeCount = statistics.getStats(0, 0).unloaded;
 
     chunk.state = "unloaded"; // No change
 
-    const afterCount = statistics.getStats(0, 0).unloadedChunks;
+    const afterCount = statistics.getStats(0, 0).unloaded;
     expect(afterCount).toBe(beforeCount);
   });
 
@@ -187,7 +187,7 @@ describe("ChunkStatistics", () => {
     chunk.visible = true;
 
     const stats = statistics.getStats(0, 1);
-    expect(stats.visibleChunks).toBe(1);
+    expect(stats.visible).toBe(1);
   });
 
   test("automatically observes visibility change to false", () => {
@@ -204,7 +204,7 @@ describe("ChunkStatistics", () => {
     chunk.visible = false;
 
     const stats = statistics.getStats(0, 1);
-    expect(stats.visibleChunks).toBe(0);
+    expect(stats.visible).toBe(0);
   });
 
   test("tracks visibility across multiple LODs", () => {
@@ -223,9 +223,9 @@ describe("ChunkStatistics", () => {
       }
     }
 
-    expect(statistics.getStats(0, 0).visibleChunks).toBe(1);
-    expect(statistics.getStats(0, 1).visibleChunks).toBe(2);
-    expect(statistics.getStats(0, 2).visibleChunks).toBe(3);
+    expect(statistics.getStats(0, 0).visible).toBe(1);
+    expect(statistics.getStats(0, 1).visible).toBe(2);
+    expect(statistics.getStats(0, 2).visible).toBe(3);
   });
 
   test("automatically observes prefetch change to true", () => {
@@ -241,7 +241,7 @@ describe("ChunkStatistics", () => {
     chunk.prefetch = true;
 
     const stats = statistics.getStats(0, 1);
-    expect(stats.prefetchedChunks).toBe(1);
+    expect(stats.prefetch).toBe(1);
   });
 
   test("automatically observes prefetch change to false", () => {
@@ -258,52 +258,7 @@ describe("ChunkStatistics", () => {
     chunk.prefetch = false;
 
     const stats = statistics.getStats(0, 1);
-    expect(stats.prefetchedChunks).toBe(0);
-  });
-
-  test("automatically observes LOD change", () => {
-    const statistics = new ChunkStatistics();
-    const chunk = makeChunk({
-      state: "loaded",
-      chunkIndex: { t: 0 },
-      lod: 0,
-      visible: true,
-      prefetch: false,
-    });
-
-    statistics.trackChunk(chunk);
-
-    // Change LOD from 0 to 1
-    chunk.lod = 1;
-
-    const stats0 = statistics.getStats(0, 0);
-    const stats1 = statistics.getStats(0, 1);
-
-    expect(stats0.totalChunks).toBe(0);
-    expect(stats0.loadedChunks).toBe(0);
-    expect(stats0.visibleChunks).toBe(0);
-
-    expect(stats1.totalChunks).toBe(1);
-    expect(stats1.loadedChunks).toBe(1);
-    expect(stats1.visibleChunks).toBe(1);
-  });
-
-  test("ignores LOD change to same LOD", () => {
-    const statistics = new ChunkStatistics();
-    const chunk = makeChunk({
-      state: "unloaded",
-      chunkIndex: { t: 0 },
-      lod: 0,
-      visible: true,
-    });
-
-    statistics.trackChunk(chunk);
-    const beforeCount = statistics.getStats(0, 0).totalChunks;
-
-    chunk.lod = 0; // No change
-
-    const afterCount = statistics.getStats(0, 0).totalChunks;
-    expect(afterCount).toBe(beforeCount);
+    expect(stats.prefetch).toBe(0);
   });
 
   test("untracks chunk and removes counts", () => {
@@ -320,44 +275,22 @@ describe("ChunkStatistics", () => {
     statistics.untrackChunk(chunk);
 
     const stats = statistics.getStats(0, 0);
-    expect(stats.totalChunks).toBe(0);
-    expect(stats.loadedChunks).toBe(0);
-    expect(stats.visibleChunks).toBe(0);
-  });
-
-  test("disposes time index", () => {
-    const statistics = new ChunkStatistics();
-
-    for (let i = 0; i < 5; i++) {
-      const chunk = makeChunk({
-        state: "unloaded",
-        chunkIndex: { t: 0, x: i },
-        lod: 0,
-      });
-      statistics.trackChunk(chunk);
-    }
-
-    const beforeStats = statistics.getStats(0, 0);
-    expect(beforeStats.totalChunks).toBe(5);
-
-    statistics.disposeTimeIndex(0);
-
-    const afterStats = statistics.getStats(0, 0);
-    expect(afterStats.totalChunks).toBe(0);
-    expect(afterStats.unloadedChunks).toBe(0);
+    expect(stats.total).toBe(0);
+    expect(stats.loaded).toBe(0);
+    expect(stats.visible).toBe(0);
   });
 
   test("returns empty stats for non-existent (time, LOD)", () => {
     const statistics = new ChunkStatistics();
     const stats = statistics.getStats(999, 5);
 
-    expect(stats.totalChunks).toBe(0);
-    expect(stats.unloadedChunks).toBe(0);
-    expect(stats.queuedChunks).toBe(0);
-    expect(stats.loadingChunks).toBe(0);
-    expect(stats.loadedChunks).toBe(0);
-    expect(stats.visibleChunks).toBe(0);
-    expect(stats.prefetchedChunks).toBe(0);
+    expect(stats.total).toBe(0);
+    expect(stats.unloaded).toBe(0);
+    expect(stats.queued).toBe(0);
+    expect(stats.loading).toBe(0);
+    expect(stats.loaded).toBe(0);
+    expect(stats.visible).toBe(0);
+    expect(stats.prefetch).toBe(0);
   });
 
   test("tracks multiple time indices independently", () => {
@@ -387,14 +320,14 @@ describe("ChunkStatistics", () => {
     time1Chunks.forEach((chunk) => (chunk.state = "queued"));
 
     const time0Stats = statistics.getStats(0, 0);
-    expect(time0Stats.totalChunks).toBe(3);
-    expect(time0Stats.unloadedChunks).toBe(3);
-    expect(time0Stats.queuedChunks).toBe(0);
+    expect(time0Stats.total).toBe(3);
+    expect(time0Stats.unloaded).toBe(3);
+    expect(time0Stats.queued).toBe(0);
 
     const time1Stats = statistics.getStats(1, 0);
-    expect(time1Stats.totalChunks).toBe(2);
-    expect(time1Stats.unloadedChunks).toBe(0);
-    expect(time1Stats.queuedChunks).toBe(2);
+    expect(time1Stats.total).toBe(2);
+    expect(time1Stats.unloaded).toBe(0);
+    expect(time1Stats.queued).toBe(2);
   });
 
   test("complex scenario with multiple state changes", () => {
@@ -436,13 +369,13 @@ describe("ChunkStatistics", () => {
     }
 
     const stats = statistics.getStats(0, 0);
-    expect(stats.totalChunks).toBe(10);
-    expect(stats.unloadedChunks).toBe(7); // 10 - 1 loaded - 1 loading - 1 queued
-    expect(stats.queuedChunks).toBe(1);
-    expect(stats.loadingChunks).toBe(1);
-    expect(stats.loadedChunks).toBe(1);
-    expect(stats.visibleChunks).toBe(5);
-    expect(stats.prefetchedChunks).toBe(3);
+    expect(stats.total).toBe(10);
+    expect(stats.unloaded).toBe(7); // 10 - 1 loaded - 1 loading - 1 queued
+    expect(stats.queued).toBe(1);
+    expect(stats.loading).toBe(1);
+    expect(stats.loaded).toBe(1);
+    expect(stats.visible).toBe(5);
+    expect(stats.prefetch).toBe(3);
   });
 
   test("tracks chunks with initial visible/prefetch state", () => {
@@ -458,7 +391,7 @@ describe("ChunkStatistics", () => {
     statistics.trackChunk(chunk);
 
     const stats = statistics.getStats(0, 0);
-    expect(stats.visibleChunks).toBe(1);
-    expect(stats.prefetchedChunks).toBe(1);
+    expect(stats.visible).toBe(1);
+    expect(stats.prefetch).toBe(1);
   });
 });

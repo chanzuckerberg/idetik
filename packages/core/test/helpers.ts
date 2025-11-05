@@ -1,12 +1,12 @@
-import { Chunk, type ChunkParams } from "../src/data/chunk";
+import { Chunk, type ChunkProps } from "../src/data/chunk";
 
 type ChunkOverrides = Partial<
-  Omit<ChunkParams, "shape" | "chunkIndex" | "scale" | "offset">
+  Omit<ChunkProps, "shape" | "chunkIndex" | "scale" | "offset">
 > & {
-  shape?: Partial<ChunkParams["shape"]>;
-  chunkIndex?: Partial<ChunkParams["chunkIndex"]>;
-  scale?: Partial<ChunkParams["scale"]>;
-  offset?: Partial<ChunkParams["offset"]>;
+  shape?: Partial<ChunkProps["shape"]>;
+  chunkIndex?: Partial<ChunkProps["chunkIndex"]>;
+  scale?: Partial<ChunkProps["scale"]>;
+  offset?: Partial<ChunkProps["offset"]>;
 };
 
 export function makeChunk(overrides: ChunkOverrides = {}): Chunk {

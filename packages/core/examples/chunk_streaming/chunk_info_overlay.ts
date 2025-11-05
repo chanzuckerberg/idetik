@@ -36,10 +36,10 @@ export class ChunkInfoOverlay {
 
       const prefix = lod === currentLOD ? `LOD ${lod}*:` : `LOD ${lod} :`;
       counters.push(
-        `${prefix} Visible ${lodStats.visibleChunks} | ` +
-          `Loaded ${lodStats.loadedChunks} | ` +
-          `Loading ${lodStats.loadingChunks} | ` +
-          `Queued ${lodStats.queuedChunks}`
+        `${prefix} Visible ${lodStats.visible} | ` +
+          `Loaded ${lodStats.loaded} | ` +
+          `Loading ${lodStats.loading} | ` +
+          `Queued ${lodStats.queued}`
       );
     }
 

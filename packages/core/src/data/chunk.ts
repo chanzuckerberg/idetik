@@ -27,10 +27,8 @@ export function isChunkData(value: unknown): value is ChunkData {
   return false;
 }
 
-// Chunk state enum
 export type ChunkState = "unloaded" | "queued" | "loading" | "loaded";
 
-// Chunk metadata types
 export type ChunkShape = {
   x: number;
   y: number;
@@ -58,7 +56,6 @@ export type ChunkOffset = {
   z: number;
 };
 
-// Observer interface for chunk property changes
 export interface ChunkObserver {
   onStateChange?(
     chunk: Chunk,
@@ -67,11 +64,10 @@ export interface ChunkObserver {
   ): void;
   onVisibilityChange?(chunk: Chunk, visible: boolean): void;
   onPrefetchChange?(chunk: Chunk, prefetch: boolean): void;
-  onLODChange?(chunk: Chunk, oldLOD: number, newLOD: number): void;
 }
 
-// Parameters for creating a Chunk
-export interface ChunkParams {
+export type ChunkProps = {
+  data?: ChunkData;
   state?: ChunkState;
   lod: number;
   visible?: boolean;
@@ -83,41 +79,30 @@ export interface ChunkParams {
   chunkIndex: ChunkIndex;
   scale: ChunkScale;
   offset: ChunkOffset;
-  data?: ChunkData;
-}
+};
 
-/**
- * Chunk represents a single tile in a chunked multi-resolution image.
- *
- * Observable properties (state, visible, prefetch, lod) automatically
- * notify registered observers when they change, enabling automatic
- * statistics tracking and other reactive behaviors.
- */
 export class Chunk {
-  // Observable properties (private with getters/setters)
-  private state_: ChunkState;
-  private visible_: boolean;
-  private prefetch_: boolean;
-  private lod_: number;
-
-  // Non-observable properties (public)
   public data?: ChunkData;
+  public rowAlignmentBytes: TextureUnpackRowAlignment;
   public priority: number | null;
   public orderKey: number | null;
-  public rowAlignmentBytes: TextureUnpackRowAlignment;
 
-  // Readonly metadata
+  public readonly lod: number;
   public readonly shape: ChunkShape;
   public readonly chunkIndex: ChunkIndex;
   public readonly scale: ChunkScale;
   public readonly offset: ChunkOffset;
 
-  // Observers for property changes
+  private state_: ChunkState;
+  private visible_: boolean;
+  private prefetch_: boolean;
+
   private readonly observers_ = new Set<ChunkObserver>();
 
-  constructor(params: ChunkParams) {
+  constructor(params: ChunkProps) {
+    this.data = params.data;
     this.state_ = params.state ?? "unloaded";
-    this.lod_ = params.lod;
+    this.lod = params.lod;
     this.visible_ = params.visible ?? false;
     this.prefetch_ = params.prefetch ?? false;
     this.priority = params.priority ?? null;
@@ -127,10 +112,8 @@ export class Chunk {
     this.chunkIndex = params.chunkIndex;
     this.scale = params.scale;
     this.offset = params.offset;
-    this.data = params.data;
   }
 
-  // Observable property: state
   get state(): ChunkState {
     return this.state_;
   }
@@ -143,7 +126,6 @@ export class Chunk {
     }
   }
 
-  // Observable property: visible
   get visible(): boolean {
     return this.visible_;
   }
@@ -155,7 +137,6 @@ export class Chunk {
     }
   }
 
-  // Observable property: prefetch
   get prefetch(): boolean {
     return this.prefetch_;
   }
@@ -167,20 +148,6 @@ export class Chunk {
     }
   }
 
-  // Observable property: lod
-  get lod(): number {
-    return this.lod_;
-  }
-
-  set lod(newLOD: number) {
-    if (this.lod_ !== newLOD) {
-      const oldLOD = this.lod_;
-      this.lod_ = newLOD;
-      this.notifyLODChange(oldLOD, newLOD);
-    }
-  }
-
-  // Observer management
   public addObserver(observer: ChunkObserver): void {
     this.observers_.add(observer);
   }
@@ -189,7 +156,6 @@ export class Chunk {
     this.observers_.delete(observer);
   }
 
-  // Notification methods
   private notifyStateChange(oldState: ChunkState, newState: ChunkState): void {
     for (const observer of this.observers_) {
       observer.onStateChange?.(this, oldState, newState);
@@ -205,12 +171,6 @@ export class Chunk {
   private notifyPrefetchChange(prefetch: boolean): void {
     for (const observer of this.observers_) {
       observer.onPrefetchChange?.(this, prefetch);
-    }
-  }
-
-  private notifyLODChange(oldLOD: number, newLOD: number): void {
-    for (const observer of this.observers_) {
-      observer.onLODChange?.(this, oldLOD, newLOD);
     }
   }
 }

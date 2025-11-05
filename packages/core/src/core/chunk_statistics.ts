@@ -4,14 +4,14 @@ import { Chunk, ChunkObserver, ChunkState } from "../data/chunk";
  * Statistics for chunks at a specific (time, LOD) coordinate.
  * All chunk properties are tracked at this granularity.
  */
-export class ChunkStats {
-  totalChunks = 0;
-  unloadedChunks = 0;
-  queuedChunks = 0;
-  loadingChunks = 0;
-  loadedChunks = 0;
-  visibleChunks = 0;
-  prefetchedChunks = 0;
+class ChunkStats {
+  total = 0;
+  unloaded = 0;
+  queued = 0;
+  loading = 0;
+  loaded = 0;
+  visible = 0;
+  prefetch = 0;
 }
 
 /**
@@ -36,11 +36,11 @@ export class ChunkStatistics implements ChunkObserver {
     chunk.addObserver(this);
 
     const stats = this.getOrCreateStats(chunk.chunkIndex.t, chunk.lod);
-    stats.totalChunks++;
+    stats.total++;
     this.incrementStateCount(stats, chunk.state);
 
-    if (chunk.visible) stats.visibleChunks++;
-    if (chunk.prefetch) stats.prefetchedChunks++;
+    if (chunk.visible) stats.visible++;
+    if (chunk.prefetch) stats.prefetch++;
   }
 
   /**
@@ -55,11 +55,11 @@ export class ChunkStatistics implements ChunkObserver {
     this.decrementStateCount(stats, chunk.state);
 
     // Decrement visibility/prefetch counts
-    if (chunk.visible) stats.visibleChunks--;
-    if (chunk.prefetch) stats.prefetchedChunks--;
+    if (chunk.visible) stats.visible--;
+    if (chunk.prefetch) stats.prefetch--;
 
     // Decrement total count
-    stats.totalChunks--;
+    stats.total--;
   }
 
   /**
@@ -81,7 +81,7 @@ export class ChunkStatistics implements ChunkObserver {
    */
   onVisibilityChange(chunk: Chunk, nowVisible: boolean): void {
     const stats = this.getOrCreateStats(chunk.chunkIndex.t, chunk.lod);
-    stats.visibleChunks += nowVisible ? 1 : -1;
+    stats.visible += nowVisible ? 1 : -1;
   }
 
   /**
@@ -89,7 +89,7 @@ export class ChunkStatistics implements ChunkObserver {
    */
   onPrefetchChange(chunk: Chunk, nowPrefetched: boolean): void {
     const stats = this.getOrCreateStats(chunk.chunkIndex.t, chunk.lod);
-    stats.prefetchedChunks += nowPrefetched ? 1 : -1;
+    stats.prefetch += nowPrefetched ? 1 : -1;
   }
 
   /**
@@ -101,8 +101,8 @@ export class ChunkStatistics implements ChunkObserver {
     const newStats = this.getOrCreateStats(chunk.chunkIndex.t, newLOD);
 
     // Move total count
-    oldStats.totalChunks--;
-    newStats.totalChunks++;
+    oldStats.total--;
+    newStats.total++;
 
     // Move state count
     this.decrementStateCount(oldStats, chunk.state);
@@ -110,27 +110,14 @@ export class ChunkStatistics implements ChunkObserver {
 
     // Move visibility count
     if (chunk.visible) {
-      oldStats.visibleChunks--;
-      newStats.visibleChunks++;
+      oldStats.visible--;
+      newStats.visible++;
     }
 
     // Move prefetch count
     if (chunk.prefetch) {
-      oldStats.prefetchedChunks--;
-      newStats.prefetchedChunks++;
-    }
-  }
-
-  /**
-   * Disposes all statistics for a specific time index across all LODs.
-   * Should be called when an entire time index is no longer tracked.
-   */
-  disposeTimeIndex(timeIndex: number): void {
-    for (let lod = 0; lod < this.stats_.length; lod++) {
-      const lodArray = this.stats_[lod];
-      if (lodArray && lodArray[timeIndex]) {
-        delete lodArray[timeIndex];
-      }
+      oldStats.prefetch--;
+      newStats.prefetch++;
     }
   }
 
@@ -173,16 +160,16 @@ export class ChunkStatistics implements ChunkObserver {
   private incrementStateCount(stats: ChunkStats, state: ChunkState): void {
     switch (state) {
       case "unloaded":
-        stats.unloadedChunks++;
+        stats.unloaded++;
         break;
       case "queued":
-        stats.queuedChunks++;
+        stats.queued++;
         break;
       case "loading":
-        stats.loadingChunks++;
+        stats.loading++;
         break;
       case "loaded":
-        stats.loadedChunks++;
+        stats.loaded++;
         break;
     }
   }
@@ -190,16 +177,16 @@ export class ChunkStatistics implements ChunkObserver {
   private decrementStateCount(stats: ChunkStats, state: ChunkState): void {
     switch (state) {
       case "unloaded":
-        stats.unloadedChunks--;
+        stats.unloaded--;
         break;
       case "queued":
-        stats.queuedChunks--;
+        stats.queued--;
         break;
       case "loading":
-        stats.loadingChunks--;
+        stats.loading--;
         break;
       case "loaded":
-        stats.loadedChunks--;
+        stats.loaded--;
         break;
     }
   }

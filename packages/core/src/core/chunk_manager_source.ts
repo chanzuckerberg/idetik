@@ -391,7 +391,6 @@ export class ChunkManagerSource {
         if (chunk.lod !== this.lowestResLOD_) continue;
         if (!this.isChunkChannelInSlice(chunk)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
-
         chunk.prefetch = true;
         chunk.priority = this.policy_.priorityMap["prefetchTime"];
         const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
@@ -402,7 +401,6 @@ export class ChunkManagerSource {
         );
         chunk.orderKey = t - currentTimeIndex + normalizedDistance;
         chunk.state = "queued";
-
         this.tIndicesWithQueuedChunks_.add(t);
         prefetchedChunks.push(chunk);
       }
