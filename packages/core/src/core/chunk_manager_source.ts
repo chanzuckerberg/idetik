@@ -313,9 +313,6 @@ export class ChunkManagerSource {
         disposedChunks.push(chunk);
       }
       this.tIndicesWithQueuedChunks_.delete(t);
-      // Note: We don't call statistics_.disposeTimeIndex(t) here because
-      // we're only disposing queued/loaded chunks, not all chunks at time t.
-      // The time index may still have unloaded chunks that are being tracked.
     }
     return disposedChunks;
   }
@@ -341,7 +338,6 @@ export class ChunkManagerSource {
       const isFallbackLOD = chunk.lod === this.lowestResLOD_;
       const isLoaded = chunk.state === "loaded";
 
-      // Assign properties directly - observers are notified automatically
       chunk.visible = isVisible;
       chunk.prefetch = eligibleForPrefetch && isCurrentLOD && !isLoaded;
       chunk.priority = this.computePriority(
@@ -396,7 +392,6 @@ export class ChunkManagerSource {
         if (!this.isChunkChannelInSlice(chunk)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
 
-        // Assign properties directly - observers are notified automatically
         chunk.prefetch = true;
         chunk.priority = this.policy_.priorityMap["prefetchTime"];
         const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
@@ -438,13 +433,11 @@ export class ChunkManagerSource {
   }
 
   private disposeChunk(chunk: Chunk) {
-    // Reset chunk properties
     chunk.data = undefined;
     chunk.state = "unloaded";
     chunk.priority = null;
     chunk.orderKey = null;
     chunk.prefetch = false;
-    chunk.visible = false;
   }
 
   private computePriority(

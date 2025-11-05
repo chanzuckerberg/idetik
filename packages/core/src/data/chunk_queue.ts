@@ -85,8 +85,6 @@ export class ChunkQueue {
 
   private start(item: PendingItem) {
     const { chunk, fn } = item;
-
-    // State changes are automatically observed
     chunk.state = "loading";
 
     const controller = new AbortController();
@@ -94,16 +92,10 @@ export class ChunkQueue {
       .then(() => fn(controller.signal))
       .then(
         () => {
-          if (chunk.state === "loading") {
-            // State change is automatically observed
-            chunk.state = "loaded";
-          }
+          if (chunk.state === "loading") chunk.state = "loaded";
         },
         (err) => {
-          if (chunk.state === "loading") {
-            // State change is automatically observed
-            chunk.state = "unloaded";
-          }
+          if (chunk.state === "loading") chunk.state = "unloaded";
           if (err.name !== "AbortError") {
             Logger.error("ChunkQueue", String(err));
           }

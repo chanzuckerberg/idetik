@@ -73,12 +73,4 @@ export class ChunkManager {
 
     this.queue_.flush();
   }
-
-  /**
-   * Gets all chunk manager sources.
-   * Useful for accessing per-source statistics.
-   */
-  public getSources(): ReadonlyArray<ChunkManagerSource> {
-    return Array.from(this.sources_.values());
-  }
 }

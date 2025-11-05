@@ -1,18 +1,20 @@
-import { Idetik } from "../../src/idetik";
-import { ChunkedImageLayer } from "../../src/layers/chunked_image_layer";
+import { Idetik, SliceCoordinates, ChunkedImageLayer } from "../../src";
 
 export interface ChunkInfoOverlayOptions {
   textDiv: HTMLDivElement;
   imageLayer: ChunkedImageLayer;
+  sliceCoords: SliceCoordinates;
 }
 
 export class ChunkInfoOverlay {
   private readonly textDiv_: HTMLDivElement;
   private readonly imageLayer_: ChunkedImageLayer;
+  private readonly sliceCoords_: SliceCoordinates;
 
-  constructor({ textDiv, imageLayer }: ChunkInfoOverlayOptions) {
+  constructor({ textDiv, imageLayer, sliceCoords }: ChunkInfoOverlayOptions) {
     this.textDiv_ = textDiv;
     this.imageLayer_ = imageLayer;
+    this.sliceCoords_ = sliceCoords;
   }
 
   public update(idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
@@ -23,19 +25,11 @@ export class ChunkInfoOverlay {
       return;
     }
 
-    // Get statistics from the efficient statistics tracker
-    const chunksAtCurrentTime = chunkManagerSource.getChunksAtCurrentTime();
-    if (!chunksAtCurrentTime) {
-      this.textDiv_.textContent = "No chunks available";
-      return;
-    }
-
-    const currentTimeIndex = chunksAtCurrentTime[0]?.chunkIndex.t ?? 0;
+    const currentTimeIndex = this.sliceCoords_.t ?? 0;
     const stats = chunkManagerSource.statistics;
     const currentLOD = chunkManagerSource.currentLOD;
     const lodCount = chunkManagerSource.lodCount;
 
-    // Per-LOD breakdown
     const counters: string[] = [];
     for (let lod = 0; lod < lodCount; lod++) {
       const lodStats = stats.getStats(currentTimeIndex, lod);

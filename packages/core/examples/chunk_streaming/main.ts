@@ -61,10 +61,11 @@ const imageLayer = new ChunkedImageLayer({
 });
 imageLayer.debugMode = true;
 
-const overlaySelector = document.querySelector<HTMLDivElement>("#chunk-info")!;
+const textDiv = document.querySelector<HTMLDivElement>("#chunk-info")!;
 const chunkInfoOverlay = new ChunkInfoOverlay({
-  textDiv: overlaySelector,
-  imageLayer: imageLayer,
+  textDiv,
+  imageLayer,
+  sliceCoords,
 });
 
 const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
@@ -144,7 +145,7 @@ overlaysFolder
   .add(controls, "showChunkInfoOverlay")
   .name("Show chunk information overlay")
   .onChange((show: boolean) => {
-    overlaySelector.style.display = show ? "block" : "none";
+    textDiv.style.display = show ? "block" : "none";
   });
 
 const contrastFolder = gui.addFolder("Window/Level");
