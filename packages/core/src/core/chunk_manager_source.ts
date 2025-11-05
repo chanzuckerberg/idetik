@@ -12,6 +12,7 @@ import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
+import { ChunkStatistics } from "./chunk_statistics";
 
 /*
 Unique symbol used as a capability token to allow internal modules to update
@@ -29,6 +30,7 @@ export class ChunkManagerSource {
   private readonly dimensions_: SourceDimensionMap;
   private readonly tIndicesWithQueuedChunks_: Set<number> = new Set();
   private readonly sourceMaxSquareDistance2D_: number;
+  private readonly statistics_ = new ChunkStatistics();
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
   private currentLOD_: number = 0;
@@ -91,7 +93,7 @@ export class ChunkManagerSource {
                   ? zLod.translation + z * chunkDepth * zLod.scale
                   : 0;
               for (let c = 0; c < chunksC; ++c) {
-                chunksAtT.push({
+                const chunk: Chunk = {
                   state: "unloaded",
                   lod,
                   visible: false,
@@ -116,7 +118,9 @@ export class ChunkManagerSource {
                     y: yOffset,
                     z: zOffset,
                   },
-                });
+                };
+                chunksAtT.push(chunk);
+                this.statistics_.recordChunkCreated(chunk);
               }
             }
           }
@@ -197,6 +201,10 @@ export class ChunkManagerSource {
 
   public get currentLOD(): number {
     return this.currentLOD_;
+  }
+
+  public get statistics(): ChunkStatistics {
+    return this.statistics_;
   }
 
   public setImageSourcePolicy(newPolicy: ImageSourcePolicy, key: symbol) {
@@ -305,6 +313,9 @@ export class ChunkManagerSource {
         disposedChunks.push(chunk);
       }
       this.tIndicesWithQueuedChunks_.delete(t);
+      // Note: We don't call statistics_.disposeTimeIndex(t) here because
+      // we're only disposing queued/loaded chunks, not all chunks at time t.
+      // The time index may still have unloaded chunks that are being tracked.
     }
     return disposedChunks;
   }
@@ -319,6 +330,11 @@ export class ChunkManagerSource {
     const currentTimeChunks = this.chunks_[timeIndex];
     this.tIndicesWithQueuedChunks_.add(timeIndex);
     for (const chunk of currentTimeChunks) {
+      // Capture old values for change tracking
+      const oldVisible = chunk.visible;
+      const oldPrefetch = chunk.prefetch;
+      const oldState = chunk.state;
+
       const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
       const isChannelInSlice = this.isChunkChannelInSlice(chunk);
       const eligibleForPrefetch =
@@ -349,6 +365,17 @@ export class ChunkManagerSource {
 
       if (chunk.priority !== null) {
         chunk.orderKey = this.squareDistance2D(chunk, viewBounds2DCenter);
+      }
+
+      // Record changes to statistics
+      if (oldState !== chunk.state) {
+        this.statistics_.recordStateTransition(chunk, oldState, chunk.state);
+      }
+      if (oldVisible !== chunk.visible) {
+        this.statistics_.recordVisibilityChange(chunk, chunk.visible);
+      }
+      if (oldPrefetch !== chunk.prefetch) {
+        this.statistics_.recordPrefetchChange(chunk, chunk.prefetch);
       }
 
       if (
@@ -383,6 +410,10 @@ export class ChunkManagerSource {
         if (chunk.lod !== this.lowestResLOD_) continue;
         if (!this.isChunkChannelInSlice(chunk)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
+
+        // Capture old values for change tracking
+        const oldPrefetch = chunk.prefetch;
+
         chunk.prefetch = true;
         chunk.priority = this.policy_.priorityMap["prefetchTime"];
         const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
@@ -392,7 +423,16 @@ export class ChunkManagerSource {
           1 - Number.EPSILON
         );
         chunk.orderKey = t - currentTimeIndex + normalizedDistance;
+
+        // Record state transition (we know it's "unloaded" -> "queued" from the continue check above)
+        this.statistics_.recordStateTransition(chunk, chunk.state, "queued");
         chunk.state = "queued";
+
+        // Record prefetch change if needed
+        if (oldPrefetch !== chunk.prefetch) {
+          this.statistics_.recordPrefetchChange(chunk, chunk.prefetch);
+        }
+
         this.tIndicesWithQueuedChunks_.add(t);
         prefetchedChunks.push(chunk);
       }
@@ -423,11 +463,27 @@ export class ChunkManagerSource {
   }
 
   private disposeChunk(chunk: Chunk) {
+    // Capture old values for change tracking
+    const oldState = chunk.state;
+    const oldPrefetch = chunk.prefetch;
+    const oldVisible = chunk.visible;
+
     chunk.data = undefined;
     chunk.state = "unloaded";
     chunk.priority = null;
     chunk.orderKey = null;
     chunk.prefetch = false;
+
+    // Record changes to statistics
+    if (oldState !== chunk.state) {
+      this.statistics_.recordStateTransition(chunk, oldState, chunk.state);
+    }
+    if (oldPrefetch !== chunk.prefetch) {
+      this.statistics_.recordPrefetchChange(chunk, chunk.prefetch);
+    }
+    if (oldVisible !== chunk.visible) {
+      this.statistics_.recordVisibilityChange(chunk, chunk.visible);
+    }
   }
 
   private computePriority(

@@ -24,57 +24,50 @@ export class ChunkInfoOverlay {
       return;
     }
 
+    // Get statistics from the efficient statistics tracker instead of iterating
     const chunksAtCurrentTime = chunkManagerSource.getChunksAtCurrentTime();
     if (!chunksAtCurrentTime) {
       this.textDiv_.textContent = "No chunks available";
       return;
     }
 
+    const currentTimeIndex = chunksAtCurrentTime[0]?.chunkIndex.t ?? 0;
+    const stats =
+      chunkManagerSource.statistics.getStatsForTime(currentTimeIndex);
+
     const chunkDetails: string[] = [];
     const currentLOD = chunkManagerSource.currentLOD;
+
+    // We still need to iterate over rendered chunks since rendering depends on
+    // frustum culling which happens separately from visibility tracking
     const renderedChunks = chunkManagerSource.getChunks();
-    const totalChunks = chunksAtCurrentTime.length;
-
-    let loadedChunks = 0;
-    let loadingChunks = 0;
-    const lodCounters: {
-      visible: number;
-      rendered: number;
-      prefetched: number;
-    }[] = Array.from({ length: chunkManagerSource.lodCount }, () => ({
-      visible: 0,
-      rendered: 0,
-      prefetched: 0,
-    }));
-    chunksAtCurrentTime.forEach((chunk: Chunk) => {
-      if (chunk.state === "loaded") {
-        loadedChunks++;
-      } else if (chunk.state === "loading") {
-        loadingChunks++;
-      }
-      if (chunk.visible) lodCounters[chunk.lod].visible++;
-      // Prefetched chunks are only counted for the current LOD,
-      // since higher/lower LODs are not actively rendered.
-      if (chunk.lod === currentLOD && chunk.prefetch) {
-        lodCounters[chunk.lod].prefetched++;
-      }
-    });
-
+    const renderedCountPerLOD = new Map<number, number>();
     renderedChunks.forEach((chunk: Chunk) => {
-      lodCounters[chunk.lod].rendered++;
+      const count = renderedCountPerLOD.get(chunk.lod) ?? 0;
+      renderedCountPerLOD.set(chunk.lod, count + 1);
     });
 
     chunkDetails.push(`Total rendered: ${renderedChunks.length} chunks`);
 
+    const totalChunks = stats.totalChunks;
+    const loadedChunks = stats.loadedChunks;
+    const loadingChunks = stats.loadingChunks;
+
     const status = loadingChunks > 0 ? "Loading..." : "Ready";
     const summary = `Chunks at time point: ${loadedChunks}/${totalChunks} ${status}`;
+
     const counters: string[] = [];
-    lodCounters.forEach((counter, lod) => {
+    for (let lod = 0; lod < chunkManagerSource.lodCount; lod++) {
+      const lodStats = stats.perLOD.get(lod);
+      const visibleCount = lodStats?.visibleChunks ?? 0;
+      const prefetchedCount = lodStats?.prefetchedChunks ?? 0;
+      const renderedCount = renderedCountPerLOD.get(lod) ?? 0;
+
       const prefix = lod === currentLOD ? `LOD ${lod} (current)` : `LOD ${lod}`;
       counters.push(
-        `${prefix}: Visible ${counter.visible} | Rendered ${counter.rendered} | Prefetched ${counter.prefetched}`
+        `${prefix}: Visible ${visibleCount} | Rendered ${renderedCount} | Prefetched ${prefetchedCount}`
       );
-    });
+    }
 
     const numTextures = idetik.textureInfo.textures;
     const totalTextureSize = idetik.textureInfo.totalBytes;
