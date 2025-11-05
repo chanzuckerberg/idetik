@@ -8,6 +8,7 @@ import type {
 } from "@/data/chunk";
 import { createImageSourcePolicy } from "@/core/image_source_policy";
 import { Box2 } from "@/math/box2";
+import { ChunkStatistics } from "@/core/chunk_statistics";
 
 /**
  * Creates a mock ChunkLoader for testing.
@@ -102,6 +103,32 @@ function createTestPolicy() {
   });
 }
 
+/**
+ * Helper to sum stats across all LODs for a given time point.
+ */
+function sumStatsForTime(
+  statistics: ChunkStatistics,
+  timeIndex: number,
+  lodCount: number
+) {
+  let totalChunks = 0;
+  let unloadedChunks = 0;
+  let queuedChunks = 0;
+  let loadingChunks = 0;
+  let loadedChunks = 0;
+
+  for (let lod = 0; lod < lodCount; lod++) {
+    const stats = statistics.getStats(timeIndex, lod);
+    totalChunks += stats.totalChunks;
+    unloadedChunks += stats.unloadedChunks;
+    queuedChunks += stats.queuedChunks;
+    loadingChunks += stats.loadingChunks;
+    loadedChunks += stats.loadedChunks;
+  }
+
+  return { totalChunks, unloadedChunks, queuedChunks, loadingChunks, loadedChunks };
+}
+
 describe("ChunkManagerSource with Statistics", () => {
   test("initializes statistics with all chunks in unloaded state", () => {
     const loader = createMockLoader({
@@ -117,7 +144,7 @@ describe("ChunkManagerSource with Statistics", () => {
     const sliceCoords: SliceCoordinates = {};
 
     const source = new ChunkManagerSource(loader, sliceCoords, policy);
-    const stats = source.statistics.getStatsForTime(0);
+    const stats = sumStatsForTime(source.statistics, 0, 2);
 
     // Calculate expected chunk count:
     // LOD 0: 512/256 = 2 chunks per dimension = 2 * 2 = 4 chunks
@@ -157,14 +184,13 @@ describe("ChunkManagerSource with Statistics", () => {
 
     source.updateAndCollectChunkChanges(0, viewBounds);
 
-    const stats = source.statistics.getStatsForTime(0);
-
     // At LOD 0 (current LOD for lodFactor=0), all 4 chunks should be visible
-    const lod0Stats = stats.perLOD.get(0);
-    expect(lod0Stats?.visibleChunks).toBeGreaterThan(0);
+    const lod0Stats = source.statistics.getStats(0, 0);
+    expect(lod0Stats.visibleChunks).toBeGreaterThan(0);
 
     // Some chunks should be queued for loading
-    expect(stats.queuedChunks).toBeGreaterThan(0);
+    const summed = sumStatsForTime(source.statistics, 0, 2);
+    expect(summed.queuedChunks).toBeGreaterThan(0);
   });
 
   test("tracks state transitions through queue lifecycle", () => {
@@ -183,7 +209,7 @@ describe("ChunkManagerSource with Statistics", () => {
     const source = new ChunkManagerSource(loader, sliceCoords, policy);
 
     // Initial state: 1 chunk, unloaded
-    let stats = source.statistics.getStatsForTime(0);
+    let stats = source.statistics.getStats(0, 0);
     expect(stats.totalChunks).toBe(1);
     expect(stats.unloadedChunks).toBe(1);
 
@@ -196,13 +222,12 @@ describe("ChunkManagerSource with Statistics", () => {
 
     source.updateAndCollectChunkChanges(10, viewBounds); // lodFactor=10 to ensure LOD 0
 
-    stats = source.statistics.getStatsForTime(0);
+    stats = source.statistics.getStats(0, 0);
     expect(stats.queuedChunks).toBe(1);
     expect(stats.unloadedChunks).toBe(0);
 
     // Verify visibility is tracked
-    const lod0Stats = stats.perLOD.get(0);
-    expect(lod0Stats?.visibleChunks).toBe(1);
+    expect(stats.visibleChunks).toBe(1);
   });
 
   test("handles multiple time indices correctly", () => {
@@ -220,11 +245,11 @@ describe("ChunkManagerSource with Statistics", () => {
 
     const source = new ChunkManagerSource(loader, sliceCoords, policy);
 
-    // Each time index should have 1 chunk
+    // Each time index should have 1 chunk at LOD 0
     for (let t = 0; t < 3; t++) {
-      const timeStats = source.statistics.getStatsForTime(t);
-      expect(timeStats.totalChunks).toBe(1);
-      expect(timeStats.unloadedChunks).toBe(1);
+      const stats = source.statistics.getStats(t, 0);
+      expect(stats.totalChunks).toBe(1);
+      expect(stats.unloadedChunks).toBe(1);
     }
   });
 
@@ -252,16 +277,11 @@ describe("ChunkManagerSource with Statistics", () => {
 
     source.updateAndCollectChunkChanges(0, viewBounds);
 
-    const timeStats = source.statistics.getStatsForTime(0);
-
-    // Verify that multiple LODs have tracked chunks
-    const lodLevels = Array.from(timeStats.perLOD.keys()).sort();
-    expect(lodLevels.length).toBeGreaterThan(0);
-
     // At least one LOD should have visible chunks
     let totalVisible = 0;
-    for (const [_lod, lodStats] of timeStats.perLOD) {
-      totalVisible += lodStats.visibleChunks;
+    for (let lod = 0; lod < 3; lod++) {
+      const stats = source.statistics.getStats(0, lod);
+      totalVisible += stats.visibleChunks;
     }
     expect(totalVisible).toBeGreaterThan(0);
   });
@@ -290,7 +310,7 @@ describe("ChunkManagerSource with Statistics", () => {
 
     source.updateAndCollectChunkChanges(0, viewBounds);
 
-    let stats = source.statistics.getStatsForTime(0);
+    let stats = sumStatsForTime(source.statistics, 0, 2);
     const initialQueued = stats.queuedChunks;
     expect(initialQueued).toBeGreaterThan(0);
 
@@ -302,7 +322,7 @@ describe("ChunkManagerSource with Statistics", () => {
 
     source.updateAndCollectChunkChanges(0, viewBounds);
 
-    stats = source.statistics.getStatsForTime(0);
+    stats = sumStatsForTime(source.statistics, 0, 2);
 
     // Chunks should have been disposed and returned to unloaded
     expect(stats.queuedChunks).toBeLessThan(initialQueued);
@@ -331,7 +351,6 @@ describe("ChunkManagerSource with Statistics", () => {
     viewBounds1.max[1] = 300;
 
     source.updateAndCollectChunkChanges(0, viewBounds1);
-    const stats1 = source.statistics.getStatsForTime(0);
 
     // Second view (different region)
     const viewBounds2 = new Box2();
@@ -341,17 +360,14 @@ describe("ChunkManagerSource with Statistics", () => {
     viewBounds2.max[1] = 800;
 
     source.updateAndCollectChunkChanges(0, viewBounds2);
-    const stats2 = source.statistics.getStatsForTime(0);
 
     // Visible chunks should change between views
-    const visible1 = Array.from(stats1.perLOD.values()).reduce(
-      (sum, lod) => sum + lod.visibleChunks,
-      0
-    );
-    const visible2 = Array.from(stats2.perLOD.values()).reduce(
-      (sum, lod) => sum + lod.visibleChunks,
-      0
-    );
+    let visible1 = 0;
+    let visible2 = 0;
+    for (let lod = 0; lod < 2; lod++) {
+      visible1 += source.statistics.getStats(0, lod).visibleChunks;
+      visible2 += source.statistics.getStats(0, lod).visibleChunks;
+    }
 
     // Both views should have some visible chunks
     expect(visible1).toBeGreaterThan(0);
@@ -384,7 +400,7 @@ describe("ChunkManagerSource with Statistics", () => {
 
       source.updateAndCollectChunkChanges(0, viewBounds);
 
-      const stats = source.statistics.getStatsForTime(0);
+      const stats = sumStatsForTime(source.statistics, 0, 2);
 
       // Invariant: sum of all state counts should equal total chunks
       const stateSum =
@@ -411,9 +427,9 @@ describe("ChunkManagerSource with Statistics", () => {
 
     const source = new ChunkManagerSource(loader, sliceCoords, policy);
 
-    const stats = source.statistics.getStatsForTime(0);
+    const stats = source.statistics.getStats(0, 0);
 
-    // Should have 1 chunk * 3 channels = 3 chunks at time 0
+    // Should have 1 chunk * 3 channels = 3 chunks at time 0, LOD 0
     expect(stats.totalChunks).toBe(3);
 
     // Make chunks visible
@@ -425,10 +441,10 @@ describe("ChunkManagerSource with Statistics", () => {
 
     source.updateAndCollectChunkChanges(10, viewBounds);
 
-    const timeStats = source.statistics.getStatsForTime(0);
+    const updatedStats = source.statistics.getStats(0, 0);
 
     // Only channel 0 should be visible (due to slice)
     // So only 1 chunk should be queued
-    expect(timeStats.queuedChunks).toBe(1);
+    expect(updatedStats.queuedChunks).toBe(1);
   });
 });

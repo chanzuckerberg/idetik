@@ -1,90 +1,17 @@
 import { Chunk, ChunkObserver, ChunkState } from "../data/chunk";
 
 /**
- * Statistics for chunks at a specific LOD (Level of Detail).
+ * Statistics for chunks at a specific (time, LOD) coordinate.
+ * All chunk properties are tracked at this granularity.
  */
-export interface LODStats {
-  /** Number of visible chunks at this LOD */
-  visibleChunks: number;
-  /** Number of prefetched chunks at this LOD */
-  prefetchedChunks: number;
-}
-
-/**
- * Statistics for all chunks at a specific time index.
- */
-export interface TimeIndexStats {
-  /** Total number of chunks at this time index */
-  totalChunks: number;
-
-  /** Number of chunks in "unloaded" state */
-  unloadedChunks: number;
-  /** Number of chunks in "queued" state */
-  queuedChunks: number;
-  /** Number of chunks in "loading" state */
-  loadingChunks: number;
-  /** Number of chunks in "loaded" state */
-  loadedChunks: number;
-
-  /** Per-LOD breakdown of statistics */
-  perLOD: ReadonlyMap<number, LODStats>;
-}
-
-/**
- * Mutable internal representation of LOD statistics.
- */
-class LODStatsImpl implements LODStats {
-  visibleChunks = 0;
-  prefetchedChunks = 0;
-
-  clone(): LODStatsImpl {
-    const cloned = new LODStatsImpl();
-    cloned.visibleChunks = this.visibleChunks;
-    cloned.prefetchedChunks = this.prefetchedChunks;
-    return cloned;
-  }
-}
-
-/**
- * Mutable internal representation of time index statistics.
- */
-class TimeIndexStatsImpl implements TimeIndexStats {
+export class ChunkStats {
   totalChunks = 0;
   unloadedChunks = 0;
   queuedChunks = 0;
   loadingChunks = 0;
   loadedChunks = 0;
-  private perLODMap_ = new Map<number, LODStatsImpl>();
-
-  get perLOD(): ReadonlyMap<number, LODStats> {
-    return this.perLODMap_;
-  }
-
-  getOrCreateLODStats(lod: number): LODStatsImpl {
-    let lodStats = this.perLODMap_.get(lod);
-    if (!lodStats) {
-      lodStats = new LODStatsImpl();
-      this.perLODMap_.set(lod, lodStats);
-    }
-    return lodStats;
-  }
-
-  getLODStats(lod: number): LODStatsImpl | undefined {
-    return this.perLODMap_.get(lod);
-  }
-
-  clone(): TimeIndexStatsImpl {
-    const cloned = new TimeIndexStatsImpl();
-    cloned.totalChunks = this.totalChunks;
-    cloned.unloadedChunks = this.unloadedChunks;
-    cloned.queuedChunks = this.queuedChunks;
-    cloned.loadingChunks = this.loadingChunks;
-    cloned.loadedChunks = this.loadedChunks;
-    for (const [lod, lodStats] of this.perLODMap_) {
-      cloned.perLODMap_.set(lod, lodStats.clone());
-    }
-    return cloned;
-  }
+  visibleChunks = 0;
+  prefetchedChunks = 0;
 }
 
 /**
@@ -93,10 +20,13 @@ class TimeIndexStatsImpl implements TimeIndexStats {
  *
  * Implements ChunkObserver to automatically receive notifications when
  * chunk properties change (state, visible, prefetch, lod).
+ *
+ * Storage: stats_[lod][time] = ChunkStats
+ * LOD is the outer dimension because different LODs can have different numbers of time points.
  */
 export class ChunkStatistics implements ChunkObserver {
-  /** Statistics per time index */
-  private perTimeStats_ = new Map<number, TimeIndexStatsImpl>();
+  /** Array of LODs, each containing an array of time points */
+  private stats_: ChunkStats[][] = [];
 
   /**
    * Begins tracking a chunk. Registers as an observer and initializes counts.
@@ -105,19 +35,12 @@ export class ChunkStatistics implements ChunkObserver {
   trackChunk(chunk: Chunk): void {
     chunk.addObserver(this);
 
-    const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
-    timeStats.totalChunks++;
-    this.incrementStateCount(timeStats, chunk.state);
+    const stats = this.getOrCreateStats(chunk.chunkIndex.t, chunk.lod);
+    stats.totalChunks++;
+    this.incrementStateCount(stats, chunk.state);
 
-    // Initialize visibility/prefetch counts if applicable
-    if (chunk.visible) {
-      const lodStats = timeStats.getOrCreateLODStats(chunk.lod);
-      lodStats.visibleChunks++;
-    }
-    if (chunk.prefetch) {
-      const lodStats = timeStats.getOrCreateLODStats(chunk.lod);
-      lodStats.prefetchedChunks++;
-    }
+    if (chunk.visible) stats.visibleChunks++;
+    if (chunk.prefetch) stats.prefetchedChunks++;
   }
 
   /**
@@ -126,29 +49,17 @@ export class ChunkStatistics implements ChunkObserver {
   untrackChunk(chunk: Chunk): void {
     chunk.removeObserver(this);
 
-    const timeStats = this.perTimeStats_.get(chunk.chunkIndex.t);
-    if (!timeStats) {
-      return;
-    }
+    const stats = this.getStats(chunk.chunkIndex.t, chunk.lod);
 
-    // Decrement state counts
-    this.decrementStateCount(timeStats, chunk.state);
+    // Decrement state count
+    this.decrementStateCount(stats, chunk.state);
 
     // Decrement visibility/prefetch counts
-    if (chunk.visible || chunk.prefetch) {
-      const lodStats = timeStats.getLODStats(chunk.lod);
-      if (lodStats) {
-        if (chunk.visible) {
-          lodStats.visibleChunks--;
-        }
-        if (chunk.prefetch) {
-          lodStats.prefetchedChunks--;
-        }
-      }
-    }
+    if (chunk.visible) stats.visibleChunks--;
+    if (chunk.prefetch) stats.prefetchedChunks--;
 
     // Decrement total count
-    timeStats.totalChunks--;
+    stats.totalChunks--;
   }
 
   /**
@@ -159,145 +70,136 @@ export class ChunkStatistics implements ChunkObserver {
     oldState: ChunkState,
     newState: ChunkState
   ): void {
-    const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
+    const stats = this.getOrCreateStats(chunk.chunkIndex.t, chunk.lod);
 
-    // Decrement old state count
-    this.decrementStateCount(timeStats, oldState);
-
-    // Increment new state count
-    this.incrementStateCount(timeStats, newState);
+    this.decrementStateCount(stats, oldState);
+    this.incrementStateCount(stats, newState);
   }
 
   /**
    * ChunkObserver callback: invoked automatically when chunk visibility changes.
    */
   onVisibilityChange(chunk: Chunk, nowVisible: boolean): void {
-    const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
-    const lodStats = timeStats.getOrCreateLODStats(chunk.lod);
-
-    if (nowVisible) {
-      lodStats.visibleChunks++;
-    } else {
-      lodStats.visibleChunks--;
-    }
+    const stats = this.getOrCreateStats(chunk.chunkIndex.t, chunk.lod);
+    stats.visibleChunks += nowVisible ? 1 : -1;
   }
 
   /**
    * ChunkObserver callback: invoked automatically when chunk prefetch status changes.
    */
   onPrefetchChange(chunk: Chunk, nowPrefetched: boolean): void {
-    const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
-    const lodStats = timeStats.getOrCreateLODStats(chunk.lod);
-
-    if (nowPrefetched) {
-      lodStats.prefetchedChunks++;
-    } else {
-      lodStats.prefetchedChunks--;
-    }
+    const stats = this.getOrCreateStats(chunk.chunkIndex.t, chunk.lod);
+    stats.prefetchedChunks += nowPrefetched ? 1 : -1;
   }
 
   /**
    * ChunkObserver callback: invoked automatically when chunk LOD changes.
-   * Updates the per-LOD statistics by moving the chunk from one LOD to another.
+   * Moves all counts from old LOD to new LOD.
    */
   onLODChange(chunk: Chunk, oldLOD: number, newLOD: number): void {
-    const timeStats = this.getOrCreateTimeStats(chunk.chunkIndex.t);
-    const oldLodStats = timeStats.getOrCreateLODStats(oldLOD);
-    const newLodStats = timeStats.getOrCreateLODStats(newLOD);
+    const oldStats = this.getOrCreateStats(chunk.chunkIndex.t, oldLOD);
+    const newStats = this.getOrCreateStats(chunk.chunkIndex.t, newLOD);
+
+    // Move total count
+    oldStats.totalChunks--;
+    newStats.totalChunks++;
+
+    // Move state count
+    this.decrementStateCount(oldStats, chunk.state);
+    this.incrementStateCount(newStats, chunk.state);
 
     // Move visibility count
     if (chunk.visible) {
-      oldLodStats.visibleChunks--;
-      newLodStats.visibleChunks++;
+      oldStats.visibleChunks--;
+      newStats.visibleChunks++;
     }
 
     // Move prefetch count
     if (chunk.prefetch) {
-      oldLodStats.prefetchedChunks--;
-      newLodStats.prefetchedChunks++;
+      oldStats.prefetchedChunks--;
+      newStats.prefetchedChunks++;
     }
   }
 
   /**
-   * Disposes all statistics for a specific time index.
+   * Disposes all statistics for a specific time index across all LODs.
    * Should be called when an entire time index is no longer tracked.
    */
   disposeTimeIndex(timeIndex: number): void {
-    this.perTimeStats_.delete(timeIndex);
+    for (let lod = 0; lod < this.stats_.length; lod++) {
+      const lodArray = this.stats_[lod];
+      if (lodArray && lodArray[timeIndex]) {
+        delete lodArray[timeIndex];
+      }
+    }
   }
 
   /**
-   * Gets statistics for a specific time index.
-   * Returns a snapshot of the statistics.
+   * Gets statistics for a specific (time, LOD) coordinate.
+   * Returns the ChunkStats object directly (not a copy).
    */
-  getStatsForTime(timeIndex: number): TimeIndexStats {
-    const stats = this.perTimeStats_.get(timeIndex);
+  getStats(timeIndex: number, lod: number): ChunkStats {
+    const lodArray = this.stats_[lod];
+    if (!lodArray) {
+      // Return empty stats if LOD not tracked
+      return new ChunkStats();
+    }
+
+    const stats = lodArray[timeIndex];
     if (!stats) {
-      // Return empty stats if time index not tracked
-      return {
-        totalChunks: 0,
-        unloadedChunks: 0,
-        queuedChunks: 0,
-        loadingChunks: 0,
-        loadedChunks: 0,
-        perLOD: new Map(),
-      };
+      // Return empty stats if time not tracked at this LOD
+      return new ChunkStats();
     }
-    return stats.clone();
+
+    return stats;
   }
 
-  /**
-   * Gets all tracked time indices.
-   */
-  getTrackedTimeIndices(): ReadonlySet<number> {
-    return new Set(this.perTimeStats_.keys());
-  }
-
-  private getOrCreateTimeStats(timeIndex: number): TimeIndexStatsImpl {
-    let timeStats = this.perTimeStats_.get(timeIndex);
-    if (!timeStats) {
-      timeStats = new TimeIndexStatsImpl();
-      this.perTimeStats_.set(timeIndex, timeStats);
+  private getOrCreateStats(timeIndex: number, lod: number): ChunkStats {
+    // Ensure LOD array exists
+    if (!this.stats_[lod]) {
+      this.stats_[lod] = [];
     }
-    return timeStats;
+
+    const lodArray = this.stats_[lod];
+
+    // Ensure stats object exists at this time index
+    if (!lodArray[timeIndex]) {
+      lodArray[timeIndex] = new ChunkStats();
+    }
+
+    return lodArray[timeIndex];
   }
 
-  private incrementStateCount(
-    timeStats: TimeIndexStatsImpl,
-    state: ChunkState
-  ): void {
+  private incrementStateCount(stats: ChunkStats, state: ChunkState): void {
     switch (state) {
       case "unloaded":
-        timeStats.unloadedChunks++;
+        stats.unloadedChunks++;
         break;
       case "queued":
-        timeStats.queuedChunks++;
+        stats.queuedChunks++;
         break;
       case "loading":
-        timeStats.loadingChunks++;
+        stats.loadingChunks++;
         break;
       case "loaded":
-        timeStats.loadedChunks++;
+        stats.loadedChunks++;
         break;
     }
   }
 
-  private decrementStateCount(
-    timeStats: TimeIndexStatsImpl,
-    state: ChunkState
-  ): void {
+  private decrementStateCount(stats: ChunkStats, state: ChunkState): void {
     switch (state) {
       case "unloaded":
-        timeStats.unloadedChunks--;
+        stats.unloadedChunks--;
         break;
       case "queued":
-        timeStats.queuedChunks--;
+        stats.queuedChunks--;
         break;
       case "loading":
-        timeStats.loadingChunks--;
+        stats.loadingChunks--;
         break;
       case "loaded":
-        timeStats.loadedChunks--;
+        stats.loadedChunks--;
         break;
     }
   }
