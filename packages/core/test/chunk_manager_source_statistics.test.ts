@@ -126,7 +126,13 @@ function sumStatsForTime(
     loadedChunks += stats.loadedChunks;
   }
 
-  return { totalChunks, unloadedChunks, queuedChunks, loadingChunks, loadedChunks };
+  return {
+    totalChunks,
+    unloadedChunks,
+    queuedChunks,
+    loadingChunks,
+    loadedChunks,
+  };
 }
 
 describe("ChunkManagerSource with Statistics", () => {

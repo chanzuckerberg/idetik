@@ -18,7 +18,11 @@ describe("ChunkStatistics", () => {
 
   test("tracks chunk and initializes counts", () => {
     const statistics = new ChunkStatistics();
-    const chunk = makeChunk({ state: "unloaded", chunkIndex: { t: 0 }, lod: 0 });
+    const chunk = makeChunk({
+      state: "unloaded",
+      chunkIndex: { t: 0 },
+      lod: 0,
+    });
 
     statistics.trackChunk(chunk);
 
@@ -86,7 +90,11 @@ describe("ChunkStatistics", () => {
 
   test("automatically observes state transition from unloaded to queued", () => {
     const statistics = new ChunkStatistics();
-    const chunk = makeChunk({ state: "unloaded", chunkIndex: { t: 0 }, lod: 0 });
+    const chunk = makeChunk({
+      state: "unloaded",
+      chunkIndex: { t: 0 },
+      lod: 0,
+    });
 
     statistics.trackChunk(chunk);
     chunk.state = "queued";
@@ -98,7 +106,11 @@ describe("ChunkStatistics", () => {
 
   test("automatically observes state transition from queued to loading", () => {
     const statistics = new ChunkStatistics();
-    const chunk = makeChunk({ state: "unloaded", chunkIndex: { t: 0 }, lod: 0 });
+    const chunk = makeChunk({
+      state: "unloaded",
+      chunkIndex: { t: 0 },
+      lod: 0,
+    });
 
     statistics.trackChunk(chunk);
     chunk.state = "queued";
@@ -111,7 +123,11 @@ describe("ChunkStatistics", () => {
 
   test("automatically observes state transition from loading to loaded", () => {
     const statistics = new ChunkStatistics();
-    const chunk = makeChunk({ state: "unloaded", chunkIndex: { t: 0 }, lod: 0 });
+    const chunk = makeChunk({
+      state: "unloaded",
+      chunkIndex: { t: 0 },
+      lod: 0,
+    });
 
     statistics.trackChunk(chunk);
     chunk.state = "queued";
@@ -125,7 +141,11 @@ describe("ChunkStatistics", () => {
 
   test("automatically observes state transition from loading to unloaded on error", () => {
     const statistics = new ChunkStatistics();
-    const chunk = makeChunk({ state: "unloaded", chunkIndex: { t: 0 }, lod: 0 });
+    const chunk = makeChunk({
+      state: "unloaded",
+      chunkIndex: { t: 0 },
+      lod: 0,
+    });
 
     statistics.trackChunk(chunk);
     chunk.state = "queued";
@@ -139,7 +159,11 @@ describe("ChunkStatistics", () => {
 
   test("ignores state change to same state", () => {
     const statistics = new ChunkStatistics();
-    const chunk = makeChunk({ state: "unloaded", chunkIndex: { t: 0 }, lod: 0 });
+    const chunk = makeChunk({
+      state: "unloaded",
+      chunkIndex: { t: 0 },
+      lod: 0,
+    });
 
     statistics.trackChunk(chunk);
     const beforeCount = statistics.getStats(0, 0).unloadedChunks;
@@ -341,18 +365,26 @@ describe("ChunkStatistics", () => {
 
     // Time 0: 3 chunks, all unloaded
     for (let i = 0; i < 3; i++) {
-      const chunk = makeChunk({ state: "unloaded", chunkIndex: { t: 0, x: i }, lod: 0 });
+      const chunk = makeChunk({
+        state: "unloaded",
+        chunkIndex: { t: 0, x: i },
+        lod: 0,
+      });
       statistics.trackChunk(chunk);
     }
 
     // Time 1: 2 chunks, transition to queued
     const time1Chunks = [];
     for (let i = 0; i < 2; i++) {
-      const chunk = makeChunk({ state: "unloaded", chunkIndex: { t: 1, x: i }, lod: 0 });
+      const chunk = makeChunk({
+        state: "unloaded",
+        chunkIndex: { t: 1, x: i },
+        lod: 0,
+      });
       statistics.trackChunk(chunk);
       time1Chunks.push(chunk);
     }
-    time1Chunks.forEach(chunk => chunk.state = "queued");
+    time1Chunks.forEach((chunk) => (chunk.state = "queued"));
 
     const time0Stats = statistics.getStats(0, 0);
     expect(time0Stats.totalChunks).toBe(3);

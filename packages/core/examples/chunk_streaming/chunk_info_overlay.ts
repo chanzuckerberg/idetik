@@ -60,7 +60,7 @@ export class ChunkInfoOverlay {
       const prefix = lod === currentLOD ? `LOD ${lod} (current)` : `LOD ${lod}`;
       counters.push(
         `${prefix}: Loaded ${lodStats.loadedChunks}/${lodStats.totalChunks} | ` +
-        `Visible ${lodStats.visibleChunks} | Prefetched ${lodStats.prefetchedChunks}`
+          `Visible ${lodStats.visibleChunks} | Prefetched ${lodStats.prefetchedChunks}`
       );
     }
 
