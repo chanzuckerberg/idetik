@@ -197,9 +197,6 @@ export class ChunkManagerSource {
     return this.chunks_.length;
   }
 
-  /**
-   * Get the lowest resolution LOD.
-   */
   public get lowestResLOD(): number {
     return this.lowestResLOD_;
   }
