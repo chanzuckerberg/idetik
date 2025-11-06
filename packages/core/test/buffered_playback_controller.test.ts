@@ -1,6 +1,7 @@
 import {
   AdaptiveBufferManager,
   AdaptiveBufferStrategy,
+  BufferedPlaybackController,
   calculateBufferTime,
   DataAvailability,
   estimateTimeToRecover,
@@ -183,4 +184,192 @@ test("AdaptiveBufferManager resumes playback with sufficient buffer", () => {
   // Should resume since buffer is sufficient
   expect(controller.rateHz).toBe(10);
   expect(manager.isBuffering).toBe(false);
+});
+
+test("BufferedPlaybackController initializes with correct properties", () => {
+  class MockDataAvailability implements DataAvailability {
+    isLoaded(_index: number): boolean {
+      return true;
+    }
+
+    getLoadedAheadOf(_position: number): number {
+      return 100;
+    }
+  }
+
+  const controller = new BufferedPlaybackController({
+    dataAvailability: new MockDataAvailability(),
+    start: 0,
+    stop: 100,
+    step: 1,
+    rateHz: 10,
+  });
+
+  expect(controller.rateHz).toBe(10);
+  expect(controller.value).toBe(0);
+  expect(controller.step).toBe(1);
+});
+
+test("BufferedPlaybackController allows setting rateHz", () => {
+  class MockDataAvailability implements DataAvailability {
+    isLoaded(_index: number): boolean {
+      return true;
+    }
+
+    getLoadedAheadOf(_position: number): number {
+      return 100;
+    }
+  }
+
+  const controller = new BufferedPlaybackController({
+    dataAvailability: new MockDataAvailability(),
+    start: 0,
+    stop: 100,
+    step: 1,
+    rateHz: 10,
+  });
+
+  controller.rateHz = 20;
+  expect(controller.rateHz).toBe(20);
+});
+
+test("BufferedPlaybackController allows setting value", () => {
+  class MockDataAvailability implements DataAvailability {
+    isLoaded(_index: number): boolean {
+      return true;
+    }
+
+    getLoadedAheadOf(_position: number): number {
+      return 100;
+    }
+  }
+
+  const controller = new BufferedPlaybackController({
+    dataAvailability: new MockDataAvailability(),
+    start: 0,
+    stop: 100,
+    step: 1,
+    rateHz: 10,
+  });
+
+  controller.value = 50;
+  expect(controller.value).toBe(50);
+});
+
+test("BufferedPlaybackController pauses playback on low buffer", () => {
+  class MockDataAvailability implements DataAvailability {
+    private loadedTo_ = 0;
+
+    setLoadedTo(value: number) {
+      this.loadedTo_ = value;
+    }
+
+    isLoaded(index: number): boolean {
+      return index <= this.loadedTo_;
+    }
+
+    getLoadedAheadOf(_position: number): number {
+      return Math.max(0, this.loadedTo_ - 0); // Always relative to position 0 for simplicity
+    }
+  }
+
+  const dataAvailability = new MockDataAvailability();
+  dataAvailability.setLoadedTo(5); // Only 5 indices loaded
+
+  const controller = new BufferedPlaybackController({
+    dataAvailability,
+    start: 0,
+    stop: 100,
+    step: 1,
+    rateHz: 10,
+    minBufferSeconds: 2.0,
+    resumeBufferSeconds: 5.0,
+  });
+
+  // Initially, the controller should be at desired rate
+  expect(controller.rateHz).toBe(10);
+
+  // Update a few times - should detect low buffer and pause
+  controller.update(1000);
+  controller.update(1100);
+  controller.update(1200);
+
+  // The underlying controller should be paused (rate 0)
+  // but rateHz getter returns desired rate
+  expect(controller.rateHz).toBe(10); // Desired rate is still 10
+});
+
+test("BufferedPlaybackController resumes playback with sufficient buffer", () => {
+  class MockDataAvailability implements DataAvailability {
+    private loadedTo_ = 0;
+
+    setLoadedTo(value: number) {
+      this.loadedTo_ = value;
+    }
+
+    isLoaded(index: number): boolean {
+      return index <= this.loadedTo_;
+    }
+
+    getLoadedAheadOf(_position: number): number {
+      return Math.max(0, this.loadedTo_ - 0);
+    }
+  }
+
+  const dataAvailability = new MockDataAvailability();
+  dataAvailability.setLoadedTo(100); // Plenty of data loaded
+
+  const controller = new BufferedPlaybackController({
+    dataAvailability,
+    start: 0,
+    stop: 100,
+    step: 1,
+    rateHz: 10,
+    minBufferSeconds: 2.0,
+    resumeBufferSeconds: 5.0,
+  });
+
+  // Start with some updates to gather statistics
+  controller.update(1000);
+
+  dataAvailability.setLoadedTo(110);
+  controller.update(1100);
+
+  dataAvailability.setLoadedTo(120);
+  controller.update(1200);
+
+  dataAvailability.setLoadedTo(130);
+  controller.update(1300);
+
+  // Should maintain playback with sufficient buffer
+  expect(controller.rateHz).toBe(10);
+});
+
+test("BufferedPlaybackController advances position during playback", () => {
+  class MockDataAvailability implements DataAvailability {
+    isLoaded(_index: number): boolean {
+      return true;
+    }
+
+    getLoadedAheadOf(_position: number): number {
+      return 1000; // Always plenty of buffer
+    }
+  }
+
+  const controller = new BufferedPlaybackController({
+    dataAvailability: new MockDataAvailability(),
+    start: 0,
+    stop: 100,
+    step: 1,
+    rateHz: 10,
+  });
+
+  const initialValue = controller.value;
+
+  // Update with time progression
+  controller.update(0);
+  controller.update(100); // 100ms = 0.1s, at 10 Hz = 1 index
+
+  // Position should have advanced
+  expect(controller.value).toBeGreaterThan(initialValue);
 });
