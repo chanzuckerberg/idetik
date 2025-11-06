@@ -70,8 +70,8 @@ export class Texture3D extends Texture {
     this.data = source;
   }
 
-  public static createWithChunk(chunk: Chunk, data?: ChunkData) {
-    const source = data ?? chunk.data;
+  public static createWithChunk(chunk: Chunk) {
+    const source = chunk.data;
     if (!source) {
       throw new Error(
         "Unable to create texture, chunk data is not initialized."

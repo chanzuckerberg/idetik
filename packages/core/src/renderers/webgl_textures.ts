@@ -115,7 +115,7 @@ export class WebGLTextures {
         texture.width,
         texture.height
       );
-    } else if (this.isTexture2DArray(texture) || this.isTexture3D(texture)) {
+    } else if (this.isTextureStorage3D(texture)) {
       this.gl_.texStorage3D(
         type,
         texture.mipmapLevels,
@@ -174,7 +174,7 @@ export class WebGLTextures {
         // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D#syntax
         texture.data as ArrayBufferView
       );
-    } else if (this.isTexture2DArray(texture) || this.isTexture3D(texture)) {
+    } else if (this.isTextureStorage3D(texture)) {
       this.gl_.texSubImage3D(
         type,
         mipmapLevel,
@@ -307,7 +307,7 @@ export class WebGLTextures {
   ): number {
     const bytes = this.bytesPerTexel(info);
     const levels = Math.max(1, texture.mipmapLevels);
-    const depth = this.isTexture2DArray(texture)
+    const depth = this.isTextureStorage3D(texture)
       ? Math.max(1, texture.depth)
       : 1;
 
@@ -343,6 +343,12 @@ export class WebGLTextures {
     if (info.format === gl.RED && info.type === gl.FLOAT) return 4;
 
     throw new Error("bytesPerTexel: unsupported format/type");
+  }
+
+  private isTextureStorage3D(
+    texture: Texture
+  ): texture is Texture2DArray | Texture3D {
+    return this.isTexture2DArray(texture) || this.isTexture3D(texture);
   }
 
   private isTexture2D(texture: Texture): texture is Texture2D {
