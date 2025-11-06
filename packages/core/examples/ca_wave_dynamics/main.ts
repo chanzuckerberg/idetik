@@ -5,10 +5,11 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   Color,
+  PanZoomControls,
+  SimplePlaybackController,
   createExplorationPolicy,
   createPlaybackPolicy,
 } from "@";
-import { PanZoomControls } from "@/objects/cameras/controls";
 import GUI from "lil-gui";
 
 const url =
@@ -44,17 +45,18 @@ const channelProps: ChannelProps[] = [
 ];
 
 const camera = new OrthographicCamera(left, right, top, bottom);
+const tPlayback = new SimplePlaybackController({
+  start: tMin,
+  stop: tMax,
+  step: t.scale,
+  rateHz: 0,
+});
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords,
   policy: createExplorationPolicy(),
   channelProps,
-  playback: {
-    start: tMin,
-    stop: tMax,
-    step: t.scale,
-    rateHz: 0,
-  },
+  tPlayback,
 });
 imageLayer.debugMode = true;
 
@@ -86,16 +88,12 @@ const controls = {
 
 const gui = new GUI({ width: 500 });
 
-// Manual control slider - updates when user drags or when playback is active
 gui
   .add(sliceCoords, "t", tRange.min, tRange.max, t.scale)
   .name("t-coord")
-  .listen(); // listen() makes it update when sliceCoords.t changes from playback
-
-// Playback rate control
-const playbackController = imageLayer.playbackController!;
+  .listen();
 gui
-  .add(playbackController, "rateHz", 0, 30, 1)
+  .add(tPlayback, "rateHz", 0, 30, 1)
   .name("t-playback rate (Hz)")
   .onChange((rateHz: number) => {
     imageLayer.imageSourcePolicy =

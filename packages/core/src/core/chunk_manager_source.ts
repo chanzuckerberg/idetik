@@ -12,7 +12,8 @@ import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
-import { PlaybackController, DataAvailability } from "./playback_controller";
+import { PlaybackController } from "./playback_controller";
+import { DataAvailability } from "./buffered_playback_controller";
 
 /*
 Unique symbol used as a capability token to allow internal modules to update
@@ -687,66 +688,31 @@ export class ChunkManagerSource {
   }
 }
 
-/**
- * Implementation of DataAvailability interface for ChunkManagerSource.
- * Tracks which time points have fully loaded data based on the last known view bounds.
- */
 export class ChunkManagerDataAvailability implements DataAvailability {
   private chunkManager_: ChunkManagerSource;
   private lod_: number;
 
-  /**
-   * @param chunkManager The ChunkManagerSource to query for chunk loading state
-   * @param lod The level of detail to check. Defaults to lowest resolution LOD for conservative buffering.
-   */
   constructor(chunkManager: ChunkManagerSource, lod?: number) {
     this.chunkManager_ = chunkManager;
     this.lod_ = lod ?? chunkManager.lowestResLOD;
   }
 
-  /**
-   * Check if a specific time index has all required chunks loaded.
-   */
   isLoaded(index: number): boolean {
     return this.chunkManager_.areChunksLoadedAtTimeIndex(index, this.lod_);
   }
 
-  /**
-   * Get the count of contiguous loaded time indices starting from position.
-   * Returns the number of indices ahead (not including position itself) that are loaded.
-   */
   getLoadedAheadOf(position: number): number {
     const timeSize = this.chunkManager_.timeSize;
     const startIndex = Math.floor(position);
-
-    // If position is out of bounds, return 0
-    if (startIndex < 0 || startIndex >= timeSize) {
-      return 0;
-    }
-
+    if (startIndex < 0 || startIndex >= timeSize) return 0;
     let count = 0;
     for (let i = startIndex + 1; i < timeSize; i++) {
       if (this.isLoaded(i)) {
         count++;
       } else {
-        break; // Stop at first non-loaded index
+        break;
       }
     }
-
     return count;
-  }
-
-  /**
-   * Update the LOD level to check.
-   */
-  setLOD(lod: number): void {
-    this.lod_ = lod;
-  }
-
-  /**
-   * Get the current LOD being checked.
-   */
-  get lod(): number {
-    return this.lod_;
   }
 }

@@ -214,35 +214,4 @@ describe("ChunkManagerDataAvailability", () => {
     // Should stop at index 3, only counting 1 and 2
     expect(dataAvailability.getLoadedAheadOf(0)).toBe(2);
   });
-
-  test("setLOD updates the LOD to check", () => {
-    const loader = createMockChunkLoader(5);
-    const sliceCoords: SliceCoordinates = { t: 0, z: 0 };
-    const policy = createNoPrefetchPolicy();
-    const chunkManager = new ChunkManagerSource(loader, sliceCoords, policy);
-
-    // Update with view bounds
-    const viewBounds = new Box2(
-      vec2.fromValues(0, 0),
-      vec2.fromValues(256, 256)
-    );
-    chunkManager.updateAndCollectChunkChanges(0, viewBounds);
-
-    // Mark all chunks at LOD 0 as loaded, but not LOD 1
-    const chunks = chunkManager.getChunksAtCurrentTime();
-    chunks.forEach((chunk) => {
-      if (chunk.lod === 0) {
-        chunk.state = "loaded";
-      }
-    });
-
-    // Start with LOD 1 (not loaded)
-    const dataAvailability = new ChunkManagerDataAvailability(chunkManager, 1);
-    expect(dataAvailability.isLoaded(0)).toBe(false);
-
-    // Change to LOD 0 (loaded)
-    dataAvailability.setLOD(0);
-    expect(dataAvailability.lod).toBe(0);
-    expect(dataAvailability.isLoaded(0)).toBe(true);
-  });
 });

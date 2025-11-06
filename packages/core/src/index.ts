@@ -22,13 +22,8 @@ export { VolumeLayer } from "./layers/volume_layer";
 export { ImageLayer } from "./layers/image_layer";
 export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
 export {
-  PlaybackController,
-  type PlaybackControllerProps,
-  type DataAvailability,
-  LoadingStatistics,
-  BufferHealth,
-  AdaptiveBufferStrategy,
-  AdaptiveBufferManager,
+  type PlaybackController,
+  SimplePlaybackController,
 } from "./core/playback_controller";
 export { ChunkManagerDataAvailability } from "./core/chunk_manager_source";
 export { LabelImageLayer } from "./layers/label_image_layer";

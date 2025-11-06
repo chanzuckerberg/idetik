@@ -17,10 +17,7 @@ import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
-import {
-  PlaybackController,
-  PlaybackControllerProps,
-} from "../core/playback_controller";
+import { PlaybackController } from "../core/playback_controller";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -28,7 +25,7 @@ export type ChunkedImageLayerProps = LayerOptions & {
   policy: ImageSourcePolicy;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
-  playback?: PlaybackControllerProps;
+  tPlayback?: PlaybackController;
 };
 
 export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
@@ -66,7 +63,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     policy,
     channelProps,
     onPickValue,
-    playback,
+    tPlayback,
     ...layerOptions
   }: ChunkedImageLayerProps) {
     super(layerOptions);
@@ -77,9 +74,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
-    if (playback) {
-      this.tPlayback_ = new PlaybackController(playback);
-    }
+    this.tPlayback_ = tPlayback;
   }
 
   public async onAttached(context: IdetikContext) {
