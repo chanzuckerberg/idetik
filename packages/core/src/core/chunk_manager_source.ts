@@ -170,51 +170,29 @@ export class ChunkManagerSource {
       .every((c) => c.state === "loaded");
   }
 
-  /**
-   * Check if all chunks at a specific time index and LOD within the last known
-   * view bounds are loaded. Used by DataAvailability implementation.
-   */
   public areChunksLoadedAtTimeIndex(timeIndex: number, lod: number): boolean {
     if (timeIndex < 0 || timeIndex >= this.chunks_.length) {
       return false;
     }
 
-    // If no view bounds have been set yet, we can't determine visibility
     if (this.lastViewBounds3D_ === null) {
       return false;
     }
 
     const chunks = this.chunks_[timeIndex];
     const requiredChunks = chunks.filter((chunk) => {
-      // Must be at the specified LOD
       if (chunk.lod !== lod) return false;
-
-      // Must be in the current channel slice
       if (!this.isChunkChannelInSlice(chunk)) return false;
-
-      // Must be within the last known view bounds
       return this.isChunkWithinBounds(chunk, this.lastViewBounds3D_!);
     });
 
-    // If no chunks are required, consider it loaded
     if (requiredChunks.length === 0) {
       return true;
     }
 
-    // All required chunks must be loaded
     return requiredChunks.every((chunk) => chunk.state === "loaded");
   }
 
-  /**
-   * Get the last known view bounds in 3D. Returns null if no bounds have been set.
-   */
-  public get lastViewBounds3D(): Box3 | null {
-    return this.lastViewBounds3D_;
-  }
-
-  /**
-   * Get the time dimension size (number of time points).
-   */
   public get timeSize(): number {
     return this.chunks_.length;
   }
@@ -713,6 +691,7 @@ export class ChunkManagerDataAvailability implements DataAvailability {
 
   getLoadedAheadOf(position: number): number {
     const timeSize = this.chunkManager_.timeSize;
+    // TODO: handle non-integer steps
     const startIndex = Math.floor(position);
     if (startIndex < 0 || startIndex >= timeSize) return 0;
     let count = 0;

@@ -74,6 +74,10 @@ export class BufferedPlaybackController implements PlaybackController {
 
     const currentPos = this.controller_.value;
     const loadedAhead = this.dataAvailability_.getLoadedAheadOf(currentPos);
+    Logger.debug(
+      "BufferedPlaybackController",
+      `At position ${currentPos}, loaded ahead: ${loadedAhead}`
+    );
 
     this.loadingStats_.recordLoadState(timestamp, currentPos + loadedAhead);
 
