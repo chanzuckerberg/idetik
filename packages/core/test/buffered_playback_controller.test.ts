@@ -1,10 +1,10 @@
 import {
   AdaptiveBufferStrategy,
   BufferedPlaybackController,
-  calculateBufferTime,
-  estimateTimeToRecover,
+  calculateBufferSeconds,
+  estimateSecondsToRecover,
   LoadingStatistics,
-  predictTimeUntilStarvation,
+  estimateSecondsUntilStarvation,
 } from "@/core/buffered_playback_controller";
 import { DataAvailability } from "@/core/playback_controller";
 import { expect, test } from "vitest";
@@ -38,12 +38,12 @@ test("LoadingStatistics prunes old samples", () => {
 });
 
 test("calculateBufferTime", () => {
-  const bufferTime = calculateBufferTime(100, 10);
+  const bufferTime = calculateBufferSeconds(100, 10);
   expect(bufferTime).toBe(10); // 100 indices / 10 indices per second = 10 seconds
 });
 
 test("BufferHealth predicts starvation time", () => {
-  const timeToStarvation = predictTimeUntilStarvation(
+  const timeToStarvation = estimateSecondsUntilStarvation(
     100, // current buffer
     20, // consumption rate
     10 // load rate
@@ -52,7 +52,7 @@ test("BufferHealth predicts starvation time", () => {
 });
 
 test("BufferHealth returns Infinity when loading keeps up", () => {
-  const timeToStarvation = predictTimeUntilStarvation(
+  const timeToStarvation = estimateSecondsUntilStarvation(
     100, // current buffer
     10, // consumption rate
     20 // load rate (faster than consumption)
@@ -61,7 +61,7 @@ test("BufferHealth returns Infinity when loading keeps up", () => {
 });
 
 test("BufferHealth estimates recovery time", () => {
-  const recoveryTime = estimateTimeToRecover(
+  const recoveryTime = estimateSecondsToRecover(
     50, // current buffer
     100, // target buffer
     20, // load rate
@@ -71,7 +71,7 @@ test("BufferHealth estimates recovery time", () => {
 });
 
 test("BufferHealth returns 0 when already at target", () => {
-  const recoveryTime = estimateTimeToRecover(100, 100, 20, 10);
+  const recoveryTime = estimateSecondsToRecover(100, 100, 20, 10);
   expect(recoveryTime).toBe(0);
 });
 

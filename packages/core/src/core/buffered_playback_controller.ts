@@ -84,16 +84,16 @@ export class BufferedPlaybackController implements PlaybackController {
     const loadRate = this.loadingStats_.getLoadRate();
     const consumptionRate = this.desiredRateHz_ * this.controller_.step;
 
-    const bufferSeconds = calculateBufferTime(loadedAhead, consumptionRate);
+    const bufferSeconds = calculateBufferSeconds(loadedAhead, consumptionRate);
 
-    const timeToStarvation = predictTimeUntilStarvation(
+    const timeToStarvation = estimateSecondsUntilStarvation(
       loadedAhead,
       consumptionRate,
       loadRate
     );
 
     const targetBuffer = this.strategy_.resumeBufferSeconds * consumptionRate;
-    const timeToRecover = estimateTimeToRecover(
+    const timeToRecover = estimateSecondsToRecover(
       loadedAhead,
       targetBuffer,
       loadRate,
@@ -175,10 +175,7 @@ export class LoadingStatistics {
   }
 }
 
-/**
- * Calculate how many seconds of buffer are currently available.
- */
-export function calculateBufferTime(
+export function calculateBufferSeconds(
   loadedAhead: number,
   consumptionRate: number
 ): number {
@@ -188,11 +185,7 @@ export function calculateBufferTime(
   return loadedAhead / consumptionRate;
 }
 
-/**
- * Predict how long until buffer starvation occurs.
- * Returns Infinity if loading is keeping up with consumption.
- */
-export function predictTimeUntilStarvation(
+export function estimateSecondsUntilStarvation(
   currentBuffer: number,
   consumptionRate: number,
   loadRate: number
@@ -204,12 +197,7 @@ export function predictTimeUntilStarvation(
   return currentBuffer / Math.abs(netRate);
 }
 
-/**
- * Estimate how long it will take to recover to target buffer level.
- * Returns Infinity if unable to recover (loading too slow).
- * Returns 0 only if already at target AND load rate can sustain consumption.
- */
-export function estimateTimeToRecover(
+export function estimateSecondsToRecover(
   currentBuffer: number,
   targetBuffer: number,
   loadRate: number,
@@ -220,7 +208,7 @@ export function estimateTimeToRecover(
     return Infinity; // Can't recover or sustain
   }
   if (currentBuffer >= targetBuffer) {
-    return 0; // Already at target and can sustain
+    return 0;
   }
   return (targetBuffer - currentBuffer) / netRate;
 }
