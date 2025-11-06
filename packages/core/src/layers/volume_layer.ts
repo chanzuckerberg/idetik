@@ -5,7 +5,6 @@ import { IdetikContext } from "@/idetik";
 import { ChunkManagerSource } from "@/core/chunk_manager_source";
 import { ImageSourcePolicy } from "@/core/image_source_policy";
 import { Texture3D } from "@/objects/textures/texture_3d";
-import { vec3 } from "gl-matrix";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -31,6 +30,23 @@ export class VolumeLayer extends Layer {
 
   public set chunks(value: Chunk[]) {
     this.chunks_ = value;
+  }
+
+  // TODO make private as in chunked_image_layer
+  public createVolume(chunk: Chunk) {
+    const volume = new VolumeRenderable(
+      chunk.shape.x,
+      chunk.shape.y,
+      chunk.shape.z,
+      Texture3D.createWithChunk(chunk)
+    );
+    volume.transform.setScale([chunk.scale.x, chunk.scale.y, chunk.scale.z]);
+    volume.transform.setTranslation([
+      chunk.offset.x,
+      chunk.offset.y,
+      chunk.offset.z,
+    ]);
+    return volume;
   }
 
   constructor({
@@ -79,33 +95,9 @@ export class VolumeLayer extends Layer {
     }
     if (allReady && this.state === "loading") {
       // Bind chunks to renderable - we only do it once for now
-      let max_x = 0;
-      let max_y = 0;
       for (let i = 0; i < this.chunks.length; i++) {
         const chunk = this.chunks[i];
-        const texture = new Texture3D(
-          chunk.data!,
-          chunk.shape.x,
-          chunk.shape.y,
-          chunk.shape.z
-        );
-        // Divide by 100 to scale down for visualization purposes
-        const renderable = new VolumeRenderable(
-          chunk.shape.x / 100,
-          chunk.shape.y / 100,
-          chunk.shape.z / 100,
-          texture
-        );
-        // TODO (SKM): positioning needs to be fixed properly using chunk info
-        max_x = Math.max(max_x, chunk.shape.x / 100);
-        max_y = Math.max(max_y, chunk.shape.y / 100);
-        renderable.transform.setTranslation(
-          vec3.fromValues(
-            Math.floor(i / 2) * (max_x / 2 + chunk.shape.x / 200),
-            (i % 2) * (max_y / 2 + chunk.shape.y / 200),
-            0
-          )
-        );
+        const renderable = this.createVolume(chunk);
         renderable.wireframeEnabled = true;
         this.addObject(renderable);
       }
