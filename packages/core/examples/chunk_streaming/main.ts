@@ -4,7 +4,6 @@ import {
   ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
-  BufferedPlaybackController,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
@@ -15,6 +14,7 @@ import {
 } from "@/core/image_source_policy";
 
 import GUI from "lil-gui";
+import { SimpleBufferedPlaybackController } from "@/core/simple_buffered_playback_controller";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -55,10 +55,11 @@ const channelProps: ChannelProps[] = [
 
 const camera = new OrthographicCamera(left, right, top, bottom);
 
-const tPlayback = new BufferedPlaybackController({
+const tPlayback = new SimpleBufferedPlaybackController({
   start: tMin,
   stop: tMax,
   step: t.scale,
+  bufferSize: 10, // chosen to be half of prefetch
   value: sliceCoords.t,
   rateHz: 0,
 });
