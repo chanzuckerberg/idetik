@@ -48,8 +48,8 @@ export class Texture3D extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunk(chunk: Chunk, data?: ChunkData) {
-    const source = data ?? chunk.data;
+  public updateWithChunk(chunk: Chunk) {
+    const source = chunk.data;
     if (!source) {
       throw new Error(
         "Unable to update texture, chunk data is not initialized."
