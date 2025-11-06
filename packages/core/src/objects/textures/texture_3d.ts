@@ -1,5 +1,5 @@
 import { DataTextureTypedArray, Texture, bufferToDataType } from "./texture";
-import { Chunk, ChunkData } from "../../data/chunk";
+import { Chunk } from "../../data/chunk";
 
 export class Texture3D extends Texture {
   private data_: DataTextureTypedArray;
