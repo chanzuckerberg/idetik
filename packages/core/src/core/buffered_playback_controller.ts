@@ -256,4 +256,3 @@ export class AdaptiveBufferStrategy {
   }
 }
 export { DataAvailability };
-

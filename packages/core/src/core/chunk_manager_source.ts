@@ -231,7 +231,17 @@ export class ChunkManagerSource {
     viewBounds2D: Box2,
     timestamp?: DOMHighResTimeStamp
   ): Chunk[] {
-    if (this.tPlayback_ && timestamp !== undefined && this.sliceCoords_.t !== undefined) {
+    // TODO: this almost certainly should not be here.
+    // Also, setting the value of the playback controller, updating it, then
+    // updating sliceCoords seems like a code smell.
+    // This may be improved by better isolating ownership of sliceCoords
+    // (e.g. so we respond to changes rather than clobber here), and/or by
+    // making it a rich class which playback could be attached to.
+    if (
+      this.tPlayback_ &&
+      timestamp !== undefined &&
+      this.sliceCoords_.t !== undefined
+    ) {
       this.tPlayback_.value = this.sliceCoords_.t;
       this.tPlayback_.update(timestamp);
       this.sliceCoords_.t = this.tPlayback_.value;
