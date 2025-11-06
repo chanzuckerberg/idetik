@@ -55,53 +55,51 @@ export class LoadingStatistics {
   }
 }
 
-export class BufferHealth {
-  /**
-   * Calculate how many seconds of buffer are currently available.
-   */
-  calculateBufferTime(loadedAhead: number, consumptionRate: number): number {
-    if (consumptionRate <= 0) {
-      return Infinity;
-    }
-    return loadedAhead / consumptionRate;
+/**
+ * Calculate how many seconds of buffer are currently available.
+ */
+export function calculateBufferTime(loadedAhead: number, consumptionRate: number): number {
+  if (consumptionRate <= 0) {
+    return Infinity;
   }
+  return loadedAhead / consumptionRate;
+}
 
-  /**
-   * Predict how long until buffer starvation occurs.
-   * Returns Infinity if loading is keeping up with consumption.
-   */
-  predictTimeUntilStarvation(
-    currentBuffer: number,
-    consumptionRate: number,
-    loadRate: number
-  ): number {
-    const netRate = loadRate - consumptionRate;
-    if (netRate >= 0) {
-      return Infinity; // Loading faster than or equal to consuming
-    }
-    return currentBuffer / Math.abs(netRate);
+/**
+ * Predict how long until buffer starvation occurs.
+ * Returns Infinity if loading is keeping up with consumption.
+ */
+export function predictTimeUntilStarvation(
+  currentBuffer: number,
+  consumptionRate: number,
+  loadRate: number
+): number {
+  const netRate = loadRate - consumptionRate;
+  if (netRate >= 0) {
+    return Infinity; // Loading faster than or equal to consuming
   }
+  return currentBuffer / Math.abs(netRate);
+}
 
-  /**
-   * Estimate how long it will take to recover to target buffer level.
-   * Returns Infinity if unable to recover (loading too slow).
-   * Returns 0 only if already at target AND load rate can sustain consumption.
-   */
-  estimateTimeToRecover(
-    currentBuffer: number,
-    targetBuffer: number,
-    loadRate: number,
-    consumptionRate: number
-  ): number {
-    const netRate = loadRate - consumptionRate;
-    if (netRate <= 0) {
-      return Infinity; // Can't recover or sustain
-    }
-    if (currentBuffer >= targetBuffer) {
-      return 0; // Already at target and can sustain
-    }
-    return (targetBuffer - currentBuffer) / netRate;
+/**
+ * Estimate how long it will take to recover to target buffer level.
+ * Returns Infinity if unable to recover (loading too slow).
+ * Returns 0 only if already at target AND load rate can sustain consumption.
+ */
+export function estimateTimeToRecover(
+  currentBuffer: number,
+  targetBuffer: number,
+  loadRate: number,
+  consumptionRate: number
+): number {
+  const netRate = loadRate - consumptionRate;
+  if (netRate <= 0) {
+    return Infinity; // Can't recover or sustain
   }
+  if (currentBuffer >= targetBuffer) {
+    return 0; // Already at target and can sustain
+  }
+  return (targetBuffer - currentBuffer) / netRate;
 }
 
 /**
@@ -158,7 +156,6 @@ export class AdaptiveBufferManager {
   private controller_: SimplePlaybackController;
   private dataAvailability_: DataAvailability;
   private loadingStats_: LoadingStatistics;
-  private bufferHealth_: BufferHealth;
   private strategy_: AdaptiveBufferStrategy;
   private desiredRateHz_: number;
 
@@ -176,7 +173,6 @@ export class AdaptiveBufferManager {
     this.dataAvailability_ = dataAvailability;
     this.desiredRateHz_ = desiredRateHz;
     this.loadingStats_ = new LoadingStatistics(options?.loadingWindowMs);
-    this.bufferHealth_ = new BufferHealth();
     this.strategy_ = new AdaptiveBufferStrategy(
       options?.minBufferSeconds,
       options?.resumeBufferSeconds
@@ -199,19 +195,19 @@ export class AdaptiveBufferManager {
     const loadRate = this.loadingStats_.getLoadRate();
     const consumptionRate = this.desiredRateHz_ * this.controller_.step;
 
-    const bufferSeconds = this.bufferHealth_.calculateBufferTime(
+    const bufferSeconds = calculateBufferTime(
       loadedAhead,
       consumptionRate
     );
 
-    const timeToStarvation = this.bufferHealth_.predictTimeUntilStarvation(
+    const timeToStarvation = predictTimeUntilStarvation(
       loadedAhead,
       consumptionRate,
       loadRate
     );
 
     const targetBuffer = this.strategy_.resumeBufferSeconds * consumptionRate;
-    const timeToRecover = this.bufferHealth_.estimateTimeToRecover(
+    const timeToRecover = estimateTimeToRecover(
       loadedAhead,
       targetBuffer,
       loadRate,

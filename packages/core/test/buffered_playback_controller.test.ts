@@ -1,9 +1,11 @@
 import {
   AdaptiveBufferManager,
   AdaptiveBufferStrategy,
-  BufferHealth,
+  calculateBufferTime,
   DataAvailability,
+  estimateTimeToRecover,
   LoadingStatistics,
+  predictTimeUntilStarvation,
 } from "@/core/buffered_playback_controller";
 import { SimplePlaybackController } from "@/core/playback_controller";
 import { expect, test } from "vitest";
@@ -36,15 +38,13 @@ test("LoadingStatistics prunes old samples", () => {
   expect(stats.getLoadRate()).toBe(10);
 });
 
-test("BufferHealth calculates buffer time correctly", () => {
-  const health = new BufferHealth();
-  const bufferTime = health.calculateBufferTime(100, 10);
+test("calculateBufferTime", () => {
+  const bufferTime = calculateBufferTime(100, 10);
   expect(bufferTime).toBe(10); // 100 indices / 10 indices per second = 10 seconds
 });
 
 test("BufferHealth predicts starvation time", () => {
-  const health = new BufferHealth();
-  const timeToStarvation = health.predictTimeUntilStarvation(
+  const timeToStarvation = predictTimeUntilStarvation(
     100, // current buffer
     20, // consumption rate
     10 // load rate
@@ -53,8 +53,7 @@ test("BufferHealth predicts starvation time", () => {
 });
 
 test("BufferHealth returns Infinity when loading keeps up", () => {
-  const health = new BufferHealth();
-  const timeToStarvation = health.predictTimeUntilStarvation(
+  const timeToStarvation = predictTimeUntilStarvation(
     100, // current buffer
     10, // consumption rate
     20 // load rate (faster than consumption)
@@ -63,8 +62,7 @@ test("BufferHealth returns Infinity when loading keeps up", () => {
 });
 
 test("BufferHealth estimates recovery time", () => {
-  const health = new BufferHealth();
-  const recoveryTime = health.estimateTimeToRecover(
+  const recoveryTime = estimateTimeToRecover(
     50, // current buffer
     100, // target buffer
     20, // load rate
@@ -74,8 +72,7 @@ test("BufferHealth estimates recovery time", () => {
 });
 
 test("BufferHealth returns 0 when already at target", () => {
-  const health = new BufferHealth();
-  const recoveryTime = health.estimateTimeToRecover(100, 100, 20, 10);
+  const recoveryTime = estimateTimeToRecover(100, 100, 20, 10);
   expect(recoveryTime).toBe(0);
 });
 
