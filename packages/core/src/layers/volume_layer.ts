@@ -1,10 +1,10 @@
-import { Chunk, ChunkSource, SliceCoordinates } from "@/data/chunk";
+import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { Layer, LayerOptions } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
-import { IdetikContext } from "@/idetik";
-import { ChunkManagerSource } from "@/core/chunk_manager_source";
-import { ImageSourcePolicy } from "@/core/image_source_policy";
-import { Texture3D } from "@/objects/textures/texture_3d";
+import { IdetikContext } from "../idetik";
+import { ChunkManagerSource } from "../core/chunk_manager_source";
+import { ImageSourcePolicy } from "../core/image_source_policy";
+import { Texture3D } from "../objects/textures/texture_3d";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -18,6 +18,7 @@ export class VolumeLayer extends Layer {
   private sliceCoords_: SliceCoordinates;
   private policy_: ImageSourcePolicy;
   private chunkManagerSource_?: ChunkManagerSource;
+  private debugMode_ = false;
 
   // TODO (SKM): temp simple array cache to focus on 3D texture
   // in the future, would likely work similarly to the visible
@@ -32,6 +33,14 @@ export class VolumeLayer extends Layer {
     this.chunks_ = value;
   }
 
+  public get debugMode(): boolean {
+    return this.debugMode_;
+  }
+
+  public set debugMode(debug: boolean) {
+    this.debugMode_ = debug;
+  }
+
   // TODO make private as in chunked_image_layer
   public createVolume(chunk: Chunk) {
     const volume = new VolumeRenderable(
@@ -41,10 +50,15 @@ export class VolumeLayer extends Layer {
       Texture3D.createWithChunk(chunk)
     );
     volume.transform.setScale([chunk.scale.x, chunk.scale.y, chunk.scale.z]);
+    const originOffset = {
+      x: (chunk.shape.x * chunk.scale.x) / 2,
+      y: (chunk.shape.y * chunk.scale.y) / 2,
+      z: (chunk.shape.z * chunk.scale.z) / 2,
+    };
     volume.transform.setTranslation([
-      chunk.offset.x,
-      chunk.offset.y,
-      chunk.offset.z,
+      chunk.offset.x + originOffset.x,
+      chunk.offset.y + originOffset.y,
+      chunk.offset.z + originOffset.z,
     ]);
     return volume;
   }
@@ -79,7 +93,7 @@ export class VolumeLayer extends Layer {
 
   public update() {
     if (this.chunkManagerSource_ && this.state === "initialized") {
-      const chunks = this.chunkManagerSource_.getAllChunksAtLowestRes();
+      const chunks = this.chunkManagerSource_.getAllChunksAtRes(0);
       this.chunks = chunks;
       this.setState("loading");
     }

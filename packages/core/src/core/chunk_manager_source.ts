@@ -167,9 +167,9 @@ export class ChunkManagerSource {
 
   // TODO (SKM): this is a temporary method to get all lowest res chunks
   // for testing initial volume rendering
-  public getAllChunksAtLowestRes(): Chunk[] {
+  public getAllChunksAtRes(resolution: number = this.lowestResLOD_): Chunk[] {
     const chunks = this.getChunksAtCurrentTime().filter(
-      (c) => c.lod === this.lowestResLOD_
+      (c) => c.lod === resolution
     );
     for (const chunk of chunks) {
       chunk.visible = true;
