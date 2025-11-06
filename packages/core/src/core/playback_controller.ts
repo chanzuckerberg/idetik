@@ -14,6 +14,7 @@ export type SimplePlaybackControllerProps = {
   start: number;
   stop: number;
   step: number;
+  value?: number;
   rateHz?: number;
 };
 
@@ -31,7 +32,7 @@ export class SimplePlaybackController implements PlaybackController {
     this.stop_ = props.stop;
     this.step_ = props.step;
     this.rateHz_ = props.rateHz ?? 0;
-    this.value_ = props.start;
+    this.value_ = props.value ?? props.start;
   }
 
   public get rateHz(): number {
@@ -54,9 +55,11 @@ export class SimplePlaybackController implements PlaybackController {
   }
 
   public set value(value: number) {
-    this.value_ = value;
-    this.secondsSinceLastStep_ = 0;
-    this.lastTimestamp_ = undefined;
+    if (this.value_ !== value) {
+      this.value_ = value;
+      this.secondsSinceLastStep_ = 0;
+      this.lastTimestamp_ = undefined;
+    }
   }
 
   public get step(): number {

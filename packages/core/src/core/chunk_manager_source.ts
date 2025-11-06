@@ -12,8 +12,7 @@ import { Box3 } from "../math/box3";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
-import { PlaybackController } from "./playback_controller";
-import { DataAvailability } from "./buffered_playback_controller";
+import { DataAvailability, PlaybackController } from "./playback_controller";
 
 /*
 Unique symbol used as a capability token to allow internal modules to update
@@ -232,7 +231,8 @@ export class ChunkManagerSource {
     viewBounds2D: Box2,
     timestamp?: DOMHighResTimeStamp
   ): Chunk[] {
-    if (this.tPlayback_ && timestamp !== undefined) {
+    if (this.tPlayback_ && timestamp !== undefined && this.sliceCoords_.t !== undefined) {
+      this.tPlayback_.value = this.sliceCoords_.t;
       this.tPlayback_.update(timestamp);
       this.sliceCoords_.t = this.tPlayback_.value;
     }

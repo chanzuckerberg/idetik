@@ -59,6 +59,7 @@ const tPlayback = new BufferedPlaybackController({
   start: tMin,
   stop: tMax,
   step: t.scale,
+  value: sliceCoords.t,
   rateHz: 0,
 });
 

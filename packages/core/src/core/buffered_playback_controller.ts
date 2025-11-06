@@ -1,6 +1,6 @@
 import { Logger } from "@/utilities/logger";
 import {
-  DataAvailability,
+  type DataAvailability,
   PlaybackController,
   SimplePlaybackController,
 } from "./playback_controller";
@@ -9,6 +9,7 @@ type BufferedPlaybackControllerProps = {
   start: number;
   stop: number;
   step: number;
+  value?: number;
   rateHz?: number;
   dataAvailability?: DataAvailability;
   minBufferSeconds?: number;
@@ -29,6 +30,7 @@ export class BufferedPlaybackController implements PlaybackController {
       start: props.start,
       stop: props.stop,
       step: props.step,
+      value: props.value,
       rateHz: desiredRateHz,
     });
     this.dataAvailability_ = props.dataAvailability;
@@ -253,3 +255,5 @@ export class AdaptiveBufferStrategy {
     return this.resumeBufferSeconds_;
   }
 }
+export { DataAvailability };
+

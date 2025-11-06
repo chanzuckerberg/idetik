@@ -49,6 +49,7 @@ const tPlayback = new SimplePlaybackController({
   start: tMin,
   stop: tMax,
   step: t.scale,
+  value: sliceCoords.t,
   rateHz: 0,
 });
 const imageLayer = new ChunkedImageLayer({
