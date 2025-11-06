@@ -166,88 +166,58 @@ type BufferedPlaybackControllerProps = {
 };
 
 export class BufferedPlaybackController implements PlaybackController {
-  private adaptiveManager_: AdaptiveBufferManager;
-
-  constructor(props: BufferedPlaybackControllerProps) {
-    const desiredRateHz = props.rateHz ?? 0;
-    this.adaptiveManager_ = new AdaptiveBufferManager(
-      new SimplePlaybackController({
-        start: props.start,
-        stop: props.stop,
-        step: props.step,
-        rateHz: desiredRateHz,
-      }),
-      props.dataAvailability,
-      desiredRateHz,
-      {
-        minBufferSeconds: props.minBufferSeconds,
-        resumeBufferSeconds: props.resumeBufferSeconds,
-        loadingWindowMs: props.loadingWindowMs,
-      }
-    );
-  }
-
-  public get rateHz(): number {
-    return this.adaptiveManager_.desiredRateHz;
-  }
-
-  public set rateHz(rateHz: number) {
-    this.adaptiveManager_.setDesiredRate(rateHz);
-  }
-
-  public get value(): number {
-    return this.adaptiveManager_.controller.value;
-  }
-
-  public set value(value: number) {
-    this.adaptiveManager_.controller.value = value;
-  }
-
-  public get step(): number {
-    return this.adaptiveManager_.controller.step;
-  }
-
-  public update(timestamp: DOMHighResTimeStamp): void {
-    this.adaptiveManager_.update(timestamp);
-  }
-}
-
-/**
- * Manages adaptive buffering for a PlaybackController.
- * Automatically pauses/resumes playback based on data availability and loading statistics.
- */
-export class AdaptiveBufferManager {
   private controller_: SimplePlaybackController;
   private dataAvailability_: DataAvailability;
   private loadingStats_: LoadingStatistics;
   private strategy_: AdaptiveBufferStrategy;
   private desiredRateHz_: number;
 
-  constructor(
-    controller: SimplePlaybackController,
-    dataAvailability: DataAvailability,
-    desiredRateHz: number,
-    options?: {
-      minBufferSeconds?: number;
-      resumeBufferSeconds?: number;
-      loadingWindowMs?: number;
-    }
-  ) {
-    this.controller_ = controller;
-    this.dataAvailability_ = dataAvailability;
+  constructor(props: BufferedPlaybackControllerProps) {
+    const desiredRateHz = props.rateHz ?? 0;
+    this.controller_ = new SimplePlaybackController({
+      start: props.start,
+      stop: props.stop,
+      step: props.step,
+      rateHz: desiredRateHz,
+    });
+    this.dataAvailability_ = props.dataAvailability;
     this.desiredRateHz_ = desiredRateHz;
-    this.loadingStats_ = new LoadingStatistics(options?.loadingWindowMs);
+    this.loadingStats_ = new LoadingStatistics(props.loadingWindowMs);
     this.strategy_ = new AdaptiveBufferStrategy(
-      options?.minBufferSeconds,
-      options?.resumeBufferSeconds
+      props.minBufferSeconds,
+      props.resumeBufferSeconds
     );
   }
 
-  /**
-   * Update the buffer manager and controller.
-   * Should be called each frame with the current timestamp.
-   */
-  update(timestamp: DOMHighResTimeStamp): void {
+  public get rateHz(): number {
+    return this.desiredRateHz_;
+  }
+
+  public set rateHz(rateHz: number) {
+    this.desiredRateHz_ = rateHz;
+    // If currently playing (not buffering), update the controller rate
+    if (this.controller_.rateHz > 0) {
+      this.controller_.rateHz = rateHz;
+    }
+  }
+
+  public get value(): number {
+    return this.controller_.value;
+  }
+
+  public set value(value: number) {
+    this.controller_.value = value;
+  }
+
+  public get step(): number {
+    return this.controller_.step;
+  }
+
+  public get isBuffering(): boolean {
+    return this.controller_.rateHz === 0 && this.desiredRateHz_ > 0;
+  }
+
+  public update(timestamp: DOMHighResTimeStamp): void {
     // 1. Get current position and loaded data
     const currentPos = this.controller_.value;
     const loadedAhead = this.dataAvailability_.getLoadedAheadOf(currentPos);
@@ -294,29 +264,5 @@ export class AdaptiveBufferManager {
 
     // 5. Update the underlying controller
     this.controller_.update(timestamp);
-  }
-
-  /**
-   * Set the desired playback rate.
-   * This is separate from the actual controller rate, which may be 0 due to buffering.
-   */
-  setDesiredRate(rateHz: number): void {
-    this.desiredRateHz_ = rateHz;
-    // If currently playing (not buffering), update the controller rate
-    if (this.controller_.rateHz > 0) {
-      this.controller_.rateHz = rateHz;
-    }
-  }
-
-  get desiredRateHz(): number {
-    return this.desiredRateHz_;
-  }
-
-  get isBuffering(): boolean {
-    return this.controller_.rateHz === 0 && this.desiredRateHz_ > 0;
-  }
-
-  get controller(): SimplePlaybackController {
-    return this.controller_;
   }
 }

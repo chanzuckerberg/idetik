@@ -1,5 +1,4 @@
 import {
-  AdaptiveBufferManager,
   AdaptiveBufferStrategy,
   BufferedPlaybackController,
   calculateBufferTime,
@@ -8,7 +7,6 @@ import {
   LoadingStatistics,
   predictTimeUntilStarvation,
 } from "@/core/buffered_playback_controller";
-import { SimplePlaybackController } from "@/core/playback_controller";
 import { expect, test } from "vitest";
 
 test("LoadingStatistics tracks loading rate", () => {
@@ -89,101 +87,6 @@ test("AdaptiveBufferStrategy decides to resume with sufficient buffer", () => {
   expect(strategy.shouldResume(6.0, 10)).toBe(true); // above resume threshold
   expect(strategy.shouldResume(4.0, 10)).toBe(false); // below resume threshold
   expect(strategy.shouldResume(6.0, Infinity)).toBe(false); // can't recover
-});
-
-test("AdaptiveBufferManager pauses playback on low buffer", () => {
-  class MockDataAvailability implements DataAvailability {
-    private loadedTo_ = 0;
-
-    setLoadedTo(value: number) {
-      this.loadedTo_ = value;
-    }
-
-    isLoaded(index: number): boolean {
-      return index <= this.loadedTo_;
-    }
-
-    getLoadedAheadOf(position: number): number {
-      return Math.max(0, this.loadedTo_ - position);
-    }
-  }
-
-  const controller = new SimplePlaybackController({
-    start: 0,
-    stop: 100,
-    step: 1,
-    rateHz: 0,
-  });
-
-  const dataAvailability = new MockDataAvailability();
-  dataAvailability.setLoadedTo(5); // Only 5 indices loaded
-
-  const manager = new AdaptiveBufferManager(controller, dataAvailability, 10, {
-    minBufferSeconds: 2.0,
-    resumeBufferSeconds: 5.0,
-  });
-
-  // Initially playing
-  manager.setDesiredRate(10);
-  manager.update(1000);
-
-  // With only 5 indices loaded and consumption rate of 10 indices/s,
-  // buffer is 0.5 seconds, which is below minimum of 2 seconds
-  // Should pause after a few updates once statistics are gathered
-  manager.update(1100);
-  manager.update(1200);
-
-  expect(controller.rateHz).toBe(0);
-  expect(manager.isBuffering).toBe(true);
-});
-
-test("AdaptiveBufferManager resumes playback with sufficient buffer", () => {
-  class MockDataAvailability implements DataAvailability {
-    private loadedTo_ = 0;
-
-    setLoadedTo(value: number) {
-      this.loadedTo_ = value;
-    }
-
-    isLoaded(index: number): boolean {
-      return index <= this.loadedTo_;
-    }
-
-    getLoadedAheadOf(position: number): number {
-      return Math.max(0, this.loadedTo_ - position);
-    }
-  }
-
-  const controller = new SimplePlaybackController({
-    start: 0,
-    stop: 100,
-    step: 1,
-    rateHz: 0,
-  });
-
-  const dataAvailability = new MockDataAvailability();
-  dataAvailability.setLoadedTo(100); // Plenty of data loaded
-
-  const manager = new AdaptiveBufferManager(controller, dataAvailability, 10, {
-    minBufferSeconds: 2.0,
-    resumeBufferSeconds: 5.0,
-  });
-
-  // Start buffering (paused)
-  manager.update(1000);
-  expect(controller.rateHz).toBe(0);
-
-  // Update a few times to gather statistics and make decision
-  dataAvailability.setLoadedTo(100);
-  manager.update(1100);
-  dataAvailability.setLoadedTo(110);
-  manager.update(1200);
-  dataAvailability.setLoadedTo(120);
-  manager.update(1300);
-
-  // Should resume since buffer is sufficient
-  expect(controller.rateHz).toBe(10);
-  expect(manager.isBuffering).toBe(false);
 });
 
 test("BufferedPlaybackController initializes with correct properties", () => {
@@ -288,15 +191,17 @@ test("BufferedPlaybackController pauses playback on low buffer", () => {
 
   // Initially, the controller should be at desired rate
   expect(controller.rateHz).toBe(10);
+  expect(controller.isBuffering).toBe(false);
 
   // Update a few times - should detect low buffer and pause
   controller.update(1000);
   controller.update(1100);
   controller.update(1200);
 
-  // The underlying controller should be paused (rate 0)
-  // but rateHz getter returns desired rate
+  // The controller should be buffering
+  // rateHz getter still returns desired rate
   expect(controller.rateHz).toBe(10); // Desired rate is still 10
+  expect(controller.isBuffering).toBe(true); // But it's buffering
 });
 
 test("BufferedPlaybackController resumes playback with sufficient buffer", () => {
@@ -343,6 +248,7 @@ test("BufferedPlaybackController resumes playback with sufficient buffer", () =>
 
   // Should maintain playback with sufficient buffer
   expect(controller.rateHz).toBe(10);
+  expect(controller.isBuffering).toBe(false);
 });
 
 test("BufferedPlaybackController advances position during playback", () => {
