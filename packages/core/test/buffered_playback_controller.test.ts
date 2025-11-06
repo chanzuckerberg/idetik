@@ -2,11 +2,11 @@ import {
   AdaptiveBufferStrategy,
   BufferedPlaybackController,
   calculateBufferTime,
-  DataAvailability,
   estimateTimeToRecover,
   LoadingStatistics,
   predictTimeUntilStarvation,
 } from "@/core/buffered_playback_controller";
+import { DataAvailability } from "@/core/playback_controller";
 import { expect, test } from "vitest";
 
 test("LoadingStatistics tracks loading rate", () => {

@@ -227,7 +227,7 @@ export class AdaptiveBufferStrategy {
 
   constructor(
     minBufferSeconds: number = 2.0,
-    resumeBufferSeconds: number = 5.0
+    resumeBufferSeconds: number = 2.0
   ) {
     this.minBufferSeconds_ = minBufferSeconds;
     this.resumeBufferSeconds_ = resumeBufferSeconds;
@@ -255,4 +255,3 @@ export class AdaptiveBufferStrategy {
     return this.resumeBufferSeconds_;
   }
 }
-export { DataAvailability };
