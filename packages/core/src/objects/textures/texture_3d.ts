@@ -1,9 +1,5 @@
-import {
-  DataTextureTypedArray,
-  Texture,
-  bufferToDataType,
-} from "../../objects/textures/texture";
-import { Chunk, ChunkData } from "../../data/chunk";
+import { DataTextureTypedArray, Texture, bufferToDataType } from "./texture";
+import { Chunk } from "../../data/chunk";
 
 export class Texture3D extends Texture {
   private data_: DataTextureTypedArray;
@@ -52,8 +48,8 @@ export class Texture3D extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunk(chunk: Chunk, data?: ChunkData) {
-    const source = data ?? chunk.data;
+  public updateWithChunk(chunk: Chunk) {
+    const source = chunk.data;
     if (!source) {
       throw new Error(
         "Unable to update texture, chunk data is not initialized."
@@ -74,8 +70,8 @@ export class Texture3D extends Texture {
     this.data = source;
   }
 
-  public static createWithChunk(chunk: Chunk, data?: ChunkData) {
-    const source = data ?? chunk.data;
+  public static createWithChunk(chunk: Chunk) {
+    const source = chunk.data;
     if (!source) {
       throw new Error(
         "Unable to create texture, chunk data is not initialized."
@@ -88,9 +84,6 @@ export class Texture3D extends Texture {
       chunk.shape.y,
       chunk.shape.z
     );
-    // TODO (SKM): here is where we'd store the columnStride if needed
-    // for 3D textures.
-    texture.unpackRowLength = chunk.rowStride;
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
   }
