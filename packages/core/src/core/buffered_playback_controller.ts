@@ -1,4 +1,7 @@
-import { SimplePlaybackController } from "./playback_controller";
+import {
+  PlaybackController,
+  SimplePlaybackController,
+} from "./playback_controller";
 
 export interface DataAvailability {
   isLoaded(index: number): boolean;
@@ -58,7 +61,10 @@ export class LoadingStatistics {
 /**
  * Calculate how many seconds of buffer are currently available.
  */
-export function calculateBufferTime(loadedAhead: number, consumptionRate: number): number {
+export function calculateBufferTime(
+  loadedAhead: number,
+  consumptionRate: number
+): number {
   if (consumptionRate <= 0) {
     return Infinity;
   }
@@ -148,6 +154,64 @@ export class AdaptiveBufferStrategy {
   }
 }
 
+type BufferedPlaybackControllerProps = {
+  dataAvailability: DataAvailability;
+  start: number;
+  stop: number;
+  step: number;
+  rateHz?: number;
+  minBufferSeconds?: number;
+  resumeBufferSeconds?: number;
+  loadingWindowMs?: number;
+};
+
+export class BufferedPlaybackController implements PlaybackController {
+  private adaptiveManager_: AdaptiveBufferManager;
+
+  constructor(props: BufferedPlaybackControllerProps) {
+    const desiredRateHz = props.rateHz ?? 0;
+    this.adaptiveManager_ = new AdaptiveBufferManager(
+      new SimplePlaybackController({
+        start: props.start,
+        stop: props.stop,
+        step: props.step,
+        rateHz: desiredRateHz,
+      }),
+      props.dataAvailability,
+      desiredRateHz,
+      {
+        minBufferSeconds: props.minBufferSeconds,
+        resumeBufferSeconds: props.resumeBufferSeconds,
+        loadingWindowMs: props.loadingWindowMs,
+      }
+    );
+  }
+
+  public get rateHz(): number {
+    return this.adaptiveManager_.desiredRateHz;
+  }
+
+  public set rateHz(rateHz: number) {
+    this.adaptiveManager_.setDesiredRate(rateHz);
+  }
+
+  public get value(): number {
+    return this.adaptiveManager_.controller.value;
+  }
+
+  public set value(value: number) {
+    this.adaptiveManager_.controller.value = value;
+  }
+
+  public get step(): number {
+    return this.adaptiveManager_.controller.step;
+  }
+
+  public update(timestamp: DOMHighResTimeStamp): void {
+    this.adaptiveManager_.update(timestamp);
+  }
+}
+
 /**
  * Manages adaptive buffering for a PlaybackController.
  * Automatically pauses/resumes playback based on data availability and loading statistics.
@@ -195,10 +259,7 @@ export class AdaptiveBufferManager {
     const loadRate = this.loadingStats_.getLoadRate();
     const consumptionRate = this.desiredRateHz_ * this.controller_.step;
 
-    const bufferSeconds = calculateBufferTime(
-      loadedAhead,
-      consumptionRate
-    );
+    const bufferSeconds = calculateBufferTime(loadedAhead, consumptionRate);
 
     const timeToStarvation = predictTimeUntilStarvation(
       loadedAhead,

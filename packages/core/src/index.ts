@@ -25,6 +25,7 @@ export {
   type PlaybackController,
   SimplePlaybackController,
 } from "./core/playback_controller";
+export { BufferedPlaybackController } from "./core/buffered_playback_controller";
 export { ChunkManagerDataAvailability } from "./core/chunk_manager_source";
 export { LabelImageLayer } from "./layers/label_image_layer";
 export type { PointPickingResult } from "./layers/point_picking";
