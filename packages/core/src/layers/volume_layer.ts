@@ -1,11 +1,10 @@
-import { Chunk, ChunkSource, SliceCoordinates } from "@/data/chunk";
+import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { Layer, LayerOptions } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
-import { IdetikContext } from "@/idetik";
-import { ChunkManagerSource } from "@/core/chunk_manager_source";
-import { ImageSourcePolicy } from "@/core/image_source_policy";
-import { Texture3D } from "@/objects/textures/texture_3d";
-import { vec3 } from "gl-matrix";
+import { IdetikContext } from "../idetik";
+import { ChunkManagerSource } from "../core/chunk_manager_source";
+import { ImageSourcePolicy } from "../core/image_source_policy";
+import { Texture3D } from "../objects/textures/texture_3d";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -19,6 +18,7 @@ export class VolumeLayer extends Layer {
   private sliceCoords_: SliceCoordinates;
   private policy_: ImageSourcePolicy;
   private chunkManagerSource_?: ChunkManagerSource;
+  private debugMode_ = false;
 
   // TODO (SKM): temp simple array cache to focus on 3D texture
   // in the future, would likely work similarly to the visible
@@ -31,6 +31,36 @@ export class VolumeLayer extends Layer {
 
   public set chunks(value: Chunk[]) {
     this.chunks_ = value;
+  }
+
+  public get debugMode(): boolean {
+    return this.debugMode_;
+  }
+
+  public set debugMode(debug: boolean) {
+    this.debugMode_ = debug;
+  }
+
+  // TODO make private as in chunked_image_layer
+  public createVolume(chunk: Chunk) {
+    const volume = new VolumeRenderable(
+      chunk.shape.x,
+      chunk.shape.y,
+      chunk.shape.z,
+      Texture3D.createWithChunk(chunk)
+    );
+    volume.transform.setScale([chunk.scale.x, chunk.scale.y, chunk.scale.z]);
+    const originOffset = {
+      x: (chunk.shape.x * chunk.scale.x) / 2,
+      y: (chunk.shape.y * chunk.scale.y) / 2,
+      z: (chunk.shape.z * chunk.scale.z) / 2,
+    };
+    volume.transform.setTranslation([
+      chunk.offset.x + originOffset.x,
+      chunk.offset.y + originOffset.y,
+      chunk.offset.z + originOffset.z,
+    ]);
+    return volume;
   }
 
   constructor({
@@ -63,7 +93,7 @@ export class VolumeLayer extends Layer {
 
   public update() {
     if (this.chunkManagerSource_ && this.state === "initialized") {
-      const chunks = this.chunkManagerSource_.getAllChunksAtLowestRes();
+      const chunks = this.chunkManagerSource_.getAllChunksAtRes(0);
       this.chunks = chunks;
       this.setState("loading");
     }
@@ -79,33 +109,9 @@ export class VolumeLayer extends Layer {
     }
     if (allReady && this.state === "loading") {
       // Bind chunks to renderable - we only do it once for now
-      let max_x = 0;
-      let max_y = 0;
       for (let i = 0; i < this.chunks.length; i++) {
         const chunk = this.chunks[i];
-        const texture = new Texture3D(
-          chunk.data!,
-          chunk.shape.x,
-          chunk.shape.y,
-          chunk.shape.z
-        );
-        // Divide by 100 to scale down for visualization purposes
-        const renderable = new VolumeRenderable(
-          chunk.shape.x / 100,
-          chunk.shape.y / 100,
-          chunk.shape.z / 100,
-          texture
-        );
-        // TODO (SKM): positioning needs to be fixed properly using chunk info
-        max_x = Math.max(max_x, chunk.shape.x / 100);
-        max_y = Math.max(max_y, chunk.shape.y / 100);
-        renderable.transform.setTranslation(
-          vec3.fromValues(
-            Math.floor(i / 2) * (max_x / 2 + chunk.shape.x / 200),
-            (i % 2) * (max_y / 2 + chunk.shape.y / 200),
-            0
-          )
-        );
+        const renderable = this.createVolume(chunk);
         renderable.wireframeEnabled = true;
         this.addObject(renderable);
       }

@@ -15,6 +15,12 @@ const sliceCoords = {
 };
 
 const camera = new PerspectiveCamera();
+const volumeLayer = new VolumeLayer({
+  source,
+  sliceCoords,
+  policy: createExplorationPolicy(),
+});
+volumeLayer.debugMode = true;
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
@@ -22,7 +28,7 @@ new Idetik({
     {
       camera,
       cameraControls: new OrbitControls(camera, { radius: 3 }),
-      layers: [new VolumeLayer({ source, sliceCoords, policy: createExplorationPolicy() })],
+      layers: [volumeLayer],
     },
   ],
   showStats: true,
