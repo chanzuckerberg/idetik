@@ -4,6 +4,7 @@ import {
   ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
+  BufferedPlaybackController,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
@@ -53,11 +54,20 @@ const channelProps: ChannelProps[] = [
 ];
 
 const camera = new OrthographicCamera(left, right, top, bottom);
+
+const tPlayback = new BufferedPlaybackController({
+  start: tMin,
+  stop: tMax,
+  step: t.scale,
+  rateHz: 0,
+});
+
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords,
   policy: createExplorationPolicy(),
   channelProps,
+  tPlayback,
 });
 imageLayer.debugMode = true;
 
@@ -71,7 +81,8 @@ const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
 const timePointOverlay = {
   update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp) {
     const time = imageLayer.lastPresentationTimeCoord;
-    timePointDiv.textContent = `t = ${time}`;
+    timePointDiv.textContent =
+      `t = ${time}` + (tPlayback.isBuffering ? " (buffering)" : "");
   },
 };
 
@@ -111,20 +122,17 @@ addDimensionSlider({
   playback: {},
 });
 
-addDimensionSlider({
-  gui,
-  sliceCoords,
-  dimensionName: "t",
-  minValue: tRange.min,
-  maxValue: tRange.max,
-  stepValue: t.scale,
-  playback: {
-    onRateChange: (rateHz: number) => {
-      imageLayer.imageSourcePolicy =
-        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
-    },
-  },
-});
+gui
+  .add(sliceCoords, "t", tRange.min, tRange.max, t.scale)
+  .name("t-coord")
+  .listen();
+gui
+  .add(tPlayback, "rateHz", 0, 30, 1)
+  .name("t-playback rate (Hz)")
+  .onChange((rateHz: number) => {
+    imageLayer.imageSourcePolicy =
+      rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
+  });
 
 const overlaysFolder = gui.addFolder("Overlays");
 

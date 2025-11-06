@@ -1,8 +1,13 @@
+export interface DataAvailability {
+  isLoaded(index: number): boolean;
+  getLoadedAheadOf(position: number): number;
+}
 export interface PlaybackController {
   rateHz: number;
   value: number;
   readonly step: number;
   update(timestamp: DOMHighResTimeStamp): void;
+  dataAvailability_?: DataAvailability;
 }
 
 export type SimplePlaybackControllerProps = {

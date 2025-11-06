@@ -2,6 +2,7 @@ import { Layer, LayerOptions } from "../core/layer";
 import { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import {
+  ChunkManagerDataAvailability,
   ChunkManagerSource,
   INTERNAL_POLICY_KEY,
 } from "../core/chunk_manager_source";
@@ -90,6 +91,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       this.policy_,
       this.tPlayback_
     );
+    if (this.tPlayback_) {
+      this.tPlayback_.dataAvailability_ = new ChunkManagerDataAvailability(
+        this.chunkManagerSource_
+      );
+    }
   }
 
   public onDetached(): void {

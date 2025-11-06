@@ -16,6 +16,7 @@ const Colors = {
 
 // Add new module names here as needed to represent different parts of the application
 type Module =
+  | "BufferedPlaybackController"
   | "Channel"
   | "Chunk"
   | "ChunkManager"
