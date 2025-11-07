@@ -5,6 +5,7 @@ import { IdetikContext } from "../idetik";
 import { ChunkManagerSource } from "../core/chunk_manager_source";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
+import { Logger } from "../utilities/logger";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -14,23 +15,26 @@ export type VolumeLayerProps = LayerOptions & {
 
 export class VolumeLayer extends Layer {
   public readonly type = "VolumeLayer";
-  private source_: ChunkSource;
-  private sliceCoords_: SliceCoordinates;
+
+  private readonly source_: ChunkSource;
+  private readonly sliceCoords_: SliceCoordinates;
+  private readonly visibleChunks_: Map<Chunk, VolumeRenderable> = new Map();
+
   private policy_: ImageSourcePolicy;
   private chunkManagerSource_?: ChunkManagerSource;
+  private lod_ = 2;
   private debugMode_ = false;
 
-  // TODO (SKM): temp simple array cache to focus on 3D texture
-  // in the future, would likely work similarly to the visible
-  // chunks map in ChunkedImageLayer
-  private chunks_: Chunk[] = [];
+  private lastLoadedLod_ = -1;
 
-  public get chunks() {
-    return this.chunks_;
+  public get lod() {
+    return this.lod_;
   }
 
-  public set chunks(value: Chunk[]) {
-    this.chunks_ = value;
+  public set lod(value: number) {
+    this.lod_ = value;
+    this.clearObjects();
+    this.updateChunks();
   }
 
   public get debugMode(): boolean {
@@ -41,8 +45,7 @@ export class VolumeLayer extends Layer {
     this.debugMode_ = debug;
   }
 
-  // TODO make private as in chunked_image_layer
-  public createVolume(chunk: Chunk) {
+  private createVolume(chunk: Chunk) {
     const volume = new VolumeRenderable(
       chunk.shape.x,
       chunk.shape.y,
@@ -77,6 +80,13 @@ export class VolumeLayer extends Layer {
     this.setState("initialized");
   }
 
+  private getVolumeRenderableForChunk(chunk: Chunk): VolumeRenderable {
+    const existing = this.visibleChunks_.get(chunk);
+    if (existing) return existing;
+
+    return this.createVolume(chunk);
+  }
+
   public async onAttached(context: IdetikContext) {
     if (this.chunkManagerSource_) {
       throw new Error(
@@ -91,31 +101,54 @@ export class VolumeLayer extends Layer {
     );
   }
 
+  public onDetached(): void {
+    this.chunkManagerSource_ = undefined;
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.clearObjects();
+  }
+
+  // Should ideally use chunk manager for this
+  private loadChunks() {
+    if (!this.chunkManagerSource_) return;
+    const chunks = this.chunkManagerSource_.getAllChunksAtRes(this.lod_);
+    if (this.lastLoadedLod_ === this.lod_) return chunks;
+    this.lastLoadedLod_ = this.lod_;
+    Logger.debug("VolumeLayer", `Loading chunks for LOD ${this.lod_}`);
+    for (const chunk of chunks) {
+      chunk.visible = true;
+      this.chunkManagerSource_.loadChunkData(
+        chunk,
+        new AbortController().signal
+      );
+    }
+    return chunks;
+  }
+
+  private updateChunks() {
+    const chunks = this.loadChunks();
+    if (!chunks) return;
+    for (const chunk of chunks) {
+      // TODO should be able to use loaded state later
+      if (!chunk.data) continue;
+      if (this.visibleChunks_.has(chunk)) continue;
+      const volume = this.getVolumeRenderableForChunk(chunk);
+      volume.wireframeEnabled = this.debugMode;
+      this.visibleChunks_.set(chunk, volume);
+      this.addObject(volume);
+    }
+    if (this.state !== "ready") this.setState("ready");
+  }
+
+  private releaseAndRemoveChunks(chunks: Iterable<Chunk>) {
+    for (const chunk of chunks) {
+      const volume = this.visibleChunks_.get(chunk);
+      if (volume) {
+        this.visibleChunks_.delete(chunk);
+      }
+    }
+  }
+
   public update() {
-    if (this.chunkManagerSource_ && this.state === "initialized") {
-      const chunks = this.chunkManagerSource_.getAllChunksAtRes(0);
-      this.chunks = chunks;
-      this.setState("loading");
-    }
-    if (this.state !== "loading") return;
-    // TODO (SKM): haven't really hooked into chunk manager fully yet, so
-    // we just quit out if any chunk is not ready
-    let allReady = true;
-    for (const chunk of this.chunks) {
-      if (!chunk.data) {
-        allReady = false;
-        break;
-      }
-    }
-    if (allReady && this.state === "loading") {
-      // Bind chunks to renderable - we only do it once for now
-      for (let i = 0; i < this.chunks.length; i++) {
-        const chunk = this.chunks[i];
-        const renderable = this.createVolume(chunk);
-        renderable.wireframeEnabled = true;
-        this.addObject(renderable);
-      }
-      this.setState("ready");
-    }
+    this.updateChunks();
   }
 }

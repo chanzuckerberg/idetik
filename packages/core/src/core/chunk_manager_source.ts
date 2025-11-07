@@ -165,17 +165,8 @@ export class ChunkManagerSource {
       .every((c) => c.state === "loaded");
   }
 
-  // TODO (SKM): this is a temporary method to get all lowest res chunks
-  // for testing initial volume rendering
   public getAllChunksAtRes(resolution: number = this.lowestResLOD_): Chunk[] {
-    const chunks = this.getChunksAtCurrentTime().filter(
-      (c) => c.lod === resolution
-    );
-    for (const chunk of chunks) {
-      chunk.visible = true;
-      this.loadChunkData(chunk, new AbortController().signal);
-    }
-    return chunks;
+    return this.getChunksAtCurrentTime().filter((c) => c.lod === resolution);
   }
 
   public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
