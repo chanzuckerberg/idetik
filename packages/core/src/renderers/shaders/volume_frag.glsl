@@ -17,6 +17,7 @@ in vec2 TexCoords;
 
 void main() {
     float alpha = 0.0;
+    /* Will replace fixed steps and normalization with uniforms later */
     for (int i = 0; i < 256; i++) {
         float z = float(i) / 255.0;
         float texel = float(texture(ImageSampler, vec3(TexCoords, z)).r);

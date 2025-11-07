@@ -165,17 +165,8 @@ export class ChunkManagerSource {
       .every((c) => c.state === "loaded");
   }
 
-  // TODO (SKM): this is a temporary method to get all lowest res chunks
-  // for testing initial volume rendering
-  public getAllChunksAtRes(resolution: number = this.lowestResLOD_): Chunk[] {
-    const chunks = this.getChunksAtCurrentTime().filter(
-      (c) => c.lod === resolution
-    );
-    for (const chunk of chunks) {
-      chunk.visible = true;
-      this.loadChunkData(chunk, new AbortController().signal);
-    }
-    return chunks;
+  public getAllChunksAtLod(lod: number): Chunk[] {
+    return this.getChunksAtCurrentTime().filter((c) => c.lod === lod);
   }
 
   public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
@@ -370,7 +361,7 @@ export class ChunkManagerSource {
           isFallbackLOD,
           isCurrentLOD,
           isVisible,
-          chunk.prefetch,
+          eligibleForPrefetch,
           isChannelInSlice
         )
       ) {
@@ -425,14 +416,14 @@ export class ChunkManagerSource {
     isFallbackLOD: boolean,
     isCurrentLOD: boolean,
     isVisible: boolean,
-    isPrefetch: boolean,
+    eligibleForPrefetch: boolean,
     isChannelInSlice: boolean
   ) {
     if (!isLoaded) return false;
     if (!isChannelInSlice) return true;
     if (isFallbackLOD) return false;
     if (!isCurrentLOD) return true;
-    return !isVisible && !isPrefetch;
+    return !isVisible && !eligibleForPrefetch;
   }
 
   private disposeChunk(chunk: Chunk) {
