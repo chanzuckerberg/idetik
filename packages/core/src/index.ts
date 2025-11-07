@@ -64,3 +64,4 @@ export type { ChannelProps, ChannelsEnabled } from "./objects/textures/channel";
 
 export { Points } from "./objects/renderable/points";
 export { Texture2DArray } from "./objects/textures/texture_2d_array";
+export { Texture3D } from "./objects/textures/texture_3d";
