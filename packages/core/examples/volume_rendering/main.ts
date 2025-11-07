@@ -25,7 +25,7 @@ new Idetik({
   viewports: [
     {
       camera,
-      cameraControls: new OrbitControls(camera, { radius: 3 }),
+      cameraControls: new OrbitControls(camera, { radius: 2000 }),
       layers: [volumeLayer],
     },
   ],
