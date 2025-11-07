@@ -145,10 +145,6 @@ export class WebGLState {
       this.setCullFace(false);
     } else {
       this.setCullFace(true);
-      // The library has flipped the Y axis of the space compared to WebGL's
-      // this means that the winding order is reversed, so we need to
-      // change the front face definition.
-      this.gl_.frontFace(this.gl_.CW);
       switch (mode) {
         case "front":
           this.gl_.cullFace(this.gl_.FRONT);
