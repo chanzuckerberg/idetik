@@ -165,8 +165,8 @@ export class ChunkManagerSource {
       .every((c) => c.state === "loaded");
   }
 
-  public getAllChunksAtRes(resolution: number = this.lowestResLOD_): Chunk[] {
-    return this.getChunksAtCurrentTime().filter((c) => c.lod === resolution);
+  public getAllChunksAtLod(lod: number): Chunk[] {
+    return this.getChunksAtCurrentTime().filter((c) => c.lod === lod);
   }
 
   public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {

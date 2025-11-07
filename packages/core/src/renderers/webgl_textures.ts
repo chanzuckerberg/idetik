@@ -139,12 +139,6 @@ export class WebGLTextures {
     const minFilter = this.getFilter(texture.minFilter, texture);
     const maxFilter = this.getFilter(texture.maxFilter, texture);
 
-    // TODO (SKM): unsure when unpack_row_length is used where it
-    // is different from the texture width
-    // Depending on the use case for this, for 3D textures we
-    // may need to store a columnStride on the chunk and then
-    // pass it in here as the UNPACK_IMAGE_HEIGHT
-    // Similar to what is currently happening in the chunk manager
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
     gl.texParameteri(type, gl.TEXTURE_MIN_FILTER, minFilter);
     gl.texParameteri(type, gl.TEXTURE_MAG_FILTER, maxFilter);
@@ -194,8 +188,6 @@ export class WebGLTextures {
         info.type,
         texture.data as ArrayBufferView
       );
-      // TODO (SMK) so far the texture3d handles are the same as 2d array
-      // Is there anywhere we see this deviating? Where we would want to keep the two paths separate?
     } else {
       throw new Error(
         "Attempting to upload data for an unsupported texture type"

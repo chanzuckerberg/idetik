@@ -22,7 +22,7 @@ export class VolumeLayer extends Layer {
 
   private policy_: ImageSourcePolicy;
   private chunkManagerSource_?: ChunkManagerSource;
-  private lod_ = 2;
+  private lod_ = -1;
   private debugMode_ = false;
 
   private lastLoadedLod_ = -1;
@@ -110,17 +110,19 @@ export class VolumeLayer extends Layer {
   // Should ideally use chunk manager for this
   private loadChunks() {
     if (!this.chunkManagerSource_) return;
-    const chunks = this.chunkManagerSource_.getAllChunksAtRes(this.lod_);
+    if (this.lod_ === -1) {
+      this.lod_ = this.chunkManagerSource_.lodCount - 1;
+    }
+    const chunks = this.chunkManagerSource_.getAllChunksAtLod(this.lod_);
     if (this.lastLoadedLod_ === this.lod_) return chunks;
-    this.lastLoadedLod_ = this.lod_;
     Logger.debug("VolumeLayer", `Loading chunks for LOD ${this.lod_}`);
     for (const chunk of chunks) {
-      chunk.visible = true;
       this.chunkManagerSource_.loadChunkData(
         chunk,
         new AbortController().signal
       );
     }
+    this.lastLoadedLod_ = this.lod_;
     return chunks;
   }
 
