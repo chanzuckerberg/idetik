@@ -1,11 +1,11 @@
-import { Chunk, ChunkSource, SliceCoordinates } from "@/data/chunk";
+import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { Layer, LayerOptions } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
-import { IdetikContext } from "@/idetik";
-import { ChunkManagerSource } from "@/core/chunk_manager_source";
-import { ImageSourcePolicy } from "@/core/image_source_policy";
-import { Texture3D } from "@/objects/textures/texture_3d";
-import { vec3 } from "gl-matrix";
+import { IdetikContext } from "../idetik";
+import { ChunkManagerSource } from "../core/chunk_manager_source";
+import { ImageSourcePolicy } from "../core/image_source_policy";
+import { Texture3D } from "../objects/textures/texture_3d";
+import { Logger } from "../utilities/logger";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -15,22 +15,55 @@ export type VolumeLayerProps = LayerOptions & {
 
 export class VolumeLayer extends Layer {
   public readonly type = "VolumeLayer";
-  private source_: ChunkSource;
-  private sliceCoords_: SliceCoordinates;
+
+  private readonly source_: ChunkSource;
+  private readonly sliceCoords_: SliceCoordinates;
+  private readonly visibleChunks_: Map<Chunk, VolumeRenderable> = new Map();
+
   private policy_: ImageSourcePolicy;
   private chunkManagerSource_?: ChunkManagerSource;
+  private lod_ = -1;
+  private debugMode_ = false;
 
-  // TODO (SKM): temp simple array cache to focus on 3D texture
-  // in the future, would likely work similarly to the visible
-  // chunks map in ChunkedImageLayer
-  private chunks_: Chunk[] = [];
+  private lastLoadedLod_ = -1;
 
-  public get chunks() {
-    return this.chunks_;
+  public get lod() {
+    return this.lod_;
   }
 
-  public set chunks(value: Chunk[]) {
-    this.chunks_ = value;
+  public set lod(value: number) {
+    this.lod_ = value;
+    this.clearObjects();
+    this.updateChunks();
+  }
+
+  public get debugMode(): boolean {
+    return this.debugMode_;
+  }
+
+  public set debugMode(debug: boolean) {
+    this.debugMode_ = debug;
+  }
+
+  private createVolume(chunk: Chunk) {
+    const volume = new VolumeRenderable(
+      chunk.shape.x,
+      chunk.shape.y,
+      chunk.shape.z,
+      Texture3D.createWithChunk(chunk)
+    );
+    volume.transform.setScale([chunk.scale.x, chunk.scale.y, chunk.scale.z]);
+    const originOffset = {
+      x: (chunk.shape.x * chunk.scale.x) / 2,
+      y: (chunk.shape.y * chunk.scale.y) / 2,
+      z: (chunk.shape.z * chunk.scale.z) / 2,
+    };
+    volume.transform.setTranslation([
+      chunk.offset.x + originOffset.x,
+      chunk.offset.y + originOffset.y,
+      chunk.offset.z + originOffset.z,
+    ]);
+    return volume;
   }
 
   constructor({
@@ -47,6 +80,13 @@ export class VolumeLayer extends Layer {
     this.setState("initialized");
   }
 
+  private getVolumeRenderableForChunk(chunk: Chunk): VolumeRenderable {
+    const existing = this.visibleChunks_.get(chunk);
+    if (existing) return existing;
+
+    return this.createVolume(chunk);
+  }
+
   public async onAttached(context: IdetikContext) {
     if (this.chunkManagerSource_) {
       throw new Error(
@@ -61,55 +101,56 @@ export class VolumeLayer extends Layer {
     );
   }
 
+  public onDetached(): void {
+    this.chunkManagerSource_ = undefined;
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.clearObjects();
+  }
+
+  // Should ideally use chunk manager for this
+  private loadChunks() {
+    if (!this.chunkManagerSource_) return;
+    if (this.lod_ === -1) {
+      this.lod_ = this.chunkManagerSource_.lodCount - 1;
+    }
+    const chunks = this.chunkManagerSource_.getAllChunksAtLod(this.lod_);
+    if (this.lastLoadedLod_ === this.lod_) return chunks;
+    Logger.debug("VolumeLayer", `Loading chunks for LOD ${this.lod_}`);
+    for (const chunk of chunks) {
+      this.chunkManagerSource_.loadChunkData(
+        chunk,
+        new AbortController().signal
+      );
+    }
+    this.lastLoadedLod_ = this.lod_;
+    return chunks;
+  }
+
+  private updateChunks() {
+    const chunks = this.loadChunks();
+    if (!chunks) return;
+    for (const chunk of chunks) {
+      // TODO should be able to use loaded state later
+      if (!chunk.data) continue;
+      if (this.visibleChunks_.has(chunk)) continue;
+      const volume = this.getVolumeRenderableForChunk(chunk);
+      volume.wireframeEnabled = this.debugMode;
+      this.visibleChunks_.set(chunk, volume);
+      this.addObject(volume);
+    }
+    if (this.state !== "ready") this.setState("ready");
+  }
+
+  private releaseAndRemoveChunks(chunks: Iterable<Chunk>) {
+    for (const chunk of chunks) {
+      const volume = this.visibleChunks_.get(chunk);
+      if (volume) {
+        this.visibleChunks_.delete(chunk);
+      }
+    }
+  }
+
   public update() {
-    if (this.chunkManagerSource_ && this.state === "initialized") {
-      const chunks = this.chunkManagerSource_.getAllChunksAtLowestRes();
-      this.chunks = chunks;
-      this.setState("loading");
-    }
-    if (this.state !== "loading") return;
-    // TODO (SKM): haven't really hooked into chunk manager fully yet, so
-    // we just quit out if any chunk is not ready
-    let allReady = true;
-    for (const chunk of this.chunks) {
-      if (!chunk.data) {
-        allReady = false;
-        break;
-      }
-    }
-    if (allReady && this.state === "loading") {
-      // Bind chunks to renderable - we only do it once for now
-      let max_x = 0;
-      let max_y = 0;
-      for (let i = 0; i < this.chunks.length; i++) {
-        const chunk = this.chunks[i];
-        const texture = new Texture3D(
-          chunk.data!,
-          chunk.shape.x,
-          chunk.shape.y,
-          chunk.shape.z
-        );
-        // Divide by 100 to scale down for visualization purposes
-        const renderable = new VolumeRenderable(
-          chunk.shape.x / 100,
-          chunk.shape.y / 100,
-          chunk.shape.z / 100,
-          texture
-        );
-        // TODO (SKM): positioning needs to be fixed properly using chunk info
-        max_x = Math.max(max_x, chunk.shape.x / 100);
-        max_y = Math.max(max_y, chunk.shape.y / 100);
-        renderable.transform.setTranslation(
-          vec3.fromValues(
-            Math.floor(i / 2) * (max_x / 2 + chunk.shape.x / 200),
-            (i % 2) * (max_y / 2 + chunk.shape.y / 200),
-            0
-          )
-        );
-        renderable.wireframeEnabled = true;
-        this.addObject(renderable);
-      }
-      this.setState("ready");
-    }
+    this.updateChunks();
   }
 }

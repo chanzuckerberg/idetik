@@ -112,12 +112,22 @@ export class WebGLRenderer extends Renderer {
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
 
+    // This should probably be more generic, but for now we do some checks
+    // specifically for volume rendering
+    if (layer.type === "VolumeLayer") {
+      this.state_.setCullFaceMode("back");
+    }
+
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
         this.renderObject(layer, i, camera);
         this.renderedObjectsPerFrame_ += 1;
       }
     });
+
+    if (layer.type === "VolumeLayer") {
+      this.state_.setCullFaceMode("disabled");
+    }
   }
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {

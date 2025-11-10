@@ -35,6 +35,11 @@ const imageLayer = new ChunkedImageLayer({
   policy: createExplorationPolicy(),
   channelProps: [{ contrastLimits: [0, 200] }],
 });
+const volumeLayer = new VolumeLayer({
+  source,
+  sliceCoords,
+  policy: createExplorationPolicy(),
+});
 
 // TODO: the reason this example works is that the volume viewport uses a perspective camera
 // otherwise the ChunkManager update causes interference between the two viewports
@@ -50,7 +55,7 @@ new Idetik({
       element: document.querySelector<HTMLDivElement>("#viewport-left")!,
       camera: camera3D,
       cameraControls: new OrbitControls(camera3D, { radius: 3 }),
-      layers: [new VolumeLayer()],
+      layers: [volumeLayer],
     },
     {
       id: "slice",
