@@ -24,6 +24,6 @@ void main() {
         float newAlpha = clamp(texel / 1000.0, 0.0, 1.0);
         alpha = (1.0 - alpha) * newAlpha + alpha;
     }
-    float displayValue = gl_FrontFacing ? 0.0 : 1.0;
-    fragColor = vec4(displayValue, 0.0, 0.0, 1.0);
+    float displayValue = alpha;
+    fragColor = vec4(displayValue, displayValue, displayValue, 1.0);
 }

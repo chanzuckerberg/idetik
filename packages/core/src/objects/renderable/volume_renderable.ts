@@ -1,6 +1,6 @@
 import { Shader } from "../../renderers/shaders";
 import { RenderableObject } from "../../core/renderable_object";
-import { BoxGeometry } from "../geometry/box_geometry";
+import { SimpleBoxGeometry } from "../geometry/simple_box_geometry";
 import { TextureDataType } from "../textures/texture";
 import { Texture3D } from "../textures/texture_3d";
 
@@ -12,7 +12,7 @@ export class VolumeRenderable extends RenderableObject {
     texture: Texture3D
   ) {
     super();
-    this.geometry = new BoxGeometry(width, height, depth, 1, 1, 1);
+    this.geometry = new SimpleBoxGeometry(width, height, depth);
     this.setTexture(0, texture);
     this.programName = dataTypeToImageShader(texture.dataType);
   }
