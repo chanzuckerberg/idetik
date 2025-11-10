@@ -14,7 +14,7 @@ export class VolumeRenderable extends RenderableObject {
     super();
     this.geometry = new BoxGeometry(width, height, depth, 1, 1, 1);
     this.setTexture(0, texture);
-    this.programName = dataTypeToImageShader(texture.dataType);
+    this.programName = dataTypeToVolumeShader(texture.dataType);
   }
 
   public get type() {
@@ -22,7 +22,7 @@ export class VolumeRenderable extends RenderableObject {
   }
 }
 
-function dataTypeToImageShader(dataType: TextureDataType): Shader {
+function dataTypeToVolumeShader(dataType: TextureDataType): Shader {
   switch (dataType) {
     case "byte":
     case "int":
