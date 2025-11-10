@@ -3,6 +3,7 @@ import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
+import { CullingMode } from "../renderers/WebGLState";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
@@ -28,6 +29,7 @@ export abstract class Layer {
   public transparent: boolean;
   private opacity_: number;
   public blendMode: blendMode;
+  private cullFaceMode_: CullingMode = "none";
 
   constructor({
     transparent = false,
@@ -57,6 +59,14 @@ export abstract class Layer {
       );
     }
     this.opacity_ = clamp(value, 0.0, 1.0);
+  }
+
+  public get cullFaceMode() {
+    return this.cullFaceMode_;
+  }
+
+  public set cullFaceMode(mode: CullingMode) {
+    this.cullFaceMode_ = mode;
   }
 
   public abstract update(): void;

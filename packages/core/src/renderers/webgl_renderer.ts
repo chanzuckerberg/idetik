@@ -111,6 +111,7 @@ export class WebGLRenderer extends Renderer {
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
+    this.state_.setCullFaceMode(layer.cullFaceMode);
 
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {

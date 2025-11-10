@@ -12,6 +12,7 @@ export class VolumeLayer extends Layer {
 
     this.addObject(renderable);
     this.setState("ready");
+    this.cullFaceMode = "back";
   }
 
   public update() {

@@ -145,7 +145,6 @@ export class WebGLState {
       this.setCullFace(false);
     } else {
       this.setCullFace(true);
-      this.gl_.frontFace(this.gl_.CW);
       switch (mode) {
         case "front":
           this.gl_.cullFace(this.gl_.FRONT);
