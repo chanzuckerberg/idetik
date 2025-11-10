@@ -14,7 +14,7 @@ import { Box2 } from "../math/box2";
 import { Viewport } from "../core/viewport";
 import { Camera } from "../objects/cameras/camera";
 
-import { mat4, vec2 } from "gl-matrix";
+import { mat4, vec2, vec3 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
 
 // The library's coordinate system is left-handed.
@@ -168,6 +168,23 @@ export class WebGLRenderer extends Renderer {
     const resolution = [this.canvas.width, this.canvas.height];
     const inverseView = mat4.invert(mat4.create(), camera.viewMatrix);
     const worldToVolume = mat4.invert(mat4.create(), object.transform.matrix);
+    const box = object.boundingBox;
+    // box.applyTransform(object.transform.matrix);
+
+    const boxMinWorld = box.min;
+    const boxMaxWorld = box.max;
+    const size = vec3.create();
+    vec3.subtract(size, box.max, box.min);
+    // const boxMinWorld = vec3.fromValues(
+    //   (size[0] / 2) * 1000,
+    //  (size[1] / 2) * 1000,
+    //   (size[2] / 2) * 1000
+    // );
+    // const boxMaxWorld = vec3.fromValues(
+    //   box.max[0]  * 1000,
+    //   box.max[1] * 1000,
+    //   box.max[2]* 1000
+    // );
 
     const objectUniforms = object.getUniforms();
     const cameraUniforms = camera.getUniforms();
@@ -198,6 +215,15 @@ export class WebGLRenderer extends Renderer {
           break;
         case "WorldToVolume":
           program.setUniform(uniformName, worldToVolume);
+          break;
+        case "BoxMinWorld":
+          program.setUniform(uniformName, boxMinWorld);
+          break;
+        case "BoxMaxWorld":
+          program.setUniform(uniformName, boxMaxWorld);
+          break;
+        case "BoxSizeWorld":
+          program.setUniform(uniformName, size);
           break;
         default:
           if (uniformName in allUniforms) {
