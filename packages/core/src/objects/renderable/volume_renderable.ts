@@ -27,12 +27,12 @@ function dataTypeToVolumeShader(dataType: TextureDataType): Shader {
     case "byte":
     case "int":
     case "short":
-      return "intVolumeImage";
+      return "intVolume";
     case "unsigned_short":
     case "unsigned_byte":
     case "unsigned_int":
-      return "uintVolumeImage";
+      return "uintVolume";
     case "float":
-      return "floatVolumeImage";
+      return "floatVolume";
   }
 }
