@@ -8,7 +8,7 @@ export class VolumeLayer extends Layer {
   constructor() {
     super();
 
-    const data = new Uint8Array([127, 0, 0, 127, 127, 0, 0, 127]);
+    const data = new Int8Array([127, 0, 0, 127, 127, 0, 0, 127]);
     const texture = new Texture3D(data, 2, 2, 2);
     texture.unpackAlignment = 1;
     const renderable = new VolumeRenderable(1, 1, 1, texture);
