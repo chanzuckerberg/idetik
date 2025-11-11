@@ -83,11 +83,11 @@ void main() {
     vec3 exitPointWorld = rayOrigin + rayDir * tExit;
 
     // We compute the entry and exit points in volume space from the world space
-    vec3 entryVolume = (WorldToVolume * vec4(entryPointWorld, 1.0f)).xyz;
-    vec3 exitVolume = (WorldToVolume * vec4(exitPointWorld, 1.0f)).xyz;
+    //vec3 entryVolume = (WorldToVolume * vec4(entryPointWorld, 1.0f)).xyz;
+    //vec3 exitVolume = (WorldToVolume * vec4(exitPointWorld, 1.0f)).xyz;
 
-    vec3 entrypointNormalized = (entryVolume / 600.0);
-    vec3 exitpointNormalized = (exitVolume / 600.0) + 0.5;
+    vec3 entrypointNormalized = (entryPointWorld / BoxSizeWorld) + 0.5;
+    vec3 exitpointNormalized = (exitPointWorld / BoxSizeWorld) + 0.5;
 
     vec3 move = entrypointNormalized;
     vec3 step = exitpointNormalized - entrypointNormalized;
@@ -100,8 +100,8 @@ void main() {
         alpha = (1.0f - alpha) * newAlpha + alpha;
         move += (step / 255.0f);
     }
-    //fragColor = vec4(alpha, alpha, alpha, 1.0f);
-    fragColor = vec4(entrypointNormalized.x, 0.0, 0.0, 1.0f);
+    fragColor = vec4(alpha, alpha, alpha, 1.0f);
+    //fragColor = vec4(entrypointNormalized.x, 0.0, 0.0, 1.0f);
 
 //    float alpha = 0.0;
 //     /* Will replace fixed steps and normalization with uniforms later */
