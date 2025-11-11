@@ -18,7 +18,7 @@ uniform mat4 Projection;
 uniform mat4 ModelView;
 uniform mat4 InverseModelViewProjection;
 
-// Volume bounding box (world space)
+// Volume bounding box (model space)
 uniform vec3 BoxSize;
 
 in vec2 TexCoords;
