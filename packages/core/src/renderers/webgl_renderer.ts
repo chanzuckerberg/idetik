@@ -115,7 +115,7 @@ export class WebGLRenderer extends Renderer {
     // This should probably be more generic, but for now we do some checks
     // specifically for volume rendering
     if (layer.type === "VolumeLayer") {
-      this.state_.setCullFaceMode("back");
+      this.state_.setCullFaceMode("disabled");
     }
 
     layer.objects.forEach((object, i) => {
@@ -179,6 +179,16 @@ export class WebGLRenderer extends Renderer {
     const inverseView = mat4.invert(mat4.create(), camera.viewMatrix);
     const worldToVolume = mat4.invert(mat4.create(), object.transform.matrix);
     const box = object.boundingBox;
+    const modelViewProjection = mat4.multiply(
+      mat4.create(),
+      projection,
+      modelView
+    );
+    const inverseModelViewProjection = mat4.invert(
+      mat4.create(),
+      modelViewProjection
+    );
+    box.applyTransform(worldToVolume);
     // box.applyTransform(object.transform.matrix);
 
     const boxMinWorld = box.min;
@@ -234,6 +244,9 @@ export class WebGLRenderer extends Renderer {
           break;
         case "BoxSizeWorld":
           program.setUniform(uniformName, size);
+          break;
+        case "InverseModelViewProjection":
+          program.setUniform(uniformName, inverseModelViewProjection);
           break;
         default:
           if (uniformName in allUniforms) {
