@@ -164,11 +164,9 @@ export class WebGLRenderer extends Renderer {
       axisDirection,
       camera.projectionMatrix
     );
-    const inverseProjection = mat4.invert(mat4.create(), projection);
     const resolution = [this.canvas.width, this.canvas.height];
-    const inverseView = mat4.invert(mat4.create(), camera.viewMatrix);
-    const worldToVolume = mat4.invert(mat4.create(), object.transform.matrix);
-    const box = object.boundingBox;
+    // Want the box in model space, object.boundingBox is in world space
+    const box = object.geometry.boundingBox;
     const modelViewProjection = mat4.multiply(
       mat4.create(),
       projection,
@@ -178,23 +176,11 @@ export class WebGLRenderer extends Renderer {
       mat4.create(),
       modelViewProjection
     );
-    box.applyTransform(worldToVolume);
-    // box.applyTransform(object.transform.matrix);
 
     const boxMinWorld = box.min;
     const boxMaxWorld = box.max;
     const size = vec3.create();
     vec3.subtract(size, box.max, box.min);
-    // const boxMinWorld = vec3.fromValues(
-    //   (size[0] / 2) * 1000,
-    //  (size[1] / 2) * 1000,
-    //   (size[2] / 2) * 1000
-    // );
-    // const boxMaxWorld = vec3.fromValues(
-    //   box.max[0]  * 1000,
-    //   box.max[1] * 1000,
-    //   box.max[2]* 1000
-    // );
 
     const objectUniforms = object.getUniforms();
     const cameraUniforms = camera.getUniforms();
@@ -214,25 +200,13 @@ export class WebGLRenderer extends Renderer {
         case "u_opacity":
           program.setUniform(uniformName, layer.opacity);
           break;
-        case "CameraPosition":
-          program.setUniform(uniformName, camera.position);
-          break;
-        case "InverseView":
-          program.setUniform(uniformName, inverseView);
-          break;
-        case "InverseProjection":
-          program.setUniform(uniformName, inverseProjection);
-          break;
-        case "WorldToVolume":
-          program.setUniform(uniformName, worldToVolume);
-          break;
-        case "BoxMinWorld":
+        case "BoxMin":
           program.setUniform(uniformName, boxMinWorld);
           break;
-        case "BoxMaxWorld":
+        case "BoxMax":
           program.setUniform(uniformName, boxMaxWorld);
           break;
-        case "BoxSizeWorld":
+        case "BoxSize":
           program.setUniform(uniformName, size);
           break;
         case "InverseModelViewProjection":
