@@ -21,6 +21,9 @@ uniform mat4 InverseModelViewProjection;
 // Volume bounding box (model space)
 uniform vec3 BoxSize;
 
+const vec3 boxMin = vec3(0.0f, 0.0f, 0.0f);
+const vec3 boxMax = vec3(1.0f, 1.0f, 1.0f);
+
 in vec2 TexCoords;
 in vec4 NormalizedPosition;
 
@@ -50,9 +53,7 @@ void main() {
     float tEnter, tExit;
     vec3 rayOrigin = nearPoint;
     vec3 rayDir = normalize(farPoint - nearPoint);
-    vec3 BoxMin = vec3(0.0f, 0.0f, 0.0f);
-    vec3 BoxMax = vec3(1.0f, 1.0f, 1.0f);
-    bool hit = intersectBox(rayOrigin, rayDir, BoxMin, BoxMax, tEnter, tExit);
+    bool hit = intersectBox(rayOrigin, rayDir, boxMin, boxMax, tEnter, tExit);
 
     // We shouldn't have a miss, but just in case keeping for debugging for now
     if(!hit) {
@@ -66,14 +67,17 @@ void main() {
     vec3 exitPointNormalized = rayOrigin + rayDir * tExit;
 
     // Raymarch from entry to exit point
-    vec3 move = entryPointNormalized;
+    vec3 position = entryPointNormalized;
     vec3 step = exitPointNormalized - entryPointNormalized;
     float alpha = 0.0f;
     for(int i = 0; i < 256; i++) {
-        float texel = float(texture(ImageSampler, move).r);
+        float texel = float(texture(ImageSampler, position).r);
         float newAlpha = clamp(texel / 1000.0f, 0.0f, 1.0f);
         alpha = (1.0f - alpha) * newAlpha + alpha;
-        move += (step / 255.0f);
+        if (alpha >= 0.99f) {
+            break;
+        }
+        position += (step / 255.0f);
     }
     fragColor = vec4(alpha, alpha, alpha, 1.0f);
 }
