@@ -177,8 +177,6 @@ export class WebGLRenderer extends Renderer {
       modelViewProjection
     );
 
-    const boxMinWorld = box.min;
-    const boxMaxWorld = box.max;
     const size = vec3.create();
     vec3.subtract(size, box.max, box.min);
 
@@ -199,12 +197,6 @@ export class WebGLRenderer extends Renderer {
           break;
         case "u_opacity":
           program.setUniform(uniformName, layer.opacity);
-          break;
-        case "BoxMin":
-          program.setUniform(uniformName, boxMinWorld);
-          break;
-        case "BoxMax":
-          program.setUniform(uniformName, boxMaxWorld);
           break;
         case "BoxSize":
           program.setUniform(uniformName, size);

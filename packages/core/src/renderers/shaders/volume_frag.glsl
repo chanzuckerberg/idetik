@@ -19,8 +19,6 @@ uniform mat4 ModelView;
 uniform mat4 InverseModelViewProjection;
 
 // Volume bounding box (world space)
-uniform vec3 BoxMin;
-uniform vec3 BoxMax;
 uniform vec3 BoxSize;
 
 in vec2 TexCoords;
@@ -42,16 +40,18 @@ bool intersectBox(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out flo
 
 void main() {
     vec2 normalizedXY = NormalizedPosition.xy / NormalizedPosition.w;
-    // Get the near and far points in model space
+    // Get the near and far points in model space, then normalized to unit box space [0, 1]
     vec4 nearPointHomogeneous = InverseModelViewProjection * vec4(normalizedXY, -1.0, 1.0);
     vec4 farPointHomogeneous = InverseModelViewProjection * vec4(normalizedXY, 1.0, 1.0);
-    vec3 nearPoint = nearPointHomogeneous.xyz / nearPointHomogeneous.w;
-    vec3 farPoint = farPointHomogeneous.xyz / farPointHomogeneous.w;
+    vec3 nearPoint = (nearPointHomogeneous.xyz / nearPointHomogeneous.w / BoxSize) + 0.5;
+    vec3 farPoint = (farPointHomogeneous.xyz / farPointHomogeneous.w / BoxSize) + 0.5;
 
     // Find the start and end of the ray within the volume from the near point to the far point
     float tEnter, tExit;
     vec3 rayOrigin = nearPoint;
     vec3 rayDir = normalize(farPoint - nearPoint);
+    vec3 BoxMin = vec3(0.0f, 0.0f, 0.0f);
+    vec3 BoxMax = vec3(1.0f, 1.0f, 1.0f);
     bool hit = intersectBox(rayOrigin, rayDir, BoxMin, BoxMax, tEnter, tExit);
 
     // We shouldn't have a miss, but just in case keeping for debugging for now
@@ -62,14 +62,12 @@ void main() {
 
     // Find the texture coordinates of the entry and exit points
     tEnter = max(tEnter, 0.0f);
-    vec3 entryPoint = rayOrigin + rayDir * tEnter;
-    vec3 exitPoint = rayOrigin + rayDir * tExit;
-    vec3 entrypointNormalized = (entryPoint / BoxSize) + 0.5;
-    vec3 exitpointNormalized = (exitPoint / BoxSize) + 0.5;
+    vec3 entryPointNormalized = rayOrigin + rayDir * tEnter;
+    vec3 exitPointNormalized = rayOrigin + rayDir * tExit;
 
     // Raymarch from entry to exit point
-    vec3 move = entrypointNormalized;
-    vec3 step = exitpointNormalized - entrypointNormalized;
+    vec3 move = entryPointNormalized;
+    vec3 step = exitPointNormalized - entryPointNormalized;
     float alpha = 0.0f;
     for(int i = 0; i < 256; i++) {
         float texel = float(texture(ImageSampler, move).r);
