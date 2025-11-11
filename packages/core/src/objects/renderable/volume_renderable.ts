@@ -5,6 +5,7 @@ export class VolumeRenderable extends RenderableObject {
   constructor() {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
+    this.cullFaceMode = "back";
     this.programName = "volume";
   }
 
