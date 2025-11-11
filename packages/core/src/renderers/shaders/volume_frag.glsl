@@ -19,6 +19,7 @@ uniform mat4 InverseView;        // Camera → World space
 uniform mat4 WorldToVolume;      // World → Volume [0,1]³ texture coords
 uniform mat4 Projection;
 uniform mat4 ModelView;
+uniform mat4 InverseModelViewProjection;
 
 // Camera
 uniform vec3 CameraPosition;     // World space camera position
@@ -29,7 +30,7 @@ uniform vec3 BoxMaxWorld;
 uniform vec3 BoxSizeWorld;
 
 in vec2 TexCoords;
-in vec3 VNormalized;
+in vec4 NormalizedPosition;
 
 bool intersectBox(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out float tEnter, out float tExit) {
     vec3 invDir = 1.0f / rayDir;
@@ -46,8 +47,12 @@ bool intersectBox(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out flo
 }
 
 void main() {
-    // vec2 ndc = TexCoords * 2.0f - 1.0f;  // [0,1] → [-1,+1]
-    // vec3
+    vec2 VNormalized = NormalizedPosition.xy / NormalizedPosition.w;
+    vec4 nearPointH = InverseModelViewProjection * vec4(VNormalized, -1.0, 1.0);
+    vec4 farPointH = InverseModelViewProjection * vec4(VNormalized, 1.0, 1.0);
+    vec3 newNearPoint = nearPointH.xyz / nearPointH.w;
+    vec3 newFarPoint = farPointH.xyz / farPointH.w;
+
     vec4 nearClip = vec4(VNormalized.xy, -1.0f, 1.0f);
     vec4 farClip = vec4(VNormalized.xy, 1.0f, 1.0f);
 
@@ -61,13 +66,16 @@ void main() {
     vec3 nearWorld = (InverseView * vec4(nearView.xyz, 1.0f)).xyz;
     vec3 farWorld = (InverseView * vec4(farView.xyz, 1.0f)).xyz;
 
-    vec3 rayOrigin = nearWorld;
-    vec3 rayDir = normalize(farWorld - nearWorld);
+    nearWorld = (WorldToVolume * vec4(nearWorld, 1.0f)).xyz;
+    farWorld = (WorldToVolume * vec4(farWorld, 1.0f)).xyz;
+
+    vec3 rayOrigin = newNearPoint;
+    vec3 rayDir = normalize(newFarPoint - newNearPoint);
 
     float tEnter, tExit;
     bool hit = intersectBox(rayOrigin, rayDir, BoxMinWorld, BoxMaxWorld, tEnter, tExit);
     if(!hit) {
-        fragColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        fragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
         return;
     }
     tEnter = max(tEnter, 0.0f);
@@ -75,23 +83,25 @@ void main() {
     vec3 exitPointWorld = rayOrigin + rayDir * tExit;
 
     // We compute the entry and exit points in volume space from the world space
-    vec3 entryVolume = (WorldToVolume * vec4(entryPointWorld, 1.0f)).xyz;
-    vec3 exitVolume = (WorldToVolume * vec4(exitPointWorld, 1.0f)).xyz;
+    //vec3 entryVolume = (WorldToVolume * vec4(entryPointWorld, 1.0f)).xyz;
+    //vec3 exitVolume = (WorldToVolume * vec4(exitPointWorld, 1.0f)).xyz;
 
-    vec3 entrypointNormalized = entryVolume;
-    vec3 exitpointNormalized = exitVolume;
+    vec3 entrypointNormalized = (entryPointWorld / BoxSizeWorld) + 0.5;
+    vec3 exitpointNormalized = (exitPointWorld / BoxSizeWorld) + 0.5;
 
     vec3 move = entrypointNormalized;
     vec3 step = exitpointNormalized - entrypointNormalized;
+    vec3 midpoint = entrypointNormalized + (step * 0.5f);
 
     float alpha = 0.0f;
     for(int i = 0; i < 256; i++) {
-        float texel = float(texture(ImageSampler, VNormalized).r);
+        float texel = float(texture(ImageSampler, move).r);
         float newAlpha = clamp(texel / 1000.0f, 0.0f, 1.0f);
         alpha = (1.0f - alpha) * newAlpha + alpha;
         move += (step / 255.0f);
     }
-    fragColor = vec4(move.x, move.y, move.y, 1.0f);
+    fragColor = vec4(alpha, alpha, alpha, 1.0f);
+    //fragColor = vec4(entrypointNormalized.x, 0.0, 0.0, 1.0f);
 
 //    float alpha = 0.0;
 //     /* Will replace fixed steps and normalization with uniforms later */
