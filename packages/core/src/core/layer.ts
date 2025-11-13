@@ -5,7 +5,7 @@ import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
 
 export type LayerState = "initialized" | "loading" | "ready";
-export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
+export type blendMode = "normal" | "additive" | "subtractive" | "multiply" | "premultiplied";
 
 type StateChangeCallback = (
   newState: LayerState,

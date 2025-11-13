@@ -6,12 +6,16 @@ import { ChunkManagerSource } from "../core/chunk_manager_source";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { Logger } from "../utilities/logger";
+import { Camera } from "@/objects/cameras/camera";
+import { vec3 } from "gl-matrix";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
 };
+
+export type OrderingMode = "front-to-back" | "back-to-front";
 
 export class VolumeLayer extends Layer {
   public readonly type = "VolumeLayer";
@@ -115,6 +119,7 @@ export class VolumeLayer extends Layer {
     }
     const chunks = this.chunkManagerSource_.getAllChunksAtLod(this.lod_);
     if (this.lastLoadedLod_ === this.lod_) return chunks;
+    // this.lod_ = 1;
     Logger.debug("VolumeLayer", `Loading chunks for LOD ${this.lod_}`);
     for (const chunk of chunks) {
       this.chunkManagerSource_.loadChunkData(
@@ -152,5 +157,24 @@ export class VolumeLayer extends Layer {
 
   public update() {
     this.updateChunks();
+  }
+
+  public reorderObjects(camera: Camera, mode: OrderingMode) {
+    const cameraPos = camera.position;
+    const tmpA = vec3.create();
+    const tmpB = vec3.create();
+
+    this.objects.sort((a, b) => {
+      vec3.add(tmpA, a.boundingBox.max, a.boundingBox.min);
+      vec3.scale(tmpA, tmpA, 0.5);
+
+      vec3.add(tmpB, b.boundingBox.max, b.boundingBox.min);
+      vec3.scale(tmpB, tmpB, 0.5);
+
+      const da = vec3.squaredDistance(cameraPos, tmpA);
+      const db = vec3.squaredDistance(cameraPos, tmpB);
+
+      return mode === "front-to-back" ? da - db : db - da;
+    });
   }
 }

@@ -1,8 +1,8 @@
-import { Shader } from "../../renderers/shaders";
+import type { Shader } from "../../renderers/shaders";
 import { RenderableObject } from "../../core/renderable_object";
 import { SimpleBoxGeometry } from "../geometry/simple_box_geometry";
-import { TextureDataType } from "../textures/texture";
-import { Texture3D } from "../textures/texture_3d";
+import type { TextureDataType } from "../textures/texture";
+import type { Texture3D } from "../textures/texture_3d";
 
 export class VolumeRenderable extends RenderableObject {
   constructor(

@@ -17,8 +17,10 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy: createExplorationPolicy(),
+  transparent: true,
+  blendMode: "premultiplied",
 });
-volumeLayer.debugMode = true;
+// volumeLayer.debugMode = true;
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
