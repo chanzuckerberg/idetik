@@ -8,14 +8,14 @@
     "npm": ">=11.3.0"
   },
   "scripts": {
-    "build": "npm run build --workspace=@idetik/core-prerelease",
-    "build:examples": "npm run build:examples --workspace=@idetik/core-prerelease",
-    "examples": "npm run dev --workspace=@idetik/core-prerelease",
-    "compile": "npm run compile --workspace=@idetik/core-prerelease",
-    "lint": "npm run lint --workspace=@idetik/core-prerelease",
-    "format": "npm run format --workspace=@idetik/core-prerelease",
-    "format-check": "npm run format-check --workspace=@idetik/core-prerelease",
-    "test-with-coverage": "npm run test-with-coverage --workspace=@idetik/core-prerelease"
+    "build": "npm run build --workspace=@idetik/core",
+    "build:examples": "npm run build:examples --workspace=@idetik/core",
+    "examples": "npm run dev --workspace=@idetik/core",
+    "compile": "npm run compile --workspace=@idetik/core",
+    "lint": "npm run lint --workspace=@idetik/core",
+    "format": "npm run format --workspace=@idetik/core",
+    "format-check": "npm run format-check --workspace=@idetik/core",
+    "test-with-coverage": "npm run test-with-coverage --workspace=@idetik/core"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",
