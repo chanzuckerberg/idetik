@@ -33,7 +33,7 @@ A layer-based library for interactive visualization of large datasets.
 
 ## Release
 
-Currently, we maintain the [@idetik/core-prerelease](https://www.npmjs.com/package/@idetik/core-prerelease?activeTab=readme) package on npm.
+We maintain the [@idetik/core](https://www.npmjs.com/package/@idetik/core?activeTab=readme) package on npm.
 
 ### Automatic Release Process (Recommended)
 
@@ -55,7 +55,7 @@ We use [semantic-release](https://github.com/semantic-release/semantic-release) 
    - Determines the version bump
    - Updates the version in `packages/core/package.json`
    - Generates/updates `CHANGELOG.md`
-   - Publishes to npm as `@idetik/core-prerelease`
+   - Publishes to npm as `@idetik/core`
    - Creates a GitHub release with release notes
    - Tags the release (e.g., `v7.1.0`)
 
