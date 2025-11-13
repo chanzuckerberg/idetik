@@ -59,10 +59,6 @@ export class Geometry extends Node {
     this.boundingBox_ = null;
   }
 
-  public getAttribute(type: GeometryAttributeType) {
-    return this.attributes_.find((a) => a.type === type);
-  }
-
   public get vertexCount() {
     return this.vertexData_.byteLength / this.strideBytes;
   }
@@ -117,5 +113,9 @@ export class Geometry extends Node {
 
   public get type() {
     return "Geometry";
+  }
+
+  private getAttribute(type: GeometryAttributeType) {
+    return this.attributes_.find((a) => a.type === type);
   }
 }

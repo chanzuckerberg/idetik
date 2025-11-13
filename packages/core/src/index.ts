@@ -41,6 +41,8 @@ export {
 
 export { Box2 } from "./math/box2";
 export { Box3 } from "./math/box3";
+export { Frustum } from "./math/frustum";
+export { Plane } from "./math/plane";
 export { Spherical } from "./math/spherical";
 
 export type { Region } from "./data/region";
@@ -62,3 +64,4 @@ export type { ChannelProps, ChannelsEnabled } from "./objects/textures/channel";
 
 export { Points } from "./objects/renderable/points";
 export { Texture2DArray } from "./objects/textures/texture_2d_array";
+export { Texture3D } from "./objects/textures/texture_3d";
