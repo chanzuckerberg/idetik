@@ -19,12 +19,13 @@ uniform vec3 Color[MAX_CHANNELS];
 uniform float ValueOffset[MAX_CHANNELS];
 uniform float ValueScale[MAX_CHANNELS];
 uniform float u_opacity;
+uniform int ChannelCount;
 
 in vec2 TexCoords;
 
 void main() {
     vec3 rgbColor = vec3(0, 0, 0);
-    for (int i = 0; i < MAX_CHANNELS; i++) {
+    for (int i = 0; i < ChannelCount; i++) {
         if (!Visible[i]) continue;
         float texel = float(texture(ImageSampler, vec3(TexCoords, i)).r);
         float value = (texel + ValueOffset[i]) * ValueScale[i];

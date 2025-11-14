@@ -63,6 +63,9 @@ export class WebGLShaderProgram {
       case this.gl_.FLOAT_MAT4:
         this.gl_.uniformMatrix4fv(location, false, value as mat4);
         break;
+      case this.gl_.INT:
+        this.gl_.uniform1i(location, value as number);
+        break;
       // For samplers, the value is the texture index.
       case this.gl_.SAMPLER_2D:
       case this.gl_.SAMPLER_CUBE:
@@ -165,6 +168,7 @@ const SUPPORTED_UNIFORM_TYPES_ =
         WebGL2RenderingContext.FLOAT_VEC2,
         WebGL2RenderingContext.FLOAT_VEC3,
         WebGL2RenderingContext.FLOAT_MAT4,
+        WebGL2RenderingContext.INT,
         WebGL2RenderingContext.SAMPLER_2D,
         WebGL2RenderingContext.SAMPLER_CUBE,
         WebGL2RenderingContext.SAMPLER_3D,
