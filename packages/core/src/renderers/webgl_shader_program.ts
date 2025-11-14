@@ -66,6 +66,9 @@ export class WebGLShaderProgram {
       case this.gl_.INT:
         this.gl_.uniform1i(location, value as number);
         break;
+      case this.gl_.UNSIGNED_INT:
+        this.gl_.uniform1ui(location, value as number);
+        break;
       // For samplers, the value is the texture index.
       case this.gl_.SAMPLER_2D:
       case this.gl_.SAMPLER_CUBE:
@@ -168,7 +171,6 @@ const SUPPORTED_UNIFORM_TYPES_ =
         WebGL2RenderingContext.FLOAT_VEC2,
         WebGL2RenderingContext.FLOAT_VEC3,
         WebGL2RenderingContext.FLOAT_MAT4,
-        WebGL2RenderingContext.INT,
         WebGL2RenderingContext.SAMPLER_2D,
         WebGL2RenderingContext.SAMPLER_CUBE,
         WebGL2RenderingContext.SAMPLER_3D,
@@ -176,10 +178,12 @@ const SUPPORTED_UNIFORM_TYPES_ =
         WebGL2RenderingContext.SAMPLER_2D_SHADOW,
         WebGL2RenderingContext.SAMPLER_CUBE_SHADOW,
         WebGL2RenderingContext.SAMPLER_2D_ARRAY_SHADOW,
+        WebGL2RenderingContext.INT,
         WebGL2RenderingContext.INT_SAMPLER_2D,
         WebGL2RenderingContext.INT_SAMPLER_3D,
         WebGL2RenderingContext.INT_SAMPLER_CUBE,
         WebGL2RenderingContext.INT_SAMPLER_2D_ARRAY,
+        WebGL2RenderingContext.UNSIGNED_INT,
         WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_2D,
         WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_3D,
         WebGL2RenderingContext.UNSIGNED_INT_SAMPLER_CUBE,
