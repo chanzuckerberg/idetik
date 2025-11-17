@@ -3,8 +3,11 @@ import {
   ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
+  PerspectiveCamera,
+  VolumeLayer,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
+import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { addDimensionSlider } from "../lil_gui_utils";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 
@@ -23,8 +26,11 @@ const zMin = z.translate;
 const zMax = z.translate + z.scale * z.shape - z.scale;
 const zRange = { min: zMin, max: zMax };
 
-// Shared source between two viewports
+// shared source between viewports
 const source = new OmeZarrImageSource(url);
+
+const camera3D = new PerspectiveCamera();
+const volumeLayer = new VolumeLayer();
 
 const sliceCoords1 = { t: 400, z: 200, c: 0 };
 const camera2D1 = new OrthographicCamera(left, right, top, bottom);
@@ -48,15 +54,24 @@ new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
-      id: "slice1",
+      id: "volume",
       element: document.querySelector<HTMLDivElement>("#viewport-left")!,
+      camera: camera3D,
+      cameraControls: new OrbitControls(camera3D, { radius: 3 }),
+      layers: [volumeLayer],
+    },
+    {
+      id: "slice1",
+      element: document.querySelector<HTMLDivElement>("#viewport-top-right")!,
       camera: camera2D1,
       cameraControls: new PanZoomControls(camera2D1),
       layers: [imageLayer1],
     },
     {
       id: "slice2",
-      element: document.querySelector<HTMLDivElement>("#viewport-right")!,
+      element: document.querySelector<HTMLDivElement>(
+        "#viewport-bottom-right"
+      )!,
       camera: camera2D2,
       cameraControls: new PanZoomControls(camera2D2),
       layers: [imageLayer2],
@@ -67,24 +82,26 @@ new Idetik({
 
 const gui = new GUI({ width: 300 });
 
-const leftViewportFolder = gui.addFolder("Left Viewport");
+const topRightViewportFolder = gui.addFolder("Top Right Viewport (Slice 1)");
 addDimensionSlider({
-  gui: leftViewportFolder,
+  gui: topRightViewportFolder,
   sliceCoords: sliceCoords1,
   dimensionName: "z",
   minValue: zRange.min,
   maxValue: zRange.max,
   stepValue: z.scale,
 });
-leftViewportFolder.open();
+topRightViewportFolder.open();
 
-const rightViewportFolder = gui.addFolder("Right Viewport");
+const bottomRightViewportFolder = gui.addFolder(
+  "Bottom Right Viewport (Slice 2)"
+);
 addDimensionSlider({
-  gui: rightViewportFolder,
+  gui: bottomRightViewportFolder,
   sliceCoords: sliceCoords2,
   dimensionName: "z",
   minValue: zRange.min,
   maxValue: zRange.max,
   stepValue: z.scale,
 });
-rightViewportFolder.open();
+bottomRightViewportFolder.open();
