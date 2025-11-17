@@ -14,18 +14,30 @@ import {
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
 
+/** Options for customizing fetch requests, such as adding authentication headers for private S3 data */
+export type FetchOptions = {
+  /** RequestInit overrides to customize fetch behavior (e.g., custom headers for S3 authentication) */
+  overrides?: RequestInit;
+  /** Whether to use suffix requests for range queries */
+  useSuffixRequest?: boolean;
+};
+
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
   readonly location: Location<Readable>;
   readonly version?: OmeZarrVersion;
+  readonly fetchOptions?: FetchOptions;
 
   /**
    * @param url URL of Zarr root
+   * @param version OME-Zarr version
+   * @param fetchOptions Optional fetch configuration (e.g., authentication headers for private S3 data)
    */
-  constructor(url: string, version?: OmeZarrVersion);
+  constructor(url: string, version?: OmeZarrVersion, fetchOptions?: FetchOptions);
   /**
    * @param directory return value of `window.showDirectoryPicker()` which gives the browser
    *    permission to access a directory (only works in Chrome/Edge)
+   * @param version OME-Zarr version
    * @param path path to image, beginning with "/". This argument allows the application to only
    *    ask the user once for permission to the root directory
    */
@@ -34,16 +46,34 @@ export class OmeZarrImageSource {
     version?: OmeZarrVersion,
     path?: `/${string}`
   );
+  // Implementation signature that handles both overloads above.
+  // For URLs: 2nd param can be version or fetchOptions, 3rd param is fetchOptions
+  // For FileSystemDirectoryHandle: 2nd param is version, 3rd param is path
   constructor(
     source: string | FileSystemDirectoryHandle,
-    version?: OmeZarrVersion,
-    path?: `/${string}`
+    versionOrOptions?: OmeZarrVersion | FetchOptions,
+    pathOrFetchOptions?: `/${string}` | FetchOptions
   ) {
-    this.location =
-      typeof source === "string"
-        ? new Location(new FetchStore(source))
-        : new Location(new WebFileSystemStore(source), path);
-    this.version = version;
+    // Handle URL constructor: (url, version?, fetchOptions?)
+    if (typeof source === "string") {
+      const version = typeof versionOrOptions === "string" ? versionOrOptions : undefined;
+      const fetchOptions = typeof versionOrOptions === "object"
+        ? versionOrOptions
+        : (pathOrFetchOptions as FetchOptions | undefined);
+
+      this.location = new Location(new FetchStore(source, fetchOptions));
+      this.version = version;
+      this.fetchOptions = fetchOptions;
+    }
+    // Handle FileSystemDirectoryHandle constructor: (directory, version?, path?)
+    else {
+      const version = typeof versionOrOptions === "string" ? versionOrOptions : undefined;
+      const path = typeof pathOrFetchOptions === "string" ? pathOrFetchOptions : undefined;
+
+      this.location = new Location(new WebFileSystemStore(source), path);
+      this.version = version;
+      this.fetchOptions = undefined;
+    }
   }
 
   public async open(): Promise<OmeZarrImageLoader> {
@@ -64,7 +94,7 @@ export class OmeZarrImageSource {
       zarrVersion = omeZarrToZarrVersion(adaptedOmeImage.originalVersion);
     }
     const arrayParams = metadata.datasets.map((d) =>
-      createZarrArrayParams(this.location, d.path, zarrVersion)
+      createZarrArrayParams(this.location, d.path, zarrVersion, this.fetchOptions)
     );
     const arrays = await Promise.all(
       arrayParams.map((params) => openArrayFromParams(params))

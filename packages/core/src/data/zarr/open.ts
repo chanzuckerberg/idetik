@@ -110,7 +110,8 @@ export async function openArrayFromParams(
 export function createZarrArrayParams(
   location: Location<Readable>,
   arrayPath: string,
-  zarrVersion: Version | undefined
+  zarrVersion: Version | undefined,
+  fetchOptions?: { overrides?: RequestInit; useSuffixRequest?: boolean }
 ): ZarrArrayParams {
   if (location.store instanceof FetchStore) {
     return {
@@ -118,6 +119,7 @@ export function createZarrArrayParams(
       arrayPath,
       zarrVersion,
       url: (location.store as FetchStore).url.toString(),
+      fetchOptions,
     };
   } else if (location.store instanceof WebFileSystemStore) {
     return {
