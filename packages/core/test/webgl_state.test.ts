@@ -78,3 +78,52 @@ test("setScissorBox with floating point values floors to integers", () => {
   const actualScissorBox = gl.getParameter(gl.SCISSOR_BOX);
   expect(Array.from(actualScissorBox)).toEqual([5, 10, 50, 100]);
 });
+
+test("setCullFace enables and disables face culling", () => {
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
+
+  webglState.setCullFace(true);
+  expect(gl.isEnabled(gl.CULL_FACE)).toBe(true);
+
+  webglState.setCullFace(false);
+  expect(gl.isEnabled(gl.CULL_FACE)).toBe(false);
+});
+
+test("setCullFaceMode with 'none' disables face culling", () => {
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
+
+  webglState.setCullFace(true);
+  expect(gl.isEnabled(gl.CULL_FACE)).toBe(true);
+
+  webglState.setCullFaceMode("none");
+  expect(gl.isEnabled(gl.CULL_FACE)).toBe(false);
+});
+
+test("setCullFaceMode with 'front' enables culling in front face mode", () => {
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
+
+  webglState.setCullFaceMode("front");
+  expect(gl.isEnabled(gl.CULL_FACE)).toBe(true);
+  expect(gl.getParameter(gl.CULL_FACE_MODE)).toBe(gl.FRONT);
+});
+
+test("setCullFaceMode with 'back' enables culling in back face mode", () => {
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
+
+  webglState.setCullFaceMode("back");
+  expect(gl.isEnabled(gl.CULL_FACE)).toBe(true);
+  expect(gl.getParameter(gl.CULL_FACE_MODE)).toBe(gl.BACK);
+});
+
+test("setCullFaceMode with 'both' enables culling in front and back face mode", () => {
+  const gl = createTestWebGLContext();
+  const webglState = new WebGLState(gl);
+
+  webglState.setCullFaceMode("both");
+  expect(gl.isEnabled(gl.CULL_FACE)).toBe(true);
+  expect(gl.getParameter(gl.CULL_FACE_MODE)).toBe(gl.FRONT_AND_BACK);
+});
