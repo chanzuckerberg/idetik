@@ -3,6 +3,11 @@ import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
 import WebFileSystemStore from "./web_file_system_store";
+import {
+  AuthenticatedFetchStore,
+  type AwsCredentials,
+  type AwsConfig,
+} from "./authenticated_fetch_store";
 
 export type Version = "v2" | "v3";
 
@@ -16,6 +21,8 @@ export type ZarrArrayParams = {
       fetchOptions?: {
         overrides?: RequestInit;
         useSuffixRequest?: boolean;
+        credentials?: AwsCredentials;
+        awsConfig?: AwsConfig;
       };
     }
   | {
@@ -82,9 +89,12 @@ export async function openArrayFromParams(
 
   switch (params.type) {
     case "fetch": {
-      rootLocation = new Location(
-        new FetchStore(params.url, params.fetchOptions)
-      );
+      // Use AuthenticatedFetchStore if credentials are provided
+      const store = params.fetchOptions?.credentials && params.fetchOptions?.awsConfig
+        ? new AuthenticatedFetchStore(params.url, params.fetchOptions)
+        : new FetchStore(params.url, params.fetchOptions);
+
+      rootLocation = new Location(store);
       break;
     }
     case "filesystem": {
@@ -113,7 +123,20 @@ export function createZarrArrayParams(
   zarrVersion: Version | undefined,
   fetchOptions?: { overrides?: RequestInit; useSuffixRequest?: boolean }
 ): ZarrArrayParams {
-  if (location.store instanceof FetchStore) {
+  if (location.store instanceof AuthenticatedFetchStore) {
+    // Extract credentials from AuthenticatedFetchStore
+    return {
+      type: "fetch",
+      arrayPath,
+      zarrVersion,
+      url: location.store.url.toString(),
+      fetchOptions: {
+        ...fetchOptions,
+        credentials: location.store.credentials,
+        awsConfig: location.store.awsConfig,
+      },
+    };
+  } else if (location.store instanceof FetchStore) {
     return {
       type: "fetch",
       arrayPath,

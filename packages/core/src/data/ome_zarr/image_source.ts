@@ -13,6 +13,11 @@ import {
   parseOmeZarrImage,
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
+import {
+  AuthenticatedFetchStore,
+  type AwsCredentials,
+  type AwsConfig,
+} from "../zarr/authenticated_fetch_store";
 
 /** Options for customizing fetch requests, such as adding authentication headers for private S3 data */
 export type FetchOptions = {
@@ -20,6 +25,10 @@ export type FetchOptions = {
   overrides?: RequestInit;
   /** Whether to use suffix requests for range queries */
   useSuffixRequest?: boolean;
+  /** AWS credentials for S3 authentication (will generate signatures per-request) */
+  credentials?: AwsCredentials;
+  /** AWS configuration (region and service) */
+  awsConfig?: AwsConfig;
 };
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
@@ -61,7 +70,12 @@ export class OmeZarrImageSource {
         ? versionOrOptions
         : (pathOrFetchOptions as FetchOptions | undefined);
 
-      this.location = new Location(new FetchStore(source, fetchOptions));
+      // Use AuthenticatedFetchStore if AWS credentials are provided
+      const store = fetchOptions?.credentials && fetchOptions?.awsConfig
+        ? new AuthenticatedFetchStore(source, fetchOptions)
+        : new FetchStore(source, fetchOptions);
+
+      this.location = new Location(store);
       this.version = version;
       this.fetchOptions = fetchOptions;
     }
