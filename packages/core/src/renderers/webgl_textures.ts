@@ -1,5 +1,5 @@
 import { Logger } from "../utilities/logger";
-import {
+import type {
   Texture,
   TextureFilter,
   TextureWrapMode,

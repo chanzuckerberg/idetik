@@ -5,7 +5,8 @@ export type BlendingMode =
   | "normal"
   | "additive"
   | "multiply"
-  | "subtractive";
+  | "subtractive"
+  | "premultiplied";
 
 export type CullingMode = "none" | "front" | "back" | "both";
 
@@ -87,6 +88,9 @@ export class WebGLState {
         case "subtractive":
           this.setBlendFunc(this.gl_.ZERO, this.gl_.ONE_MINUS_SRC_COLOR);
           break;
+        case "premultiplied":
+          this.setBlendFunc(this.gl_.ONE, this.gl_.ONE_MINUS_SRC_ALPHA);
+          break;
         case "normal":
         default:
           this.setBlendFunc(this.gl_.SRC_ALPHA, this.gl_.ONE_MINUS_SRC_ALPHA);
@@ -145,6 +149,7 @@ export class WebGLState {
       this.setCullFace(false);
     } else {
       this.setCullFace(true);
+      this.gl_.frontFace(this.gl_.CW);
       switch (mode) {
         case "front":
           this.gl_.cullFace(this.gl_.FRONT);

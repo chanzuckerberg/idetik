@@ -40,6 +40,13 @@ const imageLayer1 = new ChunkedImageLayer({
   policy: createExplorationPolicy(),
   channelProps: [{ contrastLimits: [0, 200] }],
 });
+const volumeLayer = new VolumeLayer({
+  source,
+  sliceCoords,
+  policy: createExplorationPolicy(),
+  transparent: true,
+  blendMode: "premultiplied",
+});
 
 const sliceCoords2 = { t: 400, z: 300, c: 0 };
 const camera2D2 = new OrthographicCamera(left, right, top, bottom);

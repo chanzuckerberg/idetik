@@ -54,6 +54,13 @@ export class WebGLShaderProgram {
           this.gl_.uniform1fv(location, value as Iterable<number>);
         }
         break;
+      case this.gl_.INT:
+        if (typeof value === "number") {
+          this.gl_.uniform1i(location, value);
+        } else {
+          this.gl_.uniform1iv(location, value as Iterable<number>);
+        }
+        break;
       case this.gl_.FLOAT_VEC2:
         this.gl_.uniform2fv(location, value as vec2);
         break;
@@ -162,6 +169,7 @@ const SUPPORTED_UNIFORM_TYPES_ =
     ? [
         WebGL2RenderingContext.BOOL,
         WebGL2RenderingContext.FLOAT,
+        WebGL2RenderingContext.INT,
         WebGL2RenderingContext.FLOAT_VEC2,
         WebGL2RenderingContext.FLOAT_VEC3,
         WebGL2RenderingContext.FLOAT_MAT4,
