@@ -95,10 +95,10 @@ void main() {
         float texel = sampledData.r;
 
         float normalizedIntensity = texel / 255.0;
-        float sampleAlpha = normalizedIntensity * 0.3; // Higher opacity for multiply mode
+        float sampleAlpha = normalizedIntensity * 0.1;
 
         // Front-to-back compositing
-        vec3 sampleColor = vec3(normalizedIntensity);
+        vec3 sampleColor = vec3(1.0);
         float prevAlpha = alpha;
         alpha = alpha + (1.0 - alpha) * sampleAlpha;
         accumulatedColor += sampleColor * sampleAlpha * (1.0 - prevAlpha);
