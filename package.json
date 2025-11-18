@@ -3,11 +3,19 @@
   "workspaces": [
     "packages/core"
   ],
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=11.3.0"
+  },
   "scripts": {
-    "build": "npm run build --workspace=@idetik/core-prerelease",
-    "build:examples": "npm run build:examples --workspace=@idetik/core-prerelease",
-    "examples": "npm run dev --workspace=@idetik/core-prerelease",
-    "format": "npm run format --workspace=@idetik/core-prerelease"
+    "build": "npm run build --workspace=@idetik/core",
+    "build:examples": "npm run build:examples --workspace=@idetik/core",
+    "examples": "npm run dev --workspace=@idetik/core",
+    "compile": "npm run compile --workspace=@idetik/core",
+    "lint": "npm run lint --workspace=@idetik/core",
+    "format": "npm run format --workspace=@idetik/core",
+    "format-check": "npm run format-check --workspace=@idetik/core",
+    "test-with-coverage": "npm run test-with-coverage --workspace=@idetik/core"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^12.1.2",
@@ -17,6 +25,7 @@
     "@typescript-eslint/parser": "^8.1.0",
     "@vitest/browser": "^3.0.9",
     "@vitest/coverage-istanbul": "^3.0.9",
+    "conventional-changelog-conventionalcommits": "^9.1.0",
     "eslint": "^9.9.0",
     "globals": "^15.9.0",
     "jsdom": "^24.1.1",
@@ -25,6 +34,7 @@
     "prettier": "^3.3.2",
     "rollup": "^4.34.9",
     "rollup-plugin-dts": "^6.1.1",
+    "semantic-release": "^24.2.0",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.1.0",
     "vite": "^6.4.1",
