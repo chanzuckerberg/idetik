@@ -129,7 +129,7 @@ export class WebGLRenderer extends Renderer {
     });
 
     if (layer.type === "VolumeLayer") {
-      this.state_.setCullFaceMode("disabled");
+      this.state_.setCullFaceMode("none");
       this.state_.setDepthTesting(true);
       this.state_.setDepthMask(true);
     }
@@ -137,6 +137,7 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
+    this.state_.setCullFaceMode(object.cullFaceMode);
     this.bindings_.bindGeometry(object.geometry);
     object.popStaleTextures().forEach((texture) => {
       this.textures_.disposeTexture(texture);

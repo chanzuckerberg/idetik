@@ -8,7 +8,7 @@ export type BlendingMode =
   | "subtractive"
   | "premultiplied";
 
-export type CullingMode = "disabled" | "front" | "back" | "front_and_back";
+export type CullingMode = "none" | "front" | "back" | "both";
 
 export class WebGLState {
   private readonly gl_: WebGL2RenderingContext;
@@ -145,7 +145,7 @@ export class WebGLState {
   public setCullFaceMode(mode: CullingMode) {
     if (this.currentCullingMode_ === mode) return;
 
-    if (mode === "disabled") {
+    if (mode === "none") {
       this.setCullFace(false);
     } else {
       this.setCullFace(true);
@@ -157,7 +157,7 @@ export class WebGLState {
         case "back":
           this.gl_.cullFace(this.gl_.BACK);
           break;
-        case "front_and_back":
+        case "both":
           this.gl_.cullFace(this.gl_.FRONT_AND_BACK);
           break;
       }
