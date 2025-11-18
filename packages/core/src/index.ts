@@ -27,7 +27,11 @@ export { ImageSeriesLayer } from "./layers/image_series_layer";
 export { OmeZarrImageSource } from "./data/ome_zarr/image_source";
 export type { FetchOptions } from "./data/ome_zarr/image_source";
 export { AuthenticatedFetchStore } from "./data/zarr/authenticated_fetch_store";
-export type { AwsCredentials, AwsConfig, AuthenticatedFetchOptions } from "./data/zarr/authenticated_fetch_store";
+export type {
+  AwsCredentials,
+  AwsConfig,
+  AuthenticatedFetchOptions,
+} from "./data/zarr/authenticated_fetch_store";
 
 export type {
   PriorityCategory,

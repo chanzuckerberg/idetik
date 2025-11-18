@@ -2,8 +2,8 @@
  * Authenticated FetchStore that generates AWS Signature V4 headers for each request
  */
 
-import FetchStore from '@zarrita/storage/fetch';
-import type { FetchOptions } from '../ome_zarr/image_source';
+import FetchStore from "@zarrita/storage/fetch";
+import type { FetchOptions } from "../ome_zarr/image_source";
 
 export type AwsCredentials = {
   accessKeyId: string;
@@ -29,10 +29,7 @@ export class AuthenticatedFetchStore extends FetchStore {
   private credentials_?: AwsCredentials;
   private awsConfig_?: AwsConfig;
 
-  constructor(
-    url: string,
-    options?: AuthenticatedFetchOptions
-  ) {
+  constructor(url: string, options?: AuthenticatedFetchOptions) {
     // Don't pass static headers to parent - we'll generate them per-request
     const { credentials, awsConfig, ...fetchOptions } = options || {};
     super(url, fetchOptions);
@@ -54,11 +51,14 @@ export class AuthenticatedFetchStore extends FetchStore {
   /**
    * Override get() to generate fresh auth headers for each request
    */
-  async get(key: `/${string}`, options?: RequestInit): Promise<Uint8Array | undefined> {
+  async get(
+    key: `/${string}`,
+    options?: RequestInit
+  ): Promise<Uint8Array | undefined> {
     if (this.credentials_ && this.awsConfig_) {
       // Generate fresh headers for this specific request
       // Remove trailing slash from url if present to avoid double slashes
-      const baseUrl = this.url.toString().replace(/\/$/, '');
+      const baseUrl = this.url.toString().replace(/\/$/, "");
       const fullUrl = `${baseUrl}${key}`;
       const authHeaders = await this.generateAuthHeaders(fullUrl);
 
@@ -81,7 +81,9 @@ export class AuthenticatedFetchStore extends FetchStore {
    * Generate AWS Signature V4 headers for a specific URL
    * This uses the Web Crypto API for browser compatibility
    */
-  private async generateAuthHeaders(url: string): Promise<Record<string, string>> {
+  private async generateAuthHeaders(
+    url: string
+  ): Promise<Record<string, string>> {
     if (!this.credentials_ || !this.awsConfig_) {
       return {};
     }
@@ -101,17 +103,17 @@ export class AuthenticatedFetchStore extends FetchStore {
       `host:${host}\n` +
       `x-amz-content-sha256:UNSIGNED-PAYLOAD\n` +
       `x-amz-date:${amzDate}\n` +
-      (sessionToken ? `x-amz-security-token:${sessionToken}\n` : '');
+      (sessionToken ? `x-amz-security-token:${sessionToken}\n` : "");
 
     const signedHeaders = sessionToken
-      ? 'host;x-amz-content-sha256;x-amz-date;x-amz-security-token'
-      : 'host;x-amz-content-sha256;x-amz-date';
+      ? "host;x-amz-content-sha256;x-amz-date;x-amz-security-token"
+      : "host;x-amz-content-sha256;x-amz-date";
 
-    const payloadHash = 'UNSIGNED-PAYLOAD';
+    const payloadHash = "UNSIGNED-PAYLOAD";
 
     const canonicalRequest = `GET\n${canonicalUri}\n${canonicalQuerystring}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
 
-    const algorithm = 'AWS4-HMAC-SHA256';
+    const algorithm = "AWS4-HMAC-SHA256";
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
 
     // Hash canonical request
@@ -120,7 +122,12 @@ export class AuthenticatedFetchStore extends FetchStore {
     const stringToSign = `${algorithm}\n${amzDate}\n${credentialScope}\n${canonicalRequestHash}`;
 
     // Generate signing key
-    const signingKey = await this.getSignatureKey(secretAccessKey, dateStamp, region, service);
+    const signingKey = await this.getSignatureKey(
+      secretAccessKey,
+      dateStamp,
+      region,
+      service
+    );
 
     // Generate signature
     const signature = await this.hmacSha256(signingKey, stringToSign);
@@ -129,25 +136,25 @@ export class AuthenticatedFetchStore extends FetchStore {
 
     const headers: Record<string, string> = {
       Authorization: authorizationHeader,
-      'X-Amz-Date': amzDate,
-      'X-Amz-Content-Sha256': payloadHash,
+      "X-Amz-Date": amzDate,
+      "X-Amz-Content-Sha256": payloadHash,
     };
 
     if (sessionToken) {
-      headers['X-Amz-Security-Token'] = sessionToken;
+      headers["X-Amz-Security-Token"] = sessionToken;
     }
 
     return headers;
   }
 
   private getAmzDate(): string {
-    return new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+    return new Date().toISOString().replace(/[:-]|\.\d{3}/g, "");
   }
 
   private async sha256(message: string): Promise<string> {
     const encoder = new TextEncoder();
     const data = encoder.encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     return this.bufferToHex(new Uint8Array(hashBuffer));
   }
 
@@ -156,31 +163,34 @@ export class AuthenticatedFetchStore extends FetchStore {
     const msgData = encoder.encode(message);
 
     const cryptoKey = await crypto.subtle.importKey(
-      'raw',
+      "raw",
       key,
-      { name: 'HMAC', hash: 'SHA-256' },
+      { name: "HMAC", hash: "SHA-256" },
       false,
-      ['sign']
+      ["sign"]
     );
 
-    const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+    const signature = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
     return this.bufferToHex(new Uint8Array(signature));
   }
 
-  private async hmacSha256Bytes(key: Uint8Array | string, message: string): Promise<Uint8Array> {
+  private async hmacSha256Bytes(
+    key: Uint8Array | string,
+    message: string
+  ): Promise<Uint8Array> {
     const encoder = new TextEncoder();
-    const keyData = typeof key === 'string' ? encoder.encode(key) : key;
+    const keyData = typeof key === "string" ? encoder.encode(key) : key;
     const msgData = encoder.encode(message);
 
     const cryptoKey = await crypto.subtle.importKey(
-      'raw',
+      "raw",
       keyData,
-      { name: 'HMAC', hash: 'SHA-256' },
+      { name: "HMAC", hash: "SHA-256" },
       false,
-      ['sign']
+      ["sign"]
     );
 
-    const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+    const signature = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
     return new Uint8Array(signature);
   }
 
@@ -190,16 +200,16 @@ export class AuthenticatedFetchStore extends FetchStore {
     region: string,
     service: string
   ): Promise<Uint8Array> {
-    const kDate = await this.hmacSha256Bytes('AWS4' + key, dateStamp);
+    const kDate = await this.hmacSha256Bytes("AWS4" + key, dateStamp);
     const kRegion = await this.hmacSha256Bytes(kDate, region);
     const kService = await this.hmacSha256Bytes(kRegion, service);
-    const kSigning = await this.hmacSha256Bytes(kService, 'aws4_request');
+    const kSigning = await this.hmacSha256Bytes(kService, "aws4_request");
     return kSigning;
   }
 
   private bufferToHex(buffer: Uint8Array): string {
     return Array.from(buffer)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
   }
 }

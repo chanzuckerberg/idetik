@@ -90,9 +90,10 @@ export async function openArrayFromParams(
   switch (params.type) {
     case "fetch": {
       // Use AuthenticatedFetchStore if credentials are provided
-      const store = params.fetchOptions?.credentials && params.fetchOptions?.awsConfig
-        ? new AuthenticatedFetchStore(params.url, params.fetchOptions)
-        : new FetchStore(params.url, params.fetchOptions);
+      const store =
+        params.fetchOptions?.credentials && params.fetchOptions?.awsConfig
+          ? new AuthenticatedFetchStore(params.url, params.fetchOptions)
+          : new FetchStore(params.url, params.fetchOptions);
 
       rootLocation = new Location(store);
       break;

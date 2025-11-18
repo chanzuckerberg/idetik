@@ -42,7 +42,11 @@ export class OmeZarrImageSource {
    * @param version OME-Zarr version
    * @param fetchOptions Optional fetch configuration (e.g., authentication headers for private S3 data)
    */
-  constructor(url: string, version?: OmeZarrVersion, fetchOptions?: FetchOptions);
+  constructor(
+    url: string,
+    version?: OmeZarrVersion,
+    fetchOptions?: FetchOptions
+  );
   /**
    * @param directory return value of `window.showDirectoryPicker()` which gives the browser
    *    permission to access a directory (only works in Chrome/Edge)
@@ -65,15 +69,18 @@ export class OmeZarrImageSource {
   ) {
     // Handle URL constructor: (url, version?, fetchOptions?)
     if (typeof source === "string") {
-      const version = typeof versionOrOptions === "string" ? versionOrOptions : undefined;
-      const fetchOptions = typeof versionOrOptions === "object"
-        ? versionOrOptions
-        : (pathOrFetchOptions as FetchOptions | undefined);
+      const version =
+        typeof versionOrOptions === "string" ? versionOrOptions : undefined;
+      const fetchOptions =
+        typeof versionOrOptions === "object"
+          ? versionOrOptions
+          : (pathOrFetchOptions as FetchOptions | undefined);
 
       // Use AuthenticatedFetchStore if AWS credentials are provided
-      const store = fetchOptions?.credentials && fetchOptions?.awsConfig
-        ? new AuthenticatedFetchStore(source, fetchOptions)
-        : new FetchStore(source, fetchOptions);
+      const store =
+        fetchOptions?.credentials && fetchOptions?.awsConfig
+          ? new AuthenticatedFetchStore(source, fetchOptions)
+          : new FetchStore(source, fetchOptions);
 
       this.location = new Location(store);
       this.version = version;
@@ -81,8 +88,10 @@ export class OmeZarrImageSource {
     }
     // Handle FileSystemDirectoryHandle constructor: (directory, version?, path?)
     else {
-      const version = typeof versionOrOptions === "string" ? versionOrOptions : undefined;
-      const path = typeof pathOrFetchOptions === "string" ? pathOrFetchOptions : undefined;
+      const version =
+        typeof versionOrOptions === "string" ? versionOrOptions : undefined;
+      const path =
+        typeof pathOrFetchOptions === "string" ? pathOrFetchOptions : undefined;
 
       this.location = new Location(new WebFileSystemStore(source), path);
       this.version = version;
@@ -108,7 +117,12 @@ export class OmeZarrImageSource {
       zarrVersion = omeZarrToZarrVersion(adaptedOmeImage.originalVersion);
     }
     const arrayParams = metadata.datasets.map((d) =>
-      createZarrArrayParams(this.location, d.path, zarrVersion, this.fetchOptions)
+      createZarrArrayParams(
+        this.location,
+        d.path,
+        zarrVersion,
+        this.fetchOptions
+      )
     );
     const arrays = await Promise.all(
       arrayParams.map((params) => openArrayFromParams(params))
