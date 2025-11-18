@@ -33,44 +33,77 @@ A layer-based library for interactive visualization of large datasets.
 
 ## Release
 
-Currently, we maintain the [@idetik/core-prerelease](https://www.npmjs.com/package/@idetik/core-prerelease?activeTab=readme) package on npm.
+We maintain the [@idetik/core](https://www.npmjs.com/package/@idetik/core?activeTab=readme) package on npm.
 
+### Automatic Release Process (Recommended)
 
-### Pre-requirements
+We use [semantic-release](https://github.com/semantic-release/semantic-release) to automatically handle versioning, changelog generation, npm publishing, and GitHub releases.
 
-First, you must have cloned this repository and must be able to build the core package.
+#### How It Works
 
-Second, you must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM.
+1. **Use Conventional Commits**: When creating PRs, ensure your PR title follows the [Conventional Commits](https://www.conventionalcommits.org/) format:
+   - `feat: add new feature` → triggers a **minor** version bump (e.g., 7.0.0 → 7.1.0)
+   - `fix: resolve bug` → triggers a **patch** version bump (e.g., 7.0.0 → 7.0.1)
+   - `feat!: breaking change` or `BREAKING CHANGE:` in commit footer → triggers a **major** version bump (e.g., 7.0.0 → 8.0.0)
+   - `refactor:`, `perf:`, `chore:` → triggers a **patch** version bump
+   - `docs:`, `style:`, `test:`, `ci:`, `build:` → no release
 
-### Process
+2. **PR Title Validation**: Our CI automatically validates PR titles to ensure they follow the conventional commit format.
 
-Our release process is currently manual and we currently bump the major version every time to easily avoid unintentional downstream breakage.
+3. **Merge to Main**: When your PR is merged to `main`, the release workflow automatically:
+   - Analyzes commits since the last release
+   - Determines the version bump
+   - Updates the version in `packages/core/package.json`
+   - Generates/updates `CHANGELOG.md`
+   - Publishes to npm as `@idetik/core`
+   - Creates a GitHub release with release notes
+   - Tags the release (e.g., `v7.1.0`)
 
-To update and release the core package, run the following commands:
+4. **No Manual Intervention Required**: The entire process is automatic once merged to `main`.
 
-```shell
-git switch -c your-name/prerelease-X-Y-Z
-cd packages/core
-npm version major
-npm install
-npm run build
-```
+#### Pre-requirements
 
-where `X`, `Y`, and `Z` are the respective major, minor, and patch numbers of the release number.
+- Repository secrets must be configured (already done for this repo):
+  - `RELEASE_TOKEN`: GitHub Personal Access Token with repo access
+  - `NPM_TOKEN`: npm token with publish access to `@idetik` scope
+- You must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM (for manual releases only)
 
-After package version has been bumped, create a PR, get it approved, and merge it to `main`.
+### Manual Release Process (Fallback)
 
-Next, checkout the corresponding commit on main and run the following commands to publish to npm (from `core` directory):
-```
-npm login
-npm run pub
-```
+If you need to manually release (e.g., if the automated process fails), follow these steps:
 
-Finally add a tag of the form `prerelease-X.Y.Z` to the relevant commit on `main`:
+1. **Bump the version**:
+   ```shell
+   git switch -c your-name/prerelease-X-Y-Z
+   cd packages/core
+   npm version [major|minor|patch]  # Choose appropriate bump
+   npm install  # Updates package-lock.json
+   npm run build
+   ```
 
-```shell
-git tag prerelease-X.Y.Z
-git push origin --tags
-```
+2. **Create and merge PR**:
+   - Create a PR with your changes
+   - Get it approved and merge to `main`
+
+3. **Publish to npm**:
+   ```shell
+   git checkout main
+   git pull
+   cd packages/core
+   npm login
+   npm run pub
+   ```
+
+4. **Tag the release**:
+   ```shell
+   git tag vX.Y.Z  # Use the version number from package.json
+   git push origin --tags
+   ```
+
+5. **Create GitHub release**:
+   - Go to the [Releases page](https://github.com/chanzuckerberg/idetik/releases)
+   - Click "Create a new release"
+   - Select the tag you just created
+   - Add release notes describing the changes
 
 
