@@ -161,12 +161,11 @@ export class Idetik {
       this.updateSize();
     }
 
-    // Update chunk manager before rendering to process all views
-    this.chunkManager_.update();
-
     for (const viewport of this.viewports_) {
       this.renderer_.render(viewport);
     }
+
+    this.chunkManager_.update();
 
     for (const overlay of this.overlays) {
       overlay.update(this, timestamp);
