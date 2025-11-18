@@ -139,6 +139,8 @@ export class VolumeLayer extends Layer {
       this.lastLoadedTime_ === this.sliceCoords_.t
     )
       return chunks;
+    this.clearObjects();
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     Logger.debug("VolumeLayer", `Loading chunks for LOD ${this.lod_}`);
     for (const chunk of chunks) {
       this.chunkManagerSource_.loadChunkData(
