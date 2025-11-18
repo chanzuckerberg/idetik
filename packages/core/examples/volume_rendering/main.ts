@@ -17,8 +17,6 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy: createExplorationPolicy(),
-  transparent: true,
-  blendMode: "premultiplied",
 });
 // volumeLayer.debugMode = true;
 

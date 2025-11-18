@@ -39,6 +39,8 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy: createExplorationPolicy(),
+  transparent: true,
+  blendMode: "premultiplied",
 });
 
 // TODO: the reason this example works is that the volume viewport uses a perspective camera
