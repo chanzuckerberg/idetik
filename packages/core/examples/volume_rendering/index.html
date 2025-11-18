@@ -12,6 +12,8 @@
         display: flex;
         width: 100%;
         height: 100%;
+        font-family: monospace;
+        font-size: 12px;
       }
       #main {
         display: flex;
@@ -23,12 +25,23 @@
         width: 100%;
         height: 100%;
       }
+
+      #time-point {
+        position: absolute;
+        bottom: 0.5em;
+        left: 0.3em;
+        margin: 1em;
+        padding: 1em;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
     </style>
   </head>
   <body>
     <div id="main">
       <canvas id="canvas"></canvas>
     </div>
+    <div id="time-point"></div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

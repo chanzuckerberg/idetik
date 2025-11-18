@@ -2,7 +2,10 @@ import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { Layer, LayerOptions } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
-import { ChunkManagerSource } from "../core/chunk_manager_source";
+import {
+  ChunkManagerSource,
+  INTERNAL_POLICY_KEY,
+} from "../core/chunk_manager_source";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { Logger } from "../utilities/logger";
@@ -20,12 +23,13 @@ export class VolumeLayer extends Layer {
   private readonly sliceCoords_: SliceCoordinates;
   private readonly visibleChunks_: Map<Chunk, VolumeRenderable> = new Map();
 
-  private policy_: ImageSourcePolicy;
+  private sourcePolicy_: ImageSourcePolicy;
   private chunkManagerSource_?: ChunkManagerSource;
   private lod_ = -1;
   private debugMode_ = false;
 
   private lastLoadedLod_ = -1;
+  private lastLoadedTime_ = -1;
 
   public get lod() {
     return this.lod_;
@@ -43,6 +47,22 @@ export class VolumeLayer extends Layer {
 
   public set debugMode(debug: boolean) {
     this.debugMode_ = debug;
+  }
+
+  public get sourcePolicy(): Readonly<ImageSourcePolicy> {
+    return this.sourcePolicy_;
+  }
+
+  public set sourcePolicy(newPolicy: ImageSourcePolicy) {
+    if (this.sourcePolicy_ !== newPolicy) {
+      this.sourcePolicy_ = newPolicy;
+      if (this.chunkManagerSource_) {
+        this.chunkManagerSource_.setImageSourcePolicy(
+          newPolicy,
+          INTERNAL_POLICY_KEY
+        );
+      }
+    }
   }
 
   private createVolume(chunk: Chunk) {
@@ -75,7 +95,7 @@ export class VolumeLayer extends Layer {
     super(layerOptions);
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
-    this.policy_ = policy;
+    this.sourcePolicy_ = policy;
 
     this.setState("initialized");
   }
@@ -97,7 +117,7 @@ export class VolumeLayer extends Layer {
     this.chunkManagerSource_ = await context.chunkManager.addSource(
       this.source_,
       this.sliceCoords_,
-      this.policy_
+      this.sourcePolicy_
     );
   }
 
@@ -114,7 +134,11 @@ export class VolumeLayer extends Layer {
       this.lod_ = this.chunkManagerSource_.lodCount - 1;
     }
     const chunks = this.chunkManagerSource_.getAllChunksAtLod(this.lod_);
-    if (this.lastLoadedLod_ === this.lod_) return chunks;
+    if (
+      this.lastLoadedLod_ === this.lod_ &&
+      this.lastLoadedTime_ === this.sliceCoords_.t
+    )
+      return chunks;
     Logger.debug("VolumeLayer", `Loading chunks for LOD ${this.lod_}`);
     for (const chunk of chunks) {
       this.chunkManagerSource_.loadChunkData(
@@ -123,6 +147,7 @@ export class VolumeLayer extends Layer {
       );
     }
     this.lastLoadedLod_ = this.lod_;
+    this.lastLoadedTime_ = this.sliceCoords_.t ?? -1;
     return chunks;
   }
 
