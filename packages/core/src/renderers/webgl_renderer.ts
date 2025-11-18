@@ -122,6 +122,7 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
+    this.state_.setCullFaceMode(object.cullFaceMode);
     this.bindings_.bindGeometry(object.geometry);
     object.popStaleTextures().forEach((texture) => {
       this.textures_.disposeTexture(texture);

@@ -7,6 +7,8 @@ export type BlendingMode =
   | "multiply"
   | "subtractive";
 
+export type CullingMode = "none" | "front" | "back" | "both";
+
 export class WebGLState {
   private readonly gl_: WebGL2RenderingContext;
 
@@ -17,6 +19,7 @@ export class WebGLState {
   private currentBlendingMode_: BlendingMode | null = null;
   private currentViewport_: Box2 | null = null;
   private currentScissor_: Box2 | null = null;
+  private currentCullingMode_: CullingMode | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -125,5 +128,36 @@ export class WebGLState {
     const { x, y, width, height } = clampedBox.toRect();
     this.gl_.scissor(x, y, width, height);
     this.currentScissor_ = clampedBox;
+  }
+
+  public setCullFace(enabled: boolean) {
+    if (enabled) {
+      this.enable(this.gl_.CULL_FACE);
+    } else {
+      this.disable(this.gl_.CULL_FACE);
+    }
+  }
+
+  public setCullFaceMode(mode: CullingMode) {
+    if (this.currentCullingMode_ === mode) return;
+
+    if (mode === "none") {
+      this.setCullFace(false);
+    } else {
+      this.setCullFace(true);
+      switch (mode) {
+        case "front":
+          this.gl_.cullFace(this.gl_.FRONT);
+          break;
+        case "back":
+          this.gl_.cullFace(this.gl_.BACK);
+          break;
+        case "both":
+          this.gl_.cullFace(this.gl_.FRONT_AND_BACK);
+          break;
+      }
+    }
+
+    this.currentCullingMode_ = mode;
   }
 }
