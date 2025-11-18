@@ -6,8 +6,6 @@ import { ChunkManagerSource } from "../core/chunk_manager_source";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { Logger } from "../utilities/logger";
-import { Camera } from "@/objects/cameras/camera";
-import { vec3 } from "gl-matrix";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -74,9 +72,11 @@ export class VolumeLayer extends Layer {
     source,
     sliceCoords,
     policy,
+    transparent = true,
+    blendMode = "premultiplied",
     ...layerOptions
   }: VolumeLayerProps) {
-    super(layerOptions);
+    super({ transparent, blendMode, ...layerOptions });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.policy_ = policy;
@@ -157,24 +157,5 @@ export class VolumeLayer extends Layer {
 
   public update() {
     this.updateChunks();
-  }
-
-  public reorderObjects(camera: Camera, mode: OrderingMode) {
-    const cameraPos = camera.position;
-    const tmpA = vec3.create();
-    const tmpB = vec3.create();
-
-    this.objects.sort((a, b) => {
-      vec3.add(tmpA, a.boundingBox.max, a.boundingBox.min);
-      vec3.scale(tmpA, tmpA, 0.5);
-
-      vec3.add(tmpB, b.boundingBox.max, b.boundingBox.min);
-      vec3.scale(tmpB, tmpB, 0.5);
-
-      const da = vec3.squaredDistance(cameraPos, tmpA);
-      const db = vec3.squaredDistance(cameraPos, tmpB);
-
-      return mode === "front-to-back" ? da - db : db - da;
-    });
   }
 }

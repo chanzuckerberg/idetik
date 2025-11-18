@@ -3,9 +3,17 @@ import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
+import type { Camera } from "@/objects/cameras/camera";
+import type { OrderingMode } from "@/layers/volume_layer";
+import { vec3 } from "gl-matrix";
 
 export type LayerState = "initialized" | "loading" | "ready";
-export type blendMode = "normal" | "additive" | "subtractive" | "multiply" | "premultiplied";
+export type blendMode =
+  | "normal"
+  | "additive"
+  | "subtractive"
+  | "multiply"
+  | "premultiplied";
 
 type StateChangeCallback = (
   newState: LayerState,
@@ -110,5 +118,24 @@ export abstract class Layer {
 
   protected clearObjects() {
     this.objects_ = [];
+  }
+
+  public reorderObjects(camera: Camera, mode: OrderingMode) {
+    const cameraPos = camera.position;
+    const tmpA = vec3.create();
+    const tmpB = vec3.create();
+
+    this.objects.sort((a, b) => {
+      vec3.add(tmpA, a.boundingBox.max, a.boundingBox.min);
+      vec3.scale(tmpA, tmpA, 0.5);
+
+      vec3.add(tmpB, b.boundingBox.max, b.boundingBox.min);
+      vec3.scale(tmpB, tmpB, 0.5);
+
+      const da = vec3.squaredDistance(cameraPos, tmpA);
+      const db = vec3.squaredDistance(cameraPos, tmpB);
+
+      return mode === "front-to-back" ? db - da : da - db;
+    });
   }
 }
