@@ -56,6 +56,7 @@ idetik.start();
 const controls = {
   showWireframes: volumeLayer.debugMode,
   showTimePointOverlay: true,
+  lod: 2,
 };
 
 const gui = new GUI({ width: 500 });
@@ -90,4 +91,14 @@ overlaysFolder
   .onChange((show: boolean) => {
     volumeLayer.debugMode = show;
     controls.showWireframes = show;
+  });
+
+const volumeFolder = gui.addFolder("Volume Rendering");
+
+volumeFolder
+  .add(controls, "lod", 0, 2, 1)
+  .name("Level of Detail (LOD)")
+  .onChange((lod: number) => {
+    volumeLayer.lod = lod;
+    controls.lod = lod;
   });
