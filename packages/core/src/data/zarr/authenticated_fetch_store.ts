@@ -14,7 +14,7 @@ export type AuthenticatedFetchOptions = FetchOptions & {
 
 /**
  * Checks if the current environment is safe for using AuthenticatedFetchStore.
- * Only allows localhost, 127.0.0.1, 0.0.0.0, or *.localhost domains.
+ * Only allows localhost, 127.0.0.1, 0.0.0.0, or any 127.x.x.x address.
  * @throws Error if not in a safe local environment
  */
 function checkLocalOnlyEnvironment(): void {
@@ -30,16 +30,14 @@ function checkLocalOnlyEnvironment(): void {
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
     hostname === "0.0.0.0" ||
-    hostname === "[::1]" || // IPv6 localhost
-    hostname.startsWith("127.") || // Any 127.x.x.x
-    hostname.endsWith(".localhost"); // *.localhost domains
+    hostname.startsWith("127."); // Any 127.x.x.x
 
   if (!isLocalhost) {
     throw new Error(
       `AuthenticatedFetchStore is only allowed in local development environments. ` +
-        `Current hostname: ${hostname}. ` +
-        `This is a security measure to prevent accidental credential exposure. ` +
-        `For production use, implement a secure backend proxy for authentication.`
+      `Current hostname: ${hostname}. ` +
+      `This is a security measure to prevent accidental credential exposure. ` +
+      `For production use, implement a secure backend proxy for authentication.`
     );
   }
 }
