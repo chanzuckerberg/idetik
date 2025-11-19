@@ -5,6 +5,7 @@ import FetchStore from "@zarrita/storage/fetch";
 import WebFileSystemStore from "./web_file_system_store";
 import {
   AuthenticatedFetchStore,
+  createFetchStore,
   type AwsCredentials,
 } from "./authenticated_fetch_store";
 
@@ -88,12 +89,7 @@ export async function openArrayFromParams(
 
   switch (params.type) {
     case "fetch": {
-      // Use AuthenticatedFetchStore if credentials and region are provided
-      const store =
-        params.fetchOptions?.credentials && params.fetchOptions?.region
-          ? new AuthenticatedFetchStore(params.url, params.fetchOptions)
-          : new FetchStore(params.url, params.fetchOptions);
-
+      const store = createFetchStore(params.url, params.fetchOptions);
       rootLocation = new Location(store);
       break;
     }

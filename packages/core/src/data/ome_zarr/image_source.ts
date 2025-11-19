@@ -1,6 +1,5 @@
 import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
-import FetchStore from "@zarrita/storage/fetch";
 import {
   openArrayFromParams,
   openGroup,
@@ -14,7 +13,7 @@ import {
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
 import {
-  AuthenticatedFetchStore,
+  createFetchStore,
   type AwsCredentials,
 } from "../zarr/authenticated_fetch_store";
 
@@ -75,11 +74,7 @@ export class OmeZarrImageSource {
           ? versionOrOptions
           : (pathOrFetchOptions as FetchOptions | undefined);
 
-      // Use AuthenticatedFetchStore if AWS credentials and region are provided
-      const store =
-        fetchOptions?.credentials && fetchOptions?.region
-          ? new AuthenticatedFetchStore(source, fetchOptions)
-          : new FetchStore(source, fetchOptions);
+      const store = createFetchStore(source, fetchOptions);
 
       this.location = new Location(store);
       this.version = version;

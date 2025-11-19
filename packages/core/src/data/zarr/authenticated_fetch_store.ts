@@ -1,7 +1,3 @@
-/**
- * Authenticated FetchStore that generates AWS Signature V4 headers for each request
- */
-
 import FetchStore from "@zarrita/storage/fetch";
 import type { FetchOptions } from "../ome_zarr/image_source";
 
@@ -33,12 +29,10 @@ export class AuthenticatedFetchStore extends FetchStore {
     this.region_ = region;
   }
 
-  /** Get the stored AWS credentials */
   public get credentials(): AwsCredentials | undefined {
     return this.credentials_;
   }
 
-  /** Get the stored AWS region */
   public get region(): string | undefined {
     return this.region_;
   }
@@ -208,4 +202,17 @@ export class AuthenticatedFetchStore extends FetchStore {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
   }
+}
+
+/**
+ * Creates an appropriate FetchStore based on whether authentication credentials are provided.
+ * Returns AuthenticatedFetchStore if credentials and region are present, otherwise returns FetchStore.
+ */
+export function createFetchStore(
+  url: string,
+  options?: AuthenticatedFetchOptions
+): FetchStore | AuthenticatedFetchStore {
+  return options?.credentials && options?.region
+    ? new AuthenticatedFetchStore(url, options)
+    : new FetchStore(url, options);
 }
