@@ -1,14 +1,10 @@
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerOptions, RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
-import {
-  ChunkManagerSource,
-  INTERNAL_POLICY_KEY,
-} from "../core/chunk_manager_source";
+import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
-import { Logger } from "../utilities/logger";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -26,7 +22,7 @@ export class VolumeLayer extends Layer {
   private readonly visibleChunks_: Map<Chunk, VolumeRenderable> = new Map();
 
   private sourcePolicy_: ImageSourcePolicy;
-  private chunkManagerSource_?: ChunkManagerSource;
+  private chunkStoreView_?: ChunkStoreView;
   private lod_ = -1;
   private debugMode_ = false;
 
@@ -58,8 +54,8 @@ export class VolumeLayer extends Layer {
   public set sourcePolicy(newPolicy: ImageSourcePolicy) {
     if (this.sourcePolicy_ !== newPolicy) {
       this.sourcePolicy_ = newPolicy;
-      if (this.chunkManagerSource_) {
-        this.chunkManagerSource_.setImageSourcePolicy(
+      if (this.chunkStoreView_) {
+        this.chunkStoreView_.setImageSourcePolicy(
           newPolicy,
           INTERNAL_POLICY_KEY
         );
@@ -111,64 +107,81 @@ export class VolumeLayer extends Layer {
   }
 
   public async onAttached(context: IdetikContext) {
-    if (this.chunkManagerSource_) {
+    if (this.chunkStoreView_) {
       throw new Error(
-        "ChunkedImageLayer is already attached. " +
-          "A layer cannot be attached to multiple LayerManagers simultaneously."
+        "VolumeLayer is already attached. " +
+          "A layer cannot be attached to multiple contexts simultaneously."
       );
     }
-    this.chunkManagerSource_ = await context.chunkManager.addSource(
+    this.chunkStoreView_ = await context.chunkManager.addView(
       this.source_,
-      this.sliceCoords_,
       this.sourcePolicy_
     );
   }
 
-  public onDetached(): void {
-    this.chunkManagerSource_ = undefined;
+  public onDetached(context: IdetikContext): void {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
+    if (!this.chunkStoreView_) return;
+    context.chunkManager.removeView(this.chunkStoreView_);
+    this.chunkStoreView_ = undefined;
   }
 
-  // Should ideally use chunk manager for this
-  private loadChunks() {
-    if (!this.chunkManagerSource_) return;
+  private getChunksToRender(): Chunk[] {
+    if (!this.chunkStoreView_) return [];
+
+    // Initialize LOD to coarsest if not set
     if (this.lod_ === -1) {
-      this.lod_ = this.chunkManagerSource_.lodCount - 1;
+      this.lod_ = this.chunkStoreView_.store.getLowestResLOD();
     }
-    const chunks = this.chunkManagerSource_.getAllChunksAtLod(this.lod_);
-    if (
-      this.lastLoadedLod_ === this.lod_ &&
-      this.lastLoadedTime_ === this.sliceCoords_.t
-    )
-      return chunks;
-    this.clearObjects();
-    // TODO clean this up
-    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
-    Logger.debug("VolumeLayer", `Loading chunks for LOD ${this.lod_}`);
-    for (const chunk of chunks) {
-      this.chunkManagerSource_.loadChunkData(
-        chunk,
-        new AbortController().signal
-      );
-    }
-    this.lastLoadedLod_ = this.lod_;
-    this.lastLoadedTime_ = this.sliceCoords_.t ?? -1;
-    return chunks;
+
+    // Get all chunks at the current timepoint
+    const timeIndex = this.chunkStoreView_.store.getTimeIndex(this.sliceCoords_);
+    const allChunks = this.chunkStoreView_.store.getChunksAtTime(timeIndex);
+
+    // Filter for desired LOD, loaded state, and matching channel
+    return allChunks.filter((chunk) => {
+      const isDesiredLOD = chunk.lod === this.lod_;
+      const isLoaded = chunk.state === "loaded";
+      const isChannelMatch =
+        this.sliceCoords_.c === undefined ||
+        chunk.chunkIndex.c === this.sliceCoords_.c;
+      return isDesiredLOD && isLoaded && isChannelMatch;
+    });
   }
 
   private updateChunks() {
-    const chunks = this.loadChunks();
-    if (!chunks) return;
-    for (const chunk of chunks) {
-      // TODO should be able to use loaded state later
-      if (!chunk.data) continue;
-      if (this.visibleChunks_.has(chunk)) continue;
+    if (!this.chunkStoreView_) return;
+
+    const chunksToRender = this.getChunksToRender();
+
+    // Check if we need to update
+    const currentTime = this.sliceCoords_.t ?? -1;
+    const needsUpdate =
+      this.lastLoadedLod_ !== this.lod_ ||
+      this.lastLoadedTime_ !== currentTime ||
+      chunksToRender.length !== this.visibleChunks_.size;
+
+    if (!needsUpdate) return;
+
+    // Clear and rebuild visible chunks
+    const currentChunkSet = new Set(chunksToRender);
+    const chunksToRemove = Array.from(this.visibleChunks_.keys()).filter(
+      (chunk) => !currentChunkSet.has(chunk)
+    );
+    this.releaseAndRemoveChunks(chunksToRemove);
+
+    this.clearObjects();
+    for (const chunk of chunksToRender) {
       const volume = this.getVolumeRenderableForChunk(chunk);
       volume.wireframeEnabled = this.debugMode;
       this.visibleChunks_.set(chunk, volume);
       this.addObject(volume);
     }
+
+    this.lastLoadedLod_ = this.lod_;
+    this.lastLoadedTime_ = currentTime;
+
     if (this.state !== "ready") this.setState("ready");
   }
 
@@ -181,7 +194,20 @@ export class VolumeLayer extends Layer {
     }
   }
 
-  public update() {
+  public update(_context?: RenderContext) {
+    if (!this.chunkStoreView_) return;
+
+    // Initialize LOD to coarsest if not set
+    if (this.lod_ === -1) {
+      this.lod_ = this.chunkStoreView_.store.getLowestResLOD();
+    }
+
+    // Mark chunks for the desired LOD as visible
+    this.chunkStoreView_.updateChunkStatesForVolume(
+      this.sliceCoords_,
+      this.lod_
+    );
+
     this.updateChunks();
   }
 }

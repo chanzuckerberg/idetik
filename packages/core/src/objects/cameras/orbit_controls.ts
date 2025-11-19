@@ -18,6 +18,7 @@ type OrbitParams = {
   radius?: number;
   yaw?: number;
   pitch?: number;
+  target?: vec3;
 };
 
 export class OrbitControls implements CameraControls {
@@ -34,6 +35,9 @@ export class OrbitControls implements CameraControls {
       params?.yaw ?? 0,
       params?.pitch ?? 0
     );
+    if (params?.target) {
+      vec3.copy(this.target_, params.target);
+    }
     this.update();
   }
 

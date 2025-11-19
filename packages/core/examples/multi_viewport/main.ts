@@ -9,7 +9,10 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { addDimensionSlider } from "../lil_gui_utils";
-import { createExplorationPolicy } from "@/core/image_source_policy";
+import {
+  // createExplorationPolicy,
+  createPlaybackPolicy,
+} from "@/core/image_source_policy";
 
 import GUI from "lil-gui";
 
@@ -26,34 +29,46 @@ const zMin = z.translate;
 const zMax = z.translate + z.scale * z.shape - z.scale;
 const zRange = { min: zMin, max: zMax };
 
+// Calculate volume center
+const volumeCenter = [
+  (left + right) / 2,  // x center
+  (top + bottom) / 2,  // y center
+  (zMin + zMax) / 2,   // z center
+] as [number, number, number];
+
 // shared source between viewports
 const source = new OmeZarrImageSource(url);
 
-const camera3D = new PerspectiveCamera();
-const volumeLayer = new VolumeLayer();
+// Shared timepoint across all viewports
+const sharedTimepoint = 400;
 
-const sliceCoords1 = { t: 400, z: 200, c: 0 };
-const camera2D1 = new OrthographicCamera(left, right, top, bottom);
-const imageLayer1 = new ChunkedImageLayer({
-  source,
-  sliceCoords: sliceCoords1,
-  policy: createExplorationPolicy(),
-  channelProps: [{ contrastLimits: [0, 200] }],
-});
+// Volume layer - no z coordinate to render entire volume
+const sliceCoordsVolume = { t: sharedTimepoint, c: 0 };
+const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer({
   source,
-  sliceCoords,
-  policy: createExplorationPolicy(),
+  sliceCoords: sliceCoordsVolume,
+  policy: createPlaybackPolicy(),
   transparent: true,
   blendMode: "premultiplied",
 });
 
-const sliceCoords2 = { t: 400, z: 300, c: 0 };
+const sliceCoords1 = { t: sharedTimepoint, z: 200, c: 0 };
+const camera2D1 = new OrthographicCamera(left, right, top, bottom);
+const imageLayer1 = new ChunkedImageLayer({
+  source,
+  sliceCoords: sliceCoords1,
+  policy: createPlaybackPolicy(),
+  channelProps: [{ contrastLimits: [0, 200] }],
+});
+imageLayer1.debugMode = true;
+
+const sliceCoords2 = { t: sharedTimepoint, z: 300, c: 0 };
 const camera2D2 = new OrthographicCamera(left, right, top, bottom);
 const imageLayer2 = new ChunkedImageLayer({
   source,
   sliceCoords: sliceCoords2,
-  policy: createExplorationPolicy(),
+  policy: createPlaybackPolicy(),
   channelProps: [{ contrastLimits: [0, 200] }],
 });
 
@@ -64,7 +79,10 @@ new Idetik({
       id: "volume",
       element: document.querySelector<HTMLDivElement>("#viewport-left")!,
       camera: camera3D,
-      cameraControls: new OrbitControls(camera3D, { radius: 3 }),
+      cameraControls: new OrbitControls(camera3D, {
+        radius: 1500,
+        target: volumeCenter
+      }),
       layers: [volumeLayer],
     },
     {
@@ -88,6 +106,47 @@ new Idetik({
 }).start();
 
 const gui = new GUI({ width: 300 });
+
+// Create a shared time object that all sliceCoords will reference
+const sharedTime = { t: sharedTimepoint };
+sliceCoordsVolume.t = sharedTime.t;
+sliceCoords1.t = sharedTime.t;
+sliceCoords2.t = sharedTime.t;
+
+// Shared time slider for all viewports with playback controls
+addDimensionSlider({
+  gui: gui,
+  sliceCoords: sharedTime,
+  dimensionName: "t",
+  minValue: 0,
+  maxValue: 800,
+  stepValue: 1,
+  playback: {
+    maxRateHz: 30,
+    stride: 1,
+    onRateChange: () => {
+      // Sync the time value to all viewports
+      sliceCoordsVolume.t = sharedTime.t;
+      sliceCoords1.t = sharedTime.t;
+      sliceCoords2.t = sharedTime.t;
+    },
+  },
+});
+
+// Keep all viewports synchronized by updating on every frame
+const syncTime = () => {
+  if (sliceCoordsVolume.t !== sharedTime.t) {
+    sliceCoordsVolume.t = sharedTime.t;
+  }
+  if (sliceCoords1.t !== sharedTime.t) {
+    sliceCoords1.t = sharedTime.t;
+  }
+  if (sliceCoords2.t !== sharedTime.t) {
+    sliceCoords2.t = sharedTime.t;
+  }
+  requestAnimationFrame(syncTime);
+};
+syncTime();
 
 const topRightViewportFolder = gui.addFolder("Top Right Viewport (Slice 1)");
 addDimensionSlider({
