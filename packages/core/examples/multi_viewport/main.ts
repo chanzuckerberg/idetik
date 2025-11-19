@@ -5,6 +5,7 @@ import {
   OrthographicCamera,
   PerspectiveCamera,
   VolumeLayer,
+  SliceCoordinates,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
@@ -27,7 +28,7 @@ const zMax = z.translate + z.scale * z.shape - z.scale;
 const zRange = { min: zMin, max: zMax };
 
 const source = new OmeZarrImageSource(url);
-const sliceCoords = { t: 400, z: 200, c: 0 };
+const sliceCoords = new SliceCoordinates({ t: 400, z: 200, c: 0 });
 const camera2D = new OrthographicCamera(left, right, top, bottom);
 const imageLayer = new ChunkedImageLayer({
   source,

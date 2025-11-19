@@ -7,6 +7,7 @@ import {
   Color,
   createExplorationPolicy,
   createPlaybackPolicy,
+  SliceCoordinates,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { addDimensionSlider } from "../lil_gui_utils";
@@ -30,11 +31,11 @@ const tMin = t.translate;
 const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
 
-const sliceCoords = {
+const sliceCoords = new SliceCoordinates({
   t: tMin,
   z: 0,
   c: 1,
-};
+});
 
 const channelColor = Color.GREEN;
 const channelProps: ChannelProps[] = [

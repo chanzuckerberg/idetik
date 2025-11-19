@@ -5,6 +5,7 @@ import {
   Region,
   Color,
   ChunkedImageLayer,
+  SliceCoordinates,
 } from "@";
 import { LabelImageLayer } from "@/layers/label_image_layer";
 import { PointPickingResult } from "@/layers/point_picking";
@@ -50,11 +51,11 @@ const xStopPoint = xExtent.size * xExtent.scale;
 const yExtent = dimensionExtent("Y");
 const yStopPoint = yExtent.size * yExtent.scale;
 
-const sliceCoords = {
+const sliceCoords = new SliceCoordinates({
   t: tStartPoint,
   c: phaseChannelIndex,
   z: zMidPoint,
-};
+});
 
 // Labels provide C and Z dimensions, but they are unitary.
 const labelsRegion: Region = [
