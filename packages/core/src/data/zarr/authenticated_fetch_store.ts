@@ -33,9 +33,9 @@ function checkLocalOnlyEnvironment(): void {
     hostname.startsWith("127."); // Any 127.x.x.x
 
   if (!isLocalhost) {
-    throw new Error(
-      `AuthenticatedFetchStore is only allowed in local development environments. Current hostname: ${hostname}. This is a security measure to prevent accidental credential exposure. For production use, implement a secure backend proxy for authentication.`
-    );
+    const message =
+      "AuthenticatedFetchStore is only allowed in local development environments. ";
+    throw new Error(message);
   }
 }
 
