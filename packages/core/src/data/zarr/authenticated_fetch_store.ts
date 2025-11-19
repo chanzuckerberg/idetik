@@ -34,10 +34,7 @@ function checkLocalOnlyEnvironment(): void {
 
   if (!isLocalhost) {
     throw new Error(
-      `AuthenticatedFetchStore is only allowed in local development environments. ` +
-      `Current hostname: ${hostname}. ` +
-      `This is a security measure to prevent accidental credential exposure. ` +
-      `For production use, implement a secure backend proxy for authentication.`
+      `AuthenticatedFetchStore is only allowed in local development environments. Current hostname: ${hostname}. This is a security measure to prevent accidental credential exposure. For production use, implement a secure backend proxy for authentication.`
     );
   }
 }
