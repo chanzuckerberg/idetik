@@ -149,8 +149,12 @@ export class ChunkManager {
       chunk.state = "unloaded";
     }
 
-    if (chunk.priority === null && chunk.state === "loaded") {
+    if (this.shouldDispose(chunk)) {
       store.disposeChunk(chunk);
     }
+  }
+
+  private shouldDispose(chunk: Chunk): boolean {
+    return chunk.state === "loaded" && !chunk.prefetch && !chunk.visible;
   }
 }

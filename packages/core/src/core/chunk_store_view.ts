@@ -17,8 +17,6 @@ access key, preventing accidental external mutation.
 */
 export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
 
-const PRI_FALLBACK_BACKGROUND = 4;
-
 export class ChunkStoreView {
   private readonly store_: ChunkStore;
   private policy_: ImageSourcePolicy;
@@ -257,35 +255,29 @@ export class ChunkStoreView {
     const currentTimeChunks = this.store_.getChunksAtTime(timeIndex);
 
     for (const chunk of currentTimeChunks) {
-      const isVisible = this.isChunkWithinBounds(chunk, viewBounds3D);
+      const isInBounds = this.isChunkWithinBounds(chunk, viewBounds3D);
       const isChannelInSlice = this.isChunkChannelInSlice(chunk, sliceCoords);
-      const eligibleForPrefetch =
-        !isVisible &&
-        isChannelInSlice &&
-        this.isChunkWithinBounds(chunk, paddedBounds);
 
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === this.store_.getLowestResLOD();
-      const visible = isVisible && isChannelInSlice;
+
       const prefetch =
-        eligibleForPrefetch && isCurrentLOD && chunk.state !== "loaded";
+        !isInBounds &&
+        isChannelInSlice &&
+        isCurrentLOD &&
+        this.isChunkWithinBounds(chunk, paddedBounds);
+
+      const visible = isInBounds && isChannelInSlice;
       const priority = this.computePriority(
         isFallbackLOD,
         isCurrentLOD,
-        isVisible,
+        isInBounds,
         prefetch,
         isChannelInSlice
       );
 
-      if (
-        visible ||
-        prefetch ||
-        (priority !== null && priority !== PRI_FALLBACK_BACKGROUND)
-      ) {
-        const orderKey =
-          priority !== null
-            ? this.squareDistance2D(chunk, viewBounds2DCenter)
-            : null;
+      if (priority !== null) {
+        const orderKey = this.squareDistance2D(chunk, viewBounds2DCenter);
 
         this.chunkViewStates_.set(chunk, {
           visible,
