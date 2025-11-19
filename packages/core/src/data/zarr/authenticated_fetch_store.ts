@@ -13,14 +13,59 @@ export type AuthenticatedFetchOptions = FetchOptions & {
 };
 
 /**
+ * Checks if the current environment is safe for using AuthenticatedFetchStore.
+ * Only allows localhost, 127.0.0.1, 0.0.0.0, or file:// protocol.
+ * @throws Error if not in a safe local environment
+ */
+function checkLocalOnlyEnvironment(): void {
+  // Only check in browser environments
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol;
+
+  // Allow file:// protocol for local file access
+  if (protocol === "file:") {
+    return;
+  }
+
+  // Allow localhost variants
+  const isLocalhost =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "0.0.0.0" ||
+    hostname === "[::1]" || // IPv6 localhost
+    hostname.startsWith("127.") || // Any 127.x.x.x
+    hostname.endsWith(".localhost"); // *.localhost domains
+
+  if (!isLocalhost) {
+    throw new Error(
+      `AuthenticatedFetchStore is only allowed in local development environments. ` +
+      `Current hostname: ${hostname}. ` +
+      `This is a security measure to prevent accidental credential exposure. ` +
+      `For production use, implement a secure backend proxy for authentication.`
+    );
+  }
+}
+
+/**
  * A FetchStore that generates AWS Signature V4 headers for each request.
  * This is necessary because AWS signatures are path-specific and expire quickly.
+ *
+ * ⚠️ SECURITY WARNING: This class is only intended for local development.
+ * Credentials are passed to worker threads and stored in memory.
+ * Do not use in production - implement a secure backend proxy instead.
  */
 export class AuthenticatedFetchStore extends FetchStore {
   private credentials_?: AwsCredentials;
   private region_?: string;
 
   constructor(url: string, options?: AuthenticatedFetchOptions) {
+    // Safety check: only allow in local development environments
+    checkLocalOnlyEnvironment();
+
     // Don't pass static headers to parent - we'll generate them per-request
     const { credentials, region, ...fetchOptions } = options || {};
     super(url, fetchOptions);
