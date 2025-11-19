@@ -11,14 +11,9 @@ export type AwsCredentials = {
   sessionToken?: string;
 };
 
-export type AwsConfig = {
-  region: string;
-  service: string;
-};
-
 export type AuthenticatedFetchOptions = FetchOptions & {
   credentials?: AwsCredentials;
-  awsConfig?: AwsConfig;
+  region?: string;
 };
 
 /**
@@ -27,15 +22,15 @@ export type AuthenticatedFetchOptions = FetchOptions & {
  */
 export class AuthenticatedFetchStore extends FetchStore {
   private credentials_?: AwsCredentials;
-  private awsConfig_?: AwsConfig;
+  private region_?: string;
 
   constructor(url: string, options?: AuthenticatedFetchOptions) {
     // Don't pass static headers to parent - we'll generate them per-request
-    const { credentials, awsConfig, ...fetchOptions } = options || {};
+    const { credentials, region, ...fetchOptions } = options || {};
     super(url, fetchOptions);
 
     this.credentials_ = credentials;
-    this.awsConfig_ = awsConfig;
+    this.region_ = region;
   }
 
   /** Get the stored AWS credentials */
@@ -43,9 +38,9 @@ export class AuthenticatedFetchStore extends FetchStore {
     return this.credentials_;
   }
 
-  /** Get the stored AWS config */
-  public get awsConfig(): AwsConfig | undefined {
-    return this.awsConfig_;
+  /** Get the stored AWS region */
+  public get region(): string | undefined {
+    return this.region_;
   }
 
   /**
@@ -55,7 +50,7 @@ export class AuthenticatedFetchStore extends FetchStore {
     key: `/${string}`,
     options?: RequestInit
   ): Promise<Uint8Array | undefined> {
-    if (this.credentials_ && this.awsConfig_) {
+    if (this.credentials_ && this.region_) {
       // Generate fresh headers for this specific request
       // Remove trailing slash from url if present to avoid double slashes
       const baseUrl = this.url.toString().replace(/\/$/, "");
@@ -84,12 +79,13 @@ export class AuthenticatedFetchStore extends FetchStore {
   private async generateAuthHeaders(
     url: string
   ): Promise<Record<string, string>> {
-    if (!this.credentials_ || !this.awsConfig_) {
+    if (!this.credentials_ || !this.region_) {
       return {};
     }
 
     const { accessKeyId, secretAccessKey, sessionToken } = this.credentials_;
-    const { region, service } = this.awsConfig_;
+    const region = this.region_;
+    const service = "s3"; // Always S3 for this implementation
 
     const amzDate = this.getAmzDate();
     const dateStamp = amzDate.slice(0, 8);

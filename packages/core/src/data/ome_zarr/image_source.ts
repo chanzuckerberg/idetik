@@ -16,7 +16,6 @@ import {
 import {
   AuthenticatedFetchStore,
   type AwsCredentials,
-  type AwsConfig,
 } from "../zarr/authenticated_fetch_store";
 
 /** Options for customizing fetch requests, such as adding authentication headers for private S3 data */
@@ -27,8 +26,8 @@ export type FetchOptions = {
   useSuffixRequest?: boolean;
   /** AWS credentials for S3 authentication (will generate signatures per-request) */
   credentials?: AwsCredentials;
-  /** AWS configuration (region and service) */
-  awsConfig?: AwsConfig;
+  /** AWS region for S3 bucket (e.g., 'us-east-1') */
+  region?: string;
 };
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
@@ -76,9 +75,9 @@ export class OmeZarrImageSource {
           ? versionOrOptions
           : (pathOrFetchOptions as FetchOptions | undefined);
 
-      // Use AuthenticatedFetchStore if AWS credentials are provided
+      // Use AuthenticatedFetchStore if AWS credentials and region are provided
       const store =
-        fetchOptions?.credentials && fetchOptions?.awsConfig
+        fetchOptions?.credentials && fetchOptions?.region
           ? new AuthenticatedFetchStore(source, fetchOptions)
           : new FetchStore(source, fetchOptions);
 

@@ -6,7 +6,6 @@ import WebFileSystemStore from "./web_file_system_store";
 import {
   AuthenticatedFetchStore,
   type AwsCredentials,
-  type AwsConfig,
 } from "./authenticated_fetch_store";
 
 export type Version = "v2" | "v3";
@@ -22,7 +21,7 @@ export type ZarrArrayParams = {
         overrides?: RequestInit;
         useSuffixRequest?: boolean;
         credentials?: AwsCredentials;
-        awsConfig?: AwsConfig;
+        region?: string;
       };
     }
   | {
@@ -89,9 +88,9 @@ export async function openArrayFromParams(
 
   switch (params.type) {
     case "fetch": {
-      // Use AuthenticatedFetchStore if credentials are provided
+      // Use AuthenticatedFetchStore if credentials and region are provided
       const store =
-        params.fetchOptions?.credentials && params.fetchOptions?.awsConfig
+        params.fetchOptions?.credentials && params.fetchOptions?.region
           ? new AuthenticatedFetchStore(params.url, params.fetchOptions)
           : new FetchStore(params.url, params.fetchOptions);
 
@@ -125,7 +124,7 @@ export function createZarrArrayParams(
   fetchOptions?: { overrides?: RequestInit; useSuffixRequest?: boolean }
 ): ZarrArrayParams {
   if (location.store instanceof AuthenticatedFetchStore) {
-    // Extract credentials from AuthenticatedFetchStore
+    // Extract credentials and region from AuthenticatedFetchStore
     return {
       type: "fetch",
       arrayPath,
@@ -134,7 +133,7 @@ export function createZarrArrayParams(
       fetchOptions: {
         ...fetchOptions,
         credentials: location.store.credentials,
-        awsConfig: location.store.awsConfig,
+        region: location.store.region,
       },
     };
   } else if (location.store instanceof FetchStore) {
