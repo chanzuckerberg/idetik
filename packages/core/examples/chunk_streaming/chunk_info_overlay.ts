@@ -18,7 +18,7 @@ export class ChunkInfoOverlay {
 
   public update(idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
     if (this.textDiv_.style.display === "none") return;
-    const chunkStore = this.imageLayer_.chunkStore;
+    const chunkStore = this.imageLayer_.chunkStoreView?.store;
     const chunkStoreView = this.imageLayer_.chunkStoreView;
     if (!chunkStore || !chunkStoreView) {
       this.textDiv_.textContent = "No chunk store";
