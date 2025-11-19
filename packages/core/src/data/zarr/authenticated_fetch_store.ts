@@ -14,7 +14,7 @@ export type AuthenticatedFetchOptions = FetchOptions & {
 
 /**
  * Checks if the current environment is safe for using AuthenticatedFetchStore.
- * Only allows localhost, 127.0.0.1, 0.0.0.0, or file:// protocol.
+ * Only allows localhost, 127.0.0.1, 0.0.0.0, or *.localhost domains.
  * @throws Error if not in a safe local environment
  */
 function checkLocalOnlyEnvironment(): void {
@@ -24,12 +24,6 @@ function checkLocalOnlyEnvironment(): void {
   }
 
   const hostname = window.location.hostname;
-  const protocol = window.location.protocol;
-
-  // Allow file:// protocol for local file access
-  if (protocol === "file:") {
-    return;
-  }
 
   // Allow localhost variants
   const isLocalhost =
