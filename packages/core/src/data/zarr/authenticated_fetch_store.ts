@@ -43,9 +43,9 @@ function checkLocalOnlyEnvironment(): void {
   if (!isLocalhost) {
     throw new Error(
       `AuthenticatedFetchStore is only allowed in local development environments. ` +
-      `Current hostname: ${hostname}. ` +
-      `This is a security measure to prevent accidental credential exposure. ` +
-      `For production use, implement a secure backend proxy for authentication.`
+        `Current hostname: ${hostname}. ` +
+        `This is a security measure to prevent accidental credential exposure. ` +
+        `For production use, implement a secure backend proxy for authentication.`
     );
   }
 }
@@ -54,13 +54,15 @@ function checkLocalOnlyEnvironment(): void {
  * A FetchStore that generates AWS Signature V4 headers for each request.
  * This is necessary because AWS signatures are path-specific and expire quickly.
  *
- * ⚠️ SECURITY WARNING: This class is only intended for local development.
+ * SECURITY WARNING: This class is only intended for local development.
  * Credentials are passed to worker threads and stored in memory.
  * Do not use in production - implement a secure backend proxy instead.
  */
 export class AuthenticatedFetchStore extends FetchStore {
   private credentials_?: AwsCredentials;
   private region_?: string;
+  // Cache signing keys per date/region combination (valid for 24 hours)
+  private signingKeyCache_ = new Map<string, Uint8Array>();
 
   constructor(url: string, options?: AuthenticatedFetchOptions) {
     // Safety check: only allow in local development environments
@@ -229,16 +231,34 @@ export class AuthenticatedFetchStore extends FetchStore {
     return new Uint8Array(signature);
   }
 
+  /**
+   * Get the signing key for a given date/region combination.
+   * Caches the key to avoid regenerating it for every request (key is valid for 24 hours).
+   */
   private async getSignatureKey(
     key: string,
     dateStamp: string,
     region: string,
     service: string
   ): Promise<Uint8Array> {
+    // Cache key: dateStamp + region (credentials are per-instance, so we don't need to include them)
+    const cacheKey = `${dateStamp}-${region}`;
+
+    // Check cache first
+    const cached = this.signingKeyCache_.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // Generate signing key (4 sequential HMAC operations)
     const kDate = await this.hmacSha256Bytes("AWS4" + key, dateStamp);
     const kRegion = await this.hmacSha256Bytes(kDate, region);
     const kService = await this.hmacSha256Bytes(kRegion, service);
     const kSigning = await this.hmacSha256Bytes(kService, "aws4_request");
+
+    // Cache the result (valid for 24 hours until dateStamp changes)
+    this.signingKeyCache_.set(cacheKey, kSigning);
+
     return kSigning;
   }
 
