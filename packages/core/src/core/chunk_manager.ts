@@ -22,15 +22,22 @@ export class ChunkManager {
   }
 
   public removeView(view: ChunkStoreView): void {
-    // TODO: log or throw if store or view is not found
     const store = view.store;
+    const source = this.getSourceForStore(store);
+
     const views = this.views_.get(store);
-    if (!views) return;
+    if (!views) {
+      throw new Error("Cannot remove view: store not managed by ChunkManager");
+    }
+
     const index = views.indexOf(view);
-    if (index === -1) return;
+    if (index === -1) {
+      throw new Error(
+        `Cannot remove view: view not found in store's view list (source: ${source})`
+      );
+    }
 
     const affectedChunks = Array.from(view.chunkViewStates.keys());
-
     views.splice(index, 1);
 
     for (const chunk of affectedChunks) {
@@ -38,7 +45,6 @@ export class ChunkManager {
     }
 
     if (views.length === 0) {
-      const source = this.getSourceForStore(store);
       this.stores_.delete(source);
       this.views_.delete(store);
     }
