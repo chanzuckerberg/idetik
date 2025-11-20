@@ -26,7 +26,7 @@ const zMin = z.translate;
 const zMax = z.translate + z.scale * z.shape - z.scale;
 const zRange = { min: zMin, max: zMax };
 
-const source = new OmeZarrImageSource(url);
+const source = OmeZarrImageSource.fromHttp({ url });
 const sliceCoords = { t: 400, z: 200, c: 0 };
 const camera2D = new OrthographicCamera(left, right, top, bottom);
 const imageLayer = new ChunkedImageLayer({

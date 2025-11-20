@@ -39,6 +39,13 @@ function checkLocalOnlyEnvironment(): void {
   }
 }
 
+type AuthenticatedFetchStoreProps = {
+  url: string;
+  region?: string;
+  credentials?: AwsCredentials;
+  options?: FetchOptions;
+};
+
 /**
  * A FetchStore that generates AWS Signature V4 headers for each request.
  * This is necessary because AWS signatures are path-specific and expire quickly.
@@ -53,16 +60,12 @@ export class AuthenticatedFetchStore extends FetchStore {
   // Cache signing keys per date/region combination (valid for 24 hours)
   private signingKeyCache_ = new Map<string, Uint8Array>();
 
-  constructor(url: string, options?: AuthenticatedFetchOptions) {
+  constructor(props: AuthenticatedFetchStoreProps) {
+    super(props.url, props.options);
+    this.credentials_ = props.credentials;
+    this.region_ = props.region;
     // Safety check: only allow in local development environments
     checkLocalOnlyEnvironment();
-
-    // Don't pass static headers to parent - we'll generate them per-request
-    const { credentials, region, ...fetchOptions } = options || {};
-    super(url, fetchOptions);
-
-    this.credentials_ = credentials;
-    this.region_ = region;
   }
 
   public get credentials(): AwsCredentials | undefined {
@@ -267,6 +270,6 @@ export function createFetchStore(
   options?: AuthenticatedFetchOptions
 ): FetchStore | AuthenticatedFetchStore {
   return options?.credentials && options?.region
-    ? new AuthenticatedFetchStore(url, options)
+    ? new AuthenticatedFetchStore({ url, ...options })
     : new FetchStore(url, options);
 }
