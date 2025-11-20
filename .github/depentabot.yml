@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      # fix will trigger a patch release
+      prefix: "fix"
+      # chore does not trigger a release
+      prefix-development: "chore"
+      # includes the scope in the prefix, like this:
+      # fix(deps):
+      # chore(deps-dev):
+      include: "scope"
