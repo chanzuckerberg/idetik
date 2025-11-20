@@ -20,6 +20,7 @@ type SingleUniformValues = {
 
 type ArrayUniformValues = {
   ImageSampler: number;
+  ChannelCount: number;
   "Visible[0]": boolean[];
   "Color[0]": number[];
   "ValueOffset[0]": number[];
