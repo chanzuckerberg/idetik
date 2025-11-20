@@ -5,7 +5,6 @@ import {
   SliceCoordinates,
   coordToIndex,
 } from "../data/chunk";
-import { Logger } from "../utilities/logger";
 import { almostEqual } from "../utilities/almost_equal";
 
 export class ChunkStore {
@@ -108,18 +107,6 @@ export class ChunkStore {
 
   public loadChunkData(chunk: Chunk, signal: AbortSignal) {
     return this.loader_.loadChunkData(chunk, signal);
-  }
-
-  public disposeChunk(chunk: Chunk) {
-    chunk.data = undefined;
-    chunk.state = "unloaded";
-    chunk.priority = null;
-    chunk.orderKey = null;
-    chunk.prefetch = false;
-    Logger.debug(
-      "ChunkStore",
-      `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
-    );
   }
 
   private validateXYScaleRatios(): void {

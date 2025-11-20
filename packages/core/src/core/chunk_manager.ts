@@ -1,3 +1,4 @@
+import { Logger } from "../utilities/logger";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { ChunkQueue } from "../data/chunk_queue";
 import { ChunkStore } from "./chunk_store";
@@ -143,18 +144,32 @@ export class ChunkManager {
     chunk.priority = minPriority;
     chunk.orderKey = orderKeyForMinPriority;
 
-    if (chunk.priority !== null && chunk.state === "unloaded") {
+    const shouldEnqueueChunk =
+      chunk.priority !== null && chunk.state === "unloaded";
+    if (shouldEnqueueChunk) {
       chunk.state = "queued";
-    } else if (chunk.priority === null && chunk.state === "queued") {
+      return;
+    }
+
+    const shouldCancelQueuedChunk =
+      chunk.priority === null && chunk.state === "queued";
+    if (shouldCancelQueuedChunk) {
       chunk.state = "unloaded";
+      return;
     }
 
-    if (this.shouldDispose(chunk)) {
-      store.disposeChunk(chunk);
+    const shouldDisposeChunk =
+      chunk.state === "loaded" && !chunk.visible && !chunk.prefetch;
+    if (shouldDisposeChunk) {
+      chunk.data = undefined;
+      chunk.state = "unloaded";
+      chunk.priority = null;
+      chunk.orderKey = null;
+      chunk.prefetch = false;
+      Logger.debug(
+        "ChunkManager",
+        `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
+      );
     }
-  }
-
-  private shouldDispose(chunk: Chunk): boolean {
-    return chunk.state === "loaded" && !chunk.prefetch && !chunk.visible;
   }
 }
