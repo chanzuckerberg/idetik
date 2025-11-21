@@ -7,7 +7,7 @@ updates:
     commit-message:
       # fix will trigger a patch release
       prefix: "fix"
-      # chore does not trigger a release
+      # chore will *also* trigger a patch release
       prefix-development: "chore"
       # includes the scope in the prefix, like this:
       # fix(deps):
