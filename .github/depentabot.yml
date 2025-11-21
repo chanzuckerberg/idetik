@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      # see .releaserc.json in the repo root for how these prefixes map to version bumps
+      prefix: "fix"
+      prefix-development: "chore"
+      # includes the scope in the prefix, like this:
+      # fix(deps):
+      # chore(deps-dev):
+      include: "scope"

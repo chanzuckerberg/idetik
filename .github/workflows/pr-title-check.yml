@@ -10,10 +10,12 @@ on:
       - edited
       - synchronize
       - reopened
+      - ready_for_review
 
 jobs:
   check-pr-title:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     steps:
       - name: Check PR title
         uses: amannn/action-semantic-pull-request@v5
