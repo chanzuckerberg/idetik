@@ -5,9 +5,8 @@ updates:
     schedule:
       interval: "weekly"
     commit-message:
-      # fix will trigger a patch release
+      # see .releaserc.json in the repo root for how these prefixes map to version bumps
       prefix: "fix"
-      # chore will *also* trigger a patch release
       prefix-development: "chore"
       # includes the scope in the prefix, like this:
       # fix(deps):
