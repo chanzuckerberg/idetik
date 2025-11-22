@@ -85,7 +85,7 @@ export class AuthenticatedFetchStore extends FetchStore {
       // Remove trailing slash from url if present to avoid double slashes
       const baseUrl = this.url.toString().replace(/\/$/, "");
       const fullUrl = `${baseUrl}${key}`;
-      const authHeaders = await this.generateAuthHeaders(fullUrl);
+      const authHeaders = await this.generateAuthHeaders(fullUrl, "GET");
 
       // Merge with any existing headers
       const mergedOptions = {
@@ -103,11 +103,67 @@ export class AuthenticatedFetchStore extends FetchStore {
   }
 
   /**
-   * Generate AWS Signature V4 headers for a specific URL
+   * Override getRange() to generate fresh auth headers for range requests
+   * This handles HEAD requests made by fetch_suffix
+   */
+  async getRange(
+    key: `/${string}`,
+    range: { offset: number; length: number } | { suffixLength: number },
+    options?: RequestInit
+  ): Promise<Uint8Array | undefined> {
+    if (this.credentials_ && this.region_) {
+      const baseUrl = this.url.toString().replace(/\/$/, "");
+      const fullUrl = `${baseUrl}${key}`;
+
+      // Generate auth headers for HEAD request (used by fetch_suffix to get Content-Length)
+      const headAuthHeaders = await this.generateAuthHeaders(fullUrl, "HEAD");
+
+      // Generate auth headers for GET request (used for actual range fetch)
+      const getAuthHeaders = await this.generateAuthHeaders(fullUrl, "GET");
+
+      // Create a custom fetch wrapper that applies the right headers for each method
+      const originalFetch = globalThis.fetch;
+      const authenticatedFetch = async (
+        input: RequestInfo | URL,
+        init?: RequestInit
+      ) => {
+        const method = init?.method || "GET";
+        const authHeaders =
+          method === "HEAD" ? headAuthHeaders : getAuthHeaders;
+
+        const mergedInit = {
+          ...init,
+          headers: {
+            ...init?.headers,
+            ...authHeaders,
+          },
+        };
+
+        return originalFetch(input, mergedInit);
+      };
+
+      // Temporarily replace fetch for this call
+      const originalGlobalFetch = globalThis.fetch;
+      globalThis.fetch = authenticatedFetch as typeof fetch;
+
+      try {
+        return await super.getRange(key, range, options);
+      } finally {
+        // Restore original fetch
+        globalThis.fetch = originalGlobalFetch;
+      }
+    }
+
+    return super.getRange(key, range, options);
+  }
+
+  /**
+   * Generate AWS Signature V4 headers for a specific URL and HTTP method
    * This uses the Web Crypto API for browser compatibility
    */
   private async generateAuthHeaders(
-    url: string
+    url: string,
+    method: string = "GET"
   ): Promise<Record<string, string>> {
     if (!this.credentials_ || !this.region_) {
       return {};
@@ -137,7 +193,7 @@ export class AuthenticatedFetchStore extends FetchStore {
 
     const payloadHash = "UNSIGNED-PAYLOAD";
 
-    const canonicalRequest = `GET\n${canonicalUri}\n${canonicalQuerystring}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
+    const canonicalRequest = `${method}\n${canonicalUri}\n${canonicalQuerystring}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
 
     const algorithm = "AWS4-HMAC-SHA256";
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
