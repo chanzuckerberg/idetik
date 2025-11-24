@@ -20,6 +20,7 @@ export interface LayerOptions {
 }
 
 export type RenderContext = {
+  timestamp?: DOMHighResTimeStamp;
   viewport: Viewport;
 };
 

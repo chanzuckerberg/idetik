@@ -6,12 +6,11 @@ import { Logger } from "../utilities/logger";
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
-import { Layer } from "../core/layer";
+import { Layer, RenderContext } from "../core/layer";
 import { WebGLState } from "./WebGLState";
 import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
-import { Viewport } from "../core/viewport";
 import { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2 } from "gl-matrix";
@@ -59,7 +58,8 @@ export class WebGLRenderer extends Renderer {
     this.resize(this.canvas.width, this.canvas.height);
   }
 
-  public render(viewport: Viewport) {
+  public render(context: RenderContext) {
+    const viewport = context.viewport;
     const viewportBox = viewport.getBoxRelativeTo(this.canvas);
     const rendererBox = new Box2(
       vec2.fromValues(0, 0),
@@ -86,10 +86,9 @@ export class WebGLRenderer extends Renderer {
     this.state_.setDepthMask(true);
 
     const frustum = viewport.camera.frustum;
-    const renderContext = { viewport };
 
     for (const layer of opaque) {
-      layer.update(renderContext);
+      layer.update(context);
       if (layer.state === "ready") {
         this.renderLayer(layer, viewport.camera, frustum);
       }
@@ -97,7 +96,7 @@ export class WebGLRenderer extends Renderer {
 
     this.state_.setDepthMask(false);
     for (const layer of transparent) {
-      layer.update(renderContext);
+      layer.update(context);
       if (layer.state !== "ready") continue;
       this.renderLayer(layer, viewport.camera, frustum);
     }

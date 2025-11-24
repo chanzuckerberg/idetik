@@ -14,10 +14,12 @@ import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
+import { PlaybackController } from "@/data/playback_controller";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
+  playback?: PlaybackController[];
   policy: ImageSourcePolicy;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
@@ -28,6 +30,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
+  private readonly playback_: PlaybackController[];
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
   private readonly pool_ = new RenderablePool<ImageRenderable>();
@@ -54,6 +57,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   constructor({
     source,
     sliceCoords,
+    playback,
     policy,
     channelProps,
     onPickValue,
@@ -64,6 +68,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.source_ = source;
     this.policy_ = policy;
     this.sliceCoords_ = sliceCoords;
+    this.playback_ = playback ?? [];
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
@@ -91,6 +96,12 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   public update(context?: RenderContext) {
     if (!context || !this.chunkStoreView_) return;
+
+    if (context.timestamp !== undefined) {
+      for (const controller of this.playback_) {
+        controller.update(context.timestamp);
+      }
+    }
 
     this.chunkStoreView_.updateChunkStates(this.sliceCoords_, context.viewport);
 

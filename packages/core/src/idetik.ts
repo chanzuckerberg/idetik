@@ -162,7 +162,8 @@ export class Idetik {
     }
 
     for (const viewport of this.viewports_) {
-      this.renderer_.render(viewport);
+      const renderContext = { timestamp, viewport };
+      this.renderer_.render(renderContext);
     }
 
     this.chunkManager_.update();

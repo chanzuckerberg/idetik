@@ -1,7 +1,6 @@
 import { Camera } from "../objects/cameras/camera";
 import { Color, ColorLike } from "./color";
-import { Layer } from "./layer";
-import { Viewport } from "./viewport";
+import { Layer, RenderContext } from "./layer";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
@@ -23,7 +22,7 @@ export abstract class Renderer {
     this.updateRendererSize();
   }
 
-  public abstract render(viewport: Viewport): void;
+  public abstract render(context: RenderContext): void;
 
   public updateSize(): void {
     this.updateRendererSize();
