@@ -23,7 +23,7 @@ export class PlaybackController {
   private rateHz_: number;
   private lastTimestamp_?: DOMHighResTimeStamp;
   private secondsSinceLastStep_: number = 0;
-  private isBuffering_: boolean = true;
+  private isBuffering_: boolean = false;
   private bufferSize_: number;
   public isBuffered?: IsBuffered;
 
@@ -49,6 +49,7 @@ export class PlaybackController {
       this.rateHz_ = rateHz;
       this.secondsSinceLastStep_ = 0;
       this.lastTimestamp_ = undefined;
+      this.isBuffering_ = false;
     }
   }
 

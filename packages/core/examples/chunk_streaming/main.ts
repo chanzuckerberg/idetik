@@ -14,6 +14,7 @@ import {
 } from "@/core/image_source_policy";
 
 import GUI from "lil-gui";
+import { PlaybackController } from "@/data/playback_controller";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -42,6 +43,16 @@ const tMin = t.translate;
 const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
 
+const tPlayback = new PlaybackController({
+  sliceCoords,
+  dimension: "t",
+  start: tMin,
+  stop: tMax,
+  step: t.scale,
+  bufferSize: 10, // chosen to be half of prefetch
+  rateHz: 0,
+});
+
 const initialWindow = 50;
 const initialLevel = 25;
 const initialContrastLimits = windowLevelToContrastLimits(
@@ -56,6 +67,7 @@ const camera = new OrthographicCamera(left, right, top, bottom);
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords,
+  playback: [tPlayback],
   policy: createExplorationPolicy(),
   channelProps,
 });
@@ -71,7 +83,8 @@ const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
 const timePointOverlay = {
   update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp) {
     const time = imageLayer.lastPresentationTimeCoord;
-    timePointDiv.textContent = `t = ${time}`;
+    timePointDiv.textContent =
+      `t = ${time}` + (tPlayback.isBuffering ? " (buffering)" : "");
   },
 };
 
@@ -108,23 +121,19 @@ addDimensionSlider({
   minValue: zRange.min,
   maxValue: zRange.max,
   stepValue: z.scale,
-  playback: {},
 });
 
-addDimensionSlider({
-  gui,
-  sliceCoords,
-  dimensionName: "t",
-  minValue: tRange.min,
-  maxValue: tRange.max,
-  stepValue: t.scale,
-  playback: {
-    onRateChange: (rateHz: number) => {
-      imageLayer.imageSourcePolicy =
-        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
-    },
-  },
-});
+gui
+  .add(sliceCoords, "t", tRange.min, tRange.max, t.scale)
+  .name("t-coord")
+  .listen();
+gui
+  .add(tPlayback, "rateHz", 0, 30, 1)
+  .name("t-playback rate (Hz)")
+  .onChange((rateHz: number) => {
+    imageLayer.imageSourcePolicy =
+      rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
+  });
 
 const overlaysFolder = gui.addFolder("Overlays");
 
