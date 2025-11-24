@@ -1,6 +1,6 @@
 import { SliceCoordinates } from "./chunk";
 
-type GetNumBuffered = (coord: number) => number;
+type AreChunksLoaded = (from: number, to: number) => boolean;
 
 type PlaybackDimension = "t" | "z";
 
@@ -17,7 +17,7 @@ export type PlaybackControllerProps = {
 
 export class PlaybackController {
   private readonly sliceCoords_: SliceCoordinates;
-  private readonly dimension_: PlaybackDimension;
+  public readonly dimension: PlaybackDimension;
   private readonly start_: number;
   private readonly stop_: number;
   private readonly step_: number;
@@ -27,11 +27,11 @@ export class PlaybackController {
   private isBuffering_: boolean = true;
   private requiredBufferLength_: number;
 
-  public getNumBuffered?: GetNumBuffered;
+  public areChunksLoaded?: AreChunksLoaded;
 
   constructor(props: PlaybackControllerProps) {
     this.sliceCoords_ = props.sliceCoords;
-    this.dimension_ = props.dimension;
+    this.dimension = props.dimension;
     this.start_ = props.start;
     this.stop_ = props.stop;
     this.step_ = props.step;
@@ -65,16 +65,17 @@ export class PlaybackController {
   public update(timestamp: DOMHighResTimeStamp): void {
     if (this.rateHz_ === 0) return;
 
-    const coord = this.sliceCoords_[this.dimension_];
+    const coord = this.sliceCoords_[this.dimension];
     if (coord === undefined) return;
 
     if (this.requiredBufferLength_ > 0) {
-      if (!this.getNumBuffered) {
+      if (!this.areChunksLoaded) {
         this.isBuffering_ = true;
         return;
       }
-      const numBuffered = this.getNumBuffered(coord);
-      if (this.requiredBufferLength_ > numBuffered) {
+
+      const to = coord + this.step_ * this.requiredBufferLength_;
+      if (!this.areChunksLoaded(coord, to)) {
         this.isBuffering_ = true;
         return;
       }
@@ -99,7 +100,7 @@ export class PlaybackController {
     if (stepsToAdvance > 0) {
       this.secondsSinceLastStep_ -= stepsToAdvance * secondsPerStep;
       const newCoord = coord + this.step_ * stepsToAdvance;
-      this.sliceCoords_[this.dimension_] =
+      this.sliceCoords_[this.dimension] =
         newCoord <= this.stop_ ? newCoord : this.start_;
     }
   }

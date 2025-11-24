@@ -23,6 +23,7 @@ export class ChunkStoreView {
   private policyChanged_ = false;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
+  private lastViewBounds3D_: Box3 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
 
@@ -116,6 +117,10 @@ export class ChunkStoreView {
       this.policyChanged_ = false;
       this.lastViewBounds2D_ = viewBounds2D.clone();
       this.lastZBounds_ = zBounds;
+      this.lastViewBounds3D_ = new Box3(
+        vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zBounds[0]),
+        vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zBounds[1])
+      );
       this.lastTCoord_ = sliceCoords.t;
     }
   }
@@ -130,6 +135,21 @@ export class ChunkStoreView {
       visibleChunks.length > 0 &&
       visibleChunks.every((c) => c.state === "loaded")
     );
+  }
+
+  public areChunksLoaded(sliceCoords: SliceCoordinates, lod: number): boolean {
+    const timeIndex = this.store_.getTimeIndex(sliceCoords);
+    const viewBounds3D = this.lastViewBounds3D_;
+    if (viewBounds3D === null) return false;
+    const chunks = this.store.getChunksAtTime(timeIndex);
+    const requiredChunks = chunks.filter((chunk) => {
+      return (
+        chunk.lod == lod &&
+        this.isChunkChannelInSlice(chunk, sliceCoords) &&
+        this.isChunkWithinBounds(chunk, viewBounds3D)
+      );
+    });
+    return requiredChunks.every((chunk) => chunk.state === "loaded");
   }
 
   public get currentLOD(): number {

@@ -80,10 +80,24 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         "ChunkedImageLayer cannot be attached to multiple contexts simultaneously."
       );
     }
-    this.chunkStoreView_ = await context.chunkManager.addView(
+    const chunkStoreView = await context.chunkManager.addView(
       this.source_,
       this.policy_
     );
+
+    const lowestLod = chunkStoreView.store.getLowestResLOD();
+    for (const playback of this.playback_) {
+      playback.areChunksLoaded = (from: number, to: number) => {
+        for (let coord = from; coord < to; coord += playback.step) {
+          const sliceCoords = { ...this.sliceCoords_ };
+          sliceCoords[playback.dimension] = coord;
+          if (!chunkStoreView.areChunksLoaded(sliceCoords, lowestLod))
+            return false;
+        }
+        return true;
+      };
+    }
+    this.chunkStoreView_ = chunkStoreView;
   }
 
   public onDetached(context: IdetikContext): void {
