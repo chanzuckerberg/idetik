@@ -8,9 +8,9 @@ import {
 } from "@";
 import { AxesLayer } from "@/layers/axes_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { addDimensionSlider } from "../lil_gui_utils";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 import GUI from "lil-gui";
+import { PlaybackController } from "@/data/playback_controller";
 
 const url =
   "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
@@ -31,11 +31,21 @@ const dimensionInfo = (dimensionName: string) => {
 };
 
 const zInfo = dimensionInfo("z");
+const zMin = zInfo.offset;
+const zMax = zInfo.offset + zInfo.scale * (zInfo.size - 1);
 const zMidPoint = zInfo.offset + 0.5 * zInfo.size * zInfo.scale;
 const yInfo = dimensionInfo("y");
 const xInfo = dimensionInfo("x");
 
 const sliceCoords = { z: zMidPoint };
+const zPlayback = new PlaybackController({
+  sliceCoords,
+  dimension: "z",
+  start: zMin,
+  stop: zMax,
+  step: zInfo.scale,
+});
+
 const channelProps: ChannelProps[] = [{ contrastLimits: [0, 200] }];
 
 const pickInfoDiv = document.querySelector<HTMLDivElement>("#pick-info")!;
@@ -52,6 +62,7 @@ const onPickValue = (info: PointPickingResult) => {
 const layer = new ChunkedImageLayer({
   source,
   sliceCoords,
+  playback: [zPlayback],
   policy: createExplorationPolicy(),
   channelProps,
   onPickValue,
@@ -88,15 +99,8 @@ const controls = {
 
 const gui = new GUI({ width: 500 });
 
-addDimensionSlider({
-  gui,
-  sliceCoords,
-  dimensionName: "z",
-  minValue: zInfo.offset,
-  maxValue: zInfo.offset + (zInfo.size - 1) * zInfo.scale,
-  stepValue: zInfo.scale,
-  playback: {},
-});
+gui.add(sliceCoords, "z", zMin, zMax, zInfo.scale).name("z-coord").listen();
+gui.add(zPlayback, "rateHz", 0, 30, 1).name("z-playback rate (Hz)");
 
 gui
   .add(controls, "showWireframes")
