@@ -8,7 +8,6 @@ import {
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
-import { addDimensionSlider } from "../lil_gui_utils";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 
 import GUI from "lil-gui";
@@ -82,26 +81,14 @@ new Idetik({
 
 const gui = new GUI({ width: 300 });
 
-const topRightViewportFolder = gui.addFolder("Top Right Viewport (Slice 1)");
-addDimensionSlider({
-  gui: topRightViewportFolder,
-  sliceCoords: sliceCoords1,
-  dimensionName: "z",
-  minValue: zRange.min,
-  maxValue: zRange.max,
-  stepValue: z.scale,
-});
-topRightViewportFolder.open();
+gui
+  .addFolder("Top Right Viewport (Slice 1)")
+  .open()
+  .add(sliceCoords1, "z", zRange.min, zRange.max, z.scale)
+  .name("z-coord");
 
-const bottomRightViewportFolder = gui.addFolder(
-  "Bottom Right Viewport (Slice 2)"
-);
-addDimensionSlider({
-  gui: bottomRightViewportFolder,
-  sliceCoords: sliceCoords2,
-  dimensionName: "z",
-  minValue: zRange.min,
-  maxValue: zRange.max,
-  stepValue: z.scale,
-});
-bottomRightViewportFolder.open();
+gui
+  .addFolder("Bottom Right Viewport (Slice 2)")
+  .open()
+  .add(sliceCoords1, "z", zRange.min, zRange.max, z.scale)
+  .name("z-coord");

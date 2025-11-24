@@ -9,8 +9,8 @@ import {
   createPlaybackPolicy,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
-import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
+import { PlaybackController } from "@/data/playback_controller";
 
 const url =
   "https://uk1s3.embassy.ebi.ac.uk/ebi-ngff-challenge-2024/c0e5d621-62cc-43a6-9dad-2ddab8959d17.zarr";
@@ -36,6 +36,15 @@ const sliceCoords = {
   c: 1,
 };
 
+const tPlayback = new PlaybackController({
+  sliceCoords,
+  dimension: "t",
+  start: tMin,
+  stop: tMax,
+  step: t.scale,
+  bufferSize: 10, // chosen to be half of prefetch
+});
+
 const channelColor = Color.GREEN;
 const channelProps: ChannelProps[] = [
   {
@@ -48,6 +57,7 @@ const camera = new OrthographicCamera(left, right, top, bottom);
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords,
+  playback: [tPlayback],
   policy: createExplorationPolicy(),
   channelProps,
 });
@@ -81,20 +91,17 @@ const controls = {
 
 const gui = new GUI({ width: 500 });
 
-addDimensionSlider({
-  gui,
-  sliceCoords,
-  dimensionName: "t",
-  minValue: tRange.min,
-  maxValue: tRange.max,
-  stepValue: t.scale,
-  playback: {
-    onRateChange: (rateHz: number) => {
-      imageLayer.imageSourcePolicy =
-        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
-    },
-  },
-});
+gui
+  .add(sliceCoords, "t", tRange.min, tRange.max, t.scale)
+  .name("t-coord")
+  .listen();
+gui
+  .add(tPlayback, "rateHz", 0, 30, 1)
+  .name("t-playback rate (Hz)")
+  .onChange((rateHz: number) => {
+    imageLayer.imageSourcePolicy =
+      rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
+  });
 
 const overlaysFolder = gui.addFolder("Overlays");
 overlaysFolder
