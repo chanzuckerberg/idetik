@@ -73,8 +73,9 @@ export class PlaybackController {
         return;
       }
 
-      const to = coord + this.step_ * this.bufferSize_;
-      for (let c = coord; c < to; c += this.step_) {
+      // Iterate backwards because it's more likely that later timepoints are missing.
+      const to = coord + (this.bufferSize_ - 1) * this.step_;
+      for (let c = to; c >= coord; c -= this.step_) {
         if (!this.isBuffered(c)) {
           this.isBuffering_ = true;
           return;

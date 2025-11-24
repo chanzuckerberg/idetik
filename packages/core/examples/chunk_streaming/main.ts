@@ -7,7 +7,6 @@ import {
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
-import { addDimensionSlider } from "../lil_gui_utils";
 import {
   createExplorationPolicy,
   createPlaybackPolicy,
@@ -50,7 +49,14 @@ const tPlayback = new PlaybackController({
   stop: tMax,
   step: t.scale,
   bufferSize: 10, // chosen to be half of prefetch
-  rateHz: 0,
+});
+
+const zPlayback = new PlaybackController({
+  sliceCoords,
+  dimension: "z",
+  start: zMin,
+  stop: zMax,
+  step: z.scale,
 });
 
 const initialWindow = 50;
@@ -67,7 +73,7 @@ const camera = new OrthographicCamera(left, right, top, bottom);
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords,
-  playback: [tPlayback],
+  playback: [zPlayback, tPlayback],
   policy: createExplorationPolicy(),
   channelProps,
 });
@@ -114,14 +120,11 @@ const controls = {
 
 const gui = new GUI({ width: 500 });
 
-addDimensionSlider({
-  gui,
-  sliceCoords,
-  dimensionName: "z",
-  minValue: zRange.min,
-  maxValue: zRange.max,
-  stepValue: z.scale,
-});
+gui
+  .add(sliceCoords, "z", zRange.min, zRange.max, z.scale)
+  .name("z-coord")
+  .listen();
+gui.add(zPlayback, "rateHz", 0, 30, 1).name("z-playback rate (Hz)");
 
 gui
   .add(sliceCoords, "t", tRange.min, tRange.max, t.scale)
