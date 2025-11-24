@@ -1,6 +1,6 @@
 import { SliceCoordinates } from "./chunk";
 
-type AreChunksLoaded = (coord: number) => boolean;
+type IsBuffered = (coord: number) => boolean;
 
 type PlaybackDimension = "t" | "z";
 
@@ -25,8 +25,7 @@ export class PlaybackController {
   private secondsSinceLastStep_: number = 0;
   private isBuffering_: boolean = true;
   private bufferSize_: number;
-
-  public areChunksLoaded?: AreChunksLoaded;
+  public isBuffered?: IsBuffered;
 
   constructor(props: PlaybackControllerProps) {
     this.sliceCoords_ = props.sliceCoords;
@@ -68,14 +67,14 @@ export class PlaybackController {
     if (coord === undefined) return;
 
     if (this.bufferSize_ > 0) {
-      if (!this.areChunksLoaded) {
+      if (!this.isBuffered) {
         this.isBuffering_ = true;
         return;
       }
 
       const to = coord + this.step_ * this.bufferSize_;
       for (let c = coord; c < to; c += this.step_) {
-        if (!this.areChunksLoaded(c)) {
+        if (!this.isBuffered(c)) {
           this.isBuffering_ = true;
           return;
         }
