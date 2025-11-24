@@ -32,6 +32,7 @@ export class ChunkManagerSource {
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
   private currentLOD_: number = 0;
+  private previousLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
@@ -170,7 +171,7 @@ export class ChunkManagerSource {
   }
 
   public updateAndCollectChunkChanges(lodFactor: number, viewBounds2D: Box2) {
-    this.setLOD(lodFactor);
+    const lodChanged = this.setLOD(lodFactor);
 
     const zBounds = this.getZBounds();
     const changed =
@@ -182,6 +183,12 @@ export class ChunkManagerSource {
     const updatedChunks = changed
       ? this.updateAndCollectChunkChangesForCurrentLod(viewBounds2D)
       : [];
+
+    // If LOD changed, cancel pending/loading chunks from the previous LOD
+    if (lodChanged) {
+      const chunksToCancel = this.cancelChunksFromPreviousLOD();
+      updatedChunks.push(...chunksToCancel);
+    }
 
     this.policyChanged_ = false;
     this.lastViewBounds2D_ = viewBounds2D.clone();
@@ -224,7 +231,7 @@ export class ChunkManagerSource {
     return this.loader_.loadChunkData(chunk, signal);
   }
 
-  private setLOD(lodFactor: number): void {
+  private setLOD(lodFactor: number): boolean {
     // `scale0` is the x pixel size (world units) at LOD 0.
     // With 2x downsampling per LOD, selection happens in log2 space.
     const scale0 = this.dimensions_.x.lods[0].scale;
@@ -246,8 +253,11 @@ export class ChunkManagerSource {
 
     const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
     if (target !== this.currentLOD_) {
+      this.previousLOD_ = this.currentLOD_;
       this.currentLOD_ = target;
+      return true;
     }
+    return false;
   }
 
   private updateAndCollectChunkChangesForCurrentLod(
@@ -311,6 +321,34 @@ export class ChunkManagerSource {
       this.tIndicesWithQueuedChunks_.delete(t);
     }
     return disposedChunks;
+  }
+
+  private cancelChunksFromPreviousLOD(): Chunk[] {
+    const canceledChunks: Chunk[] = [];
+    for (const t of this.tIndicesWithQueuedChunks_) {
+      const chunks = this.chunks_[t];
+      for (const chunk of chunks) {
+        if (
+          chunk.lod === this.previousLOD_ &&
+          (chunk.state === "queued" || chunk.state === "loading")
+        ) {
+          // Cancel chunks from previous LOD that are queued or loading
+          // Force priority to null to signal cancellation
+          chunk.priority = null;
+          chunk.state = "unloaded";
+          chunk.orderKey = null;
+          chunk.prefetch = false;
+          canceledChunks.push(chunk);
+        }
+      }
+    }
+    if (canceledChunks.length > 0) {
+      Logger.info(
+        "ChunkManagerSource",
+        `LOD changed from ${this.previousLOD_} to ${this.currentLOD_}, canceled ${canceledChunks.length} pending chunks from previous LOD`
+      );
+    }
+    return canceledChunks;
   }
 
   private updateChunksAtTimeIndex(
