@@ -83,12 +83,10 @@ const gui = new GUI({ width: 300 });
 
 gui
   .addFolder("Top Right Viewport (Slice 1)")
-  .open()
   .add(sliceCoords1, "z", zRange.min, zRange.max, z.scale)
   .name("z-coord");
 
 gui
   .addFolder("Bottom Right Viewport (Slice 2)")
-  .open()
   .add(sliceCoords1, "z", zRange.min, zRange.max, z.scale)
   .name("z-coord");
