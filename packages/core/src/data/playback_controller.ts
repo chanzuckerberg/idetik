@@ -1,6 +1,6 @@
 import { SliceCoordinates } from "./chunk";
 
-type AreChunksLoaded = (from: number, to: number) => boolean;
+type AreChunksLoaded = (coord: number) => boolean;
 
 type PlaybackDimension = "t" | "z";
 
@@ -11,8 +11,7 @@ export type PlaybackControllerProps = {
   stop: number;
   step: number;
   rateHz?: number;
-  requiredBufferLength?: number;
-  numBufferedRequired?: number;
+  bufferSize?: number;
 };
 
 export class PlaybackController {
@@ -25,7 +24,7 @@ export class PlaybackController {
   private lastTimestamp_?: DOMHighResTimeStamp;
   private secondsSinceLastStep_: number = 0;
   private isBuffering_: boolean = true;
-  private requiredBufferLength_: number;
+  private bufferSize_: number;
 
   public areChunksLoaded?: AreChunksLoaded;
 
@@ -36,7 +35,7 @@ export class PlaybackController {
     this.stop_ = props.stop;
     this.step_ = props.step;
     this.rateHz_ = props.rateHz ?? 0;
-    this.requiredBufferLength_ = props.requiredBufferLength ?? 0;
+    this.bufferSize_ = props.bufferSize ?? 0;
   }
 
   public get rateHz(): number {
@@ -68,16 +67,18 @@ export class PlaybackController {
     const coord = this.sliceCoords_[this.dimension];
     if (coord === undefined) return;
 
-    if (this.requiredBufferLength_ > 0) {
+    if (this.bufferSize_ > 0) {
       if (!this.areChunksLoaded) {
         this.isBuffering_ = true;
         return;
       }
 
-      const to = coord + this.step_ * this.requiredBufferLength_;
-      if (!this.areChunksLoaded(coord, to)) {
-        this.isBuffering_ = true;
-        return;
+      const to = coord + this.step_ * this.bufferSize_;
+      for (let c = coord; c < to; c += this.step_) {
+        if (!this.areChunksLoaded(c)) {
+          this.isBuffering_ = true;
+          return;
+        }
       }
     }
 

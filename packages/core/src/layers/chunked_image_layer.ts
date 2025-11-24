@@ -87,14 +87,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     const lowestLod = chunkStoreView.store.getLowestResLOD();
     for (const playback of this.playback_) {
-      playback.areChunksLoaded = (from: number, to: number) => {
-        for (let coord = from; coord < to; coord += playback.step) {
-          const sliceCoords = { ...this.sliceCoords_ };
-          sliceCoords[playback.dimension] = coord;
-          if (!chunkStoreView.areChunksLoaded(sliceCoords, lowestLod))
-            return false;
-        }
-        return true;
+      playback.areChunksLoaded = (coord: number) => {
+        const sliceCoords = { ...this.sliceCoords_ };
+        sliceCoords[playback.dimension] = coord;
+        return chunkStoreView.areChunksLoaded(sliceCoords, lowestLod);
       };
     }
     this.chunkStoreView_ = chunkStoreView;
