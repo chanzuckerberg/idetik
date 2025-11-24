@@ -8,7 +8,6 @@ import {
 } from "../core/chunk_manager_source";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
-import { Logger } from "../utilities/logger";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -30,18 +29,22 @@ export class VolumeLayer extends Layer {
   private lod_ = -1;
   private debugMode_ = false;
   private hitMisses_ = false;
-
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
+  private pendingLoads_: Map<Chunk, AbortController> = new Map();
 
   public get lod() {
     return this.lod_;
   }
 
   public set lod(value: number) {
-    this.lod_ = value;
-    this.clearObjects();
-    this.updateChunks();
+    if (this.lod_ !== value) {
+      // Cancel any pending loads from the previous LOD
+      this.cancelPendingLoads();
+      this.lod_ = value;
+      this.clearObjects();
+      this.updateChunks();
+    }
   }
 
   public get debugMode(): boolean {
@@ -137,53 +140,95 @@ export class VolumeLayer extends Layer {
       this.sliceCoords_,
       this.sourcePolicy_
     );
+    // Initialize and start loading chunks
+    if (this.lod_ === -1) {
+      this.lod_ = this.chunkManagerSource_.lodCount - 1;
+    }
+    this.updateChunks();
   }
 
   public onDetached(): void {
+    this.cancelPendingLoads();
     this.chunkManagerSource_ = undefined;
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
   }
 
-  // Should ideally use chunk manager for this
+  private cancelPendingLoads() {
+    if (this.pendingLoads_.size > 0) {
+      for (const [chunk, controller] of this.pendingLoads_) {
+        controller.abort();
+        // Reset chunk state
+        if (chunk.state === "loading") {
+          chunk.state = "unloaded";
+        }
+      }
+      this.pendingLoads_.clear();
+    }
+  }
+
+  // Load all chunks at the current LOD for volume rendering
   private loadChunks() {
     if (!this.chunkManagerSource_) return;
     if (this.lod_ === -1) {
       this.lod_ = this.chunkManagerSource_.lodCount - 1;
     }
     const chunks = this.chunkManagerSource_.getAllChunksAtLod(this.lod_);
-    if (
-      this.lastLoadedLod_ === this.lod_ &&
-      this.lastLoadedTime_ === this.sliceCoords_.t
-    )
-      return chunks;
-    this.clearObjects();
-    // TODO clean this up
-    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
-    Logger.debug("VolumeLayer", `Loading chunks for LOD ${this.lod_}`);
-    for (const chunk of chunks) {
-      this.chunkManagerSource_.loadChunkData(
-        chunk,
-        new AbortController().signal
-      );
+
+    const needsNewLoads =
+      this.lastLoadedLod_ !== this.lod_ ||
+      this.lastLoadedTime_ !== (this.sliceCoords_.t ?? -1);
+
+    if (needsNewLoads) {
+      this.cancelPendingLoads();
+
+      this.clearObjects();
+      this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+
+      for (const chunk of chunks) {
+        if (chunk.state === "loaded") continue;
+
+        const controller = new AbortController();
+        this.pendingLoads_.set(chunk, controller);
+
+        chunk.state = "loading";
+
+        this.chunkManagerSource_
+          .loadChunkData(chunk, controller.signal)
+          .then(() => {
+            chunk.state = "loaded";
+            this.pendingLoads_.delete(chunk);
+          })
+          .catch((err) => {
+            chunk.state = "unloaded";
+            this.pendingLoads_.delete(chunk);
+            if (err.name !== "AbortError") {
+              console.error("Chunk load error:", err);
+            }
+          });
+      }
+
+      this.lastLoadedLod_ = this.lod_;
+      this.lastLoadedTime_ = this.sliceCoords_.t ?? -1;
     }
-    this.lastLoadedLod_ = this.lod_;
-    this.lastLoadedTime_ = this.sliceCoords_.t ?? -1;
+
     return chunks;
   }
 
   private updateChunks() {
     const chunks = this.loadChunks();
     if (!chunks) return;
+
+    // Add newly loaded chunks to the scene
     for (const chunk of chunks) {
-      // TODO should be able to use loaded state later
-      if (!chunk.data) continue;
+      if (chunk.state !== "loaded" || !chunk.data) continue;
       if (this.visibleChunks_.has(chunk)) continue;
       const volume = this.getVolumeRenderableForChunk(chunk);
       volume.wireframeEnabled = this.debugMode;
       this.visibleChunks_.set(chunk, volume);
       this.addObject(volume);
     }
+
     if (this.state !== "ready") this.setState("ready");
   }
 
