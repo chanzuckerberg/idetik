@@ -31,9 +31,7 @@ export class LayerManager {
 
   public add(layer: Layer) {
     this.layers_ = [...this.layers_, layer];
-    if (this.context_) {
-      layer.onAttached(this.context_);
-    }
+    layer.onAttached(this.context_);
     this.notifyLayersChanged();
   }
 
@@ -48,7 +46,7 @@ export class LayerManager {
   public removeByIndex(index: number) {
     const layer = this.layers_[index];
     if (layer) {
-      layer.onDetached();
+      layer.onDetached(this.context_);
     }
     this.layers_ = this.layers_.filter((_, i) => i !== index);
     this.notifyLayersChanged();
@@ -56,7 +54,7 @@ export class LayerManager {
 
   public removeAll() {
     for (const layer of this.layers_) {
-      layer.onDetached();
+      layer.onDetached(this.context_);
     }
     this.layers_ = [];
     this.notifyLayersChanged();

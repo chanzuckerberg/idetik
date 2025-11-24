@@ -1,76 +1,181 @@
-import { ChunkSource, SliceCoordinates } from "../data/chunk";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import { Logger } from "../utilities/logger";
+import { Chunk, ChunkSource } from "../data/chunk";
 import { ChunkQueue } from "../data/chunk_queue";
-import { ChunkManagerSource } from "./chunk_manager_source";
+import { ChunkStore } from "./chunk_store";
+import { ChunkStoreView } from "./chunk_store_view";
 import { ImageSourcePolicy } from "./image_source_policy";
 
 export class ChunkManager {
-  private readonly sources_ = new Map<ChunkSource, ChunkManagerSource>();
-  private readonly pendingSources_ = new Map<
-    ChunkSource,
-    Promise<ChunkManagerSource>
-  >();
+  private readonly stores_ = new Map<ChunkSource, ChunkStore>();
+  private readonly pendingStores_ = new Map<ChunkSource, Promise<ChunkStore>>();
+  private readonly views_ = new Map<ChunkStore, ChunkStoreView[]>();
   private readonly queue_ = new ChunkQueue();
 
-  public async addSource(
+  public async addView(
     source: ChunkSource,
-    sliceCoords: SliceCoordinates,
     policy: ImageSourcePolicy
-  ) {
+  ): Promise<ChunkStoreView> {
+    const store = await this.addSource(source);
+    const view = new ChunkStoreView(store, policy);
+    this.views_.set(store, (this.views_.get(store) ?? []).concat(view));
+    return view;
+  }
+
+  public removeView(view: ChunkStoreView): void {
+    const store = view.store;
+    const source = this.getSourceForStore(store);
+
+    const views = this.views_.get(store);
+    if (!views) {
+      throw new Error("Cannot remove view: store not managed by ChunkManager");
+    }
+
+    const index = views.indexOf(view);
+    if (index === -1) {
+      throw new Error(
+        `Cannot remove view: view not found in store's view list (source: ${source})`
+      );
+    }
+
+    const affectedChunks = Array.from(view.chunkViewStates.keys());
+    views.splice(index, 1);
+
+    for (const chunk of affectedChunks) {
+      this.aggregateChunkViewStates(chunk, store);
+    }
+
+    if (views.length === 0) {
+      this.stores_.delete(source);
+      this.views_.delete(store);
+    }
+  }
+
+  private async addSource(source: ChunkSource): Promise<ChunkStore> {
     const existingOrPending =
-      this.sources_.get(source) ?? this.pendingSources_.get(source);
+      this.stores_.get(source) ?? this.pendingStores_.get(source);
     if (existingOrPending) {
       return existingOrPending;
     }
 
-    const initializeSource = async () => {
+    const initializeStore = async () => {
       const loader = await source.open();
-      const chunkManagerSource = new ChunkManagerSource(
-        loader,
-        sliceCoords,
-        policy
-      );
-      this.sources_.set(source, chunkManagerSource);
-      this.pendingSources_.delete(source);
-      return chunkManagerSource;
+      const store = new ChunkStore(loader);
+      this.stores_.set(source, store);
+      this.pendingStores_.delete(source);
+      return store;
     };
 
-    const pending = initializeSource();
-    this.pendingSources_.set(source, pending);
+    const pending = initializeStore();
+    this.pendingStores_.set(source, pending);
     return pending;
   }
 
-  public update(camera: OrthographicCamera, bufferWidth: number) {
-    if (this.sources_.size === 0) return;
-
-    if (camera.type !== "OrthographicCamera") {
-      throw new Error(
-        "ChunkManager currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
-      );
+  private getSourceForStore(store: ChunkStore): ChunkSource {
+    for (const [source, s] of this.stores_) {
+      if (s === store) {
+        return source;
+      }
     }
+    throw new Error("Source not found for the given store.");
+  }
 
-    const viewBounds2D = camera.getWorldViewRect();
-    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
-    const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
+  public update() {
+    for (const [_, store] of this.stores_) {
+      const updatedChunks = this.updateAndCollectChunkChanges(store);
 
-    for (const [_, source] of this.sources_) {
-      const updatedChunks = source.updateAndCollectChunkChanges(
-        lodFactor,
-        viewBounds2D
-      );
       for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
         } else if (chunk.state === "queued") {
           this.queue_.enqueue(chunk, (signal) =>
-            source.loadChunkData(chunk, signal)
+            store.loadChunkData(chunk, signal)
           );
         }
       }
     }
 
     this.queue_.flush();
+  }
+
+  private updateAndCollectChunkChanges(store: ChunkStore): Set<Chunk> {
+    const views = this.views_.get(store);
+    if (!views) return new Set<Chunk>();
+    const affectedChunks = new Set<Chunk>();
+    for (const view of views) {
+      for (const [chunk, _viewState] of view.chunkViewStates) {
+        affectedChunks.add(chunk);
+      }
+    }
+
+    for (const chunk of affectedChunks) {
+      this.aggregateChunkViewStates(chunk, store);
+    }
+
+    return affectedChunks;
+  }
+
+  private aggregateChunkViewStates(chunk: Chunk, store: ChunkStore): void {
+    const views = this.views_.get(store);
+    if (!views) return;
+    let anyVisible = false;
+    let anyPrefetch = false;
+    let minPriority: number | null = null;
+    let orderKeyForMinPriority: number | null = null;
+
+    for (const view of views) {
+      const viewState = view.chunkViewStates.get(chunk);
+      if (!viewState) continue;
+
+      if (viewState.visible) anyVisible = true;
+      if (viewState.prefetch) anyPrefetch = true;
+
+      if (viewState.priority !== null) {
+        if (minPriority === null || viewState.priority < minPriority) {
+          minPriority = viewState.priority;
+          orderKeyForMinPriority = viewState.orderKey;
+        }
+      }
+
+      if (
+        !viewState.visible &&
+        !viewState.prefetch &&
+        viewState.priority === null
+      ) {
+        view.maybeForgetChunk(chunk);
+      }
+    }
+
+    chunk.visible = anyVisible;
+    chunk.prefetch = anyPrefetch;
+    chunk.priority = minPriority;
+    chunk.orderKey = orderKeyForMinPriority;
+
+    const shouldEnqueueChunk =
+      chunk.priority !== null && chunk.state === "unloaded";
+    if (shouldEnqueueChunk) {
+      chunk.state = "queued";
+      return;
+    }
+
+    const shouldCancelQueuedChunk =
+      chunk.priority === null && chunk.state === "queued";
+    if (shouldCancelQueuedChunk) {
+      chunk.state = "unloaded";
+      return;
+    }
+
+    const shouldDisposeChunk =
+      chunk.state === "loaded" && !chunk.visible && !chunk.prefetch;
+    if (shouldDisposeChunk) {
+      chunk.data = undefined;
+      chunk.state = "unloaded";
+      chunk.priority = null;
+      chunk.orderKey = null;
+      chunk.prefetch = false;
+      Logger.debug(
+        "ChunkManager",
+        `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
+      );
+    }
   }
 }
