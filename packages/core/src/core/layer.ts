@@ -144,4 +144,12 @@ export abstract class Layer {
       return mode === "front-to-back" ? diff : -diff;
     });
   }
+
+  /**
+   * Get uniforms for shader program. Override in derived classes that need custom uniforms.
+   * @returns Object containing uniform name-value pairs
+   */
+  public getUniforms(): Record<string, unknown> {
+    return {}; // Default implementation returns no uniforms
+  }
 }
