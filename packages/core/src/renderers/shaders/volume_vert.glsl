@@ -7,10 +7,10 @@ uniform mat4 Projection;
 uniform mat4 ModelView;
 
 out vec2 TexCoords;
-out vec4 NormalizedPosition;
+out vec3 ModelPosition;
 
 void main() {
     TexCoords = inUV;
+    ModelPosition = inPosition;
     gl_Position = Projection * ModelView * vec4(inPosition, 1.0);
-    NormalizedPosition = gl_Position;
 }
