@@ -18,7 +18,7 @@ uniform mat4 ModelView;
 
 // Volume bounding box (model space)
 uniform vec3 BoxSize;
-// uniform bool ShowHitMisses;
+uniform bool ShowHitMisses;
 
 const vec3 boxMin = vec3(0.00);
 const vec3 boxMax = vec3(1.000);
@@ -66,10 +66,10 @@ void main() {
 
     // Discard fragments that miss the volume
     if (!hit) {
-        // if (ShowHitMisses) {
-        //     fragColor = vec4(1.0, 0.0, 0.0, 1.0);
-        //     return;
-        // }
+        if (ShowHitMisses) {
+            fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+            return;
+        }
         discard;
     }
 

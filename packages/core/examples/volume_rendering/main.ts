@@ -56,6 +56,7 @@ idetik.start();
 const controls = {
   showWireframes: volumeLayer.debugMode,
   showTimePointOverlay: true,
+  showHitMisses: false,
   lod: 2,
 };
 
@@ -91,6 +92,14 @@ overlaysFolder
   .onChange((show: boolean) => {
     volumeLayer.debugMode = show;
     controls.showWireframes = show;
+  });
+
+overlaysFolder
+  .add(controls, "showHitMisses")
+  .name("Show Hit Misses")
+  .onChange((show: boolean) => {
+    controls.showHitMisses = show;
+    volumeLayer.hitMisses = show;
   });
 
 const volumeFolder = gui.addFolder("Volume Rendering");

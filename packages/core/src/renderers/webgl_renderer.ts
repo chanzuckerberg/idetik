@@ -198,7 +198,12 @@ export class WebGLRenderer extends Renderer {
 
     const objectUniforms = object.getUniforms();
     const cameraUniforms = camera.getUniforms();
-    const allUniforms = { ...objectUniforms, ...cameraUniforms };
+    const layerUniforms = layer.getUniforms();
+    const allUniforms = {
+      ...layerUniforms,
+      ...cameraUniforms,
+      ...objectUniforms,
+    };
 
     for (const uniformName of program.uniformNames) {
       switch (uniformName) {

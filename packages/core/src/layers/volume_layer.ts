@@ -29,6 +29,7 @@ export class VolumeLayer extends Layer {
   private chunkManagerSource_?: ChunkManagerSource;
   private lod_ = -1;
   private debugMode_ = false;
+  private hitMisses_ = false;
 
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
@@ -49,6 +50,20 @@ export class VolumeLayer extends Layer {
 
   public set debugMode(debug: boolean) {
     this.debugMode_ = debug;
+  }
+
+  public get hitMisses(): boolean {
+    return this.hitMisses_;
+  }
+
+  public set hitMisses(showHitMisses: boolean) {
+    this.hitMisses_ = showHitMisses;
+  }
+
+  public getUniforms(): Record<string, unknown> {
+    return {
+      ShowHitMisses: Number(this.hitMisses),
+    };
   }
 
   public get sourcePolicy(): Readonly<ImageSourcePolicy> {
