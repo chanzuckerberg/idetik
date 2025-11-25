@@ -16,7 +16,7 @@ function expectVec3Close(v: vec3, [x, y, z]: [number, number, number]) {
 test("toVec3 basic", () => {
   const phi = PI_OVER_4;
   const theta = PI_OVER_4;
-  const s = new Spherical(1, phi, theta);
+  const s = new Spherical({ radius: 1, phi: phi, theta: theta });
   const v = s.toVec3();
 
   const expect_x = Math.sin(phi) * Math.cos(theta);
@@ -29,7 +29,7 @@ test("toVec3 basic", () => {
 test("toVec3 south pole, θ = +π/2 ignores phi", () => {
   const phi = PI_OVER_4;
   const theta = PI_OVER_2;
-  const s = new Spherical(3, phi, theta);
+  const s = new Spherical({ radius: 3, phi: phi, theta: theta });
   const v = s.toVec3();
 
   expectVec3Close(v, [0, -3, 0]);
@@ -38,7 +38,7 @@ test("toVec3 south pole, θ = +π/2 ignores phi", () => {
 test("toVec3 equator, phi = π/2 → +X", () => {
   const phi = PI_OVER_2;
   const theta = 0;
-  const s = new Spherical(3, phi, theta);
+  const s = new Spherical({ radius: 3, phi: phi, theta: theta });
   const v = s.toVec3();
 
   expectVec3Close(v, [3, 0, 0]);
@@ -47,7 +47,7 @@ test("toVec3 equator, phi = π/2 → +X", () => {
 test("toVec3 equator, phi = 0 → +Z", () => {
   const phi = 0;
   const theta = 0;
-  const s = new Spherical(3, phi, theta);
+  const s = new Spherical({ radius: 3, phi: phi, theta: theta });
   const v = s.toVec3();
 
   expectVec3Close(v, [0, 0, 3]);

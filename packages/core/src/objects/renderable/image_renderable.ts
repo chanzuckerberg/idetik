@@ -10,6 +10,13 @@ import {
 import { vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 
+export type ImageRenderableProps = {
+  width: number;
+  height: number;
+  texture: Texture;
+  channels?: ChannelProps[];
+};
+
 type SingleUniformValues = {
   ImageSampler: number;
   Color: vec3;
@@ -28,14 +35,14 @@ type ArrayUniformValues = {
 export class ImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
 
-  constructor(
-    width: number,
-    height: number,
-    texture: Texture,
-    channels: ChannelProps[] = []
-  ) {
+  constructor({ width, height, texture, channels = [] }: ImageRenderableProps) {
     super();
-    this.geometry = new PlaneGeometry(width, height, 1, 1);
+    this.geometry = new PlaneGeometry({
+      width,
+      height,
+      widthSegments: 1,
+      heightSegments: 1,
+    });
     this.setTexture(0, texture);
     this.channels_ = validateChannels(texture, channels);
     this.programName = textureToShader(texture);

@@ -64,7 +64,7 @@ const layer = new ImageSeriesLayer({
 
 const overlayChannelProps = structuredClone(channelProps);
 overlayChannelProps[0].visible = true;
-overlayChannelProps[0].color = new Color(1, 1, 0); // yellow-ish red+green
+overlayChannelProps[0].color = new Color({ r: 1, g: 1, b: 0 }); // yellow-ish red+green
 overlayChannelProps[1].visible = false;
 overlayChannelProps[1].color = Color.BLUE;
 overlayChannelProps[2].visible = false;
@@ -112,7 +112,12 @@ overlayLayer.setIndex(slider.valueAsNumber - timeInterval.start);
 layer.preloadSeries();
 overlayLayer.preloadSeries();
 
-const camera = new OrthographicCamera(0, 1920, 0, 1440);
+const camera = new OrthographicCamera({
+  left: 0,
+  right: 1920,
+  top: 0,
+  bottom: 1440,
+});
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [

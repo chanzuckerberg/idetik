@@ -113,7 +113,12 @@ tSlider.addEventListener("input", (event) => {
   }, 20);
 });
 
-const camera = new OrthographicCamera(0, 128, 0, 128);
+const camera = new OrthographicCamera({
+  left: 0,
+  right: 128,
+  top: 0,
+  bottom: 128,
+});
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [

@@ -9,47 +9,80 @@ test("default constructor yields an empty box", () => {
 });
 
 test("non-empty when min <= max on both axes", () => {
-  const b = new Box2(vec2.fromValues(0, 0), vec2.fromValues(1, 1));
+  const b = new Box2({
+    min: vec2.fromValues(0, 0),
+    max: vec2.fromValues(1, 1),
+  });
   expect(b.isEmpty()).toBe(false);
 });
 
 test("isEmpty detects inverted bounds", () => {
-  const b = new Box2(vec2.fromValues(1, 1), vec2.fromValues(0, 0));
+  const b = new Box2({
+    min: vec2.fromValues(1, 1),
+    max: vec2.fromValues(0, 0),
+  });
   expect(b.isEmpty()).toBe(true);
 });
 
 test("intersects: overlapping boxes return true", () => {
-  const a = new Box2(vec2.fromValues(0, 0), vec2.fromValues(2, 2));
-  const b = new Box2(vec2.fromValues(1, 1), vec2.fromValues(3, 3));
+  const a = new Box2({
+    min: vec2.fromValues(0, 0),
+    max: vec2.fromValues(2, 2),
+  });
+  const b = new Box2({
+    min: vec2.fromValues(1, 1),
+    max: vec2.fromValues(3, 3),
+  });
   expect(Box2.intersects(a, b)).toBe(true);
   expect(Box2.intersects(b, a)).toBe(true); // symmetry
 });
 
 test("intersects: separated boxes return false", () => {
-  const a = new Box2(vec2.fromValues(0, 0), vec2.fromValues(1, 1));
-  const b = new Box2(vec2.fromValues(2, 2), vec2.fromValues(3, 3));
+  const a = new Box2({
+    min: vec2.fromValues(0, 0),
+    max: vec2.fromValues(1, 1),
+  });
+  const b = new Box2({
+    min: vec2.fromValues(2, 2),
+    max: vec2.fromValues(3, 3),
+  });
   expect(Box2.intersects(a, b)).toBe(false);
   expect(Box2.intersects(b, a)).toBe(false); // symmetry
 });
 
 test("intersects: touching edges do not count as intersecting", () => {
-  const a = new Box2(vec2.fromValues(0, 0), vec2.fromValues(2, 2));
-  const b = new Box2(vec2.fromValues(2, 0), vec2.fromValues(4, 2));
-  const c = new Box2(vec2.fromValues(0, 2), vec2.fromValues(2, 4));
+  const a = new Box2({
+    min: vec2.fromValues(0, 0),
+    max: vec2.fromValues(2, 2),
+  });
+  const b = new Box2({
+    min: vec2.fromValues(2, 0),
+    max: vec2.fromValues(4, 2),
+  });
+  const c = new Box2({
+    min: vec2.fromValues(0, 2),
+    max: vec2.fromValues(2, 4),
+  });
   expect(Box2.intersects(a, b)).toBe(false);
   expect(Box2.intersects(a, c)).toBe(false);
 });
 
 test("intersects: empty and non-empty box do not intersect", () => {
   const a = new Box2(); // empty
-  const b = new Box2(vec2.fromValues(0, 0), vec2.fromValues(1, 1));
+  const b = new Box2({
+    min: vec2.fromValues(0, 0),
+    max: vec2.fromValues(1, 1),
+  });
   expect(a.isEmpty()).toBe(true);
   expect(b.isEmpty()).toBe(false);
   expect(Box2.intersects(a, b)).toBe(false);
 });
 
 test("clone creates a deep copy", () => {
-  const a = new Box2(vec2.fromValues(0, 0), vec2.fromValues(1, 1));
+  const a = new Box2({
+    min: vec2.fromValues(0, 0),
+    max: vec2.fromValues(1, 1),
+  });
   const b = a.clone();
 
   a.min[0] = 10;
@@ -62,7 +95,10 @@ test("clone creates a deep copy", () => {
 });
 
 test("toRect: converts box to rectangle format", () => {
-  const box = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
+  const box = new Box2({
+    min: vec2.fromValues(10, 20),
+    max: vec2.fromValues(110, 220),
+  });
   const result = box.toRect();
 
   expect(result).toEqual({
@@ -74,10 +110,10 @@ test("toRect: converts box to rectangle format", () => {
 });
 
 test("toRect: preserves floating point values", () => {
-  const box = new Box2(
-    vec2.fromValues(10.7, 20.9),
-    vec2.fromValues(110.3, 220.1)
-  );
+  const box = new Box2({
+    min: vec2.fromValues(10.7, 20.9),
+    max: vec2.fromValues(110.3, 220.1),
+  });
   const result = box.toRect();
 
   expect(result.x).toBeCloseTo(10.7);
@@ -87,10 +123,10 @@ test("toRect: preserves floating point values", () => {
 });
 
 test("floor: floors coordinates to integers", () => {
-  const box = new Box2(
-    vec2.fromValues(10.7, 20.9),
-    vec2.fromValues(110.3, 220.1)
-  );
+  const box = new Box2({
+    min: vec2.fromValues(10.7, 20.9),
+    max: vec2.fromValues(110.3, 220.1),
+  });
   const floored = box.floor();
 
   expect(floored.min).toEqual(vec2.fromValues(10, 20));
@@ -98,9 +134,18 @@ test("floor: floors coordinates to integers", () => {
 });
 
 test("equals: compares boxes for exact equality", () => {
-  const a = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
-  const b = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
-  const c = new Box2(vec2.fromValues(15, 25), vec2.fromValues(115, 225));
+  const a = new Box2({
+    min: vec2.fromValues(10, 20),
+    max: vec2.fromValues(110, 220),
+  });
+  const b = new Box2({
+    min: vec2.fromValues(10, 20),
+    max: vec2.fromValues(110, 220),
+  });
+  const c = new Box2({
+    min: vec2.fromValues(15, 25),
+    max: vec2.fromValues(115, 225),
+  });
 
   expect(Box2.equals(a, b)).toBe(true);
   expect(Box2.equals(a, c)).toBe(false);

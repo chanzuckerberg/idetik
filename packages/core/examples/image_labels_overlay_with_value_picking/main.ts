@@ -65,7 +65,12 @@ const labelsRegion: Region = [
   { dimension: "X", index: { type: "full" } },
 ];
 
-const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
+const camera = new OrthographicCamera({
+  left: 0,
+  right: xStopPoint,
+  top: 0,
+  bottom: yStopPoint,
+});
 const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
 
 // Get the info div for displaying pick results

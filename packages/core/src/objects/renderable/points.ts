@@ -6,17 +6,22 @@ import { Texture2DArray } from "../textures/texture_2d_array";
 import { Geometry } from "../../core/geometry";
 
 // TODO: add a border (or "secondary") color to improve contrast against background
-type PointProperties = {
+export type PointProperties = {
   position: vec3;
   color: Color;
   size: number;
   markerIndex: number;
 };
 
+export type PointsProps = {
+  points: PointProperties[];
+  markerAtlas: Texture2DArray;
+};
+
 export class Points extends RenderableObject {
   private atlas_: Texture2DArray;
 
-  constructor(points: PointProperties[], markerAtlas: Texture2DArray) {
+  constructor({ points, markerAtlas }: PointsProps) {
     super();
     this.programName = "points";
     this.atlas_ = markerAtlas;

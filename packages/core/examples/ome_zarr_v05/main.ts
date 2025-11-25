@@ -60,12 +60,12 @@ const axes = new AxesLayer({
   length: 0.75 * xInfo.scale * xInfo.size,
   width: 0.01,
 });
-const camera = new OrthographicCamera(
-  xInfo.offset,
-  xInfo.offset + xInfo.scale * xInfo.size,
-  yInfo.offset,
-  yInfo.offset + yInfo.scale * yInfo.size
-);
+const camera = new OrthographicCamera({
+  left: xInfo.offset,
+  right: xInfo.offset + xInfo.scale * xInfo.size,
+  top: yInfo.offset,
+  bottom: yInfo.offset + yInfo.scale * yInfo.size,
+});
 const cameraControls = new PanZoomControls(camera);
 
 const idetik = new Idetik({

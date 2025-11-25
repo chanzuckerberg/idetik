@@ -212,10 +212,10 @@ export class ChunkStoreView {
     vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
 
     const [zMin, zMax] = this.getZBounds(sliceCoords);
-    const viewBounds3D = new Box3(
-      vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
-      vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
-    );
+    const viewBounds3D = new Box3({
+      min: vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
+      max: vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax),
+    });
 
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
@@ -344,14 +344,14 @@ export class ChunkStoreView {
   }
 
   private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
-    const chunkBounds = new Box3(
-      vec3.fromValues(chunk.offset.x, chunk.offset.y, chunk.offset.z),
-      vec3.fromValues(
+    const chunkBounds = new Box3({
+      min: vec3.fromValues(chunk.offset.x, chunk.offset.y, chunk.offset.z),
+      max: vec3.fromValues(
         chunk.offset.x + chunk.shape.x * chunk.scale.x,
         chunk.offset.y + chunk.shape.y * chunk.scale.y,
         chunk.offset.z + chunk.shape.z * chunk.scale.z
-      )
-    );
+      ),
+    });
     return Box3.intersects(chunkBounds, bounds);
   }
 
@@ -406,18 +406,18 @@ export class ChunkStoreView {
       padZ = zLod.chunkSize * zLod.scale * this.policy_.prefetch.z;
     }
 
-    return new Box3(
-      vec3.fromValues(
+    return new Box3({
+      min: vec3.fromValues(
         bounds.min[0] - padX,
         bounds.min[1] - padY,
         bounds.min[2] - padZ
       ),
-      vec3.fromValues(
+      max: vec3.fromValues(
         bounds.max[0] + padX,
         bounds.max[1] + padY,
         bounds.max[2] + padZ
-      )
-    );
+      ),
+    });
   }
 
   private squareDistance2D(chunk: Chunk, center: ReadonlyVec2): number {

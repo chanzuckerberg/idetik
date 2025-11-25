@@ -1,5 +1,10 @@
 import { vec2 } from "gl-matrix";
 
+export type Box2Props = {
+  min?: vec2;
+  max?: vec2;
+};
+
 export class Box2 {
   public min: vec2;
   public max: vec2;
@@ -10,13 +15,13 @@ export class Box2 {
    * This allows expansion functions to work without special-casing
    * the first element, and avoids biasing toward (0,0).
    */
-  constructor(min?: vec2, max?: vec2) {
+  constructor({ min, max }: Box2Props = {}) {
     this.min = min ? vec2.clone(min) : vec2.fromValues(+Infinity, +Infinity);
     this.max = max ? vec2.clone(max) : vec2.fromValues(-Infinity, -Infinity);
   }
 
   public clone() {
-    return new Box2(this.min, this.max);
+    return new Box2({ min: this.min, max: this.max });
   }
 
   public isEmpty(): boolean {
@@ -35,10 +40,10 @@ export class Box2 {
   }
 
   public floor(): Box2 {
-    return new Box2(
-      vec2.fromValues(Math.floor(this.min[0]), Math.floor(this.min[1])),
-      vec2.fromValues(Math.floor(this.max[0]), Math.floor(this.max[1]))
-    );
+    return new Box2({
+      min: vec2.fromValues(Math.floor(this.min[0]), Math.floor(this.min[1])),
+      max: vec2.fromValues(Math.floor(this.max[0]), Math.floor(this.max[1])),
+    });
   }
 
   public toRect(): { x: number; y: number; width: number; height: number } {

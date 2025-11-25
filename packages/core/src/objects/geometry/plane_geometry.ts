@@ -1,12 +1,19 @@
 import { Geometry } from "../../core/geometry";
 
+export type PlaneGeometryProps = {
+  width: number;
+  height: number;
+  widthSegments: number;
+  heightSegments: number;
+};
+
 export class PlaneGeometry extends Geometry {
-  constructor(
-    width: number,
-    height: number,
-    widthSegments: number,
-    heightSegments: number
-  ) {
+  constructor({
+    width,
+    height,
+    widthSegments,
+    heightSegments,
+  }: PlaneGeometryProps) {
     super();
     const vertex: number[] = [];
     const index: number[] = [];

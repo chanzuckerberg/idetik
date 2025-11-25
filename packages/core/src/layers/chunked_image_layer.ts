@@ -1,4 +1,4 @@
-import { Layer, LayerOptions, RenderContext } from "../core/layer";
+import { Layer, LayerProps, RenderContext } from "../core/layer";
 import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
@@ -15,7 +15,7 @@ import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
 
-export type ChunkedImageLayerProps = LayerOptions & {
+export type ChunkedImageLayerProps = LayerProps & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
@@ -45,10 +45,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private lastPresentationTimeCoord_?: number;
 
   private readonly wireframeColors_ = [
-    new Color(0.6, 0.3, 0.3),
-    new Color(0.3, 0.6, 0.4),
-    new Color(0.4, 0.4, 0.7),
-    new Color(0.6, 0.5, 0.3),
+    new Color({ r: 0.6, g: 0.3, b: 0.3, a: 1.0 }),
+    new Color({ r: 0.3, g: 0.6, b: 0.4, a: 1.0 }),
+    new Color({ r: 0.4, g: 0.4, b: 0.7, a: 1.0 }),
+    new Color({ r: 0.6, g: 0.5, b: 0.3, a: 1.0 }),
   ];
 
   constructor({
@@ -234,12 +234,15 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private createImage(chunk: Chunk) {
-    const image = new ImageRenderable(
-      chunk.shape.x,
-      chunk.shape.y,
-      Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
-      this.channelProps_ ?? [{}]
-    );
+    const image = new ImageRenderable({
+      width: chunk.shape.x,
+      height: chunk.shape.y,
+      texture: Texture2DArray.createWithChunk(
+        chunk,
+        this.getDataForImage(chunk)
+      ),
+      channels: this.channelProps_ ?? [{}],
+    });
     this.updateImageChunk(image, chunk);
     return image;
   }

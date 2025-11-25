@@ -52,7 +52,7 @@ const channelProps: ChannelProps[] = [
   { contrastLimits: initialContrastLimits },
 ];
 
-const camera = new OrthographicCamera(left, right, top, bottom);
+const camera = new OrthographicCamera({ left, right, top, bottom });
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords,

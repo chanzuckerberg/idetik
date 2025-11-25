@@ -17,7 +17,7 @@ function createTestElement(id: string): HTMLElement {
 }
 
 function createTestCamera(): OrthographicCamera {
-  return new OrthographicCamera(-1, 1, -1, 1);
+  return new OrthographicCamera({ left: -1, right: 1, top: -1, bottom: 1 });
 }
 
 function createTestContext(): IdetikContext {

@@ -113,7 +113,7 @@ slider.addEventListener("input", (event) => {
 });
 
 const { xMin: left, xMax: right, yMin: top, yMax: bottom } = lineLayer.extent;
-const camera = new OrthographicCamera(left, right, top, bottom);
+const camera = new OrthographicCamera({ left, right, top, bottom });
 camera.zoom(0.5);
 
 new Idetik({

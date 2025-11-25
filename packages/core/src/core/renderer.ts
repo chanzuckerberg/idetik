@@ -3,11 +3,15 @@ import { Color, ColorLike } from "./color";
 import { Layer } from "./layer";
 import { Viewport } from "./viewport";
 
+export type RendererProps = {
+  canvas: HTMLCanvasElement;
+};
+
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
   private width_ = 0;
   private height_ = 0;
-  private backgroundColor_: Color = new Color(0, 0, 0, 0);
+  private backgroundColor_: Color = new Color({ r: 0, g: 0, b: 0, a: 0 });
 
   protected renderedObjects_ = 0;
   protected abstract resize(width: number, height: number): void;

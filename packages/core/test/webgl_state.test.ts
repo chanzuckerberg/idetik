@@ -18,7 +18,10 @@ test("setViewport sets correct viewport parameters", () => {
   const gl = createTestWebGLContext();
   const webglState = new WebGLState(gl);
 
-  const viewport = new Box2(vec2.fromValues(10, 20), vec2.fromValues(110, 220));
+  const viewport = new Box2({
+    min: vec2.fromValues(10, 20),
+    max: vec2.fromValues(110, 220),
+  });
 
   webglState.setViewport(viewport);
 
@@ -30,10 +33,10 @@ test("setViewport with floating point values floors to integers", () => {
   const gl = createTestWebGLContext();
   const webglState = new WebGLState(gl);
 
-  const viewport = new Box2(
-    vec2.fromValues(10.7, 20.9),
-    vec2.fromValues(110.3, 220.1)
-  );
+  const viewport = new Box2({
+    min: vec2.fromValues(10.7, 20.9),
+    max: vec2.fromValues(110.3, 220.1),
+  });
 
   webglState.setViewport(viewport);
 
@@ -56,7 +59,10 @@ test("setScissor sets scissor region", () => {
   const gl = createTestWebGLContext();
   const webglState = new WebGLState(gl);
 
-  const scissorBox = new Box2(vec2.fromValues(5, 10), vec2.fromValues(55, 110));
+  const scissorBox = new Box2({
+    min: vec2.fromValues(5, 10),
+    max: vec2.fromValues(55, 110),
+  });
 
   webglState.setScissor(scissorBox);
 
@@ -68,10 +74,10 @@ test("setScissorBox with floating point values floors to integers", () => {
   const gl = createTestWebGLContext();
   const webglState = new WebGLState(gl);
 
-  const scissorBox = new Box2(
-    vec2.fromValues(5.7, 10.9),
-    vec2.fromValues(55.3, 110.1)
-  );
+  const scissorBox = new Box2({
+    min: vec2.fromValues(5.7, 10.9),
+    max: vec2.fromValues(55.3, 110.1),
+  });
 
   webglState.setScissor(scissorBox);
 

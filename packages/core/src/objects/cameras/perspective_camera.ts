@@ -6,7 +6,7 @@ const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 const MIN_FOV = 0.1; // degrees
 const MAX_FOV = 180 - MIN_FOV; // degrees
 
-type PerspectiveCameraOptions = {
+export type PerspectiveCameraProps = {
   fov?: number;
   aspectRatio?: number;
   near?: number;
@@ -18,7 +18,7 @@ export class PerspectiveCamera extends Camera {
   private fov_: number;
   private aspectRatio_: number;
 
-  constructor(options: PerspectiveCameraOptions = {}) {
+  constructor(options: PerspectiveCameraProps = {}) {
     const {
       fov = DEFAULT_FOV,
       aspectRatio = DEFAULT_ASPECT_RATIO,

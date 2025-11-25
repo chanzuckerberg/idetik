@@ -1,11 +1,17 @@
 import { vec3 } from "gl-matrix";
 
+export type SphericalProps = {
+  radius: number;
+  phi: number;
+  theta: number;
+};
+
 export class Spherical {
   public radius;
   public phi;
   public theta;
 
-  constructor(radius: number, phi: number, theta: number) {
+  constructor({ radius, phi, theta }: SphericalProps) {
     this.radius = radius;
     this.phi = phi;
     this.theta = theta;

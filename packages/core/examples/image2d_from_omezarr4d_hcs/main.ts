@@ -33,7 +33,12 @@ wellPaths.forEach((path) => {
   wellSelector.value = initialWellPath;
 });
 
-const camera = new OrthographicCamera(0, 840, 0, 360);
+const camera = new OrthographicCamera({
+  left: 0,
+  right: 840,
+  top: 0,
+  bottom: 360,
+});
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [

@@ -4,15 +4,24 @@ import { BoxGeometry } from "../geometry/box_geometry";
 import { TextureDataType } from "../textures/texture";
 import { Texture3D } from "../textures/texture_3d";
 
+export type VolumeRenderableProps = {
+  width: number;
+  height: number;
+  depth: number;
+  texture: Texture3D;
+};
+
 export class VolumeRenderable extends RenderableObject {
-  constructor(
-    width: number,
-    height: number,
-    depth: number,
-    texture: Texture3D
-  ) {
+  constructor({ width, height, depth, texture }: VolumeRenderableProps) {
     super();
-    this.geometry = new BoxGeometry(width, height, depth, 1, 1, 1);
+    this.geometry = new BoxGeometry({
+      width,
+      height,
+      depth,
+      widthSegments: 1,
+      heightSegments: 1,
+      depthSegments: 1,
+    });
     this.cullFaceMode = "back";
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);

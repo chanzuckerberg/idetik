@@ -2,21 +2,73 @@ import { vec3, vec4 } from "gl-matrix";
 
 export type ColorLike = Color | vec3 | vec4;
 
+export type ColorProps = {
+  r: number;
+  g: number;
+  b: number;
+  a?: number;
+};
+
 export class Color {
-  public static readonly RED: Color = new Color(1.0, 0.0, 0.0);
-  public static readonly GREEN: Color = new Color(0.0, 1.0, 0.0);
-  public static readonly BLUE: Color = new Color(0.0, 0.0, 1.0);
-  public static readonly YELLOW: Color = new Color(1.0, 1.0, 0.0);
-  public static readonly MAGENTA: Color = new Color(1.0, 0.0, 1.0);
-  public static readonly CYAN: Color = new Color(0.0, 1.0, 1.0);
-  public static readonly BLACK: Color = new Color(0.0, 0.0, 0.0);
-  public static readonly WHITE: Color = new Color(1.0, 1.0, 1.0);
-  public static readonly TRANSPARENT: Color = new Color(0.0, 0.0, 0.0, 0.0);
+  public static readonly RED: Color = new Color({
+    r: 1.0,
+    g: 0.0,
+    b: 0.0,
+    a: 1.0,
+  });
+  public static readonly GREEN: Color = new Color({
+    r: 0.0,
+    g: 1.0,
+    b: 0.0,
+    a: 1.0,
+  });
+  public static readonly BLUE: Color = new Color({
+    r: 0.0,
+    g: 0.0,
+    b: 1.0,
+    a: 1.0,
+  });
+  public static readonly YELLOW: Color = new Color({
+    r: 1.0,
+    g: 1.0,
+    b: 0.0,
+    a: 1.0,
+  });
+  public static readonly MAGENTA: Color = new Color({
+    r: 1.0,
+    g: 0.0,
+    b: 1.0,
+    a: 1.0,
+  });
+  public static readonly CYAN: Color = new Color({
+    r: 0.0,
+    g: 1.0,
+    b: 1.0,
+    a: 1.0,
+  });
+  public static readonly BLACK: Color = new Color({
+    r: 0.0,
+    g: 0.0,
+    b: 0.0,
+    a: 1.0,
+  });
+  public static readonly WHITE: Color = new Color({
+    r: 1.0,
+    g: 1.0,
+    b: 1.0,
+    a: 1.0,
+  });
+  public static readonly TRANSPARENT: Color = new Color({
+    r: 0.0,
+    g: 0.0,
+    b: 0.0,
+    a: 0.0,
+  });
 
   // RGBA color values in the range [0, 1]
   private readonly rgba_: readonly [number, number, number, number];
 
-  constructor(r: number, g: number, b: number, a?: number) {
+  constructor({ r, g, b, a }: ColorProps) {
     if (r < 0 || r > 1 || g < 0 || g > 1 || b < 0 || b > 1) {
       throw new Error("RGB values must be in the range [0, 1]");
     }
@@ -69,7 +121,12 @@ export class Color {
     }
 
     if (Array.isArray(colorLike)) {
-      return new Color(colorLike[0], colorLike[1], colorLike[2], colorLike[3]);
+      return new Color({
+        r: colorLike[0],
+        g: colorLike[1],
+        b: colorLike[2],
+        a: colorLike[3],
+      });
     }
 
     throw new Error("Unsupported color format");
@@ -80,12 +137,12 @@ export class Color {
     if (!result) {
       throw new Error("Invalid RGB hex, use form '#RRGGBB'");
     }
-    return new Color(
-      parseInt(result[1], 16) / 255,
-      parseInt(result[2], 16) / 255,
-      parseInt(result[3], 16) / 255,
-      1.0
-    );
+    return new Color({
+      r: parseInt(result[1], 16) / 255,
+      g: parseInt(result[2], 16) / 255,
+      b: parseInt(result[3], 16) / 255,
+      a: 1.0,
+    });
   }
 
   private toHexComponent(value: number): string {

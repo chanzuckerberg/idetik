@@ -13,7 +13,7 @@ type StateChangeCallback = (
   prevState?: LayerState
 ) => void;
 
-export interface LayerOptions {
+export interface LayerProps {
   transparent?: boolean;
   opacity?: number;
   blendMode?: blendMode;
@@ -38,7 +38,7 @@ export abstract class Layer {
     transparent = false,
     opacity = 1.0,
     blendMode = "normal",
-  }: LayerOptions = {}) {
+  }: LayerProps = {}) {
     if (opacity < 0 || opacity > 1) {
       Logger.warn(
         "Layer",

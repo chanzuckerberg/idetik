@@ -17,7 +17,7 @@ export interface ViewportConfig {
   cameraControls?: CameraControls;
 }
 
-interface ViewportProps extends ViewportConfig {
+export interface ViewportProps extends ViewportConfig {
   id: string;
   element: HTMLElement;
   layerManager: LayerManager;
@@ -85,10 +85,10 @@ export class Viewport {
     const width = Math.floor(viewportRect.width);
     const height = Math.floor(viewportRect.height);
 
-    return new Box2(
-      vec2.fromValues(x, y),
-      vec2.fromValues(x + width, y + height)
-    );
+    return new Box2({
+      min: vec2.fromValues(x, y),
+      max: vec2.fromValues(x + width, y + height),
+    });
   }
 
   public clientToClip(position: vec2, depth: number = 0): vec3 {
@@ -115,10 +115,10 @@ export class Viewport {
     const width = viewportRect.width * devicePixelRatio;
     const height = viewportRect.height * devicePixelRatio;
 
-    return new Box2(
-      vec2.fromValues(x, y),
-      vec2.fromValues(x + width, y + height)
-    );
+    return new Box2({
+      min: vec2.fromValues(x, y),
+      max: vec2.fromValues(x + width, y + height),
+    });
   }
 
   private updateAspectRatio(): void {

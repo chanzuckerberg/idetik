@@ -61,10 +61,10 @@ export class WebGLRenderer extends Renderer {
 
   public render(viewport: Viewport) {
     const viewportBox = viewport.getBoxRelativeTo(this.canvas);
-    const rendererBox = new Box2(
-      vec2.fromValues(0, 0),
-      vec2.fromValues(this.width, this.height)
-    );
+    const rendererBox = new Box2({
+      min: vec2.fromValues(0, 0),
+      max: vec2.fromValues(this.width, this.height),
+    });
     if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
       this.state_.setScissorTest(false);
     } else if (Box2.intersects(viewportBox, rendererBox)) {
@@ -215,10 +215,10 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected resize(width: number, height: number) {
-    const newViewport = new Box2(
-      vec2.fromValues(0, 0),
-      vec2.fromValues(width, height)
-    );
+    const newViewport = new Box2({
+      min: vec2.fromValues(0, 0),
+      max: vec2.fromValues(width, height),
+    });
     this.state_.setViewport(newViewport);
   }
 

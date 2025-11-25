@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerProps } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
@@ -9,7 +9,7 @@ import {
 } from "../objects/renderable/label_color_map";
 import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
-export type LabelImageSeriesLayerProps = LayerOptions & {
+export type LabelImageSeriesLayerProps = LayerProps & {
   source: ChunkSource;
   region: Region;
   seriesDimensionName: string;

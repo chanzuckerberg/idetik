@@ -6,6 +6,15 @@ const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 const DEFAULT_WIDTH = 128;
 const DEFAULT_HEIGHT = 128 / DEFAULT_ASPECT_RATIO;
 
+export type OrthographicCameraProps = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  near?: number;
+  far?: number;
+};
+
 export class OrthographicCamera extends Camera {
   // width_ and height_ should always be defined by constructor (see setFrame)
   private width_: number = DEFAULT_WIDTH;
@@ -13,14 +22,14 @@ export class OrthographicCamera extends Camera {
   private viewportAspectRatio_: number = DEFAULT_ASPECT_RATIO;
   private viewportSize_: [number, number] = [DEFAULT_WIDTH, DEFAULT_HEIGHT];
 
-  constructor(
-    left: number,
-    right: number,
-    top: number,
-    bottom: number,
+  constructor({
+    left,
+    right,
+    top,
+    bottom,
     near = 0.0,
-    far = 100.0
-  ) {
+    far = 100.0,
+  }: OrthographicCameraProps) {
     super();
     this.near_ = near;
     this.far_ = far;
@@ -74,10 +83,10 @@ export class OrthographicCamera extends Camera {
     topLeft = vec4.transformMat4(vec4.create(), topLeft, inv);
     bottomRight = vec4.transformMat4(vec4.create(), bottomRight, inv);
 
-    return new Box2(
-      vec2.fromValues(topLeft[0], topLeft[1]),
-      vec2.fromValues(bottomRight[0], bottomRight[1])
-    );
+    return new Box2({
+      min: vec2.fromValues(topLeft[0], topLeft[1]),
+      max: vec2.fromValues(bottomRight[0], bottomRight[1]),
+    });
   }
 
   protected updateProjectionMatrix() {

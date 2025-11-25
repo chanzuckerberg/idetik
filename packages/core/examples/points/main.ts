@@ -103,7 +103,10 @@ class Particles extends Layer {
         markerIndex: this.markerIndex_,
       };
     });
-    const pointsRenderable = new Points(scaledPoints, Particles.markerAtlas);
+    const pointsRenderable = new Points({
+      points: scaledPoints,
+      markerAtlas: Particles.markerAtlas,
+    });
     this.objects.length = 0;
     this.addObject(pointsRenderable);
   }
@@ -169,7 +172,11 @@ class Particles extends Layer {
     // to enable this, we can check/add OES_texture_float_linear.
     // we also don't need the precision of f32 for this so I'd like to use an R8
     // texture instead, but our Texture class does not yet support it.
-    const texture = new Texture2DArray(data, SPRITE_SIZE, SPRITE_SIZE);
+    const texture = new Texture2DArray({
+      data,
+      width: SPRITE_SIZE,
+      height: SPRITE_SIZE,
+    });
     texture.wrapR = "clamp_to_edge";
     texture.wrapS = "clamp_to_edge";
     texture.wrapT = "clamp_to_edge";
@@ -180,7 +187,7 @@ const ribosomes = new Particles(ribosomeLocations, Color.RED, "circle");
 const ferritin = new Particles(ferritinLocations, Color.GREEN, "triangle");
 const virusLike = new Particles(
   virusLikeLocations,
-  new Color(1.0, 0.0, 1.0),
+  new Color({ r: 1.0, g: 0.0, b: 1.0 }),
   "square"
 );
 ribosomes.setDepth(INITIAL_Z_POSITION);
@@ -214,7 +221,14 @@ const imageLayer = new ImageSeriesLayer({
   channelProps: [{ color: Color.WHITE, contrastLimits: [-0.00001, 0.00001] }],
 });
 
-const camera = new OrthographicCamera(0, 1024, 0, 1024, -10000, 10000);
+const camera = new OrthographicCamera({
+  left: 0,
+  right: 1024,
+  top: 0,
+  bottom: 1024,
+  near: -10000,
+  far: 10000,
+});
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [

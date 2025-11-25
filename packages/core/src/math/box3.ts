@@ -1,5 +1,10 @@
 import { mat4, vec3 } from "gl-matrix";
 
+export type Box3Props = {
+  min?: vec3;
+  max?: vec3;
+};
+
 export class Box3 {
   public min: vec3;
   public max: vec3;
@@ -10,7 +15,7 @@ export class Box3 {
    * This allows expansion functions to work without special-casing
    * the first element, and avoids biasing toward (0,0,0).
    */
-  constructor(min?: vec3, max?: vec3) {
+  constructor({ min, max }: Box3Props = {}) {
     this.min = min
       ? vec3.clone(min)
       : vec3.fromValues(+Infinity, +Infinity, +Infinity);
@@ -20,7 +25,7 @@ export class Box3 {
   }
 
   public clone() {
-    return new Box3(this.min, this.max);
+    return new Box3({ min: this.min, max: this.max });
   }
 
   public isEmpty(): boolean {

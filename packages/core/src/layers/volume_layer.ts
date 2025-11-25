@@ -9,9 +9,14 @@ export class VolumeLayer extends Layer {
     super();
 
     const data = new Int8Array([127, 0, 0, 127, 127, 0, 0, 127]);
-    const texture = new Texture3D(data, 2, 2, 2);
+    const texture = new Texture3D({ data, width: 2, height: 2, depth: 2 });
     texture.unpackAlignment = 1;
-    const renderable = new VolumeRenderable(1, 1, 1, texture);
+    const renderable = new VolumeRenderable({
+      width: 1,
+      height: 1,
+      depth: 1,
+      texture,
+    });
     renderable.wireframeEnabled = true;
 
     this.addObject(renderable);

@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerProps } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2D } from "../objects/textures/texture_2d";
@@ -11,7 +11,7 @@ import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 
-export type LabelImageLayerProps = LayerOptions & {
+export type LabelImageLayerProps = LayerProps & {
   source: ChunkSource;
   region: Region;
   colorMap?: LabelColorMapProps;

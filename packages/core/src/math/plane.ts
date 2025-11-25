@@ -1,10 +1,18 @@
 import { vec3 } from "gl-matrix";
 
+export type PlaneProps = {
+  normal?: vec3;
+  distance?: number;
+};
+
 export class Plane {
   public normal: vec3;
   public signedDistance: number;
 
-  constructor(normal: vec3 = vec3.fromValues(0, 1, 0), distance = 0) {
+  constructor({
+    normal = vec3.fromValues(0, 1, 0),
+    distance = 0,
+  }: PlaneProps = {}) {
     this.normal = vec3.clone(normal);
     this.signedDistance = distance;
   }

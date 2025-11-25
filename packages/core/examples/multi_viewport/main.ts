@@ -33,7 +33,7 @@ const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer();
 
 const sliceCoords1 = { t: 400, z: 200, c: 0 };
-const camera2D1 = new OrthographicCamera(left, right, top, bottom);
+const camera2D1 = new OrthographicCamera({ left, right, top, bottom });
 const imageLayer1 = new ChunkedImageLayer({
   source,
   sliceCoords: sliceCoords1,
@@ -42,7 +42,7 @@ const imageLayer1 = new ChunkedImageLayer({
 });
 
 const sliceCoords2 = { t: 400, z: 300, c: 0 };
-const camera2D2 = new OrthographicCamera(left, right, top, bottom);
+const camera2D2 = new OrthographicCamera({ left, right, top, bottom });
 const imageLayer2 = new ChunkedImageLayer({
   source,
   sliceCoords: sliceCoords2,

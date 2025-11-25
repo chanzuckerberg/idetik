@@ -3,7 +3,7 @@ import { Layer } from "../core/layer";
 import { ProjectedLine } from "../objects/renderable/projected_line";
 import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
 
-type TrackParameters = {
+export type TrackParameters = {
   path: vec3[];
   interpolation?: { pointsPerSegment: number; tangentFactor?: number };
   time?: number[];
@@ -16,9 +16,9 @@ export class TracksLayer extends Layer {
 
   private tracks_: TrackParameters[] = [];
 
-  constructor(tracks: TrackParameters[] = []) {
+  constructor(tracks?: TrackParameters[]) {
     super();
-    tracks.forEach((track) => this.addLine(track));
+    (tracks ?? []).forEach((track) => this.addLine(track));
     this.setState("ready");
   }
 

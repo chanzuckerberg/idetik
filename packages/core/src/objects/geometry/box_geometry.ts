@@ -3,15 +3,24 @@ import { Geometry } from "../../core/geometry";
 type Axis = "x" | "y" | "z";
 type Vec3Obj = Record<Axis, number>;
 
+export type BoxGeometryProps = {
+  width: number;
+  height: number;
+  depth: number;
+  widthSegments: number;
+  heightSegments: number;
+  depthSegments: number;
+};
+
 export class BoxGeometry extends Geometry {
-  constructor(
-    width: number,
-    height: number,
-    depth: number,
-    widthSegments: number,
-    heightSegments: number,
-    depthSegments: number
-  ) {
+  constructor({
+    width,
+    height,
+    depth,
+    widthSegments,
+    heightSegments,
+    depthSegments,
+  }: BoxGeometryProps) {
     super();
 
     const vertex: number[] = [];

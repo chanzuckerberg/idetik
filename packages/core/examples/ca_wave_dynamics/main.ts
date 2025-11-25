@@ -44,7 +44,7 @@ const channelProps: ChannelProps[] = [
   },
 ];
 
-const camera = new OrthographicCamera(left, right, top, bottom);
+const camera = new OrthographicCamera({ left, right, top, bottom });
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords,

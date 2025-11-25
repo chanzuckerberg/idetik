@@ -5,12 +5,18 @@ import {
 } from "../../objects/textures/texture";
 import { Chunk, ChunkData } from "../../data/chunk";
 
+export type Texture2DProps = {
+  data: DataTextureTypedArray;
+  width: number;
+  height: number;
+};
+
 export class Texture2D extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
   private readonly height_: number;
 
-  constructor(data: DataTextureTypedArray, width: number, height: number) {
+  constructor({ data, width, height }: Texture2DProps) {
     super();
     this.dataFormat = "scalar";
     this.dataType = bufferToDataType(data);
@@ -70,7 +76,11 @@ export class Texture2D extends Texture {
       );
     }
 
-    const texture = new Texture2D(source, chunk.shape.x, chunk.shape.y);
+    const texture = new Texture2D({
+      data: source,
+      width: chunk.shape.x,
+      height: chunk.shape.y,
+    });
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
   }

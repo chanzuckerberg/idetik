@@ -3,7 +3,7 @@ import { Layer } from "../core/layer";
 import { ProjectedLine } from "../objects/renderable/projected_line";
 import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
 
-type LineParameters = {
+export type LineParameters = {
   path: vec3[];
   color: vec3;
   width: number;
@@ -14,9 +14,9 @@ export class ProjectedLineLayer extends Layer {
 
   private paths_: vec3[][] = [];
 
-  constructor(lines: LineParameters[] = []) {
+  constructor(lines?: LineParameters[]) {
     super();
-    lines.forEach((line) => this.addLine(line));
+    (lines ?? []).forEach((line) => this.addLine(line));
     this.setState("ready");
   }
 

@@ -2,7 +2,7 @@ import { RenderableObject } from "../../core/renderable_object";
 import { ProjectedLineGeometry } from "../../objects/geometry/projected_line_geometry";
 import { Color, ColorLike } from "../../core/color";
 
-type LineParameters = {
+export type ProjectedLineProps = {
   geometry: ProjectedLineGeometry;
   color: ColorLike;
   width: number;
@@ -22,7 +22,7 @@ export class ProjectedLine extends RenderableObject {
     width,
     taperOffset,
     taperPower,
-  }: LineParameters) {
+  }: ProjectedLineProps) {
     super();
     this.geometry = geometry;
     this.color_ = Color.from(color);

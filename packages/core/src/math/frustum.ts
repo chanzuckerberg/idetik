@@ -7,12 +7,12 @@ export class Frustum {
 
   constructor(m: mat4) {
     this.planes_ = [
-      new Plane(vec3.create(), 0),
-      new Plane(vec3.create(), 0),
-      new Plane(vec3.create(), 0),
-      new Plane(vec3.create(), 0),
-      new Plane(vec3.create(), 0),
-      new Plane(vec3.create(), 0),
+      new Plane({ normal: vec3.create(), distance: 0 }),
+      new Plane({ normal: vec3.create(), distance: 0 }),
+      new Plane({ normal: vec3.create(), distance: 0 }),
+      new Plane({ normal: vec3.create(), distance: 0 }),
+      new Plane({ normal: vec3.create(), distance: 0 }),
+      new Plane({ normal: vec3.create(), distance: 0 }),
     ];
     this.setWithViewProjection(m);
   }

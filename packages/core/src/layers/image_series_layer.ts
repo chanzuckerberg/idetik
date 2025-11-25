@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerProps } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
@@ -6,7 +6,7 @@ import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { ImageSeriesLoader, SetIndexResult } from "./image_series_loader";
 
-export type ImageSeriesLayerProps = LayerOptions & {
+export type ImageSeriesLayerProps = LayerProps & {
   source: ChunkSource;
   region: Region;
   seriesDimensionName: string;
@@ -132,12 +132,12 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
     texture: Texture2DArray,
     channelProps?: ChannelProps[]
   ) {
-    const image = new ImageRenderable(
-      chunk.shape.x,
-      chunk.shape.y,
+    const image = new ImageRenderable({
+      width: chunk.shape.x,
+      height: chunk.shape.y,
       texture,
-      channelProps
-    );
+      channels: channelProps,
+    });
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;

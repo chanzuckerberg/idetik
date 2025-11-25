@@ -65,7 +65,12 @@ new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
     {
-      camera: new OrthographicCamera(0, 1920, 0, 1440),
+      camera: new OrthographicCamera({
+        left: 0,
+        right: 1920,
+        top: 0,
+        bottom: 1440,
+      }),
       layers: [layer],
     },
   ],

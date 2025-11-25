@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerProps } from "../core/layer";
 import { Region } from "../data/region";
 import { Chunk, ChunkSource } from "../data/chunk";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
@@ -8,7 +8,7 @@ import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 
-export type ImageLayerProps = LayerOptions & {
+export type ImageLayerProps = LayerProps & {
   source: ChunkSource;
   region: Region;
   channelProps?: ChannelProps[];
@@ -133,12 +133,12 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private createImage(chunk: Chunk) {
-    const image = new ImageRenderable(
-      chunk.shape.x,
-      chunk.shape.y,
-      Texture2DArray.createWithChunk(chunk),
-      this.channelProps
-    );
+    const image = new ImageRenderable({
+      width: chunk.shape.x,
+      height: chunk.shape.y,
+      texture: Texture2DArray.createWithChunk(chunk),
+      channels: this.channelProps,
+    });
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
     return image;

@@ -5,7 +5,7 @@ import { Color } from "../../core/color";
 import { Texture2D } from "../textures/texture_2d";
 import { LabelColorMap } from "./label_color_map";
 
-type LabelImageRenderableProps = {
+export type LabelImageRenderableProps = {
   width: number;
   height: number;
   imageData: Texture;
@@ -40,7 +40,12 @@ export class LabelImageRenderable extends RenderableObject {
 
   constructor(props: LabelImageRenderableProps) {
     super();
-    this.geometry = new PlaneGeometry(props.width, props.height, 1, 1);
+    this.geometry = new PlaneGeometry({
+      width: props.width,
+      height: props.height,
+      widthSegments: 1,
+      heightSegments: 1,
+    });
     this.setTexture(0, validateImageData(props.imageData));
     const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
     this.setTexture(1, colorCycleTexture);
@@ -80,7 +85,7 @@ export class LabelImageRenderable extends RenderableObject {
     const data = new Uint8Array(
       cycle.flatMap((c) => c.rgba).map((v) => Math.round(v * 255))
     );
-    const texture = new Texture2D(data, cycle.length, 1);
+    const texture = new Texture2D({ data, width: cycle.length, height: 1 });
     texture.dataFormat = "rgba";
     return texture;
   }
@@ -99,6 +104,6 @@ export class LabelImageRenderable extends RenderableObject {
     const data = new Uint32Array(numColors * 2);
     data.set(keys, 0);
     data.set(values, numColors);
-    return new Texture2D(data, numColors, 2);
+    return new Texture2D({ data, width: numColors, height: 2 });
   }
 }

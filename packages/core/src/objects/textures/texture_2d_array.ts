@@ -5,13 +5,20 @@ import {
 } from "../../objects/textures/texture";
 
 import { Chunk, ChunkData } from "../../data/chunk";
+
+export type Texture2DArrayProps = {
+  data: DataTextureTypedArray;
+  width: number;
+  height: number;
+};
+
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
   private readonly height_: number;
   private readonly depth_: number;
 
-  constructor(data: DataTextureTypedArray, width: number, height: number) {
+  constructor({ data, width, height }: Texture2DArrayProps) {
     super();
     this.dataFormat = "scalar";
     this.dataType = bufferToDataType(data);
@@ -80,7 +87,11 @@ export class Texture2DArray extends Texture {
         "Unable to create texture, chunk data is not initialized."
       );
     }
-    const texture = new Texture2DArray(source, chunk.shape.x, chunk.shape.y);
+    const texture = new Texture2DArray({
+      data: source,
+      width: chunk.shape.x,
+      height: chunk.shape.y,
+    });
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
   }

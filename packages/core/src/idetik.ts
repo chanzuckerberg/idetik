@@ -13,7 +13,7 @@ type Overlay = {
   update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
 };
 
-type IdetikParams = {
+export type IdetikProps = {
   canvas: HTMLCanvasElement;
   viewports: [ViewportConfig, ...ViewportConfig[]]; // at least one viewport required
   overlays?: Overlay[];
@@ -83,7 +83,7 @@ export class Idetik {
    * @throws {Error} If viewports array is empty or not provided
    * @throws {Error} If viewports have duplicate IDs or shared elements
    */
-  constructor(params: IdetikParams) {
+  constructor(params: IdetikProps) {
     this.canvas = params.canvas;
 
     if (params.viewports.length === 0) {
