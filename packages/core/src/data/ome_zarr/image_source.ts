@@ -1,5 +1,6 @@
 import { Location } from "@zarrita/core";
-import { FetchStore, Readable } from "@zarrita/storage";
+import { Readable } from "@zarrita/storage";
+import FetchStore from "@zarrita/storage/fetch";
 import {
   openArrayFromParams,
   openGroup,
