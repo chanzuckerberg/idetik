@@ -4,6 +4,8 @@ type IsBuffered = (coord: number) => boolean;
 
 type PlaybackDimension = "t" | "z";
 
+type ChangeObserver = (oldCoord: number, newCoord: number) => void;
+
 export type PlaybackControllerProps = {
   sliceCoords: SliceCoordinates;
   dimension: PlaybackDimension;
@@ -23,6 +25,7 @@ export class PlaybackController {
   private rateHz_: number;
   private lastTimestamp_?: DOMHighResTimeStamp;
   private secondsSinceLastStep_: number = 0;
+  private readonly changeObservers_: ChangeObserver[] = [];
   private isBuffering_: boolean = false;
   private bufferSize_: number;
   public isBuffered?: IsBuffered;
@@ -47,9 +50,11 @@ export class PlaybackController {
     }
     if (rateHz !== this.rateHz_) {
       this.rateHz_ = rateHz;
-      this.secondsSinceLastStep_ = 0;
-      this.lastTimestamp_ = undefined;
-      this.isBuffering_ = false;
+      if (rateHz === 0) {
+        this.secondsSinceLastStep_ = 0;
+        this.lastTimestamp_ = undefined;
+        this.isBuffering_ = false;
+      }
     }
   }
 
@@ -59,6 +64,19 @@ export class PlaybackController {
 
   public get isBuffering(): boolean {
     return this.isBuffering_;
+  }
+
+  public addChangeObserver(
+    observer: (oldCoord: number, newCoord: number) => void
+  ) {
+    this.changeObservers_.push(observer);
+  }
+
+  public removeChangeObserver(observer: ChangeObserver) {
+    const index = this.changeObservers_.indexOf(observer);
+    if (index !== -1) {
+      this.changeObservers_.splice(index, 1);
+    }
   }
 
   public update(timestamp: DOMHighResTimeStamp): void {
@@ -101,9 +119,13 @@ export class PlaybackController {
 
     if (stepsToAdvance > 0) {
       this.secondsSinceLastStep_ -= stepsToAdvance * secondsPerStep;
-      const newCoord = coord + this.step_ * stepsToAdvance;
-      this.sliceCoords_[this.dimension] =
-        newCoord <= this.stop_ ? newCoord : this.start_;
+      const advancedCoord = coord + this.step_ * stepsToAdvance;
+      const newCoord =
+        advancedCoord <= this.stop_ ? advancedCoord : this.start_;
+      this.sliceCoords_[this.dimension] = newCoord;
+      for (const observer of this.changeObservers_) {
+        observer(coord, newCoord);
+      }
     }
   }
 }
