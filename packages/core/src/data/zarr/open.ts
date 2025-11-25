@@ -3,11 +3,6 @@ import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
 import WebFileSystemStore from "./web_file_system_store";
-import {
-  AuthenticatedFetchStore,
-  createFetchStore,
-  type AwsCredentials,
-} from "./authenticated_fetch_store";
 
 export type Version = "v2" | "v3";
 
@@ -21,8 +16,6 @@ export type ZarrArrayParams = {
       fetchOptions?: {
         overrides?: RequestInit;
         useSuffixRequest?: boolean;
-        credentials?: AwsCredentials;
-        region?: string;
       };
     }
   | {
@@ -89,8 +82,9 @@ export async function openArrayFromParams(
 
   switch (params.type) {
     case "fetch": {
-      const store = createFetchStore(params.url, params.fetchOptions);
-      rootLocation = new Location(store);
+      rootLocation = new Location(
+        new FetchStore(params.url, params.fetchOptions)
+      );
       break;
     }
     case "filesystem": {
@@ -116,29 +110,14 @@ export async function openArrayFromParams(
 export function createZarrArrayParams(
   location: Location<Readable>,
   arrayPath: string,
-  zarrVersion: Version | undefined,
-  fetchOptions?: { overrides?: RequestInit; useSuffixRequest?: boolean }
+  zarrVersion: Version | undefined
 ): ZarrArrayParams {
-  if (location.store instanceof AuthenticatedFetchStore) {
-    // Extract credentials and region from AuthenticatedFetchStore
-    return {
-      type: "fetch",
-      arrayPath,
-      zarrVersion,
-      url: location.store.url.toString(),
-      fetchOptions: {
-        ...fetchOptions,
-        credentials: location.store.credentials,
-        region: location.store.region,
-      },
-    };
-  } else if (location.store instanceof FetchStore) {
+  if (location.store instanceof FetchStore) {
     return {
       type: "fetch",
       arrayPath,
       zarrVersion,
       url: (location.store as FetchStore).url.toString(),
-      fetchOptions,
     };
   } else if (location.store instanceof WebFileSystemStore) {
     return {

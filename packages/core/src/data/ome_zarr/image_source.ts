@@ -1,5 +1,5 @@
 import { Location } from "@zarrita/core";
-import { Readable } from "@zarrita/storage";
+import { FetchStore, Readable } from "@zarrita/storage";
 import {
   openArrayFromParams,
   openGroup,
@@ -12,35 +12,15 @@ import {
   parseOmeZarrImage,
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
-import {
-  AuthenticatedFetchStore,
-  createFetchStore,
-  type AwsCredentials,
-} from "../zarr/authenticated_fetch_store";
-
-export type FetchOptions = {
-  /** RequestInit overrides to customize fetch behavior (e.g., custom headers for S3 authentication) */
-  overrides?: RequestInit;
-  /** Whether to use suffix requests for range queries */
-  useSuffixRequest?: boolean;
-};
 
 type OmeZarrImageSourceProps = {
   location: Location<Readable>;
   version?: OmeZarrVersion;
-  fetchOptions?: FetchOptions;
 };
 
 type HttpOmeZarrImageSourceProps = {
   url: string;
   version?: OmeZarrVersion;
-};
-
-type S3OmeZarrImageSourceProps = {
-  url: string;
-  version?: OmeZarrVersion;
-  credentials?: AwsCredentials;
-  region?: string;
 };
 
 type FileSystemOmeZarrImageSourceProps = {
@@ -53,12 +33,10 @@ type FileSystemOmeZarrImageSourceProps = {
 export class OmeZarrImageSource {
   readonly location: Location<Readable>;
   readonly version?: OmeZarrVersion;
-  readonly fetchOptions?: FetchOptions;
 
   private constructor(props: OmeZarrImageSourceProps) {
     this.location = props.location;
     this.version = props.version;
-    this.fetchOptions = props.fetchOptions;
   }
 
   public async open(): Promise<OmeZarrImageLoader> {
@@ -79,12 +57,7 @@ export class OmeZarrImageSource {
       zarrVersion = omeZarrToZarrVersion(adaptedOmeImage.originalVersion);
     }
     const arrayParams = metadata.datasets.map((d) =>
-      createZarrArrayParams(
-        this.location,
-        d.path,
-        zarrVersion,
-        this.fetchOptions
-      )
+      createZarrArrayParams(this.location, d.path, zarrVersion)
     );
     const arrays = await Promise.all(
       arrayParams.map((params) => openArrayFromParams(params))
@@ -105,11 +78,13 @@ export class OmeZarrImageSource {
   }
 
   /**
+   * Creates an OmeZarrImageSource from an HTTP(S) URL.
+   *
    * @param url URL of Zarr root
    * @param version OME-Zarr version
    */
   public static fromHttp(props: HttpOmeZarrImageSourceProps) {
-    const store = createFetchStore(props.url);
+    const store = new FetchStore(props.url);
     return new OmeZarrImageSource({
       location: new Location(store),
       version: props.version,
@@ -117,6 +92,8 @@ export class OmeZarrImageSource {
   }
 
   /**
+   * Creates an OmeZarrImageSource from a local filesystem directory.
+   *
    * @param directory return value of `window.showDirectoryPicker()` which gives the browser
    *    permission to access a directory (only works in Chrome/Edge)
    * @param version OME-Zarr version
@@ -127,14 +104,6 @@ export class OmeZarrImageSource {
     const store = new WebFileSystemStore(props.directory);
     return new OmeZarrImageSource({
       location: new Location(store, props.path),
-      version: props.version,
-    });
-  }
-
-  public static fromS3(props: S3OmeZarrImageSourceProps) {
-    const store = new AuthenticatedFetchStore(props);
-    return new OmeZarrImageSource({
-      location: new Location(store),
       version: props.version,
     });
   }
