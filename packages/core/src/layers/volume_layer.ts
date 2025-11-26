@@ -8,6 +8,7 @@ import {
 } from "../core/chunk_manager_source";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
+import { vec3 } from "gl-matrix";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -32,6 +33,11 @@ export class VolumeLayer extends Layer {
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
   private pendingLoads_: Map<Chunk, AbortController> = new Map();
+  private color_ = vec3.fromValues(1.0, 1.0, 1.0);
+  private sampleDensity_ = 128.0; // Samples per unit texture space
+  private maxIntensity_ = 255.0; // Normalization factor for intensity
+  private opacityScale_ = 0.1; // Alpha multiplier
+  private alphaThreshold_ = 0.99; // Early ray termination threshold
 
   public get lod() {
     return this.lod_;
@@ -63,9 +69,52 @@ export class VolumeLayer extends Layer {
     this.hitMisses_ = showHitMisses;
   }
 
+  public get color(): vec3 {
+    return this.color_;
+  }
+
+  public set color(newColor: vec3) {
+    vec3.copy(this.color_, newColor);
+  }
+
+  public get sampleDensity(): number {
+    return this.sampleDensity_;
+  }
+
+  public set sampleDensity(value: number) {
+    this.sampleDensity_ = value;
+  }
+
+  public get maxIntensity(): number {
+    return this.maxIntensity_;
+  }
+
+  public set maxIntensity(value: number) {
+    this.maxIntensity_ = value;
+  }
+
+  public get opacityScale(): number {
+    return this.opacityScale_;
+  }
+  public set opacityScale(value: number) {
+    this.opacityScale_ = value;
+  }
+
+  public get alphaThreshold(): number {
+    return this.alphaThreshold_;
+  }
+  public set alphaThreshold(value: number) {
+    this.alphaThreshold_ = value;
+  }
+
   public getUniforms(): Record<string, unknown> {
     return {
       ShowHitMisses: Number(this.hitMisses),
+      SampleDensity: this.sampleDensity,
+      MaxIntensity: this.maxIntensity,
+      OpacityScale: this.opacityScale,
+      VolumeColor: this.color_,
+      AlphaThreshold: this.alphaThreshold,
     };
   }
 

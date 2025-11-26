@@ -20,9 +20,12 @@ uniform mat4 ModelView;
 uniform vec3 BoxSize;
 uniform bool ShowHitMisses;
 
-const vec3 boxMin = vec3(0.00);
-const vec3 boxMax = vec3(1.000);
-const float EPSILON = 1e-5;
+// Volume rendering parameters
+uniform float SampleDensity;
+uniform float MaxIntensity;
+uniform float OpacityScale;
+uniform vec3 VolumeColor;
+uniform float AlphaThreshold;
 
 in vec3 ModelPosition;
 
@@ -37,8 +40,6 @@ bool intersectBox(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out flo
     tEnter = max(max(tMin.x, tMin.y), tMin.z);
     tExit = min(min(tMax.x, tMax.y), tMax.z);
 
-    // Add epsilon tolerance to handle floating-point precision errors at edges
-    // return (tExit >= tEnter - EPSILON) && (tExit >= -EPSILON);
     return (tExit >= tEnter) && (tExit >= 0.0);
 }
 
@@ -95,7 +96,7 @@ void main() {
 
     // Use normalized texture space distance for consistent sampling across all chunks
     // This ensures uniform sample density regardless of chunk size
-    int numSamples = int(ceil(rayLength * 128.0));
+    int numSamples = int(ceil(rayLength * SampleDensity));
     numSamples = clamp(numSamples, 1, 512);
 
     // Compute step increment directly to avoid precision loss
@@ -118,16 +119,16 @@ void main() {
 #endif
         float texel = sampledData.r;
 
-        float normalizedIntensity = texel / 255.0;
-        float sampleAlpha = normalizedIntensity * 0.1;
+        float normalizedIntensity = texel / MaxIntensity;
+        float sampleAlpha = normalizedIntensity * OpacityScale;
 
         // Front-to-back compositing
-        vec3 sampleColor = vec3(1.0);
+        vec3 sampleColor = VolumeColor;
         float prevAlpha = alpha;
         alpha = alpha + (1.0 - alpha) * sampleAlpha;
         accumulatedColor += sampleColor * sampleAlpha * (1.0 - prevAlpha);
 
-        if (alpha >= 0.99) {
+        if (alpha >= AlphaThreshold) {
             break;
         }
         position += stepIncrement;

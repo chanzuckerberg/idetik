@@ -111,3 +111,17 @@ volumeFolder
     volumeLayer.lod = lod;
     controls.lod = lod;
   });
+
+volumeFolder
+  .add(volumeLayer, "sampleDensity", 16, 512, 1)
+  .name("Sample Density");
+
+volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max Intensity");
+
+volumeFolder
+  .add(volumeLayer, "opacityScale", 0.01, 1.0, 0.01)
+  .name("Opacity Scale");
+
+volumeFolder
+  .add(volumeLayer, "alphaThreshold", 0.5, 1.0, 0.01)
+  .name("Alpha Threshold");
