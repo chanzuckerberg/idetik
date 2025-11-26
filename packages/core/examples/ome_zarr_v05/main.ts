@@ -16,34 +16,13 @@ const url =
   "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
 const source = new OmeZarrImageSource(url, "0.5");
 const loader = await source.open();
-const dimensionMap = loader.getSourceDimensionMap();
+const dimensions = loader.getSourceDimensionMap();
 const lod = 0;
 
-const dimensionInfo = (dimensionName: string) => {
-  const allDimensions = [
-    dimensionMap.x,
-    dimensionMap.y,
-    dimensionMap.z,
-    dimensionMap.c,
-    dimensionMap.t,
-  ].filter((d) => d !== undefined);
-
-  const dimension = allDimensions.find((d) => d.name === dimensionName);
-  if (!dimension) {
-    throw new Error(`Dimension ${dimensionName} not found`);
-  }
-
-  return {
-    size: dimension.lods[lod].size,
-    scale: dimension.lods[lod].scale,
-    offset: dimension.lods[lod].translation,
-  };
-};
-
-const zInfo = dimensionInfo("z");
-const zMidPoint = zInfo.offset + 0.5 * zInfo.size * zInfo.scale;
-const yInfo = dimensionInfo("y");
-const xInfo = dimensionInfo("x");
+const zLod = dimensions.z!.lods[lod];
+const zMidPoint = zLod.translation + 0.5 * zLod.size * zLod.scale;
+const yLod = dimensions.y.lods[lod];
+const xLod = dimensions.x.lods[lod];
 
 const sliceCoords = { z: zMidPoint };
 const channelProps: ChannelProps[] = [{ contrastLimits: [0, 200] }];
@@ -67,14 +46,14 @@ const layer = new ChunkedImageLayer({
   onPickValue,
 });
 const axes = new AxesLayer({
-  length: 0.75 * xInfo.scale * xInfo.size,
+  length: 0.75 * xLod.scale * xLod.size,
   width: 0.01,
 });
 const camera = new OrthographicCamera(
-  xInfo.offset,
-  xInfo.offset + xInfo.scale * xInfo.size,
-  yInfo.offset,
-  yInfo.offset + yInfo.scale * yInfo.size
+  xLod.translation,
+  xLod.translation + xLod.scale * xLod.size,
+  yLod.translation,
+  yLod.translation + yLod.scale * yLod.size
 );
 const cameraControls = new PanZoomControls(camera);
 
@@ -102,9 +81,9 @@ addDimensionSlider({
   gui,
   sliceCoords,
   dimensionName: "z",
-  minValue: zInfo.offset,
-  maxValue: zInfo.offset + (zInfo.size - 1) * zInfo.scale,
-  stepValue: zInfo.scale,
+  minValue: zLod.translation,
+  maxValue: zLod.translation + (zLod.size - 1) * zLod.scale,
+  stepValue: zLod.scale,
   playback: {},
 });
 
