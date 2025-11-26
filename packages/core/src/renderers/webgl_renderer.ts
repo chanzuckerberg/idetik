@@ -83,7 +83,7 @@ export class WebGLRenderer extends Renderer {
 
     const { opaque, transparent } = viewport.layerManager.partitionLayers();
 
-    this.state_.setDepthMask(true);
+    // this.state_.setDepthMask(true);
 
     const frustum = viewport.camera.frustum;
     const renderContext = { viewport };
@@ -95,13 +95,13 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
-    this.state_.setDepthMask(false);
+    // this.state_.setDepthMask(false);
     for (const layer of transparent) {
       layer.update(renderContext);
       if (layer.state !== "ready") continue;
       this.renderLayer(layer, viewport.camera, frustum);
     }
-    this.state_.setDepthMask(true);
+    // this.state_.setDepthMask(true);
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
