@@ -23,37 +23,17 @@ const labelsSource = new OmeZarrImageSource(labelsUrl);
 
 const lod = 0;
 const loader = await imageSource.open();
-const dimensionMap = loader.getSourceDimensionMap();
+const dimensions = loader.getSourceDimensionMap();
 
 // Phase contrast limits were chosen qualitatively.
 const phaseChannelIndex = 0;
 const phaseContrastLimits: [number, number] = [20, 200];
 
-const dimensionExtent = (dimensionName: string) => {
-  const allDimensions = [
-    dimensionMap.x,
-    dimensionMap.y,
-    dimensionMap.z,
-    dimensionMap.c,
-    dimensionMap.t,
-  ].filter((d) => d !== undefined);
-
-  const dimension = allDimensions.find((d) => d.name === dimensionName);
-  if (!dimension) {
-    throw new Error(`Dimension ${dimensionName} not found`);
-  }
-
-  return {
-    size: dimension.lods[lod].size,
-    scale: dimension.lods[lod].scale,
-  };
-};
-
-const tExtent = dimensionExtent("T");
+const tLod = dimensions.t!.lods[lod];
 const tMin = 0;
-const tMax = tExtent.size;
-const zExtent = dimensionExtent("Z");
-const zMidPoint = 0.5 * zExtent.size * zExtent.scale;
+const tMax = tLod.size;
+const zLod = dimensions.z!.lods[lod];
+const zMidPoint = 0.5 * zLod.size * zLod.scale;
 
 const region: Region = [
   { dimension: "T", index: { type: "full" } },
