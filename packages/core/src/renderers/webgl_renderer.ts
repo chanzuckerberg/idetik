@@ -83,7 +83,7 @@ export class WebGLRenderer extends Renderer {
 
     const { opaque, transparent } = viewport.layerManager.partitionLayers();
 
-    // this.state_.setDepthMask(true);
+    this.state_.setDepthMask(true);
 
     const frustum = viewport.camera.frustum;
     const renderContext = { viewport };
