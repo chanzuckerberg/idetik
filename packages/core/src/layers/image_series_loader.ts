@@ -105,18 +105,16 @@ export class ImageSeriesLoader {
       return this.seriesAttributes_;
     }
     const loader = await this.getLoader();
-    const dimensionMap = loader.getSourceDimensionMap();
-    const lod = this.lod_ ?? dimensionMap.numLods - 1;
+    const dimensions = loader.getSourceDimensionMap();
+    const lod = this.lod_ ?? dimensions.numLods - 1;
 
-    // Find the series dimension in the SourceDimensionMap
     const allDimensions = [
-      dimensionMap.x,
-      dimensionMap.y,
-      dimensionMap.z,
-      dimensionMap.c,
-      dimensionMap.t,
+      dimensions.x,
+      dimensions.y,
+      dimensions.z,
+      dimensions.c,
+      dimensions.t,
     ].filter((d) => d !== undefined);
-
     const seriesDimension = allDimensions.find(
       (d) => d.name === this.seriesDimensionName_
     );
@@ -166,8 +164,7 @@ export class ImageSeriesLoader {
     });
 
     const loader = await this.getLoader();
-    const dimensionMap = loader.getSourceDimensionMap();
-    const lod = this.lod_ ?? dimensionMap.numLods - 1;
+    const lod = this.lod_ ?? loader.getSourceDimensionMap().numLods - 1;
 
     const chunk = await loader.loadRegion(pointRegion, lod, this.scheduler_);
     this.dataChunks_[index] = chunk;
