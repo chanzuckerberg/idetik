@@ -24,7 +24,7 @@ const labelsSource = new OmeZarrImageSource(labelsUrl);
 
 const lod = 0;
 const loader = await imageSource.open();
-const dimensionMap = loader.getSourceDimensionMap();
+const dimensions = loader.getSourceDimensionMap();
 
 // Phase contrast limits were chosen qualitatively.
 const phaseChannelIndex = 0;
@@ -32,32 +32,12 @@ const phaseContrastLimits: [number, number] = [20, 200];
 
 const tStartPoint = 0;
 
-const dimensionExtent = (dimensionName: string) => {
-  const allDimensions = [
-    dimensionMap.x,
-    dimensionMap.y,
-    dimensionMap.z,
-    dimensionMap.c,
-    dimensionMap.t,
-  ].filter((d) => d !== undefined);
-
-  const dimension = allDimensions.find((d) => d.name === dimensionName);
-  if (!dimension) {
-    throw new Error(`Dimension ${dimensionName} not found`);
-  }
-
-  return {
-    size: dimension.lods[lod].size,
-    scale: dimension.lods[lod].scale,
-  };
-};
-
-const zExtent = dimensionExtent("Z");
-const zMidPoint = 0.5 * zExtent.size * zExtent.scale;
-const xExtent = dimensionExtent("X");
-const xStopPoint = xExtent.size * xExtent.scale;
-const yExtent = dimensionExtent("Y");
-const yStopPoint = yExtent.size * yExtent.scale;
+const zLod = dimensions.z!.lods[0];
+const zMidPoint = 0.5 * zLod.size * zLod.scale;
+const xLod = dimensions.x.lods[0];
+const xStopPoint = xLod.size * xLod.scale;
+const yLod = dimensions.y.lods[0];
+const yStopPoint = yLod.size * yLod.scale;
 
 const sliceCoords = {
   t: tStartPoint,
