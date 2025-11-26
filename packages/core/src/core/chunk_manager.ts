@@ -165,7 +165,10 @@ export class ChunkManager {
     }
 
     const shouldDisposeChunk =
-      chunk.state === "loaded" && !chunk.visible && !chunk.prefetch;
+      chunk.lod !== store.getLowestResLOD() &&
+      chunk.state === "loaded" &&
+      !chunk.visible &&
+      !chunk.prefetch;
     if (shouldDisposeChunk) {
       chunk.data = undefined;
       chunk.state = "unloaded";
