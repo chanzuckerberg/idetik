@@ -106,8 +106,7 @@ export class LabelImageLayer extends Layer {
     }
     this.setState("loading");
     const loader = await this.source_.open();
-    const dimensionMap = loader.getSourceDimensionMap();
-    const lod = this.lod_ ?? dimensionMap.numLods - 1;
+    const lod = this.lod_ ?? loader.getSourceDimensionMap().numLods - 1;
     const chunk = await loader.loadRegion(region, lod);
     this.image_ = this.createImage(chunk);
     this.addObject(this.image_);
