@@ -9,6 +9,7 @@ import {
   isChunkData,
   ChunkData,
   ChunkDataConstructor,
+  SourceDimensionLod,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -56,7 +57,7 @@ export class OmeZarrImageLoader {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.arrayParams_ = props.arrayParams;
-    this.dimensions_ = buildSourceDimensionMap(this.metadata_, this.arrays_);
+    this.dimensions_ = makeSourceDimensionMap(this.metadata_, this.arrays_);
   }
 
   public getSourceDimensionMap(): SourceDimensionMap {
@@ -174,18 +175,6 @@ export class OmeZarrImageLoader {
 
     const indices = this.regionToIndices(region, lod);
 
-    // Build scale and translation arrays from SourceDimensionMap for this LOD
-    const allDimensions = [
-      this.dimensions_.x,
-      this.dimensions_.y,
-      this.dimensions_.z,
-      this.dimensions_.c,
-      this.dimensions_.t,
-    ].filter((d): d is SourceDimension => d !== undefined);
-    allDimensions.sort((a, b) => a.index - b.index);
-    const scale = allDimensions.map((d) => d.lods[lod].scale);
-    const translation = allDimensions.map((d) => d.lods[lod].translation);
-
     const array = this.arrays_[lod];
 
     let options = {};
@@ -218,18 +207,24 @@ export class OmeZarrImageLoader {
       );
     }
 
-    const calculateOffset = (i: number) => {
-      const index = indices[i];
+    const calculateOffset = (
+      index: number | Slice,
+      lod: SourceDimensionLod
+    ) => {
       if (typeof index === "number") {
-        return index * scale[i] + translation[i];
+        return index * lod.scale + lod.translation;
       } else if (index.start === null) {
-        return translation[i];
+        return lod.translation;
       }
-      return index.start * scale[i] + translation[i];
+      return index.start * lod.scale + lod.translation;
     };
 
-    const xOffset = calculateOffset(indices.length - 1);
-    const yOffset = calculateOffset(indices.length - 2);
+    const xLod = this.dimensions_.x.lods[lod];
+    const xIndex = indices[indices.length - 1];
+    const xOffset = calculateOffset(xIndex, xLod);
+    const yIndex = indices[indices.length - 2];
+    const yLod = this.dimensions_.y.lods[lod];
+    const yOffset = calculateOffset(yIndex, yLod);
 
     const chunk: Chunk = {
       state: "loaded",
@@ -248,8 +243,8 @@ export class OmeZarrImageLoader {
       chunkIndex: { x: 0, y: 0, z: 0, c: 0, t: 0 },
       rowAlignmentBytes: rowAlignment,
       scale: {
-        x: scale[indices.length - 1],
-        y: scale[indices.length - 2],
+        x: xLod.scale,
+        y: yLod.scale,
         z: 1,
       },
       offset: { x: xOffset, y: yOffset, z: 0 },
@@ -258,39 +253,34 @@ export class OmeZarrImageLoader {
   }
 
   private regionToIndices(region: Region, lod: number): Array<Slice | number> {
-    // Build arrays of dimension info from SourceDimensionMap for this LOD
-    const allDimensions = [
+    const dimensions = [
       this.dimensions_.x,
       this.dimensions_.y,
       this.dimensions_.z,
       this.dimensions_.c,
       this.dimensions_.t,
-    ].filter((d): d is SourceDimension => d !== undefined);
-
-    // Sort by index to maintain original dimension order
-    allDimensions.sort((a, b) => a.index - b.index);
-
-    const dimensionNames = allDimensions.map((d) => d.name);
-    const scale = allDimensions.map((d) => d.lods[lod].scale);
-    const translation = allDimensions.map((d) => d.lods[lod].translation);
+    ]
+      .filter((d): d is SourceDimension => d !== undefined)
+      .sort((a, b) => a.index - b.index);
 
     const indices: Array<Slice | number> = [];
-    for (const [i, dimName] of dimensionNames.entries()) {
-      const match = region.find((s) => s.dimension == dimName);
+    for (const d of dimensions) {
+      const match = region.find((s) => compareDimensions(s.dimension, d.name));
       if (!match) {
-        throw new Error(`Region does not contain a slice for ${dimName}`);
+        throw new Error(`Region does not contain a slice for ${d.name}`);
       }
+      const dLod = d.lods[lod];
       let index: Slice | number;
       const regionIndex = match.index;
       if (regionIndex.type === "full") {
         // null slice is the complete extent of a dimension like Python's `slice(None)`.
         index = zarr.slice(null);
       } else if (regionIndex.type === "point") {
-        index = Math.round((regionIndex.value - translation[i]) / scale[i]);
+        index = Math.round((regionIndex.value - dLod.translation) / dLod.scale);
       } else {
         index = zarr.slice(
-          Math.floor((regionIndex.start - translation[i]) / scale[i]),
-          Math.ceil((regionIndex.stop - translation[i]) / scale[i])
+          Math.floor((regionIndex.start - dLod.translation) / dLod.scale),
+          Math.ceil((regionIndex.stop - dLod.translation) / dLod.scale)
         );
       }
       indices.push(index);
@@ -299,7 +289,7 @@ export class OmeZarrImageLoader {
   }
 }
 
-function buildSourceDimensionMap(
+function makeSourceDimensionMap(
   image: OmeZarrImage["ome"]["multiscales"][number],
   arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>
 ): SourceDimensionMap {
@@ -309,7 +299,7 @@ function buildSourceDimensionMap(
   const xIndex = findDimensionIndex(dimensionNames, "x");
   const yIndex = findDimensionIndex(dimensionNames, "y");
 
-  const buildSourceDimension = (
+  const makeSourceDimension = (
     name: string,
     index: number
   ): SourceDimension => {
@@ -338,24 +328,24 @@ function buildSourceDimensionMap(
   };
 
   const dims: SourceDimensionMap = {
-    x: buildSourceDimension(dimensionNames[xIndex], xIndex),
-    y: buildSourceDimension(dimensionNames[yIndex], yIndex),
+    x: makeSourceDimension(dimensionNames[xIndex], xIndex),
+    y: makeSourceDimension(dimensionNames[yIndex], yIndex),
     numLods: arrays.length,
   };
 
   const zIndex = findDimensionIndexSafe(dimensionNames, "z");
   if (zIndex !== -1) {
-    dims.z = buildSourceDimension(dimensionNames[zIndex], zIndex);
+    dims.z = makeSourceDimension(dimensionNames[zIndex], zIndex);
   }
 
   const cIndex = findDimensionIndexSafe(dimensionNames, "c");
   if (cIndex !== -1) {
-    dims.c = buildSourceDimension(dimensionNames[cIndex], cIndex);
+    dims.c = makeSourceDimension(dimensionNames[cIndex], cIndex);
   }
 
   const tIndex = findDimensionIndexSafe(dimensionNames, "t");
   if (tIndex !== -1) {
-    dims.t = buildSourceDimension(dimensionNames[tIndex], tIndex);
+    dims.t = makeSourceDimension(dimensionNames[tIndex], tIndex);
   }
 
   return dims;
