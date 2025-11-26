@@ -57,7 +57,7 @@ export class OmeZarrImageLoader {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.arrayParams_ = props.arrayParams;
-    this.dimensions_ = makeSourceDimensionMap(this.metadata_, this.arrays_);
+    this.dimensions_ = inferSourceDimensionMap(this.metadata_, this.arrays_);
   }
 
   public getSourceDimensionMap(): SourceDimensionMap {
@@ -289,7 +289,7 @@ export class OmeZarrImageLoader {
   }
 }
 
-function makeSourceDimensionMap(
+function inferSourceDimensionMap(
   image: OmeZarrImage["ome"]["multiscales"][number],
   arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>
 ): SourceDimensionMap {
