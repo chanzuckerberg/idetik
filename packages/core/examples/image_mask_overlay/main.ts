@@ -18,16 +18,17 @@ const maskUrl = `${baseUrl}/Annotations/100/membrane-1.0_segmentationmask.zarr`;
 // Source is 3D with axes (z, y, x), so we provide an interval in z
 const imageSource = new OmeZarrImageSource(imageUrl);
 const loader = await imageSource.open();
-const attributes = loader.getAttributes();
-const lods = attributes.length;
-const attributesForLastLod = attributes[lods - 1];
+const dimensionMap = loader.getSourceDimensionMap();
+const lods = dimensionMap.numLods;
+const lastLod = lods - 1;
 
 const zDimName = "z";
-const zAxisIndex = attributesForLastLod.dimensionNames.findIndex(
-  (dim) => dim === zDimName
-);
+const zDimension = dimensionMap.z;
+if (!zDimension) {
+  throw new Error(`Dimension ${zDimName} not found`);
+}
 const zMin = 0;
-const zMax = attributesForLastLod.shape[zAxisIndex];
+const zMax = zDimension.lods[lastLod].size;
 const region: Region = [
   { dimension: zDimName, index: { type: "full" } },
   { dimension: "x", index: { type: "full" } },

@@ -105,19 +105,29 @@ export class ImageSeriesLoader {
       return this.seriesAttributes_;
     }
     const loader = await this.getLoader();
-    const attributes = loader.getAttributes();
-    const attributesForLOD = attributes[this.lod_ ?? attributes.length - 1];
+    const dimensionMap = loader.getSourceDimensionMap();
+    const lod = this.lod_ ?? dimensionMap.numLods - 1;
 
-    const seriesIndex = attributesForLOD.dimensionNames.findIndex(
-      (dim) => dim === this.seriesDimensionName_
+    // Find the series dimension in the SourceDimensionMap
+    const allDimensions = [
+      dimensionMap.x,
+      dimensionMap.y,
+      dimensionMap.z,
+      dimensionMap.c,
+      dimensionMap.t,
+    ].filter((d) => d !== undefined);
+
+    const seriesDimension = allDimensions.find(
+      (d) => d.name === this.seriesDimensionName_
     );
-    if (seriesIndex === -1) {
+    if (!seriesDimension) {
+      const availableDims = allDimensions.map((d) => d.name).join(", ");
       throw new Error(
-        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${attributesForLOD.dimensionNames}`
+        `Series dimension "${this.seriesDimensionName_}" not found in loader dimensions: ${availableDims}`
       );
     }
-    const seriesDimScale = attributesForLOD.scale[seriesIndex];
-    const seriesMax = attributesForLOD.shape[seriesIndex] * seriesDimScale;
+    const seriesDimScale = seriesDimension.lods[lod].scale;
+    const seriesMax = seriesDimension.lods[lod].size * seriesDimScale;
 
     const indexIsFull = this.seriesIndex_.type === "full";
     const seriesStart = indexIsFull ? 0 : this.seriesIndex_.start;
@@ -156,8 +166,8 @@ export class ImageSeriesLoader {
     });
 
     const loader = await this.getLoader();
-    const attributes = loader.getAttributes();
-    const lod = this.lod_ ?? attributes.length - 1;
+    const dimensionMap = loader.getSourceDimensionMap();
+    const lod = this.lod_ ?? dimensionMap.numLods - 1;
 
     const chunk = await loader.loadRegion(pointRegion, lod, this.scheduler_);
     this.dataChunks_[index] = chunk;

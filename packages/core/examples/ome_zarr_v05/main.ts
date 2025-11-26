@@ -16,17 +16,27 @@ const url =
   "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
 const source = new OmeZarrImageSource(url, "0.5");
 const loader = await source.open();
-const attributes = loader.getAttributes();
-const attributesAtLod0 = attributes[0];
+const dimensionMap = loader.getSourceDimensionMap();
+const lod = 0;
 
 const dimensionInfo = (dimensionName: string) => {
-  const index = attributesAtLod0.dimensionNames.findIndex(
-    (d) => d === dimensionName
-  );
+  const allDimensions = [
+    dimensionMap.x,
+    dimensionMap.y,
+    dimensionMap.z,
+    dimensionMap.c,
+    dimensionMap.t,
+  ].filter((d) => d !== undefined);
+
+  const dimension = allDimensions.find((d) => d.name === dimensionName);
+  if (!dimension) {
+    throw new Error(`Dimension ${dimensionName} not found`);
+  }
+
   return {
-    size: attributesAtLod0.shape[index],
-    scale: attributesAtLod0.scale[index],
-    offset: attributesAtLod0.translation[index],
+    size: dimension.lods[lod].size,
+    scale: dimension.lods[lod].scale,
+    offset: dimension.lods[lod].translation,
   };
 };
 

@@ -104,15 +104,6 @@ export type ChunkSource = {
   open(): Promise<ChunkLoader>;
 };
 
-export type LoaderAttributes = {
-  dimensionNames: string[];
-  dimensionUnits: (string | undefined)[];
-  chunks: readonly number[];
-  shape: readonly number[];
-  scale: readonly number[];
-  translation: readonly number[];
-};
-
 export type ChunkLoader = {
   loadRegion(
     input: Region,
@@ -123,8 +114,6 @@ export type ChunkLoader = {
   getSourceDimensionMap(): SourceDimensionMap;
 
   loadChunkData(chunk: Chunk, signal: AbortSignal): Promise<void>;
-
-  getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
 
 export function coordToIndex(lod: SourceDimensionLod, coord: number): number {

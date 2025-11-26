@@ -23,20 +23,29 @@ const labelsSource = new OmeZarrImageSource(labelsUrl);
 
 const lod = 0;
 const loader = await imageSource.open();
-const attributes = loader.getAttributes();
-const attributesAtLod = attributes[lod];
+const dimensionMap = loader.getSourceDimensionMap();
 
 // Phase contrast limits were chosen qualitatively.
 const phaseChannelIndex = 0;
 const phaseContrastLimits: [number, number] = [20, 200];
 
 const dimensionExtent = (dimensionName: string) => {
-  const index = attributesAtLod.dimensionNames.findIndex(
-    (d) => d === dimensionName
-  );
+  const allDimensions = [
+    dimensionMap.x,
+    dimensionMap.y,
+    dimensionMap.z,
+    dimensionMap.c,
+    dimensionMap.t,
+  ].filter((d) => d !== undefined);
+
+  const dimension = allDimensions.find((d) => d.name === dimensionName);
+  if (!dimension) {
+    throw new Error(`Dimension ${dimensionName} not found`);
+  }
+
   return {
-    size: attributesAtLod.shape[index],
-    scale: attributesAtLod.scale[index],
+    size: dimension.lods[lod].size,
+    scale: dimension.lods[lod].scale,
   };
 };
 

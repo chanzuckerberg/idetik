@@ -7,7 +7,6 @@ import {
   SourceDimension,
   SourceDimensionMap,
   isChunkData,
-  LoaderAttributes,
   ChunkData,
   ChunkDataConstructor,
 } from "../chunk";
@@ -51,15 +50,13 @@ export class OmeZarrImageLoader {
   private readonly metadata_: OmeZarrImage["ome"]["multiscales"][number];
   private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
   private readonly arrayParams_: ReadonlyArray<ZarrArrayParams>;
-  private readonly loaderAttributes_: ReadonlyArray<LoaderAttributes>;
   private readonly dimensions_: SourceDimensionMap;
 
   constructor(props: OmeZarrImageLoaderProps) {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.arrayParams_ = props.arrayParams;
-    this.loaderAttributes_ = getLoaderAttributes(this.metadata_, this.arrays_);
-    this.dimensions_ = inferSourceDimensionMap(this.loaderAttributes_);
+    this.dimensions_ = buildSourceDimensionMap(this.metadata_, this.arrays_);
   }
 
   public getSourceDimensionMap(): SourceDimensionMap {
@@ -175,9 +172,20 @@ export class OmeZarrImageLoader {
       );
     }
 
-    const attributes = this.loaderAttributes_[lod];
-    const indices = this.regionToIndices(region, attributes);
-    const { scale, translation } = attributes;
+    const indices = this.regionToIndices(region, lod);
+
+    // Build scale and translation arrays from SourceDimensionMap for this LOD
+    const allDimensions = [
+      this.dimensions_.x,
+      this.dimensions_.y,
+      this.dimensions_.z,
+      this.dimensions_.c,
+      this.dimensions_.t,
+    ].filter((d): d is SourceDimension => d !== undefined);
+    allDimensions.sort((a, b) => a.index - b.index);
+    const scale = allDimensions.map((d) => d.lods[lod].scale);
+    const translation = allDimensions.map((d) => d.lods[lod].translation);
+
     const array = this.arrays_[lod];
 
     let options = {};
@@ -249,15 +257,22 @@ export class OmeZarrImageLoader {
     return chunk;
   }
 
-  public getAttributes(): ReadonlyArray<LoaderAttributes> {
-    return this.loaderAttributes_;
-  }
+  private regionToIndices(region: Region, lod: number): Array<Slice | number> {
+    // Build arrays of dimension info from SourceDimensionMap for this LOD
+    const allDimensions = [
+      this.dimensions_.x,
+      this.dimensions_.y,
+      this.dimensions_.z,
+      this.dimensions_.c,
+      this.dimensions_.t,
+    ].filter((d): d is SourceDimension => d !== undefined);
 
-  private regionToIndices(
-    region: Region,
-    attributes: LoaderAttributes
-  ): Array<Slice | number> {
-    const { dimensionNames, scale, translation } = attributes;
+    // Sort by index to maintain original dimension order
+    allDimensions.sort((a, b) => a.index - b.index);
+
+    const dimensionNames = allDimensions.map((d) => d.name);
+    const scale = allDimensions.map((d) => d.lods[lod].scale);
+    const translation = allDimensions.map((d) => d.lods[lod].translation);
 
     const indices: Array<Slice | number> = [];
     for (const [i, dimName] of dimensionNames.entries()) {
@@ -284,78 +299,66 @@ export class OmeZarrImageLoader {
   }
 }
 
-function getLoaderAttributes(
+function buildSourceDimensionMap(
   image: OmeZarrImage["ome"]["multiscales"][number],
   arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>
-): LoaderAttributes[] {
-  const output: LoaderAttributes[] = [];
-  const numAxes = image.axes.length;
-  for (let i = 0; i < image.datasets.length; i++) {
-    const dataset = image.datasets[i];
-    const array = arrays[i];
-    const scale = dataset.coordinateTransformations[0].scale;
-    const translation =
-      dataset.coordinateTransformations.length === 2
-        ? dataset.coordinateTransformations[1].translation
-        : new Array(numAxes).fill(0);
-    output.push({
-      dimensionNames: image.axes.map((axis) => axis.name),
-      dimensionUnits: image.axes.map((axis) => axis.unit),
-      chunks: array.chunks,
-      shape: array.shape,
-      scale,
-      translation,
-    });
-  }
-  return output;
-}
-
-function inferSourceDimensionMap(
-  attrs: ReadonlyArray<LoaderAttributes>
 ): SourceDimensionMap {
-  const names = attrs[0].dimensionNames;
+  const dimensionNames = image.axes.map((axis) => axis.name);
+  const numAxes = image.axes.length;
 
-  const xIndex = findDimensionIndex(names, "x");
-  const yIndex = findDimensionIndex(names, "y");
-  const dims: SourceDimensionMap = {
-    x: getSourceDimension(names[xIndex], xIndex, attrs),
-    y: getSourceDimension(names[yIndex], yIndex, attrs),
-    numLods: attrs.length,
+  const xIndex = findDimensionIndex(dimensionNames, "x");
+  const yIndex = findDimensionIndex(dimensionNames, "y");
+
+  const buildSourceDimension = (
+    name: string,
+    index: number
+  ): SourceDimension => {
+    const lods = [];
+    for (let i = 0; i < image.datasets.length; i++) {
+      const dataset = image.datasets[i];
+      const array = arrays[i];
+      const scale = dataset.coordinateTransformations[0].scale;
+      const translation =
+        dataset.coordinateTransformations.length === 2
+          ? dataset.coordinateTransformations[1].translation
+          : new Array(numAxes).fill(0);
+      lods.push({
+        size: array.shape[index],
+        chunkSize: array.chunks[index],
+        scale: scale[index],
+        translation: translation[index],
+      });
+    }
+    return {
+      name,
+      index,
+      unit: image.axes[index].unit,
+      lods,
+    };
   };
 
-  const zIndex = findDimensionIndexSafe(names, "z");
+  const dims: SourceDimensionMap = {
+    x: buildSourceDimension(dimensionNames[xIndex], xIndex),
+    y: buildSourceDimension(dimensionNames[yIndex], yIndex),
+    numLods: arrays.length,
+  };
+
+  const zIndex = findDimensionIndexSafe(dimensionNames, "z");
   if (zIndex !== -1) {
-    dims.z = getSourceDimension(names[zIndex], zIndex, attrs);
+    dims.z = buildSourceDimension(dimensionNames[zIndex], zIndex);
   }
 
-  const cIndex = findDimensionIndexSafe(names, "c");
+  const cIndex = findDimensionIndexSafe(dimensionNames, "c");
   if (cIndex !== -1) {
-    dims.c = getSourceDimension(names[cIndex], cIndex, attrs);
+    dims.c = buildSourceDimension(dimensionNames[cIndex], cIndex);
   }
 
-  const tIndex = findDimensionIndexSafe(names, "t");
+  const tIndex = findDimensionIndexSafe(dimensionNames, "t");
   if (tIndex !== -1) {
-    dims.t = getSourceDimension(names[tIndex], tIndex, attrs);
+    dims.t = buildSourceDimension(dimensionNames[tIndex], tIndex);
   }
 
   return dims;
-}
-
-function getSourceDimension(
-  name: string,
-  index: number,
-  attrs: ReadonlyArray<LoaderAttributes>
-): SourceDimension {
-  return {
-    name,
-    index,
-    lods: attrs.map((attr) => ({
-      size: attr.shape[index],
-      chunkSize: attr.chunks[index],
-      scale: attr.scale[index],
-      translation: attr.translation[index],
-    })),
-  };
 }
 
 function compareDimensions(a: string, b: string): boolean {

@@ -110,8 +110,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
     this.setState("loading");
     const loader = await this.source_.open();
-    const attributes = loader.getAttributes();
-    const lod = this.lod_ ?? attributes.length - 1;
+    const dimensionMap = loader.getSourceDimensionMap();
+    const lod = this.lod_ ?? dimensionMap.numLods - 1;
 
     const chunk = await loader.loadRegion(region, lod);
     this.extent_ = {
