@@ -71,7 +71,10 @@ void main() {
             fragColor = vec4(1.0, 0.0, 0.0, 1.0);
             return;
         }
-        discard;
+        // Because we later clamp the number of samples to at least 1,
+        // and position starts at entry point,
+        // we don't have to discard here
+        //discard;
     }
 
     // Find the texture coordinates of the entry and exit points
