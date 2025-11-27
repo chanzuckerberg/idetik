@@ -9,6 +9,7 @@ import {
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { vec3 } from "gl-matrix";
+import { Logger } from "../utilities/logger";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -252,7 +253,7 @@ export class VolumeLayer extends Layer {
             chunk.state = "unloaded";
             this.pendingLoads_.delete(chunk);
             if (err.name !== "AbortError") {
-              console.error("Chunk load error:", err);
+              Logger.error("VolumeLayer", "Chunk load error:", err);
             }
           });
       }
