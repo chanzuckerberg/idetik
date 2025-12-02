@@ -29,68 +29,34 @@ export type FetchOptions = {
   region?: string;
 };
 
+type OmeZarrImageSourceProps = {
+  location: Location<Readable>;
+  version?: OmeZarrVersion;
+  fetchOptions?: FetchOptions;
+};
+
+type HttpOmeZarrImageSourceProps = {
+  url: string;
+  version?: OmeZarrVersion;
+  fetchOptions?: FetchOptions;
+};
+
+type FileSystemOmeZarrImageSourceProps = {
+  directory: FileSystemDirectoryHandle;
+  version?: OmeZarrVersion;
+  path?: `/${string}`;
+};
+
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
   readonly location: Location<Readable>;
   readonly version?: OmeZarrVersion;
   readonly fetchOptions?: FetchOptions;
 
-  /**
-   * @param url URL of Zarr root
-   * @param version OME-Zarr version
-   * @param fetchOptions Optional fetch configuration (e.g., authentication headers for private S3 data)
-   */
-  constructor(
-    url: string,
-    version?: OmeZarrVersion,
-    fetchOptions?: FetchOptions
-  );
-  /**
-   * @param directory return value of `window.showDirectoryPicker()` which gives the browser
-   *    permission to access a directory (only works in Chrome/Edge)
-   * @param version OME-Zarr version
-   * @param path path to image, beginning with "/". This argument allows the application to only
-   *    ask the user once for permission to the root directory
-   */
-  constructor(
-    directory: FileSystemDirectoryHandle,
-    version?: OmeZarrVersion,
-    path?: `/${string}`
-  );
-  // Implementation signature that handles both overloads above.
-  // For URLs: 2nd param can be version or fetchOptions, 3rd param is fetchOptions
-  // For FileSystemDirectoryHandle: 2nd param is version, 3rd param is path
-  constructor(
-    source: string | FileSystemDirectoryHandle,
-    versionOrOptions?: OmeZarrVersion | FetchOptions,
-    pathOrFetchOptions?: `/${string}` | FetchOptions
-  ) {
-    // Handle URL constructor: (url, version?, fetchOptions?)
-    if (typeof source === "string") {
-      const version =
-        typeof versionOrOptions === "string" ? versionOrOptions : undefined;
-      const fetchOptions =
-        typeof versionOrOptions === "object"
-          ? versionOrOptions
-          : (pathOrFetchOptions as FetchOptions | undefined);
-
-      const store = createFetchStore(source, fetchOptions);
-
-      this.location = new Location(store);
-      this.version = version;
-      this.fetchOptions = fetchOptions;
-    }
-    // Handle FileSystemDirectoryHandle constructor: (directory, version?, path?)
-    else {
-      const version =
-        typeof versionOrOptions === "string" ? versionOrOptions : undefined;
-      const path =
-        typeof pathOrFetchOptions === "string" ? pathOrFetchOptions : undefined;
-
-      this.location = new Location(new WebFileSystemStore(source), path);
-      this.version = version;
-      this.fetchOptions = undefined;
-    }
+  private constructor(props: OmeZarrImageSourceProps) {
+    this.location = props.location;
+    this.version = props.version;
+    this.fetchOptions = props.fetchOptions;
   }
 
   public async open(): Promise<OmeZarrImageLoader> {
@@ -133,6 +99,39 @@ export class OmeZarrImageSource {
       metadata,
       arrays,
       arrayParams,
+    });
+  }
+
+  /**
+   * Creates an OmeZarrImageSource from an HTTP(S) URL.
+   *
+   * @param url URL of Zarr root
+   * @param version OME-Zarr version
+   * @param fetchOptions Optional fetch configuration (e.g., authentication headers for private S3 data)
+   */
+  public static fromHttp(props: HttpOmeZarrImageSourceProps) {
+    const store = createFetchStore(props.url, props.fetchOptions);
+    return new OmeZarrImageSource({
+      location: new Location(store),
+      version: props.version,
+      fetchOptions: props.fetchOptions,
+    });
+  }
+
+  /**
+   * Creates an OmeZarrImageSource from a local filesystem directory.
+   *
+   * @param directory return value of `window.showDirectoryPicker()` which gives the browser
+   *    permission to access a directory (only works in Chrome/Edge)
+   * @param version OME-Zarr version
+   * @param path path to image, beginning with "/". This argument allows the application to only
+   *    ask the user once for permission to the root directory
+   */
+  public static fromFileSystem(props: FileSystemOmeZarrImageSourceProps) {
+    const store = new WebFileSystemStore(props.directory);
+    return new OmeZarrImageSource({
+      location: new Location(store, props.path),
+      version: props.version,
     });
   }
 }

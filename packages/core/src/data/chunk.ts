@@ -27,14 +27,17 @@ export function isChunkData(value: unknown): value is ChunkData {
   return false;
 }
 
-export type Chunk = {
-  data?: ChunkData;
-  state: "unloaded" | "queued" | "loading" | "loaded";
-  lod: number;
+export type ChunkViewState = {
   visible: boolean;
   prefetch: boolean;
   priority: number | null;
   orderKey: number | null;
+};
+
+export type Chunk = {
+  data?: ChunkData;
+  state: "unloaded" | "queued" | "loading" | "loaded";
+  lod: number;
   shape: {
     x: number;
     y: number;
@@ -59,7 +62,7 @@ export type Chunk = {
     y: number;
     z: number;
   };
-};
+} & ChunkViewState;
 
 // Maps Idetik spatial dimensions (x, y, z) and non-spatial dimensions (c, t)
 // dimensions to a chunk source's dimensions.
@@ -101,15 +104,6 @@ export type ChunkSource = {
   open(): Promise<ChunkLoader>;
 };
 
-export type LoaderAttributes = {
-  dimensionNames: string[];
-  dimensionUnits: (string | undefined)[];
-  chunks: readonly number[];
-  shape: readonly number[];
-  scale: readonly number[];
-  translation: readonly number[];
-};
-
 export type ChunkLoader = {
   loadRegion(
     input: Region,
@@ -120,8 +114,6 @@ export type ChunkLoader = {
   getSourceDimensionMap(): SourceDimensionMap;
 
   loadChunkData(chunk: Chunk, signal: AbortSignal): Promise<void>;
-
-  getAttributes(): ReadonlyArray<LoaderAttributes>;
 };
 
 export function coordToIndex(lod: SourceDimensionLod, coord: number): number {

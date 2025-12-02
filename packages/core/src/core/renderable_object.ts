@@ -5,6 +5,7 @@ import { Texture } from "../objects/textures/texture";
 import { TrsTransform } from "../core/transforms";
 import { Shader } from "../renderers/shaders";
 import { Color } from "../core/color";
+import { CullingMode } from "../renderers/WebGLState";
 
 export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
@@ -15,6 +16,7 @@ export abstract class RenderableObject extends Node {
   private geometry_ = new Geometry();
   private wireframeGeometry_: WireframeGeometry | null = null;
   private programName_: Shader | null = null;
+  private cullFaceMode_: CullingMode = "none";
 
   public setTexture(index: number, texture: Texture) {
     const oldTexture = this.textures_[index];
@@ -67,6 +69,14 @@ export abstract class RenderableObject extends Node {
 
   protected set programName(programName: Shader) {
     this.programName_ = programName;
+  }
+
+  public get cullFaceMode() {
+    return this.cullFaceMode_;
+  }
+
+  public set cullFaceMode(mode: CullingMode) {
+    this.cullFaceMode_ = mode;
   }
 
   /**

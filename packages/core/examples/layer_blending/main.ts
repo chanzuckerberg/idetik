@@ -15,7 +15,7 @@ const url =
 
 // Source is 5D, so provide an interval in T a scalar index in Z
 // (first of only depth) to get a 2D image series.
-const source = new OmeZarrImageSource(url);
+const source = OmeZarrImageSource.fromHttp({ url });
 
 // Get the default Z index from the zattrs
 let zIndex = 0;

@@ -15,10 +15,12 @@ type SingleUniformValues = {
   Color: vec3;
   ValueOffset: number;
   ValueScale: number;
+  ChannelCount: number;
 };
 
 type ArrayUniformValues = {
   ImageSampler: number;
+  ChannelCount: number;
   "Visible[0]": boolean[];
   "Color[0]": number[];
   "ValueOffset[0]": number[];
@@ -76,6 +78,7 @@ export class ImageRenderable extends RenderableObject {
         Color: color.rgb,
         ValueOffset: -contrastLimits[0],
         ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
+        ChannelCount: 1,
       };
     } else {
       // Texture2DArray case
@@ -100,6 +103,7 @@ export class ImageRenderable extends RenderableObject {
         "Color[0]": color,
         "ValueOffset[0]": valueOffset,
         "ValueScale[0]": valueScale,
+        ChannelCount: this.channels_.length,
       };
     }
   }

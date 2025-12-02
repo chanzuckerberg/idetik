@@ -1,10 +1,7 @@
-import { Layer, LayerOptions } from "../core/layer";
-import { IdetikContext } from "../idetik";
+import { Layer, LayerOptions, RenderContext } from "../core/layer";
+import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import {
-  ChunkManagerSource,
-  INTERNAL_POLICY_KEY,
-} from "../core/chunk_manager_source";
+import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
@@ -38,7 +35,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   private readonly channelChangeCallbacks_: (() => void)[] = [];
   private policy_: ImageSourcePolicy;
   private channelProps_?: ChannelProps[];
-  private chunkManagerSource_?: ChunkManagerSource;
+  private chunkStoreView_?: ChunkStoreView;
   private pointerDownPos_: vec2 | null = null;
   private zPrevPointWorld_?: number;
   private debugMode_ = false;
@@ -73,37 +70,41 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public async onAttached(context: IdetikContext) {
-    if (this.chunkManagerSource_) {
+    if (this.chunkStoreView_) {
       throw new Error(
-        "ChunkedImageLayer is already attached. " +
-          "A layer cannot be attached to multiple LayerManagers simultaneously."
+        "ChunkedImageLayer cannot be attached to multiple contexts simultaneously."
       );
     }
-    this.chunkManagerSource_ = await context.chunkManager.addSource(
+    this.chunkStoreView_ = await context.chunkManager.addView(
       this.source_,
-      this.sliceCoords_,
       this.policy_
     );
   }
 
-  public onDetached(): void {
-    this.chunkManagerSource_ = undefined;
+  public onDetached(context: IdetikContext): void {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
+    if (!this.chunkStoreView_) return;
+    context.chunkManager.removeView(this.chunkStoreView_);
+    this.chunkStoreView_ = undefined;
   }
 
-  public update() {
+  public update(context?: RenderContext) {
+    if (!context || !this.chunkStoreView_) return;
+
+    this.chunkStoreView_.updateChunkStates(this.sliceCoords_, context.viewport);
+
     this.updateChunks();
     this.resliceIfZChanged();
   }
 
   private updateChunks() {
-    if (!this.chunkManagerSource_) return;
+    if (!this.chunkStoreView_) return;
     if (this.state !== "ready") this.setState("ready");
 
     if (
       this.visibleChunks_.size > 0 &&
-      !this.chunkManagerSource_.allVisibleLowestLODLoaded() &&
+      !this.chunkStoreView_.allVisibleLowestLODLoaded(this.sliceCoords_) &&
       !this.isPresentationStale()
     ) {
       return;
@@ -111,7 +112,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
-    const orderedByLOD = this.chunkManagerSource_.getChunks();
+    const orderedByLOD = this.chunkStoreView_.getChunksToRender(
+      this.sliceCoords_
+    );
     const current = new Set(orderedByLOD);
     const nonVisibleChunks = Array.from(this.visibleChunks_.keys()).filter(
       (chunk) => !current.has(chunk)
@@ -166,8 +169,13 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
-  public get chunkManagerSource(): ChunkManagerSource | undefined {
-    return this.chunkManagerSource_;
+  // exposed for use in chunk info overlay
+  public get chunkStoreView(): ChunkStoreView | undefined {
+    return this.chunkStoreView_;
+  }
+
+  public get sliceCoords(): SliceCoordinates {
+    return this.sliceCoords_;
   }
 
   public get source(): ChunkSource {
@@ -181,8 +189,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public set imageSourcePolicy(newPolicy: ImageSourcePolicy) {
     if (this.policy_ !== newPolicy) {
       this.policy_ = newPolicy;
-      if (this.chunkManagerSource_) {
-        this.chunkManagerSource_.setImageSourcePolicy(
+      if (this.chunkStoreView_) {
+        this.chunkStoreView_.setImageSourcePolicy(
           newPolicy,
           INTERNAL_POLICY_KEY
         );
@@ -261,7 +269,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public getValueAtWorld(world: vec3): number | null {
-    const currentLOD = this.chunkManagerSource_?.currentLOD ?? 0;
+    const currentLOD = this.chunkStoreView_?.currentLOD ?? 0;
 
     // First, try to find the value in current LOD chunks (highest priority)
     for (const [chunk, image] of this.visibleChunks_) {

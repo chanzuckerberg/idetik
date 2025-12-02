@@ -13,6 +13,7 @@ export class VolumeRenderable extends RenderableObject {
   ) {
     super();
     this.geometry = new BoxGeometry(width, height, depth, 1, 1, 1);
+    this.cullFaceMode = "back";
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
   }

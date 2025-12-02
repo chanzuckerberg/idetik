@@ -16,18 +16,13 @@ const imageUrl = `${baseUrl}/Tomograms/100/24apr23a_Position_12.zarr`;
 const maskUrl = `${baseUrl}/Annotations/100/membrane-1.0_segmentationmask.zarr`;
 
 // Source is 3D with axes (z, y, x), so we provide an interval in z
-const imageSource = new OmeZarrImageSource(imageUrl);
+const imageSource = OmeZarrImageSource.fromHttp({ url: imageUrl });
 const loader = await imageSource.open();
-const attributes = loader.getAttributes();
-const lods = attributes.length;
-const attributesForLastLod = attributes[lods - 1];
+const dimensions = loader.getSourceDimensionMap();
 
 const zDimName = "z";
-const zAxisIndex = attributesForLastLod.dimensionNames.findIndex(
-  (dim) => dim === zDimName
-);
 const zMin = 0;
-const zMax = attributesForLastLod.shape[zAxisIndex];
+const zMax = dimensions.z!.lods[dimensions.numLods - 1].size;
 const region: Region = [
   { dimension: zDimName, index: { type: "full" } },
   { dimension: "x", index: { type: "full" } },
@@ -54,7 +49,7 @@ imageLayer.addStateChangeCallback((newState: LayerState) => {
   stateEl.textContent = newState;
 });
 
-const maskSource = new OmeZarrImageSource(maskUrl);
+const maskSource = OmeZarrImageSource.fromHttp({ url: maskUrl });
 const maskLayer = new ImageSeriesLayer({
   source: maskSource,
   region,

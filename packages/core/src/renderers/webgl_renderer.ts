@@ -86,9 +86,10 @@ export class WebGLRenderer extends Renderer {
     this.state_.setDepthMask(true);
 
     const frustum = viewport.camera.frustum;
+    const renderContext = { viewport };
 
     for (const layer of opaque) {
-      layer.update();
+      layer.update(renderContext);
       if (layer.state === "ready") {
         this.renderLayer(layer, viewport.camera, frustum);
       }
@@ -96,7 +97,7 @@ export class WebGLRenderer extends Renderer {
 
     this.state_.setDepthMask(false);
     for (const layer of transparent) {
-      layer.update();
+      layer.update(renderContext);
       if (layer.state !== "ready") continue;
       this.renderLayer(layer, viewport.camera, frustum);
     }
@@ -122,6 +123,7 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
+    this.state_.setCullFaceMode(object.cullFaceMode);
     this.bindings_.bindGeometry(object.geometry);
     object.popStaleTextures().forEach((texture) => {
       this.textures_.disposeTexture(texture);
