@@ -4,10 +4,10 @@ import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
 import WebFileSystemStore from "./web_file_system_store";
 import {
-  AuthenticatedFetchStore,
+  S3FetchStore,
   createFetchStore,
   type AwsCredentials,
-} from "./authenticated_fetch_store";
+} from "./s3_fetch_store";
 
 export type Version = "v2" | "v3";
 
@@ -119,8 +119,8 @@ export function createZarrArrayParams(
   zarrVersion: Version | undefined,
   fetchOptions?: { overrides?: RequestInit; useSuffixRequest?: boolean }
 ): ZarrArrayParams {
-  if (location.store instanceof AuthenticatedFetchStore) {
-    // Extract credentials and region from AuthenticatedFetchStore
+  if (location.store instanceof S3FetchStore) {
+    // Extract credentials and region from S3FetchStore
     return {
       type: "fetch",
       arrayPath,

@@ -7,13 +7,13 @@ export type AwsCredentials = {
   sessionToken?: string;
 };
 
-export type AuthenticatedFetchOptions = FetchOptions & {
+export type S3FetchOptions = FetchOptions & {
   credentials?: AwsCredentials;
   region?: string;
 };
 
 /**
- * Checks if the current environment is safe for using AuthenticatedFetchStore.
+ * Checks if the current environment is safe for using S3FetchStore.
  * Only allows localhost, 127.0.0.1, 0.0.0.0, or any 127.x.x.x address.
  * @throws Error if not in a safe local environment
  */
@@ -34,7 +34,7 @@ function checkLocalOnlyEnvironment(): void {
 
   if (!isLocalhost) {
     const message =
-      "AuthenticatedFetchStore is only allowed in local development environments. ";
+      "S3FetchStore is only allowed in local development environments. ";
     throw new Error(message);
   }
 }
@@ -47,13 +47,13 @@ function checkLocalOnlyEnvironment(): void {
  * Credentials are passed to worker threads and stored in memory.
  * Do not use in production - implement a secure backend proxy instead.
  */
-export class AuthenticatedFetchStore extends FetchStore {
+export class S3FetchStore extends FetchStore {
   private credentials_?: AwsCredentials;
   private region_?: string;
   // Cache signing keys per date/region combination (valid for 24 hours)
   private signingKeyCache_ = new Map<string, Uint8Array>();
 
-  constructor(url: string, options?: AuthenticatedFetchOptions) {
+  constructor(url: string, options?: S3FetchOptions) {
     // Safety check: only allow in local development environments
     checkLocalOnlyEnvironment();
 
@@ -316,13 +316,13 @@ export class AuthenticatedFetchStore extends FetchStore {
 
 /**
  * Creates an appropriate FetchStore based on whether authentication credentials are provided.
- * Returns AuthenticatedFetchStore if credentials and region are present, otherwise returns FetchStore.
+ * Returns S3FetchStore if credentials and region are present, otherwise returns FetchStore.
  */
 export function createFetchStore(
   url: string,
-  options?: AuthenticatedFetchOptions
-): FetchStore | AuthenticatedFetchStore {
+  options?: S3FetchOptions
+): FetchStore | S3FetchStore {
   return options?.credentials && options?.region
-    ? new AuthenticatedFetchStore(url, options)
+    ? new S3FetchStore(url, options)
     : new FetchStore(url, options);
 }

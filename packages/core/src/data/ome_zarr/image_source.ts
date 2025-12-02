@@ -15,7 +15,7 @@ import {
 import {
   createFetchStore,
   type AwsCredentials,
-} from "../zarr/authenticated_fetch_store";
+} from "../zarr/s3_fetch_store";
 
 /** Options for customizing fetch requests, such as adding authentication headers for private S3 data */
 export type FetchOptions = {
