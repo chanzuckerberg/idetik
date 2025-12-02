@@ -24,8 +24,7 @@ const labelsSource = OmeZarrImageSource.fromHttp({ url: labelsUrl });
 
 const lod = 0;
 const loader = await imageSource.open();
-const attributes = loader.getAttributes();
-const attributesAtLod = attributes[lod];
+const dimensions = loader.getSourceDimensionMap();
 
 // Phase contrast limits were chosen qualitatively.
 const phaseChannelIndex = 0;
@@ -33,22 +32,12 @@ const phaseContrastLimits: [number, number] = [20, 200];
 
 const tStartPoint = 0;
 
-const dimensionExtent = (dimensionName: string) => {
-  const index = attributesAtLod.dimensionNames.findIndex(
-    (d) => d === dimensionName
-  );
-  return {
-    size: attributesAtLod.shape[index],
-    scale: attributesAtLod.scale[index],
-  };
-};
-
-const zExtent = dimensionExtent("Z");
-const zMidPoint = 0.5 * zExtent.size * zExtent.scale;
-const xExtent = dimensionExtent("X");
-const xStopPoint = xExtent.size * xExtent.scale;
-const yExtent = dimensionExtent("Y");
-const yStopPoint = yExtent.size * yExtent.scale;
+const zLod = dimensions.z!.lods[0];
+const zMidPoint = 0.5 * zLod.size * zLod.scale;
+const xLod = dimensions.x.lods[0];
+const xStopPoint = xLod.size * xLod.scale;
+const yLod = dimensions.y.lods[0];
+const yStopPoint = yLod.size * yLod.scale;
 
 const sliceCoords = {
   t: tStartPoint,

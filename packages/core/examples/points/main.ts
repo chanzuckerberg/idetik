@@ -189,15 +189,11 @@ virusLike.setDepth(INITIAL_Z_POSITION);
 
 const imageSource = OmeZarrImageSource.fromHttp({ url: imageUrl });
 const loader = await imageSource.open();
-const attributes = loader.getAttributes();
-const attributesForLastLod = attributes[attributes.length - 1];
+const dimensions = loader.getSourceDimensionMap();
 
 const zDimName = "z";
-const zAxisIndex = attributesForLastLod.dimensionNames.findIndex(
-  (dim) => dim === zDimName
-);
 const zMin = 0;
-const zMax = attributesForLastLod.shape[zAxisIndex];
+const zMax = dimensions.z!.lods[dimensions.numLods - 1].size;
 const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
 zSlider.min = `${zMin}`;
 zSlider.max = `${zMax - 1}`;
