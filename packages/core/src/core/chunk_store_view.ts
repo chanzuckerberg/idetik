@@ -47,12 +47,21 @@ export class ChunkStoreView {
     );
   }
 
-  public get store(): ChunkStore {
-    return this.store_;
-  }
-
   public get chunkViewStates(): ReadonlyMap<Chunk, ChunkViewState> {
     return this.chunkViewStates_;
+  }
+
+  // forwarding methods for chunk stats overlay while keeping store_ private
+  public getChunksAtTime(timeIndex: number): Chunk[] {
+    return this.store_.getChunksAtTime(timeIndex);
+  }
+
+  public getTimeIndex(sliceCoords: SliceCoordinates): number {
+    return this.store_.getTimeIndex(sliceCoords);
+  }
+
+  public get lodCount(): number {
+    return this.store_.lodCount;
   }
 
   public getChunksToRender(sliceCoords: SliceCoordinates): Chunk[] {
@@ -145,6 +154,10 @@ export class ChunkStoreView {
       return;
     }
     this.chunkViewStates_.delete(chunk);
+  }
+
+  public dispose(): void {
+    this.store_.removeView(this);
   }
 
   public setImageSourcePolicy(newPolicy: ImageSourcePolicy, key: symbol) {
