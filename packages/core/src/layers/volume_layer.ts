@@ -5,6 +5,7 @@ import { IdetikContext } from "../idetik";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
+import { RenderablePool } from "../utilities/renderable_pool";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -20,6 +21,7 @@ export class VolumeLayer extends Layer {
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly visibleChunks_: Map<Chunk, VolumeRenderable> = new Map();
+  private readonly pool_ = new RenderablePool<VolumeRenderable>();
 
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
@@ -70,17 +72,7 @@ export class VolumeLayer extends Layer {
       chunk.shape.z,
       Texture3D.createWithChunk(chunk)
     );
-    volume.transform.setScale([chunk.scale.x, chunk.scale.y, chunk.scale.z]);
-    const originOffset = {
-      x: (chunk.shape.x * chunk.scale.x) / 2,
-      y: (chunk.shape.y * chunk.scale.y) / 2,
-      z: (chunk.shape.z * chunk.scale.z) / 2,
-    };
-    volume.transform.setTranslation([
-      chunk.offset.x + originOffset.x,
-      chunk.offset.y + originOffset.y,
-      chunk.offset.z + originOffset.z,
-    ]);
+    this.updateVolumeChunk(volume, chunk);
     return volume;
   }
 
@@ -99,9 +91,17 @@ export class VolumeLayer extends Layer {
     this.setState("initialized");
   }
 
-  private getVolumeRenderableForChunk(chunk: Chunk): VolumeRenderable {
+  private getVolumeForChunk(chunk: Chunk): VolumeRenderable {
     const existing = this.visibleChunks_.get(chunk);
     if (existing) return existing;
+
+    const pooled = this.pool_.acquire(poolKeyForChunk(chunk));
+    if (pooled) {
+      const texture = pooled.textures[0] as Texture3D;
+      texture.updateWithChunk(chunk);
+      this.updateVolumeChunk(pooled, chunk);
+      return pooled;
+    }
 
     return this.createVolume(chunk);
   }
@@ -173,7 +173,7 @@ export class VolumeLayer extends Layer {
 
     this.clearObjects();
     for (const chunk of chunksToRender) {
-      const volume = this.getVolumeRenderableForChunk(chunk);
+      const volume = this.getVolumeForChunk(chunk);
       volume.wireframeEnabled = this.debugMode;
       this.visibleChunks_.set(chunk, volume);
       this.addObject(volume);
@@ -185,10 +185,25 @@ export class VolumeLayer extends Layer {
     if (this.state !== "ready") this.setState("ready");
   }
 
+  private updateVolumeChunk(volume: VolumeRenderable, chunk: Chunk) {
+    volume.transform.setScale([chunk.scale.x, chunk.scale.y, chunk.scale.z]);
+    const originOffset = {
+      x: (chunk.shape.x * chunk.scale.x) / 2,
+      y: (chunk.shape.y * chunk.scale.y) / 2,
+      z: (chunk.shape.z * chunk.scale.z) / 2,
+    };
+    volume.transform.setTranslation([
+      chunk.offset.x + originOffset.x,
+      chunk.offset.y + originOffset.y,
+      chunk.offset.z + originOffset.z,
+    ]);
+  }
+
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>) {
     for (const chunk of chunks) {
       const volume = this.visibleChunks_.get(chunk);
       if (volume) {
+        this.pool_.release(poolKeyForChunk(chunk), volume);
         this.visibleChunks_.delete(chunk);
       }
     }
@@ -210,4 +225,12 @@ export class VolumeLayer extends Layer {
 
     this.updateChunks();
   }
+}
+
+export function poolKeyForChunk(chunk: Chunk) {
+  return [
+    `lod${chunk.lod}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}`,
+    `align${chunk.rowAlignmentBytes}`,
+  ].join(":");
 }
