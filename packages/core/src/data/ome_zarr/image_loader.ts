@@ -220,9 +220,9 @@ export class OmeZarrImageLoader {
     };
 
     const xLod = this.dimensions_.x.lods[lod];
-    const xIndex = indices[indices.length - 1];
+    const xIndex = indices[this.dimensions_.x.index];
     const xOffset = calculateOffset(xIndex, xLod);
-    const yIndex = indices[indices.length - 2];
+    const yIndex = indices[this.dimensions_.y.index];
     const yLod = this.dimensions_.y.lods[lod];
     const yOffset = calculateOffset(yIndex, yLod);
 
