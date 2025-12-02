@@ -12,10 +12,7 @@ import {
   parseOmeZarrImage,
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
-import {
-  createFetchStore,
-  type AwsCredentials,
-} from "../zarr/s3_fetch_store";
+import { createFetchStore, type AwsCredentials } from "../zarr/s3_fetch_store";
 
 /** Options for customizing fetch requests, such as adding authentication headers for private S3 data */
 export type FetchOptions = {

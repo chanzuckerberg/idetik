@@ -7,10 +7,7 @@ import { Plate } from "./0.5/plate";
 import { Well } from "./0.5/well";
 import { OmeZarrImageSource } from "./image_source";
 import { Version as ZarrVersion, openGroup } from "../zarr/open";
-import {
-  createFetchStore,
-  type AwsCredentials,
-} from "../zarr/s3_fetch_store";
+import { createFetchStore, type AwsCredentials } from "../zarr/s3_fetch_store";
 
 const versions = ["0.4", "0.5"] as const;
 const versionsSet: ReadonlySet<string> = new Set(versions);
