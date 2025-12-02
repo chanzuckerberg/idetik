@@ -14,7 +14,7 @@ import GUI from "lil-gui";
 
 const url =
   "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr";
-const source = new OmeZarrImageSource(url, "0.5");
+const source = OmeZarrImageSource.fromHttp({ url, version: "0.5" });
 const loader = await source.open();
 const dimensions = loader.getSourceDimensionMap();
 const lod = 0;

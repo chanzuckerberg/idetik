@@ -19,8 +19,8 @@ const fovName = "B/3/000000";
 const imageUrl = `${baseUrl}/2024_11_07_A549_SEC61_DENV_cropped.zarr/${fovName}`;
 const labelsUrl = `${baseUrl}/2024_11_07_A549_SEC61_DENV_tracking.zarr/${fovName}`;
 
-const imageSource = new OmeZarrImageSource(imageUrl);
-const labelsSource = new OmeZarrImageSource(labelsUrl);
+const imageSource = OmeZarrImageSource.fromHttp({ url: imageUrl });
+const labelsSource = OmeZarrImageSource.fromHttp({ url: labelsUrl });
 
 const lod = 0;
 const loader = await imageSource.open();

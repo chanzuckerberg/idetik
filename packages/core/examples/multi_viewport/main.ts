@@ -27,7 +27,7 @@ const zMax = z.translate + z.scale * z.shape - z.scale;
 const zRange = { min: zMin, max: zMax };
 
 // shared source between viewports
-const source = new OmeZarrImageSource(url);
+const source = OmeZarrImageSource.fromHttp({ url });
 
 const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer();

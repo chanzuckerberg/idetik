@@ -12,7 +12,7 @@ const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
 // Source is 5D, so provide an interval in T a scalar index in Z
 // (first of only depth) to get a 2D image series.
-const source = new OmeZarrImageSource(url);
+const source = OmeZarrImageSource.fromHttp({ url });
 const timeInterval = { start: 100, stop: 120 };
 const region: Region = [
   { dimension: "T", index: { type: "interval", ...timeInterval } },

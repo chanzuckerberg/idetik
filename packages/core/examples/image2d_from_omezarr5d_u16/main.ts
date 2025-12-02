@@ -18,7 +18,7 @@ const bottom = 900;
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
 // Also specify a subregion in x and y to exercise that part of the API.
-const source = new OmeZarrImageSource(url);
+const source = OmeZarrImageSource.fromHttp({ url });
 const region: Region = [
   { dimension: "t", index: { type: "point", value: 400 } },
   { dimension: "c", index: { type: "point", value: 0 } },

@@ -61,7 +61,7 @@ const onImageChange = async () => {
   viewport.layerManager.removeAll();
   const imageUrl =
     plateUrl + "/" + wellSelector.value + "/" + imageSelector.value;
-  const source = new OmeZarrImageSource(imageUrl);
+  const source = OmeZarrImageSource.fromHttp({ url: imageUrl });
   const omeroDefaults = await loadOmeroDefaults(source);
   const omeroDefaultZ = omeroDefaults?.defaultZ ?? 0;
   region[2] = {
