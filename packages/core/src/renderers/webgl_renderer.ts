@@ -116,7 +116,6 @@ export class WebGLRenderer extends Renderer {
     // This should probably be more generic, but for now we do some checks
     // specifically for volume rendering
     if (layer.type === "VolumeLayer") {
-      this.state_.setCullFaceMode("back");
       this.state_.setDepthTesting(false);
       this.state_.setDepthMask(false);
       layer.reorderObjects(camera, "front-to-back");
@@ -130,7 +129,6 @@ export class WebGLRenderer extends Renderer {
     });
 
     if (layer.type === "VolumeLayer") {
-      this.state_.setCullFaceMode("none");
       this.state_.setDepthTesting(true);
       this.state_.setDepthMask(true);
     }
