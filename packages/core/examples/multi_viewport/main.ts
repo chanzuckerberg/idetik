@@ -132,3 +132,12 @@ const syncTime = () => {
   requestAnimationFrame(syncTime);
 };
 syncTime();
+
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space") {
+    const container = document.getElementById("container");
+    if (container) {
+      container.classList.toggle("fullscreen-mode");
+    }
+  }
+});
