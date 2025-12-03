@@ -113,8 +113,9 @@ export class Idetik {
       }
     }
     this.sizeObserver_ = new PixelSizeObserver(sizeDependents, () => {
-      this.updateSize();
+      this.renderer_.updateSize();
       for (const viewport of this.viewports_) {
+        viewport.updateSize();
         this.renderer_.render(viewport);
       }
     });
@@ -188,13 +189,6 @@ export class Idetik {
       }
       cancelAnimationFrame(this.lastAnimationId_);
       this.lastAnimationId_ = undefined;
-    }
-  }
-
-  private updateSize() {
-    this.renderer_.updateSize();
-    for (const viewport of this.viewports_) {
-      viewport.updateSize();
     }
   }
 }
