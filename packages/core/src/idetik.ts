@@ -112,7 +112,13 @@ export class Idetik {
         sizeDependents.push(viewport.element);
       }
     }
-    this.sizeObserver_ = new PixelSizeObserver(sizeDependents);
+    this.sizeObserver_ = new PixelSizeObserver(sizeDependents, () => {
+      this.renderer_.updateSize();
+      for (const viewport of this.viewports_) {
+        viewport.updateSize();
+        this.renderer_.render(viewport);
+      }
+    });
   }
 
   public get renderedObjects() {
@@ -156,11 +162,6 @@ export class Idetik {
   private animate(timestamp?: DOMHighResTimeStamp) {
     if (this.stats_) this.stats_.begin();
 
-    // Must resize before render b/c changing canvas coordinate space clears it.
-    if (this.sizeObserver_.getAndResetChanged()) {
-      this.updateSize();
-    }
-
     for (const viewport of this.viewports_) {
       this.renderer_.render(viewport);
     }
@@ -188,13 +189,6 @@ export class Idetik {
       }
       cancelAnimationFrame(this.lastAnimationId_);
       this.lastAnimationId_ = undefined;
-    }
-  }
-
-  private updateSize() {
-    this.renderer_.updateSize();
-    for (const viewport of this.viewports_) {
-      viewport.updateSize();
     }
   }
 }

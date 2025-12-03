@@ -7,10 +7,11 @@ export class PixelSizeObserver {
   private resizeObserver_?: ResizeObserver;
   private mediaQuery_?: MediaQueryList;
   private onMediaQueryChange_?: () => void;
-  private changed_ = false;
+  private onChange_: () => void;
 
-  constructor(elements: ReadonlyArray<HTMLElement> = []) {
+  constructor(elements: ReadonlyArray<HTMLElement> = [], onChange: () => void) {
     this.elements_ = elements;
+    this.onChange_ = onChange;
   }
 
   public connect() {
@@ -21,8 +22,9 @@ export class PixelSizeObserver {
       );
       return;
     }
+
     this.resizeObserver_ = new ResizeObserver(() => {
-      this.changed_ = true;
+      this.onChange_();
     });
 
     for (const element of this.elements_) {
@@ -30,12 +32,6 @@ export class PixelSizeObserver {
     }
 
     this.startDevicePixelRatioObserver();
-  }
-
-  public getAndResetChanged() {
-    const wasChanged = this.changed_;
-    this.changed_ = false;
-    return wasChanged;
   }
 
   private startDevicePixelRatioObserver() {
@@ -46,7 +42,7 @@ export class PixelSizeObserver {
       `(resolution: ${window.devicePixelRatio}dppx)`
     );
     this.onMediaQueryChange_ = () => {
-      this.changed_ = true;
+      this.onChange_();
       this.startDevicePixelRatioObserver();
     };
     this.mediaQuery_.addEventListener("change", this.onMediaQueryChange_, {
