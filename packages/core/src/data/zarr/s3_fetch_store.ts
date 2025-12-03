@@ -10,9 +10,7 @@ export type S3FetchStoreProps = {
   url: string;
   region?: string;
   credentials?: AwsCredentials;
-  /** RequestInit overrides to customize fetch behavior (e.g., custom headers for S3 authentication) */
   overrides?: RequestInit;
-  /** Whether to use suffix requests for range queries */
   useSuffixRequest?: boolean;
 };
 
