@@ -25,12 +25,6 @@ export { LabelImageLayer } from "./layers/label_image_layer";
 export type { PointPickingResult } from "./layers/point_picking";
 export { ImageSeriesLayer } from "./layers/image_series_layer";
 export { OmeZarrImageSource } from "./data/ome_zarr/image_source";
-export type { FetchOptions } from "./data/ome_zarr/image_source";
-export { S3FetchStore } from "./data/zarr/s3_fetch_store";
-export type {
-  AwsCredentials,
-  S3FetchOptions,
-} from "./data/zarr/s3_fetch_store";
 
 export type {
   PriorityCategory,

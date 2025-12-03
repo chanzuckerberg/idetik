@@ -3,11 +3,7 @@ import { Location } from "@zarrita/core";
 import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
 import WebFileSystemStore from "./web_file_system_store";
-import {
-  S3FetchStore,
-  createFetchStore,
-  type AwsCredentials,
-} from "./s3_fetch_store";
+import { S3FetchStore, type S3FetchStoreProps } from "./s3_fetch_store";
 
 export type Version = "v2" | "v3";
 
@@ -18,13 +14,10 @@ export type ZarrArrayParams = {
   | {
       type: "fetch";
       url: string;
-      fetchOptions?: {
-        overrides?: RequestInit;
-        useSuffixRequest?: boolean;
-        credentials?: AwsCredentials;
-        region?: string;
-      };
     }
+  | ({
+      type: "s3";
+    } & S3FetchStoreProps)
   | {
       type: "filesystem";
       directoryHandle: FileSystemDirectoryHandle;
@@ -89,7 +82,12 @@ export async function openArrayFromParams(
 
   switch (params.type) {
     case "fetch": {
-      const store = createFetchStore(params.url, params.fetchOptions);
+      const store = new FetchStore(params.url);
+      rootLocation = new Location(store);
+      break;
+    }
+    case "s3": {
+      const store = new S3FetchStore(params);
       rootLocation = new Location(store);
       break;
     }
@@ -116,29 +114,25 @@ export async function openArrayFromParams(
 export function createZarrArrayParams(
   location: Location<Readable>,
   arrayPath: string,
-  zarrVersion: Version | undefined,
-  fetchOptions?: { overrides?: RequestInit; useSuffixRequest?: boolean }
+  zarrVersion: Version | undefined
 ): ZarrArrayParams {
   if (location.store instanceof S3FetchStore) {
-    // Extract credentials and region from S3FetchStore
     return {
-      type: "fetch",
+      type: "s3",
       arrayPath,
       zarrVersion,
       url: location.store.url.toString(),
-      fetchOptions: {
-        ...fetchOptions,
-        credentials: location.store.credentials,
-        region: location.store.region,
-      },
+      region: location.store.region,
+      credentials: location.store.credentials,
+      overrides: location.store.overrides,
+      useSuffixRequest: location.store.useSuffixRequest,
     };
   } else if (location.store instanceof FetchStore) {
     return {
       type: "fetch",
       arrayPath,
       zarrVersion,
-      url: (location.store as FetchStore).url.toString(),
-      fetchOptions,
+      url: location.store.url.toString(),
     };
   } else if (location.store instanceof WebFileSystemStore) {
     return {
