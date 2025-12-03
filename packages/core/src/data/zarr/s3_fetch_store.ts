@@ -1,15 +1,19 @@
 import FetchStore from "@zarrita/storage/fetch";
-import type { FetchOptions } from "../ome_zarr/image_source";
 
-export type AwsCredentials = {
+type AwsCredentials = {
   accessKeyId: string;
   secretAccessKey: string;
   sessionToken?: string;
 };
 
-export type S3FetchOptions = FetchOptions & {
-  credentials?: AwsCredentials;
+export type S3FetchStoreProps = {
+  url: string;
   region?: string;
+  credentials?: AwsCredentials;
+  /** RequestInit overrides to customize fetch behavior (e.g., custom headers for S3 authentication) */
+  overrides?: RequestInit;
+  /** Whether to use suffix requests for range queries */
+  useSuffixRequest?: boolean;
 };
 
 /**
@@ -48,29 +52,27 @@ function checkLocalOnlyEnvironment(): void {
  * Do not use in production - implement a secure backend proxy instead.
  */
 export class S3FetchStore extends FetchStore {
-  private credentials_?: AwsCredentials;
-  private region_?: string;
+  public readonly credentials?: AwsCredentials;
+  public readonly region?: string;
   // Cache signing keys per date/region combination (valid for 24 hours)
   private signingKeyCache_ = new Map<string, Uint8Array>();
+  public readonly overrides?: RequestInit;
+  public readonly useSuffixRequest?: boolean;
 
-  constructor(url: string, options?: S3FetchOptions) {
+  constructor(props: S3FetchStoreProps) {
     // Safety check: only allow in local development environments
     checkLocalOnlyEnvironment();
 
     // Don't pass static headers to parent - we'll generate them per-request
-    const { credentials, region, ...fetchOptions } = options || {};
-    super(url, fetchOptions);
+    super(props.url, {
+      overrides: props.overrides,
+      useSuffixRequest: props.useSuffixRequest,
+    });
 
-    this.credentials_ = credentials;
-    this.region_ = region;
-  }
-
-  public get credentials(): AwsCredentials | undefined {
-    return this.credentials_;
-  }
-
-  public get region(): string | undefined {
-    return this.region_;
+    this.credentials = props.credentials;
+    this.region = props.region;
+    this.overrides = props.overrides;
+    this.useSuffixRequest = props.useSuffixRequest;
   }
 
   /**
@@ -80,7 +82,7 @@ export class S3FetchStore extends FetchStore {
     key: `/${string}`,
     options?: RequestInit
   ): Promise<Uint8Array | undefined> {
-    if (this.credentials_ && this.region_) {
+    if (this.credentials && this.region) {
       // Generate fresh headers for this specific request
       // Remove trailing slash from url if present to avoid double slashes
       const baseUrl = this.url.toString().replace(/\/$/, "");
@@ -111,7 +113,7 @@ export class S3FetchStore extends FetchStore {
     range: { offset: number; length: number } | { suffixLength: number },
     options?: RequestInit
   ): Promise<Uint8Array | undefined> {
-    if (this.credentials_ && this.region_) {
+    if (this.credentials && this.region) {
       const baseUrl = this.url.toString().replace(/\/$/, "");
       const fullUrl = `${baseUrl}${key}`;
 
@@ -165,12 +167,12 @@ export class S3FetchStore extends FetchStore {
     url: string,
     method: string = "GET"
   ): Promise<Record<string, string>> {
-    if (!this.credentials_ || !this.region_) {
+    if (!this.credentials || !this.region) {
       return {};
     }
 
-    const { accessKeyId, secretAccessKey, sessionToken } = this.credentials_;
-    const region = this.region_;
+    const { accessKeyId, secretAccessKey, sessionToken } = this.credentials;
+    const region = this.region;
     const service = "s3"; // Always S3 for this implementation
 
     const amzDate = this.getAmzDate();
@@ -312,17 +314,4 @@ export class S3FetchStore extends FetchStore {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
   }
-}
-
-/**
- * Creates an appropriate FetchStore based on whether authentication credentials are provided.
- * Returns S3FetchStore if credentials and region are present, otherwise returns FetchStore.
- */
-export function createFetchStore(
-  url: string,
-  options?: S3FetchOptions
-): FetchStore | S3FetchStore {
-  return options?.credentials && options?.region
-    ? new S3FetchStore(url, options)
-    : new FetchStore(url, options);
 }

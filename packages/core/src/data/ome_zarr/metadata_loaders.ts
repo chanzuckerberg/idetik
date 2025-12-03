@@ -7,7 +7,6 @@ import { Plate } from "./0.5/plate";
 import { Well } from "./0.5/well";
 import { OmeZarrImageSource } from "./image_source";
 import { Version as ZarrVersion, openGroup } from "../zarr/open";
-import { createFetchStore, type AwsCredentials } from "../zarr/s3_fetch_store";
 
 const versions = ["0.4", "0.5"] as const;
 const versionsSet: ReadonlySet<string> = new Set(versions);
@@ -56,15 +55,9 @@ function removeProperty<O, P extends keyof O>(obj: O, prop: P): Omit<O, P> {
 
 export async function loadOmeZarrPlate(
   url: string,
-  version?: Version,
-  fetchOptions?: {
-    credentials?: AwsCredentials;
-    region?: string;
-    overrides?: RequestInit;
-    useSuffixRequest?: boolean;
-  }
+  version?: Version
 ): Promise<AdaptedOme<Plate["ome"]>> {
-  const store = createFetchStore(url, fetchOptions);
+  const store = new zarr.FetchStore(url);
   const location = new zarr.Location(store);
   const zarrVersion = omeZarrToZarrVersion(version);
   const group = await openGroup(location, zarrVersion);
@@ -138,16 +131,10 @@ function parseWell(attrs: Record<string, unknown>): AdaptedOme<Well["ome"]> {
 export async function loadOmeZarrWell(
   url: string,
   path: string,
-  version?: Version,
-  fetchOptions?: {
-    credentials?: AwsCredentials;
-    region?: string;
-    overrides?: RequestInit;
-    useSuffixRequest?: boolean;
-  }
+  version?: Version
 ): Promise<AdaptedOme<Well["ome"]>> {
   const fullUrl = url + "/" + path;
-  const store = createFetchStore(fullUrl, fetchOptions);
+  const store = new zarr.FetchStore(fullUrl);
   const location = new zarr.Location(store);
   const zarrVersion = omeZarrToZarrVersion(version);
   const group = await openGroup(location, zarrVersion);
