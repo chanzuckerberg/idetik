@@ -5,6 +5,7 @@ import { Spherical } from "../../math/spherical";
 
 import { glMatrix, vec3 } from "gl-matrix";
 import { clamp } from "../../utilities/clamp";
+import { lerp } from "../../utilities/lerp";
 
 const MOUSE_BUTTON_NONE = -1;
 const MOUSE_BUTTON_LEFT = 0;
@@ -13,6 +14,7 @@ const MOUSE_BUTTON_MIDDLE = 1;
 const ORBIT_SPEED = 0.009;
 const PAN_SPEED = 0.001;
 const ZOOM_SPEED = 0.0009;
+const DAMPING_FACTOR = 3;
 
 type OrbitParams = {
   radius?: number;
@@ -22,19 +24,29 @@ type OrbitParams = {
 
 export class OrbitControls implements CameraControls {
   private readonly camera_: PerspectiveCamera;
-  private readonly sphericalPos_: Spherical;
-  private readonly target_ = vec3.create();
+
+  private readonly targetPos_: Spherical;
+  private readonly targetCenter_ = vec3.create();
+
+  private readonly currPos_: Spherical;
+  private readonly currCenter_ = vec3.create();
 
   private currMouseButton_ = MOUSE_BUTTON_NONE;
 
   constructor(camera: PerspectiveCamera, params?: OrbitParams) {
     this.camera_ = camera;
-    this.sphericalPos_ = new Spherical(
+
+    this.targetPos_ = new Spherical(
       params?.radius ?? 1,
       params?.yaw ?? 0,
       params?.pitch ?? 0
     );
-    this.update();
+
+    this.currPos_ = new Spherical(
+      this.targetPos_.radius,
+      this.targetPos_.phi,
+      this.targetPos_.theta
+    );
   }
 
   public onEvent(event: EventContext): void {
@@ -53,6 +65,25 @@ export class OrbitControls implements CameraControls {
         this.onPointerEnd(event);
         break;
     }
+  }
+
+  public onUpdate(dt: number) {
+    const t = 1.0 - Math.exp(-DAMPING_FACTOR * dt);
+
+    this.currPos_.radius = lerp(
+      this.currPos_.radius,
+      this.targetPos_.radius,
+      t
+    );
+    this.currPos_.phi = lerp(this.currPos_.phi, this.targetPos_.phi, t);
+    this.currPos_.theta = lerp(this.currPos_.theta, this.targetPos_.theta, t);
+
+    vec3.lerp(this.currCenter_, this.currCenter_, this.targetCenter_, t);
+
+    const p = vec3.add(vec3.create(), this.currCenter_, this.currPos_.toVec3());
+
+    this.camera_.transform.setTranslation(p);
+    this.camera_.transform.targetTo(this.currCenter_);
   }
 
   private onPointerDown(event: EventContext) {
@@ -76,8 +107,6 @@ export class OrbitControls implements CameraControls {
 
     if (doOrbit) this.orbit(dx, dy);
     if (doPan) this.pan(dx, dy);
-
-    this.update();
   }
 
   private onWheel(event: EventContext) {
@@ -86,8 +115,6 @@ export class OrbitControls implements CameraControls {
 
     const dy = e.deltaY ?? 0;
     this.zoom(dy);
-
-    this.update();
   }
 
   private onPointerEnd(event: EventContext) {
@@ -98,45 +125,32 @@ export class OrbitControls implements CameraControls {
   }
 
   private orbit(dx: number, dy: number) {
-    this.sphericalPos_.phi -= dx * ORBIT_SPEED;
-    this.sphericalPos_.theta += dy * ORBIT_SPEED;
+    this.targetPos_.phi -= dx * ORBIT_SPEED;
+    this.targetPos_.theta += dy * ORBIT_SPEED;
 
     // Prevent the camera from reaching the poles (±π/2), where
     // the view direction would flip and orbit controls would invert.
     // We clamp the elevation angle slightly before ±π/2 to maintain
     // stable rotation and avoid gimbal-like artifacts.
     const limit = Math.PI / 2 - glMatrix.EPSILON;
-    this.sphericalPos_.theta = clamp(this.sphericalPos_.theta, -limit, limit);
+    this.targetPos_.theta = clamp(this.targetPos_.theta, -limit, limit);
   }
 
   private pan(dx: number, dy: number) {
     // Scale pan speed by distance so movement feels consistent
-    const speed = this.sphericalPos_.radius * PAN_SPEED;
+    const speed = this.targetPos_.radius * PAN_SPEED;
     const delta = vec3.create();
 
     vec3.scaleAndAdd(delta, delta, this.camera_.right, dx);
     vec3.scaleAndAdd(delta, delta, this.camera_.up, dy);
     vec3.scale(delta, delta, speed);
 
-    vec3.sub(this.target_, this.target_, delta);
+    vec3.sub(this.targetCenter_, this.targetCenter_, delta);
   }
 
   private zoom(dy: number) {
     // Exponential for smooth, distance-independent zoom
     const scale = Math.exp(dy * ZOOM_SPEED);
-    this.sphericalPos_.radius = Math.max(
-      0.01,
-      this.sphericalPos_.radius * scale
-    );
-  }
-
-  private update() {
-    const p = vec3.add(
-      vec3.create(),
-      this.target_,
-      this.sphericalPos_.toVec3()
-    );
-    this.camera_.transform.setTranslation(p);
-    this.camera_.transform.targetTo(this.target_);
+    this.targetPos_.radius = Math.max(0.01, this.targetPos_.radius * scale);
   }
 }

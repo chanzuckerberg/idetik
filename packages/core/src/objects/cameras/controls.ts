@@ -5,6 +5,7 @@ import { EventContext } from "../../core/event_dispatcher";
 const LEFT_MOUSE_BUTTON = 0;
 
 export interface CameraControls {
+  onUpdate(dt: number): void;
   onEvent(event: EventContext): void;
 }
 
@@ -34,6 +35,8 @@ export class PanZoomControls implements CameraControls {
         break;
     }
   }
+
+  public onUpdate(_delta: number) {}
 
   private onWheel(event: EventContext) {
     if (!event.worldPos || !event.clipPos) return;

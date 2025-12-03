@@ -10,7 +10,7 @@ import {
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 
 type Overlay = {
-  update(idetik: Idetik, timestamp?: DOMHighResTimeStamp): void;
+  update(idetik: Idetik, dt?: number): void;
 };
 
 type IdetikParams = {
@@ -25,7 +25,6 @@ export type IdetikContext = {
 };
 
 export class Idetik {
-  private lastAnimationId_?: number;
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
@@ -34,6 +33,8 @@ export class Idetik {
   public readonly overlays: Overlay[];
   private readonly stats_?: Stats;
   private readonly sizeObserver_: PixelSizeObserver;
+  private lastAnimationId_?: number;
+  private lastTimestamp_: number = 0;
 
   /**
    * Creates a new Idetik visualization runtime instance.
@@ -152,24 +153,32 @@ export class Idetik {
         viewport.events.connect();
       }
       this.sizeObserver_.connect();
-      this.animate();
+
+      this.lastAnimationId_ = requestAnimationFrame((timestamp) => {
+        this.lastTimestamp_ = timestamp;
+        this.animate(timestamp);
+      });
     } else {
       Logger.warn("Idetik", "Idetik runtime already started");
     }
     return this;
   }
 
-  private animate(timestamp?: DOMHighResTimeStamp) {
+  private animate(timestamp: DOMHighResTimeStamp) {
     if (this.stats_) this.stats_.begin();
 
+    // cap at 100ms to prevent spiraling on tab switching
+    const dt = Math.min(timestamp - this.lastTimestamp_, 100) / 1000;
+
     for (const viewport of this.viewports_) {
+      viewport.cameraControls?.onUpdate(dt);
       this.renderer_.render(viewport);
     }
 
     this.chunkManager_.update();
 
     for (const overlay of this.overlays) {
-      overlay.update(this, timestamp);
+      overlay.update(this, dt);
     }
 
     if (this.stats_) this.stats_.end();
