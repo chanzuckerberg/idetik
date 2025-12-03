@@ -142,6 +142,6 @@ async function getOrOpenArray(
 }
 
 function getArrayCacheKey(params: ZarrArrayParams): string {
-  const storeKey = params.type === "fetch" ? params.url : params.path;
+  const storeKey = params.type === "filesystem" ? params.path : params.url;
   return `${params.type}::${storeKey}::${params.arrayPath}`;
 }
