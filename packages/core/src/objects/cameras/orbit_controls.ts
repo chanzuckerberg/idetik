@@ -14,12 +14,13 @@ const MOUSE_BUTTON_MIDDLE = 1;
 const ORBIT_SPEED = 0.009;
 const PAN_SPEED = 0.001;
 const ZOOM_SPEED = 0.0009;
-const DAMPING_FACTOR = 3;
+const DEFAULT_DAMPING_FACTOR = 3;
 
 type OrbitParams = {
   radius?: number;
   yaw?: number;
   pitch?: number;
+  dampingFactor?: number;
 };
 
 export class OrbitControls implements CameraControls {
@@ -30,6 +31,8 @@ export class OrbitControls implements CameraControls {
 
   private readonly currPos_: Spherical;
   private readonly currCenter_ = vec3.create();
+
+  private readonly dampingFactor_: number;
 
   private currMouseButton_ = MOUSE_BUTTON_NONE;
 
@@ -47,6 +50,8 @@ export class OrbitControls implements CameraControls {
       this.targetPos_.phi,
       this.targetPos_.theta
     );
+
+    this.dampingFactor_ = params?.dampingFactor || DEFAULT_DAMPING_FACTOR;
   }
 
   public onEvent(event: EventContext): void {
@@ -68,7 +73,7 @@ export class OrbitControls implements CameraControls {
   }
 
   public onUpdate(dt: number) {
-    const t = 1.0 - Math.exp(-DAMPING_FACTOR * dt);
+    const t = 1.0 - Math.exp(-this.dampingFactor_ * dt);
 
     this.currPos_.radius = lerp(
       this.currPos_.radius,

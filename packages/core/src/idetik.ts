@@ -10,7 +10,7 @@ import {
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 
 type Overlay = {
-  update(idetik: Idetik, dt?: number): void;
+  update(idetik: Idetik): void;
 };
 
 type IdetikParams = {
@@ -34,7 +34,7 @@ export class Idetik {
   private readonly stats_?: Stats;
   private readonly sizeObserver_: PixelSizeObserver;
   private lastAnimationId_?: number;
-  private lastTimestamp_: number = 0;
+  private lastTimestampSinceStart_: number = 0;
 
   /**
    * Creates a new Idetik visualization runtime instance.
@@ -155,7 +155,7 @@ export class Idetik {
       this.sizeObserver_.connect();
 
       this.lastAnimationId_ = requestAnimationFrame((timestamp) => {
-        this.lastTimestamp_ = timestamp;
+        this.lastTimestampSinceStart_ = timestamp;
         this.animate(timestamp);
       });
     } else {
@@ -167,8 +167,10 @@ export class Idetik {
   private animate(timestamp: DOMHighResTimeStamp) {
     if (this.stats_) this.stats_.begin();
 
-    // cap at 100ms to prevent spiraling on tab switching
-    const dt = Math.min(timestamp - this.lastTimestamp_, 100) / 1000;
+    // cap dt to prevent large time-step jumps when resuming from background tabs
+    const dt = Math.min(timestamp - this.lastTimestampSinceStart_, 100) / 1000;
+
+    this.lastTimestampSinceStart_ = timestamp;
 
     for (const viewport of this.viewports_) {
       viewport.cameraControls?.onUpdate(dt);
@@ -178,7 +180,7 @@ export class Idetik {
     this.chunkManager_.update();
 
     for (const overlay of this.overlays) {
-      overlay.update(this, dt);
+      overlay.update(this);
     }
 
     if (this.stats_) this.stats_.end();
