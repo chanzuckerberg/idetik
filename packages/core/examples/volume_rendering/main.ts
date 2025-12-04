@@ -37,6 +37,12 @@ const timePointOverlay = {
     timePointDiv.textContent = `t = ${time}`;
   },
 };
+const lodOverlayDiv = document.querySelector<HTMLDivElement>("#lod")!;
+const lodOverlay = {
+  update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp) {
+    lodOverlayDiv.textContent = `LOD: ${volumeLayer.lod}`;
+  },
+};
 
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
@@ -47,7 +53,7 @@ const idetik = new Idetik({
       layers: [volumeLayer],
     },
   ],
-  overlays: [timePointOverlay],
+  overlays: [timePointOverlay, lodOverlay],
   showStats: true,
 });
 
@@ -56,6 +62,8 @@ idetik.start();
 const controls = {
   showWireframes: volumeLayer.debugMode,
   showTimePointOverlay: true,
+  showLodOverlay: true,
+  showHitMisses: false,
   lod: 2,
 };
 
@@ -86,11 +94,26 @@ overlaysFolder
   });
 
 overlaysFolder
+  .add(controls, "showLodOverlay")
+  .name("Show LOD overlay")
+  .onChange((show: boolean) => {
+    lodOverlayDiv.style.display = show ? "block" : "none";
+  });
+
+overlaysFolder
   .add(controls, "showWireframes")
   .name("Show tile wireframes")
   .onChange((show: boolean) => {
     volumeLayer.debugMode = show;
     controls.showWireframes = show;
+  });
+
+overlaysFolder
+  .add(controls, "showHitMisses")
+  .name("Show Hit Misses")
+  .onChange((show: boolean) => {
+    controls.showHitMisses = show;
+    volumeLayer.hitMisses = show;
   });
 
 const volumeFolder = gui.addFolder("Volume Rendering");
@@ -102,3 +125,17 @@ volumeFolder
     volumeLayer.lod = lod;
     controls.lod = lod;
   });
+
+volumeFolder
+  .add(volumeLayer, "sampleDensity", 16, 512, 1)
+  .name("Sample Density");
+
+volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max Intensity");
+
+volumeFolder
+  .add(volumeLayer, "opacityScale", 0.01, 1.0, 0.01)
+  .name("Opacity Scale");
+
+volumeFolder
+  .add(volumeLayer, "alphaThreshold", 0.5, 1.0, 0.01)
+  .name("Alpha Threshold");

@@ -20,6 +20,13 @@ uniform mat4 ModelView;
 uniform vec3 BoxSize;
 uniform bool ShowHitMisses;
 
+// Volume rendering parameters
+uniform float SampleDensity;
+uniform float MaxIntensity;
+uniform float OpacityScale;
+uniform vec3 VolumeColor;
+uniform float AlphaThreshold;
+
 in vec3 ModelPosition;
 
 bool intersectBox(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out float tEnter, out float tExit) {
@@ -37,13 +44,6 @@ bool intersectBox(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out flo
 }
 
 void main() {
-    // Volume rendering parameters (usually uniforms, but set as constant for now)
-    float SampleDensity = 512.0;
-    float MaxIntensity = 512.0;
-    float OpacityScale = 0.1;
-    vec3 VolumeColor = vec3(1.0, 1.0, 1.0);
-    float AlphaThreshold = 0.99;
-
     // Use model position directly - more stable than using gl_Position (interpolated)
     // Transform model position to view space to get the ray origin on the cube surface
     vec4 viewPos = ModelView * vec4(ModelPosition, 1.0);

@@ -110,11 +110,4 @@ export class OrthographicCamera extends Camera {
       this.far_
     );
   }
-
-  public getUniforms(): Record<string, unknown> {
-    return {
-      CameraNear: this.near_,
-      CameraFar: this.far_,
-    };
-  }
 }
