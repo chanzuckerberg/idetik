@@ -7,7 +7,8 @@ import {
 } from "../data/chunk";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
-import type { ChunkStoreView } from "./chunk_store_view";
+import { ChunkStoreView } from "./chunk_store_view";
+import { ImageSourcePolicy } from "./image_source_policy";
 
 export class ChunkStore {
   private readonly chunks_: Chunk[][];
@@ -15,6 +16,7 @@ export class ChunkStore {
   private readonly lowestResLOD_: number;
   private readonly dimensions_: SourceDimensionMap;
   private readonly views_: ChunkStoreView[] = [];
+  private hasHadViews_ = false;
 
   constructor(loader: ChunkLoader) {
     this.loader_ = loader;
@@ -112,8 +114,11 @@ export class ChunkStore {
     return this.loader_.loadChunkData(chunk, signal);
   }
 
-  public addView(view: ChunkStoreView): void {
+  public createView(policy: ImageSourcePolicy): ChunkStoreView {
+    const view = new ChunkStoreView(this, policy);
     this.views_.push(view);
+    this.hasHadViews_ = true;
+    return view;
   }
 
   public removeView(view: ChunkStoreView): void {
@@ -134,6 +139,10 @@ export class ChunkStore {
 
   public get views(): ReadonlyArray<ChunkStoreView> {
     return this.views_;
+  }
+
+  public canDispose(): boolean {
+    return this.hasHadViews_ && this.views_.length === 0;
   }
 
   public updateAndCollectChunkChanges(): Set<Chunk> {

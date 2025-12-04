@@ -1,5 +1,5 @@
 import { Chunk, SliceCoordinates, ChunkViewState } from "../data/chunk";
-import { ChunkStore } from "./chunk_store";
+import type { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";

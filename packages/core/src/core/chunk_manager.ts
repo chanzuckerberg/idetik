@@ -14,14 +14,7 @@ export class ChunkManager {
     policy: ImageSourcePolicy
   ): Promise<ChunkStoreView> {
     const store = await this.getOrCreateStore(source);
-    const view = new ChunkStoreView(store, policy);
-    store.addView(view);
-
-    if (store.views.length === 1) {
-      this.stores_.set(source, store);
-      this.pendingStores_.delete(source);
-    }
-
+    const view = store.createView(policy);
     return view;
   }
 
@@ -43,7 +36,12 @@ export class ChunkManager {
 
     const newPending = initializeStore();
     this.pendingStores_.set(source, newPending);
-    return newPending;
+
+    const store = await newPending;
+    this.stores_.set(source, store);
+    this.pendingStores_.delete(source);
+
+    return store;
   }
 
   public update() {
@@ -64,7 +62,7 @@ export class ChunkManager {
     this.queue_.flush();
 
     for (const [source, store] of this.stores_) {
-      if (store.views.length === 0) {
+      if (store.canDispose()) {
         this.stores_.delete(source);
       }
     }
