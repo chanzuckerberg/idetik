@@ -2,10 +2,12 @@ import { Chunk, SliceCoordinates, ChunkViewState, getOrientation, getSlicePositi
 import { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
+import type { Camera } from "../objects/cameras/camera";
 import { ImageSourcePolicy } from "./image_source_policy";
-import { ReadonlyVec2, vec2, vec3 } from "gl-matrix";
+import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
+import { Frustum } from "../math/frustum";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
 
@@ -236,7 +238,7 @@ export class ChunkStoreView {
   private updateChunkViewStates(
     sliceCoords: SliceCoordinates,
     viewBounds2D: Box2,
-    _viewport: Viewport
+    viewport: Viewport
   ): void {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
@@ -253,55 +255,6 @@ export class ChunkStoreView {
     const viewBoundsCenter2D = vec2.create();
     vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
 
-    const [sliceMin, sliceMax] = this.getSliceBounds(sliceCoords);
-    const orientation = getOrientation(sliceCoords);
-
-    // Construct 3D bounds based on orientation
-    let viewBounds3D: Box3;
-    switch (orientation) {
-      case "xy":
-        // XY plane: 2D viewport shows X and Y, slice along Z
-        viewBounds3D = new Box3(
-          vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], sliceMin),
-          vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], sliceMax)
-        );
-        break;
-      case "xz":
-        // XZ plane: 2D viewport shows X and Z, slice along Y
-        viewBounds3D = new Box3(
-          vec3.fromValues(viewBounds2D.min[0], sliceMin, viewBounds2D.min[1]),
-          vec3.fromValues(viewBounds2D.max[0], sliceMax, viewBounds2D.max[1])
-        );
-        break;
-      case "yz": {
-        // YZ plane: 2D viewport shows Y (horizontal) and Z (vertical), slice along X
-        // After camera rotation, getWorldViewRect returns [constant, Y_range]
-        // We need to get Z range from the data dimensions
-        const dimensions = this.store_.dimensions;
-        const zDim = dimensions.z;
-        const zMin = zDim ? zDim.lods[0].translation : 0;
-        const zMax = zDim
-          ? zDim.lods[0].translation + zDim.lods[0].scale * (zDim.lods[0].size - 1)
-          : 0;
-        viewBounds3D = new Box3(
-          vec3.fromValues(sliceMin, viewBounds2D.min[1], zMin),
-          vec3.fromValues(sliceMax, viewBounds2D.max[1], zMax)
-        );
-        Logger.debug(
-          "ChunkStoreView",
-          `YZ viewBounds: 2D=[${viewBounds2D.min[0].toFixed(1)},${viewBounds2D.min[1].toFixed(1)}]-[${viewBounds2D.max[0].toFixed(1)},${viewBounds2D.max[1].toFixed(1)}], 3D(XYZ)=[${viewBounds3D.min[0].toFixed(1)},${viewBounds3D.min[1].toFixed(1)},${viewBounds3D.min[2].toFixed(1)}]-[${viewBounds3D.max[0].toFixed(1)},${viewBounds3D.max[1].toFixed(1)},${viewBounds3D.max[2].toFixed(1)}], sliceRange=[${sliceMin.toFixed(1)},${sliceMax.toFixed(1)}]`
-        );
-        break;
-      }
-      case "volume":
-        // Volume: use full bounds (shouldn't happen in practice)
-        viewBounds3D = new Box3(
-          vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], sliceMin),
-          vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], sliceMax)
-        );
-        break;
-    }
-
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
     this.chunkViewStates_.forEach(markUnused);
@@ -309,14 +262,15 @@ export class ChunkStoreView {
     this.updateChunksAtTimeIndex(
       currentTimeIndex,
       sliceCoords,
-      viewBounds3D,
+      viewport,
       viewBoundsCenter2D
     );
 
     if (sliceCoords.t !== undefined) {
       this.markTimeChunksForPrefetch(
         currentTimeIndex,
-        viewBounds3D,
+        sliceCoords,
+        viewport,
         viewBoundsCenter2D
       );
     }
@@ -332,31 +286,31 @@ export class ChunkStoreView {
   private updateChunksAtTimeIndex(
     timeIndex: number,
     sliceCoords: SliceCoordinates,
-    viewBounds3D: Box3,
+    viewport: Viewport,
     viewBounds2DCenter: ReadonlyVec2
   ): void {
-    const paddedBounds = this.getPaddedBounds(viewBounds3D);
-
+    const frustum = viewport.camera.frustum;
+    const prefetchFrustum = this.getExpandedFrustum(viewport.camera);
     const currentTimeChunks = this.store_.getChunksAtTime(timeIndex);
 
     for (const chunk of currentTimeChunks) {
-      const isInBounds = this.isChunkWithinBounds(chunk, viewBounds3D);
+      const isVisible = this.isChunkVisibleInSlice(chunk, sliceCoords, frustum);
       const isChannelInSlice = this.isChunkChannelInSlice(chunk, sliceCoords);
 
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === this.store_.getLowestResLOD();
 
       const prefetch =
-        !isInBounds &&
+        !isVisible &&
         isChannelInSlice &&
         isCurrentLOD &&
-        this.isChunkWithinBounds(chunk, paddedBounds);
+        this.isChunkVisibleInSlice(chunk, sliceCoords, prefetchFrustum);
 
-      const visible = isInBounds && isChannelInSlice;
+      const visible = isVisible && isChannelInSlice;
       const priority = this.computePriority(
         isFallbackLOD,
         isCurrentLOD,
-        isInBounds,
+        isVisible,
         prefetch,
         isChannelInSlice
       );
@@ -376,9 +330,11 @@ export class ChunkStoreView {
 
   private markTimeChunksForPrefetch(
     currentTimeIndex: number,
-    viewBounds3D: Box3,
+    sliceCoords: SliceCoordinates,
+    viewport: Viewport,
     viewBoundsCenter2D: ReadonlyVec2
   ): void {
+    const frustum = viewport.camera.frustum;
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const tEnd = Math.min(
       numTimePoints - 1,
@@ -387,7 +343,7 @@ export class ChunkStoreView {
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.store_.getChunksAtTime(t)) {
         if (chunk.lod !== this.store_.getLowestResLOD()) continue;
-        if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
+        if (!this.isChunkVisibleInSlice(chunk, sliceCoords, frustum)) continue;
 
         const priority = this.policy_.priorityMap["prefetchTime"];
         const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
@@ -428,7 +384,15 @@ export class ChunkStoreView {
     return null;
   }
 
-  private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
+  private isChunkVisibleInSlice(
+    chunk: Chunk,
+    sliceCoords: SliceCoordinates,
+    frustum: Frustum
+  ): boolean {
+    const orientation = getOrientation(sliceCoords);
+    const slicePosition = getSlicePosition(sliceCoords);
+
+    // Create the chunk's 3D bounding box
     const chunkBounds = new Box3(
       vec3.fromValues(chunk.offset.x, chunk.offset.y, chunk.offset.z),
       vec3.fromValues(
@@ -437,7 +401,44 @@ export class ChunkStoreView {
         chunk.offset.z + chunk.shape.z * chunk.scale.z
       )
     );
-    return Box3.intersects(chunkBounds, bounds);
+
+    // Check if chunk is in camera frustum
+    if (!frustum.intersectsWithBox3(chunkBounds)) {
+      return false;
+    }
+
+    // Check if chunk intersects with the slice plane
+    if (slicePosition === undefined) {
+      // No slicing for volume rendering
+      return orientation === "volume";
+    }
+
+    // Check if the chunk's extent in the sliced dimension contains the slice position
+    switch (orientation) {
+      case "xy":
+        // Slicing along Z axis
+        return (
+          chunk.offset.z <= slicePosition &&
+          slicePosition <= chunk.offset.z + chunk.shape.z * chunk.scale.z
+        );
+
+      case "xz":
+        // Slicing along Y axis
+        return (
+          chunk.offset.y <= slicePosition &&
+          slicePosition <= chunk.offset.y + chunk.shape.y * chunk.scale.y
+        );
+
+      case "yz":
+        // Slicing along X axis
+        return (
+          chunk.offset.x <= slicePosition &&
+          slicePosition <= chunk.offset.x + chunk.shape.x * chunk.scale.x
+        );
+
+      case "volume":
+        return true;
+    }
   }
 
   private getSliceBounds(sliceCoords: SliceCoordinates): [number, number] {
@@ -497,32 +498,55 @@ export class ChunkStoreView {
     return !this.lastSliceBounds_ || !vec2.equals(this.lastSliceBounds_, newBounds);
   }
 
-  private getPaddedBounds(bounds: Box3): Box3 {
+  private getExpandedFrustum(camera: Camera): Frustum {
+    // Only support orthographic cameras for now
+    if (camera.type !== "OrthographicCamera") {
+      return camera.frustum;
+    }
+
+    const orthoCamera = camera as OrthographicCamera;
+
+    // Calculate padding based on prefetch policy and chunk dimensions
     const dimensions = this.store_.dimensions;
     const xLod = dimensions.x.lods[this.currentLOD_];
     const yLod = dimensions.y.lods[this.currentLOD_];
-    const zLod = dimensions.z?.lods[this.currentLOD_];
 
     const padX = xLod.chunkSize * xLod.scale * this.policy_.prefetch.x;
     const padY = yLod.chunkSize * yLod.scale * this.policy_.prefetch.y;
 
-    let padZ = 0;
-    if (zLod) {
-      padZ = zLod.chunkSize * zLod.scale * this.policy_.prefetch.z;
-    }
+    // Get current viewport bounds in world space
+    const worldRect = orthoCamera.getWorldViewRect();
 
-    return new Box3(
-      vec3.fromValues(
-        bounds.min[0] - padX,
-        bounds.min[1] - padY,
-        bounds.min[2] - padZ
-      ),
-      vec3.fromValues(
-        bounds.max[0] + padX,
-        bounds.max[1] + padY,
-        bounds.max[2] + padZ
-      )
+    // Expand bounds by padding
+    const expandedLeft = worldRect.min[0] - padX;
+    const expandedRight = worldRect.max[0] + padX;
+    const expandedBottom = worldRect.min[1] - padY;
+    const expandedTop = worldRect.max[1] + padY;
+
+    // Create expanded projection matrix
+    // Use a large near/far range since we're doing 2D slicing
+    // The slice plane intersection check handles Z bounds
+    const expandedProjection = mat4.create();
+    const near = -10000;
+    const far = 10000;
+    mat4.ortho(
+      expandedProjection,
+      expandedLeft,
+      expandedRight,
+      expandedBottom,
+      expandedTop,
+      near,
+      far
     );
+
+    // Combine with view matrix to get view-projection
+    const viewProjection = mat4.multiply(
+      mat4.create(),
+      expandedProjection,
+      orthoCamera.viewMatrix
+    );
+
+    return new Frustum(viewProjection);
   }
 
   private squareDistance2D(chunk: Chunk, center: ReadonlyVec2): number {
