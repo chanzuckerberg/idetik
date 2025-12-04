@@ -1,5 +1,4 @@
-import { Logger } from "../utilities/logger";
-import { Chunk, ChunkSource } from "../data/chunk";
+import { ChunkSource } from "../data/chunk";
 import { ChunkQueue } from "../data/chunk_queue";
 import { ChunkStore } from "./chunk_store";
 import { ChunkStoreView } from "./chunk_store_view";
@@ -8,80 +7,46 @@ import { ImageSourcePolicy } from "./image_source_policy";
 export class ChunkManager {
   private readonly stores_ = new Map<ChunkSource, ChunkStore>();
   private readonly pendingStores_ = new Map<ChunkSource, Promise<ChunkStore>>();
-  private readonly views_ = new Map<ChunkStore, ChunkStoreView[]>();
   private readonly queue_ = new ChunkQueue();
 
   public async addView(
     source: ChunkSource,
     policy: ImageSourcePolicy
   ): Promise<ChunkStoreView> {
-    const store = await this.addSource(source);
-    const view = new ChunkStoreView(store, policy);
-    this.views_.set(store, (this.views_.get(store) ?? []).concat(view));
+    const store = await this.getOrCreateStore(source);
+    const view = store.createView(policy);
     return view;
   }
 
-  public removeView(view: ChunkStoreView): void {
-    const store = view.store;
-    const source = this.getSourceForStore(store);
-
-    const views = this.views_.get(store);
-    if (!views) {
-      throw new Error("Cannot remove view: store not managed by ChunkManager");
+  private async getOrCreateStore(source: ChunkSource): Promise<ChunkStore> {
+    const existing = this.stores_.get(source);
+    if (existing) {
+      return existing;
     }
 
-    const index = views.indexOf(view);
-    if (index === -1) {
-      throw new Error(
-        `Cannot remove view: view not found in store's view list (source: ${source})`
-      );
-    }
-
-    const affectedChunks = Array.from(view.chunkViewStates.keys());
-    views.splice(index, 1);
-
-    for (const chunk of affectedChunks) {
-      this.aggregateChunkViewStates(chunk, store);
-    }
-
-    if (views.length === 0) {
-      this.stores_.delete(source);
-      this.views_.delete(store);
-    }
-  }
-
-  private async addSource(source: ChunkSource): Promise<ChunkStore> {
-    const existingOrPending =
-      this.stores_.get(source) ?? this.pendingStores_.get(source);
-    if (existingOrPending) {
-      return existingOrPending;
+    const pending = this.pendingStores_.get(source);
+    if (pending) {
+      return pending;
     }
 
     const initializeStore = async () => {
       const loader = await source.open();
-      const store = new ChunkStore(loader);
-      this.stores_.set(source, store);
-      this.pendingStores_.delete(source);
-      return store;
+      return new ChunkStore(loader);
     };
 
-    const pending = initializeStore();
-    this.pendingStores_.set(source, pending);
-    return pending;
-  }
+    const newPending = initializeStore();
+    this.pendingStores_.set(source, newPending);
 
-  private getSourceForStore(store: ChunkStore): ChunkSource {
-    for (const [source, s] of this.stores_) {
-      if (s === store) {
-        return source;
-      }
-    }
-    throw new Error("Source not found for the given store.");
+    const store = await newPending;
+    this.stores_.set(source, store);
+    this.pendingStores_.delete(source);
+
+    return store;
   }
 
   public update() {
     for (const [_, store] of this.stores_) {
-      const updatedChunks = this.updateAndCollectChunkChanges(store);
+      const updatedChunks = store.updateAndCollectChunkChanges();
 
       for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
@@ -95,87 +60,11 @@ export class ChunkManager {
     }
 
     this.queue_.flush();
-  }
 
-  private updateAndCollectChunkChanges(store: ChunkStore): Set<Chunk> {
-    const views = this.views_.get(store);
-    if (!views) return new Set<Chunk>();
-    const affectedChunks = new Set<Chunk>();
-    for (const view of views) {
-      for (const [chunk, _viewState] of view.chunkViewStates) {
-        affectedChunks.add(chunk);
+    for (const [source, store] of this.stores_) {
+      if (store.canDispose()) {
+        this.stores_.delete(source);
       }
-    }
-
-    for (const chunk of affectedChunks) {
-      this.aggregateChunkViewStates(chunk, store);
-    }
-
-    return affectedChunks;
-  }
-
-  private aggregateChunkViewStates(chunk: Chunk, store: ChunkStore): void {
-    const views = this.views_.get(store);
-    if (!views) return;
-    let anyVisible = false;
-    let anyPrefetch = false;
-    let minPriority: number | null = null;
-    let orderKeyForMinPriority: number | null = null;
-
-    for (const view of views) {
-      const viewState = view.chunkViewStates.get(chunk);
-      if (!viewState) continue;
-
-      if (viewState.visible) anyVisible = true;
-      if (viewState.prefetch) anyPrefetch = true;
-
-      if (viewState.priority !== null) {
-        if (minPriority === null || viewState.priority < minPriority) {
-          minPriority = viewState.priority;
-          orderKeyForMinPriority = viewState.orderKey;
-        }
-      }
-
-      if (
-        !viewState.visible &&
-        !viewState.prefetch &&
-        viewState.priority === null
-      ) {
-        view.maybeForgetChunk(chunk);
-      }
-    }
-
-    chunk.visible = anyVisible;
-    chunk.prefetch = anyPrefetch;
-    chunk.priority = minPriority;
-    chunk.orderKey = orderKeyForMinPriority;
-
-    const shouldEnqueueChunk =
-      chunk.priority !== null && chunk.state === "unloaded";
-    if (shouldEnqueueChunk) {
-      chunk.state = "queued";
-      return;
-    }
-
-    const shouldCancelQueuedChunk =
-      chunk.priority === null && chunk.state === "queued";
-    if (shouldCancelQueuedChunk) {
-      chunk.state = "unloaded";
-      return;
-    }
-
-    const shouldDisposeChunk =
-      chunk.state === "loaded" && !chunk.visible && !chunk.prefetch;
-    if (shouldDisposeChunk) {
-      chunk.data = undefined;
-      chunk.state = "unloaded";
-      chunk.priority = null;
-      chunk.orderKey = null;
-      chunk.prefetch = false;
-      Logger.debug(
-        "ChunkManager",
-        `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
-      );
     }
   }
 }

@@ -6,12 +6,17 @@ import {
   coordToIndex,
 } from "../data/chunk";
 import { almostEqual } from "../utilities/almost_equal";
+import { Logger } from "../utilities/logger";
+import { ChunkStoreView } from "./chunk_store_view";
+import { ImageSourcePolicy } from "./image_source_policy";
 
 export class ChunkStore {
   private readonly chunks_: Chunk[][];
   private readonly loader_: ChunkLoader;
   private readonly lowestResLOD_: number;
   private readonly dimensions_: SourceDimensionMap;
+  private readonly views_: ChunkStoreView[] = [];
+  private hasHadViews_ = false;
 
   constructor(loader: ChunkLoader) {
     this.loader_ = loader;
@@ -107,6 +112,115 @@ export class ChunkStore {
 
   public loadChunkData(chunk: Chunk, signal: AbortSignal) {
     return this.loader_.loadChunkData(chunk, signal);
+  }
+
+  public createView(policy: ImageSourcePolicy): ChunkStoreView {
+    const view = new ChunkStoreView(this, policy);
+    this.views_.push(view);
+    this.hasHadViews_ = true;
+    return view;
+  }
+
+  public removeView(view: ChunkStoreView): void {
+    const index = this.views_.indexOf(view);
+    if (index === -1) {
+      throw new Error(
+        "Cannot remove view: view not found in store's view list"
+      );
+    }
+
+    const affectedChunks = Array.from(view.chunkViewStates.keys());
+    this.views_.splice(index, 1);
+
+    for (const chunk of affectedChunks) {
+      this.aggregateChunkViewStates(chunk);
+    }
+  }
+
+  public get views(): ReadonlyArray<ChunkStoreView> {
+    return this.views_;
+  }
+
+  public canDispose(): boolean {
+    return this.hasHadViews_ && this.views_.length === 0;
+  }
+
+  public updateAndCollectChunkChanges(): Set<Chunk> {
+    const affectedChunks = new Set<Chunk>();
+    for (const view of this.views_) {
+      for (const [chunk, _viewState] of view.chunkViewStates) {
+        affectedChunks.add(chunk);
+      }
+    }
+
+    for (const chunk of affectedChunks) {
+      this.aggregateChunkViewStates(chunk);
+    }
+
+    return affectedChunks;
+  }
+
+  private aggregateChunkViewStates(chunk: Chunk): void {
+    let anyVisible = false;
+    let anyPrefetch = false;
+    let minPriority: number | null = null;
+    let orderKeyForMinPriority: number | null = null;
+
+    for (const view of this.views_) {
+      const viewState = view.chunkViewStates.get(chunk);
+      if (!viewState) continue;
+
+      if (viewState.visible) anyVisible = true;
+      if (viewState.prefetch) anyPrefetch = true;
+
+      if (viewState.priority !== null) {
+        if (minPriority === null || viewState.priority < minPriority) {
+          minPriority = viewState.priority;
+          orderKeyForMinPriority = viewState.orderKey;
+        }
+      }
+
+      if (
+        !viewState.visible &&
+        !viewState.prefetch &&
+        viewState.priority === null
+      ) {
+        view.maybeForgetChunk(chunk);
+      }
+    }
+
+    chunk.visible = anyVisible;
+    chunk.prefetch = anyPrefetch;
+    chunk.priority = minPriority;
+    chunk.orderKey = orderKeyForMinPriority;
+
+    const shouldEnqueueChunk =
+      chunk.priority !== null && chunk.state === "unloaded";
+    if (shouldEnqueueChunk) {
+      chunk.state = "queued";
+      return;
+    }
+
+    const shouldCancelQueuedChunk =
+      chunk.priority === null && chunk.state === "queued";
+    if (shouldCancelQueuedChunk) {
+      chunk.state = "unloaded";
+      return;
+    }
+
+    const shouldDisposeChunk =
+      chunk.state === "loaded" && !chunk.visible && !chunk.prefetch;
+    if (shouldDisposeChunk) {
+      chunk.data = undefined;
+      chunk.state = "unloaded";
+      chunk.priority = null;
+      chunk.orderKey = null;
+      chunk.prefetch = false;
+      Logger.debug(
+        "ChunkStore",
+        `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
+      );
+    }
   }
 
   private validateXYScaleRatios(): void {
