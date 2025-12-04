@@ -34,7 +34,9 @@ export class Idetik {
   private readonly stats_?: Stats;
   private readonly sizeObserver_: PixelSizeObserver;
   private lastAnimationId_?: number;
-  private lastTimestampSinceStart_: number = 0;
+
+  // this value will be set after start
+  private lastTimestamp_: DOMHighResTimeStamp = 0;
 
   /**
    * Creates a new Idetik visualization runtime instance.
@@ -155,7 +157,7 @@ export class Idetik {
       this.sizeObserver_.connect();
 
       this.lastAnimationId_ = requestAnimationFrame((timestamp) => {
-        this.lastTimestampSinceStart_ = timestamp;
+        this.lastTimestamp_ = timestamp;
         this.animate(timestamp);
       });
     } else {
@@ -168,9 +170,9 @@ export class Idetik {
     if (this.stats_) this.stats_.begin();
 
     // cap dt to prevent large time-step jumps when resuming from background tabs
-    const dt = Math.min(timestamp - this.lastTimestampSinceStart_, 100) / 1000;
+    const dt = Math.min(timestamp - this.lastTimestamp_, 100) / 1000;
 
-    this.lastTimestampSinceStart_ = timestamp;
+    this.lastTimestamp_ = timestamp;
 
     for (const viewport of this.viewports_) {
       viewport.cameraControls?.onUpdate(dt);
