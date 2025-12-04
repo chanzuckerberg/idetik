@@ -1,4 +1,5 @@
 import { Layer, LayerOptions, RenderContext } from "../core/layer";
+import { Camera } from "../objects/cameras/camera";
 import type { IdetikContext } from "../idetik";
 import {
   Chunk,
@@ -16,7 +17,7 @@ import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
-import { vec2, vec3, quat } from "gl-matrix";
+import { vec2, vec3, vec4, mat4, quat } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
@@ -106,6 +107,62 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     this.updateChunks();
     this.resliceIfCoordinateChanged();
+
+    // Compute and apply viewport clipping bounds AFTER chunks are updated
+    const clipBounds = this.computeCameraFrustumBounds(context.viewport.camera);
+    if (clipBounds) {
+      for (const image of this.visibleChunks_.values()) {
+        image.setClipBounds(clipBounds.min, clipBounds.max);
+      }
+    }
+  }
+
+  private computeCameraFrustumBounds(
+    camera: Camera
+  ): { min: vec3; max: vec3 } | null {
+    // Compute axis-aligned bounding box of the camera frustum in world space.
+    // NOTE: This is exact for orthographic cameras but conservative (slightly larger)
+    // for perspective cameras. For exact perspective clipping, we'd need to pass all
+    // 6 frustum planes to the shader instead of just min/max bounds (more expensive).
+    // TODO: Consider adding true frustum plane clipping if perspective camera clipping is needed.
+
+    // Transform the 8 corners of the NDC cube to world space
+    const viewProjection = mat4.multiply(
+      mat4.create(),
+      camera.projectionMatrix,
+      camera.viewMatrix
+    );
+    const inv = mat4.invert(mat4.create(), viewProjection);
+    if (!inv) return null;
+
+    // 8 corners of NDC cube (near and far planes)
+    const corners = [
+      vec4.fromValues(-1, -1, -1, 1), // near
+      vec4.fromValues(1, -1, -1, 1),
+      vec4.fromValues(-1, 1, -1, 1),
+      vec4.fromValues(1, 1, -1, 1),
+      vec4.fromValues(-1, -1, 1, 1), // far
+      vec4.fromValues(1, -1, 1, 1),
+      vec4.fromValues(-1, 1, 1, 1),
+      vec4.fromValues(1, 1, 1, 1),
+    ];
+
+    // Transform to world space
+    const worldCorners = corners.map((corner) => {
+      const world = vec4.transformMat4(vec4.create(), corner, inv);
+      return vec3.fromValues(world[0], world[1], world[2]);
+    });
+
+    // Compute axis-aligned bounding box
+    const min = vec3.fromValues(Infinity, Infinity, Infinity);
+    const max = vec3.fromValues(-Infinity, -Infinity, -Infinity);
+
+    for (const corner of worldCorners) {
+      vec3.min(min, min, corner);
+      vec3.max(max, max, corner);
+    }
+
+    return { min, max };
   }
 
   private updateChunks() {
@@ -370,7 +427,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     switch (orientation) {
       case "xy":
-        image.transform.setScale(vec3.fromValues(chunk.scale.x, chunk.scale.y, 1));
+        image.transform.setScale(
+          vec3.fromValues(chunk.scale.x, chunk.scale.y, 1)
+        );
         image.transform.setTranslation(
           vec3.fromValues(chunk.offset.x, chunk.offset.y, slicePosition)
         );
@@ -378,7 +437,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         break;
 
       case "xz": {
-        image.transform.setScale(vec3.fromValues(chunk.scale.x, chunk.scale.z, 1));
+        image.transform.setScale(
+          vec3.fromValues(chunk.scale.x, chunk.scale.z, 1)
+        );
         image.transform.setTranslation(
           vec3.fromValues(chunk.offset.x, slicePosition, chunk.offset.z)
         );
@@ -390,7 +451,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
       case "yz": {
         // Texture has width=Z, height=Y to match rotateY(-90°) transformation
-        image.transform.setScale(vec3.fromValues(chunk.scale.z, chunk.scale.y, 1));
+        image.transform.setScale(
+          vec3.fromValues(chunk.scale.z, chunk.scale.y, 1)
+        );
         image.transform.setTranslation(
           vec3.fromValues(slicePosition, chunk.offset.y, chunk.offset.z)
         );

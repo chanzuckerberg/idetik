@@ -1,4 +1,11 @@
-import { Chunk, SliceCoordinates, ChunkViewState, getOrientation, getSlicePosition, SourceDimension } from "../data/chunk";
+import {
+  Chunk,
+  SliceCoordinates,
+  ChunkViewState,
+  getOrientation,
+  getSlicePosition,
+  SourceDimension,
+} from "../data/chunk";
 import { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
@@ -474,10 +481,7 @@ export class ChunkStoreView {
 
     const chunkIndex = Math.max(
       0,
-      Math.min(
-        Math.floor(point / chunkSize),
-        Math.ceil(shape / chunkSize) - 1
-      )
+      Math.min(Math.floor(point / chunkSize), Math.ceil(shape / chunkSize) - 1)
     );
 
     return [
@@ -495,7 +499,9 @@ export class ChunkStoreView {
   }
 
   private sliceBoundsChanged(newBounds: [number, number]): boolean {
-    return !this.lastSliceBounds_ || !vec2.equals(this.lastSliceBounds_, newBounds);
+    return (
+      !this.lastSliceBounds_ || !vec2.equals(this.lastSliceBounds_, newBounds)
+    );
   }
 
   private getExpandedFrustum(camera: Camera): Frustum {

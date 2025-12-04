@@ -48,7 +48,11 @@ export class Texture2DArray extends Texture {
     return this.depth_;
   }
 
-  public updateWithChunk(chunk: Chunk, data?: ChunkData, orientation: "xy" | "xz" | "yz" = "xy") {
+  public updateWithChunk(
+    chunk: Chunk,
+    data?: ChunkData,
+    orientation: "xy" | "xz" | "yz" = "xy"
+  ) {
     const source = data ?? chunk.data;
     if (!source) {
       throw new Error(

@@ -16,6 +16,9 @@ type SingleUniformValues = {
   ValueOffset: number;
   ValueScale: number;
   ChannelCount: number;
+  EnableClipping: number;
+  ClipMin: vec3;
+  ClipMax: vec3;
 };
 
 type ArrayUniformValues = {
@@ -25,10 +28,17 @@ type ArrayUniformValues = {
   "Color[0]": number[];
   "ValueOffset[0]": number[];
   "ValueScale[0]": number[];
+  EnableClipping: number;
+  ClipMin: vec3;
+  ClipMax: vec3;
 };
 
 export class ImageRenderable extends RenderableObject {
+  private static readonly DEFAULT_CLIP_BOUNDS_ = vec3.fromValues(0, 0, 0);
+
   private channels_: Required<Channel>[];
+  private clipMin_?: vec3;
+  private clipMax_?: vec3;
 
   constructor(
     width: number,
@@ -64,11 +74,26 @@ export class ImageRenderable extends RenderableObject {
     this.channels_[channelIndex] = newChannel;
   }
 
+  public setClipBounds(min: vec3, max: vec3) {
+    this.clipMin_ = vec3.clone(min);
+    this.clipMax_ = vec3.clone(max);
+  }
+
+  public clearClipBounds() {
+    this.clipMin_ = undefined;
+    this.clipMax_ = undefined;
+  }
+
   public override getUniforms(): SingleUniformValues | ArrayUniformValues {
     const texture = this.textures[0];
     if (!texture) {
       throw new Error("No texture set");
     }
+
+    const enableClipping = !!(this.clipMin_ && this.clipMax_);
+    // Provide default values when clipping is disabled (shader always expects these uniforms)
+    const clipMin = this.clipMin_ ?? ImageRenderable.DEFAULT_CLIP_BOUNDS_;
+    const clipMax = this.clipMax_ ?? ImageRenderable.DEFAULT_CLIP_BOUNDS_;
 
     if (texture.type === "Texture2D") {
       const { color, contrastLimits } =
@@ -79,6 +104,9 @@ export class ImageRenderable extends RenderableObject {
         ValueOffset: -contrastLimits[0],
         ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
         ChannelCount: 1,
+        EnableClipping: enableClipping ? 1.0 : 0.0,
+        ClipMin: clipMin,
+        ClipMax: clipMax,
       };
     } else {
       // Texture2DArray case
@@ -104,6 +132,9 @@ export class ImageRenderable extends RenderableObject {
         "ValueOffset[0]": valueOffset,
         "ValueScale[0]": valueScale,
         ChannelCount: this.channels_.length,
+        EnableClipping: enableClipping ? 1.0 : 0.0,
+        ClipMin: clipMin,
+        ClipMax: clipMax,
       };
     }
   }

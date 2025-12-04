@@ -177,6 +177,9 @@ export class WebGLRenderer extends Renderer {
         case "Projection":
           program.setUniform(uniformName, projection);
           break;
+        case "Model":
+          program.setUniform(uniformName, object.transform.matrix);
+          break;
         case "Resolution":
           program.setUniform(uniformName, resolution);
           break;

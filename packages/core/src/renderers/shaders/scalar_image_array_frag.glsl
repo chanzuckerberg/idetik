@@ -21,9 +21,24 @@ uniform float ValueOffset[MAX_CHANNELS];
 uniform float ValueScale[MAX_CHANNELS];
 uniform float u_opacity;
 
+// Viewport clipping uniforms
+uniform float EnableClipping;
+uniform vec3 ClipMin;
+uniform vec3 ClipMax;
+
 in vec2 TexCoords;
+in vec3 WorldPosition;
 
 void main() {
+    // Discard fragments outside clip bounds
+    if (EnableClipping > 0.5) {
+        if (WorldPosition.x < ClipMin.x || WorldPosition.x > ClipMax.x ||
+            WorldPosition.y < ClipMin.y || WorldPosition.y > ClipMax.y ||
+            WorldPosition.z < ClipMin.z || WorldPosition.z > ClipMax.z) {
+            discard;
+        }
+    }
+
     vec3 rgbColor = vec3(0, 0, 0);
     for (uint i = 0u; i < ChannelCount; i++) {
         if (!Visible[i]) continue;

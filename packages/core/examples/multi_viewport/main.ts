@@ -47,7 +47,10 @@ const sliceCoordsXZ = { t: 400, y: yCenter, c: 0 };
 const sliceCoordsYZ = { t: 400, x: xCenter, c: 0 };
 // XY slice camera - looking down from above
 const cameraXY = new OrthographicCamera(
-  xMin, xMax, yMin, yMax,
+  xMin,
+  xMax,
+  yMin,
+  yMax,
   10,
   zMax - zMin + 20
 );
@@ -63,7 +66,10 @@ imageLayerXY.debugMode = true;
 
 // XZ slice camera - looking from the front
 const cameraXZ = new OrthographicCamera(
-  xMin, xMax, zMin, zMax,
+  xMin,
+  xMax,
+  zMin,
+  zMax,
   10,
   yMax - yMin + 20
 );
@@ -83,7 +89,10 @@ imageLayerXZ.debugMode = true;
 // YZ slice camera - looking from the side (along +X axis)
 // YZ plane shows Y (horizontal) and Z (vertical)
 const cameraYZ = new OrthographicCamera(
-  yMin, yMax, zMin, zMax,
+  yMin,
+  yMax,
+  zMin,
+  zMax,
   10,
   xMax - xMin + 20
 );
@@ -141,7 +150,9 @@ new Idetik({
         radius: 1000,
         target: [xCenter, yCenter, zCenter],
       }),
-      layers: [new LayerView({ layers: [imageLayerXY, imageLayerXZ, imageLayerYZ] })],
+      layers: [
+        new LayerView({ layers: [imageLayerXY, imageLayerXZ, imageLayerYZ] }),
+      ],
     },
   ],
   showStats: true,
