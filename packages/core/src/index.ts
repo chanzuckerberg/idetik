@@ -5,6 +5,8 @@ export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
 export { PanZoomControls } from "./objects/cameras/controls";
 export type { CameraControls } from "./objects/cameras/controls";
+export { LinkedOrthoSliceControls } from "./objects/cameras/linked_orthoslice_controls";
+export type { LinkedOrthoSliceConfig } from "./objects/cameras/linked_orthoslice_controls";
 
 export { Layer } from "./core/layer";
 export type { LayerState } from "./core/layer";

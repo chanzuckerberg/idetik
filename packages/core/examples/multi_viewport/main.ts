@@ -5,8 +5,7 @@ import {
   OrthographicCamera,
   PerspectiveCamera,
 } from "@";
-import { PanZoomControls } from "@/objects/cameras/controls";
-import { addDimensionSlider } from "../lil_gui_utils";
+import { LinkedOrthoSliceControls } from "@/objects/cameras/linked_orthoslice_controls";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 
 import GUI from "lil-gui";
@@ -118,6 +117,30 @@ console.log("YZ camera rotation:", cameraYZ.transform.rotation);
 
 const camera3D = new PerspectiveCamera();
 
+// Mutable object to hold GUI controllers for callback access
+const guiControllers = {
+  x: null as ReturnType<GUI["add"]> | null,
+  y: null as ReturnType<GUI["add"]> | null,
+  z: null as ReturnType<GUI["add"]> | null,
+};
+
+// Create linked controls for coordinated orthoslice navigation
+const linkedControls = new LinkedOrthoSliceControls({
+  cameraXY,
+  cameraXZ,
+  cameraYZ,
+  sliceCoordsXY,
+  sliceCoordsXZ,
+  sliceCoordsYZ,
+  linkZoom: false,
+  onSliceChange: () => {
+    // Update GUI controllers when slices change from panning
+    guiControllers.x?.updateDisplay();
+    guiControllers.y?.updateDisplay();
+    guiControllers.z?.updateDisplay();
+  },
+});
+
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
@@ -125,21 +148,21 @@ new Idetik({
       id: "xy",
       element: document.querySelector<HTMLDivElement>("#viewport-xy")!,
       camera: cameraXY,
-      cameraControls: new PanZoomControls(cameraXY),
+      cameraControls: linkedControls.createViewportControls("xy"),
       layers: [imageLayerXY],
     },
     {
       id: "xz",
       element: document.querySelector<HTMLDivElement>("#viewport-xz")!,
       camera: cameraXZ,
-      cameraControls: new PanZoomControls(cameraXZ),
+      cameraControls: linkedControls.createViewportControls("xz"),
       layers: [imageLayerXZ],
     },
     {
       id: "yz",
       element: document.querySelector<HTMLDivElement>("#viewport-yz")!,
       camera: cameraYZ,
-      cameraControls: new PanZoomControls(cameraYZ),
+      cameraControls: linkedControls.createViewportControls("yz"),
       layers: [imageLayerYZ],
     },
     {
@@ -160,35 +183,47 @@ new Idetik({
 
 const gui = new GUI({ width: 300 });
 
+// Create slice position controllers that use linkedControls methods
+const slicePositions = {
+  get x() {
+    return sliceCoordsYZ.x;
+  },
+  set x(value: number) {
+    linkedControls.setSliceX(value);
+  },
+  get y() {
+    return sliceCoordsXZ.y;
+  },
+  set y(value: number) {
+    linkedControls.setSliceY(value);
+  },
+  get z() {
+    return sliceCoordsXY.z;
+  },
+  set z(value: number) {
+    linkedControls.setSliceZ(value);
+  },
+};
+
 const xyFolder = gui.addFolder("XY Slice");
-addDimensionSlider({
-  gui: xyFolder,
-  sliceCoords: sliceCoordsXY,
-  dimensionName: "z",
-  minValue: zRange.min,
-  maxValue: zRange.max,
-  stepValue: z.scale,
-});
+guiControllers.z = xyFolder
+  .add(slicePositions, "z", zRange.min, zRange.max, z.scale)
+  .name("z-coord");
 xyFolder.open();
 
 const xzFolder = gui.addFolder("XZ Slice");
-addDimensionSlider({
-  gui: xzFolder,
-  sliceCoords: sliceCoordsXZ,
-  dimensionName: "y",
-  minValue: yRange.min,
-  maxValue: yRange.max,
-  stepValue: y.scale,
-});
+guiControllers.y = xzFolder
+  .add(slicePositions, "y", yRange.min, yRange.max, y.scale)
+  .name("y-coord");
 xzFolder.open();
 
 const yzFolder = gui.addFolder("YZ Slice");
-addDimensionSlider({
-  gui: yzFolder,
-  sliceCoords: sliceCoordsYZ,
-  dimensionName: "x",
-  minValue: xRange.min,
-  maxValue: xRange.max,
-  stepValue: x.scale,
-});
+guiControllers.x = yzFolder
+  .add(slicePositions, "x", xRange.min, xRange.max, x.scale)
+  .name("x-coord");
 yzFolder.open();
+
+// Camera linking controls
+const controlsFolder = gui.addFolder("Camera Controls");
+controlsFolder.add(linkedControls, "linkZoom").name("Link Zoom");
+controlsFolder.open();
