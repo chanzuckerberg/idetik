@@ -105,37 +105,25 @@ void main() {
     // Compute step increment directly to avoid precision loss
     vec3 stepIncrement = step / float(numSamples);
 
-    vec3 accumulatedColor = vec3(0.0);
-    float alpha = 0.0;
+    vec4 accumulatedColor = vec4(0.0);
 
-    for (int i = 0; i < numSamples; i++) {
-        vec4 sampledData;
+    // Front-to-back compositing
+    vec4 sampledData;
+    float intensityScale = (1.0 / MaxIntensity) * OpacityScale;
+    float sampleAlpha;
+    float blendedSampleAlpha;
 
-#if defined(TEXTURE_DATA_TYPE_INT)
-        ivec4 rawData = texture(ImageSampler, position);
-        sampledData = vec4(rawData);
-#elif defined(TEXTURE_DATA_TYPE_UINT)
-        uvec4 rawData = texture(ImageSampler, position);
-        sampledData = vec4(rawData);
-#else
-        sampledData = texture(ImageSampler, position);
-#endif
-        float texel = sampledData.r;
+    for (int i = 0; i < numSamples && accumulatedColor.a < AlphaThreshold; i++) {
+        sampledData = vec4(texture(ImageSampler, position));
+        sampleAlpha = sampledData.r * intensityScale;
 
-        float normalizedIntensity = texel / MaxIntensity;
-        float sampleAlpha = normalizedIntensity * OpacityScale;
+        blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;
 
         // Front-to-back compositing
-        vec3 sampleColor = VolumeColor;
-        float prevAlpha = alpha;
-        alpha = alpha + (1.0 - alpha) * sampleAlpha;
-        accumulatedColor += sampleColor * sampleAlpha * (1.0 - prevAlpha);
-
-        if (alpha >= AlphaThreshold) {
-            break;
-        }
+        accumulatedColor.a += blendedSampleAlpha;
+        accumulatedColor.rgb += VolumeColor * blendedSampleAlpha;
         position += stepIncrement;
     }
 
-    fragColor = vec4(accumulatedColor, alpha);
+    fragColor = accumulatedColor;
 }
