@@ -13,7 +13,8 @@ const MOUSE_BUTTON_MIDDLE = 1;
 const ORBIT_SPEED = 0.009;
 const PAN_SPEED = 0.001;
 const ZOOM_SPEED = 0.0009;
-const DEFAULT_DAMPING_FACTOR = 0.3;
+const DEFAULT_DAMPING_FACTOR = 0.5;
+const DAMPING_FPS = 60; // Base FPS to normalize damping
 
 type OrbitParams = {
   radius?: number;
@@ -27,7 +28,6 @@ export class OrbitControls implements CameraControls {
 
   private readonly orbitVelocity_ = new Spherical(0, 0, 0);
   private readonly panVelocity_ = vec3.create();
-  private zoomVelocity_ = 0;
 
   private readonly currPos_: Spherical;
   private readonly currCenter_ = vec3.create();
@@ -50,6 +50,8 @@ export class OrbitControls implements CameraControls {
       0,
       1
     );
+
+    this.updateCamera();
   }
 
   public onEvent(event: EventContext): void {
@@ -71,9 +73,18 @@ export class OrbitControls implements CameraControls {
   }
 
   public onUpdate(dt: number) {
+    if (
+      this.orbitVelocity_.phi === 0 &&
+      this.orbitVelocity_.theta === 0 &&
+      this.orbitVelocity_.radius === 0 &&
+      vec3.equals(this.panVelocity_, vec3.fromValues(0, 0, 0))
+    ) {
+      return;
+    }
+
     this.currPos_.phi += this.orbitVelocity_.phi;
     this.currPos_.theta += this.orbitVelocity_.theta;
-    this.currPos_.radius += this.zoomVelocity_ * this.currPos_.radius;
+    this.currPos_.radius += this.orbitVelocity_.radius * this.currPos_.radius;
 
     vec3.add(this.currCenter_, this.currCenter_, this.panVelocity_);
 
@@ -85,15 +96,15 @@ export class OrbitControls implements CameraControls {
     this.currPos_.theta = clamp(this.currPos_.theta, -limit, limit);
     this.currPos_.radius = Math.max(0.01, this.currPos_.radius);
 
-    const p = vec3.add(vec3.create(), this.currCenter_, this.currPos_.toVec3());
-    this.camera_.transform.setTranslation(p);
-    this.camera_.transform.targetTo(this.currCenter_);
+    this.updateCamera();
 
-    const damping = Math.pow(1.0 - this.dampingFactor_, dt * 60);
+    const damping = Math.pow(1.0 - this.dampingFactor_, dt * DAMPING_FPS);
     this.orbitVelocity_.phi *= damping;
     this.orbitVelocity_.theta *= damping;
-    this.zoomVelocity_ *= damping;
+    this.orbitVelocity_.radius *= damping;
     vec3.scale(this.panVelocity_, this.panVelocity_, damping);
+
+    this.cutoffLowVelocity();
   }
 
   private onPointerDown(event: EventContext) {
@@ -151,6 +162,23 @@ export class OrbitControls implements CameraControls {
   }
 
   private zoom(dy: number) {
-    this.zoomVelocity_ += dy * ZOOM_SPEED;
+    this.orbitVelocity_.radius += dy * ZOOM_SPEED;
+  }
+
+  private updateCamera() {
+    const p = vec3.add(vec3.create(), this.currCenter_, this.currPos_.toVec3());
+    this.camera_.transform.setTranslation(p);
+    this.camera_.transform.targetTo(this.currCenter_);
+  }
+
+  private cutoffLowVelocity() {
+    if (Math.abs(this.orbitVelocity_.phi) < glMatrix.EPSILON)
+      this.orbitVelocity_.phi = 0;
+    if (Math.abs(this.orbitVelocity_.theta) < glMatrix.EPSILON)
+      this.orbitVelocity_.theta = 0;
+    if (Math.abs(this.orbitVelocity_.radius) < glMatrix.EPSILON)
+      this.orbitVelocity_.radius = 0;
+    if (vec3.length(this.panVelocity_) < glMatrix.EPSILON)
+      vec3.zero(this.panVelocity_);
   }
 }
