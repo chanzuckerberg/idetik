@@ -14,7 +14,7 @@ import { Box2 } from "../math/box2";
 import { Viewport } from "../core/viewport";
 import { Camera } from "../objects/cameras/camera";
 
-import { mat4, vec2, vec3 } from "gl-matrix";
+import { mat4, vec2 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
 
 // The library's coordinate system is left-handed.
@@ -174,6 +174,7 @@ export class WebGLRenderer extends Renderer {
       camera.viewMatrix,
       object.transform.matrix
     );
+    const inverseModelView = mat4.invert(mat4.create(), modelView);
     const projection = mat4.multiply(
       mat4.create(),
       axisDirection,
@@ -181,7 +182,6 @@ export class WebGLRenderer extends Renderer {
     );
     const resolution = [this.canvas.width, this.canvas.height];
     // Want the box in model space, object.boundingBox is in world space
-    const box = object.geometry.boundingBox;
     const modelViewProjection = mat4.multiply(
       mat4.create(),
       projection,
@@ -191,9 +191,6 @@ export class WebGLRenderer extends Renderer {
       mat4.create(),
       modelViewProjection
     );
-
-    const size = vec3.create();
-    vec3.subtract(size, box.max, box.min);
 
     const objectUniforms = object.getUniforms();
     const cameraUniforms = camera.getUniforms();
@@ -209,6 +206,9 @@ export class WebGLRenderer extends Renderer {
         case "ModelView":
           program.setUniform(uniformName, modelView);
           break;
+        case "InverseModelView":
+          program.setUniform(uniformName, inverseModelView);
+          break;
         case "Projection":
           program.setUniform(uniformName, projection);
           break;
@@ -219,7 +219,7 @@ export class WebGLRenderer extends Renderer {
           program.setUniform(uniformName, layer.opacity);
           break;
         case "BoxSize":
-          program.setUniform(uniformName, size);
+          program.setUniform(uniformName, object.geometry.boundingBox.size);
           break;
         case "InverseModelViewProjection":
           program.setUniform(uniformName, inverseModelViewProjection);

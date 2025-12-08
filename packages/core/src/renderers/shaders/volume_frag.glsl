@@ -14,7 +14,7 @@ uniform mediump sampler3D ImageSampler;
 #endif
 
 // Transformation matrices
-uniform mat4 ModelView;
+uniform mat4 InverseModelView;
 
 // Volume bounding box (model space)
 uniform vec3 BoxSize;
@@ -27,7 +27,8 @@ uniform float OpacityScale;
 uniform vec3 VolumeColor;
 uniform float AlphaThreshold;
 
-in vec3 ModelPosition;
+in vec3 Position;
+in vec4 ViewPosition;
 
 bool intersectBox(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out float tEnter, out float tExit) {
     vec3 invDir = 1.0 / rayDir;
@@ -44,17 +45,12 @@ bool intersectBox(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out flo
 }
 
 void main() {
-    // Use model position directly - more stable than using gl_Position (interpolated)
-    // Transform model position to view space to get the ray origin on the cube surface
-    vec4 viewPos = ModelView * vec4(ModelPosition, 1.0);
-
     // Ray direction in view space points toward camera
-    vec3 rayOriginView = viewPos.xyz;
+    vec3 rayOriginView = ViewPosition.xyz;
     vec3 rayDirView = normalize(-rayOriginView);
 
     // Transform to model space for intersection test
-    mat4 inverseModelView = inverse(ModelView);
-    vec3 rayDirModel = normalize((inverseModelView * vec4(rayDirView, 0.0)).xyz);
+    vec3 rayDirModel = normalize((InverseModelView * vec4(rayDirView, 0.0)).xyz);
 
     // Box bounds in model space
     vec3 boxMinModel = -BoxSize * 0.5;
@@ -62,7 +58,7 @@ void main() {
 
     // Find the start and end of the ray within the volume
     float tEnter, tExit;
-    vec3 rayOriginModel = ModelPosition;
+    vec3 rayOriginModel = Position;
     bool hit = intersectBox(rayOriginModel, rayDirModel, boxMinModel, boxMaxModel, tEnter, tExit);
 
     // Discard fragments that miss the volume

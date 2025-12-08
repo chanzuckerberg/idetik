@@ -71,4 +71,10 @@ export class Box3 {
       this.expandWithPoint(tmp);
     }
   }
+
+  public get size() {
+    const size = vec3.create();
+    vec3.subtract(size, this.max, this.min);
+    return size;
+  }
 }
