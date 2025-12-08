@@ -119,12 +119,7 @@ export class VolumeLayer extends Layer {
   }
 
   private createVolume(chunk: Chunk) {
-    const volume = new VolumeRenderable(
-      chunk.shape.x,
-      chunk.shape.y,
-      chunk.shape.z,
-      Texture3D.createWithChunk(chunk)
-    );
+    const volume = new VolumeRenderable(Texture3D.createWithChunk(chunk));
     this.updateVolumeChunk(volume, chunk);
     return volume;
   }
@@ -241,7 +236,11 @@ export class VolumeLayer extends Layer {
   }
 
   private updateVolumeChunk(volume: VolumeRenderable, chunk: Chunk) {
-    volume.transform.setScale([chunk.scale.x, chunk.scale.y, chunk.scale.z]);
+    volume.transform.setScale([
+      chunk.shape.x * chunk.scale.x,
+      chunk.shape.y * chunk.scale.y,
+      chunk.shape.z * chunk.scale.z,
+    ]);
     const originOffset = {
       x: (chunk.shape.x * chunk.scale.x) / 2,
       y: (chunk.shape.y * chunk.scale.y) / 2,

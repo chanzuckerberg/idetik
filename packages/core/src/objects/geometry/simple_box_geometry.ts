@@ -1,52 +1,48 @@
 import { Geometry } from "../../core/geometry";
 
 export class SimpleBoxGeometry extends Geometry {
-  constructor(width: number, height: number, depth: number) {
+  constructor() {
     super();
-
-    const halfWidth = width / 2;
-    const halfHeight = height / 2;
-    const halfDepth = depth / 2;
 
     // Raw vertex data: position (x,y,z), normal (x,y,z), uv (u,v)
     // 8 vertices * 8 floats per vertex = 64 floats total
     // prettier-ignore
     const vertices = new Float32Array([
       // Front face (positive Z)
-      -halfWidth, -halfHeight,  halfDepth,  0,  0,  1,  0, 0, // bottom-left
-       halfWidth, -halfHeight,  halfDepth,  0,  0,  1,  1, 0, // bottom-right
-       halfWidth,  halfHeight,  halfDepth,  0,  0,  1,  1, 1, // top-right
-      -halfWidth,  halfHeight,  halfDepth,  0,  0,  1,  0, 1, // top-left
+      -0.5, -0.5,  0.5,  0,  0,  1,  0, 0, // bottom-left
+       0.5, -0.5,  0.5,  0,  0,  1,  1, 0, // bottom-right
+       0.5,  0.5,  0.5,  0,  0,  1,  1, 1, // top-right
+      -0.5,  0.5,  0.5,  0,  0,  1,  0, 1, // top-left
 
       // Back face (negative Z)
-       halfWidth, -halfHeight, -halfDepth,  0,  0, -1,  0, 0, // bottom-left
-      -halfWidth, -halfHeight, -halfDepth,  0,  0, -1,  1, 0, // bottom-right
-      -halfWidth,  halfHeight, -halfDepth,  0,  0, -1,  1, 1, // top-right
-       halfWidth,  halfHeight, -halfDepth,  0,  0, -1,  0, 1, // top-left
+       0.5, -0.5, -0.5,  0,  0, -1,  0, 0, // bottom-left
+      -0.5, -0.5, -0.5,  0,  0, -1,  1, 0, // bottom-right
+      -0.5,  0.5, -0.5,  0,  0, -1,  1, 1, // top-right
+       0.5,  0.5, -0.5,  0,  0, -1,  0, 1, // top-left
 
       // Left face (negative X)
-      -halfWidth, -halfHeight, -halfDepth, -1,  0,  0,  0, 0, // bottom-left
-      -halfWidth, -halfHeight,  halfDepth, -1,  0,  0,  1, 0, // bottom-right
-      -halfWidth,  halfHeight,  halfDepth, -1,  0,  0,  1, 1, // top-right
-      -halfWidth,  halfHeight, -halfDepth, -1,  0,  0,  0, 1, // top-left
+      -0.5, -0.5, -0.5, -1,  0,  0,  0, 0, // bottom-left
+      -0.5, -0.5,  0.5, -1,  0,  0,  1, 0, // bottom-right
+      -0.5,  0.5,  0.5, -1,  0,  0,  1, 1, // top-right
+      -0.5,  0.5, -0.5, -1,  0,  0,  0, 1, // top-left
 
       // Right face (positive X)
-       halfWidth, -halfHeight,  halfDepth,  1,  0,  0,  0, 0, // bottom-left
-       halfWidth, -halfHeight, -halfDepth,  1,  0,  0,  1, 0, // bottom-right
-       halfWidth,  halfHeight, -halfDepth,  1,  0,  0,  1, 1, // top-right
-       halfWidth,  halfHeight,  halfDepth,  1,  0,  0,  0, 1, // top-left
+       0.5, -0.5,  0.5,  1,  0,  0,  0, 0, // bottom-left
+       0.5, -0.5, -0.5,  1,  0,  0,  1, 0, // bottom-right
+       0.5,  0.5, -0.5,  1,  0,  0,  1, 1, // top-right
+       0.5,  0.5,  0.5,  1,  0,  0,  0, 1, // top-left
 
       // Top face (positive Y)
-      -halfWidth,  halfHeight,  halfDepth,  0,  1,  0,  0, 0, // bottom-left
-       halfWidth,  halfHeight,  halfDepth,  0,  1,  0,  1, 0, // bottom-right
-       halfWidth,  halfHeight, -halfDepth,  0,  1,  0,  1, 1, // top-right
-      -halfWidth,  halfHeight, -halfDepth,  0,  1,  0,  0, 1, // top-left
+      -0.5,  0.5,  0.5,  0,  1,  0,  0, 0, // bottom-left
+       0.5,  0.5,  0.5,  0,  1,  0,  1, 0, // bottom-right
+       0.5,  0.5, -0.5,  0,  1,  0,  1, 1, // top-right
+      -0.5,  0.5, -0.5,  0,  1,  0,  0, 1, // top-left
 
       // Bottom face (negative Y)
-      -halfWidth, -halfHeight, -halfDepth,  0, -1,  0,  0, 0, // bottom-left
-       halfWidth, -halfHeight, -halfDepth,  0, -1,  0,  1, 0, // bottom-right
-       halfWidth, -halfHeight,  halfDepth,  0, -1,  0,  1, 1, // top-right
-      -halfWidth, -halfHeight,  halfDepth,  0, -1,  0,  0, 1, // top-left
+      -0.5, -0.5, -0.5,  0, -1,  0,  0, 0, // bottom-left
+       0.5, -0.5, -0.5,  0, -1,  0,  1, 0, // bottom-right
+       0.5, -0.5,  0.5,  0, -1,  0,  1, 1, // top-right
+      -0.5, -0.5,  0.5,  0, -1,  0,  0, 1, // top-left
     ]);
 
     // Indices for triangles (counter-clockwise winding for front faces)

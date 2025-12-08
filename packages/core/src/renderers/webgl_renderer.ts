@@ -218,9 +218,6 @@ export class WebGLRenderer extends Renderer {
         case "u_opacity":
           program.setUniform(uniformName, layer.opacity);
           break;
-        case "BoxSize":
-          program.setUniform(uniformName, object.geometry.boundingBox.size);
-          break;
         case "InverseModelViewProjection":
           program.setUniform(uniformName, inverseModelViewProjection);
           break;

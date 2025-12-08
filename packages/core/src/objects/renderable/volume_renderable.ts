@@ -5,14 +5,9 @@ import type { TextureDataType } from "../textures/texture";
 import type { Texture3D } from "../textures/texture_3d";
 
 export class VolumeRenderable extends RenderableObject {
-  constructor(
-    width: number,
-    height: number,
-    depth: number,
-    texture: Texture3D
-  ) {
+  constructor(texture: Texture3D) {
     super();
-    this.geometry = new SimpleBoxGeometry(width, height, depth);
+    this.geometry = new SimpleBoxGeometry();
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
     this.cullFaceMode = "front";

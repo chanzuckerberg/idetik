@@ -16,8 +16,7 @@ uniform mediump sampler3D ImageSampler;
 // Transformation matrices
 uniform mat4 InverseModelView;
 
-// Volume bounding box (model space)
-uniform vec3 BoxSize;
+// Volume rendering parameters
 uniform bool ShowHitMisses;
 
 // Volume rendering parameters
@@ -30,10 +29,11 @@ uniform float AlphaThreshold;
 in vec3 Position;
 in vec4 ViewPosition;
 
-bool intersectBox(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out float tEnter, out float tExit) {
+bool intersectBox(vec3 rayOrigin, vec3 rayDir, out float tEnter, out float tExit) {
     vec3 invDir = 1.0 / rayDir;
-    vec3 t0 = (boxMin - rayOrigin) * invDir;
-    vec3 t1 = (boxMax - rayOrigin) * invDir;
+    // The bbox is normalized already
+    vec3 t0 = (-0.5 - rayOrigin) * invDir;
+    vec3 t1 = (0.5 - rayOrigin) * invDir;
 
     vec3 tMin = min(t0, t1);
     vec3 tMax = max(t0, t1);
@@ -52,14 +52,10 @@ void main() {
     // Transform to model space for intersection test
     vec3 rayDirModel = normalize((InverseModelView * vec4(rayDirView, 0.0)).xyz);
 
-    // Box bounds in model space
-    vec3 boxMinModel = -BoxSize * 0.5;
-    vec3 boxMaxModel = BoxSize * 0.5;
-
     // Find the start and end of the ray within the volume
     float tEnter, tExit;
     vec3 rayOriginModel = Position;
-    bool hit = intersectBox(rayOriginModel, rayDirModel, boxMinModel, boxMaxModel, tEnter, tExit);
+    bool hit = intersectBox(rayOriginModel, rayDirModel, tEnter, tExit);
 
     // Discard fragments that miss the volume
     if (!hit) {
@@ -79,8 +75,9 @@ void main() {
     vec3 exitPointModel = rayOriginModel + rayDirModel * tExit;
 
     // Convert model space positions to texture coordinates [0,1]
-    vec3 entryPointNormalized = (entryPointModel / BoxSize) + 0.5;
-    vec3 exitPointNormalized = (exitPointModel / BoxSize) + 0.5;
+    // With normalized BoxSize, model space is already [-0.5, 0.5], so just shift to [0,1]
+    vec3 entryPointNormalized = entryPointModel + 0.5;
+    vec3 exitPointNormalized = exitPointModel + 0.5;
 
     // Calculate step direction before clamping to maintain consistent sampling
     vec3 step = exitPointNormalized - entryPointNormalized;
