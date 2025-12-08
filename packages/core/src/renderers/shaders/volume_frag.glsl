@@ -15,15 +15,17 @@ uniform mediump sampler3D ImageSampler;
 
 // Volume rendering parameters
 uniform bool ShowHitMisses;
-
-// Volume rendering parameters
 uniform float SampleDensity;
 uniform float MaxIntensity;
 uniform float OpacityScale;
 uniform vec3 VolumeColor;
 uniform float AlphaThreshold;
 
-in vec3 RayDirModel, RayOriginModel;
+// Transformation matrix
+uniform mat4 ModelView, InverseModelView;
+
+// Ray origin position from the vertex shader
+in vec3 RayOriginModel;
 
 bool intersectBox(vec3 rayOrigin, vec3 rayDir, out float tEnter, out float tExit) {
     vec3 invDir = 1.0 / rayDir;
@@ -41,6 +43,10 @@ bool intersectBox(vec3 rayOrigin, vec3 rayDir, out float tEnter, out float tExit
 }
 
 void main() {
+    // Transform model position to view space to get the ray origin on the cube surface
+    vec3 rayOriginView = (ModelView * vec4(RayOriginModel, 1.0)).xyz;
+    vec3 RayDirModel = normalize((InverseModelView * vec4(normalize(-rayOriginView), 0.0)).xyz);
+
     // Find the start and end of the ray within the volume
     float tEnter, tExit;
     bool hit = intersectBox(RayOriginModel, RayDirModel, tEnter, tExit);
