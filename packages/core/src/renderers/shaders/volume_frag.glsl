@@ -13,9 +13,6 @@ uniform mediump usampler3D ImageSampler;
 uniform mediump sampler3D ImageSampler;
 #endif
 
-// Transformation matrices
-uniform mat4 InverseModelView;
-
 // Volume rendering parameters
 uniform bool ShowHitMisses;
 
@@ -26,8 +23,7 @@ uniform float OpacityScale;
 uniform vec3 VolumeColor;
 uniform float AlphaThreshold;
 
-in vec3 Position;
-in vec4 ViewPosition;
+in vec3 RayDirModel, RayOriginModel;
 
 bool intersectBox(vec3 rayOrigin, vec3 rayDir, out float tEnter, out float tExit) {
     vec3 invDir = 1.0 / rayDir;
@@ -45,17 +41,9 @@ bool intersectBox(vec3 rayOrigin, vec3 rayDir, out float tEnter, out float tExit
 }
 
 void main() {
-    // Ray direction in view space points toward camera
-    vec3 rayOriginView = ViewPosition.xyz;
-    vec3 rayDirView = normalize(-rayOriginView);
-
-    // Transform to model space for intersection test
-    vec3 rayDirModel = normalize((InverseModelView * vec4(rayDirView, 0.0)).xyz);
-
     // Find the start and end of the ray within the volume
     float tEnter, tExit;
-    vec3 rayOriginModel = Position;
-    bool hit = intersectBox(rayOriginModel, rayDirModel, tEnter, tExit);
+    bool hit = intersectBox(RayOriginModel, RayDirModel, tEnter, tExit);
 
     // Discard fragments that miss the volume
     if (!hit) {
@@ -66,13 +54,13 @@ void main() {
         // Because we later clamp the number of samples to at least 1,
         // and position starts at entry point,
         // we don't have to discard here
-        //discard;
+        // discard;
     }
 
     // Find the texture coordinates of the entry and exit points
     tEnter = max(tEnter, 0.0);
-    vec3 entryPointModel = rayOriginModel + rayDirModel * tEnter;
-    vec3 exitPointModel = rayOriginModel + rayDirModel * tExit;
+    vec3 entryPointModel = RayOriginModel + RayDirModel * tEnter;
+    vec3 exitPointModel = RayOriginModel + RayDirModel * tExit;
 
     // Convert model space positions to texture coordinates [0,1]
     // With normalized BoxSize, model space is already [-0.5, 0.5], so just shift to [0,1]
