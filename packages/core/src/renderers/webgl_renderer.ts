@@ -118,6 +118,17 @@ export class WebGLRenderer extends Renderer {
     const hasFallbackObjects = fallbackObjects.length > 0;
     if (hasFallbackObjects) {
       this.gl_.enable(this.gl_.STENCIL_TEST);
+      this.gl_.stencilMask(0xff);
+
+      // Verify stencil mask is writable
+      const stencilMask = this.gl_.getParameter(this.gl_.STENCIL_WRITEMASK);
+      if (stencilMask !== 0xff) {
+        Logger.error(
+          "WebGLRenderer",
+          `Stencil write mask is ${stencilMask}, expected 0xff`
+        );
+      }
+
       this.gl_.stencilFunc(this.gl_.ALWAYS, 1, 0xff);
       this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
     }
