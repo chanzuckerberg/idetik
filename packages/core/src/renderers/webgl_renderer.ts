@@ -58,6 +58,7 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(this.gl);
     this.textures_ = new WebGLTextures(this.gl);
     this.state_ = new WebGLState(this.gl);
+    this.initStencil();
     this.resize(this.canvas.width, this.canvas.height);
   }
 
@@ -112,45 +113,48 @@ export class WebGLRenderer extends Renderer {
     return this.textures_.textureInfo;
   }
 
+  private initStencil() {
+    // We use the stencil buffer to mark pixels where primary objects
+    // have been drawn, so that we can avoid overdrawing them with
+    // fallback objects. We set up the stencil buffer to write 1s
+    // where primary objects are drawn, and then configure it to
+    // only draw fallback objects where the stencil value is not 1.
+    this.gl_.stencilMask(0xff);
+    this.gl_.clearStencil(0);
+  }
+
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
 
     const fallbackObjects = layer.fallbackObjects;
+
     const hasFallbackObjects = fallbackObjects.length > 0;
+    this.state_.setStencilTest(hasFallbackObjects);
     if (hasFallbackObjects) {
-      this.gl_.enable(this.gl_.STENCIL_TEST);
-      this.gl_.stencilMask(0xff);
-
-      const stencilMask = this.gl_.getParameter(this.gl_.STENCIL_WRITEMASK);
-      if (stencilMask !== 0xff) {
-        Logger.error(
-          "WebGLRenderer",
-          `Stencil write mask is ${stencilMask}, expected 0xff`
-        );
-      }
-
+      this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
       this.gl_.stencilFunc(this.gl_.ALWAYS, 1, 0xff);
       this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
     }
 
-    layer.objects.forEach((object) => {
-      if (frustum.intersectsWithBox3(object.boundingBox)) {
-        this.renderObject(layer, object, camera);
-        this.renderedObjectsPerFrame_ += 1;
-      }
-    });
+    this.renderObjects(layer, layer.objects, camera, frustum);
 
     if (hasFallbackObjects) {
       this.gl_.stencilFunc(this.gl_.NOTEQUAL, 1, 0xff);
       this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.KEEP);
-      fallbackObjects.forEach((object) => {
-        if (frustum.intersectsWithBox3(object.boundingBox)) {
-          this.renderObject(layer, object, camera);
-          this.renderedObjectsPerFrame_ += 1;
-        }
-      });
-      this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
-      this.gl_.disable(this.gl_.STENCIL_TEST);
+      this.renderObjects(layer, fallbackObjects, camera, frustum);
+    }
+  }
+
+  private renderObjects(
+    layer: Layer,
+    objects: RenderableObject[],
+    camera: Camera,
+    frustum: Frustum
+  ) {
+    for (const object of objects) {
+      if (frustum.intersectsWithBox3(object.boundingBox)) {
+        this.renderObject(layer, object, camera);
+      }
     }
   }
 
@@ -183,6 +187,8 @@ export class WebGLRenderer extends Renderer {
         camera
       );
     }
+
+    this.renderedObjectsPerFrame_ += 1;
   }
 
   private drawGeometry(
@@ -260,7 +266,6 @@ export class WebGLRenderer extends Renderer {
 
   protected clear() {
     this.gl.clearColor(...this.backgroundColor.rgba);
-    this.gl.clearStencil(0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.state_.setDepthTesting(true);
     this.gl.depthFunc(this.gl.LEQUAL);

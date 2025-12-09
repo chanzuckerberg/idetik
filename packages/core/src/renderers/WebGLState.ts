@@ -160,4 +160,12 @@ export class WebGLState {
 
     this.currentCullingMode_ = mode;
   }
+
+  public setStencilTest(enabled: boolean) {
+    if (enabled) {
+      this.enable(this.gl_.STENCIL_TEST);
+    } else {
+      this.disable(this.gl_.STENCIL_TEST);
+    }
+  }
 }
