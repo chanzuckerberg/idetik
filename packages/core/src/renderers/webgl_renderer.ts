@@ -121,7 +121,6 @@ export class WebGLRenderer extends Renderer {
       this.gl_.enable(this.gl_.STENCIL_TEST);
       this.gl_.stencilMask(0xff);
 
-      // Verify stencil mask is writable
       const stencilMask = this.gl_.getParameter(this.gl_.STENCIL_WRITEMASK);
       if (stencilMask !== 0xff) {
         Logger.error(
