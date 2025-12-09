@@ -131,11 +131,12 @@ export class WebGLRenderer extends Renderer {
     if (useStencil) {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
     }
-    for (const object of layer.objects) {
+    layer.objects.forEach((object) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
         this.renderObject(layer, object, camera);
+        this.renderedObjectsPerFrame_ += 1;
       }
-    }
+    });
   }
 
   protected renderObject(
@@ -167,8 +168,6 @@ export class WebGLRenderer extends Renderer {
         camera
       );
     }
-
-    this.renderedObjectsPerFrame_ += 1;
   }
 
   private drawGeometry(
