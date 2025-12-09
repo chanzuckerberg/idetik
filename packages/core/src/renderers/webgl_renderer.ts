@@ -30,7 +30,7 @@ import { Frustum } from "../math/frustum";
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
 export class WebGLRenderer extends Renderer {
-  private readonly gl_: WebGL2RenderingContext | null = null;
+  private readonly gl_: WebGL2RenderingContext;
   private readonly programs_: WebGLShaderPrograms;
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
@@ -40,13 +40,14 @@ export class WebGLRenderer extends Renderer {
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
 
-    this.gl_ = this.canvas.getContext("webgl2", {
+    const gl = this.canvas.getContext("webgl2", {
       depth: true,
       antialias: true,
     });
-    if (!this.gl_) {
+    if (gl === null) {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
+    this.gl_ = gl;
     Logger.info(
       "WebGLRenderer",
       `WebGL version ${this.gl.getParameter(this.gl.VERSION)}`
@@ -95,13 +96,13 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
-    // this.state_.setDepthMask(false);
+    this.state_.setDepthMask(false);
     for (const layer of transparent) {
       layer.update(renderContext);
       if (layer.state !== "ready") continue;
       this.renderLayer(layer, viewport.camera, frustum);
     }
-    // this.state_.setDepthMask(true);
+    this.state_.setDepthMask(true);
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
@@ -113,16 +114,40 @@ export class WebGLRenderer extends Renderer {
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
 
-    layer.objects.forEach((object, i) => {
+    const fallbackObjects = layer.fallbackObjects;
+    const hasFallbackObjects = fallbackObjects.length > 0;
+    if (hasFallbackObjects) {
+      this.gl_.enable(this.gl_.STENCIL_TEST);
+      this.gl_.stencilFunc(this.gl_.ALWAYS, 1, 0xff);
+      this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
+    }
+
+    layer.objects.forEach((object) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
-        this.renderObject(layer, i, camera);
+        this.renderObject(layer, object, camera);
         this.renderedObjectsPerFrame_ += 1;
       }
     });
+
+    if (hasFallbackObjects) {
+      this.gl_.stencilFunc(this.gl_.NOTEQUAL, 1, 0xff);
+      this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.KEEP);
+      fallbackObjects.forEach((object) => {
+        if (frustum.intersectsWithBox3(object.boundingBox)) {
+          this.renderObject(layer, object, camera);
+          this.renderedObjectsPerFrame_ += 1;
+        }
+      });
+      this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
+      this.gl_.disable(this.gl_.STENCIL_TEST);
+    }
   }
 
-  protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
-    const object = layer.objects[objectIndex];
+  protected renderObject(
+    layer: Layer,
+    object: RenderableObject,
+    camera: Camera
+  ) {
     this.state_.setCullFaceMode(object.cullFaceMode);
     this.bindings_.bindGeometry(object.geometry);
     object.popStaleTextures().forEach((texture) => {
@@ -224,12 +249,18 @@ export class WebGLRenderer extends Renderer {
 
   protected clear() {
     this.gl.clearColor(...this.backgroundColor.rgba);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    this.gl.clearStencil(0);
+    this.gl.clear(
+      this.gl.COLOR_BUFFER_BIT |
+        this.gl.DEPTH_BUFFER_BIT |
+        this.gl.STENCIL_BUFFER_BIT
+    );
+    this.gl.enable(this.gl.STENCIL_TEST);
     this.state_.setDepthTesting(true);
     this.gl.depthFunc(this.gl.LEQUAL);
   }
 
   private get gl() {
-    return this.gl_!;
+    return this.gl_;
   }
 }

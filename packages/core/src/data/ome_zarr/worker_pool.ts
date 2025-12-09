@@ -22,7 +22,7 @@ type WorkerInstance = {
   workerId: number;
 };
 
-const DEFAULT_WORKER_COUNT = Math.min(navigator.hardwareConcurrency, 8);
+const DEFAULT_WORKER_COUNT = Math.min(navigator.hardwareConcurrency, 1);
 let workerPool: WorkerInstance[] = [];
 let messageId = 0;
 let workerId = 0;

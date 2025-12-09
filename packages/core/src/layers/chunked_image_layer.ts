@@ -122,11 +122,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.releaseAndRemoveChunks(nonVisibleChunks);
 
     this.clearObjects();
+    const currentLod = this.chunkStoreView_.currentLOD;
     for (const chunk of orderedByLOD) {
       if (chunk.state !== "loaded") continue;
       const image = this.getImageForChunk(chunk);
       this.visibleChunks_.set(chunk, image);
-      this.addObject(image);
+      if (chunk.lod === currentLod) {
+        this.addObject(image); // High-res chunks
+      } else {
+        this.addFallbackObject(image); // Low-res chunks
+      }
     }
   }
 
@@ -265,11 +270,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       image.wireframeEnabled = false;
     }
     image.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
-    image.transform.setTranslation([
-      chunk.offset.x,
-      chunk.offset.y,
-      -chunk.lod,
-    ]);
+    image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
   }
 
   public getValueAtWorld(world: vec3): number | null {
