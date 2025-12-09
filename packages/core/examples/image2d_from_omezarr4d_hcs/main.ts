@@ -72,13 +72,13 @@ const onImageChange = async () => {
 
   const layer1 = new ChunkedImageLayer({
     source,
-    sliceCoords: {t: 0, z: initZ, c: 1},
+    sliceCoords: { t: 0, z: initZ, c: 1 },
     channelProps: [{ color: [0, 1, 1], contrastLimits: contrastLimits[0] }],
     policy,
   });
   const layer2 = new ChunkedImageLayer({
     source,
-    sliceCoords: {t: 0, z: initZ, c: 2},
+    sliceCoords: { t: 0, z: initZ, c: 2 },
     channelProps: [{ color: [1, 0, 1], contrastLimits: contrastLimits[1] }],
     policy,
     transparent: true,
