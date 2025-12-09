@@ -118,8 +118,8 @@ export class WebGLRenderer extends Renderer {
     // which is used to avoid overdrawing high resolution tiles with lower
     // resolution ones.
     const clearValue = 0;
-    this.gl_.stencilMask(0xff);
     this.gl_.clearStencil(clearValue);
+    this.gl_.stencilMask(0xff);
     this.gl_.stencilFunc(this.gl_.EQUAL, clearValue, 0xff);
     this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.INCR);
   }
