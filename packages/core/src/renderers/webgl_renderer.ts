@@ -29,8 +29,6 @@ import { Frustum } from "../math/frustum";
 // Therefore, this transform makes the appropriate flip in y.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
-const stencilClearValue = 0;
-
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext;
   private readonly programs_: WebGLShaderPrograms;
@@ -118,11 +116,14 @@ export class WebGLRenderer extends Renderer {
   private initStencil() {
     // We use the stencil buffer to mark pixels where primary objects
     // have been drawn, so that we can avoid overdrawing them with
-    // fallback objects. We set up the stencil buffer to write 1s
-    // where primary objects are drawn, and then configure it to
-    // only draw fallback objects where the stencil value is not 1.
+    // fallback objects. We set up the stencil test to only pass when
+    // the stencil buffer value is 0, then increment it when it passes
+    // to avoiding drawing anything else for that pixel.
+    const clearValue = 0;
     this.gl_.stencilMask(0xff);
-    this.gl_.clearStencil(stencilClearValue);
+    this.gl_.clearStencil(clearValue);
+    this.gl_.stencilFunc(this.gl_.EQUAL, clearValue, 0xff);
+    this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.INCR);
   }
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
@@ -130,16 +131,11 @@ export class WebGLRenderer extends Renderer {
 
     const fallbackObjects = layer.fallbackObjects;
     const hasFallbackObjects = fallbackObjects.length > 0;
-
     this.state_.setStencilTest(hasFallbackObjects);
     if (hasFallbackObjects) {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
-      this.gl_.stencilFunc(this.gl_.EQUAL, stencilClearValue, 0xff);
-      this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.INCR);
     }
-
     this.renderObjects(layer, layer.objects, camera, frustum);
-
     if (hasFallbackObjects) {
       this.renderObjects(layer, fallbackObjects, camera, frustum);
     }
