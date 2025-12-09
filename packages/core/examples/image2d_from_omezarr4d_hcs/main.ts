@@ -52,18 +52,6 @@ const app = new Idetik({
 }).start();
 
 const viewport = app.viewports[0];
-
-const sliceCoords1 = {
-  t: 0,
-  z: 0,
-  c: 1,
-};
-const sliceCoords2 = {
-  t: 0,
-  z: 0,
-  c: 2,
-};
-
 const imageSelector = document.querySelector("#image") as HTMLSelectElement;
 
 const onImageChange = async () => {
@@ -75,8 +63,6 @@ const onImageChange = async () => {
   const omeroDefaults = await loadOmeroDefaults(source);
   const omeroDefaultZ = omeroDefaults?.defaultZ ?? 0;
   const initZ = (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE;
-  sliceCoords1.z = initZ;
-  sliceCoords2.z = initZ;
 
   const omeroChannels = await loadOmeroChannels(source);
   const contrastLimits: [number, number][] = [
@@ -86,16 +72,13 @@ const onImageChange = async () => {
 
   const layer1 = new ChunkedImageLayer({
     source,
-    sliceCoords: sliceCoords1,
+    sliceCoords: {t: 0, z: initZ, c: 1},
     channelProps: [{ color: [0, 1, 1], contrastLimits: contrastLimits[0] }],
     policy,
-    transparent: true,
-    blendMode: "additive",
-    opacity: 1,
   });
   const layer2 = new ChunkedImageLayer({
     source,
-    sliceCoords: sliceCoords2,
+    sliceCoords: {t: 0, z: initZ, c: 2},
     channelProps: [{ color: [1, 0, 1], contrastLimits: contrastLimits[1] }],
     policy,
     transparent: true,
