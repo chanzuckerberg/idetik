@@ -36,8 +36,8 @@ float findBoxEnd(vec3 rayOrigin, vec3 rayDir) {
     safeRayDir.z = (rayDir.z == 0.0) ? 1e-6 : rayDir.z; 
     vec3 invDir = 1.0 / safeRayDir;
     // The bbox is normalized already, bounds are 0.0 to 1.0
-    vec3 t0 = rayOrigin * invDir;
-    vec3 t1 = (1.0 - rayOrigin) * invDir;
+    vec3 t0 = (-0.5 - rayOrigin) * invDir;
+    vec3 t1 = (0.5 - rayOrigin) * invDir;
 
     vec3 tMax = max(t0, t1);
     float tExit = min(min(tMax.x, tMax.y), tMax.z);
@@ -45,12 +45,11 @@ float findBoxEnd(vec3 rayOrigin, vec3 rayDir) {
 }
 
 void main() {
-    // Normalize positions from [-0.5, 0.5] to [0, 1]
-    vec3 normalizedCameraPosModel = CameraPositionModel.xyz + 0.5;
-    vec3 exitPointModel = RayOriginModel + 0.5;
+    vec3 normalizedCameraPosModel = CameraPositionModel.xyz;
+    vec3 exitPointModel = RayOriginModel;
 
     // The ray in model space goes from the point on the back face to the camera
-    vec3 RayDirModel = normalize(normalizedCameraPosModel.xyz - exitPointModel.xyz);
+    vec3 RayDirModel = normalize(normalizedCameraPosModel - exitPointModel);
 
     // The exit point is the start of the ray because we are rendering back faces
     float tExit = findBoxEnd(RayOriginModel, RayDirModel);
@@ -58,7 +57,9 @@ void main() {
     if (emptyRay) {
         discard;
     }
-    vec3 entryPointModel = clamp(RayOriginModel + RayDirModel * tExit, 0.0, 1.0);
+    vec3 entryPointModel = RayOriginModel + RayDirModel * tExit;
+    entryPointModel = clamp(entryPointModel + 0.5, 0.0, 1.0);
+    exitPointModel = clamp(exitPointModel + 0.5, 0.0, 1.0);
 
     // Calculate the number of samples based on the length of the ray
     vec3 rayWithinModel = exitPointModel - entryPointModel;
