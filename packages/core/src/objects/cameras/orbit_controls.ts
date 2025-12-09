@@ -5,6 +5,7 @@ import { Spherical } from "../../math/spherical";
 
 import { glMatrix, vec3 } from "gl-matrix";
 import { clamp } from "../../utilities/clamp";
+import { Logger } from "../../utilities/logger";
 
 const MOUSE_BUTTON_NONE = -1;
 const MOUSE_BUTTON_LEFT = 0;
@@ -140,6 +141,13 @@ export class OrbitControls implements CameraControls {
       this.target_,
       this.sphericalPos_.toVec3()
     );
+    Logger.info("OrbitControls", "Updating camera position");
+    Logger.info("OrbitControls", this.target_);
+    Logger.info("OrbitControls", [
+      this.sphericalPos_.radius,
+      this.sphericalPos_.phi,
+      this.sphericalPos_.theta,
+    ]);
     this.camera_.transform.setTranslation(p);
     this.camera_.transform.targetTo(this.target_);
   }

@@ -6,6 +6,7 @@ import {
 } from "@/core/image_source_policy";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
+import { vec3 } from "gl-matrix";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -44,12 +45,23 @@ const lodOverlay = {
   },
 };
 
+// Problematic target/spherical
+const target = vec3.fromValues(270.5104, 783.1701, 270.586);
+const spherical = {
+  radius: 3232.1488,
+  yaw: -0.261,
+  pitch: 0.045,
+  target,
+};
+const cameraControls = new OrbitControls(camera, spherical);
+
+
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
       camera,
-      cameraControls: new OrbitControls(camera, { radius: 2000 }),
+      cameraControls: cameraControls,
       layers: [volumeLayer],
     },
   ],
