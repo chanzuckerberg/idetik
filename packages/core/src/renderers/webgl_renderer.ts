@@ -250,12 +250,7 @@ export class WebGLRenderer extends Renderer {
   protected clear() {
     this.gl.clearColor(...this.backgroundColor.rgba);
     this.gl.clearStencil(0);
-    this.gl.clear(
-      this.gl.COLOR_BUFFER_BIT |
-        this.gl.DEPTH_BUFFER_BIT |
-        this.gl.STENCIL_BUFFER_BIT
-    );
-    this.gl.enable(this.gl.STENCIL_TEST);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.state_.setDepthTesting(true);
     this.gl.depthFunc(this.gl.LEQUAL);
   }
