@@ -43,6 +43,7 @@ export class WebGLRenderer extends Renderer {
     const gl = this.canvas.getContext("webgl2", {
       depth: true,
       antialias: true,
+      stencil: true,
     });
     if (gl === null) {
       throw new Error(`Failed to initialize WebGL2 context`);
