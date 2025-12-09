@@ -45,8 +45,6 @@ float findBoxEnd(vec3 rayOrigin, vec3 rayDir) {
 }
 
 void main() {
-    fragColor = vec4(1.0, 0.0, 0.0, 1.0);
-    return;
     // Normalize positions from [-0.5, 0.5] to [0, 1]
     vec3 normalizedCameraPosModel = CameraPositionModel.xyz + 0.5;
     vec3 exitPointModel = RayOriginModel + 0.5;

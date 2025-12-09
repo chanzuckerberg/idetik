@@ -223,6 +223,9 @@ export class WebGLRenderer extends Renderer {
         case "u_opacity":
           program.setUniform(uniformName, layer.opacity);
           break;
+        case "ModelViewProjection":
+          program.setUniform(uniformName, modelViewProjection);
+          break;
         case "InverseModelViewProjection":
           program.setUniform(uniformName, inverseModelViewProjection);
           break;
