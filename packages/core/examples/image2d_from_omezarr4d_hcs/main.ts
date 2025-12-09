@@ -91,16 +91,16 @@ const onImageChange = async () => {
     policy,
     transparent: true,
     blendMode: "additive",
-    opacity: 0.5,
+    opacity: 1,
   });
   const layer2 = new ChunkedImageLayer({
     source,
     sliceCoords: sliceCoords2,
     channelProps: [{ color: [1, 0, 1], contrastLimits: contrastLimits[1] }],
+    policy,
     transparent: true,
     blendMode: "additive",
-    opacity: 0.5,
-    policy,
+    opacity: 1,
   });
   viewport.layerManager.add(layer1);
   viewport.layerManager.add(layer2);

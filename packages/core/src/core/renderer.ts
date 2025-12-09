@@ -8,7 +8,7 @@ export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
   private width_ = 0;
   private height_ = 0;
-  private backgroundColor_: Color = new Color(0, 0, 0, 0);
+  private backgroundColor_: Color = new Color(0, 0, 0, 1);
 
   protected renderedObjects_ = 0;
   protected abstract resize(width: number, height: number): void;
