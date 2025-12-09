@@ -29,6 +29,8 @@ import { Frustum } from "../math/frustum";
 // Therefore, this transform makes the appropriate flip in y.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
+const stencilClearValue = 0;
+
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext;
   private readonly programs_: WebGLShaderPrograms;
@@ -120,27 +122,25 @@ export class WebGLRenderer extends Renderer {
     // where primary objects are drawn, and then configure it to
     // only draw fallback objects where the stencil value is not 1.
     this.gl_.stencilMask(0xff);
-    this.gl_.clearStencil(0);
+    this.gl_.clearStencil(stencilClearValue);
   }
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
 
     const fallbackObjects = layer.fallbackObjects;
-
     const hasFallbackObjects = fallbackObjects.length > 0;
+
     this.state_.setStencilTest(hasFallbackObjects);
     if (hasFallbackObjects) {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
-      this.gl_.stencilFunc(this.gl_.ALWAYS, 1, 0xff);
-      this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
+      this.gl_.stencilFunc(this.gl_.EQUAL, stencilClearValue, 0xff);
+      this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.INCR);
     }
 
     this.renderObjects(layer, layer.objects, camera, frustum);
 
     if (hasFallbackObjects) {
-      this.gl_.stencilFunc(this.gl_.NOTEQUAL, 1, 0xff);
-      this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.KEEP);
       this.renderObjects(layer, fallbackObjects, camera, frustum);
     }
   }
