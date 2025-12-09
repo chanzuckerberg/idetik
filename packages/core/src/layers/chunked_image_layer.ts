@@ -128,9 +128,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       const image = this.getImageForChunk(chunk);
       this.visibleChunks_.set(chunk, image);
       if (chunk.lod === currentLod) {
-        this.addObject(image); // High-res chunks
+        this.addObject(image);
       } else {
-        this.addFallbackObject(image); // Low-res chunks
+        this.addFallbackObject(image);
       }
     }
   }
