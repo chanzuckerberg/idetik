@@ -45,12 +45,22 @@ const lodOverlay = {
   },
 };
 
-// Problematic target/spherical
-const target = vec3.fromValues(270.5104, 783.1701, 270.586);
+// Problematic target/spherical - black lines
+// const target = vec3.fromValues(270.5104, 783.1701, 270.586);
+// const spherical = {
+//   radius: 3232.1488,
+//   yaw: -0.261,
+//   pitch: 0.045,
+//   target,
+// };
+// const cameraControls = new OrbitControls(camera, spherical);
+
+// This one has a different problem, extruding lines
+const target = vec3.fromValues(483.0478, 496.92575, 250.47517);
 const spherical = {
-  radius: 3232.1488,
-  yaw: -0.261,
-  pitch: 0.045,
+  radius: 1237.5667,
+  yaw: 0.027,
+  pitch: 0.144,
   target,
 };
 const cameraControls = new OrbitControls(camera, spherical);

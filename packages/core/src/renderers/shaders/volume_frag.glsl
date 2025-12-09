@@ -22,88 +22,66 @@ uniform vec3 VolumeColor;
 uniform float AlphaThreshold;
 
 // Transformation matrix
-uniform mat4 ModelView, InverseModelView;
+uniform highp mat4 ModelView, InverseModelView;
+uniform highp vec3 CameraPositionModel;
 
 // Ray origin position from the vertex shader
-in vec3 RayOriginModel;
+in highp vec3 RayOriginModel;
 
-bool intersectBox(vec3 rayOrigin, vec3 rayDir, out float tEnter, out float tExit) {
-    vec3 invDir = 1.0 / rayDir;
-    // The bbox is normalized already
-    vec3 t0 = (-0.5 - rayOrigin) * invDir;
-    vec3 t1 = (0.5 - rayOrigin) * invDir;
+float findBoxEnd(vec3 rayOrigin, vec3 rayDir) {
+    // Remove 0 parts of the ray direction to avoid division by zero
+    vec3 safeRayDir;
+    safeRayDir.x = (rayDir.x == 0.0) ? 1e-6 : rayDir.x;
+    safeRayDir.y = (rayDir.y == 0.0) ? 1e-6 : rayDir.y;
+    safeRayDir.z = (rayDir.z == 0.0) ? 1e-6 : rayDir.z; 
+    vec3 invDir = 1.0 / safeRayDir;
+    // The bbox is normalized already, bounds are 0.0 to 1.0
+    vec3 t0 = rayOrigin * invDir;
+    vec3 t1 = (1.0 - rayOrigin) * invDir;
 
-    vec3 tMin = min(t0, t1);
     vec3 tMax = max(t0, t1);
-
-    tEnter = max(max(tMin.x, tMin.y), tMin.z);
-    tExit = min(min(tMax.x, tMax.y), tMax.z);
-
-    return (tExit >= tEnter) && (tExit >= 0.0);
+    float tExit = min(min(tMax.x, tMax.y), tMax.z);
+    return tExit;
 }
 
 void main() {
-    // Transform model position to view space to get the ray origin on the cube surface
-    vec3 rayOriginView = (ModelView * vec4(RayOriginModel, 1.0)).xyz;
-    vec3 RayDirModel = normalize((InverseModelView * vec4(normalize(-rayOriginView), 0.0)).xyz);
+    fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    return;
+    // Normalize positions from [-0.5, 0.5] to [0, 1]
+    vec3 normalizedCameraPosModel = CameraPositionModel.xyz + 0.5;
+    vec3 exitPointModel = RayOriginModel + 0.5;
 
-    // Find the start and end of the ray within the volume
-    float tEnter, tExit;
-    bool hit = intersectBox(RayOriginModel, RayDirModel, tEnter, tExit);
+    // The ray in model space goes from the point on the back face to the camera
+    vec3 RayDirModel = normalize(normalizedCameraPosModel.xyz - exitPointModel.xyz);
 
-    // Discard fragments that miss the volume
-    if (!hit) {
-        if (ShowHitMisses) {
-            fragColor = vec4(1.0, 0.0, 0.0, 1.0);
-            return;
-        }
-        // Because we later clamp the number of samples to at least 1,
-        // and position starts at entry point,
-        // we don't have to discard here
-        // discard;
+    // The exit point is the start of the ray because we are rendering back faces
+    float tExit = findBoxEnd(RayOriginModel, RayDirModel);
+    bool emptyRay = tExit < 0.0;
+    if (emptyRay) {
+        discard;
     }
+    vec3 entryPointModel = clamp(RayOriginModel + RayDirModel * tExit, 0.0, 1.0);
 
-    // Find the texture coordinates of the entry and exit points
-    tEnter = max(tEnter, 0.0);
-    vec3 entryPointModel = RayOriginModel + RayDirModel * tEnter;
-    vec3 exitPointModel = RayOriginModel + RayDirModel * tExit;
+    // Calculate the number of samples based on the length of the ray
+    vec3 rayWithinModel = exitPointModel - entryPointModel;
+    float rayLength = length(rayWithinModel);
+    int numSamples = max(int(ceil(rayLength * SampleDensity)), 1);
+    vec3 stepIncrement = rayWithinModel / float(numSamples);
 
-    // Convert model space positions to texture coordinates [0,1]
-    // With normalized BoxSize, model space is already [-0.5, 0.5], so just shift to [0,1]
-    vec3 entryPointNormalized = entryPointModel + 0.5;
-    vec3 exitPointNormalized = exitPointModel + 0.5;
-
-    // Calculate step direction before clamping to maintain consistent sampling
-    vec3 step = exitPointNormalized - entryPointNormalized;
-    float rayLength = length(step);
-
-    // Now clamp for texture sampling (but keep original step/rayLength)
-    entryPointNormalized = clamp(entryPointNormalized, 0.0, 1.0);
-    exitPointNormalized = clamp(exitPointNormalized, 0.0, 1.0);
-
-    // Raymarch from entry to exit point
-    vec3 position = entryPointNormalized;
-
-    // Use normalized texture space distance for consistent sampling across all chunks
-    // This ensures uniform sample density regardless of chunk size
-    int numSamples = int(ceil(rayLength * SampleDensity));
-    numSamples = clamp(numSamples, 1, 512);
-
-    // Compute step increment directly to avoid precision loss
-    vec3 stepIncrement = step / float(numSamples);
-
-    vec4 accumulatedColor = vec4(0.0);
-
-    // Front-to-back compositing
-    vec4 sampledData;
+    // Later replace by an invlerp, but overall provides a way to map the incoming
+    // sampled texture value to an alpha value
     float intensityScale = (1.0 / MaxIntensity) * OpacityScale;
+
+    // Front-to-back compositing variables
+    vec3 position = entryPointModel;
+    vec4 accumulatedColor = vec4(0.0);
+    float sampledData;
     float sampleAlpha;
     float blendedSampleAlpha;
 
     for (int i = 0; i < numSamples && accumulatedColor.a < AlphaThreshold; i++) {
-        sampledData = vec4(texture(ImageSampler, position));
-        sampleAlpha = sampledData.r * intensityScale;
-
+        sampledData = vec4(texture(ImageSampler, position)).r;
+        sampleAlpha = sampledData * intensityScale;
         blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;
 
         // Front-to-back compositing

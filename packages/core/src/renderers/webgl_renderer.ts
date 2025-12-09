@@ -14,7 +14,7 @@ import { Box2 } from "../math/box2";
 import { Viewport } from "../core/viewport";
 import { Camera } from "../objects/cameras/camera";
 
-import { mat4, vec2 } from "gl-matrix";
+import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
 
 // The library's coordinate system is left-handed.
@@ -175,13 +175,18 @@ export class WebGLRenderer extends Renderer {
       object.transform.matrix
     );
     const inverseModelView = mat4.invert(mat4.create(), modelView);
+    const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
+    const cameraPositionModel = vec4.transformMat4(
+      vec4.create(),
+      cameraPositionView,
+      inverseModelView
+    );
     const projection = mat4.multiply(
       mat4.create(),
       axisDirection,
       camera.projectionMatrix
     );
     const resolution = [this.canvas.width, this.canvas.height];
-    // Want the box in model space, object.boundingBox is in world space
     const modelViewProjection = mat4.multiply(
       mat4.create(),
       projection,
@@ -220,6 +225,16 @@ export class WebGLRenderer extends Renderer {
           break;
         case "InverseModelViewProjection":
           program.setUniform(uniformName, inverseModelViewProjection);
+          break;
+        case "CameraPositionModel":
+          program.setUniform(
+            uniformName,
+            vec3.fromValues(
+              cameraPositionModel[0],
+              cameraPositionModel[1],
+              cameraPositionModel[2]
+            )
+          );
           break;
         default:
           if (uniformName in allUniforms) {
