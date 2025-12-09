@@ -81,11 +81,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
-  public onDetached(context: IdetikContext): void {
+  public onDetached(_context: IdetikContext): void {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
     if (!this.chunkStoreView_) return;
-    context.chunkManager.removeView(this.chunkStoreView_);
+    this.chunkStoreView_.dispose();
     this.chunkStoreView_ = undefined;
   }
 

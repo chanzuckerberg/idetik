@@ -23,7 +23,7 @@ const top = 100;
 const bottom = 900;
 
 // Source is 5D, so provide indices at 3 dimensions to project to 2D.
-const source = new OmeZarrImageSource(url);
+const source = OmeZarrImageSource.fromHttp({ url });
 const sliceCoords = {
   t: 400,
   z: 300,

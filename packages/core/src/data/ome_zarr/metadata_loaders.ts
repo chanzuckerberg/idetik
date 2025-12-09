@@ -57,7 +57,8 @@ export async function loadOmeZarrPlate(
   url: string,
   version?: Version
 ): Promise<AdaptedOme<Plate["ome"]>> {
-  const location = new zarr.Location(new zarr.FetchStore(url));
+  const store = new zarr.FetchStore(url);
+  const location = new zarr.Location(store);
   const zarrVersion = omeZarrToZarrVersion(version);
   const group = await openGroup(location, zarrVersion);
   try {
@@ -132,7 +133,9 @@ export async function loadOmeZarrWell(
   path: string,
   version?: Version
 ): Promise<AdaptedOme<Well["ome"]>> {
-  const location = new zarr.Location(new zarr.FetchStore(url + "/" + path));
+  const fullUrl = url + "/" + path;
+  const store = new zarr.FetchStore(fullUrl);
+  const location = new zarr.Location(store);
   const zarrVersion = omeZarrToZarrVersion(version);
   const group = await openGroup(location, zarrVersion);
   try {

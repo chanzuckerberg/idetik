@@ -13,37 +13,36 @@ import {
   parseOmeZarrImage,
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
+import { S3FetchStore, type S3FetchStoreProps } from "../zarr/s3_fetch_store";
+
+type OmeZarrImageSourceProps = {
+  location: Location<Readable>;
+  version?: OmeZarrVersion;
+};
+
+type HttpOmeZarrImageSourceProps = {
+  url: string;
+  version?: OmeZarrVersion;
+};
+
+type S3OmeZarrImageSourceProps = S3FetchStoreProps & {
+  version?: OmeZarrVersion;
+};
+
+type FileSystemOmeZarrImageSourceProps = {
+  directory: FileSystemDirectoryHandle;
+  version?: OmeZarrVersion;
+  path?: `/${string}`;
+};
 
 /** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
 export class OmeZarrImageSource {
   readonly location: Location<Readable>;
   readonly version?: OmeZarrVersion;
 
-  /**
-   * @param url URL of Zarr root
-   */
-  constructor(url: string, version?: OmeZarrVersion);
-  /**
-   * @param directory return value of `window.showDirectoryPicker()` which gives the browser
-   *    permission to access a directory (only works in Chrome/Edge)
-   * @param path path to image, beginning with "/". This argument allows the application to only
-   *    ask the user once for permission to the root directory
-   */
-  constructor(
-    directory: FileSystemDirectoryHandle,
-    version?: OmeZarrVersion,
-    path?: `/${string}`
-  );
-  constructor(
-    source: string | FileSystemDirectoryHandle,
-    version?: OmeZarrVersion,
-    path?: `/${string}`
-  ) {
-    this.location =
-      typeof source === "string"
-        ? new Location(new FetchStore(source))
-        : new Location(new WebFileSystemStore(source), path);
-    this.version = version;
+  private constructor(props: OmeZarrImageSourceProps) {
+    this.location = props.location;
+    this.version = props.version;
   }
 
   public async open(): Promise<OmeZarrImageLoader> {
@@ -81,6 +80,55 @@ export class OmeZarrImageSource {
       metadata,
       arrays,
       arrayParams,
+    });
+  }
+
+  /**
+   * Creates an OmeZarrImageSource from an HTTP(S) URL.
+   *
+   * @param url URL of Zarr root
+   * @param version OME-Zarr version
+   */
+  public static fromHttp(props: HttpOmeZarrImageSourceProps) {
+    const store = new FetchStore(props.url);
+    return new OmeZarrImageSource({
+      location: new Location(store),
+      version: props.version,
+    });
+  }
+
+  /**
+   * Creates an OmeZarrImageSource from an S3 HTTP(S) URL.
+   *
+   * @param url URL of Zarr root
+   * @param version OME-Zarr version
+   * @param credentials AWS credentials for S3 authentication (will generate signatures per-request)
+   * @param region AWS region for S3 bucket (e.g., 'us-east-1')
+   * @param overrides RequestInit overrides to customize fetch behavior (e.g., custom headers for S3 authentication)
+   * @param useSuffixRequest Whether to use suffix requests for range queries
+   */
+  public static fromS3(props: S3OmeZarrImageSourceProps) {
+    const store = new S3FetchStore(props);
+    return new OmeZarrImageSource({
+      location: new Location(store),
+      version: props.version,
+    });
+  }
+
+  /**
+   * Creates an OmeZarrImageSource from a local filesystem directory.
+   *
+   * @param directory return value of `window.showDirectoryPicker()` which gives the browser
+   *    permission to access a directory (only works in Chrome/Edge)
+   * @param version OME-Zarr version
+   * @param path path to image, beginning with "/". This argument allows the application to only
+   *    ask the user once for permission to the root directory
+   */
+  public static fromFileSystem(props: FileSystemOmeZarrImageSourceProps) {
+    const store = new WebFileSystemStore(props.directory);
+    return new OmeZarrImageSource({
+      location: new Location(store, props.path),
+      version: props.version,
     });
   }
 }
