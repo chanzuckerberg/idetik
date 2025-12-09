@@ -74,8 +74,9 @@ const onImageChange = async () => {
   const source = OmeZarrImageSource.fromHttp({ url: imageUrl });
   const omeroDefaults = await loadOmeroDefaults(source);
   const omeroDefaultZ = omeroDefaults?.defaultZ ?? 0;
-  sliceCoords1.z = (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE;
-  sliceCoords2.z = (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE;
+  const initZ = (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE;
+  sliceCoords1.z = initZ;
+  sliceCoords2.z = initZ;
 
   const omeroChannels = await loadOmeroChannels(source);
   const contrastLimits: [number, number][] = [
