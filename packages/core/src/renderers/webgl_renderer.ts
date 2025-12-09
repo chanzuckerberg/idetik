@@ -114,11 +114,9 @@ export class WebGLRenderer extends Renderer {
   }
 
   private initStencil() {
-    // We use the stencil buffer to mark pixels where primary objects
-    // have been drawn, so that we can avoid overdrawing them with
-    // fallback objects. We set up the stencil test to only pass when
-    // the stencil buffer value is 0, then increment it when it passes
-    // to avoiding drawing anything else for that pixel.
+    // We use the stencil buffer to mark pixels objects have been drawn,
+    // which is used to avoid overdrawing high resolution tiles with lower
+    // resolution ones.
     const clearValue = 0;
     this.gl_.stencilMask(0xff);
     this.gl_.clearStencil(clearValue);
@@ -128,26 +126,12 @@ export class WebGLRenderer extends Renderer {
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
-
-    const fallbackObjects = layer.fallbackObjects;
-    const hasFallbackObjects = fallbackObjects.length > 0;
-    this.state_.setStencilTest(hasFallbackObjects);
-    if (hasFallbackObjects) {
+    const useStencil = layer.useStencil();
+    this.state_.setStencilTest(useStencil);
+    if (useStencil) {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
     }
-    this.renderObjects(layer, layer.objects, camera, frustum);
-    if (hasFallbackObjects) {
-      this.renderObjects(layer, fallbackObjects, camera, frustum);
-    }
-  }
-
-  private renderObjects(
-    layer: Layer,
-    objects: RenderableObject[],
-    camera: Camera,
-    frustum: Frustum
-  ) {
-    for (const object of objects) {
+    for (const object of layer.objects) {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
         this.renderObject(layer, object, camera);
       }

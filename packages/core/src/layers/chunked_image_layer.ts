@@ -122,17 +122,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.releaseAndRemoveChunks(nonVisibleChunks);
 
     this.clearObjects();
-    const currentLod = this.chunkStoreView_.currentLOD;
     for (const chunk of orderedByLOD) {
       if (chunk.state !== "loaded") continue;
       const image = this.getImageForChunk(chunk);
       this.visibleChunks_.set(chunk, image);
-      if (chunk.lod === currentLod) {
-        this.addObject(image);
-      } else {
-        this.addFallbackObject(image);
-      }
+      this.addObject(image);
     }
+  }
+
+  public useStencil(): boolean {
+    return true;
   }
 
   public get lastPresentationTimeCoord(): number | undefined {

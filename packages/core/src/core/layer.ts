@@ -27,7 +27,6 @@ export abstract class Layer {
   public abstract readonly type: string;
 
   private objects_: RenderableObject[] = [];
-  private fallbackObjects_: RenderableObject[] = [];
   private state_: LayerState = "initialized";
   private readonly callbacks_: StateChangeCallback[] = [];
 
@@ -81,8 +80,8 @@ export abstract class Layer {
     return this.objects_;
   }
 
-  public get fallbackObjects(): RenderableObject[] {
-    return this.fallbackObjects_;
+  public useStencil(): boolean {
+    return false;
   }
 
   public get state() {
@@ -111,10 +110,6 @@ export abstract class Layer {
     this.objects_.push(object);
   }
 
-  protected addFallbackObject(object: RenderableObject) {
-    this.fallbackObjects_.push(object);
-  }
-
   protected removeObject(object: RenderableObject) {
     const index = this.objects_.indexOf(object);
     if (index !== -1) {
@@ -124,6 +119,5 @@ export abstract class Layer {
 
   protected clearObjects() {
     this.objects_ = [];
-    this.fallbackObjects_ = [];
   }
 }
