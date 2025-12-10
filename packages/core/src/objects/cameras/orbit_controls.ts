@@ -10,10 +10,10 @@ const MOUSE_BUTTON_NONE = -1;
 const MOUSE_BUTTON_LEFT = 0;
 const MOUSE_BUTTON_MIDDLE = 1;
 
-const ORBIT_SPEED = 0.009;
+const ORBIT_SPEED = 0.003;
 const PAN_SPEED = 0.001;
-const ZOOM_SPEED = 0.0009;
-const DEFAULT_DAMPING_FACTOR = 0.5;
+const ZOOM_SPEED = 0.0006;
+const DEFAULT_DAMPING_FACTOR = 0.3;
 const DAMPING_FPS = 60; // Base FPS to normalize damping
 
 type OrbitParams = {
@@ -21,6 +21,7 @@ type OrbitParams = {
   yaw?: number;
   pitch?: number;
   dampingFactor?: number;
+  target?: vec3;
 };
 
 export class OrbitControls implements CameraControls {
@@ -50,6 +51,8 @@ export class OrbitControls implements CameraControls {
       0,
       1
     );
+
+    this.currCenter_ = params?.target ? params.target : vec3.create();
 
     this.updateCamera();
   }

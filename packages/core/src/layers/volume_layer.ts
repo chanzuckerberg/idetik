@@ -33,7 +33,7 @@ export class VolumeLayer extends Layer {
   private lastLoadedTime_ = -1;
   private hitMisses_ = false;
   private color_ = vec3.fromValues(1.0, 1.0, 1.0);
-  private sampleDensity_ = 128.0; // Samples per unit texture space
+  private sampleDensity_ = 255.0; // Samples per unit texture space
   private maxIntensity_ = 255.0; // Normalization factor for intensity
   private opacityScale_ = 0.1; // Alpha multiplier
   private alphaThreshold_ = 0.99; // Early ray termination threshold

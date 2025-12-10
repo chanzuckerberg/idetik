@@ -10,12 +10,29 @@ import GUI from "lil-gui";
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 const source = new OmeZarrImageSource(url);
+const left = 150;
+const right = 950;
+const top = 100;
+const bottom = 900;
+
 
 const sliceCoords = {
   t: 400,
   z: undefined,
   c: 0,
 };
+
+// values copied from source
+const z = { translate: 0.0, scale: 1.24, shape: 448 };
+const zMin = z.translate;
+const zMax = z.translate + z.scale * z.shape - z.scale;
+
+// calculate volume center
+const volumeCenter = [
+  (left + right) / 2, // x center
+  (top + bottom) / 2, // y center
+  (zMin + zMax) / 2, // z center
+] as [number, number, number];
 
 const camera = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer({
@@ -49,7 +66,7 @@ const idetik = new Idetik({
   viewports: [
     {
       camera,
-      cameraControls: new OrbitControls(camera, { radius: 2000 }),
+      cameraControls: new OrbitControls(camera, { radius: 1200, target: volumeCenter }),
       layers: [volumeLayer],
     },
   ],
