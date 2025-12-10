@@ -16,6 +16,7 @@ import { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
+import { isVolumeLayer } from "@/layers/volume_layer";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -115,7 +116,7 @@ export class WebGLRenderer extends Renderer {
 
     // This should probably be more generic, but for now we do some checks
     // specifically for volume rendering
-    if (layer.type === "VolumeLayer") {
+    if (isVolumeLayer(layer)) {
       this.state_.setDepthTesting(false);
       this.state_.setDepthMask(false);
       layer.reorderObjects(camera, "front-to-back");
@@ -128,7 +129,7 @@ export class WebGLRenderer extends Renderer {
       }
     });
 
-    if (layer.type === "VolumeLayer") {
+    if (isVolumeLayer(layer)) {
       this.state_.setDepthTesting(true);
       this.state_.setDepthMask(true);
     }
@@ -180,7 +181,7 @@ export class WebGLRenderer extends Renderer {
       camera.projectionMatrix
     );
     const resolution = [this.canvas.width, this.canvas.height];
-    
+
     const inverseModelView = mat4.invert(mat4.create(), modelView);
     const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
     const cameraPositionModel = vec4.transformMat4(

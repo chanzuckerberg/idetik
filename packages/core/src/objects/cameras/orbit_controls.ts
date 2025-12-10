@@ -142,8 +142,8 @@ export class OrbitControls implements CameraControls {
       this.sphericalPos_.toVec3()
     );
     Logger.info("OrbitControls", "Updating camera position");
-    Logger.info("OrbitControls", this.target_);
-    Logger.info("OrbitControls", [
+    Logger.info("OrbitControls", "Camera target", this.target_);
+    Logger.info("OrbitControls", "Camera position", [
       this.sphericalPos_.radius,
       this.sphericalPos_.phi,
       this.sphericalPos_.theta,

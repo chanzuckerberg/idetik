@@ -4,9 +4,6 @@ import { clamp } from "../utilities/clamp";
 import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
 import { Viewport } from "./viewport";
-import type { Camera } from "@/objects/cameras/camera";
-import type { OrderingMode } from "@/layers/volume_layer";
-import { vec3 } from "gl-matrix";
 
 export type LayerState = "initialized" | "loading" | "ready";
 export type blendMode =

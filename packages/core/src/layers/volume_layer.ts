@@ -278,3 +278,7 @@ export function poolKeyForChunk(chunk: Chunk) {
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }
+
+export function isVolumeLayer(layer: Layer): layer is VolumeLayer {
+  return layer.type === "VolumeLayer";
+}
