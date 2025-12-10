@@ -129,6 +129,7 @@ export abstract class Layer {
     const cameraPos = camera.position;
     const tmpA = vec3.create();
     const tmpB = vec3.create();
+    const DISTANCE_EPSILON = 1e-5;
 
     this.objects.sort((a, b) => {
       vec3.add(tmpA, a.boundingBox.max, a.boundingBox.min);
@@ -139,8 +140,21 @@ export abstract class Layer {
 
       const da = vec3.squaredDistance(cameraPos, tmpA);
       const db = vec3.squaredDistance(cameraPos, tmpB);
+      const diff = db - da;
 
-      return mode === "front-to-back" ? db - da : da - db;
+      if (Math.abs(diff) < DISTANCE_EPSILON) {
+        return 0;
+      }
+
+      return mode === "front-to-back" ? diff : -diff;
     });
+  }
+
+  /**
+   * Get uniforms for shader program. Override in derived classes that need custom uniforms.
+   * @returns Object containing uniform name-value pairs
+   */
+  public getUniforms(): Record<string, unknown> {
+    return {}; // Default implementation returns no uniforms
   }
 }

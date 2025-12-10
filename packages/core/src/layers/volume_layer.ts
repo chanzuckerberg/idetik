@@ -6,6 +6,7 @@ import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
+import { vec3 } from "gl-matrix";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -30,6 +31,12 @@ export class VolumeLayer extends Layer {
 
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
+  private hitMisses_ = false;
+  private color_ = vec3.fromValues(1.0, 1.0, 1.0);
+  private sampleDensity_ = 128.0; // Samples per unit texture space
+  private maxIntensity_ = 255.0; // Normalization factor for intensity
+  private opacityScale_ = 0.1; // Alpha multiplier
+  private alphaThreshold_ = 0.99; // Early ray termination threshold
 
   public get lod() {
     return this.lod_;
@@ -53,6 +60,14 @@ export class VolumeLayer extends Layer {
     return this.sourcePolicy_;
   }
 
+  public get hitMisses(): boolean {
+    return this.hitMisses_;
+  }
+
+  public set hitMisses(showHitMiss: boolean) {
+    this.hitMisses_ = showHitMiss;
+  }
+
   public set sourcePolicy(newPolicy: ImageSourcePolicy) {
     if (this.sourcePolicy_ !== newPolicy) {
       this.sourcePolicy_ = newPolicy;
@@ -63,6 +78,44 @@ export class VolumeLayer extends Layer {
         );
       }
     }
+  }
+
+  public get color(): vec3 {
+    return this.color_;
+  }
+
+  public set color(newColor: vec3) {
+    vec3.copy(this.color_, newColor);
+  }
+
+  public get sampleDensity(): number {
+    return this.sampleDensity_;
+  }
+
+  public set sampleDensity(value: number) {
+    this.sampleDensity_ = value;
+  }
+
+  public get maxIntensity(): number {
+    return this.maxIntensity_;
+  }
+
+  public set maxIntensity(value: number) {
+    this.maxIntensity_ = value;
+  }
+
+  public get opacityScale(): number {
+    return this.opacityScale_;
+  }
+  public set opacityScale(value: number) {
+    this.opacityScale_ = value;
+  }
+
+  public get alphaThreshold(): number {
+    return this.alphaThreshold_;
+  }
+  public set alphaThreshold(value: number) {
+    this.alphaThreshold_ = value;
   }
 
   private createVolume(chunk: Chunk) {
@@ -136,7 +189,9 @@ export class VolumeLayer extends Layer {
     }
 
     // Get all chunks at the current timepoint
-    const timeIndex = this.chunkStoreView_.store.getTimeIndex(this.sliceCoords_);
+    const timeIndex = this.chunkStoreView_.store.getTimeIndex(
+      this.sliceCoords_
+    );
     const allChunks = this.chunkStoreView_.store.getChunksAtTime(timeIndex);
 
     // Filter for desired LOD, loaded state, and matching channel
@@ -224,6 +279,17 @@ export class VolumeLayer extends Layer {
     );
 
     this.updateChunks();
+  }
+
+  public getUniforms(): Record<string, unknown> {
+    return {
+      ShowHitMisses: Number(this.hitMisses),
+      SampleDensity: this.sampleDensity,
+      MaxIntensity: this.maxIntensity,
+      OpacityScale: this.opacityScale,
+      VolumeColor: this.color_,
+      AlphaThreshold: this.alphaThreshold,
+    };
   }
 }
 

@@ -10,6 +10,7 @@ export class SimpleBoxGeometry extends Geometry {
 
     // Raw vertex data: position (x,y,z), normal (x,y,z), uv (u,v)
     // 8 vertices * 8 floats per vertex = 64 floats total
+    // prettier-ignore
     const vertices = new Float32Array([
       // Front face (positive Z)
       -halfWidth, -halfHeight,  halfDepth,  0,  0,  1,  0, 0, // bottom-left
@@ -49,6 +50,7 @@ export class SimpleBoxGeometry extends Geometry {
     ]);
 
     // Indices for triangles (counter-clockwise winding for front faces)
+    // prettier-ignore
     const indices = new Uint32Array([
       // Front face
       0,  1,  2,    0,  2,  3,

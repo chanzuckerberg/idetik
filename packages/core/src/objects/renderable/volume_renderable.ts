@@ -15,6 +15,7 @@ export class VolumeRenderable extends RenderableObject {
     this.geometry = new SimpleBoxGeometry(width, height, depth);
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
+    this.cullFaceMode = "front";
   }
 
   public get type() {
