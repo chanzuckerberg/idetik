@@ -4,12 +4,11 @@ precision highp float;
 
 layout (location = 0) in vec3 inPosition;
 
-uniform highp mat4 ModelViewProjection;
+uniform mat4 Projection;
+uniform mat4 ModelView;
 out highp vec3 RayOriginModel;
 
 void main() {
     RayOriginModel = inPosition;
-
-    vec4 positionVector = vec4(inPosition, 1.0);
-    gl_Position = ModelViewProjection * positionVector;
+    gl_Position = Projection * ModelView * vec4(inPosition, 1.0);
 }

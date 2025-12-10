@@ -174,27 +174,19 @@ export class WebGLRenderer extends Renderer {
       camera.viewMatrix,
       object.transform.matrix
     );
-    const inverseModelView = mat4.invert(mat4.create(), modelView);
-    const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
-    const cameraPositionModel = vec4.transformMat4(
-      vec4.create(),
-      cameraPositionView,
-      inverseModelView
-    );
     const projection = mat4.multiply(
       mat4.create(),
       axisDirection,
       camera.projectionMatrix
     );
     const resolution = [this.canvas.width, this.canvas.height];
-    const modelViewProjection = mat4.multiply(
-      mat4.create(),
-      projection,
-      modelView
-    );
-    const inverseModelViewProjection = mat4.invert(
-      mat4.create(),
-      modelViewProjection
+    
+    const inverseModelView = mat4.invert(mat4.create(), modelView);
+    const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
+    const cameraPositionModel = vec4.transformMat4(
+      vec4.create(),
+      cameraPositionView,
+      inverseModelView
     );
 
     const objectUniforms = object.getUniforms();
@@ -211,9 +203,6 @@ export class WebGLRenderer extends Renderer {
         case "ModelView":
           program.setUniform(uniformName, modelView);
           break;
-        case "InverseModelView":
-          program.setUniform(uniformName, inverseModelView);
-          break;
         case "Projection":
           program.setUniform(uniformName, projection);
           break;
@@ -222,12 +211,6 @@ export class WebGLRenderer extends Renderer {
           break;
         case "u_opacity":
           program.setUniform(uniformName, layer.opacity);
-          break;
-        case "ModelViewProjection":
-          program.setUniform(uniformName, modelViewProjection);
-          break;
-        case "InverseModelViewProjection":
-          program.setUniform(uniformName, inverseModelViewProjection);
           break;
         case "CameraPositionModel":
           program.setUniform(

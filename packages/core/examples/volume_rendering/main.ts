@@ -56,11 +56,11 @@ const lodOverlay = {
 // const cameraControls = new OrbitControls(camera, spherical);
 
 // This one has a different problem, extruding lines
-const target = vec3.fromValues(483.0478, 496.92575, 250.47517);
+const target = vec3.fromValues(599.6343, 495.7492, 312.7563);
 const spherical = {
-  radius: 1237.5667,
-  yaw: 0.027,
-  pitch: 0.144,
+  radius: 1097.6232,
+  yaw: -0.261,
+  pitch: 0.117,
   target,
 };
 const cameraControls = new OrbitControls(camera, spherical);

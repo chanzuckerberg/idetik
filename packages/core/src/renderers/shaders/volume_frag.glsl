@@ -13,71 +13,83 @@ uniform mediump usampler3D ImageSampler;
 uniform mediump sampler3D ImageSampler;
 #endif
 
+uniform highp vec3 CameraPositionModel;
+in highp vec3 RayOriginModel;
+
+// The bounding box in model space is normalized to -0.5 to 0.5
+vec3 boundingboxMin = vec3(-0.50);
+vec3 boundingboxMax = vec3(0.50);
+
 // Volume rendering parameters
 uniform bool ShowHitMisses;
 uniform float SampleDensity;
 uniform float MaxIntensity;
 uniform float OpacityScale;
-uniform vec3 VolumeColor;
 uniform float AlphaThreshold;
+uniform vec3 VolumeColor;
 
-// Transformation matrix
-uniform highp mat4 ModelView, InverseModelView;
-uniform highp vec3 CameraPositionModel;
+vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
+    vec3 reciprocalRayDir = 1.0 / rayDir;
+    vec3 t0 = (boxMin - rayOrigin) * reciprocalRayDir;
+    vec3 t1 = (boxMax - rayOrigin) * reciprocalRayDir;
 
-// Ray origin position from the vertex shader
-in highp vec3 RayOriginModel;
-
-float findBoxEnd(vec3 rayOrigin, vec3 rayDir) {
-    // Remove 0 parts of the ray direction to avoid division by zero
-    vec3 safeRayDir;
-    safeRayDir.x = (rayDir.x == 0.0) ? 1e-6 : rayDir.x;
-    safeRayDir.y = (rayDir.y == 0.0) ? 1e-6 : rayDir.y;
-    safeRayDir.z = (rayDir.z == 0.0) ? 1e-6 : rayDir.z; 
-    vec3 invDir = 1.0 / safeRayDir;
-    // The bbox is normalized already, bounds are 0.0 to 1.0
-    vec3 t0 = (-0.5 - rayOrigin) * invDir;
-    vec3 t1 = (0.5 - rayOrigin) * invDir;
-
+    vec3 tMin = min(t0, t1);
     vec3 tMax = max(t0, t1);
+
+    float tEnter = max(max(tMin.x, tMin.y), tMin.z);
     float tExit = min(min(tMax.x, tMax.y), tMax.z);
-    return tExit;
+
+    return vec2(tEnter, tExit);
 }
 
 void main() {
-    vec3 normalizedCameraPosModel = CameraPositionModel.xyz;
-    vec3 exitPointModel = RayOriginModel;
+    // Step 1 - calculate where the ray enters and exits the volume
 
     // The ray in model space goes from the point on the back face to the camera
-    vec3 RayDirModel = normalize(normalizedCameraPosModel - exitPointModel);
+    vec3 RayDirModel = normalize(CameraPositionModel - RayOriginModel);
+    // Move the ray a little bit off the surface to help avoid issues with the entry point calculation
+    vec3 rayOrigin = RayOriginModel - RayDirModel * 0.1;
 
-    // The exit point is the start of the ray because we are rendering back faces
-    float tExit = findBoxEnd(RayOriginModel, RayDirModel);
-    bool emptyRay = tExit < 0.0;
-    if (emptyRay) {
-        discard;
+    vec2 rayIntersections = findBoxIntersectionsAlongRay(
+        rayOrigin, RayDirModel, boundingboxMin, boundingboxMax
+    );
+    float tEnter = rayIntersections.x;
+    float tExit = rayIntersections.y;
+
+    // Redo the calculation with a slightly bigger box if the ray direction was flipped
+    bool emptyRay = tExit < 0.0 || (tExit < tEnter);
+    if (emptyRay && !ShowHitMisses) {
+        vec2 rayIntersections = findBoxIntersectionsAlongRay(
+            rayOrigin, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
+        );
+        tEnter = rayIntersections.x;
+        tExit = rayIntersections.y;
     }
-    vec3 entryPointModel = RayOriginModel + RayDirModel * tExit;
-    entryPointModel = clamp(entryPointModel + 0.5, 0.0, 1.0);
-    exitPointModel = clamp(exitPointModel + 0.5, 0.0, 1.0);
 
-    // Calculate the number of samples based on the length of the ray
-    vec3 rayWithinModel = exitPointModel - entryPointModel;
+    // The exit point is the start of the ray in front to back compositing
+    // because we are rendering back faces
+    // We also map the coordinates from [-0.5, 0.5] to [0, 1] for texture sampling
+    vec3 entryPoint = rayOrigin + RayDirModel * tExit;
+    entryPoint = clamp(entryPoint + 0.5, 0.0, 1.0);
+    vec3 exitPoint = rayOrigin + RayDirModel * tEnter;
+    exitPoint = clamp(exitPoint + 0.5, 0.0, 1.0);
+
+    // Step 2 - calculate the number of samples based on the length of the ray
+    vec3 rayWithinModel = exitPoint - entryPoint;
     float rayLength = length(rayWithinModel);
     int numSamples = max(int(ceil(rayLength * SampleDensity)), 1);
     vec3 stepIncrement = rayWithinModel / float(numSamples);
+
+    // Step 3 - perform the ray marching and compositing in front to back order
+    vec3 position = entryPoint;
+    vec4 accumulatedColor = vec4(0.0);
+    float sampledData, sampleAlpha, blendedSampleAlpha;
 
     // Later replace by an invlerp, but overall provides a way to map the incoming
     // sampled texture value to an alpha value
     float intensityScale = (1.0 / MaxIntensity) * OpacityScale;
 
-    // Front-to-back compositing variables
-    vec3 position = entryPointModel;
-    vec4 accumulatedColor = vec4(0.0);
-    float sampledData;
-    float sampleAlpha;
-    float blendedSampleAlpha;
-
+    // March until we reach the number of samples or accumulate enough opacity
     for (int i = 0; i < numSamples && accumulatedColor.a < AlphaThreshold; i++) {
         sampledData = vec4(texture(ImageSampler, position)).r;
         sampleAlpha = sampledData * intensityScale;
