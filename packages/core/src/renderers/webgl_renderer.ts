@@ -131,19 +131,16 @@ export class WebGLRenderer extends Renderer {
     if (useStencil) {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
     }
-    layer.objects.forEach((object) => {
+    layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
-        this.renderObject(layer, object, camera);
+        this.renderObject(layer, i, camera);
         this.renderedObjectsPerFrame_ += 1;
       }
     });
   }
 
-  protected renderObject(
-    layer: Layer,
-    object: RenderableObject,
-    camera: Camera
-  ) {
+  protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
+    const object = layer.objects[objectIndex];
     this.state_.setCullFaceMode(object.cullFaceMode);
     this.bindings_.bindGeometry(object.geometry);
     object.popStaleTextures().forEach((texture) => {
