@@ -6,7 +6,8 @@ import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
-import { vec3 } from "gl-matrix";
+import { glMatrix, vec3 } from "gl-matrix";
+import { Camera } from "@/objects/cameras/camera";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -278,6 +279,30 @@ export class VolumeLayer extends Layer {
     );
 
     this.updateChunks();
+  }
+
+  public reorderObjects(camera: Camera, mode: OrderingMode) {
+    const cameraPos = camera.position;
+    const centerA = vec3.create();
+    const centerB = vec3.create();
+
+    this.objects.sort((a, b) => {
+      vec3.add(centerA, a.boundingBox.max, a.boundingBox.min);
+      vec3.scale(centerA, centerA, 0.5);
+
+      vec3.add(centerB, b.boundingBox.max, b.boundingBox.min);
+      vec3.scale(centerB, centerB, 0.5);
+
+      const cam2aDistance = vec3.squaredDistance(cameraPos, centerA);
+      const cam2bDistance = vec3.squaredDistance(cameraPos, centerB);
+      const diff = cam2bDistance - cam2aDistance;
+
+      if (Math.abs(diff) < glMatrix.EPSILON) {
+        return 0;
+      }
+
+      return mode === "front-to-back" ? diff : -diff;
+    });
   }
 
   public getUniforms(): Record<string, unknown> {

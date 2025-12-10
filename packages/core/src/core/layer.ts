@@ -125,31 +125,6 @@ export abstract class Layer {
     this.objects_ = [];
   }
 
-  public reorderObjects(camera: Camera, mode: OrderingMode) {
-    const cameraPos = camera.position;
-    const tmpA = vec3.create();
-    const tmpB = vec3.create();
-    const DISTANCE_EPSILON = 1e-5;
-
-    this.objects.sort((a, b) => {
-      vec3.add(tmpA, a.boundingBox.max, a.boundingBox.min);
-      vec3.scale(tmpA, tmpA, 0.5);
-
-      vec3.add(tmpB, b.boundingBox.max, b.boundingBox.min);
-      vec3.scale(tmpB, tmpB, 0.5);
-
-      const da = vec3.squaredDistance(cameraPos, tmpA);
-      const db = vec3.squaredDistance(cameraPos, tmpB);
-      const diff = db - da;
-
-      if (Math.abs(diff) < DISTANCE_EPSILON) {
-        return 0;
-      }
-
-      return mode === "front-to-back" ? diff : -diff;
-    });
-  }
-
   /**
    * Get uniforms for shader program. Override in derived classes that need custom uniforms.
    * @returns Object containing uniform name-value pairs
