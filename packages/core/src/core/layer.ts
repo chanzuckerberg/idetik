@@ -80,10 +80,6 @@ export abstract class Layer {
     return this.objects_;
   }
 
-  public useStencil(): boolean {
-    return false;
-  }
-
   public get state() {
     return this.state_;
   }
@@ -98,6 +94,10 @@ export abstract class Layer {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.callbacks_.splice(index, 1);
+  }
+
+  public hasMultipleLODs(): boolean {
+    return false;
   }
 
   protected setState(newState: LayerState) {

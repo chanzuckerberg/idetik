@@ -126,9 +126,10 @@ export class WebGLRenderer extends Renderer {
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
-    const useStencil = layer.useStencil();
-    this.state_.setStencilTest(useStencil);
-    if (useStencil) {
+    const shouldUseStencil =
+      layer.objects.length > 0 && layer.hasMultipleLODs();
+    this.state_.setStencilTest(shouldUseStencil);
+    if (shouldUseStencil) {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
     }
     layer.objects.forEach((object, i) => {
