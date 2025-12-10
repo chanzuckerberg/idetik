@@ -45,19 +45,19 @@ export class WebGLRenderer extends Renderer {
       antialias: true,
       stencil: true,
     });
-    if (gl === null) {
+    if (!gl) {
       throw new Error(`Failed to initialize WebGL2 context`);
     }
     this.gl_ = gl;
     Logger.info(
       "WebGLRenderer",
-      `WebGL version ${this.gl.getParameter(this.gl.VERSION)}`
+      `WebGL version ${gl.getParameter(gl.VERSION)}`
     );
 
-    this.programs_ = new WebGLShaderPrograms(this.gl);
-    this.bindings_ = new WebGLBuffers(this.gl);
-    this.textures_ = new WebGLTextures(this.gl);
-    this.state_ = new WebGLState(this.gl);
+    this.programs_ = new WebGLShaderPrograms(gl);
+    this.bindings_ = new WebGLBuffers(gl);
+    this.textures_ = new WebGLTextures(gl);
+    this.state_ = new WebGLState(gl);
     this.initStencil();
     this.resize(this.canvas.width, this.canvas.height);
   }
@@ -214,20 +214,20 @@ export class WebGLRenderer extends Renderer {
     const primitive = this.glGetPrimitive(geometry.primitive);
     const index = geometry.indexData;
     if (index.length) {
-      this.gl.drawElements(primitive, index.length, this.gl.UNSIGNED_INT, 0);
+      this.gl_.drawElements(primitive, index.length, this.gl_.UNSIGNED_INT, 0);
     } else {
-      this.gl.drawArrays(primitive, 0, geometry.vertexCount);
+      this.gl_.drawArrays(primitive, 0, geometry.vertexCount);
     }
   }
 
   private glGetPrimitive(type: Primitive) {
     switch (type) {
       case "points":
-        return this.gl.POINTS;
+        return this.gl_.POINTS;
       case "triangles":
-        return this.gl.TRIANGLES;
+        return this.gl_.TRIANGLES;
       case "lines":
-        return this.gl.LINES;
+        return this.gl_.LINES;
       default: {
         const exhaustiveCheck: never = type;
         throw new Error(`Unknown Primitive type: ${exhaustiveCheck}`);
@@ -244,13 +244,9 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected clear() {
-    this.gl.clearColor(...this.backgroundColor.rgba);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+    this.gl_.clearColor(...this.backgroundColor.rgba);
+    this.gl_.clear(this.gl_.COLOR_BUFFER_BIT | this.gl_.DEPTH_BUFFER_BIT);
     this.state_.setDepthTesting(true);
-    this.gl.depthFunc(this.gl.LEQUAL);
-  }
-
-  private get gl() {
-    return this.gl_;
+    this.gl_.depthFunc(this.gl_.LEQUAL);
   }
 }
