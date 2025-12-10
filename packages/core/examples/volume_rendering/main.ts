@@ -38,12 +38,6 @@ const timePointOverlay = {
     timePointDiv.textContent = `t = ${time}`;
   },
 };
-const lodOverlayDiv = document.querySelector<HTMLDivElement>("#lod")!;
-const lodOverlay = {
-  update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp) {
-    lodOverlayDiv.textContent = `LOD: ${volumeLayer.lod}`;
-  },
-};
 
 // Problematic target/spherical - black lines
 // const target = vec3.fromValues(270.5104, 783.1701, 270.586);
@@ -65,7 +59,6 @@ const spherical = {
 };
 const cameraControls = new OrbitControls(camera, spherical);
 
-
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
@@ -75,7 +68,7 @@ const idetik = new Idetik({
       layers: [volumeLayer],
     },
   ],
-  overlays: [timePointOverlay, lodOverlay],
+  overlays: [timePointOverlay],
   showStats: true,
 });
 
@@ -84,7 +77,6 @@ idetik.start();
 const controls = {
   showWireframes: volumeLayer.debugMode,
   showTimePointOverlay: true,
-  showLodOverlay: true,
   showHitMisses: false,
   lod: 2,
 };
@@ -113,13 +105,6 @@ overlaysFolder
   .name("Show time point overlay")
   .onChange((show: boolean) => {
     timePointDiv.style.display = show ? "block" : "none";
-  });
-
-overlaysFolder
-  .add(controls, "showLodOverlay")
-  .name("Show LOD overlay")
-  .onChange((show: boolean) => {
-    lodOverlayDiv.style.display = show ? "block" : "none";
   });
 
 overlaysFolder
