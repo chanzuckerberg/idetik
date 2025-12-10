@@ -83,7 +83,6 @@ const onImageChange = async () => {
     policy,
     transparent: true,
     blendMode: "additive",
-    opacity: 1,
   });
   viewport.layerManager.add(layer1);
   viewport.layerManager.add(layer2);
