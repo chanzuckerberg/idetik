@@ -14,7 +14,7 @@ uniform mediump sampler3D ImageSampler;
 #endif
 
 uniform highp vec3 CameraPositionModel;
-in highp vec3 RayOriginModel;
+in highp vec3 PositionModel;
 
 // The bounding box in model space is normalized to -0.5 to 0.5
 vec3 boundingboxMin = vec3(-0.50);
@@ -46,12 +46,10 @@ void main() {
     // Step 1 - calculate where the ray enters and exits the volume
 
     // The ray in model space goes from the point on the back face to the camera
-    vec3 RayDirModel = normalize(CameraPositionModel - RayOriginModel);
-    // Move the ray a little bit off the surface to help avoid issues with the entry point calculation
-    vec3 rayOrigin = RayOriginModel - RayDirModel * 0.1;
+    vec3 RayDirModel = normalize(PositionModel - CameraPositionModel);
 
     vec2 rayIntersections = findBoxIntersectionsAlongRay(
-        rayOrigin, RayDirModel, boundingboxMin, boundingboxMax
+        CameraPositionModel, RayDirModel, boundingboxMin, boundingboxMax
     );
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
@@ -60,18 +58,15 @@ void main() {
     bool emptyRay = tExit < 0.0 || (tExit < tEnter);
     if (emptyRay && !EnableRayCorrection) {
         vec2 rayIntersections = findBoxIntersectionsAlongRay(
-            rayOrigin, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
+            CameraPositionModel, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
         );
         tEnter = rayIntersections.x;
         tExit = rayIntersections.y;
     }
 
-    // The exit point is the start of the ray in front to back compositing
-    // because we are rendering back faces
-    // We also map the coordinates from [-0.5, 0.5] to [0, 1] for texture sampling
-    vec3 entryPoint = rayOrigin + RayDirModel * tExit;
+    vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter;
     entryPoint = clamp(entryPoint + 0.5, 0.0, 1.0);
-    vec3 exitPoint = rayOrigin + RayDirModel * tEnter;
+    vec3 exitPoint = CameraPositionModel + RayDirModel * tExit;
     exitPoint = clamp(exitPoint + 0.5, 0.0, 1.0);
 
     // Step 2 - calculate the number of samples based on the length of the ray
