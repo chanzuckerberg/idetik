@@ -77,7 +77,7 @@ idetik.start();
 const controls = {
   showWireframes: volumeLayer.debugMode,
   showTimePointOverlay: true,
-  showHitMisses: false,
+  enableRayCorrection: false,
   lod: 2,
 };
 
@@ -116,11 +116,11 @@ overlaysFolder
   });
 
 overlaysFolder
-  .add(controls, "showHitMisses")
-  .name("Show Hit Misses")
+  .add(controls, "enableRayCorrection")
+  .name("Enable Ray Correction at Bounds")
   .onChange((show: boolean) => {
-    controls.showHitMisses = show;
-    volumeLayer.hitMisses = show;
+    controls.enableRayCorrection = show;
+    volumeLayer.enableRayCorrection = show;
   });
 
 const volumeFolder = gui.addFolder("Volume Rendering");

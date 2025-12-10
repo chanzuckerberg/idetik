@@ -21,7 +21,7 @@ vec3 boundingboxMin = vec3(-0.50);
 vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
-uniform bool ShowHitMisses;
+uniform bool EnableRayCorrection;
 uniform float SampleDensity;
 uniform float MaxIntensity;
 uniform float OpacityScale;
@@ -58,7 +58,7 @@ void main() {
 
     // Redo the calculation with a slightly bigger box if the ray direction was flipped
     bool emptyRay = tExit < 0.0 || (tExit < tEnter);
-    if (emptyRay && !ShowHitMisses) {
+    if (emptyRay && !EnableRayCorrection) {
         vec2 rayIntersections = findBoxIntersectionsAlongRay(
             rayOrigin, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
         );

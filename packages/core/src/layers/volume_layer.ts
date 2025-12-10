@@ -28,16 +28,16 @@ export class VolumeLayer extends Layer {
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
   private lod_ = -1;
-  private debugMode_ = false;
+  public debugMode = false;
 
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
-  private hitMisses_ = false;
+  public enableRayCorrection = false;
   private color_ = vec3.fromValues(1.0, 1.0, 1.0);
-  private sampleDensity_ = 128.0; // Samples per unit texture space
-  private maxIntensity_ = 255.0; // Normalization factor for intensity
-  private opacityScale_ = 0.1; // Alpha multiplier
-  private alphaThreshold_ = 0.99; // Early ray termination threshold
+  public sampleDensity = 128.0; // Samples per unit texture space
+  public maxIntensity = 255.0; // Normalization factor for intensity
+  public opacityScale = 0.1; // Alpha multiplier
+  public alphaThreshold = 0.99; // Early ray termination threshold
 
   public get lod() {
     return this.lod_;
@@ -49,24 +49,8 @@ export class VolumeLayer extends Layer {
     this.updateChunks();
   }
 
-  public get debugMode(): boolean {
-    return this.debugMode_;
-  }
-
-  public set debugMode(debug: boolean) {
-    this.debugMode_ = debug;
-  }
-
   public get sourcePolicy(): Readonly<ImageSourcePolicy> {
     return this.sourcePolicy_;
-  }
-
-  public get hitMisses(): boolean {
-    return this.hitMisses_;
-  }
-
-  public set hitMisses(showHitMiss: boolean) {
-    this.hitMisses_ = showHitMiss;
   }
 
   public set sourcePolicy(newPolicy: ImageSourcePolicy) {
@@ -87,36 +71,6 @@ export class VolumeLayer extends Layer {
 
   public set color(newColor: vec3) {
     vec3.copy(this.color_, newColor);
-  }
-
-  public get sampleDensity(): number {
-    return this.sampleDensity_;
-  }
-
-  public set sampleDensity(value: number) {
-    this.sampleDensity_ = value;
-  }
-
-  public get maxIntensity(): number {
-    return this.maxIntensity_;
-  }
-
-  public set maxIntensity(value: number) {
-    this.maxIntensity_ = value;
-  }
-
-  public get opacityScale(): number {
-    return this.opacityScale_;
-  }
-  public set opacityScale(value: number) {
-    this.opacityScale_ = value;
-  }
-
-  public get alphaThreshold(): number {
-    return this.alphaThreshold_;
-  }
-  public set alphaThreshold(value: number) {
-    this.alphaThreshold_ = value;
   }
 
   private createVolume(chunk: Chunk) {
@@ -307,7 +261,7 @@ export class VolumeLayer extends Layer {
 
   public getUniforms(): Record<string, unknown> {
     return {
-      ShowHitMisses: Number(this.hitMisses),
+      EnableRayCorrection: Number(this.enableRayCorrection),
       SampleDensity: this.sampleDensity,
       MaxIntensity: this.maxIntensity,
       OpacityScale: this.opacityScale,
