@@ -8,6 +8,13 @@ export default [
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    files: ["**/*.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     rules: {
       'no-duplicate-imports': 'error',
       '@typescript-eslint/no-unused-vars': [
@@ -28,6 +35,9 @@ export default [
           "suffix": ["_"]
         }
       ],
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/promise-function-async': 'error',
     }
   },
   {
