@@ -31,7 +31,7 @@ export class LayerManager {
 
   public add(layer: Layer) {
     this.layers_ = [...this.layers_, layer];
-    layer.onAttached(this.context_);
+    void layer.onAttached(this.context_);
     this.notifyLayersChanged();
   }
 

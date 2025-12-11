@@ -102,13 +102,13 @@ slider.min = timeInterval.start.toString();
 slider.max = (timeInterval.stop - 1).toString();
 slider.value = slider.min;
 
-imageSeriesLayer.setIndex(slider.valueAsNumber - timeInterval.start);
+void imageSeriesLayer.setIndex(slider.valueAsNumber - timeInterval.start);
 lineLayer.setTimeIndex(slider.valueAsNumber);
-imageSeriesLayer.preloadSeries();
+void imageSeriesLayer.preloadSeries();
 
 slider.addEventListener("input", (event) => {
   const value = (event.target as HTMLInputElement).valueAsNumber;
-  imageSeriesLayer.setPosition(value);
+  void imageSeriesLayer.setPosition(value);
   lineLayer.setTimeIndex(value);
 });
 

@@ -47,7 +47,7 @@ export class ImageSeriesLayer extends Layer implements ChannelsEnabled {
   public update() {
     if (this.state === "initialized") {
       this.setState("loading");
-      this.seriesLoader_.loadSeriesAttributes();
+      void this.seriesLoader_.loadSeriesAttributes();
     }
   }
 

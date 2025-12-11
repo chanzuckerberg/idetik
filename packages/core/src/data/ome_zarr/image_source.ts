@@ -66,7 +66,7 @@ export class OmeZarrImageSource {
       createZarrArrayParams(this.location, d.path, zarrVersion)
     );
     const arrays = await Promise.all(
-      arrayParams.map((params) => openArrayFromParams(params))
+      arrayParams.map(async (params) => openArrayFromParams(params))
     );
 
     const shape = arrays[0].shape;

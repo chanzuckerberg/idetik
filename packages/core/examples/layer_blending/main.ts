@@ -19,7 +19,7 @@ const source = OmeZarrImageSource.fromHttp({ url });
 
 // Get the default Z index from the zattrs
 let zIndex = 0;
-(async () => {
+void (async () => {
   try {
     const defaults = await loadOmeroDefaults(source);
     zIndex = defaults?.defaultZ ?? 0;
@@ -102,15 +102,15 @@ opacitySlider.addEventListener("input", (event) => {
 slider.addEventListener("input", (event) => {
   const value = (event.target as HTMLInputElement).valueAsNumber;
   const index = value - timeInterval.start;
-  layer.setIndex(index);
-  overlayLayer.setIndex(index);
+  void layer.setIndex(index);
+  void overlayLayer.setIndex(index);
 });
 
-layer.setIndex(slider.valueAsNumber - timeInterval.start);
-overlayLayer.setIndex(slider.valueAsNumber - timeInterval.start);
+void layer.setIndex(slider.valueAsNumber - timeInterval.start);
+void overlayLayer.setIndex(slider.valueAsNumber - timeInterval.start);
 
-layer.preloadSeries();
-overlayLayer.preloadSeries();
+void layer.preloadSeries();
+void overlayLayer.preloadSeries();
 
 const camera = new OrthographicCamera(0, 1920, 0, 1440);
 new Idetik({

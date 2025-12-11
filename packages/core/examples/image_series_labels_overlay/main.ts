@@ -98,7 +98,7 @@ tSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(() => {
-    setLayerIndex(value);
+    void setLayerIndex(value);
   }, 20);
 });
 
@@ -115,7 +115,7 @@ const app = new Idetik({
 
 const viewport = app.viewports[0];
 
-imageLayer.setIndex(tSlider.valueAsNumber);
+void imageLayer.setIndex(tSlider.valueAsNumber);
 const setCameraFrame = (newState: LayerState) => {
   if (newState === "ready" && imageLayer.extent !== undefined) {
     camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
@@ -126,15 +126,13 @@ const setCameraFrame = (newState: LayerState) => {
   }
 };
 imageLayer.addStateChangeCallback(setCameraFrame);
-setLayerIndex(tSlider.valueAsNumber);
+void setLayerIndex(tSlider.valueAsNumber);
 
 loadAllButton.addEventListener("click", () => {
-  try {
-    preloadAllSlices();
-  } catch (error) {
+  void preloadAllSlices().catch((error) => {
     console.error("Error preloading slices:", error);
     loadAllButton.value = "Error loading slices";
-  }
+  });
 });
 
 async function preloadAllSlices() {

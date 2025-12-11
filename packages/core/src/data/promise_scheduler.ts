@@ -47,7 +47,7 @@ export class PromiseScheduler {
     const promise = this.pending_.shift();
     if (promise === undefined) return;
     this.numRunning_++;
-    promise();
+    void promise();
   }
 
   get abortSignal() {

@@ -30,7 +30,7 @@ class IdetikNavigation {
     )! as HTMLIFrameElement;
 
     this.initializeEventListeners();
-    this.loadExamples();
+    void this.loadExamples();
   }
 
   private initializeEventListeners(): void {

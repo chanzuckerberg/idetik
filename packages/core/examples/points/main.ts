@@ -239,16 +239,18 @@ const onFirstImageLoad = (newState: LayerState) => {
 };
 
 imageLayer.addStateChangeCallback(onFirstImageLoad);
-imageLayer.setPosition(INITIAL_Z_POSITION);
+void imageLayer.setPosition(INITIAL_Z_POSITION);
 
 let debounce: ReturnType<typeof setTimeout>;
 zSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
-  debounce = setTimeout(async () => {
-    await imageLayer.setPosition(value * IMAGE_SCALE_2);
-    ribosomes.setDepth(value * IMAGE_SCALE_2);
-    ferritin.setDepth(value * IMAGE_SCALE_2);
-    virusLike.setDepth(value * IMAGE_SCALE_2);
+  debounce = setTimeout(() => {
+    void (async () => {
+      await imageLayer.setPosition(value * IMAGE_SCALE_2);
+      ribosomes.setDepth(value * IMAGE_SCALE_2);
+      ferritin.setDepth(value * IMAGE_SCALE_2);
+      virusLike.setDepth(value * IMAGE_SCALE_2);
+    })();
   }, 20);
 });

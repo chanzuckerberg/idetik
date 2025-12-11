@@ -48,7 +48,7 @@ export function makeControllableLoader(onStart?: () => void) {
   let _resolve: () => void;
   let _reject: (e: unknown) => void;
 
-  const loader = (signal: AbortSignal) =>
+  const loader = async (signal: AbortSignal) =>
     new Promise<void>((resolve, reject) => {
       _resolve = resolve;
       _reject = reject;

@@ -38,25 +38,27 @@ const arrayCache = new Map<string, zarr.Array<zarr.DataType, Readable>>();
 const ARRAY_CACHE_LIMIT = 100;
 const activeRequests = new Map<number, AbortController>();
 
-self.addEventListener("message", async (e: MessageEvent<ZarrWorkerRequest>) => {
-  const { id, type } = e.data;
+self.addEventListener("message", (e: MessageEvent<ZarrWorkerRequest>) => {
+  void (async () => {
+    const { id, type } = e.data;
 
-  try {
-    if (type === "getChunk") {
-      const { arrayParams, index } = e.data;
-      await handleGetChunkMessage(id, arrayParams, index);
-    } else if (type === "cancel") {
-      await handleCancelMessage(id);
-    } else {
-      throw new Error(`Unknown message type: ${type}`);
+    try {
+      if (type === "getChunk") {
+        const { arrayParams, index } = e.data;
+        await handleGetChunkMessage(id, arrayParams, index);
+      } else if (type === "cancel") {
+        await handleCancelMessage(id);
+      } else {
+        throw new Error(`Unknown message type: ${type}`);
+      }
+    } catch (error) {
+      self.postMessage({
+        id,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
-  } catch (error) {
-    self.postMessage({
-      id,
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
+  })();
 });
 
 async function handleCancelMessage(id: number): Promise<void> {

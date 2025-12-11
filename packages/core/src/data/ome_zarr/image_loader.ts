@@ -34,8 +34,8 @@ export class PromiseQueue<T> {
     this.promises_.push(promise);
   }
 
-  onIdle(): Promise<Array<T>> {
-    return Promise.all(this.promises_.map((p) => this.scheduler_.submit(p)));
+  async onIdle(): Promise<Array<T>> {
+    return Promise.all(this.promises_.map(async (p) => this.scheduler_.submit(p)));
   }
 }
 

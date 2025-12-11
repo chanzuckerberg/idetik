@@ -52,7 +52,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   public update() {
     switch (this.state) {
       case "initialized":
-        this.load(this.region_);
+        void this.load(this.region_);
         break;
       case "loading":
       case "ready":

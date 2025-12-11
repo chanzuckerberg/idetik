@@ -109,11 +109,15 @@ const onWellChange = async () => {
   await onImageChange();
 };
 
-wellSelector.addEventListener("change", onWellChange);
-imageSelector.addEventListener("change", onImageChange);
+wellSelector.addEventListener("change", () => {
+  void onWellChange();
+});
+imageSelector.addEventListener("change", () => {
+  void onImageChange();
+});
 
 const loadInitialWell = async () => {
   await onWellChange();
 };
 
-loadInitialWell();
+void loadInitialWell();

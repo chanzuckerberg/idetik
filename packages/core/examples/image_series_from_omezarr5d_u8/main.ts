@@ -55,11 +55,11 @@ slider.max = `${timeInterval.stop - 1}`;
 slider.addEventListener("input", (event) => {
   const value = (event.target as HTMLInputElement).valueAsNumber;
   const index = value - timeInterval.start;
-  layer.setIndex(index);
+  void layer.setIndex(index);
 });
 
-layer.setIndex(slider.valueAsNumber - timeInterval.start);
-layer.preloadSeries();
+void layer.setIndex(slider.valueAsNumber - timeInterval.start);
+void layer.preloadSeries();
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,

@@ -89,7 +89,7 @@ export class ChunkQueue {
 
     const controller = new AbortController();
     const promise = Promise.resolve()
-      .then(() => fn(controller.signal))
+      .then(async () => fn(controller.signal))
       .then(
         () => {
           if (chunk.state === "loading") chunk.state = "loaded";

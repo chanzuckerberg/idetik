@@ -52,7 +52,7 @@ export class ChunkManager {
         if (chunk.priority === null) {
           this.queue_.cancel(chunk);
         } else if (chunk.state === "queued") {
-          this.queue_.enqueue(chunk, (signal) =>
+          this.queue_.enqueue(chunk, async (signal) =>
             store.loadChunkData(chunk, signal)
           );
         }

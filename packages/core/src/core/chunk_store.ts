@@ -110,7 +110,7 @@ export class ChunkStore {
     return this.lowestResLOD_;
   }
 
-  public loadChunkData(chunk: Chunk, signal: AbortSignal) {
+  public async loadChunkData(chunk: Chunk, signal: AbortSignal) {
     return this.loader_.loadChunkData(chunk, signal);
   }
 

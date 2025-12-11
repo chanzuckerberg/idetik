@@ -38,7 +38,7 @@ function examplesManifestPlugin() {
         config.build.rollupOptions.input = getExampleInputs();
       }
     },
-    buildStart(_options) {
+    buildStart() {
       if (!isExamplesBuild) {
         return;
       }
