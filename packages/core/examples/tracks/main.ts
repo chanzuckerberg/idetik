@@ -64,7 +64,7 @@ const lineLayer = new TracksLayer([
 
 const url =
   "https://public.czbiohub.org/royerlab/ultrack/multi-color/image.zarr/";
-const source = new OmeZarrImageSource(url);
+const source = OmeZarrImageSource.fromHttp({ url });
 const timeInterval = { start: 28, stop: 39 };
 const region: Region = [
   { dimension: "T", index: { type: "interval", ...timeInterval } },

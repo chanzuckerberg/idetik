@@ -29,14 +29,14 @@ const zMin = z.translate;
 const zMax = z.translate + z.scale * z.shape - z.scale;
 
 // Calculate volume center
-const volumeCenter = [
-  (left + right) / 2, // x center
-  (top + bottom) / 2, // y center
-  (zMin + zMax) / 2, // z center
-] as [number, number, number];
+// const volumeCenter = [
+//   (left + right) / 2, // x center
+//   (top + bottom) / 2, // y center
+//   (zMin + zMax) / 2, // z center
+// ] as [number, number, number];
 
 // shared source between viewports
-const source = new OmeZarrImageSource(url);
+const source = OmeZarrImageSource.fromHttp({ url });
 
 // Shared timepoint across all viewports
 const sharedTimepoint = 400;
@@ -71,7 +71,6 @@ new Idetik({
       camera: camera3D,
       cameraControls: new OrbitControls(camera3D, {
         radius: 1500,
-        target: volumeCenter,
       }),
       layers: [volumeLayer],
     },

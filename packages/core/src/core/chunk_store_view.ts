@@ -1,5 +1,5 @@
 import { Chunk, SliceCoordinates, ChunkViewState } from "../data/chunk";
-import { ChunkStore } from "./chunk_store";
+import type { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";
@@ -47,12 +47,21 @@ export class ChunkStoreView {
     );
   }
 
-  public get store(): ChunkStore {
-    return this.store_;
-  }
-
   public get chunkViewStates(): ReadonlyMap<Chunk, ChunkViewState> {
     return this.chunkViewStates_;
+  }
+
+  // forwarding methods for chunk stats overlay while keeping store_ private
+  public getChunksAtTime(timeIndex: number): Chunk[] {
+    return this.store_.getChunksAtTime(timeIndex);
+  }
+
+  public getTimeIndex(sliceCoords: SliceCoordinates): number {
+    return this.store_.getTimeIndex(sliceCoords);
+  }
+
+  public get lodCount(): number {
+    return this.store_.lodCount;
   }
 
   public getChunksToRender(sliceCoords: SliceCoordinates): Chunk[] {
@@ -180,6 +189,10 @@ export class ChunkStoreView {
     return this.currentLOD_;
   }
 
+  public get lowestResLOD(): number {
+    return this.store_.getLowestResLOD();
+  }
+
   public maybeForgetChunk(chunk: Chunk): void {
     const viewState = this.chunkViewStates_.get(chunk);
     if (
@@ -189,6 +202,10 @@ export class ChunkStoreView {
       return;
     }
     this.chunkViewStates_.delete(chunk);
+  }
+
+  public dispose(): void {
+    this.store_.removeView(this);
   }
 
   public setImageSourcePolicy(newPolicy: ImageSourcePolicy, key: symbol) {

@@ -10,7 +10,7 @@ import { vec3 } from "gl-matrix";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
-const source = new OmeZarrImageSource(url);
+const source = OmeZarrImageSource.fromHttp({ url });
 
 const sliceCoords = {
   t: 400,

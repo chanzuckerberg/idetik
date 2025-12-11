@@ -18,15 +18,14 @@ export class ChunkInfoOverlay {
 
   public update(idetik: Idetik, _timestamp?: DOMHighResTimeStamp): void {
     if (this.textDiv_.style.display === "none") return;
-    const chunkStore = this.imageLayer_.chunkStoreView?.store;
     const chunkStoreView = this.imageLayer_.chunkStoreView;
-    if (!chunkStore || !chunkStoreView) {
+    if (!chunkStoreView) {
       this.textDiv_.textContent = "No chunk store";
       return;
     }
 
-    const chunksAtCurrentTime = chunkStore.getChunksAtTime(
-      chunkStore.getTimeIndex(this.imageLayer_.sliceCoords)
+    const chunksAtCurrentTime = chunkStoreView.getChunksAtTime(
+      chunkStoreView.getTimeIndex(this.imageLayer_.sliceCoords)
     );
     if (!chunksAtCurrentTime) {
       this.textDiv_.textContent = "No chunks available";
@@ -46,7 +45,7 @@ export class ChunkInfoOverlay {
       visible: number;
       rendered: number;
       prefetched: number;
-    }[] = Array.from({ length: chunkStore.lodCount }, () => ({
+    }[] = Array.from({ length: chunkStoreView.lodCount }, () => ({
       visible: 0,
       rendered: 0,
       prefetched: 0,

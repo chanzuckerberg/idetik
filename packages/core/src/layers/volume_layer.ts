@@ -122,43 +122,20 @@ export class VolumeLayer extends Layer {
     );
   }
 
-  public onDetached(context: IdetikContext): void {
+  public onDetached(_context: IdetikContext): void {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
     if (!this.chunkStoreView_) return;
-    context.chunkManager.removeView(this.chunkStoreView_);
+    this.chunkStoreView_.dispose();
     this.chunkStoreView_ = undefined;
-  }
-
-  private getChunksToRender(): Chunk[] {
-    if (!this.chunkStoreView_) return [];
-
-    // Initialize LOD to coarsest if not set
-    if (this.lod_ === -1) {
-      this.lod_ = this.chunkStoreView_.store.getLowestResLOD();
-    }
-
-    // Get all chunks at the current timepoint
-    const timeIndex = this.chunkStoreView_.store.getTimeIndex(
-      this.sliceCoords_
-    );
-    const allChunks = this.chunkStoreView_.store.getChunksAtTime(timeIndex);
-
-    // Filter for desired LOD, loaded state, and matching channel
-    return allChunks.filter((chunk) => {
-      const isDesiredLOD = chunk.lod === this.lod_;
-      const isLoaded = chunk.state === "loaded";
-      const isChannelMatch =
-        this.sliceCoords_.c === undefined ||
-        chunk.chunkIndex.c === this.sliceCoords_.c;
-      return isDesiredLOD && isLoaded && isChannelMatch;
-    });
   }
 
   private updateChunks() {
     if (!this.chunkStoreView_) return;
 
-    const chunksToRender = this.getChunksToRender();
+    const chunksToRender = this.chunkStoreView_.getChunksToRender(
+      this.sliceCoords_
+    );
 
     // Check if we need to update
     const currentTime = this.sliceCoords_.t ?? -1;
@@ -223,7 +200,7 @@ export class VolumeLayer extends Layer {
 
     // Initialize LOD to coarsest if not set
     if (this.lod_ === -1) {
-      this.lod_ = this.chunkStoreView_.store.getLowestResLOD();
+      this.lod_ = this.chunkStoreView_.lowestResLOD;
     }
 
     // Mark chunks for the desired LOD as visible
