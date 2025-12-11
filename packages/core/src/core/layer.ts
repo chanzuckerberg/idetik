@@ -96,6 +96,10 @@ export abstract class Layer {
     this.callbacks_.splice(index, 1);
   }
 
+  public hasMultipleLODs(): boolean {
+    return false;
+  }
+
   protected setState(newState: LayerState) {
     const prevState = this.state_;
     this.state_ = newState;
