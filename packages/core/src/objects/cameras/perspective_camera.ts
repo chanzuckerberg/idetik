@@ -75,44 +75,4 @@ export class PerspectiveCamera extends Camera {
       this.far_
     );
   }
-
-  public getWorldViewRect(distanceFromCamera?: number): Box2 {
-    const distance =
-      distanceFromCamera !== undefined ? distanceFromCamera : this.near_;
-
-    const viewSpaceZ = -distance;
-
-    // Z arrives in view-space, we convert it to NDC using the projection matrix.
-    // NDC.z = (far+near)/(far-near) + (-2*far*near)/(far-near) * (1/view.z)
-    const ndcZ =
-      (this.far_ + this.near_) / (this.far_ - this.near_) +
-      (-2 * this.far_ * this.near_) / (this.far_ - this.near_) / viewSpaceZ;
-
-    // We create the corners of the NDC at the specified depth
-    const ndcTopLeft = vec4.fromValues(-1.0, 1.0, ndcZ, 1.0);
-    const ndcBottomRight = vec4.fromValues(1.0, -1.0, ndcZ, 1.0);
-
-    // We transform from NDC to world space
-    const viewProjection = mat4.multiply(
-      mat4.create(),
-      this.projectionMatrix,
-      this.viewMatrix
-    );
-
-    const inv = mat4.invert(mat4.create(), viewProjection);
-    const topLeft = vec4.transformMat4(vec4.create(), ndcTopLeft, inv);
-    const bottomRight = vec4.transformMat4(vec4.create(), ndcBottomRight, inv);
-
-    // Perspective divide
-    vec4.scale(topLeft, topLeft, 1.0 / topLeft[3]);
-    vec4.scale(bottomRight, bottomRight, 1.0 / bottomRight[3]);
-
-    // We reorder min/max
-    const minX = Math.min(topLeft[0], bottomRight[0]);
-    const maxX = Math.max(topLeft[0], bottomRight[0]);
-    const minY = Math.min(topLeft[1], bottomRight[1]);
-    const maxY = Math.max(topLeft[1], bottomRight[1]);
-
-    return new Box2(vec2.fromValues(minX, minY), vec2.fromValues(maxX, maxY));
-  }
 }

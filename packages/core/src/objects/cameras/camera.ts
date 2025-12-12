@@ -72,11 +72,4 @@ export abstract class Camera extends RenderableObject {
     );
     return vec3.fromValues(worldPos[0], worldPos[1], worldPos[2]);
   }
-
-  public getUniforms(): Record<string, unknown> {
-    return {
-      CameraNear: this.near_,
-      CameraFar: this.far_,
-    };
-  }
 }
