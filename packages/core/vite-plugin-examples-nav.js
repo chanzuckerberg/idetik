@@ -46,14 +46,9 @@ function examplesManifestPlugin() {
       if (!isExamplesBuild) {
         return;
       }
-
-      try {
-        generateExamplesManifest();
-        copyManifestToPublic();
-        console.log("Examples manifest generated and copied to public");
-      } catch (error) {
-        console.error("Failed to generate examples manifest:", error);
-      }
+      generateExamplesManifest();
+      copyManifestToPublic();
+      console.log("Examples manifest generated and copied to public");
     },
     configureServer(server) {
       const regenerateManifest = () => {
