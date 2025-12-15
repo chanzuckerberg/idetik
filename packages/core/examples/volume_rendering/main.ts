@@ -6,7 +6,6 @@ import {
 } from "@/core/image_source_policy";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
-import { vec3 } from "gl-matrix";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -39,23 +38,8 @@ const timePointOverlay = {
   },
 };
 
-// Problematic target/spherical - black lines
-// const target = vec3.fromValues(270.5104, 783.1701, 270.586);
-// const spherical = {
-//   radius: 3232.1488,
-//   yaw: -0.261,
-//   pitch: 0.045,
-//   target,
-// };
-// const cameraControls = new OrbitControls(camera, spherical);
-
-// This one has a different problem, extruding lines
-const target = vec3.fromValues(599.6343, 495.7492, 312.7563);
 const spherical = {
-  radius: 1097.6232,
-  yaw: -0.261,
-  pitch: 0.117,
-  target,
+  radius: 4000,
 };
 const cameraControls = new OrbitControls(camera, spherical);
 
