@@ -61,7 +61,7 @@ idetik.start();
 const controls = {
   showWireframes: volumeLayer.debugMode,
   showTimePointOverlay: true,
-  enableRayCorrection: false,
+  enableRayCorrection: true,
   lod: 2,
 };
 

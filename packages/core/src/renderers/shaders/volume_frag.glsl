@@ -45,7 +45,7 @@ vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3
 void main() {
     // Step 1 - calculate where the ray enters and exits the volume
 
-    // The ray in model space goes from the point on the back face to the camera
+    // The ray in model space goes from the camera to the point on the back face
     vec3 RayDirModel = normalize(PositionModel - CameraPositionModel);
 
     vec2 rayIntersections = findBoxIntersectionsAlongRay(
@@ -55,8 +55,8 @@ void main() {
     float tExit = rayIntersections.y;
 
     // Redo the calculation with a slightly bigger box if the ray direction was flipped
-    bool emptyRay = tExit < 0.0 || (tExit < tEnter);
-    if (emptyRay && !EnableRayCorrection) {
+    bool invalidIntersection = tExit < 0.0 || (tExit < tEnter);
+    if (invalidIntersection && EnableRayCorrection) {
         vec2 rayIntersections = findBoxIntersectionsAlongRay(
             CameraPositionModel, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
         );
