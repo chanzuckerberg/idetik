@@ -57,11 +57,13 @@ void main() {
     // Redo the calculation with a slightly bigger box if the ray direction was flipped
     bool invalidIntersection = tExit < 0.0 || (tExit < tEnter);
     if (invalidIntersection && EnableRayCorrection) {
-        vec2 rayIntersections = findBoxIntersectionsAlongRay(
-            CameraPositionModel, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
-        );
-        tEnter = rayIntersections.x;
-        tExit = rayIntersections.y;
+        // vec2 rayIntersections = findBoxIntersectionsAlongRay(
+        //     CameraPositionModel, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
+        // );
+        // tEnter = rayIntersections.x;
+        // tExit = rayIntersections.y;
+        fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        return;
     }
 
     vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter;

@@ -89,7 +89,7 @@ export class WebGLState {
           this.setBlendFunc(this.gl_.ZERO, this.gl_.ONE_MINUS_SRC_COLOR);
           break;
         case "premultiplied":
-          this.setBlendFunc(this.gl_.ONE, this.gl_.ONE_MINUS_SRC_ALPHA);
+          this.setBlendFunc(this.gl_.ONE_MINUS_DST_ALPHA, this.gl_.ONE);
           break;
         case "normal":
         default:
