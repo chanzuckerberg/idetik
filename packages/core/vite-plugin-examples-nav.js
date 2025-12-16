@@ -1,6 +1,6 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { copyFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { generateExamplesManifest, discoverExamples } from "./generate-examples-manifest.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -21,7 +21,11 @@ function getExampleInputs() {
 
 function copyManifestToPublic() {
   const manifestPath = resolve(__dirname, "examples", "examples-manifest.json");
-  const publicManifestPath = resolve(__dirname, "public", "examples-manifest.json");
+  const publicDir = resolve(__dirname, "public");
+  const publicManifestPath = resolve(publicDir, "examples-manifest.json");
+  if (!existsSync(publicDir)) {
+    mkdirSync(publicDir);
+  }
   copyFileSync(manifestPath, publicManifestPath);
 }
 
@@ -42,14 +46,9 @@ function examplesManifestPlugin() {
       if (!isExamplesBuild) {
         return;
       }
-
-      try {
-        generateExamplesManifest();
-        copyManifestToPublic();
-        console.log("Examples manifest generated and copied to public");
-      } catch (error) {
-        console.error("Failed to generate examples manifest:", error);
-      }
+      generateExamplesManifest();
+      copyManifestToPublic();
+      console.log("Examples manifest generated and copied to public");
     },
     configureServer(server) {
       const regenerateManifest = () => {

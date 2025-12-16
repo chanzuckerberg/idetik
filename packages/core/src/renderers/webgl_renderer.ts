@@ -44,6 +44,7 @@ export class WebGLRenderer extends Renderer {
     const gl = this.canvas.getContext("webgl2", {
       depth: true,
       antialias: true,
+      stencil: true,
     });
     if (!gl) {
       throw new Error(`Failed to initialize WebGL2 context`);
@@ -58,6 +59,7 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
     this.state_ = new WebGLState(gl);
+    this.initStencil();
     this.resize(this.canvas.width, this.canvas.height);
   }
 
@@ -112,8 +114,25 @@ export class WebGLRenderer extends Renderer {
     return this.textures_.textureInfo;
   }
 
+  private initStencil() {
+    // We use the stencil buffer to mark pixels objects have been drawn,
+    // which is used to avoid overdrawing high resolution tiles with lower
+    // resolution ones.
+    const clearValue = 0;
+    this.gl_.clearStencil(clearValue);
+    this.gl_.stencilMask(0xff);
+    this.gl_.stencilFunc(this.gl_.EQUAL, clearValue, 0xff);
+    this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.INCR);
+  }
+
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
+    const shouldUseStencil =
+      layer.objects.length > 0 && layer.hasMultipleLODs();
+    this.state_.setStencilTest(shouldUseStencil);
+    if (shouldUseStencil) {
+      this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
+    }
 
     // This should probably be more generic, but for now we do some checks
     // specifically for volume rendering

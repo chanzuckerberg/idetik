@@ -130,6 +130,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
+  public hasMultipleLODs(): boolean {
+    if (!this.chunkStoreView_) return false;
+    return this.chunkStoreView_.lodCount > 1;
+  }
+
   public get lastPresentationTimeCoord(): number | undefined {
     return this.lastPresentationTimeCoord_;
   }

@@ -87,7 +87,7 @@ export class ChunkStoreView {
         chunk.state === "loaded"
     );
 
-    return [...lowResChunks, ...currentLODChunks];
+    return [...currentLODChunks, ...lowResChunks];
   }
 
   // TODO: Eventually unify visibility calculations using the camera frustum for both
