@@ -1,6 +1,5 @@
-import { Box2 } from "@/math/box2";
 import { Camera, CameraType } from "./camera";
-import { glMatrix, mat4, vec2, vec3, vec4 } from "gl-matrix";
+import { glMatrix, mat4, vec3} from "gl-matrix";
 
 const DEFAULT_FOV = 60; // degrees
 const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
