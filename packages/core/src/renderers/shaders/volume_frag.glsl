@@ -65,6 +65,7 @@ void main() {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
+    tExit = max(tEnter, tExit);
 
     vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter;
     entryPoint = clamp(entryPoint + 0.5, 0.0, 1.0);
