@@ -131,8 +131,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public hasMultipleLODs(): boolean {
-    if (!this.chunkStoreView_) return false;
-    return this.chunkStoreView_.lodCount > 1;
+    return false;
+    // if (!this.chunkStoreView_) return false;
+    // return this.chunkStoreView_.lodCount > 1;
   }
 
   public get lastPresentationTimeCoord(): number | undefined {
@@ -230,7 +231,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       texture.updateWithChunk(chunk, this.getDataForImage(chunk));
       this.updateImageChunk(pooled, chunk);
       if (this.channelProps_) {
-        pooled.setChannelProps(this.channelProps_);
+        pooled.setChannelProps([this.channelProps_[chunk.chunkIndex.c]]);
       }
       return pooled;
     }
@@ -239,11 +240,14 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private createImage(chunk: Chunk) {
+    const channelProps = this.channelProps_
+      ? [this.channelProps_[chunk.chunkIndex.c]]
+      : [];
     const image = new ImageRenderable(
       chunk.shape.x,
       chunk.shape.y,
       Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
-      this.channelProps_ ?? [{}]
+      channelProps
     );
     this.updateImageChunk(image, chunk);
     return image;

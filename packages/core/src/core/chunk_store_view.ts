@@ -131,9 +131,15 @@ export class ChunkStoreView {
 
   public allVisibleLowestLODLoaded(sliceCoords: SliceCoordinates): boolean {
     const timeIndex = this.store_.getTimeIndex(sliceCoords);
+    const lowestResLOD = this.store_.getLowestResLOD();
     const visibleChunks = this.store_
       .getChunksAtTime(timeIndex)
-      .filter((c) => c.visible && c.lod === this.store_.getLowestResLOD());
+      .filter(
+        (c) =>
+          c.visible &&
+          c.lod === lowestResLOD &&
+          this.isChunkChannelInSlice(c, sliceCoords)
+      );
     // Return false if there are no visible chunks (empty array .every() returns true)
     return (
       visibleChunks.length > 0 &&
@@ -254,7 +260,9 @@ export class ChunkStoreView {
     chunk: Chunk,
     sliceCoords: SliceCoordinates
   ): boolean {
-    return sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
+    return (
+      sliceCoords.c === undefined || sliceCoords.c.includes(chunk.chunkIndex.c)
+    );
   }
 
   private updateChunksAtTimeIndex(

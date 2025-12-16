@@ -11,17 +11,23 @@ import {
   createNoPrefetchPolicy,
 } from "@";
 
+import GUI from "lil-gui";
+import { addDimensionSlider } from "../lil_gui_utils";
+
 const plateUrl =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/";
 const initialWellPath = "CLTA/PFA";
 const initialImagePath = "002000";
-const LOW_RES_Z_SCALE = 0.78939; // micrometers per pixel
-const HIGH_RES_NUM_SLICES = 38;
 
 const yScale = 0.1028358051168038;
 const xScale = 0.10319840632897595;
 const ySize = 800;
 const xSize = 800;
+
+const z = { translate: 0.0, scale: 0.19734794639973458, shape: 38 };
+const zMin = z.translate;
+const zMax = z.translate + z.scale * z.shape - z.scale;
+const zRange = { min: zMin, max: zMax };
 
 const plate = await loadOmeZarrPlate(plateUrl);
 console.debug("plate", plate);
@@ -54,6 +60,8 @@ const app = new Idetik({
 const viewport = app.viewports[0];
 const imageSelector = document.querySelector("#image") as HTMLSelectElement;
 
+const sliceCoords = { t: 0, z: 0, c: [1, 2] };
+
 const onImageChange = async () => {
   console.debug("onImageChange: ", imageSelector.value);
   viewport.layerManager.removeAll();
@@ -62,30 +70,29 @@ const onImageChange = async () => {
   const source = OmeZarrImageSource.fromHttp({ url: imageUrl });
   const omeroDefaults = await loadOmeroDefaults(source);
   const omeroDefaultZ = omeroDefaults?.defaultZ ?? 0;
-  const initZ = (omeroDefaultZ / HIGH_RES_NUM_SLICES) * LOW_RES_Z_SCALE;
+  sliceCoords.z = (omeroDefaultZ / z.shape) * z.scale;
 
   const omeroChannels = await loadOmeroChannels(source);
   const contrastLimits: [number, number][] = [
+    [omeroChannels[0].window!.start, omeroChannels[0].window!.end],
     [omeroChannels[1].window!.start, omeroChannels[1].window!.end],
     [omeroChannels[2].window!.start, omeroChannels[2].window!.end],
   ];
 
-  const layer1 = new ChunkedImageLayer({
+  const layer = new ChunkedImageLayer({
     source,
-    sliceCoords: { t: 0, z: initZ, c: 1 },
-    channelProps: [{ color: [0, 1, 1], contrastLimits: contrastLimits[0] }],
-    policy,
-  });
-  const layer2 = new ChunkedImageLayer({
-    source,
-    sliceCoords: { t: 0, z: initZ, c: 2 },
-    channelProps: [{ color: [1, 0, 1], contrastLimits: contrastLimits[1] }],
-    policy,
+    sliceCoords,
+    channelProps: [
+      { color: [1, 1, 0], contrastLimits: contrastLimits[0] },
+      { color: [0, 1, 1], contrastLimits: contrastLimits[1] },
+      { color: [1, 0, 1], contrastLimits: contrastLimits[2] },
+    ],
     transparent: true,
+    opacity: 0.5,
     blendMode: "additive",
+    policy,
   });
-  viewport.layerManager.add(layer1);
-  viewport.layerManager.add(layer2);
+  viewport.layerManager.add(layer);
 };
 
 const onWellChange = async () => {
@@ -117,3 +124,15 @@ const loadInitialWell = async () => {
 };
 
 loadInitialWell();
+
+const gui = new GUI({ width: 500 });
+
+addDimensionSlider({
+  gui,
+  sliceCoords,
+  dimensionName: "z",
+  minValue: zRange.min,
+  maxValue: zRange.max,
+  stepValue: z.scale,
+  playback: {},
+});

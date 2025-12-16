@@ -96,8 +96,8 @@ export type SourceDimensionLod = {
 
 export type SliceCoordinates = {
   z?: number;
-  c?: number;
   t?: number;
+  readonly c?: number[];
 };
 
 export type ChunkSource = {
