@@ -9,10 +9,7 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { addDimensionSlider } from "../lil_gui_utils";
-import {
-  // createExplorationPolicy,
-  createPlaybackPolicy,
-} from "@/core/image_source_policy";
+import { createPlaybackPolicy } from "@/core/image_source_policy";
 
 import GUI from "lil-gui";
 
