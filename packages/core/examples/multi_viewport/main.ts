@@ -28,15 +28,14 @@ const z = { translate: 0.0, scale: 1.24, shape: 448 };
 const zMin = z.translate;
 const zMax = z.translate + z.scale * z.shape - z.scale;
 
-
 // shared source between viewports
 const source = OmeZarrImageSource.fromHttp({ url });
 
 // Shared timepoint across all viewports
-const sharedTimepoint = 400;
+const initialTimepoint = 400;
 
 // Volume layer - no z coordinate to render entire volume
-const volumeCoords = { t: sharedTimepoint, c: 0 };
+const volumeCoords = { t: initialTimepoint, c: 0 };
 const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer({
   source,
@@ -46,7 +45,7 @@ const volumeLayer = new VolumeLayer({
   blendMode: "premultiplied",
 });
 
-const sliceCoords = { t: sharedTimepoint, z: 300, c: 0 };
+const sliceCoords = { t: initialTimepoint, z: 300, c: 0 };
 const camera2D = new OrthographicCamera(left, right, top, bottom);
 camera2D.zoom(0.65);
 const imageLayer = new ChunkedImageLayer({
@@ -81,7 +80,7 @@ new Idetik({
 
 const gui = new GUI({ width: 300 });
 
-const sharedTime = { t: sharedTimepoint };
+const sharedTime = { t: initialTimepoint };
 volumeCoords.t = sharedTime.t;
 sliceCoords.t = sharedTime.t;
 
