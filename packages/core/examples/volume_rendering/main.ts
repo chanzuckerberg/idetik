@@ -23,7 +23,6 @@ const volumeLayer = new VolumeLayer({
   sliceCoords,
   policy: createExplorationPolicy(),
 });
-// volumeLayer.debugMode = true;
 
 // Largely copied from chunk streaming example
 const t = { translate: 0.0, scale: 1.0, shape: 791 };

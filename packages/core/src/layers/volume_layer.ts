@@ -137,7 +137,6 @@ export class VolumeLayer extends Layer {
       this.sliceCoords_
     );
 
-    // Check if we need to update
     const currentTime = this.sliceCoords_.t ?? -1;
     const needsUpdate =
       this.lastLoadedLod_ !== this.lod_ ||
@@ -203,7 +202,6 @@ export class VolumeLayer extends Layer {
       this.lod_ = this.chunkStoreView_.lowestResLOD;
     }
 
-    // Mark chunks for the desired LOD as visible
     this.chunkStoreView_.updateChunkStatesForVolume(
       this.sliceCoords_,
       this.lod_
