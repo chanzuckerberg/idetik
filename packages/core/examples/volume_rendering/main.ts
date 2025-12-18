@@ -8,13 +8,13 @@ import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
 const url =
-  "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
+  // "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
+  "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/";
 const source = OmeZarrImageSource.fromHttp({ url });
 
 const sliceCoords = {
-  t: 400,
+  t: 0,
   z: undefined,
-  c: 0,
 };
 
 const camera = new PerspectiveCamera();

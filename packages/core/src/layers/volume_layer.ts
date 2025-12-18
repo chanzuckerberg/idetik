@@ -4,26 +4,31 @@ import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
-import { Texture3D } from "../objects/textures/texture_3d";
+import { Texture3DArray } from "../objects/textures/texture_3d_array";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { glMatrix, vec3 } from "gl-matrix";
 import { Camera } from "@/objects/cameras/camera";
+import { ChannelProps, ChannelsEnabled } from "@/objects/textures/channel";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
+  channelProps?: ChannelProps[];
 };
 
 export type OrderingMode = "front-to-back" | "back-to-front";
 
-export class VolumeLayer extends Layer {
+export class VolumeLayer extends Layer implements ChannelsEnabled {
   public readonly type = "VolumeLayer";
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly visibleChunks_: Map<Chunk, VolumeRenderable> = new Map();
   private readonly pool_ = new RenderablePool<VolumeRenderable>();
+  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channelChangeCallbacks_: Array<() => void> = [];
+  private channelProps_?: ChannelProps[];
 
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
@@ -78,15 +83,33 @@ export class VolumeLayer extends Layer {
   }
 
   private createVolume(chunk: Chunk) {
-    const volume = new VolumeRenderable(Texture3D.createWithChunk(chunk));
+    const numChannels = chunk.shape.c > 0 ? chunk.shape.c : 1;
+    const volume = new VolumeRenderable(
+      Texture3DArray.createWithChunk(chunk),
+      this.channelProps_ || this.getDefaultChannelProps(numChannels),
+      chunk.shape.z
+    );
     this.updateVolumeChunk(volume, chunk);
     return volume;
+  }
+
+  private getDefaultChannelProps(numChannels: number): ChannelProps[] {
+    const props: ChannelProps[] = [];
+    for (let i = 0; i < numChannels; i++) {
+      props.push({
+        visible: true,
+        color: [1.0, 1.0, 1.0],
+        contrastLimits: [0, this.maxIntensity],
+      });
+    }
+    return props;
   }
 
   constructor({
     source,
     sliceCoords,
     policy,
+    channelProps,
     transparent = true,
     blendMode = "premultiplied",
     ...layerOptions
@@ -95,7 +118,41 @@ export class VolumeLayer extends Layer {
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.sourcePolicy_ = policy;
+    this.channelProps_ = channelProps;
+    this.initialChannelProps_ = channelProps;
     this.setState("initialized");
+  }
+
+  public get channelProps(): ChannelProps[] | undefined {
+    return this.channelProps_;
+  }
+
+  public setChannelProps(channelProps: ChannelProps[]) {
+    this.channelProps_ = channelProps;
+    this.visibleChunks_.forEach((chunk) => {
+      chunk.setChannelProps(channelProps);
+    });
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
+    });
+  }
+
+  public resetChannelProps(): void {
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
+    }
+  }
+
+  public addChannelChangeCallback(callback: () => void): void {
+    this.channelChangeCallbacks_.push(callback);
+  }
+
+  public removeChannelChangeCallback(callback: () => void): void {
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === -1) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.channelChangeCallbacks_.splice(index, 1);
   }
 
   private getVolumeForChunk(chunk: Chunk): VolumeRenderable {
@@ -104,7 +161,7 @@ export class VolumeLayer extends Layer {
 
     const pooled = this.pool_.acquire(poolKeyForChunk(chunk));
     if (pooled) {
-      const texture = pooled.textures[0] as Texture3D;
+      const texture = pooled.textures[0] as Texture3DArray;
       texture.updateWithChunk(chunk);
       this.updateVolumeChunk(pooled, chunk);
       return pooled;
@@ -254,7 +311,7 @@ export class VolumeLayer extends Layer {
 export function poolKeyForChunk(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}x${chunk.chunkIndex.c}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }

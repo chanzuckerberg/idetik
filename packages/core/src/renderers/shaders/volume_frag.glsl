@@ -6,11 +6,11 @@ precision highp float;
 layout (location = 0) out vec4 fragColor;
 
 #if defined TEXTURE_DATA_TYPE_INT
-uniform mediump isampler3D ImageSampler;
+uniform mediump isampler2DArray ImageSampler;
 #elif defined TEXTURE_DATA_TYPE_UINT
-uniform mediump usampler3D ImageSampler;
+uniform mediump usampler2DArray ImageSampler;
 #else
-uniform mediump sampler3D ImageSampler;
+uniform mediump sampler2DArray ImageSampler;
 #endif
 
 uniform highp vec3 CameraPositionModel;
@@ -26,7 +26,15 @@ uniform float SampleDensity;
 uniform float MaxIntensity;
 uniform float OpacityScale;
 uniform float AlphaThreshold;
-uniform vec3 VolumeColor;
+
+// Multi-channel support (backwards compatible with single channel)
+#define MAX_CHANNELS 32
+uniform uint ChannelCount;
+uniform bool Visible[MAX_CHANNELS];
+uniform vec3 Color[MAX_CHANNELS];
+uniform float ValueOffset[MAX_CHANNELS];
+uniform float ValueScale[MAX_CHANNELS];
+uniform float DepthSlices; // Number of Z slices (for Texture3DArray array index calculation)
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -81,7 +89,6 @@ void main() {
     // Step 3 - perform the ray marching and compositing in front to back order
     vec3 position = entryPoint;
     vec4 accumulatedColor = vec4(0.0);
-    float sampledData, sampleAlpha, blendedSampleAlpha;
 
     // Later replace by an invlerp, but overall provides a way to map the incoming
     // sampled texture value to an alpha value
@@ -89,13 +96,34 @@ void main() {
 
     // March until we reach the number of samples or accumulate enough opacity
     for (int i = 0; i < numSamples && accumulatedColor.a < AlphaThreshold; i++) {
-        sampledData = vec4(texture(ImageSampler, position)).r;
-        sampleAlpha = sampledData * intensityScale;
-        blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;
+        vec3 channelColor = vec3(0.0);
+        float totalAlpha = 0.0;
+
+        // Sample all visible channels and composite them
+        for (uint ch = 0u; ch < ChannelCount; ch++) {
+            if (!Visible[ch]) continue;
+
+            // For Texture3DArray we pick the right index: array index = z_slice + channel * num_z_slices
+            // position.z is in [0,1], scale it to slice index
+            float zSlice = position.z * DepthSlices;
+            float arrayIndex = zSlice + float(ch) * DepthSlices;
+
+            float texel = float(texture(ImageSampler, vec3(position.xy, arrayIndex)).r);
+            float value = (texel + ValueOffset[ch]) * ValueScale[ch];
+            value = clamp(value, 0.0, 1.0);
+
+            float sampleAlpha = value * intensityScale;
+            channelColor += value * Color[ch];
+            totalAlpha += sampleAlpha;
+        }
+
+        // Clamp total alpha to prevent over-saturation with multiple channels
+        totalAlpha = clamp(totalAlpha, 0.0, 1.0);
+        float blendedSampleAlpha = (1.0 - accumulatedColor.a) * totalAlpha;
 
         // Front-to-back compositing
         accumulatedColor.a += blendedSampleAlpha;
-        accumulatedColor.rgb += VolumeColor * blendedSampleAlpha;
+        accumulatedColor.rgb += channelColor * blendedSampleAlpha;
         position += stepIncrement;
     }
 

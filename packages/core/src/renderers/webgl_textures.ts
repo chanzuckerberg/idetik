@@ -10,6 +10,7 @@ import type {
 import { Texture2D } from "../objects/textures/texture_2d";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { Texture3D } from "../objects/textures/texture_3d";
+import { Texture3DArray } from "../objects/textures/texture_3d_array";
 
 type TextureFormatInfo = {
   internalFormat: number;
@@ -220,6 +221,7 @@ export class WebGLTextures {
     if (this.isTexture2D(texture)) return this.gl_.TEXTURE_2D;
     if (this.isTexture2DArray(texture)) return this.gl_.TEXTURE_2D_ARRAY;
     if (this.isTexture3D(texture)) return this.gl_.TEXTURE_3D;
+    if (this.isTexture3DArray(texture)) return this.gl_.TEXTURE_2D_ARRAY;
     throw new Error(`Unknown texture type ${texture.type}`);
   }
 
@@ -347,8 +349,8 @@ export class WebGLTextures {
 
   private isTextureStorage3D(
     texture: Texture
-  ): texture is Texture2DArray | Texture3D {
-    return this.isTexture2DArray(texture) || this.isTexture3D(texture);
+  ): texture is Texture2DArray | Texture3D | Texture3DArray {
+    return this.isTexture2DArray(texture) || this.isTexture3D(texture) || this.isTexture3DArray(texture);
   }
 
   private isTexture2D(texture: Texture): texture is Texture2D {
@@ -361,5 +363,9 @@ export class WebGLTextures {
 
   private isTexture3D(texture: Texture): texture is Texture3D {
     return texture.type === "Texture3D";
+  }
+
+  private isTexture3DArray(texture: Texture): texture is Texture3DArray {
+    return texture.type === "Texture3DArray";
   }
 }
