@@ -32,7 +32,7 @@ export class VolumeLayer extends Layer {
 
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
-  public enableRayCorrection = true;
+  public enableRayCorrection = false;
   private color_ = vec3.fromValues(1.0, 1.0, 1.0);
   public sampleDensity = 128.0; // Samples per unit texture space
   public maxIntensity = 255.0; // Normalization factor for intensity
