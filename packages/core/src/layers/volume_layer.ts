@@ -110,12 +110,6 @@ export class VolumeLayer extends Layer {
   }
 
   public async onAttached(context: IdetikContext) {
-    if (this.chunkStoreView_) {
-      throw new Error(
-        "VolumeLayer is already attached. " +
-          "A layer cannot be attached to multiple contexts simultaneously."
-      );
-    }
     this.chunkStoreView_ = await context.chunkManager.addView(
       this.source_,
       this.sourcePolicy_
