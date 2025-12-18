@@ -249,7 +249,7 @@ export class VolumeLayer extends Layer {
 export function poolKeyForChunk(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }
