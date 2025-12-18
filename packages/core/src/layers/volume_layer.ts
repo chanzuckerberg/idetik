@@ -69,6 +69,10 @@ export class VolumeLayer extends Layer {
     return this.color_;
   }
 
+  public hasOverlappingRenderables(): boolean {
+    return true;
+  }
+
   public set color(newColor: vec3) {
     vec3.copy(this.color_, newColor);
   }
@@ -202,6 +206,13 @@ export class VolumeLayer extends Layer {
     );
 
     this.updateChunks();
+    if (_context === undefined) {
+      throw new Error(
+        "RenderContext is required for the VolumeLayer update as camera information is used to reorder the chunks."
+      );
+    } else {
+      this.reorderObjects(_context.viewport.camera, "front-to-back");
+    }
   }
 
   public reorderObjects(camera: Camera, mode: OrderingMode) {
@@ -246,8 +257,4 @@ export function poolKeyForChunk(chunk: Chunk) {
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
-}
-
-export function isVolumeLayer(layer: Layer): layer is VolumeLayer {
-  return layer.type === "VolumeLayer";
 }

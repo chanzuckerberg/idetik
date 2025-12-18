@@ -16,7 +16,6 @@ import { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
-import { isVolumeLayer } from "@/layers/volume_layer";
 
 // The library's coordinate system is left-handed.
 // With the default camera, the standard basis vectors should
@@ -134,13 +133,10 @@ export class WebGLRenderer extends Renderer {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
     }
 
-    // This should probably be more generic, but for now we do some checks
-    // specifically for volume rendering
-    if (isVolumeLayer(layer)) {
-      this.state_.setDepthTesting(false);
-      this.state_.setDepthMask(false);
-      layer.reorderObjects(camera, "front-to-back");
-    }
+    const shouldDisableDepth =
+      layer.objects.length > 0 && layer.hasOverlappingRenderables();
+    this.state_.setDepthTesting(!shouldDisableDepth);
+    this.state_.setDepthMask(!shouldDisableDepth);
 
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
@@ -148,11 +144,6 @@ export class WebGLRenderer extends Renderer {
         this.renderedObjectsPerFrame_ += 1;
       }
     });
-
-    if (isVolumeLayer(layer)) {
-      this.state_.setDepthTesting(true);
-      this.state_.setDepthMask(true);
-    }
   }
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
