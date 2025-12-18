@@ -115,11 +115,7 @@ export class BoxGeometry extends Geometry {
         const b = vertexPosition + ix + gridX1 * (iy + 1);
         const c = vertexPosition + (ix + 1) + gridX1 * (iy + 1);
         const d = vertexPosition + (ix + 1) + gridX1 * iy;
-        if (wdir === 1) {
-          index.push(a, b, d, b, c, d);
-        } else {
-          index.push(a, d, b, b, d, c);
-        }
+        index.push(a, b, d, b, c, d);
       }
     }
   }

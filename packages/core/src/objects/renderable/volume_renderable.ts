@@ -1,13 +1,13 @@
 import type { Shader } from "../../renderers/shaders";
 import { RenderableObject } from "../../core/renderable_object";
-import { SimpleBoxGeometry } from "../geometry/simple_box_geometry";
+import { BoxGeometry } from "../geometry/box_geometry";
 import type { TextureDataType } from "../textures/texture";
 import type { Texture3D } from "../textures/texture_3d";
 
 export class VolumeRenderable extends RenderableObject {
   constructor(texture: Texture3D) {
     super();
-    this.geometry = new SimpleBoxGeometry();
+    this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
     this.cullFaceMode = "front";
