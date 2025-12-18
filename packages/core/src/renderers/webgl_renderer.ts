@@ -125,18 +125,17 @@ export class WebGLRenderer extends Renderer {
   }
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
+    if (layer.objects.length === 0) return;
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
-    const shouldUseStencil =
-      layer.objects.length > 0 && layer.hasMultipleLODs();
+    const shouldUseStencil = layer.hasMultipleLODs();
     this.state_.setStencilTest(shouldUseStencil);
     if (shouldUseStencil) {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
     }
 
-    const shouldDisableDepth =
-      layer.objects.length > 0 && layer.hasOverlappingRenderables();
-    this.state_.setDepthTesting(!shouldDisableDepth);
-    this.state_.setDepthMask(!shouldDisableDepth);
+    const shouldUseDepth = !layer.hasOverlappingRenderables();
+    this.state_.setDepthTesting(shouldUseDepth);
+    this.state_.setDepthMask(shouldUseDepth);
 
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
