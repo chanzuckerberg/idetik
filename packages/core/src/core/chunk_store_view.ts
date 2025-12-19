@@ -126,7 +126,7 @@ export class ChunkStoreView {
         visible: true,
         prefetch: false,
         priority,
-        orderKey: 0, // All chunks have same priority for volume rendering
+        orderKey: 0, // All chunks have the same ordering for volume rendering
       });
     }
 
