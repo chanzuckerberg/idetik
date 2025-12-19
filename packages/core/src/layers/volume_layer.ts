@@ -29,7 +29,7 @@ export class VolumeLayer extends Layer {
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
   private lod_ = 0;
-  public debugMode = false;
+  private debugMode_ = false;
 
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
@@ -48,6 +48,17 @@ export class VolumeLayer extends Layer {
     this.lod_ = value;
     this.clearObjects();
     this.updateChunks();
+  }
+
+  public get debugMode(): boolean {
+    return this.debugMode_;
+  }
+
+  public set debugMode(value: boolean) {
+    this.debugMode_ = value;
+    for (const volume of this.visibleChunks_.values()) {
+      volume.wireframeEnabled = value;
+    }
   }
 
   public get sourcePolicy(): Readonly<ImageSourcePolicy> {
