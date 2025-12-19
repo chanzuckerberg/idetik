@@ -44,8 +44,6 @@ const volumeLayer = new VolumeLayer({
   sliceCoords: volumeCoords,
   policy: createPlaybackPolicy(),
   lod: 2,
-  transparent: true,
-  blendMode: "premultiplied",
 });
 
 const camera2D = new OrthographicCamera(left, right, top, bottom);
