@@ -91,6 +91,21 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     vec3.copy(this.color_, newColor);
   }
 
+  private createVolume(chunk: Chunk) {
+    const numChannels = this.chunkStoreView_?.getNumChannels() ?? 1;
+    const texture =
+      numChannels === 1
+        ? Texture3D.createWithChunk(chunk)
+        : Texture3DArray.createWithChunk(chunk);
+    const volume = new VolumeRenderable(
+      texture,
+      this.channelProps_ || this.getDefaultChannelProps(numChannels),
+      chunk.shape.z
+    );
+    this.updateVolumeChunk(volume, chunk);
+    return volume;
+  }
+
   private getDefaultChannelProps(numChannels: number): ChannelProps[] {
     const props: ChannelProps[] = [];
     for (let i = 0; i < numChannels; i++) {
@@ -101,17 +116,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       });
     }
     return props;
-  }
-
-  private createVolume(chunk: Chunk) {
-    const numChannels = chunk.shape.c > 0 ? chunk.shape.c : 1;
-    const volume = new VolumeRenderable(
-      Texture3DArray.createWithChunk(chunk),
-      this.channelProps_ || this.getDefaultChannelProps(numChannels),
-      chunk.shape.z
-    );
-    this.updateVolumeChunk(volume, chunk);
-    return volume;
   }
 
   constructor({
@@ -170,7 +174,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     const pooled = this.pool_.acquire(poolKeyForChunk(chunk));
     if (pooled) {
-      const texture = pooled.textures[0] as Texture3D | Texture3DArray;
+      const texture = pooled.textures[0] as Texture3DArray | Texture3D;
       texture.updateWithChunk(chunk);
       this.updateVolumeChunk(pooled, chunk);
       return pooled;
@@ -315,7 +319,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 export function poolKeyForChunk(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}x${chunk.chunkIndex.c}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
+    `channel${chunk.chunkIndex.c}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }

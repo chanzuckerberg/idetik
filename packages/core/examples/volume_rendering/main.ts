@@ -23,6 +23,11 @@ const volumeLayer = new VolumeLayer({
   sliceCoords,
   policy: createExplorationPolicy(),
   lod: 2,
+  channelProps: [
+    { visible: true, color: [1, 0, 0], contrastLimits: [0, 255] },
+    { visible: true, color: [0, 1, 0], contrastLimits: [0, 255] },
+    { visible: true, color: [0, 0, 1], contrastLimits: [0, 255] },
+  ],
 });
 
 const t = { translate: 0.0, scale: 1.0, shape: 791 };

@@ -5,7 +5,6 @@ import {
 } from "../../objects/textures/texture";
 
 import { Chunk, ChunkData } from "../../data/chunk";
-import { Logger } from "@/utilities/logger";
 export class Texture3DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
@@ -87,15 +86,7 @@ export class Texture3DArray extends Texture {
         "Unable to create texture, chunk data is not initialized."
       );
     }
-    Logger.debug(
-      "Texture3DArray",
-      "shape",
-      chunk.shape,
-      "chunk index",
-      chunk.chunkIndex
-    );
-
-    // depth = z * c (?)
+    // depth = z * c
     const depth =
       chunk.shape.c > 0 ? chunk.shape.z * chunk.shape.c : chunk.shape.z;
     const texture = new Texture3DArray(

@@ -98,6 +98,11 @@ export class ChunkStore {
     return coordToIndex(this.dimensions_.t.lods[0], sliceCoords.t);
   }
 
+  public getNumChannels(): number {
+    if (this.dimensions_.c === undefined) return 1;
+    return this.dimensions_.c.lods[0].size;
+  }
+
   public get lodCount() {
     return this.lowestResLOD_ + 1;
   }
