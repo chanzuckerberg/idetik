@@ -11,7 +11,6 @@ import { vec3 } from "gl-matrix";
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 const source = OmeZarrImageSource.fromHttp({ url });
-
 const sliceCoords = {
   t: 400,
   z: undefined,
@@ -25,18 +24,15 @@ const volumeLayer = new VolumeLayer({
   policy: createExplorationPolicy(),
   lod: 2,
 });
-
-const cameraControls = new OrbitControls(camera, {
-  radius: 750,
-  target: vec3.fromValues(550, 500, 278), // Volume center,
-});
-
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
-      camera,
-      cameraControls: cameraControls,
+      camera: camera,
+      cameraControls: new OrbitControls(camera, {
+        radius: 750,
+        target: vec3.fromValues(550, 500, 278), // Volume center,
+      }),
       layers: [volumeLayer],
     },
   ],
