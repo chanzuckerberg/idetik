@@ -105,10 +105,6 @@ export abstract class Layer {
     return false;
   }
 
-  public hasOverlappingRenderables(): boolean {
-    return false;
-  }
-
   protected setState(newState: LayerState) {
     const prevState = this.state_;
     this.state_ = newState;

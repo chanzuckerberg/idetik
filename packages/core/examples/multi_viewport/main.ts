@@ -29,10 +29,15 @@ const zMax = z.translate + z.scale * z.shape - z.scale;
 const source = OmeZarrImageSource.fromHttp({ url });
 
 // Shared timepoint across all viewports
-const initialTimepoint = 400;
+const sharedTime = { t: 400 };
 
 // Volume layer - no z coordinate to render entire volume
-const volumeCoords = { t: initialTimepoint, c: 0 };
+const volumeCoords = {
+  get t() {
+    return sharedTime.t;
+  },
+  c: 0,
+};
 const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer({
   source,
@@ -42,9 +47,15 @@ const volumeLayer = new VolumeLayer({
   blendMode: "premultiplied",
 });
 
-const sliceCoords = { t: initialTimepoint, z: 300, c: 0 };
 const camera2D = new OrthographicCamera(left, right, top, bottom);
 camera2D.zoom(0.65);
+const sliceCoords = {
+  get t() {
+    return sharedTime.t;
+  },
+  z: 300,
+  c: 0,
+};
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords: sliceCoords,
@@ -77,10 +88,6 @@ new Idetik({
 
 const gui = new GUI({ width: 300 });
 
-const sharedTime = { t: initialTimepoint };
-volumeCoords.t = sharedTime.t;
-sliceCoords.t = sharedTime.t;
-
 // Shared time slider for all viewports with playback controls
 addDimensionSlider({
   gui: gui,
@@ -92,11 +99,6 @@ addDimensionSlider({
   playback: {
     maxRateHz: 30,
     stride: 1,
-    onRateChange: () => {
-      // Sync the time value to all viewports
-      volumeCoords.t = sharedTime.t;
-      sliceCoords.t = sharedTime.t;
-    },
   },
 });
 
@@ -109,15 +111,3 @@ addDimensionSlider({
   maxValue: zRange.max,
   stepValue: z.scale,
 });
-
-// Keep all viewports synchronized by updating on every frame
-const syncTime = () => {
-  if (volumeCoords.t !== sharedTime.t) {
-    volumeCoords.t = sharedTime.t;
-  }
-  if (sliceCoords.t !== sharedTime.t) {
-    sliceCoords.t = sharedTime.t;
-  }
-  requestAnimationFrame(syncTime);
-};
-syncTime();

@@ -20,6 +20,7 @@ export class VolumeRenderable extends RenderableObject {
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
     this.cullFaceMode = "front";
+    this.depthTest = false;
     this.channels_ = validateChannels(texture, channels);
     // Calculate depth slices: total depth divided by number of channels
     this.depthSlices_ = depthSlices ?? (channels.length > 0 ? texture.depth / channels.length : texture.depth);
