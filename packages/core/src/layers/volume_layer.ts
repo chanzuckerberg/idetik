@@ -1,5 +1,5 @@
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { Layer, LayerOptions, RenderContext } from "../core/layer";
+import { Layer, RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
@@ -9,7 +9,7 @@ import { RenderablePool } from "../utilities/renderable_pool";
 import { glMatrix, vec3 } from "gl-matrix";
 import { Camera } from "@/objects/cameras/camera";
 
-export type VolumeLayerProps = LayerOptions & {
+export type VolumeLayerProps = {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
@@ -80,16 +80,9 @@ export class VolumeLayer extends Layer {
     return volume;
   }
 
-  constructor({
-    source,
-    sliceCoords,
-    policy,
-    lod = 0,
-    transparent = true,
-    blendMode = "premultiplied",
-    ...layerOptions
-  }: VolumeLayerProps) {
-    super({ transparent, blendMode, ...layerOptions });
+  constructor({ source, sliceCoords, policy, lod = 0 }: VolumeLayerProps) {
+    // Volume rendering is always transparent with fixed blend mode
+    super({ transparent: true, blendMode: "premultiplied" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.sourcePolicy_ = policy;
