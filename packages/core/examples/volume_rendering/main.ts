@@ -29,13 +29,6 @@ const t = { translate: 0.0, scale: 1.0, shape: 791 };
 const tMin = t.translate;
 const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
-const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
-const timePointOverlay = {
-  update(_idetik: Idetik) {
-    const time = sliceCoords.t;
-    timePointDiv.textContent = `t = ${time}`;
-  },
-};
 
 const cameraControls = new OrbitControls(camera, { radius: 4000 });
 
@@ -48,7 +41,6 @@ const idetik = new Idetik({
       layers: [volumeLayer],
     },
   ],
-  overlays: [timePointOverlay],
   showStats: true,
 });
 
@@ -79,13 +71,6 @@ addDimensionSlider({
 });
 
 const overlaysFolder = gui.addFolder("Overlays");
-
-overlaysFolder
-  .add(controls, "showTimePointOverlay")
-  .name("Show time point overlay")
-  .onChange((show: boolean) => {
-    timePointDiv.style.display = show ? "block" : "none";
-  });
 
 overlaysFolder
   .add(controls, "showWireframes")
