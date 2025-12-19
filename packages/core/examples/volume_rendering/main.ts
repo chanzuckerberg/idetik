@@ -6,6 +6,7 @@ import {
 } from "@/core/image_source_policy";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
+import { vec3 } from "gl-matrix";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -25,12 +26,10 @@ const volumeLayer = new VolumeLayer({
   lod: 2,
 });
 
-const t = { translate: 0.0, scale: 1.0, shape: 791 };
-const tMin = t.translate;
-const tMax = t.translate + t.scale * t.shape - t.scale;
-const tRange = { min: tMin, max: tMax };
-
-const cameraControls = new OrbitControls(camera, { radius: 4000 });
+const cameraControls = new OrbitControls(camera, {
+  radius: 750,
+  target: vec3.fromValues(550, 500, 278), // Volume center,
+});
 
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
@@ -52,9 +51,9 @@ addDimensionSlider({
   gui,
   sliceCoords,
   dimensionName: "t",
-  minValue: tRange.min,
-  maxValue: tRange.max,
-  stepValue: t.scale,
+  minValue: 0,
+  maxValue: 800,
+  stepValue: 1.0,
   playback: {
     onRateChange: (rateHz: number) => {
       volumeLayer.sourcePolicy =
