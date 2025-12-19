@@ -43,6 +43,7 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords: volumeCoords,
   policy: createPlaybackPolicy(),
+  lod: 2,
   transparent: true,
   blendMode: "premultiplied",
 });

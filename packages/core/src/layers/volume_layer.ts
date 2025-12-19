@@ -13,6 +13,7 @@ export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
+  lod?: number;
 };
 
 export type OrderingMode = "front-to-back" | "back-to-front";
@@ -27,7 +28,7 @@ export class VolumeLayer extends Layer {
 
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
-  private lod_ = -1;
+  private lod_ = 0;
   public debugMode = false;
 
   private lastLoadedLod_ = -1;
@@ -83,6 +84,7 @@ export class VolumeLayer extends Layer {
     source,
     sliceCoords,
     policy,
+    lod = 0,
     transparent = true,
     blendMode = "premultiplied",
     ...layerOptions
@@ -91,6 +93,7 @@ export class VolumeLayer extends Layer {
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.sourcePolicy_ = policy;
+    this.lod_ = lod;
     this.setState("initialized");
   }
 
@@ -190,11 +193,6 @@ export class VolumeLayer extends Layer {
 
   public update(_context?: RenderContext) {
     if (!this.chunkStoreView_) return;
-
-    // Initialize LOD to coarsest if not set
-    if (this.lod_ === -1) {
-      this.lod_ = this.chunkStoreView_.lowestResLOD;
-    }
 
     this.chunkStoreView_.updateChunkStatesForVolume(
       this.sliceCoords_,

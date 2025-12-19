@@ -22,6 +22,7 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy: createExplorationPolicy(),
+  lod: 2,
 });
 
 const t = { translate: 0.0, scale: 1.0, shape: 791 };

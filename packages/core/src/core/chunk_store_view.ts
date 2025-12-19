@@ -189,10 +189,6 @@ export class ChunkStoreView {
     return this.currentLOD_;
   }
 
-  public get lowestResLOD(): number {
-    return this.store_.getLowestResLOD();
-  }
-
   public maybeForgetChunk(chunk: Chunk): void {
     const viewState = this.chunkViewStates_.get(chunk);
     if (
