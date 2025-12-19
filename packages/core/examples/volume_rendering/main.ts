@@ -26,7 +26,7 @@ const volumeLayer = new VolumeLayer({
   channelProps: [
     { visible: true, color: [1, 0, 0], contrastLimits: [0, 255] },
     { visible: true, color: [0, 1, 0], contrastLimits: [0, 255] },
-    { visible: true, color: [0, 0, 1], contrastLimits: [0, 255] },
+    // { visible: true, color: [0, 0, 1], contrastLimits: [0, 255] },
   ],
 });
 
