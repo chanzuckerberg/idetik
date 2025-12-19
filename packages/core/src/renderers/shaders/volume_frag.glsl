@@ -21,7 +21,7 @@ vec3 boundingboxMin = vec3(-0.50);
 vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
-uniform bool EnableRayCorrection;
+uniform bool ShowEmptyRays;
 uniform float SampleDensity;
 uniform float MaxIntensity;
 uniform float OpacityScale;
@@ -38,6 +38,8 @@ vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3
 
     float tEnter = max(max(tMin.x, tMin.y), tMin.z);
     float tExit = min(min(tMax.x, tMax.y), tMax.z);
+    tEnter = max(0.0, tEnter);
+    tExit = max(tEnter, tExit);
 
     return vec2(tEnter, tExit);
 }
@@ -54,18 +56,10 @@ void main() {
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
 
-    // Redo the calculation with a slightly bigger box if the ray direction was flipped
-    bool invalidIntersection = tExit < 0.0 || (tExit < tEnter);
-    if (invalidIntersection && EnableRayCorrection) {
-        // vec2 rayIntersections = findBoxIntersectionsAlongRay(
-        //     CameraPositionModel, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
-        // );
-        // tEnter = rayIntersections.x;
-        // tExit = rayIntersections.y;
+    if (ShowEmptyRays && (tExit == tEnter)) {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
-    tExit = max(tEnter, tExit);
 
     vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter;
     entryPoint = clamp(entryPoint + 0.5, 0.0, 1.0);

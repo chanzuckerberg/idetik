@@ -126,7 +126,7 @@ export class ChunkStoreView {
         visible: true,
         prefetch: false,
         priority,
-        orderKey: 0, // All chunks have same priority for volume rendering
+        orderKey: 0, // All chunks have the same ordering for volume rendering
       });
     }
 
@@ -187,10 +187,6 @@ export class ChunkStoreView {
 
   public get currentLOD(): number {
     return this.currentLOD_;
-  }
-
-  public get lowestResLOD(): number {
-    return this.store_.getLowestResLOD();
   }
 
   public maybeForgetChunk(chunk: Chunk): void {

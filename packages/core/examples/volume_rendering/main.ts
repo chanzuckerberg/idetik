@@ -22,19 +22,13 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy: createExplorationPolicy(),
+  lod: 2,
 });
 
 const t = { translate: 0.0, scale: 1.0, shape: 791 };
 const tMin = t.translate;
 const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
-const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
-const timePointOverlay = {
-  update(_idetik: Idetik) {
-    const time = sliceCoords.t;
-    timePointDiv.textContent = `t = ${time}`;
-  },
-};
 
 const cameraControls = new OrbitControls(camera, { radius: 4000 });
 
@@ -47,21 +41,13 @@ const idetik = new Idetik({
       layers: [volumeLayer],
     },
   ],
-  overlays: [timePointOverlay],
   showStats: true,
 });
 
 idetik.start();
 
-const controls = {
-  showWireframes: volumeLayer.debugMode,
-  showTimePointOverlay: true,
-  enableRayCorrection: false,
-  lod: 2,
-};
-
+// Add GUI controls to manipulate rendering
 const gui = new GUI({ width: 500 });
-
 addDimensionSlider({
   gui,
   sliceCoords,
@@ -76,52 +62,22 @@ addDimensionSlider({
     },
   },
 });
-
-const overlaysFolder = gui.addFolder("Overlays");
-
-overlaysFolder
-  .add(controls, "showTimePointOverlay")
-  .name("Show time point overlay")
-  .onChange((show: boolean) => {
-    timePointDiv.style.display = show ? "block" : "none";
-  });
-
-overlaysFolder
-  .add(controls, "showWireframes")
-  .name("Show tile wireframes")
-  .onChange((show: boolean) => {
-    volumeLayer.debugMode = show;
-    controls.showWireframes = show;
-  });
-
-overlaysFolder
-  .add(controls, "enableRayCorrection")
-  .name("Enable Ray Correction at Bounds")
-  .onChange((show: boolean) => {
-    controls.enableRayCorrection = show;
-    volumeLayer.enableRayCorrection = show;
-  });
+gui.add(volumeLayer, "lod", 0, 2, 1).name("Level of Detail (LOD)");
 
 const volumeFolder = gui.addFolder("Volume Rendering");
-
-volumeFolder
-  .add(controls, "lod", 0, 2, 1)
-  .name("Level of Detail (LOD)")
-  .onChange((lod: number) => {
-    volumeLayer.lod = lod;
-    controls.lod = lod;
-  });
-
 volumeFolder
   .add(volumeLayer, "sampleDensity", 16, 512, 1)
-  .name("Sample Density");
-
-volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max Intensity");
-
+  .name("Sample density");
+volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
 volumeFolder
   .add(volumeLayer, "opacityScale", 0.01, 1.0, 0.01)
-  .name("Opacity Scale");
-
+  .name("Opacity scale");
 volumeFolder
-  .add(volumeLayer, "alphaThreshold", 0.5, 1.0, 0.01)
-  .name("Alpha Threshold");
+  .add(volumeLayer, "alphaThreshold", 0.8, 1.0, 0.01)
+  .name("Early termination threshold");
+
+const overlaysFolder = gui.addFolder("Debug");
+overlaysFolder.add(volumeLayer, "debugMode").name("Show tile wireframes");
+overlaysFolder
+  .add(volumeLayer, "showEmptyRays")
+  .name("Show rays with length 0");

@@ -4,6 +4,7 @@ import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
+import { Texture3D } from "../objects/textures/texture_3d";
 import { Texture3DArray } from "../objects/textures/texture_3d_array";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { glMatrix, vec3 } from "gl-matrix";
@@ -14,6 +15,7 @@ export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
+  lod?: number;
   channelProps?: ChannelProps[];
 };
 
@@ -32,12 +34,12 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
-  private lod_ = -1;
-  public debugMode = false;
+  private lod_ = 0;
+  private debugMode_ = false;
 
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
-  public enableRayCorrection = false;
+  public showEmptyRays = false;
   private color_ = vec3.fromValues(1.0, 1.0, 1.0);
   public sampleDensity = 128.0; // Samples per unit texture space
   public maxIntensity = 255.0; // Normalization factor for intensity
@@ -52,6 +54,17 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.lod_ = value;
     this.clearObjects();
     this.updateChunks();
+  }
+
+  public get debugMode(): boolean {
+    return this.debugMode_;
+  }
+
+  public set debugMode(value: boolean) {
+    this.debugMode_ = value;
+    for (const volume of this.visibleChunks_.values()) {
+      volume.wireframeEnabled = value;
+    }
   }
 
   public get sourcePolicy(): Readonly<ImageSourcePolicy> {
@@ -78,17 +91,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     vec3.copy(this.color_, newColor);
   }
 
-  private createVolume(chunk: Chunk) {
-    const numChannels = chunk.shape.c > 0 ? chunk.shape.c : 1;
-    const volume = new VolumeRenderable(
-      Texture3DArray.createWithChunk(chunk),
-      this.channelProps_ || this.getDefaultChannelProps(numChannels),
-      chunk.shape.z
-    );
-    this.updateVolumeChunk(volume, chunk);
-    return volume;
-  }
-
   private getDefaultChannelProps(numChannels: number): ChannelProps[] {
     const props: ChannelProps[] = [];
     for (let i = 0; i < numChannels; i++) {
@@ -101,19 +103,30 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     return props;
   }
 
+  private createVolume(chunk: Chunk) {
+    const numChannels = chunk.shape.c > 0 ? chunk.shape.c : 1;
+    const volume = new VolumeRenderable(
+      Texture3DArray.createWithChunk(chunk),
+      this.channelProps_ || this.getDefaultChannelProps(numChannels),
+      chunk.shape.z
+    );
+    this.updateVolumeChunk(volume, chunk);
+    return volume;
+  }
+
   constructor({
     source,
     sliceCoords,
     policy,
+    lod = 0,
     channelProps,
-    transparent = true,
-    blendMode = "premultiplied",
-    ...layerOptions
   }: VolumeLayerProps) {
-    super({ transparent, blendMode, ...layerOptions });
+    // Volume rendering is always transparent with fixed blend mode
+    super({ transparent: true, blendMode: "premultiplied" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.sourcePolicy_ = policy;
+    this.lod_ = lod;
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.setState("initialized");
@@ -157,7 +170,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     const pooled = this.pool_.acquire(poolKeyForChunk(chunk));
     if (pooled) {
-      const texture = pooled.textures[0] as Texture3DArray;
+      const texture = pooled.textures[0] as Texture3D | Texture3DArray;
       texture.updateWithChunk(chunk);
       this.updateVolumeChunk(pooled, chunk);
       return pooled;
@@ -248,11 +261,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   public update(_context?: RenderContext) {
     if (!this.chunkStoreView_) return;
 
-    // Initialize LOD to coarsest if not set
-    if (this.lod_ === -1) {
-      this.lod_ = this.chunkStoreView_.lowestResLOD;
-    }
-
     this.chunkStoreView_.updateChunkStatesForVolume(
       this.sliceCoords_,
       this.lod_
@@ -294,7 +302,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public getUniforms(): Record<string, unknown> {
     return {
-      EnableRayCorrection: Number(this.enableRayCorrection),
+      ShowEmptyRays: Number(this.showEmptyRays),
       SampleDensity: this.sampleDensity,
       MaxIntensity: this.maxIntensity,
       OpacityScale: this.opacityScale,
