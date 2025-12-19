@@ -190,14 +190,6 @@ export class WebGLRenderer extends Renderer {
     );
     const resolution = [this.canvas.width, this.canvas.height];
 
-    const inverseModelView = mat4.invert(mat4.create(), modelView);
-    const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
-    const cameraPositionModel = vec4.transformMat4(
-      vec4.create(),
-      cameraPositionView,
-      inverseModelView
-    );
-
     const objectUniforms = object.getUniforms();
     const layerUniforms = layer.getUniforms();
     const allUniforms = {
@@ -219,7 +211,14 @@ export class WebGLRenderer extends Renderer {
         case "u_opacity":
           program.setUniform(uniformName, layer.opacity);
           break;
-        case "CameraPositionModel":
+        case "CameraPositionModel": {
+          const inverseModelView = mat4.invert(mat4.create(), modelView);
+          const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
+          const cameraPositionModel = vec4.transformMat4(
+            vec4.create(),
+            cameraPositionView,
+            inverseModelView
+          );
           program.setUniform(
             uniformName,
             vec3.fromValues(
@@ -229,6 +228,7 @@ export class WebGLRenderer extends Renderer {
             )
           );
           break;
+        }
         default:
           if (uniformName in allUniforms) {
             program.setUniform(uniformName, allUniforms[uniformName]);
