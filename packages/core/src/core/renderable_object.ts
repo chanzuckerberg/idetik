@@ -10,6 +10,7 @@ import { CullingMode } from "../renderers/WebGLState";
 export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
   public wireframeColor = Color.WHITE;
+  public depthTest = true;
   private readonly textures_: Texture[] = [];
   private staleTextures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();

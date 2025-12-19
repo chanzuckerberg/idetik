@@ -133,10 +133,6 @@ export class WebGLRenderer extends Renderer {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
     }
 
-    const shouldUseDepth = !layer.hasOverlappingRenderables();
-    this.state_.setDepthTesting(shouldUseDepth);
-    this.state_.setDepthMask(shouldUseDepth);
-
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
         this.renderObject(layer, i, camera);
@@ -148,6 +144,8 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
     this.state_.setCullFaceMode(object.cullFaceMode);
+    this.state_.setDepthTesting(object.depthTest);
+    this.state_.setDepthMask(object.depthTest);
     this.bindings_.bindGeometry(object.geometry);
     object.popStaleTextures().forEach((texture) => {
       this.textures_.disposeTexture(texture);

@@ -69,10 +69,6 @@ export class VolumeLayer extends Layer {
     return this.color_;
   }
 
-  public hasOverlappingRenderables(): boolean {
-    return true;
-  }
-
   public set color(newColor: vec3) {
     vec3.copy(this.color_, newColor);
   }

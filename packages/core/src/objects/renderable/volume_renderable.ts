@@ -11,6 +11,7 @@ export class VolumeRenderable extends RenderableObject {
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
     this.cullFaceMode = "front";
+    this.depthTest = false;
   }
 
   public get type() {
