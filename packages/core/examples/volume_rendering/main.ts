@@ -24,23 +24,19 @@ const volumeLayer = new VolumeLayer({
   policy: createExplorationPolicy(),
 });
 
-// Largely copied from chunk streaming example
 const t = { translate: 0.0, scale: 1.0, shape: 791 };
 const tMin = t.translate;
 const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
 const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
 const timePointOverlay = {
-  update(_idetik: Idetik, _timestamp?: DOMHighResTimeStamp) {
+  update(_idetik: Idetik) {
     const time = sliceCoords.t;
     timePointDiv.textContent = `t = ${time}`;
   },
 };
 
-const spherical = {
-  radius: 4000,
-};
-const cameraControls = new OrbitControls(camera, spherical);
+const cameraControls = new OrbitControls(camera, { radius: 4000 });
 
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
