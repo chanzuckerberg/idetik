@@ -13,12 +13,11 @@ import { Texture3D } from "../textures/texture_3d";
 
 export class VolumeRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
-  private depthSlices_: number;
+  private channelStride_: number;
 
   constructor(
     texture: Texture3D | Texture3DArray,
-    channels: ChannelProps[] = [],
-    depthSlices?: number
+    channels: ChannelProps[] = []
   ) {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
@@ -27,10 +26,7 @@ export class VolumeRenderable extends RenderableObject {
     this.cullFaceMode = "front";
     this.depthTest = false;
     this.channels_ = validateChannels(texture, channels);
-    // Calculate depth slices: total depth divided by number of channels
-    this.depthSlices_ =
-      depthSlices ??
-      (channels.length > 0 ? texture.depth / channels.length : texture.depth);
+    this.channelStride_ = texture.width * texture.height * texture.depth;
   }
 
   public setChannelProps(channels: ChannelProps[]) {
@@ -65,10 +61,6 @@ export class VolumeRenderable extends RenderableObject {
       throw new Error("No texture set");
     }
 
-    if (texture.type === "Texture3D") {
-      return {};
-    }
-
     // Build arrays for all channels
     this.channels_.forEach((channel) => {
       visible.push(channel.visible);
@@ -86,7 +78,7 @@ export class VolumeRenderable extends RenderableObject {
       "ValueOffset[0]": valueOffset,
       "ValueScale[0]": valueScale,
       ChannelCount: this.channels_.length,
-      DepthSlices: this.depthSlices_,
+      DepthSlices: this.channelStride_,
     };
   }
 }

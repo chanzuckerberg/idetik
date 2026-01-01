@@ -6,7 +6,7 @@ precision highp float;
 layout (location = 0) out vec4 fragColor;
 
 #if defined TEXTURE_DATA_TYPE_INT
-uniform mediump isampler3D ImageSampler;
+uniform mediump sampler3D ImageSampler;
 #elif defined TEXTURE_DATA_TYPE_UINT
 uniform mediump usampler3D ImageSampler;
 #else
@@ -15,18 +15,27 @@ uniform mediump sampler3D ImageSampler;
 
 uniform highp vec3 CameraPositionModel;
 in highp vec3 PositionModel;
+in vec2 TexCoords;
 
 // The bounding box in model space is normalized to -0.5 to 0.5
 vec3 boundingboxMin = vec3(-0.50);
 vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
-uniform bool ShowEmptyRays;
+uniform bool EnableRayCorrection;
 uniform float SampleDensity;
 uniform float MaxIntensity;
 uniform float OpacityScale;
 uniform float AlphaThreshold;
-uniform vec3 VolumeColor;
+
+// Multi-channel support (backwards compatible with single channel)
+#define MAX_CHANNELS 32
+uniform uint ChannelCount;
+uniform bool Visible[MAX_CHANNELS];
+uniform vec3 Color[MAX_CHANNELS];
+uniform float ValueOffset[MAX_CHANNELS];
+uniform float ValueScale[MAX_CHANNELS];
+uniform float DepthSlices; // Number of Z slices (for Texture3DArray array index calculation)
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -38,8 +47,6 @@ vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3
 
     float tEnter = max(max(tMin.x, tMin.y), tMin.z);
     float tExit = min(min(tMax.x, tMax.y), tMax.z);
-    tEnter = max(0.0, tEnter);
-    tExit = max(tEnter, tExit);
 
     return vec2(tEnter, tExit);
 }
@@ -56,10 +63,18 @@ void main() {
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
 
-    if (ShowEmptyRays && (tExit == tEnter)) {
+    // Redo the calculation with a slightly bigger box if the ray direction was flipped
+    bool invalidIntersection = tExit < 0.0 || (tExit < tEnter);
+    if (invalidIntersection && EnableRayCorrection) {
+        // vec2 rayIntersections = findBoxIntersectionsAlongRay(
+        //     CameraPositionModel, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
+        // );
+        // tEnter = rayIntersections.x;
+        // tExit = rayIntersections.y;
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
+    tExit = max(tEnter, tExit);
 
     vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter;
     entryPoint = clamp(entryPoint + 0.5, 0.0, 1.0);
@@ -75,23 +90,50 @@ void main() {
     // Step 3 - perform the ray marching and compositing in front to back order
     vec3 position = entryPoint;
     vec4 accumulatedColor = vec4(0.0);
-    float sampledData, sampleAlpha, blendedSampleAlpha;
 
     // Later replace by an invlerp, but overall provides a way to map the incoming
     // sampled texture value to an alpha value
-    float intensityScale = (1.0 / MaxIntensity) * OpacityScale;
+    float intensityScale = OpacityScale;
 
-    // March until we reach the number of samples or accumulate enough opacity
+    //fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    //return;
+
+    float channelScale = 1.0 / float(ChannelCount);
+
     for (int i = 0; i < numSamples && accumulatedColor.a < AlphaThreshold; i++) {
-        sampledData = vec4(texture(ImageSampler, position)).r;
-        sampleAlpha = sampledData * intensityScale;
-        blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;
+        vec3 sampleColor = vec3(0.0);
+        float totalAlpha = 0.0;
+
+        // Sample all visible channels and composite them
+        for (uint ch = 0u; ch < ChannelCount; ch++) {
+            if (!Visible[ch]) continue;
+            float thisChannelScale = float(ch) * channelScale;
+
+            // For Texture3DArray we pick the right index: array index = z_slice + channel * num_z_slices
+            // position.z is in [0,1], scale it to slice index
+            position.z = position.z * channelScale + thisChannelScale;
+
+            vec3 samplePosition = vec3(TexCoords.x, TexCoords.y, 0.8);
+            float texel = float(texture(ImageSampler, position).r);
+            float value = (texel + ValueOffset[ch]) * ValueScale[ch];
+
+            float sampleAlpha = value * intensityScale;
+            sampleColor += sampleAlpha * Color[ch];
+            totalAlpha += sampleAlpha * channelScale;
+        }
+
+        // Clamp total alpha to prevent over-saturation with multiple channels
+        totalAlpha = clamp(totalAlpha, 0.0, 1.0);
+        float blendedSampleAlpha = (1.0 - accumulatedColor.a) * totalAlpha;
 
         // Front-to-back compositing
         accumulatedColor.a += blendedSampleAlpha;
-        accumulatedColor.rgb += VolumeColor * blendedSampleAlpha;
+        accumulatedColor.rgb += sampleColor * blendedSampleAlpha;
         position += stepIncrement;
     }
 
+    //fragColor = vec4(totalAlpha, 0.0, 0.0, 1.0);
     fragColor = accumulatedColor;
+    //float samplev = texture(ImageSampler, vec3(TexCoords.x, TexCoords.y, 0.8)).r;
+    //fragColor = vec4(samplev / 400.0, 0.0, 0.0, 1.0);
 }

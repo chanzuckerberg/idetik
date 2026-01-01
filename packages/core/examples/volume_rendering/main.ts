@@ -15,6 +15,7 @@ const source = OmeZarrImageSource.fromHttp({ url });
 const sliceCoords = {
   t: 0,
   z: undefined,
+  c: undefined, // multi-channel rendering
 };
 
 const camera = new PerspectiveCamera();
@@ -24,9 +25,9 @@ const volumeLayer = new VolumeLayer({
   policy: createExplorationPolicy(),
   lod: 2,
   channelProps: [
-    { visible: true, color: [1, 0, 0], contrastLimits: [0, 255] },
-    { visible: true, color: [0, 1, 0], contrastLimits: [0, 255] },
-    // { visible: true, color: [0, 0, 1], contrastLimits: [0, 255] },
+    { visible: false, color: [1, 1, 1], contrastLimits: [-1, 1] },
+    { visible: true, color: [0, 0, 1], contrastLimits: [108, 353] },
+    { visible: true, color: [0, 1, 0], contrastLimits: [144, 3825] },
   ],
 });
 

@@ -10,6 +10,7 @@ import { RenderablePool } from "../utilities/renderable_pool";
 import { glMatrix, vec3 } from "gl-matrix";
 import { Camera } from "@/objects/cameras/camera";
 import { ChannelProps, ChannelsEnabled } from "@/objects/textures/channel";
+import { Logger } from "@/utilities/logger";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -43,7 +44,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private color_ = vec3.fromValues(1.0, 1.0, 1.0);
   public sampleDensity = 128.0; // Samples per unit texture space
   public maxIntensity = 255.0; // Normalization factor for intensity
-  public opacityScale = 0.1; // Alpha multiplier
+  public opacityScale = 1.0; // Alpha multiplier
   public alphaThreshold = 0.99; // Early ray termination threshold
 
   public get lod() {
@@ -93,14 +94,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private createVolume(chunk: Chunk) {
     const numChannels = this.chunkStoreView_?.getNumChannels() ?? 1;
-    const texture =
-      numChannels === 1
-        ? Texture3D.createWithChunk(chunk)
-        : Texture3DArray.createWithChunk(chunk);
+    const texture = Texture3D.createWithChunk(chunk);
     const volume = new VolumeRenderable(
       texture,
-      this.channelProps_ || this.getDefaultChannelProps(numChannels),
-      chunk.shape.z
+      this.channelProps_ || this.getDefaultChannelProps(numChannels)
     );
     this.updateVolumeChunk(volume, chunk);
     return volume;
@@ -168,19 +165,66 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.channelChangeCallbacks_.splice(index, 1);
   }
 
-  private getVolumeForChunk(chunk: Chunk): VolumeRenderable {
+  private getVolumeForChunk(
+    renderableChunks: Chunk[],
+    chunkIndex: number
+  ): VolumeRenderable | null {
+    const chunk = renderableChunks[chunkIndex];
     const existing = this.visibleChunks_.get(chunk);
     if (existing) return existing;
 
-    const pooled = this.pool_.acquire(poolKeyForChunk(chunk));
+    const numChannels = this.chunkStoreView_?.getNumChannels() ?? 1;
+    let chunkToAdd = chunk;
+    if (numChannels > 1) {
+      // Find all the chunks which match the spatial coordinates of the current chunk
+      // but have different channel indices, to create a larger 3D texture
+      // which contains all channels for that spatial location.
+      const matchingChunks = renderableChunks.filter((otherChunk) => {
+        return (
+          otherChunk.chunkIndex.x === chunk.chunkIndex.x &&
+          otherChunk.chunkIndex.y === chunk.chunkIndex.y &&
+          otherChunk.chunkIndex.z === chunk.chunkIndex.z &&
+          otherChunk.lod === chunk.lod
+        );
+      });
+
+      if (matchingChunks.length === numChannels) {
+        chunkToAdd = { ...chunk };
+        // Sort the matching chunks by channel index
+        matchingChunks.sort((a, b) => a.chunkIndex.c - b.chunkIndex.c);
+        // Combine the data from all matching chunks into a single chunk with multiple channels
+        // TODO fix to handle different data types
+        const combinedData = new Float32Array(
+          matchingChunks[0].shape.x *
+            matchingChunks[0].shape.y *
+            matchingChunks[0].shape.z *
+            numChannels
+        );
+        for (let c = 0; c < numChannels; c++) {
+          const sourceData = matchingChunks[c].data as Float32Array;
+          const channelSize =
+            matchingChunks[c].shape.x *
+            matchingChunks[c].shape.y *
+            matchingChunks[c].shape.z;
+          combinedData.set(sourceData, c * channelSize);
+        }
+        chunkToAdd.data = combinedData;
+        chunkToAdd.shape.z = chunkToAdd.shape.z * numChannels;
+      } else {
+        // We are still waiting on some channels to load, so we cannot create the volume yet.
+        return null;
+      }
+    }
+
+    const pooled = this.pool_.acquire(poolKeyForChunk(chunkToAdd));
     if (pooled) {
       const texture = pooled.textures[0] as Texture3DArray | Texture3D;
-      texture.updateWithChunk(chunk);
-      this.updateVolumeChunk(pooled, chunk);
+      texture.updateWithChunk(chunkToAdd);
+      this.updateVolumeChunk(pooled, chunkToAdd);
       return pooled;
     }
 
-    return this.createVolume(chunk);
+    return this.createVolume(chunkToAdd);
   }
 
   public async onAttached(context: IdetikContext) {
@@ -204,12 +248,14 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     const chunksToRender = this.chunkStoreView_.getChunksToRender(
       this.sliceCoords_
     );
+    const numChannels = this.chunkStoreView_.getNumChannels();
+    const numChunksToRender = chunksToRender.length / numChannels;
 
     const currentTime = this.sliceCoords_.t ?? -1;
     const needsUpdate =
       this.lastLoadedLod_ !== this.lod_ ||
       this.lastLoadedTime_ !== currentTime ||
-      chunksToRender.length !== this.visibleChunks_.size;
+      numChunksToRender !== this.visibleChunks_.size;
 
     if (!needsUpdate) return;
 
@@ -221,10 +267,11 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.releaseAndRemoveChunks(chunksToRemove);
 
     this.clearObjects();
-    for (const chunk of chunksToRender) {
-      const volume = this.getVolumeForChunk(chunk);
+    for (let i = 0; i < numChunksToRender; i++) {
+      const volume = this.getVolumeForChunk(chunksToRender, i);
+      if (!volume) continue;
       volume.wireframeEnabled = this.debugMode;
-      this.visibleChunks_.set(chunk, volume);
+      this.visibleChunks_.set(chunksToRender[i], volume);
       this.addObject(volume);
     }
 
@@ -235,15 +282,17 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   private updateVolumeChunk(volume: VolumeRenderable, chunk: Chunk) {
+    const numChannels = this.chunkStoreView_?.getNumChannels() ?? 1;
+    const realChunkDepth = chunk.shape.z / numChannels;
     volume.transform.setScale([
       chunk.shape.x * chunk.scale.x,
       chunk.shape.y * chunk.scale.y,
-      chunk.shape.z * chunk.scale.z,
+      realChunkDepth * chunk.scale.z,
     ]);
     const originOffset = {
       x: (chunk.shape.x * chunk.scale.x) / 2,
       y: (chunk.shape.y * chunk.scale.y) / 2,
-      z: (chunk.shape.z * chunk.scale.z) / 2,
+      z: (realChunkDepth * chunk.scale.z) / 2,
     };
     volume.transform.setTranslation([
       chunk.offset.x + originOffset.x,
@@ -277,6 +326,13 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       );
     } else {
       this.reorderObjects(_context.viewport.camera, "front-to-back");
+      if (this.objects.length > 0) {
+        Logger.debug(
+          "VolumeLayer",
+          "Reordered objects",
+          this.objects[0].boundingBox
+        );
+      }
     }
   }
 
