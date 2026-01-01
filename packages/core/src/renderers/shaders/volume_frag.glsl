@@ -116,14 +116,14 @@ void main() {
             float texel = float(texture(ImageSampler, position).r);
             float value = (texel + ValueOffset[ch]) * ValueScale[ch];
 
-            float sampleAlpha = value * intensityScale;
-            sampleColor += sampleAlpha * Color[ch] * channelScale;
-            totalAlpha += sampleAlpha * channelScale * 0.008;
+            float sampleAlpha = clamp(value, 0.0, 1.0);
+            sampleColor += sampleAlpha * Color[ch];
+            totalAlpha += sampleAlpha * channelScale * intensityScale;
         }
 
         // Clamp total alpha to prevent over-saturation with multiple channels
         totalAlpha = clamp(totalAlpha, 0.0, 1.0);
-        float blendedSampleAlpha = (1.0 - accumulatedColor.a) * totalAlpha;
+        float blendedSampleAlpha = (1.0 - accumulatedColor.a) * totalAlpha * 0.001;
 
         // Front-to-back compositing
         accumulatedColor.a += blendedSampleAlpha;
