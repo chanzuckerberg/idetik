@@ -10,7 +10,6 @@ import { RenderablePool } from "../utilities/renderable_pool";
 import { glMatrix, vec3 } from "gl-matrix";
 import { Camera } from "@/objects/cameras/camera";
 import { ChannelProps, ChannelsEnabled } from "@/objects/textures/channel";
-import { Logger } from "@/utilities/logger";
 
 export type VolumeLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -326,13 +325,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       );
     } else {
       this.reorderObjects(_context.viewport.camera, "front-to-back");
-      if (this.objects.length > 0) {
-        Logger.debug(
-          "VolumeLayer",
-          "Reordered objects",
-          this.objects[0].boundingBox
-        );
-      }
     }
   }
 
