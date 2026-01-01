@@ -19,6 +19,10 @@ const sliceCoords = {
 };
 
 const camera = new PerspectiveCamera();
+// If you make the first channel not visible, in the shader code
+// you should also change the scaling. That can be made more user-friendly later.
+// the reason for this is that right now alpha is taken as the average of all channels' alpha values.
+// and the first channel has high values that dominate the alpha calculation.
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
@@ -36,7 +40,7 @@ const tMin = t.translate;
 const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
 
-const cameraControls = new OrbitControls(camera, { radius: 4000 });
+const cameraControls = new OrbitControls(camera, { radius: 400 });
 
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
