@@ -113,13 +113,12 @@ void main() {
             // position.z is in [0,1], scale it to slice index
             position.z = position.z * channelScale + thisChannelScale;
 
-            vec3 samplePosition = vec3(TexCoords.x, TexCoords.y, 0.8);
             float texel = float(texture(ImageSampler, position).r);
             float value = (texel + ValueOffset[ch]) * ValueScale[ch];
 
             float sampleAlpha = value * intensityScale;
-            sampleColor += sampleAlpha * Color[ch];
-            totalAlpha += sampleAlpha * channelScale;
+            sampleColor += sampleAlpha * Color[ch] * channelScale;
+            totalAlpha += sampleAlpha * channelScale * 0.008;
         }
 
         // Clamp total alpha to prevent over-saturation with multiple channels
@@ -132,8 +131,5 @@ void main() {
         position += stepIncrement;
     }
 
-    //fragColor = vec4(totalAlpha, 0.0, 0.0, 1.0);
     fragColor = accumulatedColor;
-    //float samplev = texture(ImageSampler, vec3(TexCoords.x, TexCoords.y, 0.8)).r;
-    //fragColor = vec4(samplev / 400.0, 0.0, 0.0, 1.0);
 }

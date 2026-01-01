@@ -25,7 +25,7 @@ const volumeLayer = new VolumeLayer({
   policy: createExplorationPolicy(),
   lod: 2,
   channelProps: [
-    { visible: false, color: [1, 1, 1], contrastLimits: [-1, 1] },
+    { visible: true, color: [1, 1, 1], contrastLimits: [-1.5, 1.7] },
     { visible: true, color: [0, 0, 1], contrastLimits: [108, 353] },
     { visible: true, color: [0, 1, 0], contrastLimits: [144, 3825] },
   ],
