@@ -1,7 +1,11 @@
 import type { Shader } from "../../renderers/shaders";
 import { RenderableObject } from "../../core/renderable_object";
 import { BoxGeometry } from "../geometry/box_geometry";
-import type { Texture, TextureDataType } from "../textures/texture";
+import {
+  textureDefaultValueRange,
+  Texture,
+  TextureDataType,
+} from "../textures/texture";
 import type { Texture3DArray } from "../textures/texture_3d_array";
 import {
   Channel,
@@ -61,7 +65,21 @@ export class VolumeRenderable extends RenderableObject {
       throw new Error("No texture set");
     }
 
-    // Build arrays for all channels
+    // If no channels provided, assume single channel with default settings
+    if (this.channels_.length === 0) {
+      const defaultRange = textureDefaultValueRange(texture);
+      return {
+        ImageSampler: 0,
+        "Visible[0]": [true],
+        "Color[0]": [1, 1, 1],
+        "ValueOffset[0]": [-defaultRange[0]],
+        "ValueScale[0]": [1 / (defaultRange[1] - defaultRange[0])],
+        ChannelCount: 1,
+        DepthSlices: 0,
+      };
+    }
+
+    // Build arrays for all channels if provided
     this.channels_.forEach((channel) => {
       visible.push(channel.visible);
       color.push(...channel.color.rgb);

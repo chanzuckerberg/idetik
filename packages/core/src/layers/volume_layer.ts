@@ -1,4 +1,9 @@
-import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import {
+  Chunk,
+  ChunkSource,
+  SliceCoordinates,
+  ChunkDataConstructor,
+} from "../data/chunk";
 import { Layer, LayerOptions, RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
@@ -43,7 +48,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private color_ = vec3.fromValues(1.0, 1.0, 1.0);
   public sampleDensity = 128.0; // Samples per unit texture space
   public maxIntensity = 255.0; // Normalization factor for intensity
-  public opacityScale = 1.0; // Alpha multiplier
+  public opacityScale = 0.1; // Alpha multiplier
   public alphaThreshold = 0.99; // Early ray termination threshold
 
   public get lod() {
@@ -192,21 +197,28 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
         // Sort the matching chunks by channel index
         matchingChunks.sort((a, b) => a.chunkIndex.c - b.chunkIndex.c);
         // Combine the data from all matching chunks into a single chunk with multiple channels
-        // TODO fix to handle different data types
-        const combinedData = new Float32Array(
+
+        // Get the constructor of the first chunk's data to determine the data type
+        const DataConstructor = matchingChunks[0].data!
+          .constructor as ChunkDataConstructor;
+        const totalElements =
           matchingChunks[0].shape.x *
-            matchingChunks[0].shape.y *
-            matchingChunks[0].shape.z *
-            numChannels
-        );
+          matchingChunks[0].shape.y *
+          matchingChunks[0].shape.z *
+          numChannels;
+
+        // Create the combined data array with the same type as the source data
+        const combinedData = new DataConstructor(totalElements);
+
         for (let c = 0; c < numChannels; c++) {
-          const sourceData = matchingChunks[c].data as Float32Array;
+          const sourceData = matchingChunks[c].data!;
           const channelSize =
             matchingChunks[c].shape.x *
             matchingChunks[c].shape.y *
             matchingChunks[c].shape.z;
           combinedData.set(sourceData, c * channelSize);
         }
+
         chunkToAdd.data = combinedData;
         chunkToAdd.shape.z = chunkToAdd.shape.z * numChannels;
       } else {

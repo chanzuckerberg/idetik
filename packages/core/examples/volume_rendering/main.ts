@@ -7,9 +7,46 @@ import {
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
-const url =
-  // "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
-  "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/";
+const exampleType: "singleChannel" | "multiChannel" = "multiChannel";
+
+const exampleSetupInfo = {
+  singleChannel: {
+    url: "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/",
+    channelProps: [
+      {
+        visible: true,
+        color: [1, 1, 1] as [number, number, number],
+        contrastLimits: [0, 264] as [number, number],
+      },
+    ],
+    radius: 4000,
+  },
+  multiChannel: {
+    url: "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/",
+    channelProps: [
+      {
+        visible: false,
+        color: [1, 1, 1] as [number, number, number],
+        contrastLimits: [-1.5, 10.0] as [number, number],
+      },
+      {
+        visible: true,
+        color: [0, 0, 1] as [number, number, number],
+        contrastLimits: [108, 353] as [number, number],
+      },
+      {
+        visible: true,
+        color: [0, 1, 0] as [number, number, number],
+        contrastLimits: [144, 3825] as [number, number],
+      },
+    ],
+    radius: 400,
+  },
+};
+
+const { url, channelProps, radius } = exampleSetupInfo[exampleType];
+
+// Normal code execution for either single-channel or multi-channel
 const source = OmeZarrImageSource.fromHttp({ url });
 
 const sliceCoords = {
@@ -28,11 +65,7 @@ const volumeLayer = new VolumeLayer({
   sliceCoords,
   policy: createExplorationPolicy(),
   lod: 2,
-  channelProps: [
-    { visible: true, color: [1, 1, 1], contrastLimits: [-1.5, 1.7] },
-    { visible: true, color: [0, 0, 1], contrastLimits: [108, 353] },
-    { visible: true, color: [0, 1, 0], contrastLimits: [144, 3825] },
-  ],
+  channelProps,
 });
 
 const t = { translate: 0.0, scale: 1.0, shape: 791 };
@@ -40,7 +73,7 @@ const tMin = t.translate;
 const tMax = t.translate + t.scale * t.shape - t.scale;
 const tRange = { min: tMin, max: tMax };
 
-const cameraControls = new OrbitControls(camera, { radius: 400 });
+const cameraControls = new OrbitControls(camera, { radius });
 
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
@@ -80,7 +113,7 @@ volumeFolder
   .name("Sample density");
 volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
 volumeFolder
-  .add(volumeLayer, "opacityScale", 0.01, 1.0, 0.01)
+  .add(volumeLayer, "opacityScale", 0.001, 1.0, 0.001)
   .name("Opacity scale");
 volumeFolder
   .add(volumeLayer, "alphaThreshold", 0.8, 1.0, 0.01)

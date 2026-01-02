@@ -95,39 +95,31 @@ void main() {
     // sampled texture value to an alpha value
     float intensityScale = OpacityScale;
 
-    //fragColor = vec4(1.0, 0.0, 0.0, 1.0);
-    //return;
-
     float channelScale = 1.0 / float(ChannelCount);
 
+    vec3 sampleColor = vec3(0.0);
+    float totalAlpha = 0.0;
     for (int i = 0; i < numSamples && accumulatedColor.a < AlphaThreshold; i++) {
-        vec3 sampleColor = vec3(0.0);
-        float totalAlpha = 0.0;
 
         // Sample all visible channels and composite them
         for (uint ch = 0u; ch < ChannelCount; ch++) {
             if (!Visible[ch]) continue;
             float thisChannelScale = float(ch) * channelScale;
 
-            // For Texture3DArray we pick the right index: array index = z_slice + channel * num_z_slices
-            // position.z is in [0,1], scale it to slice index
             position.z = position.z * channelScale + thisChannelScale;
-
             float texel = float(texture(ImageSampler, position).r);
             float value = (texel + ValueOffset[ch]) * ValueScale[ch];
 
-            float sampleAlpha = clamp(value, 0.0, 1.0);
-            sampleColor += sampleAlpha * Color[ch];
-            totalAlpha += sampleAlpha * channelScale * intensityScale;
+            sampleColor = Color[ch];
+            totalAlpha = value * channelScale * intensityScale * intensityScale;
+            totalAlpha = clamp(totalAlpha, 0.0, 1.0);
+            float blendedSampleAlpha = (1.0 - accumulatedColor.a) * totalAlpha;
+
+            // Front-to-back compositing
+            accumulatedColor.a += blendedSampleAlpha;
+            accumulatedColor.rgb += sampleColor * blendedSampleAlpha;
         }
 
-        // Clamp total alpha to prevent over-saturation with multiple channels
-        totalAlpha = clamp(totalAlpha, 0.0, 1.0);
-        float blendedSampleAlpha = (1.0 - accumulatedColor.a) * totalAlpha * 0.001;
-
-        // Front-to-back compositing
-        accumulatedColor.a += blendedSampleAlpha;
-        accumulatedColor.rgb += sampleColor * blendedSampleAlpha;
         position += stepIncrement;
     }
 
