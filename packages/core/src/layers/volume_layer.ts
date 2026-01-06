@@ -71,7 +71,6 @@ export class VolumeLayer extends Layer {
   }
 
   constructor({ source, sliceCoords, policy }: VolumeLayerProps) {
-    // Volume rendering is always transparent with fixed blend mode
     super({ transparent: true, blendMode: "premultiplied" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
