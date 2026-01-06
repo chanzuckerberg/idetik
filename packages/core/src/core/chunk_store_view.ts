@@ -110,8 +110,7 @@ export class ChunkStoreView {
       return;
     }
 
-    // Reset all existing chunk view states
-    this.chunkViewStates_.forEach(markUnused);
+    this.chunkViewStates_.forEach(resetChunkViewState);
 
     // Mark all chunks at the specified LOD as visible
     for (const chunk of currentTimeChunks) {
@@ -276,7 +275,7 @@ export class ChunkStoreView {
 
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
-    this.chunkViewStates_.forEach(markUnused);
+    this.chunkViewStates_.forEach(resetChunkViewState);
 
     this.updateChunksAtTimeIndex(
       currentTimeIndex,
@@ -494,7 +493,7 @@ export class ChunkStoreView {
   }
 }
 
-function markUnused(state: ChunkViewState): void {
+function resetChunkViewState(state: ChunkViewState): void {
   state.visible = false;
   state.prefetch = false;
   state.priority = null;
