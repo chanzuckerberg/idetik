@@ -17,16 +17,14 @@ import { Camera } from "../objects/cameras/camera";
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
 
-// The library's coordinate system is left-handed.
-// With the default camera, the standard basis vectors should
-// look as follows.
-// (1, 0, 0) points to the right of the screen
-// (0, 1, 0) points to the bottom of the screen
-// (0, 0, 1) points out of the screen
-// WebGL's coordinate system is right-handed where the vectors
-// point in the same directions except that
-// (0, 1, 0) points to the top of the screen
-// Therefore, this transform makes the appropriate flip in y.
+// Idetik defines screen-space with +Y pointing downward.
+// With the default camera, the basis vectors are:
+// (1, 0, 0) → right
+// (0, 1, 0) → down
+// (0, 0, 1) → out of the screen
+//
+// To match this convention, we flip Y in the projection matrix.
+// This is a mirror transform, which also flips triangle winding.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
 export class WebGLRenderer extends Renderer {
