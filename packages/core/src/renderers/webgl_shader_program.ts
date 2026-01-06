@@ -51,14 +51,14 @@ export class WebGLShaderProgram {
         if (typeof value === "number") {
           this.gl_.uniform1f(location, value);
         } else {
-          this.gl_.uniform1fv(location, value as Iterable<number>);
+          this.gl_.uniform1fv(location, value as Float32Array | number[]);
         }
         break;
       case this.gl_.INT:
         if (typeof value === "number") {
           this.gl_.uniform1i(location, value);
         } else {
-          this.gl_.uniform1iv(location, value as Iterable<number>);
+          this.gl_.uniform1iv(location, value as Int32Array | number[]);
         }
         break;
       case this.gl_.FLOAT_VEC2:
