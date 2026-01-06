@@ -53,7 +53,6 @@ const volumeLayer = new VolumeLayer({
 });
 
 const camera2D = new OrthographicCamera(left, right, top, bottom);
-camera2D.zoom(0.65);
 const sliceCoords = {
   get t() {
     return sharedTime.t;
