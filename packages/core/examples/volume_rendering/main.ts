@@ -63,18 +63,20 @@ gui
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
-  .add(volumeLayer, "sampleDensity", 16, 512, 1)
+  .add(volumeLayer, "samplesPerUnit", 16, 512, 1)
   .name("Sample density");
 volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
 volumeFolder
-  .add(volumeLayer, "opacityScale", 0.01, 1.0, 0.01)
+  .add(volumeLayer, "opacityMultiplier", 0.01, 1.0, 0.01)
   .name("Opacity scale");
 volumeFolder
-  .add(volumeLayer, "alphaThreshold", 0.8, 1.0, 0.01)
+  .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
   .name("Early termination threshold");
 
 const overlaysFolder = gui.addFolder("Debug");
-overlaysFolder.add(volumeLayer, "debugShowWireframe").name("Show tile wireframes");
+overlaysFolder
+  .add(volumeLayer, "debugShowWireframe")
+  .name("Show tile wireframes");
 overlaysFolder
   .add(volumeLayer, "debugShowDegenerateRays")
   .name("Show rays with length 0");

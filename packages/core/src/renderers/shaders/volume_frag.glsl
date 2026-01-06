@@ -22,10 +22,10 @@ vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
 uniform bool DebugShowDegenerateRays;
-uniform float SampleDensity;
+uniform float SamplesPerUnit;
 uniform float MaxIntensity;
-uniform float OpacityScale;
-uniform float AlphaThreshold;
+uniform float OpacityMultiplier;
+uniform float EarlyTerminationAlpha;
 uniform vec3 VolumeColor;
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
@@ -67,7 +67,7 @@ void main() {
     // Step 2 - calculate the number of samples based on the length of the ray
     vec3 rayWithinModel = exitPoint - entryPoint;
     float rayLength = length(rayWithinModel);
-    int numSamples = max(int(ceil(rayLength * SampleDensity)), 1);
+    int numSamples = max(int(ceil(rayLength * SamplesPerUnit)), 1);
     vec3 stepIncrement = rayWithinModel / float(numSamples);
 
     // Step 3 - perform the ray marching and compositing in front to back order
@@ -77,10 +77,10 @@ void main() {
 
     // Later replace by an invlerp, but overall provides a way to map the incoming
     // sampled texture value to an alpha value
-    float intensityScale = (1.0 / MaxIntensity) * OpacityScale;
+    float intensityScale = (1.0 / MaxIntensity) * OpacityMultiplier;
 
     // March until we reach the number of samples or accumulate enough opacity
-    for (int i = 0; i < numSamples && accumulatedColor.a < AlphaThreshold; i++) {
+    for (int i = 0; i < numSamples && accumulatedColor.a < EarlyTerminationAlpha; i++) {
         sampledData = vec4(texture(ImageSampler, position)).r;
         sampleAlpha = sampledData * intensityScale;
         blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;

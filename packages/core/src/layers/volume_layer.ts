@@ -32,10 +32,10 @@ export class VolumeLayer extends Layer {
   private lastLoadedTime_: number | undefined = undefined;
   public debugShowDegenerateRays = false;
   private color_ = vec3.fromValues(1.0, 1.0, 1.0);
-  public sampleDensity = 128.0; // Samples per unit texture space
-  public maxIntensity = 255.0; // Normalization factor for intensity
-  public opacityScale = 0.1; // Alpha multiplier
-  public alphaThreshold = 0.99; // Early ray termination threshold
+  public samplesPerUnit = 128.0;
+  public maxIntensity = 255.0;
+  public opacityMultiplier = 0.1;
+  public earlyTerminationAlpha = 0.99;
 
   public get lod() {
     return this.lod_;
@@ -237,11 +237,11 @@ export class VolumeLayer extends Layer {
   public getUniforms(): Record<string, unknown> {
     return {
       DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
-      SampleDensity: this.sampleDensity,
+      SamplesPerUnit: this.samplesPerUnit,
       MaxIntensity: this.maxIntensity,
-      OpacityScale: this.opacityScale,
+      OpacityMultiplier: this.opacityMultiplier,
       VolumeColor: this.color_,
-      AlphaThreshold: this.alphaThreshold,
+      EarlyTerminationAlpha: this.earlyTerminationAlpha,
     };
   }
 }
