@@ -26,7 +26,7 @@ export class VolumeLayer extends Layer {
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
   private lod_ = 0;
-  private debugMode_ = false;
+  private debugShowWireframe_ = false;
 
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
@@ -47,12 +47,12 @@ export class VolumeLayer extends Layer {
     this.updateChunks();
   }
 
-  public get debugMode(): boolean {
-    return this.debugMode_;
+  public get debugShowWireframe(): boolean {
+    return this.debugShowWireframe_;
   }
 
-  public set debugMode(value: boolean) {
-    this.debugMode_ = value;
+  public set debugShowWireframe(value: boolean) {
+    this.debugShowWireframe_ = value;
     for (const volume of this.visibleChunks_.values()) {
       volume.wireframeEnabled = value;
     }
@@ -153,7 +153,7 @@ export class VolumeLayer extends Layer {
     this.clearObjects();
     for (const chunk of chunksToRender) {
       const volume = this.getVolumeForChunk(chunk);
-      volume.wireframeEnabled = this.debugMode;
+      volume.wireframeEnabled = this.debugShowWireframe;
       this.visibleChunks_.set(chunk, volume);
       this.addObject(volume);
     }
