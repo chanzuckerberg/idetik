@@ -49,8 +49,7 @@ const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords: volumeCoords,
-  policy: createPlaybackPolicy(),
-  lod: 2,
+  policy: createPlaybackPolicy({ lod: { min: 0, max: 2 } }),
 });
 
 const camera2D = new OrthographicCamera(left, right, top, bottom);
