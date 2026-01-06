@@ -124,10 +124,9 @@ export class VolumeLayer extends Layer {
 
     if (!needsUpdate) return;
 
-    // Clear and rebuild visible chunks
-    const currentChunkSet = new Set(chunksToRender);
+    const newChunkSet = new Set(chunksToRender);
     const chunksToRemove = Array.from(this.visibleChunks_.keys()).filter(
-      (chunk) => !currentChunkSet.has(chunk)
+      (chunk) => !newChunkSet.has(chunk)
     );
     this.releaseAndRemoveChunks(chunksToRemove);
 
@@ -173,7 +172,7 @@ export class VolumeLayer extends Layer {
     }
   }
 
-  public update(_context?: RenderContext) {
+  public update(context?: RenderContext) {
     if (!this.chunkStoreView_) return;
 
     this.chunkStoreView_.updateChunkStatesForVolume(
@@ -182,12 +181,12 @@ export class VolumeLayer extends Layer {
     );
 
     this.updateChunks();
-    if (_context === undefined) {
+    if (context === undefined) {
       throw new Error(
         "RenderContext is required for the VolumeLayer update as camera information is used to reorder the chunks."
       );
     } else {
-      this.reorderObjects(_context.viewport.camera);
+      this.reorderObjects(context.viewport.camera);
     }
   }
 
