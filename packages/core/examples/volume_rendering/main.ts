@@ -18,11 +18,11 @@ const sliceCoords = {
 };
 
 const camera = new PerspectiveCamera();
+const policy = createExplorationPolicy({ lod: { min: 0, max: 2 } });
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
-  policy: createExplorationPolicy(),
-  lod: 2,
+  policy,
 });
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
@@ -57,7 +57,9 @@ addDimensionSlider({
     },
   },
 });
-gui.add(volumeLayer, "lod", 0, 2, 1).name("Level of Detail (LOD)");
+gui
+  .add(volumeLayer, "lod", policy.lod.min, policy.lod.max, 1)
+  .name("Level of Detail (LOD)");
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
