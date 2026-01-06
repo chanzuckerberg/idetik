@@ -21,7 +21,7 @@ vec3 boundingboxMin = vec3(-0.50);
 vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
-uniform bool ShowEmptyRays;
+uniform bool DebugShowDegenerateRays;
 uniform float SampleDensity;
 uniform float MaxIntensity;
 uniform float OpacityScale;
@@ -50,13 +50,11 @@ void main() {
     // The ray in model space goes from the camera to the point on the back face
     vec3 RayDirModel = normalize(PositionModel - CameraPositionModel);
 
-    vec2 rayIntersections = findBoxIntersectionsAlongRay(
-        CameraPositionModel, RayDirModel, boundingboxMin, boundingboxMax
-    );
+    vec2 rayIntersections = findBoxIntersectionsAlongRay(CameraPositionModel, RayDirModel, boundingboxMin, boundingboxMax);
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
 
-    if (ShowEmptyRays && (tExit == tEnter)) {
+    if (DebugShowDegenerateRays && (tExit == tEnter)) {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }

@@ -33,7 +33,7 @@ export class VolumeLayer extends Layer {
 
   private lastLoadedLod_ = -1;
   private lastLoadedTime_ = -1;
-  public showEmptyRays = false;
+  public debugShowDegenerateRays = false;
   private color_ = vec3.fromValues(1.0, 1.0, 1.0);
   public sampleDensity = 128.0; // Samples per unit texture space
   public maxIntensity = 255.0; // Normalization factor for intensity
@@ -239,7 +239,7 @@ export class VolumeLayer extends Layer {
 
   public getUniforms(): Record<string, unknown> {
     return {
-      ShowEmptyRays: Number(this.showEmptyRays),
+      DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
       SampleDensity: this.sampleDensity,
       MaxIntensity: this.maxIntensity,
       OpacityScale: this.opacityScale,
