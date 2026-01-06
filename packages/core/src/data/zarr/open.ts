@@ -25,6 +25,22 @@ export type ZarrArrayParams = {
     }
 );
 
+export async function guessVersion(
+  location: Location<Readable>
+): Promise<Version> {
+  try {
+    const { store, path } = location.resolve("zarr.json");
+    const attrs = await store.get(path);
+    if (attrs !== undefined) {
+      return "v3";
+    }
+  } catch {
+    // Deliberate fallthrough to final return
+  }
+  // We only support v2 and v3, so default to v2
+  return "v2";
+}
+
 export async function openGroup(
   location: zarr.Location<Readable>,
   version?: Version

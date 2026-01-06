@@ -30,6 +30,7 @@ type Module =
   | "ImageSeriesLoader"
   | "LabelImageLayer"
   | "Layer"
+  | "OmeZarrImageSource"
   | "PixelSizeObserver"
   | "RenderablePool"
   | "Viewport"

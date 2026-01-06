@@ -5,6 +5,7 @@ import {
   openArrayFromParams,
   openGroup,
   createZarrArrayParams,
+  guessVersion as guessZarrVersion,
 } from "../zarr/open";
 import WebFileSystemStore from "../zarr/web_file_system_store";
 import { OmeZarrImageLoader } from "./image_loader";
@@ -14,6 +15,7 @@ import {
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
 import { S3FetchStore, type S3FetchStoreProps } from "../zarr/s3_fetch_store";
+import { Logger } from "../../utilities/logger";
 
 type OmeZarrImageSourceProps = {
   location: Location<Readable>;
@@ -47,6 +49,13 @@ export class OmeZarrImageSource {
 
   public async open(): Promise<OmeZarrImageLoader> {
     let zarrVersion = omeZarrToZarrVersion(this.version);
+    if (!zarrVersion) {
+      zarrVersion = await guessZarrVersion(this.location);
+      Logger.info(
+        "OmeZarrImageSource",
+        `Guessed Zarr version "${zarrVersion}" for location ${JSON.stringify(this.location)}`
+      );
+    }
     const root = await openGroup(this.location, zarrVersion);
     const adaptedOmeImage = parseOmeZarrImage(root.attrs);
     const images = adaptedOmeImage.multiscales;
@@ -58,9 +67,6 @@ export class OmeZarrImageSource {
     const metadata = images[0];
     if (metadata.datasets.length === 0) {
       throw new Error(`No datasets found in the multiscale image.`);
-    }
-    if (!zarrVersion) {
-      zarrVersion = omeZarrToZarrVersion(adaptedOmeImage.originalVersion);
     }
     const arrayParams = metadata.datasets.map((d) =>
       createZarrArrayParams(this.location, d.path, zarrVersion)
