@@ -29,6 +29,7 @@ export class VolumeLayer extends Layer {
 
   private lastLoadedLod_: number | undefined = undefined;
   private lastLoadedTime_: number | undefined = undefined;
+  private debugShowWireframe_ = false;
   public debugShowDegenerateRays = false;
   public color = vec3.fromValues(1.0, 1.0, 1.0);
   public samplesPerUnit = 128.0;
@@ -46,10 +47,15 @@ export class VolumeLayer extends Layer {
     this.updateChunks();
   }
 
+  public get debugShowWireframe() {
+    return this.debugShowWireframe_;
+  }
+
   public set debugShowWireframe(value: boolean) {
     for (const volume of this.currentChunks_.values()) {
       volume.wireframeEnabled = value;
     }
+    this.debugShowWireframe_ = value;
   }
 
   public set sourcePolicy(newPolicy: ImageSourcePolicy) {
@@ -102,9 +108,9 @@ export class VolumeLayer extends Layer {
   }
 
   public onDetached(_context: IdetikContext): void {
-    if (!this.chunkStoreView_) return;
     this.releaseAndRemoveChunks(this.currentChunks_.keys());
     this.clearObjects();
+    if (!this.chunkStoreView_) return;
     this.chunkStoreView_.dispose();
     this.chunkStoreView_ = undefined;
   }
