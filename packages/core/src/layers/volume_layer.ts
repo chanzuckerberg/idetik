@@ -108,9 +108,9 @@ export class VolumeLayer extends Layer {
   }
 
   public onDetached(_context: IdetikContext): void {
+    if (!this.chunkStoreView_) return;
     this.releaseAndRemoveChunks(this.currentChunks_.keys());
     this.clearObjects();
-    if (!this.chunkStoreView_) return;
     this.chunkStoreView_.dispose();
     this.chunkStoreView_ = undefined;
   }
