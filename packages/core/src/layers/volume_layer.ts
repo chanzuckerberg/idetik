@@ -13,7 +13,6 @@ export type VolumeLayerProps = {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
-  lod?: number;
 };
 
 export type OrderingMode = "front-to-back" | "back-to-front";

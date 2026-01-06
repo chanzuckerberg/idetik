@@ -112,7 +112,6 @@ export class ChunkStoreView {
 
     this.chunkViewStates_.forEach(resetChunkViewState);
 
-    // Mark all chunks at the specified LOD as visible
     for (const chunk of currentTimeChunks) {
       if (chunk.lod !== lod) continue;
 
