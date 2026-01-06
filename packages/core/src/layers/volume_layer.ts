@@ -26,12 +26,11 @@ export class VolumeLayer extends Layer {
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
   private lod_ = 0;
-  private debugShowWireframe_ = false;
 
   private lastLoadedLod_: number | undefined = undefined;
   private lastLoadedTime_: number | undefined = undefined;
   public debugShowDegenerateRays = false;
-  private color_ = vec3.fromValues(1.0, 1.0, 1.0);
+  public color = vec3.fromValues(1.0, 1.0, 1.0);
   public samplesPerUnit = 128.0;
   public maxIntensity = 255.0;
   public opacityMultiplier = 0.1;
@@ -47,19 +46,10 @@ export class VolumeLayer extends Layer {
     this.updateChunks();
   }
 
-  public get debugShowWireframe(): boolean {
-    return this.debugShowWireframe_;
-  }
-
   public set debugShowWireframe(value: boolean) {
-    this.debugShowWireframe_ = value;
     for (const volume of this.visibleChunks_.values()) {
       volume.wireframeEnabled = value;
     }
-  }
-
-  public get sourcePolicy(): Readonly<ImageSourcePolicy> {
-    return this.sourcePolicy_;
   }
 
   public set sourcePolicy(newPolicy: ImageSourcePolicy) {
@@ -72,14 +62,6 @@ export class VolumeLayer extends Layer {
         );
       }
     }
-  }
-
-  public get color(): vec3 {
-    return this.color_;
-  }
-
-  public set color(newColor: vec3) {
-    vec3.copy(this.color_, newColor);
   }
 
   private createVolume(chunk: Chunk) {
@@ -240,7 +222,7 @@ export class VolumeLayer extends Layer {
       SamplesPerUnit: this.samplesPerUnit,
       MaxIntensity: this.maxIntensity,
       OpacityMultiplier: this.opacityMultiplier,
-      VolumeColor: this.color_,
+      VolumeColor: this.color,
       EarlyTerminationAlpha: this.earlyTerminationAlpha,
     };
   }
