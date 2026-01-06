@@ -20,7 +20,7 @@ export class VolumeLayer extends Layer {
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
-  private readonly currentChunks_: Map<Chunk, VolumeRenderable> = new Map();
+  private readonly visibleChunks_: Map<Chunk, VolumeRenderable> = new Map();
   private readonly pool_ = new RenderablePool<VolumeRenderable>();
 
   private sourcePolicy_: ImageSourcePolicy;
@@ -52,7 +52,7 @@ export class VolumeLayer extends Layer {
   }
 
   public set debugShowWireframe(value: boolean) {
-    for (const volume of this.currentChunks_.values()) {
+    for (const volume of this.visibleChunks_.values()) {
       volume.wireframeEnabled = value;
     }
     this.debugShowWireframe_ = value;
@@ -86,7 +86,7 @@ export class VolumeLayer extends Layer {
   }
 
   private getVolumeForChunk(chunk: Chunk): VolumeRenderable {
-    const existing = this.currentChunks_.get(chunk);
+    const existing = this.visibleChunks_.get(chunk);
     if (existing) return existing;
 
     const pooled = this.pool_.acquire(poolKeyForChunk(chunk));
@@ -108,7 +108,7 @@ export class VolumeLayer extends Layer {
   }
 
   public onDetached(_context: IdetikContext): void {
-    this.releaseAndRemoveChunks(this.currentChunks_.keys());
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
     if (!this.chunkStoreView_) return;
     this.chunkStoreView_.dispose();
@@ -124,12 +124,14 @@ export class VolumeLayer extends Layer {
 
     const currentTime = this.sliceCoords_.t ?? -1;
     const needsUpdate =
-      this.lastLoadedLod_ !== this.lod_ || this.lastLoadedTime_ !== currentTime;
+      this.lastLoadedLod_ !== this.lod_ ||
+      this.lastLoadedTime_ !== currentTime ||
+      chunksToRender.length !== this.visibleChunks_.size;
 
     if (!needsUpdate) return;
 
     const newChunkSet = new Set(chunksToRender);
-    const chunksToRemove = Array.from(this.currentChunks_.keys()).filter(
+    const chunksToRemove = Array.from(this.visibleChunks_.keys()).filter(
       (chunk) => !newChunkSet.has(chunk)
     );
     this.releaseAndRemoveChunks(chunksToRemove);
@@ -138,7 +140,7 @@ export class VolumeLayer extends Layer {
     for (const chunk of chunksToRender) {
       const volume = this.getVolumeForChunk(chunk);
       volume.wireframeEnabled = this.debugShowWireframe;
-      this.currentChunks_.set(chunk, volume);
+      this.visibleChunks_.set(chunk, volume);
       this.addObject(volume);
     }
 
@@ -168,10 +170,10 @@ export class VolumeLayer extends Layer {
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>) {
     for (const chunk of chunks) {
-      const volume = this.currentChunks_.get(chunk);
+      const volume = this.visibleChunks_.get(chunk);
       if (volume) {
         this.pool_.release(poolKeyForChunk(chunk), volume);
-        this.currentChunks_.delete(chunk);
+        this.visibleChunks_.delete(chunk);
       }
     }
   }
