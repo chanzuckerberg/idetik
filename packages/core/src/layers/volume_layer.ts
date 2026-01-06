@@ -15,8 +15,6 @@ export type VolumeLayerProps = {
   policy: ImageSourcePolicy;
 };
 
-export type OrderingMode = "front-to-back" | "back-to-front";
-
 export class VolumeLayer extends Layer {
   public readonly type = "VolumeLayer";
 
@@ -208,11 +206,11 @@ export class VolumeLayer extends Layer {
         "RenderContext is required for the VolumeLayer update as camera information is used to reorder the chunks."
       );
     } else {
-      this.reorderObjects(_context.viewport.camera, "front-to-back");
+      this.reorderObjects(_context.viewport.camera);
     }
   }
 
-  public reorderObjects(camera: Camera, mode: OrderingMode) {
+  public reorderObjects(camera: Camera) {
     const cameraPos = camera.position;
     const centerA = vec3.create();
     const centerB = vec3.create();
@@ -232,7 +230,7 @@ export class VolumeLayer extends Layer {
         return 0;
       }
 
-      return mode === "front-to-back" ? diff : -diff;
+      return diff;
     });
   }
 
