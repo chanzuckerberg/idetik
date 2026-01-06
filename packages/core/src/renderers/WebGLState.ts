@@ -24,15 +24,9 @@ export class WebGLState {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
-    this.initializeWindingOrder();
-  }
-
-  private initializeWindingOrder() {
-    // Idetik implements a y-axis flip in the projection matrix in
-    // the webgl renderer. That makes the coordinate system
-    // left-handed, whereas WebGL uses a right-handed system.
-    // To account for this, we need to change the front face
-    // winding order to clockwise.
+    // Idetik flips Y in the projection matrix which mirrors geometry
+    // and flips winding order. As such, we need to treat clockwise
+    // triangles as front-facing.
     this.gl_.frontFace(this.gl_.CW);
   }
 
