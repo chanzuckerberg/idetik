@@ -1,5 +1,5 @@
 import * as zarr from "zarrita";
-import { Slice } from "@zarrita/indexing";
+import { Slice } from "zarrita";
 
 import { Region } from "../region";
 import {

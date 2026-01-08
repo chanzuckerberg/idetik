@@ -1,4 +1,4 @@
-import { Location } from "@zarrita/core";
+import { Location } from "zarrita";
 import { Readable } from "@zarrita/storage";
 import FetchStore from "@zarrita/storage/fetch";
 import {

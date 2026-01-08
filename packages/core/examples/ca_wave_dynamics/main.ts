@@ -15,7 +15,7 @@ import GUI from "lil-gui";
 const url =
   "https://uk1s3.embassy.ebi.ac.uk/ebi-ngff-challenge-2024/c0e5d621-62cc-43a6-9dad-2ddab8959d17.zarr";
 
-const source = OmeZarrImageSource.fromHttp({ url, version: "0.5" });
+const source = OmeZarrImageSource.fromHttp({ url });
 
 // Values copied from source metadata
 const xyScale = 6.8746696041186794;
