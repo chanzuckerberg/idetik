@@ -25,9 +25,7 @@ export class VolumeLayer extends Layer {
 
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
-  private lod_ = 0;
 
-  private lastLoadedLod_: number | undefined = undefined;
   private lastLoadedTime_: number | undefined = undefined;
   // TODO: Make a debug config object to manage debug options
   private debugShowWireframes_ = false;
@@ -37,16 +35,6 @@ export class VolumeLayer extends Layer {
   public maxIntensity = 255.0;
   public opacityMultiplier = 0.1;
   public earlyTerminationAlpha = 0.99;
-
-  public get lod() {
-    return this.lod_;
-  }
-
-  public set lod(value: number) {
-    this.lod_ = value;
-    this.clearObjects();
-    this.updateChunks();
-  }
 
   public get debugShowWireframes() {
     return this.debugShowWireframes_;
@@ -82,7 +70,6 @@ export class VolumeLayer extends Layer {
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.sourcePolicy_ = policy;
-    this.lod_ = policy?.lod?.max ?? 0;
     this.setState("initialized");
   }
 
@@ -125,7 +112,6 @@ export class VolumeLayer extends Layer {
 
     const currentTime = this.sliceCoords_.t ?? -1;
     const needsUpdate =
-      this.lastLoadedLod_ !== this.lod_ ||
       this.lastLoadedTime_ !== currentTime ||
       chunksToRender.length !== this.currentChunks_.size;
 
@@ -145,7 +131,6 @@ export class VolumeLayer extends Layer {
       this.addObject(volume);
     }
 
-    this.lastLoadedLod_ = this.lod_;
     this.lastLoadedTime_ = currentTime;
 
     if (this.state !== "ready") this.setState("ready");
@@ -182,11 +167,7 @@ export class VolumeLayer extends Layer {
   public update(context?: RenderContext) {
     if (!this.chunkStoreView_) return;
 
-    this.chunkStoreView_.updateChunkStatesForVolume(
-      this.sliceCoords_,
-      this.lod_
-    );
-
+    this.chunkStoreView_.updateChunkStatesForVolume(this.sliceCoords_);
     this.updateChunks();
     if (context === undefined) {
       throw new Error(

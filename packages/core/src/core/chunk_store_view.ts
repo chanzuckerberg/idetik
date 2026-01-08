@@ -94,10 +94,7 @@ export class ChunkStoreView {
   // orthographic (2D slices) and perspective (volume rendering) cameras. This would
   // replace both updateChunkStates and updateChunkStatesForVolume with a single method
   // that performs frustum culling based on the camera type.
-  public updateChunkStatesForVolume(
-    sliceCoords: SliceCoordinates,
-    lod: number
-  ): void {
+  public updateChunkStatesForVolume(sliceCoords: SliceCoordinates): void {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
 
@@ -110,10 +107,12 @@ export class ChunkStoreView {
       return;
     }
 
+    // TODO: allow volume rendering to calculate an LOD factor
+    this.setLOD(0);
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     for (const chunk of currentTimeChunks) {
-      if (chunk.lod !== lod) continue;
+      if (chunk.lod !== this.currentLOD_) continue;
 
       const isChannelMatch =
         sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
@@ -128,7 +127,6 @@ export class ChunkStoreView {
       });
     }
 
-    this.currentLOD_ = lod;
     this.lastTCoord_ = sliceCoords.t;
   }
 

@@ -13,9 +13,12 @@ const sliceCoords = {
   z: undefined,
   c: 0,
 };
+const controls = { lod: 2 };
 
 const camera = new PerspectiveCamera();
-const policy = createExplorationPolicy({ lod: { min: 0, max: 2 } });
+const policy = createExplorationPolicy({
+  lod: { min: controls.lod, max: controls.lod },
+});
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
@@ -50,8 +53,14 @@ addDimensionSlider({
   playback: {},
 });
 gui
-  .add(volumeLayer, "lod", policy.lod.min, policy.lod.max, 1)
-  .name("Level of Detail (LOD)");
+  .add(controls, "lod", 0, 2, 1)
+  .name("Level of Detail (LOD)")
+  .onChange(
+    (lod: number) =>
+      (volumeLayer.sourcePolicy = createExplorationPolicy({
+        lod: { min: lod, max: lod },
+      }))
+  );
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
