@@ -167,9 +167,6 @@ export class VolumeLayer extends Layer {
 
   public update(context?: RenderContext) {
     if (!this.chunkStoreView_) return;
-
-    this.chunkStoreView_.updateChunkStatesForVolume(this.sliceCoords_);
-    this.updateChunks();
     if (context === undefined) {
       throw new Error(
         "RenderContext is required for the VolumeLayer update as camera information is used to reorder the chunks."
@@ -177,6 +174,9 @@ export class VolumeLayer extends Layer {
     } else {
       this.reorderObjects(context.viewport.camera);
     }
+
+    this.chunkStoreView_.updateChunkStatesForVolume(this.sliceCoords_);
+    this.updateChunks();
   }
 
   public reorderObjects(camera: Camera) {
