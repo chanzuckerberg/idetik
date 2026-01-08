@@ -29,7 +29,8 @@ export class VolumeLayer extends Layer {
 
   private lastLoadedLod_: number | undefined = undefined;
   private lastLoadedTime_: number | undefined = undefined;
-  private debugShowWireframe_ = false;
+  // TODO: Make a debug config object to manage debug options
+  private debugShowWireframes_ = false;
   public debugShowDegenerateRays = false;
   public color = vec3.fromValues(1.0, 1.0, 1.0);
   public samplesPerUnit = 128.0;
@@ -47,15 +48,15 @@ export class VolumeLayer extends Layer {
     this.updateChunks();
   }
 
-  public get debugShowWireframe() {
-    return this.debugShowWireframe_;
+  public get debugShowWireframes() {
+    return this.debugShowWireframes_;
   }
 
-  public set debugShowWireframe(value: boolean) {
+  public set debugShowWireframes(value: boolean) {
     for (const volume of this.currentChunks_.values()) {
       volume.wireframeEnabled = value;
     }
-    this.debugShowWireframe_ = value;
+    this.debugShowWireframes_ = value;
   }
 
   public set sourcePolicy(newPolicy: ImageSourcePolicy) {
@@ -139,7 +140,7 @@ export class VolumeLayer extends Layer {
     this.clearObjects();
     for (const chunk of chunksToRender) {
       const volume = this.getVolumeForChunk(chunk);
-      volume.wireframeEnabled = this.debugShowWireframe;
+      volume.wireframeEnabled = this.debugShowWireframes;
       this.currentChunks_.set(chunk, volume);
       this.addObject(volume);
     }

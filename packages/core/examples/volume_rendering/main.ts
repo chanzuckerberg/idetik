@@ -67,8 +67,8 @@ volumeFolder
 
 const overlaysFolder = gui.addFolder("Debug");
 overlaysFolder
-  .add(volumeLayer, "debugShowWireframe")
+  .add(volumeLayer, "debugShowWireframes")
   .name("Show tile wireframes");
 overlaysFolder
   .add(volumeLayer, "debugShowDegenerateRays")
-  .name("Show rays with length 0");
+  .name("Show degenerate rays (length 0)");
