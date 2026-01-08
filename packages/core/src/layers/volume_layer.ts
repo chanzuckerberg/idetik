@@ -41,6 +41,7 @@ export class VolumeLayer extends Layer {
   }
 
   public set debugShowWireframes(value: boolean) {
+    if (this.debugShowWireframes_ === value) return;
     for (const volume of this.currentChunks_.values()) {
       volume.wireframeEnabled = value;
     }
