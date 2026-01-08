@@ -1,9 +1,6 @@
 import { Idetik, VolumeLayer, PerspectiveCamera, OmeZarrImageSource } from "@";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
-import {
-  createExplorationPolicy,
-  createPlaybackPolicy,
-} from "@/core/image_source_policy";
+import { createExplorationPolicy } from "@/core/image_source_policy";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 import { vec3 } from "gl-matrix";
@@ -50,12 +47,7 @@ addDimensionSlider({
   minValue: 0,
   maxValue: 800,
   stepValue: 1.0,
-  playback: {
-    onRateChange: (rateHz: number) => {
-      volumeLayer.sourcePolicy =
-        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
-    },
-  },
+  playback: {},
 });
 gui
   .add(volumeLayer, "lod", policy.lod.min, policy.lod.max, 1)
