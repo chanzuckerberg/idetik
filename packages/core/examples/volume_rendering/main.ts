@@ -1,9 +1,6 @@
 import { Idetik, VolumeLayer, PerspectiveCamera, OmeZarrImageSource } from "@";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
-import {
-  createExplorationPolicy,
-  createPlaybackPolicy,
-} from "@/core/image_source_policy";
+import { createExplorationPolicy } from "@/core/image_source_policy";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
@@ -48,39 +45,31 @@ const { url, channelProps, radius } = exampleSetupInfo[exampleType];
 
 // Normal code execution for either single-channel or multi-channel
 const source = OmeZarrImageSource.fromHttp({ url });
-
 const sliceCoords = {
   t: 0,
   z: undefined,
   c: undefined, // multi-channel rendering
 };
+const controls = { lod: 2 };
 
 const camera = new PerspectiveCamera();
-// If you make the first channel not visible, in the shader code
-// you should also change the scaling. That can be made more user-friendly later.
-// the reason for this is that right now alpha is taken as the average of all channels' alpha values.
-// and the first channel has high values that dominate the alpha calculation.
+const policy = createExplorationPolicy({
+  lod: { min: controls.lod, max: controls.lod },
+});
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
-  policy: createExplorationPolicy(),
-  lod: 2,
+  policy,
   channelProps,
 });
-
-const t = { translate: 0.0, scale: 1.0, shape: 791 };
-const tMin = t.translate;
-const tMax = t.translate + t.scale * t.shape - t.scale;
-const tRange = { min: tMin, max: tMax };
-
-const cameraControls = new OrbitControls(camera, { radius });
-
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
-      camera,
-      cameraControls: cameraControls,
+      camera: camera,
+      cameraControls: new OrbitControls(camera, {
+        radius: radius,
+      }),
       layers: [volumeLayer],
     },
   ],
@@ -95,32 +84,37 @@ addDimensionSlider({
   gui,
   sliceCoords,
   dimensionName: "t",
-  minValue: tRange.min,
-  maxValue: tRange.max,
-  stepValue: t.scale,
-  playback: {
-    onRateChange: (rateHz: number) => {
-      volumeLayer.sourcePolicy =
-        rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
-    },
-  },
+  minValue: 0,
+  maxValue: 800,
+  stepValue: 1.0,
+  playback: {},
 });
-gui.add(volumeLayer, "lod", 0, 2, 1).name("Level of Detail (LOD)");
+gui
+  .add(controls, "lod", 0, 2, 1)
+  .name("Level of Detail (LOD)")
+  .onChange(
+    (lod: number) =>
+      (volumeLayer.sourcePolicy = createExplorationPolicy({
+        lod: { min: lod, max: lod },
+      }))
+  );
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
-  .add(volumeLayer, "sampleDensity", 16, 512, 1)
-  .name("Sample density");
+  .add(volumeLayer, "samplesPerUnit", 16, 512, 1)
+  .name("Samples per unit");
 volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
 volumeFolder
-  .add(volumeLayer, "opacityScale", 0.001, 1.0, 0.001)
+  .add(volumeLayer, "opacityMultiplier", 0.01, 1.0, 0.01)
   .name("Opacity scale");
 volumeFolder
-  .add(volumeLayer, "alphaThreshold", 0.8, 1.0, 0.01)
+  .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
   .name("Early termination threshold");
 
 const overlaysFolder = gui.addFolder("Debug");
-overlaysFolder.add(volumeLayer, "debugMode").name("Show tile wireframes");
 overlaysFolder
-  .add(volumeLayer, "showEmptyRays")
-  .name("Show rays with length 0");
+  .add(volumeLayer, "debugShowWireframes")
+  .name("Show tile wireframes");
+overlaysFolder
+  .add(volumeLayer, "debugShowDegenerateRays")
+  .name("Show degenerate rays (length 0)");

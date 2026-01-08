@@ -10,6 +10,7 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { addDimensionSlider } from "../lil_gui_utils";
 import { createPlaybackPolicy } from "@/core/image_source_policy";
+import { vec3 } from "gl-matrix";
 
 import GUI from "lil-gui";
 
@@ -24,6 +25,12 @@ const bottom = 900;
 const z = { translate: 0.0, scale: 1.24, shape: 448 };
 const zMin = z.translate;
 const zMax = z.translate + z.scale * z.shape - z.scale;
+
+const volumeCenter = vec3.fromValues(
+  (right + left) / 2,
+  (top + bottom) / 2,
+  (zMin + zMax) / 2
+);
 
 // shared source between viewports
 const source = OmeZarrImageSource.fromHttp({ url });
@@ -42,12 +49,10 @@ const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords: volumeCoords,
-  policy: createPlaybackPolicy(),
-  lod: 2,
+  policy: createPlaybackPolicy({ lod: { min: 0, max: 2 } }),
 });
 
 const camera2D = new OrthographicCamera(left, right, top, bottom);
-camera2D.zoom(0.65);
 const sliceCoords = {
   get t() {
     return sharedTime.t;
@@ -70,7 +75,8 @@ new Idetik({
       element: document.querySelector<HTMLDivElement>("#viewport-left")!,
       camera: camera3D,
       cameraControls: new OrbitControls(camera3D, {
-        radius: 1500,
+        radius: 750,
+        target: volumeCenter,
       }),
       layers: [volumeLayer],
     },

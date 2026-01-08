@@ -22,11 +22,11 @@ vec3 boundingboxMin = vec3(-0.50);
 vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
-uniform bool EnableRayCorrection;
-uniform float SampleDensity;
-uniform float MaxIntensity;
-uniform float OpacityScale;
-uniform float AlphaThreshold;
+uniform bool DebugShowDegenerateRays;
+uniform float SamplesPerUnit;
+uniform float OpacityMultiplier;
+uniform float EarlyTerminationAlpha;
+uniform vec3 VolumeColor;
 
 // Multi-channel support (backwards compatible with single channel)
 #define MAX_CHANNELS 32
@@ -57,20 +57,11 @@ void main() {
     // The ray in model space goes from the camera to the point on the back face
     vec3 RayDirModel = normalize(PositionModel - CameraPositionModel);
 
-    vec2 rayIntersections = findBoxIntersectionsAlongRay(
-        CameraPositionModel, RayDirModel, boundingboxMin, boundingboxMax
-    );
+    vec2 rayIntersections = findBoxIntersectionsAlongRay(CameraPositionModel, RayDirModel, boundingboxMin, boundingboxMax);
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
 
-    // Redo the calculation with a slightly bigger box if the ray direction was flipped
-    bool invalidIntersection = tExit < 0.0 || (tExit < tEnter);
-    if (invalidIntersection && EnableRayCorrection) {
-        // vec2 rayIntersections = findBoxIntersectionsAlongRay(
-        //     CameraPositionModel, RayDirModel, boundingboxMin - vec3(0.015), boundingboxMax + vec3(0.015)
-        // );
-        // tEnter = rayIntersections.x;
-        // tExit = rayIntersections.y;
+    if (DebugShowDegenerateRays && (tExit == tEnter)) {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
@@ -84,22 +75,18 @@ void main() {
     // Step 2 - calculate the number of samples based on the length of the ray
     vec3 rayWithinModel = exitPoint - entryPoint;
     float rayLength = length(rayWithinModel);
-    int numSamples = max(int(ceil(rayLength * SampleDensity)), 1);
+    int numSamples = max(int(ceil(rayLength * SamplesPerUnit)), 1);
     vec3 stepIncrement = rayWithinModel / float(numSamples);
 
     // Step 3 - perform the ray marching and compositing in front to back order
     vec3 position = entryPoint;
     vec4 accumulatedColor = vec4(0.0);
 
-    // Later replace by an invlerp, but overall provides a way to map the incoming
-    // sampled texture value to an alpha value
-    float intensityScale = OpacityScale;
-
     float channelScale = 1.0 / float(ChannelCount);
 
     vec3 sampleColor = vec3(0.0);
     float totalAlpha = 0.0;
-    for (int i = 0; i < numSamples && accumulatedColor.a < AlphaThreshold; i++) {
+    for (int i = 0; i < numSamples && accumulatedColor.a < EarlyTerminationAlpha; i++) {
 
         // Sample all visible channels and composite them
         for (uint ch = 0u; ch < ChannelCount; ch++) {
@@ -111,7 +98,7 @@ void main() {
             float value = (texel + ValueOffset[ch]) * ValueScale[ch];
 
             sampleColor = Color[ch];
-            totalAlpha = value * channelScale * intensityScale * intensityScale;
+            totalAlpha = value * channelScale * OpacityMultiplier * OpacityMultiplier;
             totalAlpha = clamp(totalAlpha, 0.0, 1.0);
             float blendedSampleAlpha = (1.0 - accumulatedColor.a) * totalAlpha;
 

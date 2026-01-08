@@ -98,10 +98,7 @@ export class ChunkStoreView {
   // orthographic (2D slices) and perspective (volume rendering) cameras. This would
   // replace both updateChunkStates and updateChunkStatesForVolume with a single method
   // that performs frustum culling based on the camera type.
-  public updateChunkStatesForVolume(
-    sliceCoords: SliceCoordinates,
-    lod: number
-  ): void {
+  public updateChunkStatesForVolume(sliceCoords: SliceCoordinates): void {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
 
@@ -114,12 +111,12 @@ export class ChunkStoreView {
       return;
     }
 
-    // Reset all existing chunk view states
-    this.chunkViewStates_.forEach(markUnused);
+    // TODO: allow volume rendering to calculate an LOD factor
+    this.setLOD(0);
+    this.chunkViewStates_.forEach(resetChunkViewState);
 
-    // Mark all chunks at the specified LOD as visible
     for (const chunk of currentTimeChunks) {
-      if (chunk.lod !== lod) continue;
+      if (chunk.lod !== this.currentLOD_) continue;
 
       const isChannelMatch =
         sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
@@ -134,7 +131,6 @@ export class ChunkStoreView {
       });
     }
 
-    this.currentLOD_ = lod;
     this.lastTCoord_ = sliceCoords.t;
   }
 
@@ -280,7 +276,7 @@ export class ChunkStoreView {
 
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
-    this.chunkViewStates_.forEach(markUnused);
+    this.chunkViewStates_.forEach(resetChunkViewState);
 
     this.updateChunksAtTimeIndex(
       currentTimeIndex,
@@ -498,7 +494,7 @@ export class ChunkStoreView {
   }
 }
 
-function markUnused(state: ChunkViewState): void {
+function resetChunkViewState(state: ChunkViewState): void {
   state.visible = false;
   state.prefetch = false;
   state.priority = null;

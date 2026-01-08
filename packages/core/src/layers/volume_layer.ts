@@ -31,7 +31,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
-  private readonly visibleChunks_: Map<Chunk, VolumeRenderable> = new Map();
+  private readonly currentChunks_: Map<Chunk, VolumeRenderable> = new Map();
   private readonly pool_ = new RenderablePool<VolumeRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: Array<() => void> = [];
@@ -39,41 +39,27 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
-  private lod_ = 0;
-  private debugMode_ = false;
 
-  private lastLoadedLod_ = -1;
-  private lastLoadedTime_ = -1;
-  public showEmptyRays = false;
-  private color_ = vec3.fromValues(1.0, 1.0, 1.0);
-  public sampleDensity = 128.0; // Samples per unit texture space
-  public maxIntensity = 255.0; // Normalization factor for intensity
-  public opacityScale = 0.1; // Alpha multiplier
-  public alphaThreshold = 0.99; // Early ray termination threshold
+  private lastLoadedTime_: number | undefined = undefined;
+  // TODO: Make a debug config object to manage debug options
+  private debugShowWireframes_ = false;
+  public debugShowDegenerateRays = false;
+  public color = vec3.fromValues(1.0, 1.0, 1.0);
+  public samplesPerUnit = 128.0;
+  public maxIntensity = 255.0;
+  public opacityMultiplier = 0.2;
+  public earlyTerminationAlpha = 0.99;
 
-  public get lod() {
-    return this.lod_;
+  public get debugShowWireframes() {
+    return this.debugShowWireframes_;
   }
 
-  public set lod(value: number) {
-    this.lod_ = value;
-    this.clearObjects();
-    this.updateChunks();
-  }
-
-  public get debugMode(): boolean {
-    return this.debugMode_;
-  }
-
-  public set debugMode(value: boolean) {
-    this.debugMode_ = value;
-    for (const volume of this.visibleChunks_.values()) {
+  public set debugShowWireframes(value: boolean) {
+    if (this.debugShowWireframes_ === value) return;
+    for (const volume of this.currentChunks_.values()) {
       volume.wireframeEnabled = value;
     }
-  }
-
-  public get sourcePolicy(): Readonly<ImageSourcePolicy> {
-    return this.sourcePolicy_;
+    this.debugShowWireframes_ = value;
   }
 
   public set sourcePolicy(newPolicy: ImageSourcePolicy) {
@@ -86,14 +72,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
         );
       }
     }
-  }
-
-  public get color(): vec3 {
-    return this.color_;
-  }
-
-  public set color(newColor: vec3) {
-    vec3.copy(this.color_, newColor);
   }
 
   private createVolume(chunk: Chunk) {
@@ -119,19 +97,11 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     return props;
   }
 
-  constructor({
-    source,
-    sliceCoords,
-    policy,
-    lod = 0,
-    channelProps,
-  }: VolumeLayerProps) {
-    // Volume rendering is always transparent with fixed blend mode
+  constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {
     super({ transparent: true, blendMode: "premultiplied" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.sourcePolicy_ = policy;
-    this.lod_ = lod;
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.setState("initialized");
@@ -143,7 +113,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
-    this.visibleChunks_.forEach((chunk) => {
+    this.currentChunks_.forEach((chunk) => {
       chunk.setChannelProps(channelProps);
     });
     this.channelChangeCallbacks_.forEach((callback) => {
@@ -174,8 +144,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     chunkIndex: number
   ): VolumeRenderable | null {
     const chunk = renderableChunks[chunkIndex];
-    const existing = this.visibleChunks_.get(chunk);
+    const existing = this.currentChunks_.get(chunk);
     if (existing) return existing;
+    this.setState("initialized");
 
     const numChannels = this.chunkStoreView_?.getNumChannels() ?? 1;
     let chunkToAdd = chunk;
@@ -246,9 +217,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   public onDetached(_context: IdetikContext): void {
-    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
-    this.clearObjects();
     if (!this.chunkStoreView_) return;
+    this.releaseAndRemoveChunks(this.currentChunks_.keys());
+    this.clearObjects();
     this.chunkStoreView_.dispose();
     this.chunkStoreView_ = undefined;
   }
@@ -264,16 +235,14 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     const currentTime = this.sliceCoords_.t ?? -1;
     const needsUpdate =
-      this.lastLoadedLod_ !== this.lod_ ||
       this.lastLoadedTime_ !== currentTime ||
-      numChunksToRender !== this.visibleChunks_.size;
+      numChunksToRender !== this.currentChunks_.size;
 
     if (!needsUpdate) return;
 
-    // Clear and rebuild visible chunks
-    const currentChunkSet = new Set(chunksToRender);
-    const chunksToRemove = Array.from(this.visibleChunks_.keys()).filter(
-      (chunk) => !currentChunkSet.has(chunk)
+    const newChunkSet = new Set(chunksToRender);
+    const chunksToRemove = Array.from(this.currentChunks_.keys()).filter(
+      (chunk) => !newChunkSet.has(chunk)
     );
     this.releaseAndRemoveChunks(chunksToRemove);
 
@@ -281,12 +250,11 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     for (let i = 0; i < numChunksToRender; i++) {
       const volume = this.getVolumeForChunk(chunksToRender, i);
       if (!volume) continue;
-      volume.wireframeEnabled = this.debugMode;
-      this.visibleChunks_.set(chunksToRender[i], volume);
+      volume.wireframeEnabled = this.debugShowWireframes;
+      this.currentChunks_.set(chunksToRender[i], volume);
       this.addObject(volume);
     }
 
-    this.lastLoadedLod_ = this.lod_;
     this.lastLoadedTime_ = currentTime;
 
     if (this.state !== "ready") this.setState("ready");
@@ -314,33 +282,29 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>) {
     for (const chunk of chunks) {
-      const volume = this.visibleChunks_.get(chunk);
+      const volume = this.currentChunks_.get(chunk);
       if (volume) {
         this.pool_.release(poolKeyForChunk(chunk), volume);
-        this.visibleChunks_.delete(chunk);
+        this.currentChunks_.delete(chunk);
       }
     }
   }
 
-  public update(_context?: RenderContext) {
+  public update(context?: RenderContext) {
     if (!this.chunkStoreView_) return;
-
-    this.chunkStoreView_.updateChunkStatesForVolume(
-      this.sliceCoords_,
-      this.lod_
-    );
-
-    this.updateChunks();
-    if (_context === undefined) {
+    if (context === undefined) {
       throw new Error(
         "RenderContext is required for the VolumeLayer update as camera information is used to reorder the chunks."
       );
     } else {
-      this.reorderObjects(_context.viewport.camera, "front-to-back");
+      this.reorderObjects(context.viewport.camera);
     }
+
+    this.chunkStoreView_.updateChunkStatesForVolume(this.sliceCoords_);
+    this.updateChunks();
   }
 
-  public reorderObjects(camera: Camera, mode: OrderingMode) {
+  public reorderObjects(camera: Camera) {
     const cameraPos = camera.position;
     const centerA = vec3.create();
     const centerB = vec3.create();
@@ -360,18 +324,18 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
         return 0;
       }
 
-      return mode === "front-to-back" ? diff : -diff;
+      return diff;
     });
   }
 
   public getUniforms(): Record<string, unknown> {
     return {
-      ShowEmptyRays: Number(this.showEmptyRays),
-      SampleDensity: this.sampleDensity,
+      DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
+      SamplesPerUnit: this.samplesPerUnit,
       MaxIntensity: this.maxIntensity,
-      OpacityScale: this.opacityScale,
-      VolumeColor: this.color_,
-      AlphaThreshold: this.alphaThreshold,
+      OpacityMultiplier: this.opacityMultiplier,
+      VolumeColor: this.color,
+      EarlyTerminationAlpha: this.earlyTerminationAlpha,
     };
   }
 }
