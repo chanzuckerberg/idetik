@@ -23,7 +23,7 @@ A layer-based library for interactive visualization of large datasets.
    Re-run this command any time the dependencies listed in [package.json](package.json) change, such
    as after checking out a different revision or pulling changes.
 
-4. To run a local server for development purposes (from the repo root):
+3. To run a local server for development purposes (from the repo root):
 
    `npm run examples`
 
@@ -33,7 +33,7 @@ A layer-based library for interactive visualization of large datasets.
 
    `npm run dev`
 
-5. To run the unit test suite on Chrome, from the core workspace run:
+4. To run the unit test suite on Chrome, from the core workspace run:
 
    `npm test` or `npm run coverage` to generate a coverage report.
 
@@ -41,7 +41,7 @@ A layer-based library for interactive visualization of large datasets.
    automatically, so you can leave it running while you work. To run the tests once and exit, use
    `npm run test -- --run`.
 
-6. See [package.json](package.json) for other commands available.
+5. See [package.json](package.json) for other commands available.
 
 ## Release
 
