@@ -4,14 +4,26 @@ A layer-based library for interactive visualization of large datasets.
 
 ## Getting started
 
-1. Install the dependencies required by this project (from within this directory):
+1. Install the development version of node.
+
+   If you use `nvm` to manage node versions, you can run
+
+   ```
+   nvm use
+   ```
+
+   to install the current development version.
+
+   Otherwise, manually install the version of node specified in `.nvmrc`.
+
+2. Install the dependencies required by this project (from within this directory):
 
    `npm install`
 
    Re-run this command any time the dependencies listed in [package.json](package.json) change, such
    as after checking out a different revision or pulling changes.
 
-2. To run a local server for development purposes (from the repo root):
+4. To run a local server for development purposes (from the repo root):
 
    `npm run examples`
 
@@ -21,7 +33,7 @@ A layer-based library for interactive visualization of large datasets.
 
    `npm run dev`
 
-3. To run the unit test suite on Chrome, from the core workspace run:
+5. To run the unit test suite on Chrome, from the core workspace run:
 
    `npm test` or `npm run coverage` to generate a coverage report.
 
@@ -29,7 +41,7 @@ A layer-based library for interactive visualization of large datasets.
    automatically, so you can leave it running while you work. To run the tests once and exit, use
    `npm run test -- --run`.
 
-4. See [package.json](package.json) for other commands available.
+6. See [package.json](package.json) for other commands available.
 
 ## Release
 
@@ -105,5 +117,3 @@ If you need to manually release (e.g., if the automated process fails), follow t
    - Click "Create a new release"
    - Select the tag you just created
    - Add release notes describing the changes
-
-
