@@ -84,6 +84,9 @@ export default defineConfig(({ mode }) => {
           format: 'es',
           inlineDynamicImports: true,
         },
+        onwarn(warning) {
+          throw new Error(warning.message);
+        },
         external: []  // Bundle all dependencies for inline workers
       }
     },
