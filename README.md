@@ -6,13 +6,9 @@ A layer-based library for interactive visualization of large datasets.
 
 1. Install the development version of node.
 
-   If you use `nvm` to manage node versions, you can run
+   If you use `nvm` to manage node versions, you can run:
 
-   ```
-   nvm use
-   ```
-
-   to install the current development version.
+   `nvm use`
 
    Otherwise, manually install the version of node specified in `.nvmrc`.
 
