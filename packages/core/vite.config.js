@@ -70,11 +70,6 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       target: 'es2022',
-      rollupOptions: {
-        onwarn(warning) {
-          throw new Error(warning.message);
-        },
-      },
       ...(mode === 'production' ? productionBuildOptions : {}),
     },
     worker: {
@@ -83,9 +78,6 @@ export default defineConfig(({ mode }) => {
         output: {
           format: 'es',
           inlineDynamicImports: true,
-        },
-        onwarn(warning) {
-          throw new Error(warning.message);
         },
         external: []  // Bundle all dependencies for inline workers
       }

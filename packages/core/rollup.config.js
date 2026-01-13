@@ -12,4 +12,7 @@ export default {
       baseUrl: 'dist/types/src',
     },
   })],
+  onwarn(warning) {
+    throw new Error(warning.message);
+  },
 };
