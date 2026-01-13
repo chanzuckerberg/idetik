@@ -5,7 +5,8 @@ export type BlendingMode =
   | "normal"
   | "additive"
   | "multiply"
-  | "subtractive";
+  | "subtractive"
+  | "premultiplied";
 
 export type CullingMode = "none" | "front" | "back" | "both";
 
@@ -23,6 +24,10 @@ export class WebGLState {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
+    // Idetik flips Y in the projection matrix which mirrors geometry
+    // and flips winding order. As such, we need to treat clockwise
+    // triangles as front-facing.
+    this.gl_.frontFace(this.gl_.CW);
   }
 
   private enable(cap: GLenum) {
@@ -86,6 +91,9 @@ export class WebGLState {
           break;
         case "subtractive":
           this.setBlendFunc(this.gl_.ZERO, this.gl_.ONE_MINUS_SRC_COLOR);
+          break;
+        case "premultiplied":
+          this.setBlendFunc(this.gl_.ONE_MINUS_DST_ALPHA, this.gl_.ONE);
           break;
         case "normal":
         default:

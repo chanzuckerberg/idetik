@@ -20,6 +20,7 @@ type OrbitParams = {
   radius?: number;
   yaw?: number;
   pitch?: number;
+  target?: vec3;
   dampingFactor?: number;
 };
 
@@ -44,6 +45,10 @@ export class OrbitControls implements CameraControls {
       params?.yaw ?? 0,
       params?.pitch ?? 0
     );
+
+    if (params?.target) {
+      vec3.copy(this.currCenter_, params.target);
+    }
 
     this.dampingFactor_ = clamp(
       params?.dampingFactor ?? DEFAULT_DAMPING_FACTOR,

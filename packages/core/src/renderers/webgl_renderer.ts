@@ -14,19 +14,17 @@ import { Box2 } from "../math/box2";
 import { Viewport } from "../core/viewport";
 import { Camera } from "../objects/cameras/camera";
 
-import { mat4, vec2 } from "gl-matrix";
+import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
 
-// The library's coordinate system is left-handed.
-// With the default camera, the standard basis vectors should
-// look as follows.
-// (1, 0, 0) points to the right of the screen
-// (0, 1, 0) points to the bottom of the screen
-// (0, 0, 1) points out of the screen
-// WebGL's coordinate system is right-handed where the vectors
-// point in the same directions except that
-// (0, 1, 0) points to the top of the screen
-// Therefore, this transform makes the appropriate flip in y.
+// Idetik defines screen-space with +Y pointing downward.
+// With the default camera, the basis vectors are:
+// (1, 0, 0) → right
+// (0, 1, 0) → down
+// (0, 0, 1) → out of the screen
+//
+// To match this convention, we flip Y in the projection matrix.
+// This is a mirror transform, which also flips triangle winding.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
 export class WebGLRenderer extends Renderer {
@@ -125,13 +123,14 @@ export class WebGLRenderer extends Renderer {
   }
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
+    if (layer.objects.length === 0) return;
     this.state_.setBlendingMode(layer.transparent ? layer.blendMode : "none");
-    const shouldUseStencil =
-      layer.objects.length > 0 && layer.hasMultipleLODs();
+    const shouldUseStencil = layer.hasMultipleLODs();
     this.state_.setStencilTest(shouldUseStencil);
     if (shouldUseStencil) {
       this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
     }
+
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
         this.renderObject(layer, i, camera);
@@ -143,6 +142,8 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
     this.state_.setCullFaceMode(object.cullFaceMode);
+    this.state_.setDepthTesting(object.depthTest);
+    this.state_.setDepthMask(object.depthTest);
     this.bindings_.bindGeometry(object.geometry);
     object.popStaleTextures().forEach((texture) => {
       this.textures_.disposeTexture(texture);
@@ -188,6 +189,12 @@ export class WebGLRenderer extends Renderer {
     const resolution = [this.canvas.width, this.canvas.height];
 
     const objectUniforms = object.getUniforms();
+    const layerUniforms = layer.getUniforms();
+    const allUniforms = {
+      ...layerUniforms,
+      ...objectUniforms,
+    };
+
     for (const uniformName of program.uniformNames) {
       switch (uniformName) {
         case "ModelView":
@@ -202,9 +209,27 @@ export class WebGLRenderer extends Renderer {
         case "u_opacity":
           program.setUniform(uniformName, layer.opacity);
           break;
+        case "CameraPositionModel": {
+          const inverseModelView = mat4.invert(mat4.create(), modelView);
+          const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
+          const cameraPositionModel = vec4.transformMat4(
+            vec4.create(),
+            cameraPositionView,
+            inverseModelView
+          );
+          program.setUniform(
+            uniformName,
+            vec3.fromValues(
+              cameraPositionModel[0],
+              cameraPositionModel[1],
+              cameraPositionModel[2]
+            )
+          );
+          break;
+        }
         default:
-          if (uniformName in objectUniforms) {
-            program.setUniform(uniformName, objectUniforms[uniformName]);
+          if (uniformName in allUniforms) {
+            program.setUniform(uniformName, allUniforms[uniformName]);
           }
       }
     }
