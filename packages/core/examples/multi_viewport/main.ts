@@ -9,7 +9,8 @@ import {
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { addDimensionSlider } from "../lil_gui_utils";
-import { createExplorationPolicy } from "@/core/image_source_policy";
+import { createPlaybackPolicy } from "@/core/image_source_policy";
+import { vec3 } from "gl-matrix";
 
 import GUI from "lil-gui";
 
@@ -24,29 +25,45 @@ const bottom = 900;
 const z = { translate: 0.0, scale: 1.24, shape: 448 };
 const zMin = z.translate;
 const zMax = z.translate + z.scale * z.shape - z.scale;
-const zRange = { min: zMin, max: zMax };
+
+const volumeCenter = vec3.fromValues(
+  (right + left) / 2,
+  (top + bottom) / 2,
+  (zMin + zMax) / 2
+);
 
 // shared source between viewports
 const source = OmeZarrImageSource.fromHttp({ url });
 
-const camera3D = new PerspectiveCamera();
-const volumeLayer = new VolumeLayer();
+// Shared timepoint across all viewports
+const sharedTime = { t: 400 };
 
-const sliceCoords1 = { t: 400, z: 200, c: 0 };
-const camera2D1 = new OrthographicCamera(left, right, top, bottom);
-const imageLayer1 = new ChunkedImageLayer({
+// Volume layer - no z coordinate to render entire volume
+const volumeCoords = {
+  get t() {
+    return sharedTime.t;
+  },
+  c: 0,
+};
+const camera3D = new PerspectiveCamera();
+const volumeLayer = new VolumeLayer({
   source,
-  sliceCoords: sliceCoords1,
-  policy: createExplorationPolicy(),
-  channelProps: [{ contrastLimits: [0, 200] }],
+  sliceCoords: volumeCoords,
+  policy: createPlaybackPolicy({ lod: { min: 2, max: 2 } }),
 });
 
-const sliceCoords2 = { t: 400, z: 300, c: 0 };
-const camera2D2 = new OrthographicCamera(left, right, top, bottom);
-const imageLayer2 = new ChunkedImageLayer({
+const camera2D = new OrthographicCamera(left, right, top, bottom);
+const sliceCoords = {
+  get t() {
+    return sharedTime.t;
+  },
+  z: 300,
+  c: 0,
+};
+const imageLayer = new ChunkedImageLayer({
   source,
-  sliceCoords: sliceCoords2,
-  policy: createExplorationPolicy(),
+  sliceCoords: sliceCoords,
+  policy: createPlaybackPolicy(),
   channelProps: [{ contrastLimits: [0, 200] }],
 });
 
@@ -57,24 +74,18 @@ new Idetik({
       id: "volume",
       element: document.querySelector<HTMLDivElement>("#viewport-left")!,
       camera: camera3D,
-      cameraControls: new OrbitControls(camera3D, { radius: 3 }),
+      cameraControls: new OrbitControls(camera3D, {
+        radius: 750,
+        target: volumeCenter,
+      }),
       layers: [volumeLayer],
     },
     {
-      id: "slice1",
-      element: document.querySelector<HTMLDivElement>("#viewport-top-right")!,
-      camera: camera2D1,
-      cameraControls: new PanZoomControls(camera2D1),
-      layers: [imageLayer1],
-    },
-    {
-      id: "slice2",
-      element: document.querySelector<HTMLDivElement>(
-        "#viewport-bottom-right"
-      )!,
-      camera: camera2D2,
-      cameraControls: new PanZoomControls(camera2D2),
-      layers: [imageLayer2],
+      id: "slice",
+      element: document.querySelector<HTMLDivElement>("#viewport-right")!,
+      camera: camera2D,
+      cameraControls: new PanZoomControls(camera2D),
+      layers: [imageLayer],
     },
   ],
   showStats: true,
@@ -82,26 +93,26 @@ new Idetik({
 
 const gui = new GUI({ width: 300 });
 
-const topRightViewportFolder = gui.addFolder("Top Right Viewport (Slice 1)");
+// Shared time slider for all viewports with playback controls
 addDimensionSlider({
-  gui: topRightViewportFolder,
-  sliceCoords: sliceCoords1,
-  dimensionName: "z",
-  minValue: zRange.min,
-  maxValue: zRange.max,
-  stepValue: z.scale,
+  gui: gui,
+  sliceCoords: sharedTime,
+  dimensionName: "t",
+  minValue: 0,
+  maxValue: 800,
+  stepValue: 1,
+  playback: {
+    maxRateHz: 30,
+    stride: 1,
+  },
 });
-topRightViewportFolder.open();
 
-const bottomRightViewportFolder = gui.addFolder(
-  "Bottom Right Viewport (Slice 2)"
-);
+const zRange = { min: zMin, max: zMax };
 addDimensionSlider({
-  gui: bottomRightViewportFolder,
-  sliceCoords: sliceCoords2,
+  gui: gui,
+  sliceCoords: sliceCoords,
   dimensionName: "z",
   minValue: zRange.min,
   maxValue: zRange.max,
   stepValue: z.scale,
 });
-bottomRightViewportFolder.open();

@@ -51,7 +51,14 @@ export class WebGLShaderProgram {
         if (typeof value === "number") {
           this.gl_.uniform1f(location, value);
         } else {
-          this.gl_.uniform1fv(location, value as Iterable<number>);
+          this.gl_.uniform1fv(location, value as Float32Array | number[]);
+        }
+        break;
+      case this.gl_.INT:
+        if (typeof value === "number") {
+          this.gl_.uniform1i(location, value);
+        } else {
+          this.gl_.uniform1iv(location, value as Int32Array | number[]);
         }
         break;
       case this.gl_.FLOAT_VEC2:
@@ -62,9 +69,6 @@ export class WebGLShaderProgram {
         break;
       case this.gl_.FLOAT_MAT4:
         this.gl_.uniformMatrix4fv(location, false, value as mat4);
-        break;
-      case this.gl_.INT:
-        this.gl_.uniform1i(location, value as number);
         break;
       case this.gl_.UNSIGNED_INT:
         this.gl_.uniform1ui(location, value as number);
@@ -168,6 +172,7 @@ const SUPPORTED_UNIFORM_TYPES_ =
     ? [
         WebGL2RenderingContext.BOOL,
         WebGL2RenderingContext.FLOAT,
+        WebGL2RenderingContext.INT,
         WebGL2RenderingContext.FLOAT_VEC2,
         WebGL2RenderingContext.FLOAT_VEC3,
         WebGL2RenderingContext.FLOAT_MAT4,

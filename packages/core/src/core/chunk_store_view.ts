@@ -90,6 +90,46 @@ export class ChunkStoreView {
     return [...currentLODChunks, ...lowResChunks];
   }
 
+  // TODO: Eventually unify visibility calculations using the camera frustum for both
+  // orthographic (2D slices) and perspective (volume rendering) cameras. This would
+  // replace both updateChunkStates and updateChunkStatesForVolume with a single method
+  // that performs frustum culling based on the camera type.
+  public updateChunkStatesForVolume(sliceCoords: SliceCoordinates): void {
+    const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
+    const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
+
+    if (currentTimeChunks.length === 0) {
+      Logger.warn(
+        "ChunkStoreView",
+        "updateChunkStatesForVolume called with no chunks initialized"
+      );
+      this.chunkViewStates_.clear();
+      return;
+    }
+
+    // TODO: allow volume rendering to calculate an LOD factor
+    this.setLOD(0);
+    this.chunkViewStates_.forEach(resetChunkViewState);
+
+    for (const chunk of currentTimeChunks) {
+      if (chunk.lod !== this.currentLOD_) continue;
+
+      const isChannelMatch =
+        sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
+      if (!isChannelMatch) continue;
+
+      const priority = this.policy_.priorityMap["visibleCurrent"];
+      this.chunkViewStates_.set(chunk, {
+        visible: true,
+        prefetch: false,
+        priority,
+        orderKey: 0, // All chunks have the same ordering for volume rendering
+      });
+    }
+
+    this.lastTCoord_ = sliceCoords.t;
+  }
+
   public updateChunkStates(
     sliceCoords: SliceCoordinates,
     viewport: Viewport
@@ -232,7 +272,7 @@ export class ChunkStoreView {
 
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
-    this.chunkViewStates_.forEach(markUnused);
+    this.chunkViewStates_.forEach(resetChunkViewState);
 
     this.updateChunksAtTimeIndex(
       currentTimeIndex,
@@ -370,7 +410,13 @@ export class ChunkStoreView {
 
   private getZBounds(sliceCoords: SliceCoordinates): [number, number] {
     const zDim = this.store_.dimensions.z;
-    if (zDim === undefined || sliceCoords.z === undefined) return [0, 1];
+    if (zDim === undefined) return [0, 1];
+
+    // If z is undefined, return bounds that encompass all z slices (for volume rendering)
+    if (sliceCoords.z === undefined) {
+      const zLod = zDim.lods[this.currentLOD_];
+      return [zLod.translation, zLod.translation + zLod.size * zLod.scale];
+    }
 
     const zLod = zDim.lods[this.currentLOD_];
     const zShape = zLod.size;
@@ -444,7 +490,7 @@ export class ChunkStoreView {
   }
 }
 
-function markUnused(state: ChunkViewState): void {
+function resetChunkViewState(state: ChunkViewState): void {
   state.visible = false;
   state.prefetch = false;
   state.priority = null;

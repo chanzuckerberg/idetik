@@ -1,21 +1,17 @@
-import { Shader } from "../../renderers/shaders";
+import type { Shader } from "../../renderers/shaders";
 import { RenderableObject } from "../../core/renderable_object";
 import { BoxGeometry } from "../geometry/box_geometry";
-import { TextureDataType } from "../textures/texture";
-import { Texture3D } from "../textures/texture_3d";
+import type { TextureDataType } from "../textures/texture";
+import type { Texture3D } from "../textures/texture_3d";
 
 export class VolumeRenderable extends RenderableObject {
-  constructor(
-    width: number,
-    height: number,
-    depth: number,
-    texture: Texture3D
-  ) {
+  constructor(texture: Texture3D) {
     super();
-    this.geometry = new BoxGeometry(width, height, depth, 1, 1, 1);
-    this.cullFaceMode = "back";
+    this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
+    this.cullFaceMode = "front";
+    this.depthTest = false;
   }
 
   public get type() {

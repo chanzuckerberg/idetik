@@ -6,7 +6,12 @@ import { EventContext } from "./event_dispatcher";
 import { Viewport } from "./viewport";
 
 export type LayerState = "initialized" | "loading" | "ready";
-export type blendMode = "normal" | "additive" | "subtractive" | "multiply";
+export type blendMode =
+  | "normal"
+  | "additive"
+  | "subtractive"
+  | "multiply"
+  | "premultiplied";
 
 type StateChangeCallback = (
   newState: LayerState,
@@ -119,5 +124,13 @@ export abstract class Layer {
 
   protected clearObjects() {
     this.objects_ = [];
+  }
+
+  /**
+   * Get uniforms for shader program. Override in derived classes that need custom uniforms.
+   * @returns Object containing uniform name-value pairs
+   */
+  public getUniforms(): Record<string, unknown> {
+    return {}; // Default implementation returns no uniforms
   }
 }
