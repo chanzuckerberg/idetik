@@ -1,5 +1,4 @@
 import * as zarr from "zarrita";
-import { Slice } from "@zarrita/indexing";
 
 import { Region } from "../region";
 import {
@@ -16,7 +15,6 @@ import { PromiseScheduler } from "../promise_scheduler";
 
 import { Image as OmeZarrImage } from "./0.5/image";
 
-import { Readable } from "@zarrita/storage";
 import { ZarrArrayParams } from "../zarr/open";
 import { getChunk } from "./worker_pool";
 
@@ -41,7 +39,7 @@ export class PromiseQueue<T> {
 
 type OmeZarrImageLoaderProps = {
   metadata: OmeZarrImage["ome"]["multiscales"][number];
-  arrays: zarr.Array<zarr.DataType, Readable>[];
+  arrays: zarr.Array<zarr.DataType, zarr.Readable>[];
   arrayParams: ZarrArrayParams[];
 };
 
@@ -49,7 +47,9 @@ type OmeZarrImageLoaderProps = {
 // https://ngff.openmicroscopy.org/0.5/#image-layout
 export class OmeZarrImageLoader {
   private readonly metadata_: OmeZarrImage["ome"]["multiscales"][number];
-  private readonly arrays_: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>;
+  private readonly arrays_: ReadonlyArray<
+    zarr.Array<zarr.DataType, zarr.Readable>
+  >;
   private readonly arrayParams_: ReadonlyArray<ZarrArrayParams>;
   private readonly dimensions_: SourceDimensionMap;
 
@@ -208,7 +208,7 @@ export class OmeZarrImageLoader {
     }
 
     const calculateOffset = (
-      index: number | Slice,
+      index: number | zarr.Slice,
       lod: SourceDimensionLod
     ) => {
       if (typeof index === "number") {
@@ -252,7 +252,10 @@ export class OmeZarrImageLoader {
     return chunk;
   }
 
-  private regionToIndices(region: Region, lod: number): Array<Slice | number> {
+  private regionToIndices(
+    region: Region,
+    lod: number
+  ): Array<zarr.Slice | number> {
     const dimensions = [
       this.dimensions_.x,
       this.dimensions_.y,
@@ -263,14 +266,14 @@ export class OmeZarrImageLoader {
       .filter((d): d is SourceDimension => d !== undefined)
       .sort((a, b) => a.index - b.index);
 
-    const indices: Array<Slice | number> = [];
+    const indices: Array<zarr.Slice | number> = [];
     for (const d of dimensions) {
       const match = region.find((s) => compareDimensions(s.dimension, d.name));
       if (!match) {
         throw new Error(`Region does not contain a slice for ${d.name}`);
       }
       const dLod = d.lods[lod];
-      let index: Slice | number;
+      let index: zarr.Slice | number;
       const regionIndex = match.index;
       if (regionIndex.type === "full") {
         // null slice is the complete extent of a dimension like Python's `slice(None)`.
@@ -291,7 +294,7 @@ export class OmeZarrImageLoader {
 
 function inferSourceDimensionMap(
   image: OmeZarrImage["ome"]["multiscales"][number],
-  arrays: ReadonlyArray<zarr.Array<zarr.DataType, Readable>>
+  arrays: ReadonlyArray<zarr.Array<zarr.DataType, zarr.Readable>>
 ): SourceDimensionMap {
   const dimensionNames = image.axes.map((axis) => axis.name);
   const numAxes = image.axes.length;

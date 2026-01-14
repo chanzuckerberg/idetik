@@ -1,4 +1,4 @@
-import FetchStore from "@zarrita/storage/fetch";
+import { FetchStore } from "zarrita";
 
 type AwsCredentials = {
   accessKeyId: string;

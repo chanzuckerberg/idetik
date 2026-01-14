@@ -7,7 +7,7 @@ import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { glMatrix, vec3 } from "gl-matrix";
-import { Camera } from "@/objects/cameras/camera";
+import { Camera } from "../objects/cameras/camera";
 
 export type VolumeLayerProps = {
   source: ChunkSource;

@@ -1,7 +1,5 @@
 import * as zarr from "zarrita";
-import { Location } from "@zarrita/core";
-import { Readable } from "@zarrita/storage";
-import FetchStore from "@zarrita/storage/fetch";
+import { Location, Readable, FetchStore } from "zarrita";
 import WebFileSystemStore from "./web_file_system_store";
 import { S3FetchStore, type S3FetchStoreProps } from "./s3_fetch_store";
 

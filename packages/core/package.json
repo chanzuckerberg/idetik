@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "gl-matrix": "^3.4.3",
-    "zarrita": "^0.4.0-next.16",
+    "zarrita": "^0.5.4",
     "zod": "^3.24.1"
   },
   "description": "A layer-based visualization abstraction",

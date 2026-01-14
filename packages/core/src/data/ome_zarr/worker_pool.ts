@@ -1,5 +1,4 @@
 import * as zarr from "zarrita";
-import { Readable } from "@zarrita/storage";
 import { Logger } from "../../utilities/logger";
 import { ZarrArrayParams } from "../zarr/open";
 import { ZarrWorkerRequest, ZarrWorkerResponse } from "./worker_kernel";
@@ -229,7 +228,7 @@ function ensureWorkerPool(): void {
 }
 
 export async function getChunk(
-  array: zarr.Array<zarr.DataType, Readable>,
+  array: zarr.Array<zarr.DataType, zarr.Readable>,
   arrayParams: ZarrArrayParams,
   chunkCoords: number[],
   options?: { signal?: AbortSignal }
