@@ -284,6 +284,7 @@ export class ChunkStoreView {
     if (sliceCoords.t !== undefined) {
       this.markTimeChunksForPrefetch(
         currentTimeIndex,
+        sliceCoords,
         viewBounds3D,
         viewBoundsCenter2D
       );
@@ -344,6 +345,7 @@ export class ChunkStoreView {
 
   private markTimeChunksForPrefetch(
     currentTimeIndex: number,
+    sliceCoords: SliceCoordinates,
     viewBounds3D: Box3,
     viewBoundsCenter2D: ReadonlyVec2
   ): void {
@@ -355,6 +357,7 @@ export class ChunkStoreView {
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.store_.getChunksAtTime(t)) {
         if (chunk.lod !== this.store_.getLowestResLOD()) continue;
+        if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
 
         const priority = this.policy_.priorityMap["prefetchTime"];
