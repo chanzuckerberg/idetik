@@ -88,7 +88,9 @@ export type SlicePlane = {
  * For axis-aligned slices, returns the plane with unit normal and origin.
  * For oblique slices, will return the general plane equation (TODO).
  */
-export function getSlicePlane(coords: SliceCoordinates): SlicePlane | undefined {
+export function getSlicePlane(
+  coords: SliceCoordinates
+): SlicePlane | undefined {
   switch (coords.orientation) {
     case "xy":
       // XY plane at z position: normal is Z axis

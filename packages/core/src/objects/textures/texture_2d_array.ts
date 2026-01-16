@@ -63,7 +63,10 @@ export class Texture2DArray extends Texture {
 
     if (this.data === source) return;
 
-    const { width, height } = Texture2DArray.getTextureDimensions(chunk, orientation);
+    const { width, height } = Texture2DArray.getTextureDimensions(
+      chunk,
+      orientation
+    );
     const depth = source.length / (width * height);
     if (
       this.width != width ||
@@ -89,7 +92,10 @@ export class Texture2DArray extends Texture {
       );
     }
 
-    const { width, height } = Texture2DArray.getTextureDimensions(chunk, orientation);
+    const { width, height } = Texture2DArray.getTextureDimensions(
+      chunk,
+      orientation
+    );
     const texture = new Texture2DArray(source, width, height);
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;

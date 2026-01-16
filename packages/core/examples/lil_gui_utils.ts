@@ -1,8 +1,9 @@
+import { SliceCoordinates } from "@/data/slice_coordinates";
 import { Controller, GUI } from "lil-gui";
 
 type DimensionSliderProps = {
   gui: GUI;
-  sliceCoords: Record<string, unknown>; // Generic object - discriminated union doesn't work with lil-gui's dynamic property access
+  sliceCoords: SliceCoordinates;
   dimensionName: "x" | "y" | "z" | "t" | "c";
   minValue: number;
   maxValue: number;
@@ -15,6 +16,7 @@ type DimensionSliderProps = {
 };
 
 export function addDimensionSlider(props: DimensionSliderProps) {
+  assertHasDimension(props.sliceCoords, props.dimensionName);
   const controller = props.gui
     .add(
       props.sliceCoords,
@@ -106,4 +108,15 @@ class PlaybackController {
       this.controller_.setValue(this.start_);
     }
   };
+}
+
+function assertHasDimension(
+  coords: SliceCoordinates,
+  dimension: DimensionName
+): asserts coords is SliceCoordinates & Record<typeof dimension, number> {
+  if (!(dimension in coords)) {
+    throw new Error(
+      `SliceCoordinates with orientation '${coords.orientation}' does not have dimension '${dimension}'`
+    );
+  }
 }

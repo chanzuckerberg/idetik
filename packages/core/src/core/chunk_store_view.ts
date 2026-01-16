@@ -125,7 +125,7 @@ export class ChunkStoreView {
     }
 
     // TODO: allow volume rendering to calculate an LOD factor
-    this.setLOD(0);
+    this.setLOD(0, sliceCoords);
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     for (const chunk of currentTimeChunks) {

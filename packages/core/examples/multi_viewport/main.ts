@@ -10,6 +10,7 @@ import { PanZoomControls } from "@/objects/cameras/controls";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { addDimensionSlider } from "../lil_gui_utils";
 import { createPlaybackPolicy } from "@/core/image_source_policy";
+import { SliceCoordinates } from "@/data/slice_coordinates";
 import { vec3 } from "gl-matrix";
 
 import GUI from "lil-gui";
@@ -36,15 +37,16 @@ const volumeCenter = vec3.fromValues(
 const source = OmeZarrImageSource.fromHttp({ url });
 
 // Shared timepoint across all viewports
-const sharedTime = { t: 400 };
+const sharedTime = { orientation: "volume", t: 400 } satisfies SliceCoordinates;
 
 // Volume layer - no z coordinate to render entire volume
 const volumeCoords = {
+  orientation: "volume",
   get t() {
     return sharedTime.t;
   },
   c: 0,
-};
+} satisfies SliceCoordinates;
 const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer({
   source,
@@ -54,12 +56,13 @@ const volumeLayer = new VolumeLayer({
 
 const camera2D = new OrthographicCamera(left, right, top, bottom);
 const sliceCoords = {
+  orientation: "xy",
   get t() {
     return sharedTime.t;
   },
   z: 300,
   c: 0,
-};
+} satisfies SliceCoordinates;
 const imageLayer = new ChunkedImageLayer({
   source,
   sliceCoords: sliceCoords,

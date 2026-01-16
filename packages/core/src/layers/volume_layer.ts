@@ -1,4 +1,5 @@
-import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import { Chunk, ChunkSource } from "../data/chunk";
+import { SliceCoordinates } from "../data/slice_coordinates";
 import { Layer, RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";

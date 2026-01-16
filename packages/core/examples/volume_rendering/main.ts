@@ -2,6 +2,7 @@ import { Idetik, VolumeLayer, PerspectiveCamera, OmeZarrImageSource } from "@";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 import { addDimensionSlider } from "../lil_gui_utils";
+import { SliceCoordinates } from "@/data/slice_coordinates";
 import GUI from "lil-gui";
 import { vec3 } from "gl-matrix";
 
@@ -9,10 +10,10 @@ const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 const source = OmeZarrImageSource.fromHttp({ url });
 const sliceCoords = {
+  orientation: "volume",
   t: 400,
-  z: undefined,
   c: 0,
-};
+} satisfies SliceCoordinates;
 const controls = { lod: 2 };
 
 const camera = new PerspectiveCamera();
