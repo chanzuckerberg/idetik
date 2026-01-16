@@ -5,7 +5,7 @@ import {
 } from "../../objects/textures/texture";
 
 import { Chunk, ChunkData } from "../../data/chunk";
-import { getTextureDimensions } from "../../data/slice_coordinates";
+
 export class Texture2DArray extends Texture {
   private data_: DataTextureTypedArray;
   private readonly width_: number;
@@ -63,7 +63,7 @@ export class Texture2DArray extends Texture {
 
     if (this.data === source) return;
 
-    const { width, height } = getTextureDimensions(chunk, orientation);
+    const { width, height } = Texture2DArray.getTextureDimensions(chunk, orientation);
     const depth = source.length / (width * height);
     if (
       this.width != width ||
@@ -89,9 +89,27 @@ export class Texture2DArray extends Texture {
       );
     }
 
-    const { width, height } = getTextureDimensions(chunk, orientation);
+    const { width, height } = Texture2DArray.getTextureDimensions(chunk, orientation);
     const texture = new Texture2DArray(source, width, height);
     texture.unpackAlignment = chunk.rowAlignmentBytes;
     return texture;
+  }
+
+  /**
+   * Get texture dimensions for a chunk based on orientation.
+   * Returns the width and height for creating a 2D texture from the chunk data.
+   */
+  private static getTextureDimensions(
+    chunk: Chunk,
+    orientation: "xy" | "xz" | "yz"
+  ): { width: number; height: number } {
+    switch (orientation) {
+      case "xy":
+        return { width: chunk.shape.x, height: chunk.shape.y };
+      case "xz":
+        return { width: chunk.shape.x, height: chunk.shape.z };
+      case "yz":
+        return { width: chunk.shape.z, height: chunk.shape.y };
+    }
   }
 }

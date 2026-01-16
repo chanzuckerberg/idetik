@@ -70,21 +70,68 @@ export function getSlicePosition(coords: SliceCoordinates): number | undefined {
 }
 
 /**
- * Get texture dimensions for a chunk based on orientation.
- * Returns the width and height for creating a 2D texture from the chunk data.
+ * Slice plane representation using a normal vector and an origin (point on the plane).
+ * The plane equation is: normal · (p - origin) = 0
+ *
+ * This defines an infinite plane that intersects the volume for slicing purposes.
+ * No orientation (up/right vectors) is needed - the plane itself has no intrinsic
+ * rotation, and the camera defines the viewing direction.
  */
-export function getTextureDimensions(
-  chunk: Chunk,
-  orientation: "xy" | "xz" | "yz"
-): { width: number; height: number } {
-  switch (orientation) {
+export type SlicePlane = {
+  normal: vec3;
+  origin: vec3;
+};
+
+/**
+ * Get the plane equation for a slice.
+ * Returns undefined for volume rendering (no slice plane).
+ * For axis-aligned slices, returns the plane with unit normal and origin.
+ * For oblique slices, will return the general plane equation (TODO).
+ */
+export function getSlicePlane(coords: SliceCoordinates): SlicePlane | undefined {
+  switch (coords.orientation) {
     case "xy":
-      return { width: chunk.shape.x, height: chunk.shape.y };
+      // XY plane at z position: normal is Z axis
+      return {
+        normal: vec3.fromValues(0, 0, 1),
+        origin: vec3.fromValues(0, 0, coords.z),
+      };
     case "xz":
-      return { width: chunk.shape.x, height: chunk.shape.z };
+      // XZ plane at y position: normal is Y axis
+      return {
+        normal: vec3.fromValues(0, 1, 0),
+        origin: vec3.fromValues(0, coords.y, 0),
+      };
     case "yz":
-      return { width: chunk.shape.z, height: chunk.shape.y };
+      // YZ plane at x position: normal is X axis
+      return {
+        normal: vec3.fromValues(1, 0, 0),
+        origin: vec3.fromValues(coords.x, 0, 0),
+      };
+    case "oblique":
+      // TODO: return plane from oblique slice parameters
+      return undefined;
+    case "volume":
+      return undefined;
   }
+}
+
+/**
+ * Project a 3D point onto a plane.
+ * Returns the closest point on the plane to the given point.
+ */
+export function projectPointOntoPlane(point: vec3, plane: SlicePlane): vec3 {
+  // Vector from plane origin to the point
+  const toPoint = vec3.create();
+  vec3.subtract(toPoint, point, plane.origin);
+
+  // Distance from point to plane along the normal
+  const distance = vec3.dot(toPoint, plane.normal);
+
+  // Project by moving back along the normal
+  const projected = vec3.create();
+  vec3.scaleAndAdd(projected, point, plane.normal, -distance);
+  return projected;
 }
 
 /**

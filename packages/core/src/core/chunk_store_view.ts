@@ -6,13 +6,15 @@ import {
   getHorizontalDimension,
   getSlicedDimension,
   isAxisAlignedSlice,
+  getSlicePlane,
+  projectPointOntoPlane,
 } from "../data/slice_coordinates";
 import { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import type { Camera } from "../objects/cameras/camera";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";
-import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
+import { vec2, vec3, mat4 } from "gl-matrix";
 import { Box3 } from "../math/box3";
 import { Frustum } from "../math/frustum";
 import { Logger } from "../utilities/logger";
@@ -35,7 +37,7 @@ export class ChunkStoreView {
   private lastSliceBounds_?: [number, number];
   private lastTCoord_?: number;
 
-  private sourceMaxSquareDistance2D_: number;
+  private sourceMaxSquareDistance3D_: number;
   private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
 
   constructor(store: ChunkStore, policy: ImageSourcePolicy) {
@@ -51,9 +53,15 @@ export class ChunkStoreView {
     const dimensions = this.store_.dimensions;
     const xLod0 = dimensions.x.lods[0];
     const yLod0 = dimensions.y.lods[0];
-    this.sourceMaxSquareDistance2D_ = vec2.squaredLength(
-      vec2.fromValues(xLod0.size * xLod0.scale, yLod0.size * yLod0.scale)
+    const zLod0 = dimensions.z?.lods[0];
+
+    // Calculate max 3D distance (diagonal of the dataset bounding box)
+    const maxExtent = vec3.fromValues(
+      xLod0.size * xLod0.scale,
+      yLod0.size * yLod0.scale,
+      zLod0 ? zLod0.size * zLod0.scale : 0
     );
+    this.sourceMaxSquareDistance3D_ = vec3.squaredLength(maxExtent);
   }
 
   public get chunkViewStates(): ReadonlyMap<Chunk, ChunkViewState> {
@@ -287,13 +295,14 @@ export class ChunkStoreView {
     const frustum = viewport.camera.frustum;
     const prefetchFrustum = this.getExpandedFrustum(viewport.camera);
 
-    // Use camera position for orderKey distance calculations
-    // Extract 2D position (x, y) from camera position
+    // Project camera position onto slice plane for distance calculations
+    // For slices, we want to prioritize chunks near where we're looking on the slice
+    // For volumes, we use the camera position directly
     const cameraPosition = viewport.camera.position;
-    const cameraPosition2D = vec2.fromValues(
-      cameraPosition[0],
-      cameraPosition[1]
-    );
+    const slicePlane = getSlicePlane(sliceCoords);
+    const referencePoint = slicePlane
+      ? projectPointOntoPlane(cameraPosition, slicePlane)
+      : cameraPosition;
 
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
@@ -304,7 +313,7 @@ export class ChunkStoreView {
       sliceCoords,
       frustum,
       prefetchFrustum,
-      cameraPosition2D
+      referencePoint
     );
 
     if (sliceCoords.t !== undefined) {
@@ -312,7 +321,7 @@ export class ChunkStoreView {
         currentTimeIndex,
         sliceCoords,
         frustum,
-        cameraPosition2D
+        referencePoint
       );
     }
   }
@@ -329,7 +338,7 @@ export class ChunkStoreView {
     sliceCoords: SliceCoordinates,
     frustum: Frustum,
     prefetchFrustum: Frustum,
-    cameraPosition2D: ReadonlyVec2
+    referencePoint: vec3
   ): void {
     const currentTimeChunks = this.store_.getChunksAtTime(timeIndex);
 
@@ -356,7 +365,7 @@ export class ChunkStoreView {
       );
 
       if (priority !== null) {
-        const orderKey = this.squareDistance2D(chunk, cameraPosition2D);
+        const orderKey = this.squareDistance3D(chunk, referencePoint);
 
         this.chunkViewStates_.set(chunk, {
           visible,
@@ -372,7 +381,7 @@ export class ChunkStoreView {
     currentTimeIndex: number,
     sliceCoords: SliceCoordinates,
     frustum: Frustum,
-    cameraPosition2D: ReadonlyVec2
+    referencePoint: vec3
   ): void {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const tEnd = Math.min(
@@ -385,9 +394,9 @@ export class ChunkStoreView {
         if (!this.isChunkVisibleInSlice(chunk, sliceCoords, frustum)) continue;
 
         const priority = this.policy_.priorityMap["prefetchTime"];
-        const squareDistance = this.squareDistance2D(chunk, cameraPosition2D);
+        const squareDistance = this.squareDistance3D(chunk, referencePoint);
         const normalizedDistance = clamp(
-          squareDistance / this.sourceMaxSquareDistance2D_,
+          squareDistance / this.sourceMaxSquareDistance3D_,
           0,
           1 - Number.EPSILON
         );
@@ -559,14 +568,13 @@ export class ChunkStoreView {
     return new Frustum(viewProjection);
   }
 
-  private squareDistance2D(chunk: Chunk, center: ReadonlyVec2): number {
-    const chunkCenter = {
-      x: chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
-      y: chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
-    };
-    const dx = chunkCenter.x - center[0];
-    const dy = chunkCenter.y - center[1];
-    return dx * dx + dy * dy;
+  private squareDistance3D(chunk: Chunk, center: vec3): number {
+    const chunkCenter = vec3.fromValues(
+      chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
+      chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
+      chunk.offset.z + 0.5 * chunk.shape.z * chunk.scale.z
+    );
+    return vec3.squaredDistance(chunkCenter, center);
   }
 }
 
