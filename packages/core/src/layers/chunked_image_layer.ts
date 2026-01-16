@@ -104,7 +104,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     if (
       this.visibleChunks_.size > 0 &&
-      !this.chunkStoreView_.allVisibleLowestLODLoaded(this.sliceCoords_) &&
+      !this.chunkStoreView_.allVisibleFallbackLODLoaded(this.sliceCoords_) &&
       !this.isPresentationStale()
     ) {
       return;
