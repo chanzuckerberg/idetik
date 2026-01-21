@@ -7,6 +7,7 @@ import {
   getSliceScale,
   getSliceTranslation,
   getSliceRotation,
+  getTextureDimensions,
   isAxisAlignedSlice,
 } from "../data/slice_coordinates";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
@@ -22,9 +23,6 @@ import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
-
-const VOLUME_NOT_SUPPORTED_ERROR =
-  "Volume rendering not supported. Use VolumeLayer for volume rendering.";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -168,7 +166,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     }
 
     if (!isAxisAlignedSlice(this.sliceCoords_)) {
-      throw new Error(VOLUME_NOT_SUPPORTED_ERROR);
+      throw new Error(
+        "ChunkedImageLayer requires axis-aligned slice coordinates"
+      );
     }
 
     for (const [chunk, image] of this.visibleChunks_) {
@@ -177,7 +177,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       if (data) {
         const texture = image.textures[0] as Texture2DArray;
         texture.updateWithChunk(chunk, data, this.sliceCoords_.orientation);
-        // Update the position to match the new slice
         this.updateImageChunk(image, chunk);
       }
     }
@@ -223,31 +222,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  /**
-   * Extract a 2D slice from a 3D chunk at the given slice position.
-   *
-   * PERFORMANCE NOTE: XZ and YZ slicing requires nested loops to extract non-contiguous
-   * data from the chunk array. For large chunks (e.g., 512x512x256), this can be
-   * expensive (O(n²) operations). Consider GPU-based slicing or caching for performance-
-   * critical applications.
-   */
   private slicePlane(chunk: Chunk, sliceValue: number) {
     if (!chunk.data) return;
 
-    if (!isAxisAlignedSlice(this.sliceCoords_)) {
-      Logger.error(
-        "ImageLayer",
-        "slicePlane called with non-axis-aligned slice"
-      );
-      return;
-    }
-
     const orientation = this.sliceCoords_.orientation;
 
-    /**
-     * Calculate and validate the slice index along a given axis.
-     * Returns the clamped index after validating it's within ~1 voxel of the slice position.
-     */
     const getSliceIndex = (
       sliceValue: number,
       offset: number,
@@ -320,8 +299,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
         const rowSize = chunk.shape.x;
         const xyPlaneSize = chunk.shape.x * chunk.shape.y;
 
-        // Output data with Z varying fast (width) and Y varying slow (height)
-        // so that after rotateY(-90°), Z maps to world Z and Y maps to world Y
         for (let y = 0; y < chunk.shape.y; y++) {
           for (let z = 0; z < chunk.shape.z; z++) {
             const srcOffset = z * xyPlaneSize + y * rowSize + xIdx;
@@ -339,10 +316,14 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     if (existing) return existing;
 
     if (!isAxisAlignedSlice(this.sliceCoords_)) {
-      throw new Error(VOLUME_NOT_SUPPORTED_ERROR);
+      throw new Error(
+        "ChunkedImageLayer requires axis-aligned slice coordinates"
+      );
     }
 
-    const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
+    const pooled = this.pool_.acquire(
+      poolKeyForImageRenderable(chunk, this.sliceCoords_.orientation)
+    );
     if (pooled) {
       const texture = pooled.textures[0] as Texture2DArray;
       texture.updateWithChunk(
@@ -362,7 +343,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   private createImage(chunk: Chunk) {
     if (!isAxisAlignedSlice(this.sliceCoords_)) {
-      throw new Error(VOLUME_NOT_SUPPORTED_ERROR);
+      throw new Error(
+        "ChunkedImageLayer requires axis-aligned slice coordinates"
+      );
     }
 
     const data = this.getDataForImage(chunk);
@@ -400,16 +383,18 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
+    if (!isAxisAlignedSlice(this.sliceCoords_)) {
+      throw new Error(
+        "ChunkedImageLayer requires axis-aligned slice coordinates"
+      );
+    }
+
     if (this.debugMode_) {
       image.wireframeEnabled = true;
       image.wireframeColor =
         this.wireframeColors_[chunk.lod % this.wireframeColors_.length];
     } else {
       image.wireframeEnabled = false;
-    }
-
-    if (!isAxisAlignedSlice(this.sliceCoords_)) {
-      throw new Error(VOLUME_NOT_SUPPORTED_ERROR);
     }
 
     const slicePosition = getSlicePosition(this.sliceCoords_) ?? 0;
@@ -524,20 +509,33 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
+    if (!isAxisAlignedSlice(this.sliceCoords_)) {
+      throw new Error(
+        "ChunkedImageLayer requires axis-aligned slice coordinates"
+      );
+    }
+
     for (const chunk of chunks) {
       const image = this.visibleChunks_.get(chunk);
       if (image) {
-        this.pool_.release(poolKeyForImageRenderable(chunk), image);
+        this.pool_.release(
+          poolKeyForImageRenderable(chunk, this.sliceCoords_.orientation),
+          image
+        );
         this.visibleChunks_.delete(chunk);
       }
     }
   }
 }
 
-export function poolKeyForImageRenderable(chunk: Chunk) {
+export function poolKeyForImageRenderable(
+  chunk: Chunk,
+  orientation: "xy" | "xz" | "yz"
+) {
+  const { width, height } = getTextureDimensions(chunk, orientation);
   return [
     `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
+    `texture${width}x${height}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }

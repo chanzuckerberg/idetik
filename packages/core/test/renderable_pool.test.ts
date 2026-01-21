@@ -71,11 +71,12 @@ describe("poolKeyForImageRenderable", () => {
     const key = poolKeyForImageRenderable(
       makeChunk({
         lod: 2,
-        shape: { x: 256, y: 128 },
+        shape: { x: 256, y: 128, z: 64 },
         rowAlignmentBytes: 4,
-      })
+      }),
+      "xy"
     );
 
-    expect(key).toBe("lod2:shape256x128:align4");
+    expect(key).toBe("lod2:texture256x128:align4");
   });
 });

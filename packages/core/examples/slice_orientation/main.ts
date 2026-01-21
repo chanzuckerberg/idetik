@@ -3,6 +3,7 @@ import {
   ChunkedImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
+  AxesLayer,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { addDimensionSlider } from "../lil_gui_utils";
@@ -11,37 +12,37 @@ import { createExplorationPolicy } from "@/core/image_source_policy";
 import GUI from "lil-gui";
 import { quat } from "gl-matrix";
 
+// wrap in async fn so we can query the source up front for image attributes
+async function main() {
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
 
-// Dimension values copied from source
-// Using (shape - 1) * scale to get the center of the last pixel, not the edge
-const x = { translate: 0.0, scale: 1.24, shape: 800 };
-const xMin = x.translate;
-const xMax = x.translate + x.scale * (x.shape - 1);
+const source = OmeZarrImageSource.fromHttp({ url });
+
+const loader = await source.open();
+const dimensions = loader.getSourceDimensionMap();
+
+const x = dimensions.x.lods[0];
+const xMin = x.translation;
+const xMax = x.translation + x.scale * (x.size - 1);
 const xRange = { min: xMin, max: xMax };
 const xCenter = (xMin + xMax) / 2;
 
-const y = { translate: 0.0, scale: 1.24, shape: 800 };
-const yMin = y.translate;
-const yMax = y.translate + y.scale * (y.shape - 1);
+const y = dimensions.y.lods[0];
+const yMin = y.translation;
+const yMax = y.translation + y.scale * (y.size - 1);
 const yRange = { min: yMin, max: yMax };
 const yCenter = (yMin + yMax) / 2;
 
-const z = { translate: 0.0, scale: 1.24, shape: 448 };
-const zMin = z.translate;
-const zMax = z.translate + z.scale * (z.shape - 1);
+const z = dimensions.z!.lods[0];
+const zMin = z.translation;
+const zMax = z.translation + z.scale * (z.size - 1);
 const zRange = { min: zMin, max: zMax };
 const zCenter = (zMin + zMax) / 2;
 
-// Shared source
-const source = OmeZarrImageSource.fromHttp({ url });
-
-// Camera - use generous near/far that works for all orientations
-const camera = new OrthographicCamera(xMin, xMax, yMin, yMax, -100, 2000);
+const camera = new OrthographicCamera(xMin, xMax, yMin, yMax, -1000, 1000);
 camera.transform.setTranslation([xCenter, yCenter, zMax + 10]);
 
-// Start with XY orientation
 let currentLayer = new ChunkedImageLayer({
   source,
   sliceCoords: { orientation: "xy", z: zCenter, t: 400, c: 0 },
@@ -49,13 +50,17 @@ let currentLayer = new ChunkedImageLayer({
   channelProps: [{ contrastLimits: [0, 200] }],
 });
 
+const axisLength = Math.max(xMax - xMin, yMax - yMin, zMax - zMin) * 0.3;
+
+const axisHelper = new AxesLayer({ length: axisLength, width: 0.01 });
+
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
       camera,
       cameraControls: new PanZoomControls(camera),
-      layers: [currentLayer],
+      layers: [currentLayer, axisHelper],
     },
   ],
   showStats: true,
@@ -68,7 +73,6 @@ const controls = {
 
 const gui = new GUI({ width: 300 });
 
-// Wireframe toggle
 gui
   .add(controls, "showWireframes")
   .name("Show Tile Wireframes")
@@ -77,8 +81,15 @@ gui
   });
 
 let dimensionSlider: ReturnType<typeof addDimensionSlider>;
+dimensionSlider = addDimensionSlider({
+  gui,
+  sliceCoords: currentLayer.sliceCoords,
+  dimensionName: "z",
+  minValue: zRange.min,
+  maxValue: zRange.max,
+  stepValue: z.scale,
+});
 
-// Orientation selector
 gui
   .add(controls, "orientation", ["xy", "xz", "yz"])
   .name("Slice Orientation")
@@ -88,10 +99,10 @@ gui
       dimensionSlider.destroy();
     }
 
-    // Remove old layer
     idetik.viewports[0].layerManager.remove(currentLayer);
 
-    // Update camera and create new layer based on orientation
+    // update camera and create new layer based on orientation
+    // need to create a new layer because SliceCoordinates.orientation is not mutable
     switch (orientation) {
       case "xy": {
         // XY slice: looking down from above (along -Z)
@@ -151,7 +162,6 @@ gui
         camera.transform.setTranslation([xMin - 10, yCenter, zCenter]);
         const rotationYZ = quat.create();
         quat.rotateY(rotationYZ, rotationYZ, -Math.PI / 2);
-        quat.rotateZ(rotationYZ, rotationYZ, Math.PI / 2);
         camera.transform.setRotation(rotationYZ);
 
         currentLayer = new ChunkedImageLayer({
@@ -174,16 +184,8 @@ gui
       }
     }
 
-    // Add new layer to viewport
     idetik.viewports[0].layerManager.add(currentLayer);
   });
+}
 
-// Initial dimension slider (Z for XY orientation)
-dimensionSlider = addDimensionSlider({
-  gui,
-  sliceCoords: currentLayer.sliceCoords,
-  dimensionName: "z",
-  minValue: zRange.min,
-  maxValue: zRange.max,
-  stepValue: z.scale,
-});
+main();

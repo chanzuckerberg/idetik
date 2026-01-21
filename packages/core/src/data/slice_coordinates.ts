@@ -28,23 +28,12 @@ export type SliceCoordinatesVolume = {
   c?: number;
 };
 
-export type SliceCoordinatesOblique = {
-  orientation: "oblique";
-  // TODO: define oblique slice parameters (plane equation, normal vector, etc.)
-  t?: number;
-  c?: number;
-};
-
 export type SliceCoordinates =
   | SliceCoordinatesXY
   | SliceCoordinatesXZ
   | SliceCoordinatesYZ
-  | SliceCoordinatesVolume
-  | SliceCoordinatesOblique;
+  | SliceCoordinatesVolume;
 
-/**
- * Type guard to check if slice coordinates are axis-aligned (not volume or oblique).
- */
 export function isAxisAlignedSlice(
   coords: SliceCoordinates
 ): coords is SliceCoordinatesXY | SliceCoordinatesXZ | SliceCoordinatesYZ {
@@ -64,83 +53,48 @@ export function getSlicePosition(coords: SliceCoordinates): number | undefined {
     case "yz":
       return coords.x;
     case "volume":
-    case "oblique":
       return undefined;
   }
 }
 
-/**
- * Slice plane representation using a normal vector and an origin (point on the plane).
- * The plane equation is: normal · (p - origin) = 0
- *
- * This defines an infinite plane that intersects the volume for slicing purposes.
- * No orientation (up/right vectors) is needed - the plane itself has no intrinsic
- * rotation, and the camera defines the viewing direction.
- */
 export type SlicePlane = {
   normal: vec3;
   origin: vec3;
 };
 
-/**
- * Get the plane equation for a slice.
- * Returns undefined for volume rendering (no slice plane).
- * For axis-aligned slices, returns the plane with unit normal and origin.
- * For oblique slices, will return the general plane equation (TODO).
- */
 export function getSlicePlane(
   coords: SliceCoordinates
 ): SlicePlane | undefined {
   switch (coords.orientation) {
     case "xy":
-      // XY plane at z position: normal is Z axis
       return {
         normal: vec3.fromValues(0, 0, 1),
         origin: vec3.fromValues(0, 0, coords.z),
       };
     case "xz":
-      // XZ plane at y position: normal is Y axis
       return {
         normal: vec3.fromValues(0, 1, 0),
         origin: vec3.fromValues(0, coords.y, 0),
       };
     case "yz":
-      // YZ plane at x position: normal is X axis
       return {
         normal: vec3.fromValues(1, 0, 0),
         origin: vec3.fromValues(coords.x, 0, 0),
       };
-    case "oblique":
-      // TODO: return plane from oblique slice parameters
-      return undefined;
     case "volume":
       return undefined;
   }
 }
 
-/**
- * Project a 3D point onto a plane.
- * Returns the closest point on the plane to the given point.
- */
 export function projectPointOntoPlane(point: vec3, plane: SlicePlane): vec3 {
-  // Vector from plane origin to the point
   const toPoint = vec3.create();
   vec3.subtract(toPoint, point, plane.origin);
-
-  // Distance from point to plane along the normal
   const distance = vec3.dot(toPoint, plane.normal);
-
-  // Project by moving back along the normal
   const projected = vec3.create();
   vec3.scaleAndAdd(projected, point, plane.normal, -distance);
   return projected;
 }
 
-/**
- * Get the sliced axis name based on orientation.
- * Returns which dimension is being sliced through.
- * Internal helper - not exported.
- */
 function getSliceAxis(orientation: "xy" | "xz" | "yz"): "x" | "y" | "z" {
   switch (orientation) {
     case "xy":
@@ -152,9 +106,6 @@ function getSliceAxis(orientation: "xy" | "xz" | "yz"): "x" | "y" | "z" {
   }
 }
 
-/**
- * Check if a chunk intersects with a slice position along the slice axis.
- */
 export function chunkIntersectsSlice(
   chunk: Chunk,
   orientation: "xy" | "xz" | "yz",
@@ -167,10 +118,6 @@ export function chunkIntersectsSlice(
   );
 }
 
-/**
- * Get the horizontal (screen space) dimension for an orientation.
- * This is used for LOD calculations based on screen pixel density.
- */
 export function getHorizontalDimension(
   dimensions: SourceDimensionMap,
   orientation: "xy" | "xz" | "yz"
@@ -184,9 +131,6 @@ export function getHorizontalDimension(
   }
 }
 
-/**
- * Get the source dimension being sliced for a given orientation.
- */
 export function getSlicedDimension(
   dimensions: SourceDimensionMap,
   orientation: "xy" | "xz" | "yz"
@@ -201,9 +145,20 @@ export function getSlicedDimension(
   }
 }
 
-/**
- * Get the scale vector for positioning a slice renderable.
- */
+export function getTextureDimensions(
+  chunk: Chunk,
+  orientation: "xy" | "xz" | "yz"
+): { width: number; height: number } {
+  switch (orientation) {
+    case "xy":
+      return { width: chunk.shape.x, height: chunk.shape.y };
+    case "xz":
+      return { width: chunk.shape.x, height: chunk.shape.z };
+    case "yz":
+      return { width: chunk.shape.z, height: chunk.shape.y };
+  }
+}
+
 export function getSliceScale(
   chunk: Chunk,
   orientation: "xy" | "xz" | "yz"
@@ -218,9 +173,6 @@ export function getSliceScale(
   }
 }
 
-/**
- * Get the translation vector for positioning a slice renderable.
- */
 export function getSliceTranslation(
   chunk: Chunk,
   orientation: "xy" | "xz" | "yz",
@@ -236,14 +188,11 @@ export function getSliceTranslation(
   }
 }
 
-/**
- * Get the rotation quaternion for positioning a slice renderable.
- */
 export function getSliceRotation(orientation: "xy" | "xz" | "yz"): quat {
   const rotation = quat.create();
   switch (orientation) {
     case "xy":
-      return rotation; // Identity rotation
+      return rotation;
     case "xz":
       quat.rotateX(rotation, rotation, Math.PI / 2);
       return rotation;

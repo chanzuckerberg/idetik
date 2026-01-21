@@ -73,10 +73,6 @@ export class Frustum {
     return true;
   }
 
-  /**
-   * Get the width of the frustum (distance between left and right planes).
-   * For orthographic frustums, this gives the visible width in world space.
-   */
   public getWidth(): number {
     // For parallel planes with opposite normals (left points right, right points left),
     // the distance is the absolute value of the sum of their signed distances

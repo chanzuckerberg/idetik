@@ -172,11 +172,10 @@ export class VolumeLayer extends Layer {
       throw new Error(
         "RenderContext is required for the VolumeLayer update as camera information is used to reorder the chunks."
       );
-    } else {
-      this.reorderObjects(context.viewport.camera);
     }
 
-    this.chunkStoreView_.updateChunkStatesForVolume(this.sliceCoords_);
+    this.reorderObjects(context.viewport.camera);
+    this.chunkStoreView_.updateChunkStates(this.sliceCoords_, context.viewport);
     this.updateChunks();
   }
 

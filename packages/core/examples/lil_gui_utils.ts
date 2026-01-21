@@ -112,7 +112,7 @@ class PlaybackController {
 
 function assertHasDimension(
   coords: SliceCoordinates,
-  dimension: DimensionName
+  dimension: "x" | "y" | "z" | "t" | "c"
 ): asserts coords is SliceCoordinates & Record<typeof dimension, number> {
   if (!(dimension in coords)) {
     throw new Error(

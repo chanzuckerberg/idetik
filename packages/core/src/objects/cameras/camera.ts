@@ -25,6 +25,14 @@ export abstract class Camera extends RenderableObject {
     return this.transform.inverse;
   }
 
+  get near() {
+    return this.near_;
+  }
+
+  get far() {
+    return this.far_;
+  }
+
   get right() {
     const m = this.transform.matrix;
     return vec3.fromValues(m[0], m[1], m[2]);
