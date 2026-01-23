@@ -227,24 +227,6 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     const orientation = this.sliceCoords_.orientation;
 
-    const getSliceIndex = (
-      sliceValue: number,
-      offset: number,
-      scale: number,
-      maxShape: number
-    ): number => {
-      const local = (sliceValue - offset) / scale;
-      const idx = Math.round(local);
-      const clamped = clamp(idx, 0, maxShape - 1);
-
-      // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
-      if (!almostEqual(local, clamped, 1 + 1e-6)) {
-        Logger.error("ImageLayer", "slicePlane value outside extent");
-      }
-
-      return clamped;
-    };
-
     switch (orientation) {
       case "xy": {
         const zIdx = getSliceIndex(
@@ -526,6 +508,24 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       }
     }
   }
+}
+
+function getSliceIndex(
+  sliceValue: number,
+  offset: number,
+  scale: number,
+  maxShape: number
+): number {
+  const local = (sliceValue - offset) / scale;
+  const idx = Math.round(local);
+  const clamped = clamp(idx, 0, maxShape - 1);
+
+  // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
+  if (!almostEqual(local, clamped, 1 + 1e-6)) {
+    Logger.error("ChunkedImageLayer", "slice value outside chunk extent");
+  }
+
+  return clamped;
 }
 
 export function poolKeyForImageRenderable(

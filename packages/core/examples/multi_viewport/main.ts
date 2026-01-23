@@ -55,7 +55,11 @@ const volumeLayer = new VolumeLayer({
 });
 
 const camera2D = new OrthographicCamera(left, right, top, bottom, -1000, 1000);
-camera2D.transform.setTranslation([(left + right) / 2, (top + bottom) / 2, zMax + 10]);
+camera2D.transform.setTranslation([
+  (left + right) / 2,
+  (top + bottom) / 2,
+  zMax + 10,
+]);
 const sliceCoords = {
   orientation: "xy",
   get t() {

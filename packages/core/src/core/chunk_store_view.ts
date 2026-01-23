@@ -130,7 +130,9 @@ export class ChunkStoreView {
       const virtualWidth = frustum.getWidth();
 
       const canvasElement = viewport.element as HTMLCanvasElement;
-      const bufferWidth = viewport.getBoxRelativeTo(canvasElement).toRect().width;
+      const bufferWidth = viewport
+        .getBoxRelativeTo(canvasElement)
+        .toRect().width;
       const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
       const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
@@ -138,7 +140,10 @@ export class ChunkStoreView {
     }
   }
 
-  private hasViewChanged(sliceCoords: SliceCoordinates, viewport: Viewport): boolean {
+  private hasViewChanged(
+    sliceCoords: SliceCoordinates,
+    viewport: Viewport
+  ): boolean {
     if (sliceCoords.orientation === "volume") {
       return this.policyChanged_ || this.lastTCoord_ !== sliceCoords.t;
     }
@@ -159,7 +164,10 @@ export class ChunkStoreView {
     );
   }
 
-  private updateLastViewState(sliceCoords: SliceCoordinates, viewport: Viewport): void {
+  private updateLastViewState(
+    sliceCoords: SliceCoordinates,
+    viewport: Viewport
+  ): void {
     this.policyChanged_ = false;
     this.lastTCoord_ = sliceCoords.t;
 
@@ -387,7 +395,8 @@ export class ChunkStoreView {
 
     for (const chunk of currentTimeChunks) {
       if (this.isChunkVisibleInSlice(chunk, sliceCoords, frustum)) continue;
-      if (!this.isChunkVisibleInSlice(chunk, sliceCoords, prefetchFrustum)) continue;
+      if (!this.isChunkVisibleInSlice(chunk, sliceCoords, prefetchFrustum))
+        continue;
 
       const isChannelInSlice = this.isChunkChannelInSlice(chunk, sliceCoords);
       if (!isChannelInSlice) continue;
@@ -424,7 +433,14 @@ export class ChunkStoreView {
         if (chunk.lod !== this.store_.getLowestResLOD()) continue;
 
         if (sliceCoords.orientation !== "volume") {
-          if (!this.isChunkVisibleInSlice(chunk, sliceCoords, viewport.camera.frustum)) continue;
+          if (
+            !this.isChunkVisibleInSlice(
+              chunk,
+              sliceCoords,
+              viewport.camera.frustum
+            )
+          )
+            continue;
         }
 
         const priority = this.policy_.priorityMap["prefetchTime"];
