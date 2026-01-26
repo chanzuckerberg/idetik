@@ -138,15 +138,17 @@ export class VolumeLayer extends Layer {
   }
 
   private updateVolumeChunk(volume: VolumeRenderable, chunk: Chunk) {
-    volume.transform.setScale([
-      chunk.shape.x * chunk.scale.x,
-      chunk.shape.y * chunk.scale.y,
-      chunk.shape.z * chunk.scale.z,
-    ]);
+    const worldSize = {
+      x: chunk.shape.x * chunk.scale.x,
+      y: chunk.shape.y * chunk.scale.y,
+      z: chunk.shape.z * chunk.scale.z,
+    };
+    volume.transform.setScale([worldSize.x, worldSize.y, worldSize.z]);
+    vec3.set(volume.chunkWorldSize, worldSize.x, worldSize.y, worldSize.z);
     const originOffset = {
-      x: (chunk.shape.x * chunk.scale.x) / 2,
-      y: (chunk.shape.y * chunk.scale.y) / 2,
-      z: (chunk.shape.z * chunk.scale.z) / 2,
+      x: worldSize.x / 2,
+      y: worldSize.y / 2,
+      z: worldSize.z / 2,
     };
     volume.transform.setTranslation([
       chunk.offset.x + originOffset.x,

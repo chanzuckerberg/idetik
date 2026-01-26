@@ -28,6 +28,10 @@ uniform float OpacityMultiplier;
 uniform float EarlyTerminationAlpha;
 uniform vec3 VolumeColor;
 
+// This allows SamplesPerUnit to be interpreted as samples per world-space unit,
+// making sampling density consistent across chunks of different sizes and LODs.
+uniform vec3 ChunkWorldSize;
+
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
     vec3 t0 = (boxMin - rayOrigin) * reciprocalRayDir;
@@ -65,9 +69,22 @@ void main() {
     exitPoint = clamp(exitPoint + 0.5, 0.0, 1.0);
 
     // Step 2 - calculate the number of samples based on the length of the ray
+    // The ray is in normalized texture space [0,1]. We scale by ChunkWorldSize to account
+    // for the world-space size of this chunk, ensuring consistent sampling density
+    // across chunks of different sizes and LODs. The normalization by maxChunkDim
+    // keeps SamplesPerUnit approximately consistent with the idea of having
+    // samples across the chunk's longest axis, while still making smaller chunks
+    // in world-space use fewer samples.
     vec3 rayWithinModel = exitPoint - entryPoint;
-    float rayLength = length(rayWithinModel);
-    int numSamples = max(int(ceil(rayLength * SamplesPerUnit)), 1);
+
+    // Convert ray from texture space (0, 1) to world space
+    vec3 rayInWorldSpace = rayWithinModel * ChunkWorldSize;
+    float rayLengthWorld = length(rayInWorldSpace);
+
+    // Normalize the ray length by the maximum chunk dimension to avoid oversampling large chunks
+    float maxChunkDim = max(max(ChunkWorldSize.x, ChunkWorldSize.y), ChunkWorldSize.z);
+    float normalizedRayLength = rayLengthWorld / max(maxChunkDim, 1.0);
+    int numSamples = max(int(ceil(normalizedRayLength * SamplesPerUnit)), 1);
     vec3 stepIncrement = rayWithinModel / float(numSamples);
 
     // Step 3 - perform the ray marching and compositing in front to back order
