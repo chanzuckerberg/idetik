@@ -40,7 +40,7 @@ async function main() {
   const zRange = { min: zMin, max: zMax };
   const zCenter = (zMin + zMax) / 2;
 
-  const camera = new OrthographicCamera(xMin, xMax, yMin, yMax, -1000, 1000);
+  const camera = new OrthographicCamera(xMin, xMax, yMin, yMax, 0, 10000);
   camera.transform.setTranslation([xCenter, yCenter, zMax + 10]);
 
   let currentLayer = new ChunkedImageLayer({

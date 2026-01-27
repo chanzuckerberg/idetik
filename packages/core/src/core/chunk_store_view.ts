@@ -3,8 +3,8 @@ import {
   SliceCoordinates,
   getSlicePosition,
   chunkIntersectsSlice,
-  getHorizontalDimension,
   getSlicedDimension,
+  getVisibleDimensionScales,
   isAxisAlignedSlice,
   getSlicePlane,
   projectPointOntoPlane,
@@ -121,22 +121,36 @@ export class ChunkStoreView {
   }
 
   private updateLOD(sliceCoords: SliceCoordinates, viewport: Viewport): void {
+    const lowestResLOD = this.store_.getLowestResLOD();
+
     if (sliceCoords.orientation === "volume") {
-      const lowestResLOD = this.store_.getLowestResLOD();
+      // Volume rendering: use policy minimum LOD (no automatic calculation)
       this.currentLOD_ = clamp(this.policy_.lod.min, 0, lowestResLOD);
-    } else {
-      const camera = viewport.camera;
-      const frustum = camera.frustum;
-      const virtualWidth = frustum.getWidth();
+    } else if (isAxisAlignedSlice(sliceCoords)) {
+      // Slice rendering: calculate LOD from screen pixel density
+      // Note: Assumes orthographic camera where frustum.getWidth() is meaningful
+      const lodFactor = Math.log2(1 / viewport.virtualUnitsPerScreenPixel);
 
-      const canvasElement = viewport.element as HTMLCanvasElement;
-      const bufferWidth = viewport
-        .getBoxRelativeTo(canvasElement)
-        .toRect().width;
-      const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
-      const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
+      // Use finest resolution of visible dimensions to handle anisotropic data
+      const dimensions = this.store_.dimensions;
+      const scale0 = Math.min(
+        ...getVisibleDimensionScales(dimensions, sliceCoords.orientation)
+      );
 
-      this.setLOD(lodFactor, sliceCoords);
+      const bias = this.policy_.lod.bias;
+      const sourceAdjusted = bias - Math.log2(scale0) - lodFactor;
+      const desiredLOD = Math.floor(sourceAdjusted);
+
+      const minPolicyLOD = Math.max(
+        0,
+        Math.min(lowestResLOD, this.policy_.lod.min)
+      );
+      const maxPolicyLOD = Math.max(
+        minPolicyLOD,
+        Math.min(lowestResLOD, this.policy_.lod.max)
+      );
+
+      this.currentLOD_ = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
     }
   }
 
@@ -231,37 +245,6 @@ export class ChunkStoreView {
     }
   }
 
-  private setLOD(lodFactor: number, sliceCoords: SliceCoordinates): void {
-    const dimensions = this.store_.dimensions;
-
-    const scale0 = isAxisAlignedSlice(sliceCoords)
-      ? getHorizontalDimension(dimensions, sliceCoords.orientation).lods[0]
-          .scale
-      : dimensions.x.lods[0].scale;
-
-    const bias = this.policy_.lod.bias;
-
-    // How many LOD 0 pixels per screen pixel, normalized by source scale and bias.
-    const sourceAdjusted = bias - Math.log2(scale0) - lodFactor;
-    const desiredLOD = Math.floor(sourceAdjusted);
-
-    const lowestResLOD = this.store_.getLowestResLOD();
-    // Intersect dataset bounds with policy bounds.
-    const minPolicyLOD = Math.max(
-      0,
-      Math.min(lowestResLOD, this.policy_.lod.min)
-    );
-    const maxPolicyLOD = Math.max(
-      minPolicyLOD,
-      Math.min(lowestResLOD, this.policy_.lod.max)
-    );
-
-    const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
-    if (target !== this.currentLOD_) {
-      this.currentLOD_ = target;
-    }
-  }
-
   private updateChunkViewStates(
     sliceCoords: SliceCoordinates,
     viewport: Viewport
@@ -286,32 +269,20 @@ export class ChunkStoreView {
       ? projectPointOntoPlane(cameraPosition, slicePlane)
       : cameraPosition;
 
-    if (sliceCoords.orientation === "volume") {
-      for (const chunk of currentTimeChunks) {
-        if (chunk.lod !== this.currentLOD_) continue;
+    // TODO: Check if camera is nearly perpendicular to slice plane (edge-on view)
+    // to avoid loading chunks for invisible slices. Add validation/warning if dot product
+    // between camera.forward and slicePlane.normal is < 0.1
 
-        const isChannelMatch =
-          sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
-        if (!isChannelMatch) continue;
+    const frustum = viewport.camera.frustum;
 
-        const priority = this.policy_.priorityMap["visibleCurrent"];
-        this.chunkViewStates_.set(chunk, {
-          visible: true,
-          prefetch: false,
-          priority,
-          orderKey: 0,
-        });
-      }
-    } else {
-      const frustum = viewport.camera.frustum;
+    this.markVisibleChunks(
+      currentTimeIndex,
+      sliceCoords,
+      frustum,
+      referencePoint
+    );
 
-      this.markVisibleChunks(
-        currentTimeIndex,
-        sliceCoords,
-        frustum,
-        referencePoint
-      );
-
+    if (sliceCoords.orientation !== "volume") {
       this.markChunksForSpatialPrefetch(
         currentTimeIndex,
         sliceCoords,
@@ -382,13 +353,6 @@ export class ChunkStoreView {
     viewport: Viewport,
     referencePoint: vec3
   ): void {
-    if (viewport.camera.type !== "OrthographicCamera") {
-      throw new Error(
-        "ChunkStoreView currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
-      );
-    }
-
     const frustum = viewport.camera.frustum;
     const prefetchFrustum = this.getExpandedFrustum(viewport.camera);
     const currentTimeChunks = this.store_.getChunksAtTime(timeIndex);
@@ -432,16 +396,16 @@ export class ChunkStoreView {
       for (const chunk of this.store_.getChunksAtTime(t)) {
         if (chunk.lod !== this.store_.getLowestResLOD()) continue;
 
-        if (sliceCoords.orientation !== "volume") {
-          if (
-            !this.isChunkVisibleInSlice(
-              chunk,
-              sliceCoords,
-              viewport.camera.frustum
-            )
+        if (
+          !this.isChunkVisibleInSlice(
+            chunk,
+            sliceCoords,
+            viewport.camera.frustum
           )
-            continue;
-        }
+        )
+          continue;
+
+        if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
 
         const priority = this.policy_.priorityMap["prefetchTime"];
         const squareDistance = this.squareDistance3D(chunk, referencePoint);
@@ -485,6 +449,17 @@ export class ChunkStoreView {
     sliceCoords: SliceCoordinates,
     frustum: Frustum
   ): boolean {
+    // For axis-aligned slices, check slice intersection first (cheap, restrictive)
+    if (isAxisAlignedSlice(sliceCoords)) {
+      const slicePosition = getSlicePosition(sliceCoords) as number;
+      if (
+        !chunkIntersectsSlice(chunk, sliceCoords.orientation, slicePosition)
+      ) {
+        return false;
+      }
+    }
+
+    // Then check frustum intersection (more expensive)
     const chunkBounds = new Box3(
       vec3.fromValues(chunk.offset.x, chunk.offset.y, chunk.offset.z),
       vec3.fromValues(
@@ -494,17 +469,7 @@ export class ChunkStoreView {
       )
     );
 
-    if (!frustum.intersectsWithBox3(chunkBounds)) {
-      return false;
-    }
-
-    if (!isAxisAlignedSlice(sliceCoords)) {
-      return true;
-    }
-
-    // this will be a number, since we know it's an axis-aligned slice
-    const slicePosition = getSlicePosition(sliceCoords) as number;
-    return chunkIntersectsSlice(chunk, sliceCoords.orientation, slicePosition);
+    return frustum.intersectsWithBox3(chunkBounds);
   }
 
   private getSliceBounds(sliceCoords: SliceCoordinates): [number, number] {
@@ -557,6 +522,10 @@ export class ChunkStoreView {
     // TODO: implement spatial prefetching for Perspective cameras
     // (e.g. by using a wider FOV angle)
     if (camera.type !== "OrthographicCamera") {
+      Logger.error(
+        "ChunkStoreView",
+        "Spatial prefetching is currently only supported by orthographic cameras."
+      );
       return camera.frustum;
     }
 

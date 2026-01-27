@@ -131,6 +131,20 @@ export function getHorizontalDimension(
   }
 }
 
+export function getVisibleDimensionScales(
+  dimensions: SourceDimensionMap,
+  orientation: "xy" | "xz" | "yz"
+): [number, number] {
+  switch (orientation) {
+    case "xy":
+      return [dimensions.x.lods[0].scale, dimensions.y.lods[0].scale];
+    case "xz":
+      return [dimensions.x.lods[0].scale, dimensions.z!.lods[0].scale];
+    case "yz":
+      return [dimensions.y.lods[0].scale, dimensions.z!.lods[0].scale];
+  }
+}
+
 export function getSlicedDimension(
   dimensions: SourceDimensionMap,
   orientation: "xy" | "xz" | "yz"

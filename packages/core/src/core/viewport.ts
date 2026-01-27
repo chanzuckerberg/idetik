@@ -106,6 +106,12 @@ export class Viewport {
     return this.camera.clipToWorld(clipPos);
   }
 
+  public get virtualUnitsPerScreenPixel(): number {
+    const virtualWidth = this.camera.frustum.getWidth();
+    const { width: screenPixelWidth } = this.getBox().toRect();
+    return virtualWidth / screenPixelWidth;
+  }
+
   private getBox(): Box2 {
     const viewportRect = this.element.getBoundingClientRect();
     const devicePixelRatio = window.devicePixelRatio || 1;
