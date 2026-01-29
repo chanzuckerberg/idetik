@@ -185,6 +185,10 @@ export class ChunkStoreView {
     return this.currentLOD_;
   }
 
+  public get dimensions() {
+    return this.store_.dimensions;
+  }
+
   public maybeForgetChunk(chunk: Chunk): void {
     const viewState = this.chunkViewStates_.get(chunk);
     if (

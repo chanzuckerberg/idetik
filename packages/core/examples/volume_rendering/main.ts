@@ -64,7 +64,7 @@ gui
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
-  .add(volumeLayer, "samplesPerUnit", 16, 512, 1)
+  .add(volumeLayer, "desiredSamplesPerUnit", 16, 512, 1)
   .name("Samples per unit");
 volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
 volumeFolder
