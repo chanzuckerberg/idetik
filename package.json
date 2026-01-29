@@ -16,6 +16,7 @@
     "lint": "npm run lint --workspace=@idetik/core",
     "format": "npm run format --workspace=@idetik/core",
     "format-check": "npm run format-check --workspace=@idetik/core",
+    "test": "npm run test --workspace=@idetik/core",
     "test-with-coverage": "npm run test-with-coverage --workspace=@idetik/core"
   },
   "devDependencies": {
