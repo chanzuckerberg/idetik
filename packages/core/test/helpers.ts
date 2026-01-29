@@ -87,7 +87,6 @@ export async function waitFor(
   }
 }
 
-// Viewport and context test helpers
 export function createTestElement(id: string = "test-element"): HTMLElement {
   const element = document.createElement("div");
   element.id = id;
