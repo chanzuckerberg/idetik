@@ -3,7 +3,9 @@
 
 precision highp float;
 
-layout (location = 0) out vec4 fragColor;
+layout (location = 0) out vec4 accum;
+// TODO revealage will become a float later
+layout (location = 1) out vec4 revealage;
 
 #if defined TEXTURE_DATA_TYPE_INT
 uniform mediump isampler3D ImageSampler;
@@ -55,7 +57,8 @@ void main() {
     float tExit = rayIntersections.y;
 
     if (DebugShowDegenerateRays && (tExit == tEnter)) {
-        fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        accum = vec4(1.0, 0.0, 0.0, 1.0);
+        revealage = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
 
@@ -91,5 +94,6 @@ void main() {
         position += stepIncrement;
     }
 
-    fragColor = accumulatedColor;
+    accum = accumulatedColor;
+    revealage = vec4(0.0, accumulatedColor.r, 0.0, 0.0);
 }

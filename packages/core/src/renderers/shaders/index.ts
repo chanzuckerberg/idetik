@@ -10,6 +10,8 @@ import wireframeFragmentShader from "./wireframe_frag.glsl";
 import volumeVertexShader from "./volume_vert.glsl";
 import volumeFragmentShader from "./volume_frag.glsl";
 import labelImage from "./label_image_frag.glsl";
+import transparentCompositeVertexShader from "./transparent_composite_vert.glsl";
+import transparentCompositeFragmentShader from "./transparent_composite_frag.glsl";
 
 export type Shader =
   | "floatScalarImage"
@@ -24,6 +26,7 @@ export type Shader =
   | "uintScalarImage"
   | "uintScalarImageArray"
   | "uintVolume"
+  | "transparentComposite"
   | "wireframe";
 
 type ShaderCode = {
@@ -91,5 +94,9 @@ export const shaderCode: Record<Shader, ShaderCode> = {
     vertex: volumeVertexShader,
     fragment: volumeFragmentShader,
     fragmentDefines: new Map([["TEXTURE_DATA_TYPE_UINT", "1"]]),
+  },
+  transparentComposite: {
+    vertex: transparentCompositeVertexShader,
+    fragment: transparentCompositeFragmentShader,
   },
 };

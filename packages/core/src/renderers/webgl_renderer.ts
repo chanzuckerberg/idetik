@@ -3,7 +3,7 @@ import { WebGLShaderProgram } from "./webgl_shader_program";
 import { WebGLShaderPrograms } from "./webgl_shader_programs";
 import { Logger } from "../utilities/logger";
 
-import { WebGLBuffers } from "./webgl_buffers";
+import { TransparencyBuffer, WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
 import { Layer } from "../core/layer";
@@ -27,12 +27,37 @@ import { Frustum } from "../math/frustum";
 // This is a mirror transform, which also flips triangle winding.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
+// TODO determine correct location for class
+class CompositePass {
+  private readonly gl_: WebGL2RenderingContext;
+  constructor(gl: WebGL2RenderingContext) {
+    this.gl_ = gl;
+    const vao = this.gl_.createVertexArray();
+    this.gl_.bindVertexArray(vao);
+  }
+  present(buffer: TransparencyBuffer) {
+    const { textures } = buffer;
+    // TODO likely cleaner if the textures is an object with named properties
+    this.gl_.activeTexture(this.gl_.TEXTURE0);
+    textures[0].bind();
+
+    this.gl_.activeTexture(this.gl_.TEXTURE1);
+    textures[1].bind();
+
+    this.gl_.drawArrays(this.gl_.TRIANGLES, 0, 3);
+    this.gl_.bindTexture(this.gl_.TEXTURE_2D, null);
+  }
+  dispose() {}
+}
+
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext;
   private readonly programs_: WebGLShaderPrograms;
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
+  private readonly transparencyBuffer_: TransparencyBuffer;
+  private readonly compositePass_: CompositePass;
   private renderedObjectsPerFrame_ = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -55,6 +80,12 @@ export class WebGLRenderer extends Renderer {
     this.programs_ = new WebGLShaderPrograms(gl);
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
+    this.transparencyBuffer_ = new TransparencyBuffer(
+      gl,
+      this.canvas.width,
+      this.canvas.height
+    );
+    this.compositePass_ = new CompositePass(gl);
     this.state_ = new WebGLState(gl);
     this.initStencil();
     this.resize(this.canvas.width, this.canvas.height);
@@ -97,11 +128,18 @@ export class WebGLRenderer extends Renderer {
     }
 
     this.state_.setDepthMask(false);
+    this.transparencyBuffer_.begin();
     for (const layer of transparent) {
       layer.update(renderContext);
       if (layer.state !== "ready") continue;
       this.renderLayer(layer, viewport.camera, frustum);
     }
+    this.transparencyBuffer_.end();
+    const program = this.programs_.use("transparentComposite");
+    program.setUniform("AccumSampler", 0); // Use texture unit 0
+    program.setUniform("RevealSampler", 1); // Use texture unit 1
+    this.compositePass_.present(this.transparencyBuffer_);
+    this.transparencyBuffer_.clear();
     this.state_.setDepthMask(true);
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
