@@ -231,12 +231,15 @@ export class VolumeLayer extends Layer {
 
   private computeSamplePerWorldUnit() {
     const volumeWorldSize = this.worldSize_;
-    const meanDim =
-      (volumeWorldSize[0] + volumeWorldSize[1] + volumeWorldSize[2]) / 3;
-    if (meanDim > 0) {
-      return this.desiredSamplesPerUnit / meanDim;
+    const diagonal = Math.sqrt(
+      volumeWorldSize[0] ** 2 +
+        volumeWorldSize[1] ** 2 +
+        volumeWorldSize[2] ** 2
+    );
+    if (diagonal <= 0) {
+      return this.desiredSamplesPerUnit;
     }
-    return this.desiredSamplesPerUnit;
+    return this.desiredSamplesPerUnit / diagonal;
   }
 
   public getUniforms(): Record<string, unknown> {
