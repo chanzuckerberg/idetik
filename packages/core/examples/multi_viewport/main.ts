@@ -50,6 +50,7 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords: volumeCoords,
   policy: createPlaybackPolicy({ lod: { min: 2, max: 2 } }),
+  worldSize: vec3.fromValues(right - left, bottom - top, z.scale * z.shape),
 });
 
 const camera2D = new OrthographicCamera(left, right, top, bottom);
