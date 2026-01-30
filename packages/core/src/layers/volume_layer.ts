@@ -13,6 +13,7 @@ export type VolumeLayerProps = {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
+  worldSize: vec3;
 };
 
 export class VolumeLayer extends Layer {
@@ -22,6 +23,7 @@ export class VolumeLayer extends Layer {
   private readonly sliceCoords_: SliceCoordinates;
   private readonly currentChunks_: Map<Chunk, VolumeRenderable> = new Map();
   private readonly pool_ = new RenderablePool<VolumeRenderable>();
+  private readonly worldSize_: vec3;
 
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
@@ -66,11 +68,12 @@ export class VolumeLayer extends Layer {
     return volume;
   }
 
-  constructor({ source, sliceCoords, policy }: VolumeLayerProps) {
+  constructor({ source, sliceCoords, policy, worldSize }: VolumeLayerProps) {
     super({ transparent: true, blendMode: "premultiplied" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.sourcePolicy_ = policy;
+    this.worldSize_ = worldSize;
     this.setState("initialized");
   }
 
@@ -205,25 +208,29 @@ export class VolumeLayer extends Layer {
     });
   }
 
-  private getVolumeWorldSize(): vec3 {
-    if (!this.chunkStoreView_) {
-      return vec3.fromValues(1, 1, 1);
-    }
-    const dimensions = this.chunkStoreView_.dimensions;
-    const lod = this.chunkStoreView_.currentLOD;
-    const xLod = dimensions.x.lods[lod];
-    const yLod = dimensions.y.lods[lod];
-    const zLod = dimensions.z?.lods[lod];
+  // // Ideally we would have something that doesn't rely on
+  // // the chunk store view that exposes the dimensions of the volume:
+  // // that's strange to have something related to chunks that exposes the dimensions of the volume.
+  // // Having the "getVolumeWorldSize" in the chunk store view would be equaly weird (if not more)
+  //   private getVolumeWorldSize(): vec3 {
+  //     if (!this.chunkStoreView_) {
+  //       return vec3.fromValues(1, 1, 1);
+  //     }
+  //     const dimensions = this.chunkStoreView_.dimensions;
+  //     const lod = this.chunkStoreView_.currentLOD;
+  //     const xLod = dimensions.x.lods[lod];
+  //     const yLod = dimensions.y.lods[lod];
+  //     const zLod = dimensions.z?.lods[lod];
 
-    return vec3.fromValues(
-      xLod.size * xLod.scale,
-      yLod.size * yLod.scale,
-      zLod ? zLod.size * zLod.scale : 1
-    );
-  }
+  //     return vec3.fromValues(
+  //       xLod.size * xLod.scale,
+  //       yLod.size * yLod.scale,
+  //       zLod ? zLod.size * zLod.scale : 1
+  //     );
+  //   }
 
   private computeSamplePerWorldUnit() {
-    const volumeWorldSize = this.getVolumeWorldSize();
+    const volumeWorldSize = this.worldSize_;
     const meanDim =
       (volumeWorldSize[0] + volumeWorldSize[1] + volumeWorldSize[2]) / 3;
     if (meanDim > 0) {

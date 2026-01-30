@@ -185,6 +185,7 @@ export class ChunkStoreView {
     return this.currentLOD_;
   }
 
+  // that's strange to have this object that relates to chunks exposing the dimensions of the volume
   public get dimensions() {
     return this.store_.dimensions;
   }

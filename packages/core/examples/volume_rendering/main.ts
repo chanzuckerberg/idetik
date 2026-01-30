@@ -23,6 +23,7 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
+  worldSize: vec3.fromValues(1064, 955, 555),
 });
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
