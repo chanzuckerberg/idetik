@@ -67,9 +67,8 @@ describe("ChunkStoreView disposal", () => {
 });
 
 function createMockLoader(): ChunkLoader {
-  const dimensions = createSimpleDimensions();
   return {
-    getSourceDimensionMap: () => dimensions,
+    getSourceDimensionMap: createSimpleDimensions,
     loadChunkData: vi.fn(),
     loadRegion: vi.fn(),
   };
