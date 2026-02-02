@@ -27,12 +27,12 @@ describe("ChunkStoreView disposal", () => {
 
     view.dispose();
 
-    // next ChunkManager.update() should collect the disposed view's chunks with priority=null
+    // collection should return affected chunks from the disposed view
+    // chunks should have priority=null and visible=false (ready for cancellation)
     collectedChunks = store.updateAndCollectChunkChanges();
 
     expect(collectedChunks.size).toBeGreaterThan(0);
 
-    // chunks should have priority=null and visible=false (ready for cancellation)
     for (const chunk of collectedChunks) {
       expect(chunk.priority).toBe(null);
       expect(chunk.visible).toBe(false);
