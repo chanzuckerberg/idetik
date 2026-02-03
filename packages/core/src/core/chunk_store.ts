@@ -30,6 +30,7 @@ export class ChunkStore {
     this.chunks_ = Array.from({ length: chunksT }, () => []);
     for (let t = 0; t < chunksT; ++t) {
       const chunksAtT = this.chunks_[t];
+
       for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
         const xLod = this.dimensions_.x.lods[lod];
         const yLod = this.dimensions_.y.lods[lod];
@@ -90,6 +91,62 @@ export class ChunkStore {
 
   public getChunksAtTime(timeIndex: number): Chunk[] {
     return this.chunks_[timeIndex];
+  }
+
+  public getChunkByIndex(
+    timeIndex: number,
+    lod: number,
+    c: number,
+    x: number,
+    y: number,
+    z: number
+  ): Chunk | undefined {
+    const chunks = this.chunks_[timeIndex];
+    if (!chunks) return undefined;
+
+    // Calculate dimensions for this LOD
+    const xLod = this.dimensions_.x.lods[lod];
+    const yLod = this.dimensions_.y.lods[lod];
+    const zLod = this.dimensions_.z?.lods[lod];
+
+    const chunksX = Math.ceil(xLod.size / xLod.chunkSize);
+    const chunksY = Math.ceil(yLod.size / yLod.chunkSize);
+    const chunksZ = Math.ceil((zLod?.size ?? 1) / (zLod?.chunkSize ?? 1));
+
+    // Bounds check
+    if (x < 0 || x >= chunksX) return undefined;
+    if (y < 0 || y >= chunksY) return undefined;
+    if (z < 0 || z >= chunksZ) return undefined;
+
+    // Calculate offset from all previous LODs
+    let lodOffset = 0;
+    for (let i = 0; i < lod; i++) {
+      lodOffset += this.getChunksPerLOD(i);
+    }
+
+    // Calculate index within this LOD (follows nested loop order: c, x, y, z)
+    const chunksPerChannel = chunksX * chunksY * chunksZ;
+    const chunksPerX = chunksY * chunksZ;
+    const chunksPerY = chunksZ;
+
+    const index =
+      lodOffset + c * chunksPerChannel + x * chunksPerX + y * chunksPerY + z;
+
+    return chunks[index];
+  }
+
+  private getChunksPerLOD(lod: number): number {
+    const { size: chunksC } = this.getAndValidateChannelDimension();
+
+    const xLod = this.dimensions_.x.lods[lod];
+    const yLod = this.dimensions_.y.lods[lod];
+    const zLod = this.dimensions_.z?.lods[lod];
+
+    const chunksX = Math.ceil(xLod.size / xLod.chunkSize);
+    const chunksY = Math.ceil(yLod.size / yLod.chunkSize);
+    const chunksZ = Math.ceil((zLod?.size ?? 1) / (zLod?.chunkSize ?? 1));
+
+    return chunksC * chunksX * chunksY * chunksZ;
   }
 
   public getTimeIndex(sliceCoords: SliceCoordinates): number {

@@ -11,8 +11,6 @@ import {
 } from "../data/slice_coordinates";
 import { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
-import type { Camera } from "../objects/cameras/camera";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";
 import { vec2, vec3, mat4 } from "gl-matrix";
 import { Box3 } from "../math/box3";
@@ -112,11 +110,11 @@ export class ChunkStoreView {
   ): void {
     this.updateLOD(sliceCoords, viewport);
 
-    const changed = this.hasViewChanged(sliceCoords, viewport);
+    const { changed, viewState } = this.hasViewChanged(sliceCoords, viewport);
 
     if (changed) {
       this.updateChunkViewStates(sliceCoords, viewport);
-      this.updateLastViewState(sliceCoords, viewport);
+      this.updateLastViewState(sliceCoords, viewState);
     }
   }
 
@@ -157,43 +155,48 @@ export class ChunkStoreView {
   private hasViewChanged(
     sliceCoords: SliceCoordinates,
     viewport: Viewport
-  ): boolean {
-    if (sliceCoords.orientation === "volume") {
-      return this.policyChanged_ || this.lastTCoord_ !== sliceCoords.t;
-    }
-
+  ): {
+    changed: boolean;
+    viewState: { matrix: mat4; bounds?: [number, number] };
+  } {
     const camera = viewport.camera;
     const viewProjectionMatrix = mat4.multiply(
       mat4.create(),
       camera.projectionMatrix,
       camera.viewMatrix
     );
-    const sliceBounds = this.getSliceBounds(sliceCoords);
 
-    return (
+    let changed =
       this.policyChanged_ ||
       this.viewProjectionMatrixChanged(viewProjectionMatrix) ||
-      this.sliceBoundsChanged(sliceBounds) ||
-      this.lastTCoord_ !== sliceCoords.t
-    );
+      this.lastTCoord_ !== sliceCoords.t;
+
+    if (sliceCoords.orientation === "volume") {
+      return {
+        changed,
+        viewState: { matrix: viewProjectionMatrix },
+      };
+    }
+
+    const sliceBounds = this.getSliceBounds(sliceCoords);
+    changed = changed || this.sliceBoundsChanged(sliceBounds);
+
+    return {
+      changed,
+      viewState: { matrix: viewProjectionMatrix, bounds: sliceBounds },
+    };
   }
 
   private updateLastViewState(
     sliceCoords: SliceCoordinates,
-    viewport: Viewport
+    viewState: { matrix: mat4; bounds?: [number, number] }
   ): void {
     this.policyChanged_ = false;
     this.lastTCoord_ = sliceCoords.t;
+    this.lastViewProjectionMatrix_ = mat4.clone(viewState.matrix);
 
-    if (sliceCoords.orientation !== "volume") {
-      const camera = viewport.camera;
-      const viewProjectionMatrix = mat4.multiply(
-        mat4.create(),
-        camera.projectionMatrix,
-        camera.viewMatrix
-      );
-      this.lastViewProjectionMatrix_ = mat4.clone(viewProjectionMatrix);
-      this.lastSliceBounds_ = this.getSliceBounds(sliceCoords);
+    if (viewState.bounds !== undefined) {
+      this.lastSliceBounds_ = viewState.bounds;
     }
   }
 
@@ -261,6 +264,8 @@ export class ChunkStoreView {
       return;
     }
 
+    // Reset all existing chunk view states to "not needed" to start.
+    // Logic below will override this for chunks that are actually visible/prefetch.
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     const cameraPosition = viewport.camera.position;
@@ -268,10 +273,6 @@ export class ChunkStoreView {
     const referencePoint = slicePlane
       ? projectPointOntoPlane(cameraPosition, slicePlane)
       : cameraPosition;
-
-    // TODO: Check if camera is nearly perpendicular to slice plane (edge-on view)
-    // to avoid loading chunks for invisible slices. Add validation/warning if dot product
-    // between camera.forward and slicePlane.normal is < 0.1
 
     const frustum = viewport.camera.frustum;
 
@@ -286,7 +287,6 @@ export class ChunkStoreView {
       this.markChunksForSpatialPrefetch(
         currentTimeIndex,
         sliceCoords,
-        viewport,
         referencePoint
       );
     }
@@ -350,33 +350,51 @@ export class ChunkStoreView {
   private markChunksForSpatialPrefetch(
     timeIndex: number,
     sliceCoords: SliceCoordinates,
-    viewport: Viewport,
     referencePoint: vec3
   ): void {
-    const frustum = viewport.camera.frustum;
-    const prefetchFrustum = this.getExpandedFrustum(viewport.camera);
-    const currentTimeChunks = this.store_.getChunksAtTime(timeIndex);
+    const prefetchX = this.policy_.prefetch.x;
+    const prefetchY = this.policy_.prefetch.y;
+    const prefetchZ = this.policy_.prefetch.z;
 
-    for (const chunk of currentTimeChunks) {
-      if (this.isChunkVisibleInSlice(chunk, sliceCoords, frustum)) continue;
-      if (!this.isChunkVisibleInSlice(chunk, sliceCoords, prefetchFrustum))
-        continue;
+    // Iterate visible chunks and mark their neighbors for prefetch
+    for (const [chunk, viewState] of this.chunkViewStates_) {
+      if (!viewState.visible) continue;
+      if (chunk.lod !== this.currentLOD_) continue;
 
-      const isChannelInSlice = this.isChunkChannelInSlice(chunk, sliceCoords);
-      if (!isChannelInSlice) continue;
+      const idx = chunk.chunkIndex;
 
-      const isCurrentLOD = chunk.lod === this.currentLOD_;
-      if (!isCurrentLOD) continue;
+      for (let dx = -prefetchX; dx <= prefetchX; dx++) {
+        for (let dy = -prefetchY; dy <= prefetchY; dy++) {
+          for (let dz = -prefetchZ; dz <= prefetchZ; dz++) {
+            if (dx === 0 && dy === 0 && dz === 0) continue;
 
-      const priority = this.policy_.priorityMap["prefetchSpace"];
-      const orderKey = this.squareDistance3D(chunk, referencePoint);
+            const neighbor = this.store_.getChunkByIndex(
+              timeIndex,
+              this.currentLOD_,
+              idx.c,
+              idx.x + dx,
+              idx.y + dy,
+              idx.z + dz
+            );
+            if (!neighbor) continue;
 
-      this.chunkViewStates_.set(chunk, {
-        visible: false,
-        prefetch: true,
-        priority,
-        orderKey,
-      });
+            const neighborViewState = this.chunkViewStates_.get(neighbor);
+            if (neighborViewState?.visible) continue;
+
+            if (!this.isChunkChannelInSlice(neighbor, sliceCoords)) continue;
+
+            const priority = this.policy_.priorityMap["prefetchSpace"];
+            const orderKey = this.squareDistance3D(neighbor, referencePoint);
+
+            this.chunkViewStates_.set(neighbor, {
+              visible: false,
+              prefetch: true,
+              priority,
+              orderKey,
+            });
+          }
+        }
+      }
     }
   }
 
@@ -516,56 +534,6 @@ export class ChunkStoreView {
     return (
       !this.lastSliceBounds_ || !vec2.equals(this.lastSliceBounds_, newBounds)
     );
-  }
-
-  private getExpandedFrustum(camera: Camera): Frustum {
-    // TODO: implement spatial prefetching for Perspective cameras
-    // (e.g. by using a wider FOV angle)
-    if (camera.type !== "OrthographicCamera") {
-      Logger.error(
-        "ChunkStoreView",
-        "Spatial prefetching is currently only supported by orthographic cameras."
-      );
-      return camera.frustum;
-    }
-
-    const orthoCamera = camera as OrthographicCamera;
-
-    const dimensions = this.store_.dimensions;
-    const xLod = dimensions.x.lods[this.currentLOD_];
-    const yLod = dimensions.y.lods[this.currentLOD_];
-
-    const padX = xLod.chunkSize * xLod.scale * this.policy_.prefetch.x;
-    const padY = yLod.chunkSize * yLod.scale * this.policy_.prefetch.y;
-
-    const halfWidth = orthoCamera.viewportSize[0] / 2;
-    const halfHeight = orthoCamera.viewportSize[1] / 2;
-
-    const cameraPos = orthoCamera.position;
-
-    const expandedLeft = cameraPos[0] - halfWidth - padX;
-    const expandedRight = cameraPos[0] + halfWidth + padX;
-    const expandedBottom = cameraPos[1] - halfHeight - padY;
-    const expandedTop = cameraPos[1] + halfHeight + padY;
-
-    const expandedProjection = mat4.create();
-    mat4.ortho(
-      expandedProjection,
-      expandedLeft,
-      expandedRight,
-      expandedBottom,
-      expandedTop,
-      orthoCamera.near,
-      orthoCamera.far
-    );
-
-    const viewProjection = mat4.multiply(
-      mat4.create(),
-      expandedProjection,
-      orthoCamera.viewMatrix
-    );
-
-    return new Frustum(viewProjection);
   }
 
   private squareDistance3D(chunk: Chunk, center: vec3): number {

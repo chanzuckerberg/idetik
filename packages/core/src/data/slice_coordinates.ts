@@ -95,7 +95,7 @@ export function projectPointOntoPlane(point: vec3, plane: SlicePlane): vec3 {
   return projected;
 }
 
-function getSliceAxis(orientation: "xy" | "xz" | "yz"): "x" | "y" | "z" {
+export function getSliceAxis(orientation: "xy" | "xz" | "yz"): "x" | "y" | "z" {
   switch (orientation) {
     case "xy":
       return "z";
@@ -103,6 +103,19 @@ function getSliceAxis(orientation: "xy" | "xz" | "yz"): "x" | "y" | "z" {
       return "y";
     case "yz":
       return "x";
+  }
+}
+
+export function getInPlaneAxes(
+  orientation: "xy" | "xz" | "yz"
+): ["x" | "y" | "z", "x" | "y" | "z"] {
+  switch (orientation) {
+    case "xy":
+      return ["x", "y"];
+    case "xz":
+      return ["x", "z"];
+    case "yz":
+      return ["y", "z"];
   }
 }
 
