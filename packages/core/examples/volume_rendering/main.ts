@@ -64,8 +64,8 @@ gui
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
-  .add(volumeLayer, "samplesPerUnit", 16, 512, 1)
-  .name("Samples per unit");
+  .add(volumeLayer, "relativeStepSize", 0.25, 3.0, 0.1)
+  .name("Relative step size (voxels)");
 volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
 volumeFolder
   .add(volumeLayer, "opacityMultiplier", 0.01, 1.0, 0.01)
