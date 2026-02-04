@@ -80,7 +80,6 @@ export class ChunkStoreView {
         chunk.state === "loaded"
     );
 
-    // If we're at the lowest resolution LOD, only return current LOD chunks
     const fallbackLOD = this.fallbackLOD();
     if (this.currentLOD_ === fallbackLOD) {
       return currentLODChunks;
