@@ -30,13 +30,15 @@ const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 // TODO determine correct location for class
 class CompositePass {
   private readonly gl_: WebGL2RenderingContext;
+  private readonly vao_: WebGLVertexArrayObject;
+
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
-    const vao = this.gl_.createVertexArray();
-    this.gl_.bindVertexArray(vao);
+    this.vao_ = this.gl_.createVertexArray();
+    this.gl_.bindVertexArray(this.vao_);
   }
   present(buffer: TransparencyBuffer) {
-    const { textures } = buffer;
+    const { textures, depthTexture } = buffer;
     // TODO likely cleaner if the textures is an object with named properties
     this.gl_.activeTexture(this.gl_.TEXTURE0);
     textures[0].bind();
@@ -44,10 +46,16 @@ class CompositePass {
     this.gl_.activeTexture(this.gl_.TEXTURE1);
     textures[1].bind();
 
+    if (depthTexture) {
+      this.gl_.activeTexture(this.gl_.TEXTURE2);
+      depthTexture.bind();
+    }
+
     this.gl_.drawArrays(this.gl_.TRIANGLES, 0, 3);
-    this.gl_.bindTexture(this.gl_.TEXTURE_2D, null);
   }
-  dispose() {}
+  dispose() {
+    this.gl_.deleteVertexArray(this.vao_);
+  }
 }
 
 export class WebGLRenderer extends Renderer {
@@ -138,6 +146,7 @@ export class WebGLRenderer extends Renderer {
     const program = this.programs_.use("transparentComposite");
     program.setUniform("AccumSampler", 0); // Use texture unit 0
     program.setUniform("RevealSampler", 1); // Use texture unit 1
+    program.setUniform("DepthSampler", 2); // Use texture unit 2
     this.compositePass_.present(this.transparencyBuffer_);
     this.transparencyBuffer_.clear();
     this.state_.setDepthMask(true);

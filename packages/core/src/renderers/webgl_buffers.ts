@@ -170,11 +170,70 @@ class ImageTexture2D {
 }
 
 // TODO determine correct location in code
+class DepthTexture2D {
+  public texture: WebGLTexture;
+
+  private readonly gl_: WebGL2RenderingContext;
+  private width_: number;
+  private height_: number;
+
+  constructor(gl: WebGL2RenderingContext, width: number, height: number) {
+    this.gl_ = gl;
+    this.width_ = width;
+    this.height_ = height;
+    this.texture = this.gl_.createTexture();
+    this.setupTexture();
+  }
+
+  private setupTexture() {
+    this.bind();
+    this.gl_.texParameteri(
+      this.gl_.TEXTURE_2D,
+      this.gl_.TEXTURE_WRAP_S,
+      this.gl_.CLAMP_TO_EDGE
+    );
+    this.gl_.texParameteri(
+      this.gl_.TEXTURE_2D,
+      this.gl_.TEXTURE_WRAP_T,
+      this.gl_.CLAMP_TO_EDGE
+    );
+    this.gl_.texParameteri(
+      this.gl_.TEXTURE_2D,
+      this.gl_.TEXTURE_MIN_FILTER,
+      this.gl_.NEAREST
+    );
+    this.gl_.texParameteri(
+      this.gl_.TEXTURE_2D,
+      this.gl_.TEXTURE_MAG_FILTER,
+      this.gl_.NEAREST
+    );
+    // DEPTH_COMPONENT24 for 24-bit depth precision
+    this.gl_.texImage2D(
+      this.gl_.TEXTURE_2D,
+      0,
+      this.gl_.DEPTH_COMPONENT24,
+      this.width_,
+      this.height_,
+      0,
+      this.gl_.DEPTH_COMPONENT,
+      this.gl_.UNSIGNED_INT,
+      null
+    );
+    this.gl_.bindTexture(this.gl_.TEXTURE_2D, null);
+  }
+
+  bind() {
+    this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture);
+  }
+}
+
+// TODO determine correct location in code
 export class TransparencyBuffer {
   private readonly gl_: WebGL2RenderingContext;
   private framebuffer_: WebGLFramebuffer;
   private buffers_: number[];
   public textures: ImageTexture2D[] = [];
+  public depthTexture: DepthTexture2D | null = null;
 
   constructor(gl: WebGL2RenderingContext, width: number, height: number) {
     this.gl_ = gl;
@@ -187,6 +246,7 @@ export class TransparencyBuffer {
   resize(width: number, height: number) {
     const accumTexture = new ImageTexture2D(this.gl_, width, height);
     const revealTexture = new ImageTexture2D(this.gl_, width, height);
+    const depthTexture = new DepthTexture2D(this.gl_, width, height);
 
     this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, this.framebuffer_);
 
@@ -210,7 +270,19 @@ export class TransparencyBuffer {
       0
     );
 
+    // Attach depth texture to framebuffer
+    this.gl_.activeTexture(this.gl_.TEXTURE2);
+    depthTexture.bind();
+    this.gl_.framebufferTexture2D(
+      this.gl_.FRAMEBUFFER,
+      this.gl_.DEPTH_ATTACHMENT,
+      this.gl_.TEXTURE_2D,
+      depthTexture.texture,
+      0
+    );
+
     this.textures = [accumTexture, revealTexture];
+    this.depthTexture = depthTexture;
 
     const status = this.gl_.checkFramebufferStatus(this.gl_.FRAMEBUFFER);
     if (status !== this.gl_.FRAMEBUFFER_COMPLETE) {
@@ -249,6 +321,9 @@ export class TransparencyBuffer {
     // instead if we reuse the texture class
     for (const texture of this.textures) {
       this.gl_.deleteTexture(texture.texture);
+    }
+    if (this.depthTexture) {
+      this.gl_.deleteTexture(this.depthTexture.texture);
     }
   }
 }
