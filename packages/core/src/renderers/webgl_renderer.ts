@@ -38,18 +38,13 @@ class CompositePass {
     this.gl_.bindVertexArray(this.vao_);
   }
   present(buffer: TransparencyBuffer) {
-    const { textures, depthTexture } = buffer;
+    const { textures } = buffer;
     // TODO likely cleaner if the textures is an object with named properties
     this.gl_.activeTexture(this.gl_.TEXTURE0);
     textures[0].bind();
 
     this.gl_.activeTexture(this.gl_.TEXTURE1);
     textures[1].bind();
-
-    if (depthTexture) {
-      this.gl_.activeTexture(this.gl_.TEXTURE2);
-      depthTexture.bind();
-    }
 
     this.gl_.drawArrays(this.gl_.TRIANGLES, 0, 3);
   }
@@ -128,6 +123,7 @@ export class WebGLRenderer extends Renderer {
     const frustum = viewport.camera.frustum;
     const renderContext = { viewport };
 
+    // Opaque pass (depth testing and writing)
     for (const layer of opaque) {
       layer.update(renderContext);
       if (layer.state === "ready") {
@@ -135,6 +131,7 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
+    // Transparent pass (depth testing, no depth writing)
     this.state_.setDepthMask(false);
     this.transparencyBuffer_.begin();
     for (const layer of transparent) {
@@ -146,7 +143,6 @@ export class WebGLRenderer extends Renderer {
     const program = this.programs_.use("transparentComposite");
     program.setUniform("AccumSampler", 0); // Use texture unit 0
     program.setUniform("RevealSampler", 1); // Use texture unit 1
-    program.setUniform("DepthSampler", 2); // Use texture unit 2
     this.compositePass_.present(this.transparencyBuffer_);
     this.transparencyBuffer_.clear();
     this.state_.setDepthMask(true);
