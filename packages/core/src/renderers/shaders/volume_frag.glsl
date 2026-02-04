@@ -93,6 +93,7 @@ void main() {
     // Scale intensity to opacity.
     // OpacityMultiplier and MaxIntensity control the transfer function.
     // worldSpaceStepSize corrects for anisotropic voxels.
+    // TODO: Replace with invlerp-based transfer function to add contrast limits (MinIntensity/MaxIntensity window)
     float intensityScale = (OpacityMultiplier / MaxIntensity) * worldSpaceStepSize;
 
     // March until we reach the number of samples or accumulate enough opacity
