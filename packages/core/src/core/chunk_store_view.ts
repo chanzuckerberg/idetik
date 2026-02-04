@@ -29,6 +29,8 @@ export class ChunkStoreView {
   private sourceMaxSquareDistance2D_: number;
   private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
 
+  private isDisposed_ = false;
+
   constructor(store: ChunkStore, policy: ImageSourcePolicy) {
     this.store_ = store;
     this.policy_ = policy;
@@ -49,6 +51,10 @@ export class ChunkStoreView {
 
   public get chunkViewStates(): ReadonlyMap<Chunk, ChunkViewState> {
     return this.chunkViewStates_;
+  }
+
+  public get isDisposed(): boolean {
+    return this.isDisposed_;
   }
 
   // forwarding methods for chunk stats overlay while keeping store_ private
@@ -198,7 +204,8 @@ export class ChunkStoreView {
   }
 
   public dispose(): void {
-    this.store_.removeView(this);
+    this.isDisposed_ = true;
+    this.chunkViewStates_.forEach(resetChunkViewState);
   }
 
   public setImageSourcePolicy(newPolicy: ImageSourcePolicy, key: symbol) {
