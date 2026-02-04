@@ -80,15 +80,14 @@ export class ChunkStoreView {
         chunk.state === "loaded"
     );
 
-    // If we're at the lowest resolution LOD, only return current LOD chunks
-    const lowestResLOD = this.store_.getLowestResLOD();
-    if (this.currentLOD_ === lowestResLOD) {
+    const fallbackLOD = this.fallbackLOD();
+    if (this.currentLOD_ === fallbackLOD) {
       return currentLODChunks;
     }
 
     const lowResChunks = currentTimeChunks.filter(
       (chunk) =>
-        chunk.lod === lowestResLOD &&
+        chunk.lod === fallbackLOD &&
         this.chunkViewStates_.get(chunk)?.visible === true &&
         chunk.state === "loaded"
     );
@@ -175,11 +174,12 @@ export class ChunkStoreView {
     }
   }
 
-  public allVisibleLowestLODLoaded(sliceCoords: SliceCoordinates): boolean {
+  public allVisibleFallbackLODLoaded(sliceCoords: SliceCoordinates): boolean {
     const timeIndex = this.store_.getTimeIndex(sliceCoords);
+    const fallbackLOD = this.fallbackLOD();
     const visibleChunks = this.store_
       .getChunksAtTime(timeIndex)
-      .filter((c) => c.visible && c.lod === this.store_.getLowestResLOD());
+      .filter((c) => c.visible && c.lod === fallbackLOD);
     // Return false if there are no visible chunks (empty array .every() returns true)
     return (
       visibleChunks.length > 0 &&
@@ -314,13 +314,14 @@ export class ChunkStoreView {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
 
     const currentTimeChunks = this.store_.getChunksAtTime(timeIndex);
+    const fallbackLOD = this.fallbackLOD();
 
     for (const chunk of currentTimeChunks) {
       const isInBounds = this.isChunkWithinBounds(chunk, viewBounds3D);
       const isChannelInSlice = this.isChunkChannelInSlice(chunk, sliceCoords);
 
       const isCurrentLOD = chunk.lod === this.currentLOD_;
-      const isFallbackLOD = chunk.lod === this.store_.getLowestResLOD();
+      const isFallbackLOD = chunk.lod === fallbackLOD;
 
       const prefetch =
         !isInBounds &&
@@ -361,9 +362,10 @@ export class ChunkStoreView {
       numTimePoints - 1,
       currentTimeIndex + this.policy_.prefetch.t
     );
+    const fallbackLOD = this.fallbackLOD();
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.store_.getChunksAtTime(t)) {
-        if (chunk.lod !== this.store_.getLowestResLOD()) continue;
+        if (chunk.lod !== fallbackLOD) continue;
         if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
 
@@ -416,6 +418,10 @@ export class ChunkStoreView {
       )
     );
     return Box3.intersects(chunkBounds, bounds);
+  }
+
+  private fallbackLOD(): number {
+    return Math.min(this.policy_.lod.max, this.store_.getLowestResLOD());
   }
 
   private getZBounds(sliceCoords: SliceCoordinates): [number, number] {
