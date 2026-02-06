@@ -66,7 +66,7 @@ const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
   .add(volumeLayer, "relativeStepSize", 0.25, 3.0, 0.1)
   .name("Relative step size (voxels)");
-volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
+volumeFolder.add(volumeLayer, "maxIntensity", 1, 2500, 1).name("Max intensity");
 
 // maps 0-1 slider to [0.001, 10.0] logarithmically
 const opacityControls = {

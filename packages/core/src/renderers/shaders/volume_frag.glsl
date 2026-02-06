@@ -33,15 +33,13 @@ uniform vec3 VolumeColor;
 uniform float RelativeStepSize;
 uniform vec3 VoxelScale;
 
-float computeOITWeighta(float alpha, float depth) {
+float computeOITWeight(float alpha, float depth) {
     float d = (1.0 - depth);
-    return alpha * max(1e-2, 3e3 * d * d * d);
+    return alpha * max(1e-2, 3e5 * d);
 }
 
-float computeOITWeight(float alpha, float depth) {
-  float a = min(1.0, alpha) * 8.0 + 0.01;
-  float b = -depth * 0.95 + 1.0;
-  return a * a * a * b * b * b;
+float computeOITWeightDebug(float alpha, float depth) {
+    return 1.0;
 }
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
@@ -105,26 +103,31 @@ void main() {
     vec3 position = entryPoint;
     vec4 clipPosition;
     vec4 accumulatedColor = vec4(0.0);
+    vec3 sampleColor;
     float revealage = 1.0;
-    float sampledData, sampleAlpha, blendedSampleAlpha, rayDepth, weightedAlpha;
+    float sampledData, sampleAlpha, blendedSampleAlpha, rayDepth, weight;
 
     // Scale intensity to opacity.
     // OpacityMultiplier and MaxIntensity control the transfer function.
     // worldSpaceStepSize corrects for anisotropic voxels.
     // TODO: Replace with invlerp-based transfer function to add contrast limits (MinIntensity/MaxIntensity window)
-    float intensityScale = (OpacityMultiplier / MaxIntensity) * worldSpaceStepSize;
+    float intensityScale = (1.0 / MaxIntensity) * worldSpaceStepSize;
 
     // March until we reach the number of samples or accumulate enough opacity
-    for (int i = 0; i < numSamples; i++) {
+    for (int i = 0; i < numSamples && revealage > (1.0 - EarlyTerminationAlpha); i++) {
+        // Sample the volume data and convert to color and opacity
         sampledData = vec4(texture(ImageSampler, position)).r;
         sampleAlpha = clamp(sampledData * intensityScale * OpacityMultiplier, 0.0, 1.0);
-        clipPosition = Projection * ModelView * vec4(position, 1.0);
-        rayDepth  = (clipPosition.z / clipPosition.w) * 0.5 + 0.5;
+        sampleColor = VolumeColor * sampledData * intensityScale;
 
         // Weighted blended OIT
-        weightedAlpha = sampleAlpha * computeOITWeighta(sampleAlpha, rayDepth);
-        accumulatedColor += vec4(VolumeColor * intensityScale * 250.0 * weightedAlpha, weightedAlpha);
-        revealage *= 1.0 - sampleAlpha;
+        clipPosition = Projection * ModelView * vec4(position, 1.0);
+        rayDepth  = (clipPosition.z / clipPosition.w) * 0.5 + 0.5;
+        weight = computeOITWeight(sampleAlpha, rayDepth);
+        accumulatedColor += vec4(sampleColor, sampleAlpha) * weight;
+        revealage *= clamp(1.0 - sampleAlpha, 0.0, 1.0);
+
+        // Advance the ray
         position += stepIncrement;
     }
 

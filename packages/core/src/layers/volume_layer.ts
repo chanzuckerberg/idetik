@@ -32,8 +32,8 @@ export class VolumeLayer extends Layer {
   public debugShowDegenerateRays = false;
   public color = vec3.fromValues(1.0, 1.0, 1.0);
   public relativeStepSize = 1.0;
-  public maxIntensity = 255.0;
-  public opacityMultiplier = 1.0;
+  public maxIntensity = 512.0;
+  public opacityMultiplier = 0.1;
   public earlyTerminationAlpha = 0.99;
 
   public get debugShowWireframes() {

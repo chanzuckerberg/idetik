@@ -1,6 +1,8 @@
 #version 300 es
 
 precision highp float;
+// TODO change these names, they reflect the per target blend mode
+// version, not the single blend mode version
 uniform sampler2D AccumSampler;
 uniform sampler2D RevealSampler;
 
