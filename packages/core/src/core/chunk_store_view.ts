@@ -95,47 +95,7 @@ export class ChunkStoreView {
     return [...currentLODChunks, ...lowResChunks];
   }
 
-  // TODO: Eventually unify visibility calculations using the camera frustum for both
-  // orthographic (2D slices) and perspective (volume rendering) cameras. This would
-  // replace both updateChunkStates and updateChunkStatesForVolume with a single method
-  // that performs frustum culling based on the camera type.
-  public updateChunkStatesForVolume(sliceCoords: SliceCoordinates): void {
-    const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
-    const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
-
-    if (currentTimeChunks.length === 0) {
-      Logger.warn(
-        "ChunkStoreView",
-        "updateChunkStatesForVolume called with no chunks initialized"
-      );
-      this.chunkViewStates_.clear();
-      return;
-    }
-
-    // TODO: allow volume rendering to calculate an LOD factor
-    this.setLOD(0);
-    this.chunkViewStates_.forEach(resetChunkViewState);
-
-    for (const chunk of currentTimeChunks) {
-      if (chunk.lod !== this.currentLOD_) continue;
-
-      const isChannelMatch =
-        sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
-      if (!isChannelMatch) continue;
-
-      const priority = this.policy_.priorityMap["visibleCurrent"];
-      this.chunkViewStates_.set(chunk, {
-        visible: true,
-        prefetch: false,
-        priority,
-        orderKey: 0, // All chunks have the same ordering for volume rendering
-      });
-    }
-
-    this.lastTCoord_ = sliceCoords.t;
-  }
-
-  public updateChunkStates(
+  public updateChunksForImage(
     sliceCoords: SliceCoordinates,
     viewport: Viewport
   ): void {
@@ -164,14 +124,92 @@ export class ChunkStoreView {
       this.zBoundsChanged(zBounds) ||
       this.lastTCoord_ !== sliceCoords.t;
 
-    if (changed) {
-      this.updateChunkViewStates(sliceCoords, viewBounds2D);
+    if (!changed) return;
 
-      this.policyChanged_ = false;
-      this.lastViewBounds2D_ = viewBounds2D.clone();
-      this.lastZBounds_ = zBounds;
-      this.lastTCoord_ = sliceCoords.t;
+    const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
+    const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
+
+    if (currentTimeChunks.length === 0) {
+      Logger.warn(
+        "ChunkStoreView",
+        "updateChunkViewStates called with no chunks initialized"
+      );
+      this.chunkViewStates_.clear();
+      return;
     }
+
+    const viewBoundsCenter2D = vec2.create();
+    vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
+
+    const [zMin, zMax] = this.getZBounds(sliceCoords);
+    const viewBounds3D = new Box3(
+      vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
+      vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
+    );
+
+    // reset all existing chunk view states to "not needed" to start
+    // logic below will override this for chunks that are actually visible/prefetch
+    this.chunkViewStates_.forEach(resetChunkViewState);
+
+    this.updateChunksAtTimeIndex(
+      currentTimeIndex,
+      sliceCoords,
+      viewBounds3D,
+      viewBoundsCenter2D
+    );
+
+    if (sliceCoords.t !== undefined) {
+      this.markTimeChunksForPrefetch(
+        currentTimeIndex,
+        sliceCoords,
+        viewBounds3D,
+        viewBoundsCenter2D
+      );
+    }
+
+    this.policyChanged_ = false;
+    this.lastViewBounds2D_ = viewBounds2D.clone();
+    this.lastZBounds_ = zBounds;
+    this.lastTCoord_ = sliceCoords.t;
+  }
+
+  public updateChunksForVolume(sliceCoords: SliceCoordinates): void {
+    const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
+    const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
+
+    if (currentTimeChunks.length === 0) {
+      Logger.warn(
+        "ChunkStoreView",
+        "updateChunksForVolume called with no chunks initialized"
+      );
+      this.chunkViewStates_.clear();
+      return;
+    }
+
+    // TODO: Calculate LOD dynamically based on view frustum for volume rendering
+    // (similar to zoom-based LOD calculation in updateChunksForImage).
+    // Currently uses a fixed LOD from policy.
+    this.currentLOD_ = this.policy_.lod.min;
+
+    this.chunkViewStates_.forEach(resetChunkViewState);
+
+    for (const chunk of currentTimeChunks) {
+      if (chunk.lod !== this.currentLOD_) continue;
+
+      const isChannelMatch =
+        sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
+      if (!isChannelMatch) continue;
+
+      const priority = this.policy_.priorityMap["visibleCurrent"];
+      this.chunkViewStates_.set(chunk, {
+        visible: true,
+        prefetch: false,
+        priority,
+        orderKey: 0, // All chunks have the same ordering for volume rendering
+      });
+    }
+
+    this.lastTCoord_ = sliceCoords.t;
   }
 
   public allVisibleFallbackLODLoaded(sliceCoords: SliceCoordinates): boolean {
@@ -249,52 +287,6 @@ export class ChunkStoreView {
     const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
     if (target !== this.currentLOD_) {
       this.currentLOD_ = target;
-    }
-  }
-
-  private updateChunkViewStates(
-    sliceCoords: SliceCoordinates,
-    viewBounds2D: Box2
-  ): void {
-    const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
-    const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
-
-    if (currentTimeChunks.length === 0) {
-      Logger.warn(
-        "ChunkStoreView",
-        "updateChunkViewStates called with no chunks initialized"
-      );
-      this.chunkViewStates_.clear();
-      return;
-    }
-
-    const viewBoundsCenter2D = vec2.create();
-    vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
-
-    const [zMin, zMax] = this.getZBounds(sliceCoords);
-    const viewBounds3D = new Box3(
-      vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
-      vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
-    );
-
-    // reset all existing chunk view states to "not needed" to start
-    // logic below will override this for chunks that are actually visible/prefetch
-    this.chunkViewStates_.forEach(resetChunkViewState);
-
-    this.updateChunksAtTimeIndex(
-      currentTimeIndex,
-      sliceCoords,
-      viewBounds3D,
-      viewBoundsCenter2D
-    );
-
-    if (sliceCoords.t !== undefined) {
-      this.markTimeChunksForPrefetch(
-        currentTimeIndex,
-        sliceCoords,
-        viewBounds3D,
-        viewBoundsCenter2D
-      );
     }
   }
 

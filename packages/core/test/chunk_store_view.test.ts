@@ -13,7 +13,7 @@ describe("ChunkStoreView disposal", () => {
     const viewport = createTestViewport();
 
     // mark some chunks as visible/needed
-    view.updateChunkStates({ z: 0, c: 0, t: 0 }, viewport);
+    view.updateChunksForImage({ z: 0, c: 0, t: 0 }, viewport);
     expect(view.chunkViewStates.size).toBeGreaterThan(0);
 
     // aggregate states and set priority
@@ -49,8 +49,8 @@ describe("ChunkStoreView disposal", () => {
     const viewport = createTestViewport();
 
     // Both views mark same chunks as needed
-    view1.updateChunkStates({ z: 0, c: 0, t: 0 }, viewport);
-    view2.updateChunkStates({ z: 0, c: 0, t: 0 }, viewport);
+    view1.updateChunksForImage({ z: 0, c: 0, t: 0 }, viewport);
+    view2.updateChunksForImage({ z: 0, c: 0, t: 0 }, viewport);
 
     store.updateAndCollectChunkChanges();
 
