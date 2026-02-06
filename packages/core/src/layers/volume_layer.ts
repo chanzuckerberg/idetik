@@ -33,7 +33,7 @@ export class VolumeLayer extends Layer {
   public color = vec3.fromValues(1.0, 1.0, 1.0);
   public samplesPerUnit = 128.0;
   public maxIntensity = 255.0;
-  public opacityMultiplier = 0.1;
+  public opacityMultiplier = 1.0;
   public earlyTerminationAlpha = 0.99;
 
   public get debugShowWireframes() {

@@ -44,6 +44,7 @@ class CompositePass {
     this.gl_.activeTexture(this.gl_.TEXTURE1);
     textures[1].bind();
 
+    this.gl_.blendFunc(this.gl_.ONE_MINUS_SRC_ALPHA, this.gl_.SRC_ALPHA);
     this.gl_.drawArrays(this.gl_.TRIANGLES, 0, 3);
     this.gl_.bindTexture(this.gl_.TEXTURE_2D, null);
   }
@@ -139,7 +140,6 @@ export class WebGLRenderer extends Renderer {
     program.setUniform("AccumSampler", 0); // Use texture unit 0
     program.setUniform("RevealSampler", 1); // Use texture unit 1
     this.compositePass_.present(this.transparencyBuffer_);
-    this.transparencyBuffer_.clear();
     this.state_.setDepthMask(true);
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;

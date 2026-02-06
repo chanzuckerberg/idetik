@@ -3,9 +3,9 @@
 
 precision highp float;
 
-layout (location = 0) out vec4 accum;
-// TODO revealage will become a float later
-layout (location = 1) out vec4 revealage;
+layout (location = 0) out vec4 FragData0;
+// TODO will become a float later
+layout (location = 1) out vec4 FragData1;
 
 #if defined TEXTURE_DATA_TYPE_INT
 uniform mediump isampler3D ImageSampler;
@@ -16,6 +16,8 @@ uniform mediump sampler3D ImageSampler;
 #endif
 
 uniform highp vec3 CameraPositionModel;
+uniform mat4 Projection;
+uniform mat4 ModelView;
 in highp vec3 PositionModel;
 
 // The bounding box in model space is normalized to -0.5 to 0.5
@@ -29,6 +31,17 @@ uniform float MaxIntensity;
 uniform float OpacityMultiplier;
 uniform float EarlyTerminationAlpha;
 uniform vec3 VolumeColor;
+
+float computeOITWeighta(float alpha, float depth) {
+    float d = (1.0 - depth);
+    return alpha * max(1e-2, 3e3 * d * d * d);
+}
+
+float computeOITWeight(float alpha, float depth) {
+  float a = min(1.0, alpha) * 8.0 + 0.01;
+  float b = -depth * 0.95 + 1.0;
+  return a * a * a * b * b * b;
+}
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -57,8 +70,8 @@ void main() {
     float tExit = rayIntersections.y;
 
     if (DebugShowDegenerateRays && (tExit == tEnter)) {
-        accum = vec4(1.0, 0.0, 0.0, 1.0);
-        revealage = vec4(1.0, 0.0, 0.0, 1.0);
+        FragData0 = vec4(1.0, 0.0, 0.0, 1.0);
+        FragData1 = vec4(1.0, 0.0, 0.0, 0.0);
         return;
     }
 
@@ -75,25 +88,29 @@ void main() {
 
     // Step 3 - perform the ray marching and compositing in front to back order
     vec3 position = entryPoint;
+    vec4 clipPosition;
     vec4 accumulatedColor = vec4(0.0);
-    float sampledData, sampleAlpha, blendedSampleAlpha;
+    float revealage = 1.0;
+    float sampledData, sampleAlpha, blendedSampleAlpha, rayDepth, weightedAlpha;
 
     // Later replace by an invlerp, but overall provides a way to map the incoming
     // sampled texture value to an alpha value
-    float intensityScale = (1.0 / MaxIntensity) * OpacityMultiplier;
+    float intensityScale = (1.0 / MaxIntensity);
 
     // March until we reach the number of samples or accumulate enough opacity
-    for (int i = 0; i < numSamples && accumulatedColor.a < EarlyTerminationAlpha; i++) {
+    for (int i = 0; i < numSamples; i++) {
         sampledData = vec4(texture(ImageSampler, position)).r;
-        sampleAlpha = sampledData * intensityScale;
-        blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;
+        sampleAlpha = clamp(sampledData * intensityScale * OpacityMultiplier, 0.0, 1.0);
+        clipPosition = Projection * ModelView * vec4(position, 1.0);
+        rayDepth  = (clipPosition.z / clipPosition.w) * 0.5 + 0.5;
 
-        // Front-to-back compositing
-        accumulatedColor.a += blendedSampleAlpha;
-        accumulatedColor.rgb += VolumeColor * blendedSampleAlpha;
+        // Weighted blended OIT
+        weightedAlpha = sampleAlpha * computeOITWeighta(sampleAlpha, rayDepth);
+        accumulatedColor += vec4(VolumeColor * intensityScale * 250.0 * weightedAlpha, weightedAlpha);
+        revealage *= 1.0 - sampleAlpha;
         position += stepIncrement;
     }
 
-    accum = accumulatedColor;
-    revealage = vec4(0.0, accumulatedColor.r, 0.0, 0.0);
+    FragData0 = vec4(accumulatedColor.rgb, 1.0 - revealage);
+    FragData1 = vec4(accumulatedColor.a, 0.0, 0.0, 0.0);
 }
