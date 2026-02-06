@@ -26,11 +26,12 @@ vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
 uniform bool DebugShowDegenerateRays;
-uniform float SamplesPerUnit;
 uniform float MaxIntensity;
 uniform float OpacityMultiplier;
 uniform float EarlyTerminationAlpha;
 uniform vec3 VolumeColor;
+uniform float RelativeStepSize;
+uniform vec3 VoxelScale;
 
 float computeOITWeighta(float alpha, float depth) {
     float d = (1.0 - depth);
@@ -81,10 +82,24 @@ void main() {
     exitPoint = clamp(exitPoint + 0.5, 0.0, 1.0);
 
     // Step 2 - calculate the number of samples based on the length of the ray
+    // The ray is in normalized texture space [0,1]. Convert to voxel space to determine
+    // the appropriate number of samples. RelativeStepSize controls how many voxels to
+    // skip per sample (e.g., 1.0 = one sample per voxel, 0.5 = two samples per voxel).
     vec3 rayWithinModel = exitPoint - entryPoint;
-    float rayLength = length(rayWithinModel);
-    int numSamples = max(int(ceil(rayLength * SamplesPerUnit)), 1);
+
+    // Get texture dimensions and convert ray to voxel space
+    vec3 textureSize = vec3(textureSize(ImageSampler, 0));
+    vec3 rayInVoxels = rayWithinModel * textureSize;
+    float rayLengthInVoxels = length(rayInVoxels);
+    int numSamples = max(int(ceil(rayLengthInVoxels / RelativeStepSize)), 1);
     vec3 stepIncrement = rayWithinModel / float(numSamples);
+
+    // Calculate actual world-space step size for opacity correction.
+    // This accounts for anisotropic voxels so brightness stays constant regardless
+    // of viewing angle. For anisotropic voxels (e.g., 1x1x3 microns), rays along
+    // different axes traverse different amounts of material per step.
+    vec3 stepInWorldSpace = stepIncrement * textureSize * VoxelScale;
+    float worldSpaceStepSize = length(stepInWorldSpace);
 
     // Step 3 - perform the ray marching and compositing in front to back order
     vec3 position = entryPoint;
@@ -93,9 +108,11 @@ void main() {
     float revealage = 1.0;
     float sampledData, sampleAlpha, blendedSampleAlpha, rayDepth, weightedAlpha;
 
-    // Later replace by an invlerp, but overall provides a way to map the incoming
-    // sampled texture value to an alpha value
-    float intensityScale = (1.0 / MaxIntensity);
+    // Scale intensity to opacity.
+    // OpacityMultiplier and MaxIntensity control the transfer function.
+    // worldSpaceStepSize corrects for anisotropic voxels.
+    // TODO: Replace with invlerp-based transfer function to add contrast limits (MinIntensity/MaxIntensity window)
+    float intensityScale = (OpacityMultiplier / MaxIntensity) * worldSpaceStepSize;
 
     // March until we reach the number of samples or accumulate enough opacity
     for (int i = 0; i < numSamples; i++) {

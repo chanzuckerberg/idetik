@@ -31,7 +31,7 @@ export class VolumeLayer extends Layer {
   private debugShowWireframes_ = false;
   public debugShowDegenerateRays = false;
   public color = vec3.fromValues(1.0, 1.0, 1.0);
-  public samplesPerUnit = 128.0;
+  public relativeStepSize = 1.0;
   public maxIntensity = 255.0;
   public opacityMultiplier = 1.0;
   public earlyTerminationAlpha = 0.99;
@@ -138,11 +138,13 @@ export class VolumeLayer extends Layer {
   }
 
   private updateVolumeChunk(volume: VolumeRenderable, chunk: Chunk) {
-    volume.transform.setScale([
-      chunk.shape.x * chunk.scale.x,
-      chunk.shape.y * chunk.scale.y,
-      chunk.shape.z * chunk.scale.z,
-    ]);
+    const worldSize = {
+      x: chunk.shape.x * chunk.scale.x,
+      y: chunk.shape.y * chunk.scale.y,
+      z: chunk.shape.z * chunk.scale.z,
+    };
+    volume.transform.setScale([worldSize.x, worldSize.y, worldSize.z]);
+    vec3.set(volume.voxelScale, chunk.scale.x, chunk.scale.y, chunk.scale.z);
     const originOffset = {
       x: (chunk.shape.x * chunk.scale.x) / 2,
       y: (chunk.shape.y * chunk.scale.y) / 2,
@@ -206,7 +208,7 @@ export class VolumeLayer extends Layer {
   public getUniforms(): Record<string, unknown> {
     return {
       DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
-      SamplesPerUnit: this.samplesPerUnit,
+      RelativeStepSize: this.relativeStepSize,
       MaxIntensity: this.maxIntensity,
       OpacityMultiplier: this.opacityMultiplier,
       VolumeColor: this.color,
