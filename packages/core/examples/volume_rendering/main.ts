@@ -64,12 +64,23 @@ gui
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
-  .add(volumeLayer, "samplesPerUnit", 16, 512, 1)
-  .name("Samples per unit");
+  .add(volumeLayer, "relativeStepSize", 0.25, 3.0, 0.1)
+  .name("Relative step size (voxels)");
 volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
+
+// maps 0-1 slider to [0.001, 10.0] logarithmically
+const opacityControls = {
+  get opacity() {
+    return (Math.log10(volumeLayer.opacityMultiplier) + 3) / 4;
+  },
+  set opacity(sliderValue: number) {
+    volumeLayer.opacityMultiplier = Math.pow(10, sliderValue * 4 - 3);
+  },
+};
 volumeFolder
-  .add(volumeLayer, "opacityMultiplier", 0.01, 1.0, 0.01)
-  .name("Opacity scale");
+  .add(opacityControls, "opacity", 0, 1, 0.01)
+  .name("Opacity")
+  .decimals(2);
 volumeFolder
   .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
   .name("Early termination threshold");
