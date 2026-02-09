@@ -1,32 +1,12 @@
 import { expect, test } from "vitest";
 
+import { Viewport, ViewportConfig, parseViewportConfigs } from "@";
 import {
-  Viewport,
-  ViewportConfig,
-  parseViewportConfigs,
-  LayerManager,
-  OrthographicCamera,
-} from "@";
-import type { IdetikContext } from "@/idetik";
-import { ChunkManager } from "@/core/chunk_manager";
-
-function createTestElement(id: string): HTMLElement {
-  const element = document.createElement("div");
-  element.id = id;
-  return element;
-}
-
-function createTestCamera(): OrthographicCamera {
-  return new OrthographicCamera(-1, 1, -1, 1);
-}
-
-function createTestContext(): IdetikContext {
-  return { chunkManager: new ChunkManager() };
-}
-
-function createTestLayerManager(): LayerManager {
-  return new LayerManager(createTestContext());
-}
+  createTestElement,
+  createTestCamera,
+  createTestContext,
+  createTestLayerManager,
+} from "./helpers";
 
 test("Viewport constructor uses provided ID", () => {
   const element = createTestElement("test-element");

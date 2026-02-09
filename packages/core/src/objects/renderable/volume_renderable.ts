@@ -3,8 +3,11 @@ import { RenderableObject } from "../../core/renderable_object";
 import { BoxGeometry } from "../geometry/box_geometry";
 import type { TextureDataType } from "../textures/texture";
 import type { Texture3D } from "../textures/texture_3d";
+import { vec3 } from "gl-matrix";
 
 export class VolumeRenderable extends RenderableObject {
+  public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
+
   constructor(texture: Texture3D) {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
@@ -16,6 +19,12 @@ export class VolumeRenderable extends RenderableObject {
 
   public get type() {
     return "VolumeRenderable";
+  }
+
+  public override getUniforms(): Record<string, unknown> {
+    return {
+      VoxelScale: this.voxelScale,
+    };
   }
 }
 

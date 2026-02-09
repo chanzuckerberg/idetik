@@ -3,9 +3,9 @@
 
 precision highp float;
 
-layout (location = 0) out vec4 accum;
-// TODO revealage will become a float later
-layout (location = 1) out vec4 revealage;
+layout (location = 0) out vec4 FragData0;
+// TODO will become a float later
+layout (location = 1) out vec4 FragData1;
 
 #if defined TEXTURE_DATA_TYPE_INT
 uniform mediump isampler3D ImageSampler;
@@ -16,6 +16,8 @@ uniform mediump sampler3D ImageSampler;
 #endif
 
 uniform highp vec3 CameraPositionModel;
+uniform mat4 Projection;
+uniform mat4 ModelView;
 in highp vec3 PositionModel;
 
 // The bounding box in model space is normalized to -0.5 to 0.5
@@ -24,11 +26,21 @@ vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
 uniform bool DebugShowDegenerateRays;
-uniform float SamplesPerUnit;
 uniform float MaxIntensity;
 uniform float OpacityMultiplier;
 uniform float EarlyTerminationAlpha;
 uniform vec3 VolumeColor;
+uniform float RelativeStepSize;
+uniform vec3 VoxelScale;
+
+float computeOITWeight(float alpha, float depth) {
+    float d = (1.0 - depth);
+    return alpha * max(1e-2, 3e5 * d);
+}
+
+float computeOITWeightDebug(float alpha, float depth) {
+    return 1.0;
+}
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -57,8 +69,8 @@ void main() {
     float tExit = rayIntersections.y;
 
     if (DebugShowDegenerateRays && (tExit == tEnter)) {
-        accum = vec4(1.0, 0.0, 0.0, 1.0);
-        revealage = vec4(1.0, 0.0, 0.0, 1.0);
+        FragData0 = vec4(1.0, 0.0, 0.0, 1.0);
+        FragData1 = vec4(1.0, 0.0, 0.0, 0.0);
         return;
     }
 
@@ -68,32 +80,57 @@ void main() {
     exitPoint = clamp(exitPoint + 0.5, 0.0, 1.0);
 
     // Step 2 - calculate the number of samples based on the length of the ray
+    // The ray is in normalized texture space [0,1]. Convert to voxel space to determine
+    // the appropriate number of samples. RelativeStepSize controls how many voxels to
+    // skip per sample (e.g., 1.0 = one sample per voxel, 0.5 = two samples per voxel).
     vec3 rayWithinModel = exitPoint - entryPoint;
-    float rayLength = length(rayWithinModel);
-    int numSamples = max(int(ceil(rayLength * SamplesPerUnit)), 1);
+
+    // Get texture dimensions and convert ray to voxel space
+    vec3 textureSize = vec3(textureSize(ImageSampler, 0));
+    vec3 rayInVoxels = rayWithinModel * textureSize;
+    float rayLengthInVoxels = length(rayInVoxels);
+    int numSamples = max(int(ceil(rayLengthInVoxels / RelativeStepSize)), 1);
     vec3 stepIncrement = rayWithinModel / float(numSamples);
+
+    // Calculate actual world-space step size for opacity correction.
+    // This accounts for anisotropic voxels so brightness stays constant regardless
+    // of viewing angle. For anisotropic voxels (e.g., 1x1x3 microns), rays along
+    // different axes traverse different amounts of material per step.
+    vec3 stepInWorldSpace = stepIncrement * textureSize * VoxelScale;
+    float worldSpaceStepSize = length(stepInWorldSpace);
 
     // Step 3 - perform the ray marching and compositing in front to back order
     vec3 position = entryPoint;
+    vec4 clipPosition;
     vec4 accumulatedColor = vec4(0.0);
-    float sampledData, sampleAlpha, blendedSampleAlpha;
+    vec3 sampleColor;
+    float revealage = 1.0;
+    float sampledData, sampleAlpha, blendedSampleAlpha, rayDepth, weight;
 
-    // Later replace by an invlerp, but overall provides a way to map the incoming
-    // sampled texture value to an alpha value
-    float intensityScale = (1.0 / MaxIntensity) * OpacityMultiplier;
+    // Scale intensity to opacity.
+    // OpacityMultiplier and MaxIntensity control the transfer function.
+    // worldSpaceStepSize corrects for anisotropic voxels.
+    // TODO: Replace with invlerp-based transfer function to add contrast limits (MinIntensity/MaxIntensity window)
+    float intensityScale = (1.0 / MaxIntensity) * worldSpaceStepSize;
 
     // March until we reach the number of samples or accumulate enough opacity
-    for (int i = 0; i < numSamples && accumulatedColor.a < EarlyTerminationAlpha; i++) {
+    for (int i = 0; i < numSamples && revealage > (1.0 - EarlyTerminationAlpha); i++) {
+        // Sample the volume data and convert to color and opacity
         sampledData = vec4(texture(ImageSampler, position)).r;
-        sampleAlpha = sampledData * intensityScale;
-        blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;
+        sampleAlpha = clamp(sampledData * intensityScale * OpacityMultiplier, 0.0, 1.0);
+        sampleColor = VolumeColor * sampledData * intensityScale;
 
-        // Front-to-back compositing
-        accumulatedColor.a += blendedSampleAlpha;
-        accumulatedColor.rgb += VolumeColor * blendedSampleAlpha;
+        // Weighted blended OIT
+        clipPosition = Projection * ModelView * vec4(position, 1.0);
+        rayDepth  = (clipPosition.z / clipPosition.w) * 0.5 + 0.5;
+        weight = computeOITWeight(sampleAlpha, rayDepth);
+        accumulatedColor += vec4(sampleColor, sampleAlpha) * weight;
+        revealage *= clamp(1.0 - sampleAlpha, 0.0, 1.0);
+
+        // Advance the ray
         position += stepIncrement;
     }
 
-    accum = accumulatedColor;
-    revealage = vec4(0.0, accumulatedColor.r, 0.0, 0.0);
+    FragData0 = vec4(accumulatedColor.rgb, 1.0 - revealage);
+    FragData1 = vec4(accumulatedColor.a, 0.0, 0.0, 0.0);
 }

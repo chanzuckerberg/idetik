@@ -297,6 +297,14 @@ export class TransparencyBuffer {
   begin() {
     this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, this.framebuffer_);
     this.gl_.drawBuffers(this.buffers_);
+    this.gl_.blendFuncSeparate(
+      WebGL2RenderingContext.ONE,
+      WebGL2RenderingContext.ONE,
+      WebGL2RenderingContext.ZERO,
+      WebGL2RenderingContext.ONE_MINUS_SRC_ALPHA
+    );
+    this.clear();
+    this.gl_.enable(this.gl_.BLEND);
 
     // Note - two color buffers are textures, depth is frame buffer
     // use framebufferRenderbuffer for depth and regular texture for the others
@@ -311,7 +319,7 @@ export class TransparencyBuffer {
   clear() {
     // TODO likely each buffer needs to be cleared separately
     this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, this.framebuffer_);
-    this.gl_.clearColor(0, 0, 0, 0);
+    this.gl_.clearColor(0.0, 0.0, 0.0, 1.0);
     this.gl_.clear(this.gl_.COLOR_BUFFER_BIT);
   }
 
