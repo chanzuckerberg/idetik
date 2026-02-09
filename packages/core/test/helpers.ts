@@ -1,4 +1,9 @@
 import type { Chunk } from "../src/data/chunk";
+import { Viewport } from "@/core/viewport";
+import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
+import { LayerManager } from "@/core/layer_manager";
+import { ChunkManager } from "@/core/chunk_manager";
+import type { IdetikContext } from "@/idetik";
 
 type ChunkOverrides = Partial<
   Omit<Chunk, "shape" | "chunkIndex" | "scale" | "offset">
@@ -80,4 +85,31 @@ export async function waitFor(
     if (Date.now() - start > timeout) throw new Error("waitFor timeout");
     await new Promise((r) => setTimeout(r, interval));
   }
+}
+
+export function createTestElement(id: string = "test-element"): HTMLElement {
+  const element = document.createElement("div");
+  element.id = id;
+  return element;
+}
+
+export function createTestCamera(): OrthographicCamera {
+  return new OrthographicCamera(-1, 1, -1, 1);
+}
+
+export function createTestContext(): IdetikContext {
+  return { chunkManager: new ChunkManager() };
+}
+
+export function createTestLayerManager(): LayerManager {
+  return new LayerManager(createTestContext());
+}
+
+export function createTestViewport(id: string = "test-viewport"): Viewport {
+  return new Viewport({
+    id,
+    element: createTestElement(id),
+    camera: createTestCamera(),
+    layerManager: createTestLayerManager(),
+  });
 }
