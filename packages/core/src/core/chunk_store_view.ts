@@ -1,7 +1,6 @@
 import { Chunk, SliceCoordinates, ChunkViewState } from "../data/chunk";
 import type { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
-import { Camera } from "../objects/cameras/camera";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";
 import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
@@ -179,9 +178,18 @@ export class ChunkStoreView {
     sliceCoords: SliceCoordinates,
     viewport: Viewport
   ): void {
+    // Each call allocates a new mat4 and computes projection * view.
+    // This is intentional for simplicity. If this ever shows up in profiles
+    // avoid multiply entirely by caching and comparing view/projection separately.
+    const viewProjection = mat4.multiply(
+      mat4.create(),
+      viewport.camera.projectionMatrix,
+      viewport.camera.viewMatrix
+    );
+
     const changed =
       this.policyChanged_ ||
-      this.viewProjectionChanged(viewport.camera) ||
+      this.hasViewProjectionChanged(viewProjection) ||
       this.lastTCoord_ !== sliceCoords.t;
 
     if (!changed) return;
@@ -205,14 +213,21 @@ export class ChunkStoreView {
 
     this.chunkViewStates_.forEach(resetChunkViewState);
 
+    const fallbackLOD = this.fallbackLOD();
+
     for (const chunk of currentTimeChunks) {
       if (chunk.lod !== this.currentLOD_) continue;
+      if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
 
-      const isChannelMatch =
-        sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
-      if (!isChannelMatch) continue;
+      const isFallbackLOD = chunk.lod === fallbackLOD;
+      const priority = this.computePriority(
+        isFallbackLOD,
+        true, // isCurrentLOD
+        true, // isVisible
+        false, // isPrefetch
+        true // isChannelInSlice
+      );
 
-      const priority = this.policy_.priorityMap["visibleCurrent"];
       this.chunkViewStates_.set(chunk, {
         visible: true,
         prefetch: false,
@@ -227,6 +242,7 @@ export class ChunkStoreView {
 
     this.policyChanged_ = false;
     this.lastTCoord_ = sliceCoords.t;
+    this.lastViewProjection_ = viewProjection;
   }
 
   public allVisibleFallbackLODLoaded(sliceCoords: SliceCoordinates): boolean {
@@ -502,28 +518,11 @@ export class ChunkStoreView {
     );
   }
 
-  private viewProjectionChanged(camera: Camera) {
-    // Each call allocates a new mat4 and computes projection * view.
-    // This is intentional for simplicity. If this ever shows up in profiles:
-    //   - Avoid the allocation by reusing a temporary mat4.
-    //   - Avoid the multiply entirely by caching and comparing view/projection separately.
-    const viewProjection = mat4.multiply(
-      mat4.create(),
-      camera.projectionMatrix,
-      camera.viewMatrix
+  private hasViewProjectionChanged(viewProjection: mat4) {
+    return (
+      this.lastViewProjection_ === null ||
+      !mat4.equals(this.lastViewProjection_, viewProjection)
     );
-
-    if (this.lastViewProjection_ === null) {
-      this.lastViewProjection_ = mat4.clone(viewProjection);
-      return true;
-    }
-
-    if (!mat4.equals(this.lastViewProjection_, viewProjection)) {
-      mat4.copy(this.lastViewProjection_, viewProjection);
-      return true;
-    }
-
-    return false;
   }
 
   private zBoundsChanged(newBounds: [number, number]): boolean {
