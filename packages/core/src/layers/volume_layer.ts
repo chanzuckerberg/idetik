@@ -177,7 +177,10 @@ export class VolumeLayer extends Layer {
       this.reorderObjects(context.viewport.camera);
     }
 
-    this.chunkStoreView_.updateChunksForVolume(this.sliceCoords_);
+    this.chunkStoreView_.updateChunksForVolume(
+      this.sliceCoords_,
+      context.viewport
+    );
     this.updateChunks();
   }
 

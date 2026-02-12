@@ -3,7 +3,7 @@ import type { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";
-import { ReadonlyVec2, vec2, vec3 } from "gl-matrix";
+import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { Logger } from "../utilities/logger";
@@ -23,6 +23,7 @@ export class ChunkStoreView {
   private policyChanged_ = false;
   private currentLOD_: number = 0;
   private lastViewBounds2D_: Box2 | null = null;
+  private lastViewProjection_: mat4 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
 
@@ -159,7 +160,7 @@ export class ChunkStoreView {
     );
 
     if (sliceCoords.t !== undefined) {
-      this.markTimeChunksForPrefetch(
+      this.markTimeChunksForPrefetchImage(
         currentTimeIndex,
         sliceCoords,
         viewBounds3D,
@@ -173,7 +174,26 @@ export class ChunkStoreView {
     this.lastTCoord_ = sliceCoords.t;
   }
 
-  public updateChunksForVolume(sliceCoords: SliceCoordinates): void {
+  public updateChunksForVolume(
+    sliceCoords: SliceCoordinates,
+    viewport: Viewport
+  ): void {
+    // Each call allocates a new mat4 and computes projection * view.
+    // This is intentional for simplicity. If this ever shows up in profiles
+    // avoid multiply entirely by caching and comparing view/projection separately.
+    const viewProjection = mat4.multiply(
+      mat4.create(),
+      viewport.camera.projectionMatrix,
+      viewport.camera.viewMatrix
+    );
+
+    const changed =
+      this.policyChanged_ ||
+      this.hasViewProjectionChanged(viewProjection) ||
+      this.lastTCoord_ !== sliceCoords.t;
+
+    if (!changed) return;
+
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
 
@@ -193,14 +213,21 @@ export class ChunkStoreView {
 
     this.chunkViewStates_.forEach(resetChunkViewState);
 
+    const fallbackLOD = this.fallbackLOD();
+
     for (const chunk of currentTimeChunks) {
       if (chunk.lod !== this.currentLOD_) continue;
+      if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
 
-      const isChannelMatch =
-        sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
-      if (!isChannelMatch) continue;
+      const isFallbackLOD = chunk.lod === fallbackLOD;
+      const priority = this.computePriority(
+        isFallbackLOD,
+        true, // isCurrentLOD
+        true, // isVisible
+        false, // isPrefetch
+        true // isChannelInSlice
+      );
 
-      const priority = this.policy_.priorityMap["visibleCurrent"];
       this.chunkViewStates_.set(chunk, {
         visible: true,
         prefetch: false,
@@ -209,7 +236,13 @@ export class ChunkStoreView {
       });
     }
 
+    if (sliceCoords.t !== undefined) {
+      this.markTimeChunksForPrefetchVolume(currentTimeIndex, sliceCoords);
+    }
+
+    this.policyChanged_ = false;
     this.lastTCoord_ = sliceCoords.t;
+    this.lastViewProjection_ = viewProjection;
   }
 
   public allVisibleFallbackLODLoaded(sliceCoords: SliceCoordinates): boolean {
@@ -343,7 +376,7 @@ export class ChunkStoreView {
     }
   }
 
-  private markTimeChunksForPrefetch(
+  private markTimeChunksForPrefetchImage(
     currentTimeIndex: number,
     sliceCoords: SliceCoordinates,
     viewBounds3D: Box3,
@@ -355,13 +388,14 @@ export class ChunkStoreView {
       currentTimeIndex + this.policy_.prefetch.t
     );
     const fallbackLOD = this.fallbackLOD();
+    const priority = this.policy_.priorityMap["prefetchTime"];
+
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.store_.getChunksAtTime(t)) {
         if (chunk.lod !== fallbackLOD) continue;
         if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
 
-        const priority = this.policy_.priorityMap["prefetchTime"];
         const squareDistance = this.squareDistance2D(chunk, viewBoundsCenter2D);
         const normalizedDistance = clamp(
           squareDistance / this.sourceMaxSquareDistance2D_,
@@ -372,6 +406,35 @@ export class ChunkStoreView {
 
         // Always set priority/orderKey to keep loaded chunks alive
         // Only unloaded chunks will be queued for loading
+        this.chunkViewStates_.set(chunk, {
+          visible: false,
+          prefetch: true,
+          priority,
+          orderKey,
+        });
+      }
+    }
+  }
+
+  private markTimeChunksForPrefetchVolume(
+    currentTimeIndex: number,
+    sliceCoords: SliceCoordinates
+  ) {
+    const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
+    const tEnd = Math.min(
+      numTimePoints - 1,
+      currentTimeIndex + this.policy_.prefetch.t
+    );
+    const fallbackLOD = this.fallbackLOD();
+    const priority = this.policy_.priorityMap["prefetchTime"];
+
+    for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
+      for (const chunk of this.store_.getChunksAtTime(t)) {
+        if (chunk.lod !== fallbackLOD) continue;
+        if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
+
+        const orderKey = t - currentTimeIndex; // nearer future timepoints first
+
         this.chunkViewStates_.set(chunk, {
           visible: false,
           prefetch: true,
@@ -452,6 +515,13 @@ export class ChunkStoreView {
       this.lastViewBounds2D_ === null ||
       !vec2.equals(this.lastViewBounds2D_.min, newBounds.min) ||
       !vec2.equals(this.lastViewBounds2D_.max, newBounds.max)
+    );
+  }
+
+  private hasViewProjectionChanged(viewProjection: mat4) {
+    return (
+      this.lastViewProjection_ === null ||
+      !mat4.equals(this.lastViewProjection_, viewProjection)
     );
   }
 
