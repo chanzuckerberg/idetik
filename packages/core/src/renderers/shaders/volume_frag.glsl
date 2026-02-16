@@ -6,6 +6,7 @@ precision highp float;
 layout (location = 0) out vec4 FragData0;
 // TODO will become a float later
 layout (location = 1) out vec4 FragData1;
+layout (location = 2) out vec4 FragDepth;
 
 #if defined TEXTURE_DATA_TYPE_INT
 uniform mediump isampler3D ImageSampler;
@@ -71,6 +72,7 @@ void main() {
     if (DebugShowDegenerateRays && (tExit == tEnter)) {
         FragData0 = vec4(1.0, 0.0, 0.0, 1.0);
         FragData1 = vec4(1.0, 0.0, 0.0, 0.0);
+        FragDepth = vec4(1.0);
         return;
     }
 
@@ -133,4 +135,5 @@ void main() {
 
     FragData0 = vec4(accumulatedColor.rgb, 1.0 - revealage);
     FragData1 = vec4(accumulatedColor.a, 0.0, 0.0, 0.0);
+    FragDepth = vec4(1.0);
 }

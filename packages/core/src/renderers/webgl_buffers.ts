@@ -305,9 +305,6 @@ export class TransparencyBuffer {
     );
     this.clear();
     this.gl_.enable(this.gl_.BLEND);
-
-    // Note - two color buffers are textures, depth is frame buffer
-    // use framebufferRenderbuffer for depth and regular texture for the others
   }
 
   end() {

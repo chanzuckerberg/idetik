@@ -51,6 +51,7 @@ class CompositePass {
       depthTexture.bind();
     }
 
+    this.gl_.blendFunc(this.gl_.ONE_MINUS_SRC_ALPHA, this.gl_.SRC_ALPHA);
     this.gl_.drawArrays(this.gl_.TRIANGLES, 0, 3);
   }
   dispose() {
