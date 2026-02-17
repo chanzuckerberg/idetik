@@ -33,6 +33,8 @@ uniform float EarlyTerminationAlpha;
 uniform vec3 VolumeColor;
 uniform float RelativeStepSize;
 uniform vec3 VoxelScale;
+uniform bool DebugShowDegenerateRays;
+uniform bool DebugShowChunkBoundaries;
 
 float computeOITWeight(float alpha, float depth) {
     float d = (1.0 - depth);
@@ -60,6 +62,25 @@ vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3
 }
 
 void main() {
+    if (DebugShowChunkBoundaries) {
+        FragData0 = vec4(0.0, 0.0, 0.0, 0.0);
+        FragData1 = vec4(0.0, 0.0, 0.0, 0.0);
+        FragDepth = vec4(1.0);
+        vec3 distToMin = abs(PositionModel - boundingboxMin);
+        vec3 distToMax = abs(PositionModel - boundingboxMax);
+        bvec3 nearMin = lessThan(distToMin, vec3(0.01));
+        bvec3 nearMax = lessThan(distToMax, vec3(0.01));
+        bvec3 nearBoundary = bvec3(nearMin.x || nearMax.x, nearMin.y || nearMax.y, nearMin.z || nearMax.z);
+        int numDimsOnBoundary = int(nearBoundary.x) + int(nearBoundary.y) + int(nearBoundary.z);
+        bool onEdge = numDimsOnBoundary >= 2;
+        if (onEdge) {
+            FragData0 = vec4(1.0, 1.0, 1.0, 0.4);
+            FragData1 = vec4(1.0, 0.0, 0.0, 0.0);
+            FragDepth = vec4(1.0);
+        }
+        return;
+    }
+
     // Step 1 - calculate where the ray enters and exits the volume
 
     // The ray in model space goes from the camera to the point on the back face
