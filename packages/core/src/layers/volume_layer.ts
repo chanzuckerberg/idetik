@@ -8,31 +8,34 @@ import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { glMatrix, vec3 } from "gl-matrix";
 import { Camera } from "../objects/cameras/camera";
+import { ChannelProps, ChannelsEnabled } from "@/objects/textures/channel";
 
 export type VolumeLayerProps = {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
+  channelProps?: ChannelProps[];
 };
 
-export class VolumeLayer extends Layer {
+export class VolumeLayer extends Layer implements ChannelsEnabled {
   public readonly type = "VolumeLayer";
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly currentChunks_: Map<Chunk, VolumeRenderable> = new Map();
   private readonly pool_ = new RenderablePool<VolumeRenderable>();
+  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channelChangeCallbacks_: Array<() => void> = [];
 
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
+  private channelProps_?: ChannelProps[];
 
   private lastLoadedTime_: number | undefined = undefined;
   // TODO: Make a debug config object to manage debug options
   private debugShowWireframes_ = false;
   public debugShowDegenerateRays = false;
-  public color = vec3.fromValues(1.0, 1.0, 1.0);
   public relativeStepSize = 1.0;
-  public maxIntensity = 512.0;
   public opacityMultiplier = 0.1;
   public earlyTerminationAlpha = 0.99;
 
@@ -60,8 +63,42 @@ export class VolumeLayer extends Layer {
     }
   }
 
+  public setChannelProps(newProps: ChannelProps[]) {
+    this.channelProps_ = newProps;
+    this.currentChunks_.forEach((chunk) => {
+      chunk.setChannelProps(newProps);
+    });
+  }
+
+  public get channelProps(): ChannelProps[] | undefined {
+    // TODO: should this return Channel[] instead of ChannelProps[]?
+    return this.channelProps_;
+  }
+
+  public resetChannelProps(): void {
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
+    }
+  }
+
+  public addChannelChangeCallback(callback: () => void): void {
+    this.channelChangeCallbacks_.push(callback);
+  }
+
+  public removeChannelChangeCallback(callback: () => void): void {
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.channelChangeCallbacks_.splice(index, 1);
+  }
+
   private createVolume(chunk: Chunk) {
-    const volume = new VolumeRenderable(Texture3D.createWithChunk(chunk));
+    const volume = new VolumeRenderable(
+      Texture3D.createWithChunk(chunk),
+      chunk.chunkIndex.c,
+      this.channelProps_
+    );
     this.updateVolumeChunk(volume, chunk);
     return volume;
   }
@@ -212,9 +249,7 @@ export class VolumeLayer extends Layer {
     return {
       DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
       RelativeStepSize: this.relativeStepSize,
-      MaxIntensity: this.maxIntensity,
       OpacityMultiplier: this.opacityMultiplier,
-      VolumeColor: this.color,
       EarlyTerminationAlpha: this.earlyTerminationAlpha,
     };
   }

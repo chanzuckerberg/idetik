@@ -26,12 +26,13 @@ vec3 boundingboxMin = vec3(-0.50);
 vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
-uniform bool DebugShowDegenerateRays;
 uniform float MaxIntensity;
 uniform float OpacityMultiplier;
 uniform float EarlyTerminationAlpha;
-uniform vec3 VolumeColor;
 uniform float RelativeStepSize;
+uniform vec3 Color;
+uniform float ValueOffset;
+uniform float ValueScale;
 uniform vec3 VoxelScale;
 uniform bool DebugShowDegenerateRays;
 uniform bool DebugShowChunkBoundaries;
@@ -128,20 +129,21 @@ void main() {
     vec4 accumulatedColor = vec4(0.0);
     vec3 sampleColor;
     float revealage = 1.0;
-    float sampledData, sampleAlpha, blendedSampleAlpha, rayDepth, weight;
+    float sampledData, sampleAlpha, blendedSampleAlpha, rayDepth, weight, scaledData;
 
     // Scale intensity to opacity.
-    // OpacityMultiplier and MaxIntensity control the transfer function.
+    // ValueScale is the
     // worldSpaceStepSize corrects for anisotropic voxels.
-    // TODO: Replace with invlerp-based transfer function to add contrast limits (MinIntensity/MaxIntensity window)
-    float intensityScale = (1.0 / MaxIntensity) * worldSpaceStepSize;
+    float intensityScale = ValueScale * worldSpaceStepSize;
 
     // March until we reach the number of samples or accumulate enough opacity
     for (int i = 0; i < numSamples && revealage > (1.0 - EarlyTerminationAlpha); i++) {
         // Sample the volume data and convert to color and opacity
         sampledData = vec4(texture(ImageSampler, position)).r;
-        sampleAlpha = clamp(sampledData * intensityScale * OpacityMultiplier, 0.0, 1.0);
-        sampleColor = VolumeColor * sampledData * intensityScale;
+        scaledData = (sampledData + ValueOffset) * intensityScale;
+        // OpacityMultiplier controls the gain
+        sampleAlpha = clamp(scaledData * OpacityMultiplier, 0.0, 1.0);
+        sampleColor = Color * sampleAlpha; // TODO this or alpha - also gain
 
         // Weighted blended OIT
         clipPosition = Projection * ModelView * vec4(position, 1.0);

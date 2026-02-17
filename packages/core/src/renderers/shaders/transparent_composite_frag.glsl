@@ -13,6 +13,7 @@ layout (location = 0) out vec4 fragColor;
 void main() {
     vec4 tex0 = texture(AccumSampler, TexCoords);
     vec4 tex1 = texture(RevealSampler, TexCoords);
+    // TODO consider these names
     vec4 accum = vec4(tex0.rgb, tex1.r);
     float revealage = tex0.a;
     float val = texture(DepthSampler, TexCoords).r;
