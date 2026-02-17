@@ -50,6 +50,13 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords: volumeCoords,
   policy: createPlaybackPolicy({ lod: { min: 2, max: 2 } }),
+  channelProps: [
+    {
+      visible: true,
+      color: [1, 1, 1] as [number, number, number],
+      contrastLimits: [0, 512] as [number, number],
+    },
+  ],
 });
 
 const camera2D = new OrthographicCamera(left, right, top, bottom);
