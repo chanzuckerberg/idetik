@@ -189,13 +189,20 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
+    // TODO this is a bit awkward with visibility but unsure what else
+    // to do for now. We could do it on the shader but that is less efficient
+    // for now we still pop stale textures if the object is not visible
+    object.popStaleTextures().forEach((texture) => {
+      this.textures_.disposeTexture(texture);
+    });
+    if ("visible" in object && !object.visible) {
+      return;
+    }
+
     this.state_.setCullFaceMode(object.cullFaceMode);
     this.state_.setDepthTesting(object.depthTest);
     this.state_.setDepthMask(object.depthTest);
     this.bindings_.bindGeometry(object.geometry);
-    object.popStaleTextures().forEach((texture) => {
-      this.textures_.disposeTexture(texture);
-    });
     object.textures.forEach((texture, index) => {
       this.textures_.bindTexture(texture, index);
     });

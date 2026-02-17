@@ -32,6 +32,11 @@ export class VolumeRenderable extends RenderableObject {
     this.channels_ = validateChannels(texture, channels);
   }
 
+  public get visible() {
+    const channel = this.getChannelOrDefault(this.channelIndex);
+    return channel.visible;
+  }
+
   public get type() {
     return "VolumeRenderable";
   }

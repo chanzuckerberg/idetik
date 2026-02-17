@@ -63,10 +63,12 @@ vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3
 }
 
 void main() {
+    // Initialize outputs to defaults for early exit cases
+    FragData0 = vec4(0.0, 0.0, 0.0, 0.0);
+    FragData1 = vec4(0.0, 0.0, 0.0, 0.0);
+    FragDepth = vec4(1.0);
+
     if (DebugShowChunkBoundaries) {
-        FragData0 = vec4(0.0, 0.0, 0.0, 0.0);
-        FragData1 = vec4(0.0, 0.0, 0.0, 0.0);
-        FragDepth = vec4(1.0);
         vec3 distToMin = abs(PositionModel - boundingboxMin);
         vec3 distToMax = abs(PositionModel - boundingboxMax);
         bvec3 nearMin = lessThan(distToMin, vec3(0.01));

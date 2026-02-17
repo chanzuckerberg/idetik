@@ -26,7 +26,7 @@ const channelProps = [
     contrastLimits: [108, 353] as [number, number],
   },
   {
-    visible: true,
+    visible: false,
     color: [0, 1, 0] as [number, number, number],
     contrastLimits: [144, 3825] as [number, number],
   },
