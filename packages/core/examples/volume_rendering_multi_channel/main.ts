@@ -26,7 +26,7 @@ const channelProps = [
     contrastLimits: [108, 353] as [number, number],
   },
   {
-    visible: false,
+    visible: true,
     color: [0, 1, 0] as [number, number, number],
     contrastLimits: [144, 3825] as [number, number],
   },
@@ -99,7 +99,7 @@ volumeFolder
   .name("Opacity")
   .decimals(2);
 volumeFolder
-  .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
+  .add(volumeLayer, "earlyTerminationAlpha", 0.01, 1.0, 0.01)
   .name("Early termination threshold");
 
 const overlaysFolder = gui.addFolder("Debug");

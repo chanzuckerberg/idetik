@@ -42,10 +42,6 @@ float computeOITWeight(float alpha, float depth) {
     return alpha * max(1e-2, 3e5 * d);
 }
 
-float computeOITWeightDebug(float alpha, float depth) {
-    return 1.0;
-}
-
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
     vec3 t0 = (boxMin - rayOrigin) * reciprocalRayDir;
@@ -93,13 +89,6 @@ void main() {
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
 
-    if (DebugShowDegenerateRays && (tExit == tEnter)) {
-        FragData0 = vec4(1.0, 0.0, 0.0, 1.0);
-        FragData1 = vec4(1.0, 0.0, 0.0, 0.0);
-        FragDepth = vec4(1.0);
-        return;
-    }
-
     vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter;
     entryPoint = clamp(entryPoint + 0.5, 0.0, 1.0);
     vec3 exitPoint = CameraPositionModel + RayDirModel * tExit;
@@ -145,12 +134,15 @@ void main() {
         scaledData = (sampledData + ValueOffset) * intensityScale;
         // OpacityMultiplier controls the gain
         sampleAlpha = clamp(scaledData * OpacityMultiplier, 0.0, 1.0);
-        sampleColor = Color * scaledData; // TODO this or alpha - also gain
+        sampleColor = Color * scaledData * sampleAlpha;
 
         // Weighted blended OIT
         clipPosition = Projection * ModelView * vec4(position, 1.0);
         rayDepth  = (clipPosition.z / clipPosition.w) * 0.5 + 0.5;
         weight = computeOITWeight(sampleAlpha, rayDepth);
+        if (DebugShowDegenerateRays) {
+            weight = 1.0;
+        }
         accumulatedColor += vec4(sampleColor, sampleAlpha) * weight;
         revealage *= clamp(1.0 - sampleAlpha, 0.0, 1.0);
 
