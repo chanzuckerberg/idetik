@@ -8,7 +8,7 @@ import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { glMatrix, vec3 } from "gl-matrix";
 import { Camera } from "../objects/cameras/camera";
-import { ChannelProps, ChannelsEnabled } from "@/objects/textures/channel";
+import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 
 export type VolumeLayerProps = {
   source: ChunkSource;
