@@ -47,7 +47,7 @@ export class VolumeRenderable extends RenderableObject {
     return {
       VoxelScale: this.voxelScale,
       Color: color.rgb,
-      ValueOffset: contrastLimits[0],
+      ValueOffset: -contrastLimits[0],
       ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
       DebugShowChunkBoundaries: Number(this.wireframeEnabled),
     };
