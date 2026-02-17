@@ -36,7 +36,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private debugShowWireframes_ = false;
   public debugShowDegenerateRays = false;
   public relativeStepSize = 1.0;
-  public opacityMultiplier = 0.1;
+  public opacityMultiplier = 1.0;
   public earlyTerminationAlpha = 0.99;
 
   public get debugShowWireframes() {

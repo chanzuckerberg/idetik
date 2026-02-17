@@ -48,8 +48,8 @@ const idetik = new Idetik({
     {
       camera,
       cameraControls: new OrbitControls(camera, {
-        radius: 400,
-        target: vec3.fromValues(0, 0, -100), // Volume center,
+        radius: 100,
+        target: vec3.fromValues(40, 40, 10), // Volume center,
       }),
       layers: [volumeLayer],
     },
