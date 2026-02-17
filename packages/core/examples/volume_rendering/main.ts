@@ -23,6 +23,13 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
+  channelProps: [
+    {
+      visible: true,
+      color: [1, 1, 1] as [number, number, number],
+      contrastLimits: [0, 512] as [number, number],
+    },
+  ],
 });
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
@@ -81,7 +88,7 @@ volumeFolder
   .name("Opacity")
   .decimals(2);
 volumeFolder
-  .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
+  .add(volumeLayer, "earlyTerminationAlpha", 0.01, 1.0, 0.01)
   .name("Early termination threshold");
 
 const overlaysFolder = gui.addFolder("Debug");

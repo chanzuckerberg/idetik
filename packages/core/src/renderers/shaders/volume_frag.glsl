@@ -145,7 +145,7 @@ void main() {
         scaledData = (sampledData + ValueOffset) * intensityScale;
         // OpacityMultiplier controls the gain
         sampleAlpha = clamp(scaledData * OpacityMultiplier, 0.0, 1.0);
-        sampleColor = Color * sampleAlpha; // TODO this or alpha - also gain
+        sampleColor = Color * scaledData; // TODO this or alpha - also gain
 
         // Weighted blended OIT
         clipPosition = Projection * ModelView * vec4(position, 1.0);
