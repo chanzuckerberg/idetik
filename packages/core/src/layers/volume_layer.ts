@@ -63,10 +63,13 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  public setChannelProps(newProps: ChannelProps[]) {
-    this.channelProps_ = newProps;
+  public setChannelProps(channelProps: ChannelProps[]) {
+    this.channelProps_ = channelProps;
     this.currentChunks_.forEach((chunk) => {
-      chunk.setChannelProps(newProps);
+      chunk.setChannelProps(channelProps);
+    });
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
     });
   }
 
