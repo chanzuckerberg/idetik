@@ -47,6 +47,7 @@ test("handles equidistant objects maintaining stable order", () => {
 
   const objects = [obj1, obj2, obj3];
   sortFrontToBack(objects, camera);
+
   // All should be at the same distance, so order should be unchanged
   expect(objects[0]).toBe(obj1);
   expect(objects[1]).toBe(obj2);
@@ -56,7 +57,6 @@ test("handles equidistant objects maintaining stable order", () => {
 test("handles objects with very small distance differences", () => {
   const camera = new PerspectiveCamera();
 
-  // Create objects very close to each other
   const obj1 = new MockRenderableObject([1.0, 0, 0]);
   const obj2 = new MockRenderableObject([1.0001, 0, 0]);
   const obj3 = new MockRenderableObject([1.0002, 0, 0]);
@@ -96,6 +96,11 @@ test("handles objects in 3D space with camera not at origin", () => {
   const far = new MockRenderableObject([20, 20, 20]); // distance ≈ 17.32
 
   const objects = [far, near, mid];
+  const distances = objects.map((obj) => {
+    const objPos = obj.transform.translation;
+    return vec3.distance(camera.position, objPos);
+  });
+  console.log("Distances from camera:", distances);
   sortFrontToBack(objects, camera);
 
   expect(objects[0]).toBe(near);
@@ -113,7 +118,7 @@ test("handles objects with negative coordinates", () => {
   const objects = [obj3, obj1, obj2];
   sortFrontToBack(objects, camera);
 
-  expect(objects[0]).toBe(obj1); // distance 1
-  expect(objects[1]).toBe(obj2); // distance 5
-  expect(objects[2]).toBe(obj3); // distance 10
+  expect(objects[0]).toBe(obj1);
+  expect(objects[1]).toBe(obj2);
+  expect(objects[2]).toBe(obj3);
 });
