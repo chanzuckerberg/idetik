@@ -67,6 +67,9 @@ export class WebGLShaderProgram {
       case this.gl_.FLOAT_VEC3:
         this.gl_.uniform3fv(location, value as vec3);
         break;
+      case this.gl_.FLOAT_VEC4:
+        this.gl_.uniform4fv(location, value as Float32Array | number[]);
+        break;
       case this.gl_.FLOAT_MAT4:
         this.gl_.uniformMatrix4fv(location, false, value as mat4);
         break;
@@ -175,6 +178,7 @@ const SUPPORTED_UNIFORM_TYPES_ =
         WebGL2RenderingContext.INT,
         WebGL2RenderingContext.FLOAT_VEC2,
         WebGL2RenderingContext.FLOAT_VEC3,
+        WebGL2RenderingContext.FLOAT_VEC4,
         WebGL2RenderingContext.FLOAT_MAT4,
         WebGL2RenderingContext.SAMPLER_2D,
         WebGL2RenderingContext.SAMPLER_CUBE,

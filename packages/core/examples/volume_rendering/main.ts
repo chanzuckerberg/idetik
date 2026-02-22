@@ -4,7 +4,7 @@ import { createExplorationPolicy } from "@/core/image_source_policy";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
-const exampleType: "singleChannel" | "multiChannel" = "multiChannel";
+const exampleType: "singleChannel" | "multiChannel" = "singleChannel";
 
 const exampleSetupInfo = {
   singleChannel: {
@@ -22,9 +22,9 @@ const exampleSetupInfo = {
     url: "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/",
     channelProps: [
       {
-        visible: false,
+        visible: true,
         color: [1, 1, 1] as [number, number, number],
-        contrastLimits: [-1.5, 10.0] as [number, number],
+        contrastLimits: [-1.5, 20.0] as [number, number],
       },
       {
         visible: true,
@@ -103,9 +103,8 @@ const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
   .add(volumeLayer, "samplesPerUnit", 16, 512, 1)
   .name("Samples per unit");
-volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
 volumeFolder
-  .add(volumeLayer, "opacityMultiplier", 0.01, 1.0, 0.01)
+  .add(volumeLayer, "opacityMultiplier", 0.01, 10.0, 0.01)
   .name("Opacity scale");
 volumeFolder
   .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)

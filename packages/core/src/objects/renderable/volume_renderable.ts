@@ -14,23 +14,24 @@ import {
   validateChannels,
 } from "../textures/channel";
 import { Texture3D } from "../textures/texture_3d";
+import { vec3 } from "gl-matrix";
 
 export class VolumeRenderable extends RenderableObject {
+  public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
   private channels_: Required<Channel>[];
-  private channelStride_: number;
 
   constructor(
     texture: Texture3D | Texture3DArray,
+    textureIndex: number,
     channels: ChannelProps[] = []
   ) {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
-    this.setTexture(0, texture);
+    this.setTexture(textureIndex, texture);
     this.programName = textureToShader(texture);
     this.cullFaceMode = "front";
     this.depthTest = false;
     this.channels_ = validateChannels(texture, channels);
-    this.channelStride_ = texture.width * texture.height * texture.depth;
   }
 
   public setChannelProps(channels: ChannelProps[]) {
@@ -55,10 +56,10 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public override getUniforms(): Record<string, unknown> {
-    const visible: boolean[] = [];
-    const color: number[] = [];
-    const valueOffset: number[] = [];
-    const valueScale: number[] = [];
+    const visible: number[] = Array(4).fill(1);
+    const colors: number[] = Array(12).fill(1);
+    const valueOffset: number[] = Array(4).fill(0);
+    const valueScale: number[] = Array(4).fill(1);
 
     const texture = this.textures[0];
     if (!texture) {
@@ -69,34 +70,37 @@ export class VolumeRenderable extends RenderableObject {
     if (this.channels_.length === 0) {
       const defaultRange = textureDefaultValueRange(texture);
       return {
-        ImageSampler: 0,
-        "Visible[0]": [true],
-        "Color[0]": [1, 1, 1],
-        "ValueOffset[0]": [-defaultRange[0]],
-        "ValueScale[0]": [1 / (defaultRange[1] - defaultRange[0])],
+        Channel0Sampler: 0,
+        Visible: visible,
+        "Color[0]": colors,
+        ValueOffset: [-defaultRange[0], 0, 0, 0],
+        ValueScale: [1 / (defaultRange[1] - defaultRange[0]), 0, 0, 0],
         ChannelCount: 1,
-        DepthSlices: 0,
       };
     }
 
-    // Build arrays for all channels if provided
-    this.channels_.forEach((channel) => {
-      visible.push(channel.visible);
-      color.push(...channel.color.rgb);
-      valueOffset.push(-channel.contrastLimits[0]);
-      valueScale.push(
-        1 / (channel.contrastLimits[1] - channel.contrastLimits[0])
-      );
-    });
+    for (let i = 0; i < this.channels_.length; i++) {
+      visible[i] = Number(this.channels_[i].visible);
+      for (let j = 0; j < 3; j++) {
+        colors[i * 3 + j] = this.channels_[i].color.rgb[j];
+      }
+      valueOffset[i] = -this.channels_[i].contrastLimits[0];
+      valueScale[i] =
+        1 /
+        (this.channels_[i].contrastLimits[1] -
+          this.channels_[i].contrastLimits[0]);
+    }
 
     return {
-      ImageSampler: 0,
-      "Visible[0]": visible,
-      "Color[0]": color,
-      "ValueOffset[0]": valueOffset,
-      "ValueScale[0]": valueScale,
+      Channel0Sampler: 0,
+      Channel1Sampler: 1,
+      Channel2Sampler: 2,
+      Channel3Sampler: 3,
+      Visible: visible,
+      "Color[0]": colors,
+      ValueOffset: valueOffset,
+      ValueScale: valueScale,
       ChannelCount: this.channels_.length,
-      DepthSlices: this.channelStride_,
     };
   }
 }
