@@ -123,6 +123,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       const texture = pooled.textures[0] as Texture3D;
       texture.updateWithChunk(chunk);
       this.updateVolumeChunk(pooled, chunk);
+      if (this.channelProps_) {
+        pooled.setChannelProps(this.channelProps_);
+      }
       return pooled;
     }
 
