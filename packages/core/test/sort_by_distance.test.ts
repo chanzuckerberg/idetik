@@ -96,11 +96,6 @@ test("handles objects in 3D space with camera not at origin", () => {
   const far = new MockRenderableObject([20, 20, 20]); // distance ≈ 17.32
 
   const objects = [far, near, mid];
-  const distances = objects.map((obj) => {
-    const objPos = obj.transform.translation;
-    return vec3.distance(camera.position, objPos);
-  });
-  console.log("Distances from camera:", distances);
   sortFrontToBack(objects, camera);
 
   expect(objects[0]).toBe(near);
