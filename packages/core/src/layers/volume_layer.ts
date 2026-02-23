@@ -15,6 +15,8 @@ export type VolumeLayerProps = {
   policy: ImageSourcePolicy;
 };
 
+const INTERACTIVE_STEP_SIZE_SCALE = 2.0;
+
 export class VolumeLayer extends Layer {
   public readonly type = "VolumeLayer";
 
@@ -27,6 +29,8 @@ export class VolumeLayer extends Layer {
   private chunkStoreView_?: ChunkStoreView;
 
   private lastLoadedTime_: number | undefined = undefined;
+  private interactiveStepSizeScale_ = 1.0;
+
   // TODO: Make a debug config object to manage debug options
   private debugShowWireframes_ = false;
   public debugShowDegenerateRays = false;
@@ -181,6 +185,12 @@ export class VolumeLayer extends Layer {
       this.sliceCoords_,
       context.viewport
     );
+
+    const isCameraMoving = context.viewport.cameraControls?.isMoving ?? false;
+    this.interactiveStepSizeScale_ = isCameraMoving
+      ? INTERACTIVE_STEP_SIZE_SCALE
+      : 1.0;
+
     this.updateChunks();
   }
 
@@ -211,7 +221,7 @@ export class VolumeLayer extends Layer {
   public getUniforms(): Record<string, unknown> {
     return {
       DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
-      RelativeStepSize: this.relativeStepSize,
+      RelativeStepSize: this.relativeStepSize * this.interactiveStepSizeScale_,
       MaxIntensity: this.maxIntensity,
       OpacityMultiplier: this.opacityMultiplier,
       VolumeColor: this.color,

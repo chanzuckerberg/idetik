@@ -59,6 +59,17 @@ export class OrbitControls implements CameraControls {
     this.updateCamera();
   }
 
+  public get isMoving(): boolean {
+    return (
+      this.orbitVelocity_.phi !== 0 ||
+      this.orbitVelocity_.theta !== 0 ||
+      this.orbitVelocity_.radius !== 0 ||
+      this.panVelocity_[0] !== 0 ||
+      this.panVelocity_[1] !== 0 ||
+      this.panVelocity_[2] !== 0
+    );
+  }
+
   public onEvent(event: EventContext): void {
     switch (event.type) {
       case "pointerdown":

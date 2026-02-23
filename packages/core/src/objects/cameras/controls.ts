@@ -5,6 +5,7 @@ import { EventContext } from "../../core/event_dispatcher";
 const LEFT_MOUSE_BUTTON = 0;
 
 export interface CameraControls {
+  readonly isMoving: boolean;
   onUpdate(dt: number): void;
   onEvent(event: EventContext): void;
 }
@@ -16,6 +17,10 @@ export class PanZoomControls implements CameraControls {
 
   constructor(camera: OrthographicCamera) {
     this.camera_ = camera;
+  }
+
+  public get isMoving(): boolean {
+    return this.dragActive_;
   }
 
   public onEvent(event: EventContext): void {
