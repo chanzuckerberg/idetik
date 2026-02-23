@@ -27,6 +27,7 @@ uniform sampler3D Channel3Sampler;
 #endif
 
 uniform highp vec3 CameraPositionModel;
+uniform vec3 VoxelScale;
 in highp vec3 PositionModel;
 
 // The bounding box in model space is normalized to -0.5 to 0.5
@@ -35,7 +36,7 @@ vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
 uniform bool DebugShowDegenerateRays;
-uniform float SamplesPerUnit;
+uniform float RelativeStepSize;
 uniform float OpacityMultiplier;
 uniform float EarlyTerminationAlpha;
 
@@ -95,16 +96,28 @@ void main() {
 
     // Step 2 - calculate the number of samples based on the length of the ray
     vec3 rayWithinModel = exitPoint - entryPoint;
-    float rayLength = length(rayWithinModel);
-    int numSamples = max(int(ceil(rayLength * SamplesPerUnit)), 1);
+
+    // Get texture dimensions and convert ray to voxel space
+    vec3 textureSize = vec3(textureSize(Channel0Sampler, 0));
+    vec3 rayInVoxels = rayWithinModel * textureSize;
+    float rayLengthInVoxels = length(rayInVoxels);
+    int numSamples = max(int(ceil(rayLengthInVoxels / RelativeStepSize)), 1);
     vec3 stepIncrement = rayWithinModel / float(numSamples);
+
+    // Calculate actual world-space step size for opacity correction.
+    // This accounts for anisotropic voxels so brightness stays constant regardless
+    // of viewing angle. For anisotropic voxels (e.g., 1x1x3 microns), rays along
+    // different axes traverse different amounts of material per step.
+    vec3 stepInWorldSpace = stepIncrement * textureSize * VoxelScale;
+    float worldSpaceStepSize = length(stepInWorldSpace);
+    float intensityScale = OpacityMultiplier * worldSpaceStepSize;
 
     // Step 3 - perform the ray marching and compositing in front to back order
     vec3 position = entryPoint;
     vec4 accumulatedColor = vec4(0.0);
 
     vec3 sampleColor = vec3(0.0);
-    float totalAlpha = 0.0;
+    float sampleAlpha, blendedSampleAlpha;
     for (int i = 0; i < numSamples && accumulatedColor.a < EarlyTerminationAlpha; i++) {
 
         vec4 sampleValues = sampleChannels(position);
@@ -113,8 +126,8 @@ void main() {
         for (uint ch = 0u; ch < ChannelCount; ch++) {
             if (!bool(Visible[ch]) || sampleValues[ch] == 0.0) continue;
             sampleColor = Color[ch];
-            totalAlpha = clamp(sampleValues[ch] * OpacityMultiplier * OpacityMultiplier, 0.0, 1.0);
-            float blendedSampleAlpha = (1.0 - accumulatedColor.a) * totalAlpha;
+            sampleAlpha = clamp(sampleValues[ch] * intensityScale, 0.0, 1.0);
+            blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;
 
             // Front-to-back compositing
             accumulatedColor.a += blendedSampleAlpha;
@@ -125,4 +138,5 @@ void main() {
     }
 
     fragColor = accumulatedColor;
+    //fragColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

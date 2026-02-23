@@ -23,12 +23,19 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
+  channelProps: [
+    {
+      visible: true,
+      color: [1, 1, 1] as [number, number, number],
+      contrastLimits: [0, 512] as [number, number],
+    },
+  ],
 });
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
-      camera: camera,
+      camera,
       cameraControls: new OrbitControls(camera, {
         radius: 750,
         target: vec3.fromValues(550, 500, 278), // Volume center,
@@ -66,7 +73,6 @@ const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
   .add(volumeLayer, "relativeStepSize", 0.25, 3.0, 0.1)
   .name("Relative step size (voxels)");
-volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
 
 // maps 0-1 slider to [0.001, 10.0] logarithmically
 const opacityControls = {
@@ -82,7 +88,7 @@ volumeFolder
   .name("Opacity")
   .decimals(2);
 volumeFolder
-  .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
+  .add(volumeLayer, "earlyTerminationAlpha", 0.01, 1.0, 0.01)
   .name("Early termination threshold");
 
 const overlaysFolder = gui.addFolder("Debug");

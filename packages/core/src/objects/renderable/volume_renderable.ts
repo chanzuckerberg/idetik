@@ -76,6 +76,7 @@ export class VolumeRenderable extends RenderableObject {
         ValueOffset: [-defaultRange[0], 0, 0, 0],
         ValueScale: [1 / (defaultRange[1] - defaultRange[0]), 0, 0, 0],
         ChannelCount: 1,
+        VoxelScale: this.voxelScale,
       };
     }
 
@@ -101,6 +102,7 @@ export class VolumeRenderable extends RenderableObject {
       ValueOffset: valueOffset,
       ValueScale: valueScale,
       ChannelCount: this.channels_.length,
+      VoxelScale: this.voxelScale,
     };
   }
 }

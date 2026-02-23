@@ -11,5 +11,4 @@ out highp vec3 PositionModel;
 void main() {
     PositionModel = inPosition;
     gl_Position = Projection * ModelView * vec4(inPosition, 1.0);
-    TexCoords = inUV;
 }
