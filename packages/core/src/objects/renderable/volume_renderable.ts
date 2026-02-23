@@ -51,18 +51,24 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public override getUniforms(): Record<string, unknown> {
-    const visible: number[] = Array(4).fill(1);
-    const colors: number[] = Array(12).fill(1);
-    const valueOffset: number[] = Array(4).fill(0);
-    const valueScale: number[] = Array(4).fill(1);
+    // One index by channel
+    const visible = [1, 1, 1, 1];
+    // prettier-ignore
+    const colors = [
+      1, 1, 1,
+      1, 1, 1,
+      1, 1, 1,
+      1, 1, 1,
+    ]
 
     const texture = this.textures[0];
     if (!texture) {
       throw new Error("No texture set");
     }
+    const nbChannels = this.channels_.length;
 
     // If no channels provided, assume single channel with default settings
-    if (this.channels_.length === 0) {
+    if (nbChannels === 0) {
       const defaultRange = textureDefaultValueRange(texture);
       return {
         Channel0Sampler: 0,
@@ -75,7 +81,10 @@ export class VolumeRenderable extends RenderableObject {
       };
     }
 
-    for (let i = 0; i < this.channels_.length; i++) {
+    const valueOffset = [0, 0, 0, 0];
+    const valueScale = [1, 1, 1, 1];
+
+    for (let i = 0; i < nbChannels; i++) {
       visible[i] = Number(this.channels_[i].visible);
       for (let j = 0; j < 3; j++) {
         colors[i * 3 + j] = this.channels_[i].color.rgb[j];
@@ -96,7 +105,7 @@ export class VolumeRenderable extends RenderableObject {
       "Color[0]": colors,
       ValueOffset: valueOffset,
       ValueScale: valueScale,
-      ChannelCount: this.channels_.length,
+      ChannelCount: nbChannels,
       VoxelScale: this.voxelScale,
     };
   }
