@@ -14,23 +14,6 @@ const sliceCoords = {
   c: undefined, // Show all channels
 };
 const controls = { lod: 2 };
-const channelProps = [
-  {
-    visible: false,
-    color: [1, 1, 1] as [number, number, number],
-    contrastLimits: [-1.5, 10.0] as [number, number],
-  },
-  {
-    visible: true,
-    color: [0, 0, 1] as [number, number, number],
-    contrastLimits: [108, 353] as [number, number],
-  },
-  {
-    visible: true,
-    color: [0, 1, 0] as [number, number, number],
-    contrastLimits: [144, 3825] as [number, number],
-  },
-];
 
 const camera = new PerspectiveCamera();
 const policy = createPlaybackPolicy({
@@ -40,7 +23,23 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
-  channelProps,
+  channelProps: [
+    {
+      visible: false,
+      color: [1, 1, 1],
+      contrastLimits: [-1.5, 10.0],
+    },
+    {
+      visible: true,
+      color: [0, 0, 1],
+      contrastLimits: [108, 353],
+    },
+    {
+      visible: true,
+      color: [0, 1, 0],
+      contrastLimits: [144, 3825],
+    },
+  ],
 });
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
