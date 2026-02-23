@@ -67,10 +67,6 @@ export class ChunkStoreView {
     return this.store_.getTimeIndex(sliceCoords);
   }
 
-  public getNumChannels(): number {
-    return this.store_.getNumChannels();
-  }
-
   public get lodCount(): number {
     return this.store_.lodCount;
   }

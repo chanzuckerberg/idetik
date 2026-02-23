@@ -1,12 +1,7 @@
 import type { Shader } from "../../renderers/shaders";
 import { RenderableObject } from "../../core/renderable_object";
 import { BoxGeometry } from "../geometry/box_geometry";
-import {
-  textureDefaultValueRange,
-  Texture,
-  TextureDataType,
-} from "../textures/texture";
-import type { Texture3DArray } from "../textures/texture_3d_array";
+import { textureDefaultValueRange, TextureDataType } from "../textures/texture";
 import {
   Channel,
   ChannelProps,
@@ -21,14 +16,14 @@ export class VolumeRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
 
   constructor(
-    texture: Texture3D | Texture3DArray,
+    texture: Texture3D,
     textureIndex: number,
     channels: ChannelProps[] = []
   ) {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
     this.setTexture(textureIndex, texture);
-    this.programName = textureToShader(texture);
+    this.programName = dataTypeToVolumeShader(texture.dataType);
     this.cullFaceMode = "front";
     this.depthTest = false;
     this.channels_ = validateChannels(texture, channels);
@@ -107,15 +102,6 @@ export class VolumeRenderable extends RenderableObject {
   }
 }
 
-function textureToShader(texture: Texture) {
-  if (texture.type === "Texture3D") {
-    return dataTypeToVolumeShader(texture.dataType);
-  } else if (texture.type === "Texture3DArray") {
-    return dataTypeToArrayVolumeShader(texture.dataType);
-  }
-  throw new Error(`Unsupported image texture type: ${texture.type}`);
-}
-
 function dataTypeToVolumeShader(dataType: TextureDataType): Shader {
   switch (dataType) {
     case "byte":
@@ -128,20 +114,5 @@ function dataTypeToVolumeShader(dataType: TextureDataType): Shader {
       return "uintVolume";
     case "float":
       return "floatVolume";
-  }
-}
-
-function dataTypeToArrayVolumeShader(dataType: TextureDataType): Shader {
-  switch (dataType) {
-    case "byte":
-    case "int":
-    case "short":
-      return "intVolumeArray";
-    case "unsigned_short":
-    case "unsigned_byte":
-    case "unsigned_int":
-      return "uintVolumeArray";
-    case "float":
-      return "floatVolumeArray";
   }
 }

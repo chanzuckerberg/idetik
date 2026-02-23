@@ -9,25 +9,21 @@ import wireframeVertexShader from "./wireframe_vert.glsl";
 import wireframeFragmentShader from "./wireframe_frag.glsl";
 import volumeVertexShader from "./volume_vert.glsl";
 import volumeFragmentShader from "./volume_frag.glsl";
-import volumeArrayFragmentShader from "./volume_array_frag.glsl";
 import labelImage from "./label_image_frag.glsl";
 
 export type Shader =
   | "floatScalarImage"
   | "floatScalarImageArray"
   | "floatVolume"
-  | "floatVolumeArray"
   | "intScalarImage"
   | "intScalarImageArray"
   | "intVolume"
-  | "intVolumeArray"
   | "labelImage"
   | "points"
   | "projectedLine"
   | "uintScalarImage"
   | "uintScalarImageArray"
   | "uintVolume"
-  | "uintVolumeArray"
   | "wireframe";
 
 type ShaderCode = {
@@ -86,10 +82,6 @@ export const shaderCode: Record<Shader, ShaderCode> = {
     vertex: volumeVertexShader,
     fragment: volumeFragmentShader,
   },
-  floatVolumeArray: {
-    vertex: volumeVertexShader,
-    fragment: volumeArrayFragmentShader,
-  },
   intVolume: {
     vertex: volumeVertexShader,
     fragment: volumeFragmentShader,
@@ -98,16 +90,6 @@ export const shaderCode: Record<Shader, ShaderCode> = {
   uintVolume: {
     vertex: volumeVertexShader,
     fragment: volumeFragmentShader,
-    fragmentDefines: new Map([["TEXTURE_DATA_TYPE_UINT", "1"]]),
-  },
-  intVolumeArray: {
-    vertex: volumeVertexShader,
-    fragment: volumeArrayFragmentShader,
-    fragmentDefines: new Map([["TEXTURE_DATA_TYPE_INT", "1"]]),
-  },
-  uintVolumeArray: {
-    vertex: volumeVertexShader,
-    fragment: volumeArrayFragmentShader,
     fragmentDefines: new Map([["TEXTURE_DATA_TYPE_UINT", "1"]]),
   },
 };
