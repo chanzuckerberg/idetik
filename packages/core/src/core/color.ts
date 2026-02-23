@@ -1,11 +1,6 @@
 import { vec3, vec4 } from "gl-matrix";
 
-export type ColorLike =
-  | Color
-  | vec3
-  | vec4
-  | [number, number, number]
-  | [number, number, number, number];
+export type ColorLike = Color | vec3 | vec4;
 
 export class Color {
   public static readonly RED: Color = new Color(1.0, 0.0, 0.0);
@@ -69,7 +64,6 @@ export class Color {
   }
 
   public static from(colorLike: ColorLike): Color {
-    // TODO colorLike as vec3 or vec4 is not handled yet here
     if (colorLike instanceof Color) {
       return colorLike;
     }
