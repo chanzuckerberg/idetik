@@ -28,6 +28,9 @@ export class TransparencyBuffer {
   }
 
   resize(width: number, height: number) {
+    if (width == 0 || height == 0) {
+      return;
+    }
     this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, this.framebuffer_);
 
     const texture0 = new ImageTexture2D(this.gl_, width, height);
