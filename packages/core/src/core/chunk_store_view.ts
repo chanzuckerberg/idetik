@@ -347,8 +347,10 @@ export class ChunkStoreView {
       const isFallbackLOD = chunk.lod === fallbackLOD;
       if (!isCurrentLOD && !isFallbackLOD) continue;
 
-      const isInBounds = this.isChunkWithinBounds(chunk, viewBounds3D);
       const isChannelInSlice = this.isChunkChannelInSlice(chunk, sliceCoords);
+      if (!isChannelInSlice) continue;
+
+      const isInBounds = this.isChunkWithinBounds(chunk, viewBounds3D);
 
       const prefetch =
         !isInBounds &&
