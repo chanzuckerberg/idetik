@@ -32,8 +32,8 @@ uniform vec3 Color;
 uniform float ValueOffset;
 uniform float ValueScale;
 uniform vec3 VoxelScale;
-uniform bool DebugShowDegenerateRays;
 uniform bool DebugShowChunkBoundaries;
+uniform bool DebugSetOITWeightOne;
 
 float computeOITWeight(float alpha, float depth) {
     float d = (1.0 - depth);
@@ -128,21 +128,19 @@ void main() {
         // Sample the volume data and convert to color and opacity
         sampledData = vec4(texture(ImageSampler, position)).r;
         scaledData = (sampledData + ValueOffset) * intensityScale;
-        // OpacityMultiplier controls the gain
         sampleAlpha = clamp(scaledData * OpacityMultiplier, 0.0, 1.0);
-        sampleColor = Color * scaledData * sampleAlpha;
+        sampleColor = Color * sampleAlpha;
 
         // Weighted blended OIT
         clipPosition = Projection * ModelView * vec4(position, 1.0);
         rayDepth  = (clipPosition.z / clipPosition.w) * 0.5 + 0.5;
         weight = computeOITWeight(sampleAlpha, rayDepth);
-        if (DebugShowDegenerateRays) {
+        if (DebugSetOITWeightOne) {
             weight = 1.0;
         }
         accumulatedColor += vec4(sampleColor, sampleAlpha) * weight;
         revealage *= clamp(1.0 - sampleAlpha, 0.0, 1.0);
 
-        // Advance the ray
         position += stepIncrement;
     }
 

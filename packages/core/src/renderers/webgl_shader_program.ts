@@ -103,10 +103,6 @@ export class WebGLShaderProgram {
       this.program_,
       this.gl_.ACTIVE_UNIFORMS
     );
-    Logger.debug(
-      "WebGLShaderProgram",
-      `Found ${numUniforms} active uniforms in shader program.`
-    );
     for (let i = 0; i < numUniforms; i++) {
       const info = this.gl_.getActiveUniform(this.program_, i);
       if (info) {

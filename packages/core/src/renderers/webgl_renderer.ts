@@ -28,7 +28,6 @@ import { Frustum } from "../math/frustum";
 // This is a mirror transform, which also flips triangle winding.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
-// TODO determine correct location for class
 class CompositePass {
   private readonly gl_: WebGL2RenderingContext;
   private readonly vao_: WebGLVertexArrayObject;
@@ -177,13 +176,11 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
-    // TODO this is a bit awkward with visibility but unsure what else
-    // to do for now. We could do it on the shader but that is less efficient
-    // for now we still pop stale textures if the object is not visible
+    // Dispose stale textures even for non visible objects
     object.popStaleTextures().forEach((texture) => {
       this.textures_.disposeTexture(texture);
     });
-    if ("visible" in object && !object.visible) {
+    if (!object.visible) {
       return;
     }
 

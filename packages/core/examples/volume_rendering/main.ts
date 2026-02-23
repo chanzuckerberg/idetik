@@ -96,5 +96,5 @@ overlaysFolder
   .add(volumeLayer, "debugShowWireframes")
   .name("Show tile wireframes");
 overlaysFolder
-  .add(volumeLayer, "debugShowDegenerateRays")
-  .name("Show degenerate rays (length 0)");
+  .add(volumeLayer, "DebugSetOITWeightOne")
+  .name("Set OIT weight to 1 (no depth)");

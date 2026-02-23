@@ -13,7 +13,7 @@ const sliceCoords = {
   z: undefined,
   c: undefined, // Show all channels
 };
-const controls = { lod: 0 };
+const controls = { lod: 2 };
 const channelProps = [
   {
     visible: false,
@@ -107,5 +107,5 @@ overlaysFolder
   .add(volumeLayer, "debugShowWireframes")
   .name("Show tile wireframes");
 overlaysFolder
-  .add(volumeLayer, "debugShowDegenerateRays")
-  .name("Show degenerate rays (length 0)");
+  .add(volumeLayer, "DebugSetOITWeightOne")
+  .name("Set OIT weight to 1 (no depth)");

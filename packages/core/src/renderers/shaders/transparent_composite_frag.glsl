@@ -12,5 +12,5 @@ void main() {
     vec4 tex1 = texture(Sampler1, TexCoords);
     vec4 accum = vec4(tex0.rgb, tex1.r);
     float revealage = tex0.a;
-    fragColor = clamp(vec4(accum.rgb / clamp(accum.a, 1e-4, 3e4), revealage), 0.0, 1.0);
+    fragColor = vec4(accum.rgb / clamp(accum.a, 1e-4, 5e4), revealage);
 }

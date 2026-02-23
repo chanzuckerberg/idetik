@@ -78,8 +78,8 @@ export class TransparencyBuffer {
   }
 
   end() {
-    // In theory this should reset the render state touched in begin
-    // TODO implement that by looking into the state class for webgl
+    // TODO: does this need to reset the state touched?
+    // or is it fine because on the next render loop that state will be reconfigured anyway?
     this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, null);
   }
 

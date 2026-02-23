@@ -33,6 +33,10 @@ export abstract class RenderableObject extends Node {
     return stale;
   }
 
+  public get visible() {
+    return true;
+  }
+
   public get geometry() {
     return this.geometry_;
   }
