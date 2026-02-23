@@ -4,9 +4,7 @@
 precision highp float;
 
 layout (location = 0) out vec4 FragData0;
-// TODO will become a float later
-layout (location = 1) out vec4 FragData1;
-layout (location = 2) out vec4 FragDepth;
+layout (location = 1) out float FragData1;
 
 #if defined TEXTURE_DATA_TYPE_INT
 uniform mediump isampler3D ImageSampler;
@@ -61,8 +59,7 @@ vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3
 void main() {
     // Initialize outputs to defaults for early exit cases
     FragData0 = vec4(0.0, 0.0, 0.0, 0.0);
-    FragData1 = vec4(0.0, 0.0, 0.0, 0.0);
-    FragDepth = vec4(1.0);
+    FragData1 = 0.0;
 
     if (DebugShowChunkBoundaries) {
         vec3 distToMin = abs(PositionModel - boundingboxMin);
@@ -74,8 +71,7 @@ void main() {
         bool onEdge = numDimsOnBoundary >= 2;
         if (onEdge) {
             FragData0 = vec4(1.0, 1.0, 1.0, 0.4);
-            FragData1 = vec4(1.0, 0.0, 0.0, 0.0);
-            FragDepth = vec4(1.0);
+            FragData1 = 1.0;
         }
         return;
     }
@@ -151,6 +147,5 @@ void main() {
     }
 
     FragData0 = vec4(accumulatedColor.rgb, 1.0 - revealage);
-    FragData1 = vec4(accumulatedColor.a, 0.0, 0.0, 0.0);
-    FragDepth = vec4(1.0);
+    FragData1 = accumulatedColor.a;
 }

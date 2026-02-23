@@ -1,21 +1,16 @@
 #version 300 es
 
 precision highp float;
-// TODO change these names, they reflect the per target blend mode
-// version, not the single blend mode version
-uniform sampler2D AccumSampler;
-uniform sampler2D RevealSampler;
-uniform sampler2D DepthSampler;
+uniform sampler2D Sampler0;
+uniform sampler2D Sampler1;
 
 in vec2 TexCoords;
 layout (location = 0) out vec4 fragColor;
 
 void main() {
-    vec4 tex0 = texture(AccumSampler, TexCoords);
-    vec4 tex1 = texture(RevealSampler, TexCoords);
-    // TODO consider these names
+    vec4 tex0 = texture(Sampler0, TexCoords);
+    vec4 tex1 = texture(Sampler1, TexCoords);
     vec4 accum = vec4(tex0.rgb, tex1.r);
     float revealage = tex0.a;
-    float val = texture(DepthSampler, TexCoords).r;
-    fragColor = clamp(vec4(accum.rgb / clamp(accum.a * val, 1e-4, 3e4), revealage), 0.0, 1.0);
+    fragColor = clamp(vec4(accum.rgb / clamp(accum.a, 1e-4, 3e4), revealage), 0.0, 1.0);
 }

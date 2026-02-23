@@ -3,8 +3,9 @@ import { WebGLShaderProgram } from "./webgl_shader_program";
 import { WebGLShaderPrograms } from "./webgl_shader_programs";
 import { Logger } from "../utilities/logger";
 
-import { TransparencyBuffer, WebGLBuffers } from "./webgl_buffers";
+import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
+import { TransparencyBuffer } from "./webgl_framebuffers";
 
 import { Layer } from "../core/layer";
 import { WebGLState } from "./WebGLState";
@@ -38,19 +39,7 @@ class CompositePass {
     this.gl_.bindVertexArray(this.vao_);
   }
   present(buffer: TransparencyBuffer) {
-    const { textures, depthTexture } = buffer;
-    // TODO likely cleaner if the textures is an object with named properties
-    this.gl_.activeTexture(this.gl_.TEXTURE0);
-    textures[0].bind();
-
-    this.gl_.activeTexture(this.gl_.TEXTURE1);
-    textures[1].bind();
-
-    if (depthTexture) {
-      this.gl_.activeTexture(this.gl_.TEXTURE2);
-      depthTexture.bind();
-    }
-
+    buffer.bindTextures();
     this.gl_.blendFunc(this.gl_.ONE_MINUS_SRC_ALPHA, this.gl_.SRC_ALPHA);
     this.gl_.drawArrays(this.gl_.TRIANGLES, 0, 3);
   }
@@ -145,9 +134,8 @@ export class WebGLRenderer extends Renderer {
     }
     this.transparencyBuffer_.end();
     const program = this.programs_.use("transparentComposite");
-    program.setUniform("AccumSampler", 0); // Use texture unit 0
-    program.setUniform("RevealSampler", 1); // Use texture unit 1
-    program.setUniform("DepthSampler", 2); // Use texture unit 2
+    program.setUniform("Sampler0", 0);
+    program.setUniform("Sampler1", 1);
     this.compositePass_.present(this.transparencyBuffer_);
     this.transparencyBuffer_.clear();
     this.state_.setDepthMask(true);

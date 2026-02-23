@@ -237,7 +237,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
       const cam2aDistance = vec3.squaredDistance(cameraPos, centerA);
       const cam2bDistance = vec3.squaredDistance(cameraPos, centerB);
-      const diff = cam2bDistance - cam2aDistance;
+      const diff = cam2aDistance - cam2bDistance;
 
       if (Math.abs(diff) < glMatrix.EPSILON) {
         return 0;

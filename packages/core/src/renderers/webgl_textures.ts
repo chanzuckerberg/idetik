@@ -363,3 +363,82 @@ export class WebGLTextures {
     return texture.type === "Texture3D";
   }
 }
+
+type SupportedImageType = "rgb" | "r";
+export class ImageTexture2D {
+  public texture: WebGLTexture;
+
+  private readonly gl_: WebGL2RenderingContext;
+  private width_: number;
+  private height_: number;
+  private mode_: SupportedImageType = "rgb";
+
+  constructor(
+    gl: WebGL2RenderingContext,
+    width: number,
+    height: number,
+    mode: SupportedImageType = "rgb"
+  ) {
+    this.gl_ = gl;
+    this.width_ = width;
+    this.height_ = height;
+    this.mode_ = mode;
+    this.texture = this.gl_.createTexture();
+    this.setupTexture();
+  }
+
+  private setupTexture() {
+    this.bind();
+    this.gl_.texParameteri(
+      this.gl_.TEXTURE_2D,
+      this.gl_.TEXTURE_WRAP_S,
+      this.gl_.CLAMP_TO_EDGE
+    );
+    this.gl_.texParameteri(
+      this.gl_.TEXTURE_2D,
+      this.gl_.TEXTURE_WRAP_T,
+      this.gl_.CLAMP_TO_EDGE
+    );
+    this.gl_.texParameteri(
+      this.gl_.TEXTURE_2D,
+      this.gl_.TEXTURE_MIN_FILTER,
+      this.gl_.NEAREST
+    );
+    this.gl_.texParameteri(
+      this.gl_.TEXTURE_2D,
+      this.gl_.TEXTURE_MAG_FILTER,
+      this.gl_.NEAREST
+    );
+    if (this.mode_ === "rgb") {
+      this.gl_.texImage2D(
+        this.gl_.TEXTURE_2D,
+        0,
+        this.gl_.RGBA16F,
+        this.width_,
+        this.height_,
+        0,
+        this.gl_.RGBA,
+        this.gl_.HALF_FLOAT,
+        null
+      );
+    }
+    if (this.mode_ === "r") {
+      this.gl_.texImage2D(
+        this.gl_.TEXTURE_2D,
+        0,
+        this.gl_.R16F,
+        this.width_,
+        this.height_,
+        0,
+        this.gl_.RED,
+        this.gl_.HALF_FLOAT,
+        null
+      );
+    }
+    this.gl_.bindTexture(this.gl_.TEXTURE_2D, null);
+  }
+
+  bind() {
+    this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture);
+  }
+}

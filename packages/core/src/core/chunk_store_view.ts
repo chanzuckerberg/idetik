@@ -200,7 +200,7 @@ export class ChunkStoreView {
     if (currentTimeChunks === undefined) {
       Logger.warn(
         "ChunkStoreView",
-        `No chunks found for time index ${currentTimeIndex}. Check if the store is initialized and the time coordinate is correct.`
+        `No chunks found for time index ${currentTimeIndex}. Likely the time coordinate is out of bounds.`
       );
       this.chunkViewStates_.clear();
       return;
