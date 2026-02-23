@@ -6,14 +6,31 @@ import GUI from "lil-gui";
 import { vec3 } from "gl-matrix";
 
 const url =
-  "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
+  "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/";
 const source = OmeZarrImageSource.fromHttp({ url });
 const sliceCoords = {
-  t: 400,
+  t: 0,
   z: undefined,
-  c: 0,
+  c: undefined, // Show all channels
 };
 const controls = { lod: 2 };
+const channelProps = [
+  {
+    visible: false,
+    color: [1, 1, 1] as [number, number, number],
+    contrastLimits: [-1.5, 10.0] as [number, number],
+  },
+  {
+    visible: true,
+    color: [0, 0, 1] as [number, number, number],
+    contrastLimits: [108, 353] as [number, number],
+  },
+  {
+    visible: true,
+    color: [0, 1, 0] as [number, number, number],
+    contrastLimits: [144, 3825] as [number, number],
+  },
+];
 
 const camera = new PerspectiveCamera();
 const policy = createPlaybackPolicy({
@@ -23,23 +40,16 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
-  channelProps: [
-    {
-      visible: true,
-      color: [1, 1, 1] as [number, number, number],
-      contrastLimits: [0, 512] as [number, number],
-    },
-  ],
+  channelProps,
 });
-volumeLayer.opacityMultiplier = 0.1;
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
       camera,
       cameraControls: new OrbitControls(camera, {
-        radius: 750,
-        target: vec3.fromValues(550, 500, 278), // Volume center,
+        radius: 100,
+        target: vec3.fromValues(40, 40, 10), // Volume center,
       }),
       layers: [volumeLayer],
     },

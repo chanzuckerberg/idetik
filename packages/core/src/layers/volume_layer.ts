@@ -41,7 +41,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   public color = vec3.fromValues(1.0, 1.0, 1.0);
   public relativeStepSize = 1.0;
   public maxIntensity = 255.0;
-  public opacityMultiplier = 0.1;
+  public opacityMultiplier = 1.0;
   public earlyTerminationAlpha = 0.99;
 
   public get debugShowWireframes() {
@@ -237,8 +237,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       throw new Error(
         "RenderContext is required for the VolumeLayer update as camera information is used to reorder the chunks."
       );
-    } else {
-      this.reorderObjects(context.viewport.camera);
     }
 
     this.chunkStoreView_.updateChunksForVolume(
@@ -246,6 +244,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       context.viewport
     );
     this.updateChunks();
+    this.reorderObjects(context.viewport.camera);
   }
 
   public reorderObjects(camera: Camera) {
