@@ -126,22 +126,6 @@ export class ChunkStore {
     return view;
   }
 
-  public removeView(view: ChunkStoreView): void {
-    const index = this.views_.indexOf(view);
-    if (index === -1) {
-      throw new Error(
-        "Cannot remove view: view not found in store's view list"
-      );
-    }
-
-    const affectedChunks = Array.from(view.chunkViewStates.keys());
-    this.views_.splice(index, 1);
-
-    for (const chunk of affectedChunks) {
-      this.aggregateChunkViewStates(chunk);
-    }
-  }
-
   public get views(): ReadonlyArray<ChunkStoreView> {
     return this.views_;
   }
@@ -162,7 +146,17 @@ export class ChunkStore {
       this.aggregateChunkViewStates(chunk);
     }
 
+    this.removeDisposedViews();
+
     return affectedChunks;
+  }
+
+  private removeDisposedViews(): void {
+    for (let i = this.views_.length - 1; i >= 0; i--) {
+      if (this.views_[i].isDisposed) {
+        this.views_.splice(i, 1);
+      }
+    }
   }
 
   private aggregateChunkViewStates(chunk: Chunk): void {

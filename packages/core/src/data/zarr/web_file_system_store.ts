@@ -1,6 +1,6 @@
 // This file is copied from https://github.com/manzt/zarrita.js/pull/161
 
-import type { AbsolutePath, AsyncReadable } from "@zarrita/storage";
+import type { AbsolutePath, AsyncReadable } from "zarrita";
 
 /**
  * Get a file handle to a file in a directory.
@@ -35,7 +35,6 @@ async function resolveFileHandleForPath(
  * @example
  * ```js
  * import * as zarr from "zarrita";
- * import WebFileSystemStore from "@zarrita/storage/web-fs";
  *
  * let directoryHandle = await globalThis.showDirectoryPicker();
  * let store = new WebFileSystemStore(directoryHandle);

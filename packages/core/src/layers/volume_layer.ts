@@ -39,9 +39,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private debugShowWireframes_ = false;
   public debugShowDegenerateRays = false;
   public color = vec3.fromValues(1.0, 1.0, 1.0);
-  public samplesPerUnit = 128.0;
+  public relativeStepSize = 1.0;
   public maxIntensity = 255.0;
-  public opacityMultiplier = 0.2;
+  public opacityMultiplier = 0.1;
   public earlyTerminationAlpha = 0.99;
 
   public get debugShowWireframes() {
@@ -241,7 +241,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       this.reorderObjects(context.viewport.camera);
     }
 
-    this.chunkStoreView_.updateChunkStatesForVolume(this.sliceCoords_);
+    this.chunkStoreView_.updateChunksForVolume(
+      this.sliceCoords_,
+      context.viewport
+    );
     this.updateChunks();
   }
 
@@ -273,7 +276,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   public getUniforms(): Record<string, unknown> {
     return {
       DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
-      SamplesPerUnit: this.samplesPerUnit,
+      RelativeStepSize: this.relativeStepSize,
       OpacityMultiplier: this.opacityMultiplier,
       EarlyTerminationAlpha: this.earlyTerminationAlpha,
     };

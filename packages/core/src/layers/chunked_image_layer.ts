@@ -92,7 +92,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
   public update(context?: RenderContext) {
     if (!context || !this.chunkStoreView_) return;
 
-    this.chunkStoreView_.updateChunkStates(this.sliceCoords_, context.viewport);
+    this.chunkStoreView_.updateChunksForImage(
+      this.sliceCoords_,
+      context.viewport
+    );
 
     this.updateChunks();
     this.resliceIfZChanged();
@@ -104,7 +107,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
     if (
       this.visibleChunks_.size > 0 &&
-      !this.chunkStoreView_.allVisibleLowestLODLoaded(this.sliceCoords_) &&
+      !this.chunkStoreView_.allVisibleFallbackLODLoaded(this.sliceCoords_) &&
       !this.isPresentationStale()
     ) {
       return;

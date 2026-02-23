@@ -1,5 +1,6 @@
 #version 300 es
 #pragma inject_defines
+
 precision highp float;
 
 layout (location = 0) out vec4 fragColor;
@@ -27,7 +28,6 @@ uniform sampler3D Channel3Sampler;
 
 uniform highp vec3 CameraPositionModel;
 in highp vec3 PositionModel;
-in vec2 TexCoords;
 
 // The bounding box in model space is normalized to -0.5 to 0.5
 vec3 boundingboxMin = vec3(-0.50);

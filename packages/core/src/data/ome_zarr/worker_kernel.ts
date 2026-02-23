@@ -1,7 +1,6 @@
 /// <reference lib="webworker" />
 
 import * as zarr from "zarrita";
-import { Readable } from "@zarrita/storage";
 import { openArrayFromParams, ZarrArrayParams } from "../zarr/open";
 
 type ZarrWorkerMessageType = "getChunk" | "cancel";
@@ -34,7 +33,7 @@ export type ZarrWorkerResponse = {
     }
 );
 
-const arrayCache = new Map<string, zarr.Array<zarr.DataType, Readable>>();
+const arrayCache = new Map<string, zarr.Array<zarr.DataType, zarr.Readable>>();
 const ARRAY_CACHE_LIMIT = 100;
 const activeRequests = new Map<number, AbortController>();
 
@@ -117,7 +116,7 @@ async function handleGetChunkMessage(
 // this is a simple LRU cache relying on Map's insertion order to track usage
 async function getOrOpenArray(
   params: ZarrArrayParams
-): Promise<zarr.Array<zarr.DataType, Readable>> {
+): Promise<zarr.Array<zarr.DataType, zarr.Readable>> {
   const cacheKey = getArrayCacheKey(params);
   let array = arrayCache.get(cacheKey);
   if (!array) {
