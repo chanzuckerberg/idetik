@@ -37,7 +37,7 @@ uniform bool DebugSetOITWeightOne;
 
 float computeOITWeight(float alpha, float depth) {
     float d = (1.0 - depth);
-    return alpha * max(1e-2, 3e5 * d);
+    return alpha * max(1e-2, 3e3 * d * d * d);
 }
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {

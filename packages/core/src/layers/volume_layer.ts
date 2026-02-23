@@ -34,7 +34,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private lastLoadedTime_: number | undefined = undefined;
   // TODO: Make a debug config object to manage debug options
   private debugShowWireframes_ = false;
-  public DebugSetOITWeightOne = false;
+  public debugSetOITWeightOne = false;
   public relativeStepSize = 1.0;
   public opacityMultiplier = 1.0;
   public earlyTerminationAlpha = 0.99;
@@ -249,7 +249,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public getUniforms(): Record<string, unknown> {
     return {
-      DebugSetOITWeightOne: Number(this.DebugSetOITWeightOne),
+      DebugSetOITWeightOne: Number(this.debugSetOITWeightOne),
       RelativeStepSize: this.relativeStepSize,
       OpacityMultiplier: this.opacityMultiplier,
       EarlyTerminationAlpha: this.earlyTerminationAlpha,

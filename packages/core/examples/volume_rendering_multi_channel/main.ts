@@ -107,5 +107,5 @@ overlaysFolder
   .add(volumeLayer, "debugShowWireframes")
   .name("Show tile wireframes");
 overlaysFolder
-  .add(volumeLayer, "DebugSetOITWeightOne")
+  .add(volumeLayer, "debugSetOITWeightOne")
   .name("Set OIT weight to 1 (no depth)");
