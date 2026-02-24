@@ -4,17 +4,27 @@ import { BoxGeometry } from "../geometry/box_geometry";
 import type { TextureDataType } from "../textures/texture";
 import type { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
+import {
+  Channel,
+  ChannelProps,
+  validateChannel,
+  validateChannels,
+} from "../textures/channel";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
 
-  constructor(texture: Texture3D) {
+  private channels_: Required<Channel>[];
+
+  constructor(texture: Texture3D, channels: ChannelProps[] = []) {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
     this.cullFaceMode = "front";
     this.depthTest = false;
+    // TODO handle visibility property of channels
+    this.channels_ = validateChannels(texture, channels);
   }
 
   public get type() {
@@ -22,9 +32,31 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public override getUniforms(): Record<string, unknown> {
+    const channel = this.channels_[0] ?? validateChannel(this.textures[0], {});
+    const { color, contrastLimits } = channel;
     return {
       VoxelScale: this.voxelScale,
+      Color: color.rgb,
+      ValueOffset: -contrastLimits[0],
+      ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
     };
+  }
+
+  public setChannelProps(channels: ChannelProps[]) {
+    this.channels_ = validateChannels(this.textures[0], channels);
+  }
+
+  public setChannelProperty<K extends keyof ChannelProps>(
+    channelIndex: number,
+    property: K,
+    value: Required<ChannelProps>[K]
+  ) {
+    const newChannel = validateChannel(this.textures[0], {
+      ...this.channels_[channelIndex],
+      [property]: value,
+    });
+
+    this.channels_[channelIndex] = newChannel;
   }
 }
 
