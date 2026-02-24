@@ -22,11 +22,12 @@ vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
 uniform bool DebugShowDegenerateRays;
-uniform float MaxIntensity;
 uniform float OpacityMultiplier;
 uniform float EarlyTerminationAlpha;
-uniform vec3 VolumeColor;
 uniform float RelativeStepSize;
+uniform float ValueScale;
+uniform float ValueOffset;
+uniform vec3 Color;
 uniform vec3 VoxelScale;
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
@@ -93,18 +94,17 @@ void main() {
     // Scale intensity to opacity.
     // OpacityMultiplier and MaxIntensity control the transfer function.
     // worldSpaceStepSize corrects for anisotropic voxels.
-    // TODO: Replace with invlerp-based transfer function to add contrast limits (MinIntensity/MaxIntensity window)
-    float intensityScale = (OpacityMultiplier / MaxIntensity) * worldSpaceStepSize;
+    float intensityScale = OpacityMultiplier * worldSpaceStepSize * ValueScale;
 
     // March until we reach the number of samples or accumulate enough opacity
     for (int i = 0; i < numSamples && accumulatedColor.a < EarlyTerminationAlpha; i++) {
         sampledData = vec4(texture(ImageSampler, position)).r;
-        sampleAlpha = sampledData * intensityScale;
+        sampleAlpha = (sampledData + ValueOffset) * intensityScale;
         blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;
 
         // Front-to-back compositing
         accumulatedColor.a += blendedSampleAlpha;
-        accumulatedColor.rgb += VolumeColor * blendedSampleAlpha;
+        accumulatedColor.rgb += Color * blendedSampleAlpha;
         position += stepIncrement;
     }
 

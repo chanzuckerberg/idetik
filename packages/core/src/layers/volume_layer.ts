@@ -9,31 +9,38 @@ import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
 import { Camera } from "../objects/cameras/camera";
 import { sortFrontToBack } from "../math/sort_by_distance";
+import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 
 export type VolumeLayerProps = {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
+  channelProps?: ChannelProps[];
 };
 
-export class VolumeLayer extends Layer {
+const INTERACTIVE_STEP_SIZE_SCALE = 2.0;
+
+export class VolumeLayer extends Layer implements ChannelsEnabled {
   public readonly type = "VolumeLayer";
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
   private readonly currentChunks_: Map<Chunk, VolumeRenderable> = new Map();
   private readonly pool_ = new RenderablePool<VolumeRenderable>();
+  private readonly initialChannelProps_?: ChannelProps[];
+  private readonly channelChangeCallbacks_: Array<() => void> = [];
 
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
+  private channelProps_?: ChannelProps[];
 
   private lastLoadedTime_: number | undefined = undefined;
+  private interactiveStepSizeScale_ = 1.0;
+
   // TODO: Make a debug config object to manage debug options
   private debugShowWireframes_ = false;
   public debugShowDegenerateRays = false;
-  public color = vec3.fromValues(1.0, 1.0, 1.0);
   public relativeStepSize = 1.0;
-  public maxIntensity = 255.0;
   public opacityMultiplier = 0.1;
   public earlyTerminationAlpha = 0.99;
 
@@ -61,17 +68,54 @@ export class VolumeLayer extends Layer {
     }
   }
 
+  public setChannelProps(channelProps: ChannelProps[]) {
+    this.channelProps_ = channelProps;
+    this.currentChunks_.forEach((chunk) => {
+      chunk.setChannelProps(channelProps);
+    });
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
+    });
+  }
+
+  public get channelProps(): ChannelProps[] | undefined {
+    return this.channelProps_;
+  }
+
+  public resetChannelProps(): void {
+    if (this.initialChannelProps_ !== undefined) {
+      this.setChannelProps(this.initialChannelProps_);
+    }
+  }
+
+  public addChannelChangeCallback(callback: () => void): void {
+    this.channelChangeCallbacks_.push(callback);
+  }
+
+  public removeChannelChangeCallback(callback: () => void): void {
+    const index = this.channelChangeCallbacks_.indexOf(callback);
+    if (index === undefined) {
+      throw new Error(`Callback to remove could not be found: ${callback}`);
+    }
+    this.channelChangeCallbacks_.splice(index, 1);
+  }
+
   private createVolume(chunk: Chunk) {
-    const volume = new VolumeRenderable(Texture3D.createWithChunk(chunk));
+    const volume = new VolumeRenderable(
+      Texture3D.createWithChunk(chunk),
+      this.channelProps_
+    );
     this.updateVolumeChunk(volume, chunk);
     return volume;
   }
 
-  constructor({ source, sliceCoords, policy }: VolumeLayerProps) {
+  constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {
     super({ transparent: true, blendMode: "premultiplied" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.sourcePolicy_ = policy;
+    this.initialChannelProps_ = channelProps;
+    this.channelProps_ = channelProps;
     this.setState("initialized");
   }
 
@@ -84,6 +128,9 @@ export class VolumeLayer extends Layer {
       const texture = pooled.textures[0] as Texture3D;
       texture.updateWithChunk(chunk);
       this.updateVolumeChunk(pooled, chunk);
+      if (this.channelProps_) {
+        pooled.setChannelProps(this.channelProps_);
+      }
       return pooled;
     }
 
@@ -180,6 +227,12 @@ export class VolumeLayer extends Layer {
       this.sliceCoords_,
       context.viewport
     );
+
+    const isCameraMoving = context.viewport.cameraControls?.isMoving ?? false;
+    this.interactiveStepSizeScale_ = isCameraMoving
+      ? INTERACTIVE_STEP_SIZE_SCALE
+      : 1.0;
+
     this.updateChunks();
     this.reorderObjects(context.viewport.camera);
   }
@@ -191,10 +244,8 @@ export class VolumeLayer extends Layer {
   public getUniforms(): Record<string, unknown> {
     return {
       DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
-      RelativeStepSize: this.relativeStepSize,
-      MaxIntensity: this.maxIntensity,
+      RelativeStepSize: this.relativeStepSize * this.interactiveStepSizeScale_,
       OpacityMultiplier: this.opacityMultiplier,
-      VolumeColor: this.color,
       EarlyTerminationAlpha: this.earlyTerminationAlpha,
     };
   }

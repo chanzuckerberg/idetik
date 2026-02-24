@@ -23,6 +23,13 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
+  channelProps: [
+    {
+      visible: true,
+      color: [1, 1, 1] as [number, number, number],
+      contrastLimits: [0, 512] as [number, number],
+    },
+  ],
 });
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
@@ -66,7 +73,6 @@ const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
   .add(volumeLayer, "relativeStepSize", 0.25, 3.0, 0.1)
   .name("Relative step size (voxels)");
-volumeFolder.add(volumeLayer, "maxIntensity", 1, 255, 1).name("Max intensity");
 
 // maps 0-1 slider to [0.001, 10.0] logarithmically
 const opacityControls = {
