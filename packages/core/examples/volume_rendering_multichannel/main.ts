@@ -1,7 +1,6 @@
 import { Idetik, VolumeLayer, PerspectiveCamera, OmeZarrImageSource } from "@";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { createExplorationPolicy } from "@/core/image_source_policy";
-import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 import { vec3 } from "gl-matrix";
 
@@ -60,15 +59,6 @@ idetik.start();
 
 // Add GUI controls to manipulate rendering
 const gui = new GUI({ width: 500 });
-addDimensionSlider({
-  gui,
-  sliceCoords,
-  dimensionName: "t",
-  minValue: 0,
-  maxValue: 800,
-  stepValue: 1.0,
-  playback: {},
-});
 gui
   .add(controls, "lod", 0, 2, 1)
   .name("Level of Detail (LOD)")
