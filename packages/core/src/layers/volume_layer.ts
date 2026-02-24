@@ -17,6 +17,8 @@ export type VolumeLayerProps = {
   channelProps?: ChannelProps[];
 };
 
+const INTERACTIVE_STEP_SIZE_SCALE = 2.0;
+
 export class VolumeLayer extends Layer implements ChannelsEnabled {
   public readonly type = "VolumeLayer";
 
@@ -32,6 +34,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private channelProps_?: ChannelProps[];
 
   private lastLoadedTime_: number | undefined = undefined;
+  private interactiveStepSizeScale_ = 1.0;
+
   // TODO: Make a debug config object to manage debug options
   private debugShowWireframes_ = false;
   public debugShowDegenerateRays = false;
@@ -224,6 +228,12 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       this.sliceCoords_,
       context.viewport
     );
+
+    const isCameraMoving = context.viewport.cameraControls?.isMoving ?? false;
+    this.interactiveStepSizeScale_ = isCameraMoving
+      ? INTERACTIVE_STEP_SIZE_SCALE
+      : 1.0;
+
     this.updateChunks();
   }
 
@@ -254,7 +264,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   public getUniforms(): Record<string, unknown> {
     return {
       DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
-      RelativeStepSize: this.relativeStepSize,
+      RelativeStepSize: this.relativeStepSize * this.interactiveStepSizeScale_,
       OpacityMultiplier: this.opacityMultiplier,
       EarlyTerminationAlpha: this.earlyTerminationAlpha,
     };

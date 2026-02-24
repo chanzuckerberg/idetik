@@ -71,9 +71,13 @@ We use [semantic-release](https://github.com/semantic-release/semantic-release) 
 
 #### Pre-requirements
 
-- Repository secrets must be configured (already done for this repo):
-  - `NPM_TOKEN`: npm token with publish access to `@idetik` scope
-- You must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM (for manual releases only)
+- For GH Actions:
+    - Set up "trusted publishing" for the repo/package pair on npm (uses OIDC to authenticate when publishing)
+    - Use `actions/create-github-app-token` to generate a GH token so `semantic-release` can comment
+      on the PR after release
+- For manual releases:
+    - Set `NPM_TOKEN` env var with an npm token with publish access to `@idetik` scope
+    - You must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM (for manual releases only)
 
 ### Manual Release Process (Fallback)
 
