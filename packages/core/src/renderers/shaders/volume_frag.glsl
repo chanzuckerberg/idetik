@@ -132,6 +132,8 @@ void main() {
             accumulatedColor.a += blendedSampleAlpha;
             accumulatedColor.rgb += sampleColor * blendedSampleAlpha;
         }
+
+        position += stepIncrement;
     }
 
     fragColor = accumulatedColor;
