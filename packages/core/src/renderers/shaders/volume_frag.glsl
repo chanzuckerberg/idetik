@@ -85,9 +85,7 @@ void main() {
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
 
-    if (DebugShowDegenerateRays && (tExit < 0.0 || tEnter > tExit)) {
-	// Do we still have degenerated rays? Clamping in the findBoxIntersectionsAlongRay
-        // prevents that
+    if (DebugShowDegenerateRays && (tEnter == tExit)) {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
