@@ -1,6 +1,6 @@
 import { Idetik, VolumeLayer, PerspectiveCamera, OmeZarrImageSource } from "@";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
-import { createPlaybackPolicy } from "@/core/image_source_policy";
+import { createExplorationPolicy } from "@/core/image_source_policy";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 import { vec3 } from "gl-matrix";
@@ -16,7 +16,7 @@ const sliceCoords = {
 const controls = { lod: 2 };
 
 const camera = new PerspectiveCamera();
-const policy = createPlaybackPolicy({
+const policy = createExplorationPolicy({
   lod: { min: controls.lod, max: controls.lod },
 });
 const volumeLayer = new VolumeLayer({
@@ -74,7 +74,7 @@ gui
   .name("Level of Detail (LOD)")
   .onChange(
     (lod: number) =>
-      (volumeLayer.sourcePolicy = createPlaybackPolicy({
+      (volumeLayer.sourcePolicy = createExplorationPolicy({
         lod: { min: lod, max: lod },
       }))
   );
