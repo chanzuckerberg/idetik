@@ -1,5 +1,5 @@
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { Layer, LayerOptions, RenderContext } from "../core/layer";
+import { Layer, RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
@@ -10,7 +10,7 @@ import { glMatrix, vec3 } from "gl-matrix";
 import { Camera } from "../objects/cameras/camera";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 
-export type VolumeLayerProps = LayerOptions & {
+export type VolumeLayerProps = {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
