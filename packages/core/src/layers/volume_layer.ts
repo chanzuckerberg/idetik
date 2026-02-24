@@ -126,10 +126,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     // Add texture as new channel to existing volume if match
     for (const [existingChunk, volume] of this.currentChunks_) {
-      if (
-        uniqueKeyForChunkExcludingChannel(existingChunk) ===
-        uniqueKeyForChunkExcludingChannel(chunk)
-      ) {
+      if (poolKeyForChunk(existingChunk) === poolKeyForChunk(chunk)) {
         volume.setTexture(chunk.chunkIndex.c, Texture3D.createWithChunk(chunk));
         return volume;
       }
@@ -190,7 +187,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     }
     const seenKeys = new Set<string>();
     this.currentChunks_.forEach((volume, chunk) => {
-      const key = uniqueKeyForChunkExcludingChannel(chunk);
+      const key = poolKeyForChunk(chunk);
       if (!seenKeys.has(key)) {
         this.addObject(volume);
         seenKeys.add(key);
@@ -282,19 +279,11 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 }
 
-function uniqueKeyForChunkExcludingChannel(chunk: Chunk) {
+function poolKeyForChunk(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `locationx${chunk.chunkIndex.x}y${chunk.chunkIndex.y}z${chunk.chunkIndex.z}t${chunk.chunkIndex.t}`,
-    `align${chunk.rowAlignmentBytes}`,
-  ].join(":");
-}
-
-export function poolKeyForChunk(chunk: Chunk) {
-  return [
-    `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }
