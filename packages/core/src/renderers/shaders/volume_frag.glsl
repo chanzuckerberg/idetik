@@ -122,7 +122,6 @@ void main() {
 
         vec4 sampleValues = sampleChannels(position);
         // Combine color per channel
-        // TODO should there be one output per ray instead?
         for (uint ch = 0u; ch < ChannelCount; ch++) {
             if (!bool(Visible[ch]) || sampleValues[ch] == 0.0) continue;
             sampleColor = Color[ch];

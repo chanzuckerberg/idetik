@@ -89,7 +89,7 @@ volumeFolder
   .name("Opacity")
   .decimals(2);
 volumeFolder
-  .add(volumeLayer, "earlyTerminationAlpha", 0.01, 1.0, 0.01)
+  .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
   .name("Early termination threshold");
 
 const overlaysFolder = gui.addFolder("Debug");

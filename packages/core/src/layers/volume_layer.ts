@@ -253,7 +253,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   public reorderObjects(camera: Camera) {
-    // TODO: We should be able to skip this sorting if the camera hasn't moved since the last frame, but that requires tracking the camera position and/or orientation.
     const cameraPos = camera.position;
     const centerA = vec3.create();
     const centerB = vec3.create();
@@ -287,7 +286,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 }
 
-function poolKeyForChunk(chunk: Chunk) {
+export function poolKeyForChunk(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
