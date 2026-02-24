@@ -286,7 +286,7 @@ function uniqueKeyForChunkExcludingChannel(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
-    `locationx${chunk.chunkIndex.x}y${chunk.chunkIndex.y}z${chunk.chunkIndex.z}t${chunk.chunkIndex.t}`,
+    `locationx${chunk.chunkIndex.x}y${chunk.chunkIndex.y}z${chunk.chunkIndex.z}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }

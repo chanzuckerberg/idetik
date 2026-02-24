@@ -74,6 +74,9 @@ export class ChunkStoreView {
   public getChunksToRender(sliceCoords: SliceCoordinates): Chunk[] {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
+    if (currentTimeChunks === undefined) {
+      return [];
+    }
     const currentLODChunks = currentTimeChunks.filter(
       (chunk) =>
         chunk.lod === this.currentLOD_ &&
@@ -129,6 +132,10 @@ export class ChunkStoreView {
 
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
+
+    if (currentTimeChunks === undefined) {
+      return;
+    }
 
     if (currentTimeChunks.length === 0) {
       Logger.warn(
@@ -197,6 +204,10 @@ export class ChunkStoreView {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
 
+    if (currentTimeChunks === undefined) {
+      return;
+    }
+
     if (currentTimeChunks.length === 0) {
       Logger.warn(
         "ChunkStoreView",
@@ -250,10 +261,10 @@ export class ChunkStoreView {
     const fallbackLOD = this.fallbackLOD();
     const visibleChunks = this.store_
       .getChunksAtTime(timeIndex)
-      .filter((c) => c.visible && c.lod === fallbackLOD);
+      ?.filter((c) => c.visible && c.lod === fallbackLOD);
     // Return false if there are no visible chunks (empty array .every() returns true)
     return (
-      visibleChunks.length > 0 &&
+      visibleChunks?.length > 0 &&
       visibleChunks.every((c) => c.state === "loaded")
     );
   }
@@ -339,6 +350,9 @@ export class ChunkStoreView {
     const paddedBounds = this.getPaddedBounds(viewBounds3D);
 
     const currentTimeChunks = this.store_.getChunksAtTime(timeIndex);
+    if (currentTimeChunks === undefined) {
+      return;
+    }
     const fallbackLOD = this.fallbackLOD();
 
     for (const chunk of currentTimeChunks) {
@@ -391,7 +405,11 @@ export class ChunkStoreView {
     const priority = this.policy_.priorityMap["prefetchTime"];
 
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
-      for (const chunk of this.store_.getChunksAtTime(t)) {
+      const currentTimeChunks = this.store_.getChunksAtTime(t);
+      if (currentTimeChunks === undefined) {
+        return;
+      }
+      for (const chunk of currentTimeChunks) {
         if (chunk.lod !== fallbackLOD) continue;
         if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
         if (!this.isChunkWithinBounds(chunk, viewBounds3D)) continue;
@@ -429,7 +447,11 @@ export class ChunkStoreView {
     const priority = this.policy_.priorityMap["prefetchTime"];
 
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
-      for (const chunk of this.store_.getChunksAtTime(t)) {
+      const currentTimeChunks = this.store_.getChunksAtTime(t);
+      if (currentTimeChunks === undefined) {
+        return;
+      }
+      for (const chunk of currentTimeChunks) {
         if (chunk.lod !== fallbackLOD) continue;
         if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
 
