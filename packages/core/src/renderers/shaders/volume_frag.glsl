@@ -1,6 +1,5 @@
 #version 300 es
 #pragma inject_defines
-
 precision highp float;
 
 layout (location = 0) out vec4 fragColor;
@@ -134,6 +133,7 @@ void main() {
             accumulatedColor.a += blendedSampleAlpha;
             accumulatedColor.rgb += sampleColor * blendedSampleAlpha;
         }
+    }
 
     fragColor = accumulatedColor;
 }
