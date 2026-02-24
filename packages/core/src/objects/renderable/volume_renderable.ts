@@ -29,23 +29,6 @@ export class VolumeRenderable extends RenderableObject {
     this.channels_ = validateChannels(texture, channels);
   }
 
-  public setChannelProps(channels: ChannelProps[]) {
-    this.channels_ = validateChannels(this.textures[0], channels);
-  }
-
-  public setChannelProperty<K extends keyof ChannelProps>(
-    channelIndex: number,
-    property: K,
-    value: Required<ChannelProps>[K]
-  ) {
-    const newChannel = validateChannel(this.textures[0], {
-      ...this.channels_[channelIndex],
-      [property]: value,
-    });
-
-    this.channels_[channelIndex] = newChannel;
-  }
-
   public get type() {
     return "VolumeRenderable";
   }
@@ -65,10 +48,10 @@ export class VolumeRenderable extends RenderableObject {
     if (!texture) {
       throw new Error("No texture set");
     }
-    const nbChannels = this.channels_.length;
+    const numChannels = this.channels_.length;
 
     // If no channels provided, assume single channel with default settings
-    if (nbChannels === 0) {
+    if (numChannels === 0) {
       const defaultRange = textureDefaultValueRange(texture);
       return {
         Channel0Sampler: 0,
@@ -84,7 +67,7 @@ export class VolumeRenderable extends RenderableObject {
     const valueOffset = [0, 0, 0, 0];
     const valueScale = [1, 1, 1, 1];
 
-    for (let i = 0; i < nbChannels; i++) {
+    for (let i = 0; i < numChannels; i++) {
       visible[i] = Number(this.channels_[i].visible);
       for (let j = 0; j < 3; j++) {
         colors[i * 3 + j] = this.channels_[i].color.rgb[j];
@@ -105,9 +88,26 @@ export class VolumeRenderable extends RenderableObject {
       "Color[0]": colors,
       ValueOffset: valueOffset,
       ValueScale: valueScale,
-      ChannelCount: nbChannels,
+      ChannelCount: numChannels,
       VoxelScale: this.voxelScale,
     };
+  }
+
+  public setChannelProps(channels: ChannelProps[]) {
+    this.channels_ = validateChannels(this.textures[0], channels);
+  }
+
+  public setChannelProperty<K extends keyof ChannelProps>(
+    channelIndex: number,
+    property: K,
+    value: Required<ChannelProps>[K]
+  ) {
+    const newChannel = validateChannel(this.textures[0], {
+      ...this.channels_[channelIndex],
+      [property]: value,
+    });
+
+    this.channels_[channelIndex] = newChannel;
   }
 }
 
