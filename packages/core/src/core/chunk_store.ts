@@ -89,7 +89,7 @@ export class ChunkStore {
   }
 
   public getChunksAtTime(timeIndex: number): Chunk[] {
-    return this.chunks_?.[timeIndex];
+    return this.chunks_[timeIndex];
   }
 
   public getTimeIndex(sliceCoords: SliceCoordinates): number {
