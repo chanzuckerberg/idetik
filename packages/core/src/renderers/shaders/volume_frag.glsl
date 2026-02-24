@@ -57,6 +57,8 @@ vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3
 
     float tEnter = max(max(tMin.x, tMin.y), tMin.z);
     float tExit = min(min(tMax.x, tMax.y), tMax.z);
+    tEnter = max(0.0, tEnter);
+    tExit = max(tEnter, tExit);
 
     return vec2(tEnter, tExit);
 }
@@ -84,10 +86,11 @@ void main() {
     float tExit = rayIntersections.y;
 
     if (DebugShowDegenerateRays && (tExit < 0.0 || tEnter > tExit)) {
+	// Do we still have degenerated rays? Clamping in the findBoxIntersectionsAlongRay
+        // prevents that
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
-    tExit = max(tEnter, tExit);
 
     vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter;
     entryPoint = clamp(entryPoint + 0.5, 0.0, 1.0);
