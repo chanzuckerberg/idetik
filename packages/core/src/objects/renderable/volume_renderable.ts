@@ -10,7 +10,6 @@ import {
 } from "../textures/channel";
 import { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
-import { Logger } from "@/utilities/logger";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
