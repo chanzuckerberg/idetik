@@ -100,7 +100,7 @@ addDimensionSlider({
   sliceCoords: sharedTime,
   dimensionName: "t",
   minValue: 0,
-  maxValue: 800,
+  maxValue: 790,
   stepValue: 1,
   playback: {
     maxRateHz: 30,
