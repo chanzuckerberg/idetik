@@ -1,7 +1,7 @@
 import type { Shader } from "../../renderers/shaders";
 import { RenderableObject } from "../../core/renderable_object";
 import { BoxGeometry } from "../geometry/box_geometry";
-import { textureDefaultValueRange, TextureDataType } from "../textures/texture";
+import { TextureDataType } from "../textures/texture";
 import {
   Channel,
   ChannelProps,
@@ -10,6 +10,7 @@ import {
 } from "../textures/channel";
 import { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
+import { Logger } from "@/utilities/logger";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
@@ -34,7 +35,11 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public override getUniforms(): Record<string, unknown> {
-    // One index by channel
+    const texture = this.textures[0];
+    if (!texture) {
+      throw new Error("No texture set");
+    }
+    // One index per channel
     const visible = [1, 1, 1, 1];
     // prettier-ignore
     const colors = [
@@ -42,41 +47,27 @@ export class VolumeRenderable extends RenderableObject {
       1, 1, 1,
       1, 1, 1,
       1, 1, 1,
-    ]
-
-    const texture = this.textures[0];
-    if (!texture) {
-      throw new Error("No texture set");
-    }
-    const numChannels = this.channels_.length;
-
-    // If no channels provided, assume single channel with default settings
-    if (numChannels === 0) {
-      const defaultRange = textureDefaultValueRange(texture);
-      return {
-        Channel0Sampler: 0,
-        Visible: visible,
-        "Color[0]": colors,
-        ValueOffset: [-defaultRange[0], 0, 0, 0],
-        ValueScale: [1 / (defaultRange[1] - defaultRange[0]), 0, 0, 0],
-        ChannelCount: 1,
-        VoxelScale: this.voxelScale,
-      };
-    }
-
+    ] // Up to 4 channels, RGB color for each
     const valueOffset = [0, 0, 0, 0];
     const valueScale = [1, 1, 1, 1];
 
+    const numChannels = this.textures.length;
     for (let i = 0; i < numChannels; i++) {
-      visible[i] = Number(this.channels_[i].visible);
+      const channel = validateChannel(
+        texture,
+        this.channels_[i] || {
+          visible: undefined,
+          color: undefined,
+          contrastLimits: undefined,
+        }
+      );
+      visible[i] = Number(channel.visible);
       for (let j = 0; j < 3; j++) {
-        colors[i * 3 + j] = this.channels_[i].color.rgb[j];
+        colors[i * 3 + j] = channel.color.rgb[j];
       }
-      valueOffset[i] = -this.channels_[i].contrastLimits[0];
+      valueOffset[i] = -channel.contrastLimits[0];
       valueScale[i] =
-        1 /
-        (this.channels_[i].contrastLimits[1] -
-          this.channels_[i].contrastLimits[0]);
+        1 / (channel.contrastLimits[1] - channel.contrastLimits[0]);
     }
 
     return {
