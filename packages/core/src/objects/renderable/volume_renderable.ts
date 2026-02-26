@@ -52,14 +52,7 @@ export class VolumeRenderable extends RenderableObject {
 
     const numChannels = this.textures.length;
     for (let i = 0; i < numChannels; i++) {
-      const channel = validateChannel(
-        texture,
-        this.channels_[i] || {
-          visible: undefined,
-          color: undefined,
-          contrastLimits: undefined,
-        }
-      );
+      const channel = validateChannel(texture, this.channels_[i] || {});
       visible[i] = Number(channel.visible);
       for (let j = 0; j < 3; j++) {
         colors[i * 3 + j] = channel.color.rgb[j];
