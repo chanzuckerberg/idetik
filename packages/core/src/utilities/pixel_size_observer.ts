@@ -3,14 +3,14 @@ import { Logger } from "./logger";
 // Observes changes to the pixel size of HTML elements, including changes due to
 // window/device pixel ratio changes.
 export class PixelSizeObserver {
-  private elements_: ReadonlyArray<HTMLElement>;
+  private elements_: HTMLElement[];
   private resizeObserver_?: ResizeObserver;
   private mediaQuery_?: MediaQueryList;
   private onMediaQueryChange_?: () => void;
   private onChange_: () => void;
 
   constructor(elements: ReadonlyArray<HTMLElement> = [], onChange: () => void) {
-    this.elements_ = elements;
+    this.elements_ = [...elements];
     this.onChange_ = onChange;
   }
 
@@ -61,6 +61,29 @@ export class PixelSizeObserver {
     this.resizeObserver_?.disconnect();
     if (this.mediaQuery_ && this.onMediaQueryChange_) {
       this.mediaQuery_.removeEventListener("change", this.onMediaQueryChange_);
+    }
+  }
+
+  public observe(element: HTMLElement) {
+    if (this.elements_.includes(element)) {
+      Logger.warn("PixelSizeObserver", "Element already being observed");
+      return;
+    }
+    this.elements_.push(element);
+    if (this.resizeObserver_) {
+      this.resizeObserver_.observe(element);
+    }
+  }
+
+  public unobserve(element: HTMLElement) {
+    const index = this.elements_.indexOf(element);
+    if (index === -1) {
+      Logger.warn("PixelSizeObserver", "Element not being observed");
+      return;
+    }
+    this.elements_.splice(index, 1);
+    if (this.resizeObserver_) {
+      this.resizeObserver_.unobserve(element);
     }
   }
 }

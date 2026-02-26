@@ -4,6 +4,7 @@ export { WebGLRenderer } from "./renderers/webgl_renderer";
 export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
 export { PanZoomControls } from "./objects/cameras/controls";
+export { OrbitControls } from "./objects/cameras/orbit_controls";
 export type { CameraControls } from "./objects/cameras/controls";
 
 export { Layer } from "./core/layer";
@@ -11,7 +12,11 @@ export type { LayerState } from "./core/layer";
 export { LayerManager } from "./core/layer_manager";
 export type { EventContext } from "./core/event_dispatcher";
 
-export { Viewport, parseViewportConfigs } from "./core/viewport";
+export {
+  Viewport,
+  parseViewportConfigs,
+  validateNewViewport,
+} from "./core/viewport";
 export type { ViewportConfig } from "./core/viewport";
 
 export { AxesLayer } from "./layers/axes_layer";
