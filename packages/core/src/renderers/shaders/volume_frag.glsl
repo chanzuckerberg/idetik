@@ -120,7 +120,7 @@ void main() {
     // Scale intensity to opacity.
     // ValueScale is the
     // worldSpaceStepSize corrects for anisotropic voxels.
-    float intensityScale = OpacityMultiplier * worldSpaceStepSize * ValueScale;
+    float intensityScale = worldSpaceStepSize * ValueScale;
 
     // March until we reach the number of samples or accumulate enough opacity
     for (int i = 0; i < numSamples && revealage > (1.0 - EarlyTerminationAlpha); i++) {
