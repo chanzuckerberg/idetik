@@ -17,6 +17,8 @@ export type VolumeLayerProps = {
   channelProps?: ChannelProps[];
 };
 
+const INTERACTIVE_STEP_SIZE_SCALE = 2.0;
+
 export class VolumeLayer extends Layer implements ChannelsEnabled {
   public readonly type = "VolumeLayer";
 
@@ -32,11 +34,13 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private channelProps_?: ChannelProps[];
 
   private lastLoadedTime_: number | undefined = undefined;
+  private interactiveStepSizeScale_ = 1.0;
+
   // TODO: Make a debug config object to manage debug options
   private debugShowWireframes_ = false;
   public debugSetOITWeightOne = false;
   public relativeStepSize = 1.0;
-  public opacityMultiplier = 1.0;
+  public opacityMultiplier = 0.5;
   public earlyTerminationAlpha = 0.99;
 
   public get debugShowWireframes() {
@@ -63,15 +67,17 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  public setChannelProps(newProps: ChannelProps[]) {
-    this.channelProps_ = newProps;
+  public setChannelProps(channelProps: ChannelProps[]) {
+    this.channelProps_ = channelProps;
     this.currentChunks_.forEach((chunk) => {
-      chunk.setChannelProps(newProps);
+      chunk.setChannelProps(channelProps);
+    });
+    this.channelChangeCallbacks_.forEach((callback) => {
+      callback();
     });
   }
 
   public get channelProps(): ChannelProps[] | undefined {
-    // TODO: should this return Channel[] instead of ChannelProps[]?
     return this.channelProps_;
   }
 
@@ -122,6 +128,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       const texture = pooled.textures[0] as Texture3D;
       texture.updateWithChunk(chunk);
       this.updateVolumeChunk(pooled, chunk);
+      if (this.channelProps_) {
+        pooled.setChannelProps(this.channelProps_);
+      }
       return pooled;
     }
 
@@ -220,6 +229,12 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       this.sliceCoords_,
       context.viewport
     );
+
+    const isCameraMoving = context.viewport.cameraControls?.isMoving ?? false;
+    this.interactiveStepSizeScale_ = isCameraMoving
+      ? INTERACTIVE_STEP_SIZE_SCALE
+      : 1.0;
+
     this.updateChunks();
   }
 
@@ -250,7 +265,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   public getUniforms(): Record<string, unknown> {
     return {
       DebugSetOITWeightOne: Number(this.debugSetOITWeightOne),
-      RelativeStepSize: this.relativeStepSize,
+      RelativeStepSize: this.relativeStepSize * this.interactiveStepSizeScale_,
       OpacityMultiplier: this.opacityMultiplier,
       EarlyTerminationAlpha: this.earlyTerminationAlpha,
     };

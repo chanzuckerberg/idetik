@@ -24,13 +24,12 @@ vec3 boundingboxMin = vec3(-0.50);
 vec3 boundingboxMax = vec3(0.50);
 
 // Volume rendering parameters
-uniform float MaxIntensity;
 uniform float OpacityMultiplier;
 uniform float EarlyTerminationAlpha;
 uniform float RelativeStepSize;
-uniform vec3 Color;
-uniform float ValueOffset;
 uniform float ValueScale;
+uniform float ValueOffset;
+uniform vec3 Color;
 uniform vec3 VoxelScale;
 uniform bool DebugShowChunkBoundaries;
 uniform bool DebugSetOITWeightOne;
@@ -121,7 +120,7 @@ void main() {
     // Scale intensity to opacity.
     // ValueScale is the
     // worldSpaceStepSize corrects for anisotropic voxels.
-    float intensityScale = ValueScale * worldSpaceStepSize;
+    float intensityScale = OpacityMultiplier * worldSpaceStepSize * ValueScale;
 
     // March until we reach the number of samples or accumulate enough opacity
     for (int i = 0; i < numSamples && revealage > (1.0 - EarlyTerminationAlpha); i++) {

@@ -225,13 +225,14 @@ export class ChunkStoreView {
     const fallbackLOD = this.fallbackLOD();
 
     for (const chunk of currentTimeChunks) {
-      if (chunk.lod !== this.currentLOD_) continue;
-      if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
-
+      const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === fallbackLOD;
+      if (!isCurrentLOD && !isFallbackLOD) continue;
+
+      if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
       const priority = this.computePriority(
         isFallbackLOD,
-        true, // isCurrentLOD
+        isCurrentLOD,
         true, // isVisible
         false, // isPrefetch
         true // isChannelInSlice
@@ -351,11 +352,14 @@ export class ChunkStoreView {
     const fallbackLOD = this.fallbackLOD();
 
     for (const chunk of currentTimeChunks) {
-      const isInBounds = this.isChunkWithinBounds(chunk, viewBounds3D);
-      const isChannelInSlice = this.isChunkChannelInSlice(chunk, sliceCoords);
-
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === fallbackLOD;
+      if (!isCurrentLOD && !isFallbackLOD) continue;
+
+      const isChannelInSlice = this.isChunkChannelInSlice(chunk, sliceCoords);
+      if (!isChannelInSlice) continue;
+
+      const isInBounds = this.isChunkWithinBounds(chunk, viewBounds3D);
 
       const prefetch =
         !isInBounds &&
