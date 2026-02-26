@@ -71,6 +71,7 @@ export class Idetik {
    *   viewports: [
    *     {
    *       id: 'main',
+   *       // element omitted - defaults to canvas
    *       camera: camera1,
    *       layers: [layer1]
    *     },
@@ -164,15 +165,16 @@ export class Idetik {
     return viewport;
   }
 
-  public removeViewport(id: string): boolean {
-    const index = this.viewports_.findIndex((v) => v.id === id);
+  public removeViewport(viewport: Viewport): boolean {
+    const index = this.viewports_.indexOf(viewport);
 
     if (index === -1) {
-      Logger.warn("Idetik", `Viewport "${id}" not found, nothing to remove`);
+      Logger.warn(
+        "Idetik",
+        `Viewport "${viewport.id}" not found, nothing to remove`
+      );
       return false;
     }
-
-    const viewport = this.viewports_[index];
 
     if (this.lastAnimationId_ !== undefined) {
       viewport.events.disconnect();
@@ -182,7 +184,7 @@ export class Idetik {
     }
 
     this.viewports_.splice(index, 1);
-    Logger.info("Idetik", `Removed viewport "${id}"`);
+    Logger.info("Idetik", `Removed viewport "${viewport.id}"`);
     return true;
   }
 
