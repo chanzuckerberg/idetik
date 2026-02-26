@@ -197,15 +197,6 @@ export class ChunkStoreView {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
 
-    if (currentTimeChunks === undefined) {
-      Logger.warn(
-        "ChunkStoreView",
-        `No chunks found for time index ${currentTimeIndex}. Likely the time coordinate is out of bounds.`
-      );
-      this.chunkViewStates_.clear();
-      return;
-    }
-
     if (currentTimeChunks.length === 0) {
       Logger.warn(
         "ChunkStoreView",
