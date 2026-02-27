@@ -234,11 +234,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       : 1.0;
 
     this.updateChunks();
-    this.reorderObjects(context.viewport.camera);
-  }
-
-  public reorderObjects(camera: Camera) {
-    sortFrontToBack(this.objects, camera);
+    sortFrontToBack(this.objects, context.viewport.camera);
   }
 
   public getUniforms(): Record<string, unknown> {
