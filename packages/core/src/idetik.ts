@@ -244,7 +244,8 @@ export class Idetik {
       for (const viewport of this.viewports_) {
         viewport.events.disconnect();
       }
-      cancelAnimationFrame(this.lastAnimationId_);
+      // safe non-null assertion: this.running is true, so lastAnimationId_ is defined
+      cancelAnimationFrame(this.lastAnimationId_!);
       this.lastAnimationId_ = undefined;
     }
   }
