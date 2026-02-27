@@ -1,5 +1,5 @@
 import { Renderer } from "../core/renderer";
-import { WebGLShaderProgram } from "./webgl_shader_program";
+import type { WebGLShaderProgram } from "./webgl_shader_program";
 import { WebGLShaderPrograms } from "./webgl_shader_programs";
 import { Logger } from "../utilities/logger";
 
@@ -7,16 +7,16 @@ import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 import { TransparencyBuffer } from "./webgl_framebuffers";
 
-import { Layer } from "../core/layer";
+import type { Layer } from "../core/layer";
 import { WebGLState } from "./WebGLState";
-import { RenderableObject } from "../core/renderable_object";
-import { Geometry, Primitive } from "../core/geometry";
+import type { RenderableObject } from "../core/renderable_object";
+import type { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
-import { Viewport } from "../core/viewport";
-import { Camera } from "../objects/cameras/camera";
+import type { Viewport } from "../core/viewport";
+import type { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
-import { Frustum } from "../math/frustum";
+import type { Frustum } from "../math/frustum";
 
 // Idetik defines screen-space with +Y pointing downward.
 // With the default camera, the basis vectors are:
@@ -235,6 +235,12 @@ export class WebGLRenderer extends Renderer {
       ...objectUniforms,
     };
 
+    const modelViewProjection = mat4.multiply(
+      mat4.create(),
+      projection,
+      modelView
+    );
+
     for (const uniformName of program.uniformNames) {
       switch (uniformName) {
         case "ModelView":
@@ -242,6 +248,9 @@ export class WebGLRenderer extends Renderer {
           break;
         case "Projection":
           program.setUniform(uniformName, projection);
+          break;
+        case "ModelViewProjection":
+          program.setUniform(uniformName, modelViewProjection);
           break;
         case "Resolution":
           program.setUniform(uniformName, resolution);

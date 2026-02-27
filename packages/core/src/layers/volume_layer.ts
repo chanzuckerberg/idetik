@@ -1,14 +1,20 @@
-import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { Layer, RenderContext } from "../core/layer";
+import type { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import { Layer, type RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
-import { IdetikContext } from "../idetik";
-import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
-import { ImageSourcePolicy } from "../core/image_source_policy";
+import type { IdetikContext } from "../idetik";
+import {
+  type ChunkStoreView,
+  INTERNAL_POLICY_KEY,
+} from "../core/chunk_store_view";
+import type { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { glMatrix, vec3 } from "gl-matrix";
-import { Camera } from "../objects/cameras/camera";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import type { Camera } from "../objects/cameras/camera";
+import type {
+  ChannelProps,
+  ChannelsEnabled,
+} from "../objects/textures/channel";
 
 export type VolumeLayerProps = {
   source: ChunkSource;

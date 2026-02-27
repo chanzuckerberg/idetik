@@ -3,8 +3,8 @@
 
 precision highp float;
 
-layout (location = 0) out vec4 FragData0;
-layout (location = 1) out float FragData1;
+layout(location = 0) out vec4 FragData0;
+layout(location = 1) out float FragData1;
 
 #if defined TEXTURE_DATA_TYPE_INT
 uniform mediump isampler3D ImageSampler;
@@ -17,6 +17,7 @@ uniform mediump sampler3D ImageSampler;
 uniform highp vec3 CameraPositionModel;
 uniform mat4 Projection;
 uniform mat4 ModelView;
+uniform mat4 ModelViewProjection;
 in highp vec3 PositionModel;
 
 // The bounding box in model space is normalized to -0.5 to 0.5
@@ -131,8 +132,8 @@ void main() {
         sampleColor = Color * sampleAlpha;
 
         // Weighted blended OIT
-        clipPosition = Projection * ModelView * vec4(position, 1.0);
-        rayDepth  = (clipPosition.z / clipPosition.w) * 0.5 + 0.5;
+        clipPosition = ModelViewProjection * vec4(position, 1.0);
+        rayDepth = (clipPosition.z / clipPosition.w) * 0.5 + 0.5;
         weight = computeOITWeight(sampleAlpha, rayDepth);
         if (DebugSetOITWeightOne) {
             weight = 1.0;
