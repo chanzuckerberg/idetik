@@ -62,12 +62,11 @@ addDimensionSlider({
 gui
   .add(controls, "lod", 0, 2, 1)
   .name("Level of Detail (LOD)")
-  .onChange(
-    (lod: number) =>
-      (volumeLayer.sourcePolicy = createPlaybackPolicy({
-        lod: { min: lod, max: lod },
-      }))
-  );
+  .onChange((lod: number) => {
+    volumeLayer.sourcePolicy = createPlaybackPolicy({
+      lod: { min: lod, max: lod },
+    });
+  });
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
@@ -80,7 +79,7 @@ const opacityControls = {
     return (Math.log10(volumeLayer.opacityMultiplier) + 3) / 4;
   },
   set opacity(sliderValue: number) {
-    volumeLayer.opacityMultiplier = Math.pow(10, sliderValue * 4 - 3);
+    volumeLayer.opacityMultiplier = 10 ** (sliderValue * 4 - 3);
   },
 };
 volumeFolder

@@ -7,9 +7,9 @@ import type {
   TextureDataFormat,
 } from "../objects/textures/texture";
 
-import { Texture2D } from "../objects/textures/texture_2d";
-import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { Texture3D } from "../objects/textures/texture_3d";
+import type { Texture2D } from "../objects/textures/texture_2d";
+import type { Texture2DArray } from "../objects/textures/texture_2d_array";
+import type { Texture3D } from "../objects/textures/texture_3d";
 
 type TextureFormatInfo = {
   internalFormat: number;
@@ -409,31 +409,32 @@ export class ImageTexture2D {
       this.gl_.TEXTURE_MAG_FILTER,
       this.gl_.NEAREST
     );
-    if (this.mode_ === "rgb") {
-      this.gl_.texImage2D(
-        this.gl_.TEXTURE_2D,
-        0,
-        this.gl_.RGBA16F,
-        this.width_,
-        this.height_,
-        0,
-        this.gl_.RGBA,
-        this.gl_.HALF_FLOAT,
-        null
-      );
-    }
-    if (this.mode_ === "r") {
-      this.gl_.texImage2D(
-        this.gl_.TEXTURE_2D,
-        0,
-        this.gl_.R16F,
-        this.width_,
-        this.height_,
-        0,
-        this.gl_.RED,
-        this.gl_.HALF_FLOAT,
-        null
-      );
+    switch (this.mode_) {
+      case "rgb":
+        this.gl_.texImage2D(
+          this.gl_.TEXTURE_2D,
+          0,
+          this.gl_.RGBA16F,
+          this.width_,
+          this.height_,
+          0,
+          this.gl_.RGBA,
+          this.gl_.HALF_FLOAT,
+          null
+        );
+        break;
+      case "r":
+        this.gl_.texImage2D(
+          this.gl_.TEXTURE_2D,
+          0,
+          this.gl_.R16F,
+          this.width_,
+          this.height_,
+          0,
+          this.gl_.RED,
+          this.gl_.HALF_FLOAT,
+          null
+        );
     }
     this.gl_.bindTexture(this.gl_.TEXTURE_2D, null);
   }
