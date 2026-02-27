@@ -7,7 +7,6 @@ import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
-import { Camera } from "../objects/cameras/camera";
 import { sortFrontToBack } from "../math/sort_by_distance";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 
