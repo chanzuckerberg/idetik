@@ -140,6 +140,10 @@ export class Idetik {
     return this.viewports_;
   }
 
+  public get running(): boolean {
+    return this.lastAnimationId_ !== undefined;
+  }
+
   public getViewport(id: string): Viewport | undefined {
     return this.viewports_.find((v) => v.id === id);
   }
@@ -154,7 +158,7 @@ export class Idetik {
     validateNewViewport(viewport, this.viewports_);
     this.viewports_.push(viewport);
 
-    if (this.lastAnimationId_ !== undefined) {
+    if (this.running) {
       viewport.events.connect();
       if (viewport.element !== this.canvas) {
         this.sizeObserver_.observe(viewport.element);
@@ -176,7 +180,7 @@ export class Idetik {
       return false;
     }
 
-    if (this.lastAnimationId_ !== undefined) {
+    if (this.running) {
       viewport.events.disconnect();
       if (viewport.element !== this.canvas) {
         this.sizeObserver_.unobserve(viewport.element);
@@ -190,7 +194,7 @@ export class Idetik {
 
   public start() {
     Logger.info("Idetik", "Idetik runtime starting");
-    if (this.lastAnimationId_ === undefined) {
+    if (!this.running) {
       for (const viewport of this.viewports_) {
         viewport.events.connect();
       }
@@ -233,7 +237,7 @@ export class Idetik {
 
   public stop() {
     Logger.info("Idetik", "Idetik runtime stopping");
-    if (this.lastAnimationId_ === undefined) {
+    if (!this.running) {
       Logger.warn("Idetik", "Idetik runtime not started");
     } else {
       this.sizeObserver_.disconnect();
