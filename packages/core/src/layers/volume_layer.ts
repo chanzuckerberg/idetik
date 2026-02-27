@@ -6,8 +6,8 @@ import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
-import { glMatrix, vec3 } from "gl-matrix";
-import { Camera } from "../objects/cameras/camera";
+import { vec3 } from "gl-matrix";
+import { sortFrontToBack } from "../math/sort_by_distance";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 
 export type VolumeLayerProps = {
@@ -249,31 +249,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       : 1.0;
 
     this.updateChunks();
-    this.reorderObjects(context.viewport.camera);
-  }
-
-  public reorderObjects(camera: Camera) {
-    const cameraPos = camera.position;
-    const centerA = vec3.create();
-    const centerB = vec3.create();
-
-    this.objects.sort((a, b) => {
-      vec3.add(centerA, a.boundingBox.max, a.boundingBox.min);
-      vec3.scale(centerA, centerA, 0.5);
-
-      vec3.add(centerB, b.boundingBox.max, b.boundingBox.min);
-      vec3.scale(centerB, centerB, 0.5);
-
-      const cam2aDistance = vec3.squaredDistance(cameraPos, centerA);
-      const cam2bDistance = vec3.squaredDistance(cameraPos, centerB);
-      const diff = cam2aDistance - cam2bDistance;
-
-      if (Math.abs(diff) < glMatrix.EPSILON) {
-        return 0;
-      }
-
-      return diff;
-    });
+    sortFrontToBack(this.objects, context.viewport.camera);
   }
 
   public getUniforms(): Record<string, unknown> {
