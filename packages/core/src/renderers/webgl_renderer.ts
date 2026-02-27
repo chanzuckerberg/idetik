@@ -235,12 +235,6 @@ export class WebGLRenderer extends Renderer {
       ...objectUniforms,
     };
 
-    const modelViewProjection = mat4.multiply(
-      mat4.create(),
-      projection,
-      modelView
-    );
-
     for (const uniformName of program.uniformNames) {
       switch (uniformName) {
         case "ModelView":
@@ -249,9 +243,15 @@ export class WebGLRenderer extends Renderer {
         case "Projection":
           program.setUniform(uniformName, projection);
           break;
-        case "ModelViewProjection":
+        case "ModelViewProjection": {
+          const modelViewProjection = mat4.multiply(
+            mat4.create(),
+            projection,
+            modelView
+          );
           program.setUniform(uniformName, modelViewProjection);
           break;
+        }
         case "Resolution":
           program.setUniform(uniformName, resolution);
           break;
