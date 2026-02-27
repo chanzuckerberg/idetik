@@ -57,16 +57,16 @@ test("handles equidistant objects maintaining stable order", () => {
 test("handles objects with very small distance differences", () => {
   const camera = new PerspectiveCamera();
 
-  const obj1 = new MockRenderableObject([1.0, 0, 0]);
-  const obj2 = new MockRenderableObject([1.0001, 0, 0]);
-  const obj3 = new MockRenderableObject([1.0002, 0, 0]);
+  const near = new MockRenderableObject([1.0, 0, 0]);
+  const mid = new MockRenderableObject([1.0001, 0, 0]);
+  const far = new MockRenderableObject([1.0002, 0, 0]);
 
-  const objects = [obj3, obj1, obj2];
+  const objects = [far, near, mid];
   sortFrontToBack(objects, camera);
 
-  expect(objects[0]).toBe(obj1);
-  expect(objects[1]).toBe(obj2);
-  expect(objects[2]).toBe(obj3);
+  expect(objects[0]).toBe(near);
+  expect(objects[1]).toBe(mid);
+  expect(objects[2]).toBe(far);
 });
 
 test("handles large coordinate values", () => {
@@ -106,14 +106,14 @@ test("handles objects in 3D space with camera not at origin", () => {
 test("handles objects with negative coordinates", () => {
   const camera = new PerspectiveCamera();
 
-  const obj1 = new MockRenderableObject([-1, 0, 0]);
-  const obj2 = new MockRenderableObject([-5, 0, 0]);
-  const obj3 = new MockRenderableObject([-10, 0, 0]);
+  const near = new MockRenderableObject([-1, 0, 0]);
+  const mid = new MockRenderableObject([-5, 0, 0]);
+  const far = new MockRenderableObject([-10, 0, 0]);
 
-  const objects = [obj3, obj1, obj2];
+  const objects = [far, near, mid];
   sortFrontToBack(objects, camera);
 
-  expect(objects[0]).toBe(obj1);
-  expect(objects[1]).toBe(obj2);
-  expect(objects[2]).toBe(obj3);
+  expect(objects[0]).toBe(near);
+  expect(objects[1]).toBe(mid);
+  expect(objects[2]).toBe(far);
 });
