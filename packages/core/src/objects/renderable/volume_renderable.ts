@@ -5,8 +5,8 @@ import type { TextureDataType } from "../textures/texture";
 import type { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
 import {
-  Channel,
-  ChannelProps,
+  type Channel,
+  type ChannelProps,
   validateChannel,
   validateChannels,
 } from "../textures/channel";
@@ -70,7 +70,7 @@ export class VolumeRenderable extends RenderableObject {
     this.channels_[channelIndex] = newChannel;
   }
 
-  public getChannelOrDefault(channelIndex: number): Required<Channel> {
+  private getChannelOrDefault(channelIndex: number): Required<Channel> {
     return (
       this.channels_[channelIndex] ?? validateChannel(this.textures[0], {})
     );
