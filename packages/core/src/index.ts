@@ -4,6 +4,7 @@ export { WebGLRenderer } from "./renderers/webgl_renderer";
 export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
 export { PanZoomControls } from "./objects/cameras/controls";
+export { OrbitControls } from "./objects/cameras/orbit_controls";
 export type { CameraControls } from "./objects/cameras/controls";
 
 export { Layer } from "./core/layer";
