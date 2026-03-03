@@ -1,22 +1,21 @@
 import { Idetik, VolumeLayer, PerspectiveCamera, OmeZarrImageSource } from "@";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
-import { createPlaybackPolicy } from "@/core/image_source_policy";
-import { addDimensionSlider } from "../lil_gui_utils";
+import { createExplorationPolicy } from "@/core/image_source_policy";
 import GUI from "lil-gui";
 import { vec3 } from "gl-matrix";
 
 const url =
-  "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
+  "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/";
 const source = OmeZarrImageSource.fromHttp({ url });
 const sliceCoords = {
-  t: 400,
+  t: 0,
   z: undefined,
-  c: 0,
+  c: undefined, // Show all channels
 };
 const controls = { lod: 2 };
 
 const camera = new PerspectiveCamera();
-const policy = createPlaybackPolicy({
+const policy = createExplorationPolicy({
   lod: { min: controls.lod, max: controls.lod },
 });
 const volumeLayer = new VolumeLayer({
@@ -25,9 +24,19 @@ const volumeLayer = new VolumeLayer({
   policy,
   channelProps: [
     {
-      visible: true,
+      visible: false,
       color: [1, 1, 1],
-      contrastLimits: [0, 512],
+      contrastLimits: [-1.5, 10.0],
+    },
+    {
+      visible: true,
+      color: [0, 0, 1],
+      contrastLimits: [108, 353],
+    },
+    {
+      visible: true,
+      color: [0, 1, 0],
+      contrastLimits: [144, 3825],
     },
   ],
 });
@@ -37,8 +46,8 @@ const idetik = new Idetik({
     {
       camera,
       cameraControls: new OrbitControls(camera, {
-        radius: 750,
-        target: vec3.fromValues(550, 500, 278), // Volume center,
+        radius: 100,
+        target: vec3.fromValues(40, 40, 10), // Volume center,
       }),
       layers: [volumeLayer],
     },
@@ -50,23 +59,15 @@ idetik.start();
 
 // Add GUI controls to manipulate rendering
 const gui = new GUI({ width: 500 });
-addDimensionSlider({
-  gui,
-  sliceCoords,
-  dimensionName: "t",
-  minValue: 0,
-  maxValue: 790,
-  stepValue: 1.0,
-  playback: {},
-});
 gui
   .add(controls, "lod", 0, 2, 1)
   .name("Level of Detail (LOD)")
-  .onChange((lod: number) => {
-    volumeLayer.sourcePolicy = createPlaybackPolicy({
-      lod: { min: lod, max: lod },
-    });
-  });
+  .onChange(
+    (lod: number) =>
+      (volumeLayer.sourcePolicy = createExplorationPolicy({
+        lod: { min: lod, max: lod },
+      }))
+  );
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder
