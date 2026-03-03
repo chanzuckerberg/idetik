@@ -30,17 +30,16 @@ const volumeLayer = new VolumeLayer({
     },
     {
       visible: true,
-      color: [1, 1, 1],
+      color: [0, 0, 1],
       contrastLimits: [108, 353],
     },
     {
       visible: true,
-      color: [1, 1, 1],
+      color: [0, 1, 0],
       contrastLimits: [144, 3825],
     },
   ],
 });
-volumeLayer.opacityMultiplier = 0.01;
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
