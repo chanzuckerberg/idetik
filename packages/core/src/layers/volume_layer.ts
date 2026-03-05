@@ -49,7 +49,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public set debugShowWireframes(value: boolean) {
     if (this.debugShowWireframes_ === value) return;
-    for (const volume of this.currentChunks_.values()) {
+    for (const volume of this.currentVolumes()) {
       volume.wireframeEnabled = value;
     }
     this.debugShowWireframes_ = value;
@@ -69,8 +69,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
-    this.currentChunks_.forEach((chunk) => {
-      chunk.setChannelProps(channelProps);
+    this.currentVolumes().forEach((volume) => {
+      volume.setChannelProps(channelProps);
     });
     this.channelChangeCallbacks_.forEach((callback) => {
       callback();
@@ -99,6 +99,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.channelChangeCallbacks_.splice(index, 1);
   }
 
+  private currentVolumes(): Set<VolumeRenderable> {
+    return new Set(this.currentChunks_.values());
+  }
+
   private createVolume(chunk: Chunk) {
     const volume = new VolumeRenderable(this.channelProps_);
     volume.addChunkToVolume(chunk);
@@ -120,9 +124,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     const existing = this.currentChunks_.get(chunk);
     if (existing) return existing;
 
-    // Add texture as new channel to existing volume if match
     for (const [existingChunk, volume] of this.currentChunks_) {
-      if (poolKeyForChunk(existingChunk) === poolKeyForChunk(chunk)) {
+      if (isSameChunkLocation(existingChunk, chunk)) {
         volume.addChunkToVolume(chunk);
         return volume;
       }
@@ -184,13 +187,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       volume.wireframeEnabled = this.debugShowWireframes;
       this.currentChunks_.set(chunk, volume);
     }
-    const seenKeys = new Set<string>();
-    this.currentChunks_.forEach((volume, chunk) => {
-      const key = poolKeyForChunk(chunk);
-      if (!seenKeys.has(key)) {
-        this.addObject(volume);
-        seenKeys.add(key);
-      }
+
+    this.currentVolumes().forEach((volume) => {
+      this.addObject(volume);
     });
 
     this.lastLoadedTime_ = currentTime;
@@ -263,7 +262,15 @@ export function poolKeyForChunk(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
-    `locationx${chunk.chunkIndex.x}y${chunk.chunkIndex.y}z${chunk.chunkIndex.z}t${chunk.chunkIndex.t}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
+}
+
+function isSameChunkLocation(chunk1: Chunk, chunk2: Chunk): boolean {
+  return (
+    chunk1.chunkIndex.x === chunk2.chunkIndex.x &&
+    chunk1.chunkIndex.y === chunk2.chunkIndex.y &&
+    chunk1.chunkIndex.z === chunk2.chunkIndex.z &&
+    poolKeyForChunk(chunk1) === poolKeyForChunk(chunk2)
+  );
 }
