@@ -78,6 +78,21 @@ export function validateChannels(
   return channelProps.map((props) => validateChannel(texture, props));
 }
 
+/**
+ * returns the channel indices where visibility is not explicitly "false" (i.e: if no visibility is set, then we consider it as "true")
+ * if all channels are visible, returns "undefined" to force load of all channels;
+ * otherwise returns an array of visible channel indices only
+ */
+export function visibleChannelIndices(
+  channelProps: ChannelProps[]
+): number[] | undefined {
+  const visible = channelProps
+    .map((p, i) => (p.visible !== false ? i : -1))
+    .filter((i) => i >= 0);
+  if (visible.length === channelProps.length) return undefined;
+  return visible;
+}
+
 function validateContrastLimits(
   contrastLimits: [number, number] | undefined,
   texture: Texture

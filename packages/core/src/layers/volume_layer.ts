@@ -8,7 +8,11 @@ import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
 import { sortFrontToBack } from "../math/sort_by_distance";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import {
+  ChannelProps,
+  ChannelsEnabled,
+  visibleChannelIndices,
+} from "../objects/textures/channel";
 
 export type VolumeLayerProps = {
   source: ChunkSource;
@@ -69,6 +73,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
+    this.sliceCoords_.c = visibleChannelIndices(channelProps);
     this.currentChunks_.forEach((chunk) => {
       chunk.setChannelProps(channelProps);
     });
@@ -113,6 +118,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.sourcePolicy_ = policy;
     this.initialChannelProps_ = channelProps;
     this.channelProps_ = channelProps;
+    if (channelProps) {
+      this.sliceCoords_.c = visibleChannelIndices(channelProps);
+    }
     this.setState("initialized");
   }
 

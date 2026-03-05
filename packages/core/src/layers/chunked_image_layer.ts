@@ -3,7 +3,11 @@ import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import {
+  ChannelProps,
+  ChannelsEnabled,
+  visibleChannelIndices,
+} from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { Logger } from "../utilities/logger";
@@ -67,6 +71,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
+    if (channelProps) {
+      this.sliceCoords_.c = visibleChannelIndices(channelProps);
+    }
   }
 
   public async onAttached(context: IdetikContext) {
@@ -348,6 +355,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
+    this.sliceCoords_.c = visibleChannelIndices(channelProps);
     this.visibleChunks_.forEach((image) => {
       image.setChannelProps(channelProps);
     });
