@@ -546,9 +546,17 @@ export class ChunkStoreView {
     const last = this.lastCCoord_;
     if (last === c) return false;
     if (last === undefined || c === undefined) return true;
-    if (Array.isArray(last) !== Array.isArray(c)) return true;
-    if (Array.isArray(last) && Array.isArray(c)) {
-      return last.length !== c.length || last.some((v, i) => v !== c[i]);
+    const lastIsArray = Array.isArray(last);
+    const newIsArray = Array.isArray(c);
+
+    if (lastIsArray !== newIsArray) return true;
+    if (lastIsArray && newIsArray) {
+      const lastSorted = last.sort();
+      const newSorted = c.sort();
+      return (
+        last.length !== c.length ||
+        lastSorted.some((v, i) => v !== newSorted[i])
+      );
     }
     return last !== c;
   }
