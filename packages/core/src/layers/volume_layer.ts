@@ -100,11 +100,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   private createVolume(chunk: Chunk) {
-    const volume = new VolumeRenderable(
-      Texture3D.createWithChunk(chunk),
-      chunk.chunkIndex.c,
-      this.channelProps_
-    );
+    const volume = new VolumeRenderable(this.channelProps_);
+    volume.addChunkToVolume(chunk);
     this.updateVolumeChunk(volume, chunk);
     return volume;
   }
@@ -126,7 +123,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     // Add texture as new channel to existing volume if match
     for (const [existingChunk, volume] of this.currentChunks_) {
       if (poolKeyForChunk(existingChunk) === poolKeyForChunk(chunk)) {
-        volume.setTexture(chunk.chunkIndex.c, Texture3D.createWithChunk(chunk));
+        volume.addChunkToVolume(chunk);
         return volume;
       }
     }

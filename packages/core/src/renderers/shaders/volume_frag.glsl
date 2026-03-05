@@ -40,7 +40,6 @@ uniform float OpacityMultiplier;
 uniform float EarlyTerminationAlpha;
 
 // Multi-channel support (max 4 channels, could support more with arrays if needed)
-uniform uint ChannelCount;
 uniform vec4 Visible;
 uniform vec4 ValueOffset;
 uniform vec4 ValueScale;
@@ -67,9 +66,9 @@ vec4 sampleChannels(vec3 uvw) {
   vec4 c = vec4(0.0);
 
   if (bool(Visible.x)) c.x = float(texture(Channel0Sampler, uvw).r);
-  if (ChannelCount >= 2u && bool(Visible.y)) c.y = float(texture(Channel1Sampler, uvw).r);
-  if (ChannelCount >= 3u && bool(Visible.z)) c.z = float(texture(Channel2Sampler, uvw).r);
-  if (ChannelCount >= 4u && bool(Visible.w)) c.w = float(texture(Channel3Sampler, uvw).r);
+  if (bool(Visible.y)) c.y = float(texture(Channel1Sampler, uvw).r);
+  if (bool(Visible.z)) c.z = float(texture(Channel2Sampler, uvw).r);
+  if (bool(Visible.w)) c.w = float(texture(Channel3Sampler, uvw).r);
 
   return (c + ValueOffset) * ValueScale;
 }
@@ -122,7 +121,7 @@ void main() {
 
         vec4 sampleValues = sampleChannels(position);
         // Combine color per channel
-        for (uint ch = 0u; ch < ChannelCount; ch++) {
+        for (int ch = 0; ch < 4; ch++) {
             if (!bool(Visible[ch]) || sampleValues[ch] == 0.0) continue;
             sampleColor = Color[ch];
             sampleAlpha = clamp(sampleValues[ch] * intensityScale, 0.0, 1.0);
