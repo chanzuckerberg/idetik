@@ -1,8 +1,8 @@
-import { Idetik, VolumeLayer, PerspectiveCamera, OmeZarrImageSource } from "@";
-import { OrbitControls } from "@/objects/cameras/orbit_controls";
-import { createExplorationPolicy } from "@/core/image_source_policy";
-import GUI from "lil-gui";
 import { vec3 } from "gl-matrix";
+import GUI from "lil-gui";
+import { Idetik, OmeZarrImageSource, PerspectiveCamera, VolumeLayer } from "@";
+import { createExplorationPolicy } from "@/core/image_source_policy";
+import { OrbitControls } from "@/objects/cameras/orbit_controls";
 
 const url =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/";
@@ -18,23 +18,28 @@ const camera = new PerspectiveCamera();
 const policy = createExplorationPolicy({
   lod: { min: controls.lod, max: controls.lod },
 });
+const channelVisibility = {
+  "Channel 0": false,
+  "Channel 1": true,
+  "Channel 2": true,
+};
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
   channelProps: [
     {
-      visible: false,
+      visible: channelVisibility["Channel 0"],
       color: [1, 1, 1],
       contrastLimits: [-1.5, 10.0],
     },
     {
-      visible: true,
+      visible: channelVisibility["Channel 1"],
       color: [0, 0, 1],
       contrastLimits: [108, 353],
     },
     {
-      visible: true,
+      visible: channelVisibility["Channel 2"],
       color: [0, 1, 0],
       contrastLimits: [144, 3825],
     },
@@ -90,6 +95,21 @@ volumeFolder
 volumeFolder
   .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
   .name("Early termination threshold");
+
+function updateChannelProps() {
+  const props = volumeLayer.channelProps;
+  if (!props) return;
+  const updated = props.map((p, i) => ({
+    ...p,
+    visible: Object.values(channelVisibility)[i],
+  }));
+  volumeLayer.setChannelProps(updated);
+}
+
+const channelsFolder = gui.addFolder("Channels");
+channelsFolder.add(channelVisibility, "Channel 0").onChange(updateChannelProps);
+channelsFolder.add(channelVisibility, "Channel 1").onChange(updateChannelProps);
+channelsFolder.add(channelVisibility, "Channel 2").onChange(updateChannelProps);
 
 const overlaysFolder = gui.addFolder("Debug");
 overlaysFolder
