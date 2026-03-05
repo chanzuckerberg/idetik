@@ -1,16 +1,16 @@
-import { Geometry } from "./geometry";
 import { Logger } from "../utilities/logger";
+import { Geometry } from "./geometry";
 
 export class WireframeGeometry extends Geometry {
   constructor(geometry: Geometry) {
     super();
 
-    if (geometry.primitive != "triangles") {
+    if (geometry.primitive !== "triangles") {
       Logger.warn("WireframeGeometry", "Only indexed geometries are supported");
       return;
     }
 
-    if (geometry.indexData.length == 0) {
+    if (geometry.indexData.length === 0) {
       Logger.warn(
         "WireframeGeometry",
         "Only triangulated geometries are supported"
