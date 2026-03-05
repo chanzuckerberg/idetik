@@ -50,7 +50,7 @@ export class VolumeRenderable extends RenderableObject {
 
   public override getUniforms(): Record<string, unknown> {
     // One index per channel
-    const loadedAndVisibleTexture = [0, 0, 0, 0];
+    const loadedAndVisibleTextures = [0, 0, 0, 0];
     // prettier-ignore
     const colors = [
       1, 1, 1,
@@ -82,7 +82,7 @@ export class VolumeRenderable extends RenderableObject {
       valueOffset[k] = -channel.contrastLimits[0];
       valueScale[k] =
         1 / (channel.contrastLimits[1] - channel.contrastLimits[0]);
-      loadedAndVisibleTexture[k] = 1;
+      loadedAndVisibleTextures[k] = 1;
     }
 
     const samplerUniformsObject = samplerUniforms.reduce<
@@ -94,7 +94,7 @@ export class VolumeRenderable extends RenderableObject {
 
     return {
       ...samplerUniformsObject,
-      Visible: loadedAndVisibleTexture,
+      Visible: loadedAndVisibleTextures,
       "Color[0]": colors,
       ValueOffset: valueOffset,
       ValueScale: valueScale,
