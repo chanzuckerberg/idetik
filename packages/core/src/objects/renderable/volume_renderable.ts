@@ -38,8 +38,12 @@ export class VolumeRenderable extends RenderableObject {
   public addChunkToVolume(chunk: Chunk) {
     const channelIndex = chunk.chunkIndex.c;
     const texture = Texture3D.createWithChunk(chunk);
-    const textureIndex = channelIndex;
-    this.channelMapping_.set(channelIndex, textureIndex);
+
+    let textureIndex = this.channelMapping_.get(channelIndex);
+    if (textureIndex === undefined) {
+      textureIndex = this.textures.length;
+      this.channelMapping_.set(channelIndex, textureIndex);
+    }
     this.setTexture(textureIndex, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
   }
