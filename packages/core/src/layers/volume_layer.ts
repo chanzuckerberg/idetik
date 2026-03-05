@@ -131,16 +131,18 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       }
     }
 
-    const pooled = this.pool_.acquire(poolKeyForChunk(chunk));
-    if (pooled) {
+    const pooledVolume = this.pool_.acquire(poolKeyForChunk(chunk));
+    if (pooledVolume) {
       const chunkIndex = chunk.chunkIndex.c;
-      const texture = pooled.textures[chunkIndex] as Texture3D;
+      const texture = pooledVolume.textures[chunkIndex] as Texture3D;
       texture.updateWithChunk(chunk);
-      this.updateVolumeChunk(pooled, chunk);
+      this.updateVolumeChunk(pooledVolume, chunk);
+      pooledVolume.addLoadedChannel(chunkIndex);
+
       if (this.channelProps_) {
-        pooled.setChannelProps(this.channelProps_);
+        pooledVolume.setChannelProps(this.channelProps_);
       }
-      return pooled;
+      return pooledVolume;
     }
 
     return this.createVolume(chunk);
@@ -220,6 +222,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     for (const chunk of chunks) {
       const volume = this.currentChunks_.get(chunk);
       if (volume) {
+        volume.clearLoadedChannels();
         this.pool_.release(poolKeyForChunk(chunk), volume);
         this.currentChunks_.delete(chunk);
       }

@@ -16,6 +16,7 @@ export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
   private channelMapping_: Map<number, number> = new Map();
   private channels_: Required<Channel>[];
+  private loadedChannels_: Set<number> = new Set();
 
   constructor(channels: ChannelProps[] = []) {
     super();
@@ -46,6 +47,15 @@ export class VolumeRenderable extends RenderableObject {
     }
     this.setTexture(textureIndex, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
+    this.loadedChannels_.add(channelIndex);
+  }
+
+  public addLoadedChannel(channelIndex: number) {
+    this.loadedChannels_.add(channelIndex);
+  }
+
+  public clearLoadedChannels() {
+    this.loadedChannels_ = new Set();
   }
 
   public override getUniforms(): Record<string, unknown> {
@@ -69,6 +79,7 @@ export class VolumeRenderable extends RenderableObject {
       this.channelMapping_.size
     );
     for (let i = 0; i < numTotalChannels; i++) {
+      if (!this.loadedChannels_.has(i)) continue;
       const textureIndex = this.getTextureIndexFromChannelIndex(i);
       if (textureIndex === undefined) continue;
       const texture = this.textures[textureIndex];
