@@ -130,20 +130,14 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       }
     }
 
-    // 3. Otherwise, try to acquire a pooled volume for this chunk key
-    const pooledVolume = this.pool_.acquire(poolKeyForChunk(chunk));
-    if (pooledVolume) {
-      pooledVolume.updateVolumeWithChunk(chunk);
-      this.updateVolumeChunk(pooledVolume, chunk);
-
-      if (this.channelProps_) {
-        pooledVolume.setChannelProps(this.channelProps_);
-      }
-      return pooledVolume;
+    // 3. Acquire pooled volume or create new one
+    let volume = this.pool_.acquire(poolKeyForChunk(chunk));
+    if (volume && this.channelProps_) {
+      volume.setChannelProps(this.channelProps_);
+    } else {
+      volume = new VolumeRenderable(this.channelProps_);
     }
 
-    // 4. None of the above, create a new volume for this chunk
-    const volume = new VolumeRenderable(this.channelProps_);
     volume.updateVolumeWithChunk(chunk);
     this.updateVolumeChunk(volume, chunk);
     return volume;
