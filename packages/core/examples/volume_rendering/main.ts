@@ -145,7 +145,6 @@ volumeFolder
   .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
   .name("Early termination threshold");
 
-// Create channel controls dynamically
 const channelsFolder = gui.addFolder("Channels");
 channelProps.forEach((config, index) => {
   createChannelControls(channelsFolder, config, index);

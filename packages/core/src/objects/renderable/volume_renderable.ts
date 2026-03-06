@@ -11,6 +11,7 @@ import {
 import { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";
+import { Logger } from "@/utilities/logger";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
@@ -87,6 +88,7 @@ export class VolumeRenderable extends RenderableObject {
       this.channels_.length,
       this.channelToTextureIndex_.size
     );
+
     for (let i = 0; i < numTotalChannels; i++) {
       if (!this.loadedChannels_.has(i)) continue;
       const textureIndex = this.channelToTextureIndex_.get(i);
@@ -95,6 +97,13 @@ export class VolumeRenderable extends RenderableObject {
       const channel = validateChannel(texture, this.channels_[i] || {});
       if (!channel.visible) continue;
       const k = samplerUniforms.length;
+      if (k >= 4) {
+        Logger.warn(
+          "VolumeRenderable",
+          `Maximum of 4 channels can be rendered, but more were requested. Only the first 4 channels out of all visible channels will be rendered.`
+        );
+        break;
+      }
       for (let j = 0; j < 3; j++) {
         colors[k * 3 + j] = channel.color.rgb[j];
       }
@@ -130,7 +139,6 @@ export class VolumeRenderable extends RenderableObject {
       if (textureIndex !== undefined) return this.textures[textureIndex];
     }
 
-    // Fall back to any channel texture (get the first one from our mapping)
     const firstTextureIndex = this.channelToTextureIndex_.values().next().value;
     return firstTextureIndex !== undefined
       ? this.textures[firstTextureIndex]
