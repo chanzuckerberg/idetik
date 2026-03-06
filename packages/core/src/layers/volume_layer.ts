@@ -113,20 +113,11 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   private getVolumeForChunk(chunk: Chunk): VolumeRenderable {
+    // 1. If the chunk is already in the currentChunks_, return it.
     const existing = this.currentChunks_.get(chunk);
     if (existing) return existing;
 
-    const pooledVolume = this.pool_.acquire(poolKeyForChunk(chunk));
-    if (pooledVolume) {
-      pooledVolume.updateVolumeWithChunk(chunk);
-      this.updateVolumeChunk(pooledVolume, chunk);
-
-      if (this.channelProps_) {
-        pooledVolume.setChannelProps(this.channelProps_);
-      }
-      return pooledVolume;
-    }
-
+    // 2. If a volume for the same chunk index exists, add this channel to it
     for (const [existingChunk, volume] of this.currentChunks_) {
       if (
         existingChunk.chunkIndex.x === chunk.chunkIndex.x &&
@@ -139,6 +130,19 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       }
     }
 
+    // 3. Otherwise, try to acquire a pooled volume for this chunk key
+    const pooledVolume = this.pool_.acquire(poolKeyForChunk(chunk));
+    if (pooledVolume) {
+      pooledVolume.updateVolumeWithChunk(chunk);
+      this.updateVolumeChunk(pooledVolume, chunk);
+
+      if (this.channelProps_) {
+        pooledVolume.setChannelProps(this.channelProps_);
+      }
+      return pooledVolume;
+    }
+
+    // 4. None of the above, create a new volume for this chunk
     const volume = new VolumeRenderable(this.channelProps_);
     volume.updateVolumeWithChunk(chunk);
     this.updateVolumeChunk(volume, chunk);
@@ -214,13 +218,15 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>) {
+    const releasedVolumes = new Set<VolumeRenderable>();
     for (const chunk of chunks) {
       const volume = this.currentChunks_.get(chunk);
-      if (volume) {
+      if (volume && !releasedVolumes.has(volume)) {
         volume.clearLoadedChannels();
         this.pool_.release(poolKeyForChunk(chunk), volume);
-        this.currentChunks_.delete(chunk);
+        releasedVolumes.add(volume);
       }
+      this.currentChunks_.delete(chunk);
     }
   }
 
