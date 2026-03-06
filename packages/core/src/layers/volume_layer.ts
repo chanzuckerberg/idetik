@@ -125,7 +125,12 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     if (existing) return existing;
 
     for (const [existingChunk, volume] of this.currentChunks_) {
-      if (isSameChunkLocation(existingChunk, chunk)) {
+      if (
+        existingChunk.chunkIndex.x === chunk.chunkIndex.x &&
+        existingChunk.chunkIndex.y === chunk.chunkIndex.y &&
+        existingChunk.chunkIndex.z === chunk.chunkIndex.z &&
+        existingChunk.chunkIndex.t === chunk.chunkIndex.t
+      ) {
         volume.addChunkToVolume(chunk);
         return volume;
       }
@@ -265,13 +270,4 @@ export function poolKeyForChunk(chunk: Chunk) {
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
-}
-
-function isSameChunkLocation(chunk1: Chunk, chunk2: Chunk): boolean {
-  return (
-    chunk1.chunkIndex.x === chunk2.chunkIndex.x &&
-    chunk1.chunkIndex.y === chunk2.chunkIndex.y &&
-    chunk1.chunkIndex.z === chunk2.chunkIndex.z &&
-    poolKeyForChunk(chunk1) === poolKeyForChunk(chunk2)
-  );
 }
