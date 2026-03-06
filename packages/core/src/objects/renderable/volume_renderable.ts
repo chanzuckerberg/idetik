@@ -1,7 +1,7 @@
 import type { Shader } from "../../renderers/shaders";
 import { RenderableObject } from "../../core/renderable_object";
 import { BoxGeometry } from "../geometry/box_geometry";
-import { TextureDataType } from "../textures/texture";
+import { type Texture, TextureDataType } from "../textures/texture";
 import {
   Channel,
   ChannelProps,
@@ -14,8 +14,9 @@ import type { Chunk } from "../../data/chunk";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
-  private channelMapping_: Map<number, number> = new Map();
+
   private channels_: Required<Channel>[];
+  private channelToTextureIndex_: Map<number, number> = new Map();
   private loadedChannels_: Set<number> = new Set();
 
   constructor(channels: ChannelProps[] = []) {
@@ -30,34 +31,38 @@ export class VolumeRenderable extends RenderableObject {
     return "VolumeRenderable";
   }
 
-  private getTextureIndexFromChannelIndex(
-    channelIndex: number
-  ): number | undefined {
-    return this.channelMapping_.get(channelIndex);
-  }
+  public updateVolumeWithChunk(chunk: Chunk): void {
+    const channelIndex = chunk.chunkIndex.c;
 
-  public updateVolumeWithChunk(chunk: Chunk) {
-    const { c: channelIndex } = chunk.chunkIndex;
-
-    const textureIndex = this.channelMapping_.get(channelIndex);
-    if (textureIndex === undefined) {
-      const newIndex = this.textures.length;
-      const texture = Texture3D.createWithChunk(chunk);
-      this.setTexture(newIndex, texture);
-      this.channelMapping_.set(channelIndex, newIndex);
-      this.programName = dataTypeToVolumeShader(texture.dataType);
+    const textureIndex = this.channelToTextureIndex_.get(channelIndex);
+    if (textureIndex !== undefined) {
+      this.updateChannelTexture(textureIndex, chunk);
     } else {
-      const texture = this.textures[textureIndex];
-      if (texture instanceof Texture3D) {
-        texture.updateWithChunk(chunk);
-      } else {
-        const newTexture = Texture3D.createWithChunk(chunk);
-        this.setTexture(textureIndex, newTexture);
-      }
-      this.programName = dataTypeToVolumeShader(texture.dataType);
+      this.addChannelTexture(channelIndex, chunk);
     }
 
     this.loadedChannels_.add(channelIndex);
+  }
+
+  private addChannelTexture(channelIndex: number, chunk: Chunk): void {
+    const texture = Texture3D.createWithChunk(chunk);
+    const textureIndex = this.textures.length;
+
+    this.setTexture(textureIndex, texture);
+    this.channelToTextureIndex_.set(channelIndex, textureIndex);
+    this.programName = dataTypeToVolumeShader(texture.dataType);
+  }
+
+  private updateChannelTexture(textureIndex: number, chunk: Chunk): void {
+    const texture = this.textures[textureIndex];
+
+    if (!(texture instanceof Texture3D)) {
+      const newTexture = Texture3D.createWithChunk(chunk);
+      this.setTexture(textureIndex, newTexture);
+      return;
+    }
+
+    texture.updateWithChunk(chunk);
   }
 
   public clearLoadedChannels() {
@@ -65,7 +70,6 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public override getUniforms(): Record<string, unknown> {
-    // One index per channel
     const loadedAndVisibleTextures = [0, 0, 0, 0];
     // prettier-ignore
     const colors = [
@@ -73,20 +77,19 @@ export class VolumeRenderable extends RenderableObject {
       1, 1, 1,
       1, 1, 1,
       1, 1, 1,
-    ] // Up to 4 channels, RGB color for each
+    ]
     const valueOffset = [0, 0, 0, 0];
     const valueScale = [1, 1, 1, 1];
-
     const samplerUniforms: number[] = [];
 
     // Allow to render without channel props specified
     const numTotalChannels = Math.max(
       this.channels_.length,
-      this.channelMapping_.size
+      this.channelToTextureIndex_.size
     );
     for (let i = 0; i < numTotalChannels; i++) {
       if (!this.loadedChannels_.has(i)) continue;
-      const textureIndex = this.getTextureIndexFromChannelIndex(i);
+      const textureIndex = this.channelToTextureIndex_.get(i);
       if (textureIndex === undefined) continue;
       const texture = this.textures[textureIndex];
       const channel = validateChannel(texture, this.channels_[i] || {});
@@ -119,18 +122,26 @@ export class VolumeRenderable extends RenderableObject {
     };
   }
 
-  public setChannelProps(channels: ChannelProps[]) {
-    let texture = null;
-    if (this.channelMapping_.size !== 0) {
-      const channelIndex = this.channelMapping_.keys().next().value;
-      if (channelIndex !== undefined) {
-        const textureIndex = this.getTextureIndexFromChannelIndex(channelIndex);
-        if (textureIndex !== undefined) {
-          texture = this.textures[textureIndex];
-        }
-      }
+  private getAvailableChannelTexture(
+    desiredChannelIndex?: number
+  ): Texture | null {
+    if (desiredChannelIndex !== undefined) {
+      const textureIndex = this.channelToTextureIndex_.get(desiredChannelIndex);
+      if (textureIndex !== undefined) return this.textures[textureIndex];
     }
-    this.channels_ = validateChannels(texture, channels);
+
+    // Fall back to any channel texture (get the first one from our mapping)
+    const firstTextureIndex = this.channelToTextureIndex_.values().next().value;
+    return firstTextureIndex !== undefined
+      ? this.textures[firstTextureIndex]
+      : null;
+  }
+
+  public setChannelProps(channels: ChannelProps[]) {
+    this.channels_ = validateChannels(
+      this.getAvailableChannelTexture(),
+      channels
+    );
   }
 
   public setChannelProperty<K extends keyof ChannelProps>(
@@ -138,10 +149,13 @@ export class VolumeRenderable extends RenderableObject {
     property: K,
     value: Required<ChannelProps>[K]
   ) {
-    const newChannel = validateChannel(this.textures[0], {
-      ...this.channels_[channelIndex],
-      [property]: value,
-    });
+    const newChannel = validateChannel(
+      this.getAvailableChannelTexture(channelIndex),
+      {
+        ...this.channels_[channelIndex],
+        [property]: value,
+      }
+    );
 
     this.channels_[channelIndex] = newChannel;
   }
