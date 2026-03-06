@@ -109,7 +109,6 @@ export class VolumeRenderable extends RenderableObject {
       "Color[0]": colors,
       ValueOffset: valueOffset,
       ValueScale: valueScale,
-      ChannelCount: numTotalChannels,
       VoxelScale: this.voxelScale,
     };
   }
