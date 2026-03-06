@@ -36,21 +36,27 @@ export class VolumeRenderable extends RenderableObject {
     return this.channelMapping_.get(channelIndex);
   }
 
-  public addChunkToVolume(chunk: Chunk) {
-    const channelIndex = chunk.chunkIndex.c;
-    const texture = Texture3D.createWithChunk(chunk);
+  public updateVolumeWithChunk(chunk: Chunk) {
+    const { c: channelIndex } = chunk.chunkIndex;
 
-    let textureIndex = this.channelMapping_.get(channelIndex);
+    const textureIndex = this.channelMapping_.get(channelIndex);
     if (textureIndex === undefined) {
-      textureIndex = this.textures.length;
-      this.channelMapping_.set(channelIndex, textureIndex);
+      const newIndex = this.textures.length;
+      const texture = Texture3D.createWithChunk(chunk);
+      this.setTexture(newIndex, texture);
+      this.channelMapping_.set(channelIndex, newIndex);
+      this.programName = dataTypeToVolumeShader(texture.dataType);
+    } else {
+      const texture = this.textures[textureIndex];
+      if (texture instanceof Texture3D) {
+        texture.updateWithChunk(chunk);
+      } else {
+        const newTexture = Texture3D.createWithChunk(chunk);
+        this.setTexture(textureIndex, newTexture);
+      }
+      this.programName = dataTypeToVolumeShader(texture.dataType);
     }
-    this.setTexture(textureIndex, texture);
-    this.programName = dataTypeToVolumeShader(texture.dataType);
-    this.loadedChannels_.add(channelIndex);
-  }
 
-  public addLoadedChannel(channelIndex: number) {
     this.loadedChannels_.add(channelIndex);
   }
 

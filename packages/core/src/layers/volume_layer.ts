@@ -105,7 +105,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private createVolume(chunk: Chunk) {
     const volume = new VolumeRenderable(this.channelProps_);
-    volume.addChunkToVolume(chunk);
+    volume.updateVolumeWithChunk(chunk);
     this.updateVolumeChunk(volume, chunk);
     return volume;
   }
@@ -124,6 +124,16 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     const existing = this.currentChunks_.get(chunk);
     if (existing) return existing;
 
+    const pooledVolume = this.pool_.acquire(poolKeyForChunk(chunk));
+    if (pooledVolume) {
+      pooledVolume.updateVolumeWithChunk(chunk);
+
+      if (this.channelProps_) {
+        pooledVolume.setChannelProps(this.channelProps_);
+      }
+      return pooledVolume;
+    }
+
     for (const [existingChunk, volume] of this.currentChunks_) {
       if (
         existingChunk.chunkIndex.x === chunk.chunkIndex.x &&
@@ -131,23 +141,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
         existingChunk.chunkIndex.z === chunk.chunkIndex.z &&
         existingChunk.chunkIndex.t === chunk.chunkIndex.t
       ) {
-        volume.addChunkToVolume(chunk);
+        volume.updateVolumeWithChunk(chunk);
         return volume;
       }
-    }
-
-    const pooledVolume = this.pool_.acquire(poolKeyForChunk(chunk));
-    if (pooledVolume) {
-      const chunkIndex = chunk.chunkIndex.c;
-      const texture = pooledVolume.textures[chunkIndex] as Texture3D;
-      texture.updateWithChunk(chunk);
-      this.updateVolumeChunk(pooledVolume, chunk);
-      pooledVolume.addLoadedChannel(chunkIndex);
-
-      if (this.channelProps_) {
-        pooledVolume.setChannelProps(this.channelProps_);
-      }
-      return pooledVolume;
     }
 
     return this.createVolume(chunk);
