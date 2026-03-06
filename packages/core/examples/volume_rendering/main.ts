@@ -22,19 +22,19 @@ const policy = createExplorationPolicy({
 
 const channelConfigs = [
   {
-    name: "Channel 0",
+    name: "Phase 3D",
     visible: false,
     color: "#ffffff",
     contrastLimits: [-1.5, 10.0] as [number, number],
   },
   {
-    name: "Channel 1",
+    name: "Prime DAPI",
     visible: true,
     color: "#0000ff",
     contrastLimits: [108, 353] as [number, number],
   },
   {
-    name: "Channel 2",
+    name: "Prime GFP",
     visible: true,
     color: "#00ff00",
     contrastLimits: [144, 3825] as [number, number],
