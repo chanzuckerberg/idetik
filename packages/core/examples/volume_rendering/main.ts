@@ -20,7 +20,7 @@ const policy = createExplorationPolicy({
   lod: { min: controls.lod, max: controls.lod },
 });
 
-const channelConfigs = [
+const channelProps = [
   {
     name: "Phase 3D",
     visible: false,
@@ -45,11 +45,7 @@ const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
-  channelProps: channelConfigs.map((config) => ({
-    visible: config.visible,
-    color: config.color,
-    contrastLimits: config.contrastLimits,
-  })),
+  channelProps,
 });
 
 const idetik = new Idetik({
@@ -82,7 +78,7 @@ function updateChannelProperty<K extends keyof ChannelProps>(
 
 function createChannelControls(
   folder: GUI,
-  config: (typeof channelConfigs)[number],
+  config: (typeof channelProps)[number],
   index: number
 ) {
   const channelFolder = folder.addFolder(config.name);
@@ -151,7 +147,7 @@ volumeFolder
 
 // Create channel controls dynamically
 const channelsFolder = gui.addFolder("Channels");
-channelConfigs.forEach((config, index) => {
+channelProps.forEach((config, index) => {
   createChannelControls(channelsFolder, config, index);
 });
 
