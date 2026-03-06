@@ -3,6 +3,7 @@ import GUI from "lil-gui";
 import { Idetik, OmeZarrImageSource, PerspectiveCamera, VolumeLayer } from "@";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
+import type { ChannelProps } from "@/objects/textures/channel";
 
 const url =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/";
@@ -18,33 +19,39 @@ const camera = new PerspectiveCamera();
 const policy = createExplorationPolicy({
   lod: { min: controls.lod, max: controls.lod },
 });
-const channelVisibility = {
-  "Channel 0": false,
-  "Channel 1": true,
-  "Channel 2": true,
-};
+
+const channelConfigs = [
+  {
+    name: "Channel 0",
+    visible: false,
+    color: "#ffffff",
+    contrastLimits: [-1.5, 10.0] as [number, number],
+  },
+  {
+    name: "Channel 1",
+    visible: true,
+    color: "#0000ff",
+    contrastLimits: [108, 353] as [number, number],
+  },
+  {
+    name: "Channel 2",
+    visible: true,
+    color: "#00ff00",
+    contrastLimits: [144, 3825] as [number, number],
+  },
+];
+
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
-  channelProps: [
-    {
-      visible: channelVisibility["Channel 0"],
-      color: [1, 1, 1],
-      contrastLimits: [-1.5, 10.0],
-    },
-    {
-      visible: channelVisibility["Channel 1"],
-      color: [0, 0, 1],
-      contrastLimits: [108, 353],
-    },
-    {
-      visible: channelVisibility["Channel 2"],
-      color: [0, 1, 0],
-      contrastLimits: [144, 3825],
-    },
-  ],
+  channelProps: channelConfigs.map((config) => ({
+    visible: config.visible,
+    color: config.color,
+    contrastLimits: config.contrastLimits,
+  })),
 });
+
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
@@ -61,6 +68,52 @@ const idetik = new Idetik({
 });
 
 idetik.start();
+
+function updateChannelProperty<K extends keyof ChannelProps>(
+  channelIndex: number,
+  property: K,
+  value: ChannelProps[K]
+) {
+  const props = volumeLayer.channelProps;
+  if (!props) return;
+  props[channelIndex][property] = value;
+  volumeLayer.setChannelProps(props);
+}
+
+function createChannelControls(
+  folder: GUI,
+  config: (typeof channelConfigs)[number],
+  index: number
+) {
+  const channelFolder = folder.addFolder(config.name);
+
+  channelFolder
+    .add(config, "visible")
+    .name("Visible")
+    .onChange((visible: boolean) => {
+      updateChannelProperty(index, "visible", visible);
+    });
+
+  channelFolder
+    .addColor(config, "color")
+    .name("Color")
+    .onChange((hex: string) => {
+      updateChannelProperty(index, "color", hex);
+    });
+
+  channelFolder
+    .add(config.contrastLimits, "0")
+    .name("Contrast Min")
+    .onChange(() => {
+      updateChannelProperty(index, "contrastLimits", config.contrastLimits);
+    });
+  channelFolder
+    .add(config.contrastLimits, "1")
+    .name("Contrast Max")
+    .onChange(() => {
+      updateChannelProperty(index, "contrastLimits", config.contrastLimits);
+    });
+}
 
 // Add GUI controls to manipulate rendering
 const gui = new GUI({ width: 500 });
@@ -96,20 +149,11 @@ volumeFolder
   .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
   .name("Early termination threshold");
 
-function updateChannelProps() {
-  const props = volumeLayer.channelProps;
-  if (!props) return;
-  const updated = props.map((p, i) => ({
-    ...p,
-    visible: Object.values(channelVisibility)[i],
-  }));
-  volumeLayer.setChannelProps(updated);
-}
-
+// Create channel controls dynamically
 const channelsFolder = gui.addFolder("Channels");
-channelsFolder.add(channelVisibility, "Channel 0").onChange(updateChannelProps);
-channelsFolder.add(channelVisibility, "Channel 1").onChange(updateChannelProps);
-channelsFolder.add(channelVisibility, "Channel 2").onChange(updateChannelProps);
+channelConfigs.forEach((config, index) => {
+  createChannelControls(channelsFolder, config, index);
+});
 
 const overlaysFolder = gui.addFolder("Debug");
 overlaysFolder
