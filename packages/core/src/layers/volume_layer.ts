@@ -169,12 +169,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     const chunksToRender = this.chunkStoreView_.getChunksToRender(
       this.sliceCoords_
     );
-    const numChunksToRender = chunksToRender.length;
-
     const currentTime = this.sliceCoords_.t ?? -1;
     const needsUpdate =
       this.lastLoadedTime_ !== currentTime ||
-      numChunksToRender !== this.currentChunks_.size;
+      chunksToRender.length !== this.currentChunks_.size;
     if (!needsUpdate) return;
 
     const newChunkSet = new Set(chunksToRender);
