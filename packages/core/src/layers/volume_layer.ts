@@ -102,13 +102,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     return new Set(this.currentChunks_.values());
   }
 
-  private createVolume(chunk: Chunk) {
-    const volume = new VolumeRenderable(this.channelProps_);
-    volume.updateVolumeWithChunk(chunk);
-    this.updateVolumeChunk(volume, chunk);
-    return volume;
-  }
-
   constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {
     super({ transparent: true, blendMode: "premultiplied" });
     this.source_ = source;
@@ -126,6 +119,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     const pooledVolume = this.pool_.acquire(poolKeyForChunk(chunk));
     if (pooledVolume) {
       pooledVolume.updateVolumeWithChunk(chunk);
+      this.updateVolumeChunk(pooledVolume, chunk);
 
       if (this.channelProps_) {
         pooledVolume.setChannelProps(this.channelProps_);
@@ -145,7 +139,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       }
     }
 
-    return this.createVolume(chunk);
+    const volume = new VolumeRenderable(this.channelProps_);
+    volume.updateVolumeWithChunk(chunk);
+    this.updateVolumeChunk(volume, chunk);
+    return volume;
   }
 
   public async onAttached(context: IdetikContext) {
