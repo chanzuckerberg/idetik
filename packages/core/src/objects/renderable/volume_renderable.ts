@@ -116,9 +116,9 @@ export class VolumeRenderable extends RenderableObject {
 
     const samplerUniformsObject = samplerUniforms.reduce<
       Record<string, number>
-    >((acc, texIndex, i) => {
-      acc[`Channel${i}Sampler`] = texIndex;
-      return acc;
+    >((uniforms, textureIndex, i) => {
+      uniforms[`Channel${i}Sampler`] = textureIndex;
+      return uniforms;
     }, {});
 
     return {
@@ -131,6 +131,9 @@ export class VolumeRenderable extends RenderableObject {
     };
   }
 
+  /**
+   * Get an available texture for a channel. If desiredChannelIndex is provided, it will try to return the texture for that channel index. If that texture is not available, or no desiredChannelIndex is passed, return the first available channel texture. This is used to determine which texture to use when updating channel properties, since channel properties can be updated even if the channel's texture hasn't been loaded yet. If no textures are available, it returns null, which signals that default contrast limits should be used when validating the channel properties.
+   */
   private getAvailableChannelTexture(
     desiredChannelIndex?: number
   ): Texture | null {
