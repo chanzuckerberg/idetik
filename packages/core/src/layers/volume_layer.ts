@@ -139,7 +139,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     }
 
     volume.updateVolumeWithChunk(chunk);
-    this.updateVolumeChunk(volume, chunk);
+    this.updateVolumeTransform(volume, chunk);
     return volume;
   }
 
@@ -191,7 +191,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     if (this.state !== "ready") this.setState("ready");
   }
 
-  private updateVolumeChunk(volume: VolumeRenderable, chunk: Chunk) {
+  private updateVolumeTransform(volume: VolumeRenderable, chunk: Chunk) {
     const worldSize = {
       x: chunk.shape.x * chunk.scale.x,
       y: chunk.shape.y * chunk.scale.y,
