@@ -30,17 +30,16 @@ const volumeLayer = new VolumeLayer({
     },
     {
       visible: true,
-      color: [1, 1, 1],
+      color: [0, 0, 1],
       contrastLimits: [108, 353],
     },
     {
       visible: true,
-      color: [1, 1, 1],
+      color: [0, 1, 0],
       contrastLimits: [144, 3825],
     },
   ],
 });
-volumeLayer.opacityMultiplier = 0.001;
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
@@ -81,7 +80,7 @@ const opacityControls = {
     return (Math.log10(volumeLayer.opacityMultiplier) + 3) / 4;
   },
   set opacity(sliderValue: number) {
-    volumeLayer.opacityMultiplier = Math.pow(10, sliderValue * 4 - 3);
+    volumeLayer.opacityMultiplier = 10 ** (sliderValue * 4 - 3);
   },
 };
 volumeFolder
@@ -89,7 +88,7 @@ volumeFolder
   .name("Opacity")
   .decimals(2);
 volumeFolder
-  .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
+  .add(volumeLayer, "earlyTerminationAlpha", 0.01, 1.0, 0.01)
   .name("Early termination threshold");
 
 const overlaysFolder = gui.addFolder("Debug");
@@ -97,5 +96,5 @@ overlaysFolder
   .add(volumeLayer, "debugShowWireframes")
   .name("Show tile wireframes");
 overlaysFolder
-  .add(volumeLayer, "debugShowDegenerateRays")
-  .name("Show degenerate rays (length 0)");
+  .add(volumeLayer, "debugSetOITWeightOne")
+  .name("Set OIT weight to 1 (no depth)");

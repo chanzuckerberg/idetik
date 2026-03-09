@@ -1,21 +1,22 @@
 import { Renderer } from "../core/renderer";
-import { WebGLShaderProgram } from "./webgl_shader_program";
+import type { WebGLShaderProgram } from "./webgl_shader_program";
 import { WebGLShaderPrograms } from "./webgl_shader_programs";
 import { Logger } from "../utilities/logger";
 
 import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
+import { TransparencyBuffer } from "./webgl_framebuffers";
 
-import { Layer } from "../core/layer";
+import type { Layer } from "../core/layer";
 import { WebGLState } from "./WebGLState";
-import { RenderableObject } from "../core/renderable_object";
-import { Geometry, Primitive } from "../core/geometry";
+import type { RenderableObject } from "../core/renderable_object";
+import type { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
-import { Viewport } from "../core/viewport";
-import { Camera } from "../objects/cameras/camera";
+import type { Viewport } from "../core/viewport";
+import type { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
-import { Frustum } from "../math/frustum";
+import type { Frustum } from "../math/frustum";
 
 // Idetik defines screen-space with +Y pointing downward.
 // With the default camera, the basis vectors are:
@@ -27,12 +28,33 @@ import { Frustum } from "../math/frustum";
 // This is a mirror transform, which also flips triangle winding.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
+class CompositePass {
+  private readonly gl_: WebGL2RenderingContext;
+  private readonly vao_: WebGLVertexArrayObject;
+
+  constructor(gl: WebGL2RenderingContext) {
+    this.gl_ = gl;
+    this.vao_ = this.gl_.createVertexArray();
+    this.gl_.bindVertexArray(this.vao_);
+  }
+  present(buffer: TransparencyBuffer) {
+    buffer.bindTextures();
+    this.gl_.blendFunc(this.gl_.ONE_MINUS_SRC_ALPHA, this.gl_.SRC_ALPHA);
+    this.gl_.drawArrays(this.gl_.TRIANGLES, 0, 3);
+  }
+  dispose() {
+    this.gl_.deleteVertexArray(this.vao_);
+  }
+}
+
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext;
   private readonly programs_: WebGLShaderPrograms;
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
+  private readonly transparencyBuffer_: TransparencyBuffer;
+  private readonly compositePass_: CompositePass;
   private renderedObjectsPerFrame_ = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -55,6 +77,12 @@ export class WebGLRenderer extends Renderer {
     this.programs_ = new WebGLShaderPrograms(gl);
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
+    this.transparencyBuffer_ = new TransparencyBuffer(
+      gl,
+      this.canvas.width,
+      this.canvas.height
+    );
+    this.compositePass_ = new CompositePass(gl);
     this.state_ = new WebGLState(gl);
     this.initStencil();
     this.resize(this.canvas.width, this.canvas.height);
@@ -97,11 +125,18 @@ export class WebGLRenderer extends Renderer {
     }
 
     this.state_.setDepthMask(false);
+    this.transparencyBuffer_.begin();
     for (const layer of transparent) {
       layer.update(renderContext);
       if (layer.state !== "ready") continue;
       this.renderLayer(layer, viewport.camera, frustum);
     }
+    this.transparencyBuffer_.end();
+    const program = this.programs_.use("transparentComposite");
+    program.setUniform("Sampler0", 0);
+    program.setUniform("Sampler1", 1);
+    this.compositePass_.present(this.transparencyBuffer_);
+    this.transparencyBuffer_.clear();
     this.state_.setDepthMask(true);
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
@@ -141,13 +176,18 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
+    // Dispose stale textures even for non visible objects
+    object.popStaleTextures().forEach((texture) => {
+      this.textures_.disposeTexture(texture);
+    });
+    if (!object.visible) {
+      return;
+    }
+
     this.state_.setCullFaceMode(object.cullFaceMode);
     this.state_.setDepthTesting(object.depthTest);
     this.state_.setDepthMask(object.depthTest);
     this.bindings_.bindGeometry(object.geometry);
-    object.popStaleTextures().forEach((texture) => {
-      this.textures_.disposeTexture(texture);
-    });
     object.textures.forEach((texture, index) => {
       this.textures_.bindTexture(texture, index);
     });
@@ -203,6 +243,15 @@ export class WebGLRenderer extends Renderer {
         case "Projection":
           program.setUniform(uniformName, projection);
           break;
+        case "ModelViewProjection": {
+          const modelViewProjection = mat4.multiply(
+            mat4.create(),
+            projection,
+            modelView
+          );
+          program.setUniform(uniformName, modelViewProjection);
+          break;
+        }
         case "Resolution":
           program.setUniform(uniformName, resolution);
           break;

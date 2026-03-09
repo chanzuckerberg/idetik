@@ -5,26 +5,36 @@ import type { TextureDataType } from "../textures/texture";
 import type { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
 import {
-  Channel,
-  ChannelProps,
+  type Channel,
+  type ChannelProps,
   validateChannel,
   validateChannels,
 } from "../textures/channel";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
+  public channelIndex: number = 0;
 
   private channels_: Required<Channel>[];
 
-  constructor(texture: Texture3D, channels: ChannelProps[] = []) {
+  constructor(
+    texture: Texture3D,
+    channelIndex: number = 0,
+    channels: ChannelProps[] = []
+  ) {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
     this.setTexture(0, texture);
     this.programName = dataTypeToVolumeShader(texture.dataType);
     this.cullFaceMode = "front";
     this.depthTest = false;
-    // TODO handle visibility property of channels
+    this.channelIndex = channelIndex;
     this.channels_ = validateChannels(texture, channels);
+  }
+
+  public get visible() {
+    const channel = this.getChannelOrDefault(this.channelIndex);
+    return channel.visible;
   }
 
   public get type() {
@@ -32,13 +42,14 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public override getUniforms(): Record<string, unknown> {
-    const channel = this.channels_[0] ?? validateChannel(this.textures[0], {});
+    const channel = this.getChannelOrDefault(this.channelIndex);
     const { color, contrastLimits } = channel;
     return {
       VoxelScale: this.voxelScale,
       Color: color.rgb,
       ValueOffset: -contrastLimits[0],
       ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
+      DebugShowChunkBoundaries: Number(this.wireframeEnabled),
     };
   }
 
@@ -57,6 +68,12 @@ export class VolumeRenderable extends RenderableObject {
     });
 
     this.channels_[channelIndex] = newChannel;
+  }
+
+  private getChannelOrDefault(channelIndex: number): Required<Channel> {
+    return (
+      this.channels_[channelIndex] ?? validateChannel(this.textures[0], {})
+    );
   }
 }
 

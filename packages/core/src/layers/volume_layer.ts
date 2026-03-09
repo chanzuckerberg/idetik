@@ -1,14 +1,20 @@
-import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { Layer, RenderContext } from "../core/layer";
+import type { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import { Layer, type RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
-import { IdetikContext } from "../idetik";
-import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
-import { ImageSourcePolicy } from "../core/image_source_policy";
+import type { IdetikContext } from "../idetik";
+import {
+  type ChunkStoreView,
+  INTERNAL_POLICY_KEY,
+} from "../core/chunk_store_view";
+import type { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture3D } from "../objects/textures/texture_3d";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
 import { sortFrontToBack } from "../math/sort_by_distance";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import type {
+  ChannelProps,
+  ChannelsEnabled,
+} from "../objects/textures/channel";
 
 export type VolumeLayerProps = {
   source: ChunkSource;
@@ -38,9 +44,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   // TODO: Make a debug config object to manage debug options
   private debugShowWireframes_ = false;
-  public debugShowDegenerateRays = false;
+  public debugSetOITWeightOne = false;
   public relativeStepSize = 1.0;
-  public opacityMultiplier = 0.1;
+  public opacityMultiplier = 0.5;
   public earlyTerminationAlpha = 0.99;
 
   public get debugShowWireframes() {
@@ -102,6 +108,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private createVolume(chunk: Chunk) {
     const volume = new VolumeRenderable(
       Texture3D.createWithChunk(chunk),
+      chunk.chunkIndex.c,
       this.channelProps_
     );
     this.updateVolumeChunk(volume, chunk);
@@ -238,7 +245,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public getUniforms(): Record<string, unknown> {
     return {
-      DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
+      DebugSetOITWeightOne: Number(this.debugSetOITWeightOne),
       RelativeStepSize: this.relativeStepSize * this.interactiveStepSizeScale_,
       OpacityMultiplier: this.opacityMultiplier,
       EarlyTerminationAlpha: this.earlyTerminationAlpha,
