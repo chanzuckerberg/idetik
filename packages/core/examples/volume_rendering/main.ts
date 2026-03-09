@@ -68,17 +68,14 @@ function updateChannelProperty<K extends keyof ChannelProps>(
   property: K,
   value: ChannelProps[K]
 ) {
+  let safeValue = value;
   if (property === "contrastLimits") {
     const [min, max] = value as [number, number];
-    // Ensure contrast limit min is less than max
-    if (min >= max) {
-      return;
-    } else {
-      channelProps[channelIndex].contrastLimits = [min, max];
-    }
-  } else {
-    channelProps[channelIndex][property] = value;
+    if (min >= max) return;
+    safeValue = [min, max] as ChannelProps[K];
   }
+
+  channelProps[channelIndex][property] = safeValue;
   volumeLayer.setChannelProps(channelProps);
 }
 
@@ -90,6 +87,7 @@ function createChannelControls(
   const channelName = channelNames[index] || `Channel ${index}`;
   const channelFolder = folder.addFolder(channelName);
 
+  // Local version of the channel config to avoid mutating the original when adjusting contrast limits, e.g. if setting the max below the min
   const guiConfig: ChannelProps = {
     ...config,
     contrastLimits: config.contrastLimits
