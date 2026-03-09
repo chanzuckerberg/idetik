@@ -11,7 +11,6 @@ import {
 import { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";
-import { Logger } from "@/utilities/logger";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
@@ -73,7 +72,7 @@ export class VolumeRenderable extends RenderableObject {
     this.loadedChannels_ = new Set();
   }
 
-  public override getUniforms(): Record<string, unknown> {
+  public override getUniforms(): Record<string, number[] | number> {
     const loadedAndVisibleTextures = [0, 0, 0, 0];
     // prettier-ignore
     const colors = [
@@ -92,24 +91,19 @@ export class VolumeRenderable extends RenderableObject {
       this.channelToTextureIndex_.size
     );
 
-    for (let i = 0; i < numTotalChannels; i++) {
-      if (!this.loadedChannels_.has(i)) continue;
+    for (let i = 0; i < numTotalChannels && samplerUniforms.length < 4; i++) {
       const textureIndex = this.channelToTextureIndex_.get(i);
-      if (textureIndex === undefined) continue;
+      if (textureIndex === undefined || !this.loadedChannels_.has(i)) continue;
+
       const texture = this.textures[textureIndex];
       const channel = validateChannel(texture, this.channels_[i] || {});
       if (!channel.visible) continue;
+
       const k = samplerUniforms.length;
-      if (k >= 4) {
-        Logger.warn(
-          "VolumeRenderable",
-          `Maximum of 4 channels can be rendered, but more were requested. Only the first 4 channels out of all visible channels will be rendered.`
-        );
-        break;
-      }
-      for (let j = 0; j < 3; j++) {
-        colors[k * 3 + j] = channel.color.rgb[j];
-      }
+      colors[k * 3] = channel.color.rgb[0];
+      colors[k * 3 + 1] = channel.color.rgb[1];
+      colors[k * 3 + 2] = channel.color.rgb[2];
+
       samplerUniforms.push(textureIndex);
       valueOffset[k] = -channel.contrastLimits[0];
       valueScale[k] =
@@ -117,21 +111,23 @@ export class VolumeRenderable extends RenderableObject {
       loadedAndVisibleTextures[k] = 1;
     }
 
-    const samplerUniformsObject = samplerUniforms.reduce<
-      Record<string, number>
-    >((uniforms, textureIndex, i) => {
-      uniforms[`Channel${i}Sampler`] = textureIndex;
-      return uniforms;
-    }, {});
-
-    return {
-      ...samplerUniformsObject,
-      Visible: loadedAndVisibleTextures,
-      "Color[0]": colors,
-      ValueOffset: valueOffset,
-      ValueScale: valueScale,
-      VoxelScale: this.voxelScale,
-    };
+    return samplerUniforms.reduce<Record<string, number[] | number>>(
+      (uniforms, textureIndex, i) => {
+        uniforms[`Channel${i}Sampler`] = textureIndex;
+        return uniforms;
+      },
+      {
+        Visible: loadedAndVisibleTextures,
+        "Color[0]": colors,
+        ValueOffset: valueOffset,
+        ValueScale: valueScale,
+        VoxelScale: [
+          this.voxelScale[0],
+          this.voxelScale[1],
+          this.voxelScale[2],
+        ],
+      }
+    );
   }
 
   /**
