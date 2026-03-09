@@ -20,24 +20,22 @@ const policy = createExplorationPolicy({
   lod: { min: controls.lod, max: controls.lod },
 });
 
-const channelProps = [
+const channelNames = ["Phase 3D", "Prime DAPI", "Prime GFP"];
+const channelProps: ChannelProps[] = [
   {
-    name: "Phase 3D",
     visible: false,
     color: "#ffffff",
-    contrastLimits: [-1.5, 10.0] as [number, number],
+    contrastLimits: [-1.5, 10.0],
   },
   {
-    name: "Prime DAPI",
     visible: true,
     color: "#0000ff",
-    contrastLimits: [108, 353] as [number, number],
+    contrastLimits: [108, 353],
   },
   {
-    name: "Prime GFP",
     visible: true,
     color: "#00ff00",
-    contrastLimits: [144, 3825] as [number, number],
+    contrastLimits: [144, 3825],
   },
 ];
 
@@ -70,10 +68,18 @@ function updateChannelProperty<K extends keyof ChannelProps>(
   property: K,
   value: ChannelProps[K]
 ) {
-  const props = volumeLayer.channelProps;
-  if (!props) return;
-  props[channelIndex][property] = value;
-  volumeLayer.setChannelProps(props);
+  if (property === "contrastLimits") {
+    const [min, max] = value as [number, number];
+    // Ensure contrast limit min is less than max
+    if (min >= max) {
+      return;
+    } else {
+      channelProps[channelIndex].contrastLimits = [min, max];
+    }
+  } else {
+    channelProps[channelIndex][property] = value;
+  }
+  volumeLayer.setChannelProps(channelProps);
 }
 
 function createChannelControls(
@@ -81,34 +87,52 @@ function createChannelControls(
   config: (typeof channelProps)[number],
   index: number
 ) {
-  const channelFolder = folder.addFolder(config.name);
+  const channelName = channelNames[index] || `Channel ${index}`;
+  const channelFolder = folder.addFolder(channelName);
+
+  const guiConfig: ChannelProps = {
+    ...config,
+    contrastLimits: config.contrastLimits
+      ? [config.contrastLimits[0], config.contrastLimits[1]]
+      : undefined,
+  };
 
   channelFolder
-    .add(config, "visible")
+    .add(guiConfig, "visible")
     .name("Visible")
     .onChange((visible: boolean) => {
       updateChannelProperty(index, "visible", visible);
     });
 
   channelFolder
-    .addColor(config, "color")
+    .addColor(guiConfig, "color")
     .name("Color")
     .onChange((hex: string) => {
       updateChannelProperty(index, "color", hex);
     });
 
-  channelFolder
-    .add(config.contrastLimits, "0")
-    .name("Contrast Min")
-    .onChange(() => {
-      updateChannelProperty(index, "contrastLimits", config.contrastLimits);
-    });
-  channelFolder
-    .add(config.contrastLimits, "1")
-    .name("Contrast Max")
-    .onChange(() => {
-      updateChannelProperty(index, "contrastLimits", config.contrastLimits);
-    });
+  if (guiConfig.contrastLimits) {
+    channelFolder
+      .add(guiConfig.contrastLimits, "0")
+      .name("Contrast Min")
+      .onChange(() => {
+        updateChannelProperty(
+          index,
+          "contrastLimits",
+          guiConfig.contrastLimits
+        );
+      });
+    channelFolder
+      .add(guiConfig.contrastLimits, "1")
+      .name("Contrast Max")
+      .onChange(() => {
+        updateChannelProperty(
+          index,
+          "contrastLimits",
+          guiConfig.contrastLimits
+        );
+      });
+  }
 }
 
 // Add GUI controls to manipulate rendering

@@ -48,9 +48,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public set debugShowWireframes(value: boolean) {
     if (this.debugShowWireframes_ === value) return;
-    for (const volume of this.currentVolumes()) {
+    this.currentVolumes().forEach((volume) => {
       volume.wireframeEnabled = value;
-    }
+    });
     this.debugShowWireframes_ = value;
   }
 
@@ -74,10 +74,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.channelChangeCallbacks_.forEach((callback) => {
       callback();
     });
-  }
-
-  public get channelProps(): ChannelProps[] | undefined {
-    return this.channelProps_;
   }
 
   public resetChannelProps(): void {
