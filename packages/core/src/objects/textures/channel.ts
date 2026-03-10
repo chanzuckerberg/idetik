@@ -79,8 +79,8 @@ export function validateChannels(
 }
 
 /**
- * returns the channel indices where visibility is not explicitly "false" (i.e: if no visibility is set, then we consider it as "true")
- * if all channels are visible, returns "undefined" to force load of all channels;
+ * Returns the channel indices where visibility is not explicitly "false" (i.e: if no visibility is set, then we consider it as "true")
+ * If all channels are visible, returns "undefined" to force load of all channels;
  * otherwise returns an array of visible channel indices only
  */
 export function visibleChannelIndices(
