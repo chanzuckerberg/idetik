@@ -6,7 +6,7 @@ import type { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import type { IdetikContext } from "../idetik";
 import { sortFrontToBack } from "../math/sort_by_distance";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
-import { type ChannelProps, type ChannelsEnabled, visibleChannelIndices } from "../objects/textures/channel";
+import { type ChannelProps, type ChannelsEnabled, expandVisibleChannels, visibleChannelIndices } from "../objects/textures/channel";
 import { RenderablePool } from "../utilities/renderable_pool";
 
 export type VolumeLayerProps = {
@@ -68,7 +68,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
-    this.sliceCoords_.c = visibleChannelIndices(channelProps);
+    this.sliceCoords_.c = expandVisibleChannels(this.sliceCoords_.c, channelProps);
     this.currentVolumes().forEach((volume) => {
       volume.setChannelProps(channelProps);
     });
@@ -216,15 +216,22 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>) {
-    const releasedVolumes = new Set<VolumeRenderable>();
+    const volumesByChunk = new Map<Chunk, VolumeRenderable>();
     for (const chunk of chunks) {
       const volume = this.currentChunks_.get(chunk);
-      if (volume && !releasedVolumes.has(volume)) {
+      if (volume) volumesByChunk.set(chunk, volume);
+      this.currentChunks_.delete(chunk);
+    }
+
+    // Only release renderables that are no longer referenced by any remaining chunk
+    const stillReferenced = new Set(this.currentChunks_.values());
+    const releasedVolumes = new Set<VolumeRenderable>();
+    for (const [chunk, volume] of volumesByChunk) {
+      if (!stillReferenced.has(volume) && !releasedVolumes.has(volume)) {
         volume.clearLoadedChannels();
         this.pool_.release(poolKeyForChunk(chunk), volume);
         releasedVolumes.add(volume);
       }
-      this.currentChunks_.delete(chunk);
     }
   }
 

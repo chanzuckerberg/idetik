@@ -1,12 +1,12 @@
 // TODO: move this file out of `textures`
-import { Color, ColorLike } from "../../core/color";
+import { Color, type ColorLike } from "../../core/color";
+import { MAX_CHANNELS } from "../../core/constants";
 import {
-  Texture,
+  type Texture,
   textureDefaultValueRange,
 } from "../../objects/textures/texture";
-import { MAX_CHANNELS } from "../../core/constants";
-import { Texture2DArray } from "./texture_2d_array";
 import { Logger } from "../../utilities/logger";
+import type { Texture2DArray } from "./texture_2d_array";
 
 export type Channel = {
   visible: boolean;
@@ -91,6 +91,31 @@ export function visibleChannelIndices(
     .filter((i) => i >= 0);
   if (visible.length === channelProps.length) return undefined;
   return visible;
+}
+
+/**
+ * Expands the current visible channels to include channels that have been switched as "visible".
+ * Channels are only added, never removed
+ * Returns undefined (load all) once all channels have been seen.
+ */
+export function expandVisibleChannels(
+  current: number | number[] | undefined,
+  channelProps: ChannelProps[]
+): number[] | undefined {
+  if (current === undefined) return undefined;
+
+  const currentArray = typeof current === "number" ? [current] : current;
+  if (currentArray.length === channelProps.length) return undefined;
+
+  const newlyVisible = channelProps
+    .map((p, i) => (p.visible !== false ? i : -1))
+    .filter((i) => i >= 0 && !currentArray.includes(i));
+  if (newlyVisible.length === 0) return currentArray;
+
+  const expanded = [...currentArray, ...newlyVisible].sort((a, b) => a - b);
+  if (expanded.length === channelProps.length) return undefined;
+
+  return expanded;
 }
 
 function validateContrastLimits(
