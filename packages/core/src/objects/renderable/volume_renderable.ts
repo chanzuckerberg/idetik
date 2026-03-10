@@ -19,12 +19,12 @@ export class VolumeRenderable extends RenderableObject {
   private channelToTextureIndex_: Map<number, number> = new Map();
   private loadedChannels_: Set<number> = new Set();
 
-  constructor(channels: ChannelProps[] = []) {
+  constructor() {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
     this.cullFaceMode = "front";
     this.depthTest = false;
-    this.channels_ = validateChannels(null, channels);
+    this.channels_ = [];
     // Requires a name to be set to start, will be replaced once
     // channel data is loaded and added as a texture to the renderable
     this.programName = dataTypeToVolumeShader("float");

@@ -118,12 +118,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     }
 
     const poolKey = poolKeyForChunk(chunks[0]);
-    let volume = this.pool_.acquire(poolKey);
-    if (volume) {
-      volume.setChannelProps(this.channelProps_ ?? []);
-    } else {
-      volume = new VolumeRenderable(this.channelProps_);
-    }
+    const volume = this.pool_.acquire(poolKey) ?? new VolumeRenderable();
+    volume.setChannelProps(this.channelProps_ ?? []);
     this.volumeToPoolKey_.set(volume, poolKey);
 
     for (const chunk of chunks) volume.updateVolumeWithChunk(chunk);
