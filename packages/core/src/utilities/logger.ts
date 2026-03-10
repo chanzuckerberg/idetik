@@ -35,6 +35,7 @@ type Module =
   | "RenderablePool"
   | "Viewport"
   | "VolumeLayer"
+  | "VolumeRenderable"
   | "WebGLRenderer"
   | "WebGLShaderProgram"
   | "WebGLTexture"

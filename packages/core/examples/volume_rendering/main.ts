@@ -3,6 +3,7 @@ import GUI from "lil-gui";
 import { Idetik, OmeZarrImageSource, PerspectiveCamera, VolumeLayer } from "@";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
+import type { ChannelProps } from "@/objects/textures/channel";
 
 const url =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/";
@@ -18,33 +19,33 @@ const camera = new PerspectiveCamera();
 const policy = createExplorationPolicy({
   lod: { min: controls.lod, max: controls.lod },
 });
-const channelVisibility = {
-  "Channel 0": false,
-  "Channel 1": true,
-  "Channel 2": true,
-};
+
+const channelNames = ["Phase 3D", "Prime DAPI", "Prime GFP"];
+const channelProps: ChannelProps[] = [
+  {
+    visible: false,
+    color: "#ffffff",
+    contrastLimits: [-1.5, 10.0],
+  },
+  {
+    visible: true,
+    color: "#0000ff",
+    contrastLimits: [108, 353],
+  },
+  {
+    visible: true,
+    color: "#00ff00",
+    contrastLimits: [144, 3825],
+  },
+];
+
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords,
   policy,
-  channelProps: [
-    {
-      visible: channelVisibility["Channel 0"],
-      color: [1, 1, 1],
-      contrastLimits: [-1.5, 10.0],
-    },
-    {
-      visible: channelVisibility["Channel 1"],
-      color: [0, 0, 1],
-      contrastLimits: [108, 353],
-    },
-    {
-      visible: channelVisibility["Channel 2"],
-      color: [0, 1, 0],
-      contrastLimits: [144, 3825],
-    },
-  ],
+  channelProps,
 });
+
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
@@ -61,6 +62,76 @@ const idetik = new Idetik({
 });
 
 idetik.start();
+
+function updateChannelProperty<K extends keyof ChannelProps>(
+  channelIndex: number,
+  property: K,
+  value: ChannelProps[K]
+) {
+  let safeValue = value;
+  if (property === "contrastLimits") {
+    const [min, max] = value as [number, number];
+    if (min >= max) return;
+    safeValue = [min, max] as ChannelProps[K];
+  }
+
+  channelProps[channelIndex][property] = safeValue;
+  volumeLayer.setChannelProps(channelProps);
+}
+
+function createChannelControls(
+  folder: GUI,
+  config: (typeof channelProps)[number],
+  index: number
+) {
+  const channelName = channelNames[index] || `Channel ${index}`;
+  const channelFolder = folder.addFolder(channelName);
+
+  // Local version of the channel config to avoid mutating the original when adjusting contrast limits, e.g. if setting the max below the min
+  const guiConfig: ChannelProps = {
+    ...config,
+    contrastLimits: config.contrastLimits
+      ? [config.contrastLimits[0], config.contrastLimits[1]]
+      : undefined,
+  };
+
+  channelFolder
+    .add(guiConfig, "visible")
+    .name("Visible")
+    .onChange((visible: boolean) => {
+      updateChannelProperty(index, "visible", visible);
+    });
+
+  channelFolder
+    .addColor(guiConfig, "color")
+    .name("Color")
+    .onChange((hex: string) => {
+      updateChannelProperty(index, "color", hex);
+    });
+
+  if (guiConfig.contrastLimits) {
+    channelFolder
+      .add(guiConfig.contrastLimits, "0")
+      .name("Contrast Min")
+      .onChange(() => {
+        updateChannelProperty(
+          index,
+          "contrastLimits",
+          guiConfig.contrastLimits
+        );
+      });
+    channelFolder
+      .add(guiConfig.contrastLimits, "1")
+      .name("Contrast Max")
+      .onChange(() => {
+        updateChannelProperty(
+          index,
+          "contrastLimits",
+          guiConfig.contrastLimits
+        );
+      });
+  }
+}
 
 // Add GUI controls to manipulate rendering
 const gui = new GUI({ width: 500 });
@@ -96,20 +167,10 @@ volumeFolder
   .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
   .name("Early termination threshold");
 
-function updateChannelProps() {
-  const props = volumeLayer.channelProps;
-  if (!props) return;
-  const updated = props.map((p, i) => ({
-    ...p,
-    visible: Object.values(channelVisibility)[i],
-  }));
-  volumeLayer.setChannelProps(updated);
-}
-
 const channelsFolder = gui.addFolder("Channels");
-channelsFolder.add(channelVisibility, "Channel 0").onChange(updateChannelProps);
-channelsFolder.add(channelVisibility, "Channel 1").onChange(updateChannelProps);
-channelsFolder.add(channelVisibility, "Channel 2").onChange(updateChannelProps);
+channelProps.forEach((config, index) => {
+  createChannelControls(channelsFolder, config, index);
+});
 
 const overlaysFolder = gui.addFolder("Debug");
 overlaysFolder

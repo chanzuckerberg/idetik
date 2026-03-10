@@ -1,6 +1,6 @@
 import { vec3, vec4 } from "gl-matrix";
 
-export type ColorLike = Color | vec3 | vec4;
+export type ColorLike = Color | vec3 | vec4 | string;
 
 export class Color {
   public static readonly RED: Color = new Color(1.0, 0.0, 0.0);
@@ -70,6 +70,10 @@ export class Color {
 
     if (Array.isArray(colorLike)) {
       return new Color(colorLike[0], colorLike[1], colorLike[2], colorLike[3]);
+    }
+
+    if (typeof colorLike === "string") {
+      return Color.fromRgbHex(colorLike);
     }
 
     throw new Error("Unsupported color format");

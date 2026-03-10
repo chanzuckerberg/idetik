@@ -1,7 +1,7 @@
 import type { Shader } from "../../renderers/shaders";
 import { RenderableObject } from "../../core/renderable_object";
 import { BoxGeometry } from "../geometry/box_geometry";
-import { TextureDataType } from "../textures/texture";
+import { type Texture, TextureDataType } from "../textures/texture";
 import {
   Channel,
   ChannelProps,
@@ -14,8 +14,10 @@ import type { Chunk } from "../../data/chunk";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
-  private channelMapping_: Map<number, number> = new Map();
+
   private channels_: Required<Channel>[];
+  private channelToTextureIndex_: Map<number, number> = new Map();
+  private loadedChannels_: Set<number> = new Set();
 
   constructor(channels: ChannelProps[] = []) {
     super();
@@ -23,98 +25,133 @@ export class VolumeRenderable extends RenderableObject {
     this.cullFaceMode = "front";
     this.depthTest = false;
     this.channels_ = validateChannels(null, channels);
+    // Requires a name to be set to start, will be replaced once
+    // channel data is loaded and added as a texture to the renderable
+    this.programName = dataTypeToVolumeShader("float");
   }
 
   public get type() {
     return "VolumeRenderable";
   }
 
-  private getTextureIndexFromChannelIndex(
-    channelIndex: number
-  ): number | undefined {
-    return this.channelMapping_.get(channelIndex);
+  public updateVolumeWithChunk(chunk: Chunk): void {
+    const channelIndex = chunk.chunkIndex.c;
+
+    const textureIndex = this.channelToTextureIndex_.get(channelIndex);
+    if (textureIndex !== undefined) {
+      this.updateChannelTexture(textureIndex, chunk);
+    } else {
+      this.addChannelTexture(channelIndex, chunk);
+    }
+
+    this.loadedChannels_.add(channelIndex);
   }
 
-  public addChunkToVolume(chunk: Chunk) {
-    const channelIndex = chunk.chunkIndex.c;
+  private addChannelTexture(channelIndex: number, chunk: Chunk): void {
     const texture = Texture3D.createWithChunk(chunk);
+    const textureIndex = this.textures.length;
 
-    let textureIndex = this.channelMapping_.get(channelIndex);
-    if (textureIndex === undefined) {
-      textureIndex = this.textures.length;
-      this.channelMapping_.set(channelIndex, textureIndex);
-    }
     this.setTexture(textureIndex, texture);
+    this.channelToTextureIndex_.set(channelIndex, textureIndex);
     this.programName = dataTypeToVolumeShader(texture.dataType);
   }
 
-  public override getUniforms(): Record<string, unknown> {
-    // One index per channel
-    const loadedAndVisibleTexture = [0, 0, 0, 0];
+  private updateChannelTexture(textureIndex: number, chunk: Chunk): void {
+    const texture = this.textures[textureIndex];
+
+    if (!(texture instanceof Texture3D)) {
+      const newTexture = Texture3D.createWithChunk(chunk);
+      this.setTexture(textureIndex, newTexture);
+      return;
+    }
+
+    texture.updateWithChunk(chunk);
+  }
+
+  public clearLoadedChannels() {
+    this.loadedChannels_ = new Set();
+  }
+
+  public override getUniforms(): Record<string, number[] | number> {
+    const loadedAndVisibleTextures = [0, 0, 0, 0];
     // prettier-ignore
     const colors = [
       1, 1, 1,
       1, 1, 1,
       1, 1, 1,
       1, 1, 1,
-    ] // Up to 4 channels, RGB color for each
+    ]
     const valueOffset = [0, 0, 0, 0];
     const valueScale = [1, 1, 1, 1];
-
     const samplerUniforms: number[] = [];
 
     // Allow to render without channel props specified
     const numTotalChannels = Math.max(
       this.channels_.length,
-      this.channelMapping_.size
+      this.channelToTextureIndex_.size
     );
-    for (let i = 0; i < numTotalChannels; i++) {
-      const textureIndex = this.getTextureIndexFromChannelIndex(i);
-      if (textureIndex === undefined) continue;
+
+    for (let i = 0; i < numTotalChannels && samplerUniforms.length < 4; i++) {
+      const textureIndex = this.channelToTextureIndex_.get(i);
+      if (textureIndex === undefined || !this.loadedChannels_.has(i)) continue;
+
       const texture = this.textures[textureIndex];
       const channel = validateChannel(texture, this.channels_[i] || {});
       if (!channel.visible) continue;
+
       const k = samplerUniforms.length;
-      for (let j = 0; j < 3; j++) {
-        colors[k * 3 + j] = channel.color.rgb[j];
-      }
+      colors[k * 3] = channel.color.rgb[0];
+      colors[k * 3 + 1] = channel.color.rgb[1];
+      colors[k * 3 + 2] = channel.color.rgb[2];
+
       samplerUniforms.push(textureIndex);
       valueOffset[k] = -channel.contrastLimits[0];
       valueScale[k] =
         1 / (channel.contrastLimits[1] - channel.contrastLimits[0]);
-      loadedAndVisibleTexture[k] = 1;
+      loadedAndVisibleTextures[k] = 1;
     }
 
-    const samplerUniformsObject = samplerUniforms.reduce<
-      Record<string, number>
-    >((acc, texIndex, i) => {
-      acc[`Channel${i}Sampler`] = texIndex;
-      return acc;
-    }, {});
+    return samplerUniforms.reduce<Record<string, number[] | number>>(
+      (uniforms, textureIndex, i) => {
+        uniforms[`Channel${i}Sampler`] = textureIndex;
+        return uniforms;
+      },
+      {
+        Visible: loadedAndVisibleTextures,
+        "Color[0]": colors,
+        ValueOffset: valueOffset,
+        ValueScale: valueScale,
+        VoxelScale: [
+          this.voxelScale[0],
+          this.voxelScale[1],
+          this.voxelScale[2],
+        ],
+      }
+    );
+  }
 
-    return {
-      ...samplerUniformsObject,
-      Visible: loadedAndVisibleTexture,
-      "Color[0]": colors,
-      ValueOffset: valueOffset,
-      ValueScale: valueScale,
-      ChannelCount: numTotalChannels,
-      VoxelScale: this.voxelScale,
-    };
+  /**
+   * Get an available texture for a channel. If desiredChannelIndex is provided, it will try to return the texture for that channel index. If that texture is not available, or no desiredChannelIndex is passed, return the first available channel texture. This is used to determine which texture to use when updating channel properties, since channel properties can be updated even if the channel's texture hasn't been loaded yet. If no textures are available, it returns null, which signals that default contrast limits should be used when validating the channel properties.
+   */
+  private getAvailableChannelTexture(
+    desiredChannelIndex?: number
+  ): Texture | null {
+    if (desiredChannelIndex !== undefined) {
+      const textureIndex = this.channelToTextureIndex_.get(desiredChannelIndex);
+      if (textureIndex !== undefined) return this.textures[textureIndex];
+    }
+
+    const firstTextureIndex = this.channelToTextureIndex_.values().next().value;
+    return firstTextureIndex !== undefined
+      ? this.textures[firstTextureIndex]
+      : null;
   }
 
   public setChannelProps(channels: ChannelProps[]) {
-    let texture = null;
-    if (this.channelMapping_.size !== 0) {
-      const channelIndex = this.channelMapping_.keys().next().value;
-      if (channelIndex !== undefined) {
-        const textureIndex = this.getTextureIndexFromChannelIndex(channelIndex);
-        if (textureIndex !== undefined) {
-          texture = this.textures[textureIndex];
-        }
-      }
-    }
-    this.channels_ = validateChannels(texture, channels);
+    this.channels_ = validateChannels(
+      this.getAvailableChannelTexture(),
+      channels
+    );
   }
 
   public setChannelProperty<K extends keyof ChannelProps>(
@@ -122,10 +159,13 @@ export class VolumeRenderable extends RenderableObject {
     property: K,
     value: Required<ChannelProps>[K]
   ) {
-    const newChannel = validateChannel(this.textures[0], {
-      ...this.channels_[channelIndex],
-      [property]: value,
-    });
+    const newChannel = validateChannel(
+      this.getAvailableChannelTexture(channelIndex),
+      {
+        ...this.channels_[channelIndex],
+        [property]: value,
+      }
+    );
 
     this.channels_[channelIndex] = newChannel;
   }

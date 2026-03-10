@@ -73,6 +73,14 @@ vec4 sampleChannels(vec3 uvw) {
   return (c + ValueOffset) * ValueScale;
 }
 
+vec3 getTextureSize() {
+    if (bool(Visible.x)) return vec3(textureSize(Channel0Sampler, 0));
+    else if (bool(Visible.y)) return vec3(textureSize(Channel1Sampler, 0));
+    else if (bool(Visible.z)) return vec3(textureSize(Channel2Sampler, 0));
+    else if (bool(Visible.w)) return vec3(textureSize(Channel3Sampler, 0));
+    return vec3(1.0); // Ideally at least one channel should be visible
+}
+
 void main() {
     // Step 1 - calculate where the ray enters and exits the volume
 
@@ -83,7 +91,7 @@ void main() {
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
 
-    if (DebugShowDegenerateRays && (tEnter == tExit)) {
+    if (DebugShowDegenerateRays && (tExit == tEnter)) {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
     }
@@ -97,7 +105,7 @@ void main() {
     vec3 rayWithinModel = exitPoint - entryPoint;
 
     // Get texture dimensions and convert ray to voxel space
-    vec3 textureSize = vec3(textureSize(Channel0Sampler, 0));
+    vec3 textureSize = getTextureSize();
     vec3 rayInVoxels = rayWithinModel * textureSize;
     float rayLengthInVoxels = length(rayInVoxels);
     int numSamples = max(int(ceil(rayLengthInVoxels / RelativeStepSize)), 1);
