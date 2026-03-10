@@ -141,13 +141,15 @@ export class WebGLRenderer extends Renderer {
 
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
+    object.popStaleTextures().forEach((texture) => {
+      this.textures_.disposeTexture(texture);
+    });
+
+    if (!object.programName) return;
     this.state_.setCullFaceMode(object.cullFaceMode);
     this.state_.setDepthTesting(object.depthTest);
     this.state_.setDepthMask(object.depthTest);
     this.bindings_.bindGeometry(object.geometry);
-    object.popStaleTextures().forEach((texture) => {
-      this.textures_.disposeTexture(texture);
-    });
     object.textures.forEach((texture, index) => {
       this.textures_.bindTexture(texture, index);
     });

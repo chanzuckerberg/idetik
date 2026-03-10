@@ -25,9 +25,6 @@ export class VolumeRenderable extends RenderableObject {
     this.cullFaceMode = "front";
     this.depthTest = false;
     this.channels_ = [];
-    // Requires a name to be set to start, will be replaced once
-    // channel data is loaded and added as a texture to the renderable
-    this.programName = dataTypeToVolumeShader("float");
   }
 
   public get type() {
