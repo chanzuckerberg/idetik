@@ -50,7 +50,13 @@ export class VolumeRenderable extends RenderableObject {
 
     this.setTexture(textureIndex, texture);
     this.channelToTextureIndex_.set(channelIndex, textureIndex);
-    this.programName = dataTypeToVolumeShader(texture.dataType);
+    const newProgramName = dataTypeToVolumeShader(texture.dataType);
+    if (this.programName && this.programName !== newProgramName) {
+      throw new Error(
+        `Volume renderable does not support multiple channels with different data types. Existing program: ${this.programName}, new channel data type: ${texture.dataType} and program: ${newProgramName}`
+      );
+    }
+    this.programName = newProgramName;
   }
 
   private updateChannelTexture(textureIndex: number, chunk: Chunk): void {
