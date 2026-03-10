@@ -19,15 +19,12 @@ export class VolumeRenderable extends RenderableObject {
   private channelToTextureIndex_: Map<number, number> = new Map();
   private loadedChannels_: Set<number> = new Set();
 
-  constructor(channels: ChannelProps[] = []) {
+  constructor() {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
     this.cullFaceMode = "front";
     this.depthTest = false;
-    this.channels_ = validateChannels(null, channels);
-    // Requires a name to be set to start, will be replaced once
-    // channel data is loaded and added as a texture to the renderable
-    this.programName = dataTypeToVolumeShader("float");
+    this.channels_ = [];
   }
 
   public get type() {
@@ -53,7 +50,13 @@ export class VolumeRenderable extends RenderableObject {
 
     this.setTexture(textureIndex, texture);
     this.channelToTextureIndex_.set(channelIndex, textureIndex);
-    this.programName = dataTypeToVolumeShader(texture.dataType);
+    const newProgramName = dataTypeToVolumeShader(texture.dataType);
+    if (this.programName && this.programName !== newProgramName) {
+      throw new Error(
+        `Volume renderable does not support multiple channels with different data types. Existing program: ${this.programName}, new channel data type: ${texture.dataType} and program: ${newProgramName}`
+      );
+    }
+    this.programName = newProgramName;
   }
 
   private updateChannelTexture(textureIndex: number, chunk: Chunk): void {

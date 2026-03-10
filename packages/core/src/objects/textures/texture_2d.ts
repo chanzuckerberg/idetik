@@ -1,8 +1,8 @@
 import type { Chunk, ChunkData } from "../../data/chunk";
 import {
-    bufferToDataType,
-    type DataTextureTypedArray,
-    Texture,
+  bufferToDataType,
+  type DataTextureTypedArray,
+  Texture,
 } from "../../objects/textures/texture";
 
 export class Texture2D extends Texture {

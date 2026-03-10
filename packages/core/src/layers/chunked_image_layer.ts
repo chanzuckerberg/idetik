@@ -8,10 +8,10 @@ import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import type { IdetikContext } from "../idetik";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import {
-    ChannelProps,
-    ChannelsEnabled,
-    expandVisibleChannels,
-    visibleChannelIndices,
+  ChannelProps,
+  ChannelsEnabled,
+  expandVisibleChannels,
+  visibleChannelIndices,
 } from "../objects/textures/channel";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { almostEqual } from "../utilities/almost_equal";
@@ -356,7 +356,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
-    this.sliceCoords_.c = expandVisibleChannels(this.sliceCoords_.c, channelProps);
+    this.sliceCoords_.c = expandVisibleChannels(
+      this.sliceCoords_.c,
+      channelProps
+    );
     this.visibleChunks_.forEach((image) => {
       image.setChannelProps(channelProps);
     });
