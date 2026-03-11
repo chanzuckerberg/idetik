@@ -188,7 +188,7 @@ export class WebGLRenderer extends Renderer {
     );
     const resolution = [this.canvas.width, this.canvas.height];
 
-    const objectUniforms = object.getUniforms();
+    const uniforms = object.getUniforms();
     for (const uniformName of program.uniformNames) {
       switch (uniformName) {
         case "ModelView":
@@ -222,8 +222,8 @@ export class WebGLRenderer extends Renderer {
           break;
         }
         default:
-          if (uniformName in objectUniforms) {
-            program.setUniform(uniformName, objectUniforms[uniformName]);
+          if (uniformName in uniforms) {
+            program.setUniform(uniformName, uniforms[uniformName]);
           }
       }
     }

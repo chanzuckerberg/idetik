@@ -211,12 +211,14 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     ]);
   }
 
-  private updateVolumeUniforms(volume: VolumeRenderable) {
-    volume.debugShowDegenerateRays = this.debugShowDegenerateRays;
-    volume.relativeStepSize =
-      this.relativeStepSize * this.interactiveStepSizeScale_;
-    volume.opacityMultiplier = this.opacityMultiplier;
-    volume.earlyTerminationAlpha = this.earlyTerminationAlpha;
+  private updateVolumeUniforms() {
+    for (const volume of this.currentVolumes()) {
+      volume.debugShowDegenerateRays = this.debugShowDegenerateRays;
+      volume.relativeStepSize =
+        this.relativeStepSize * this.interactiveStepSizeScale_;
+      volume.opacityMultiplier = this.opacityMultiplier;
+      volume.earlyTerminationAlpha = this.earlyTerminationAlpha;
+    }
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>) {
@@ -251,9 +253,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       : 1.0;
 
     this.updateChunks();
-    this.currentVolumes().forEach((volume) => {
-      this.updateVolumeUniforms(volume);
-    });
+    this.updateVolumeUniforms();
     sortFrontToBack(this.objects, context.viewport.camera);
   }
 }
