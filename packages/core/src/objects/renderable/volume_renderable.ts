@@ -14,6 +14,10 @@ import type { Chunk } from "../../data/chunk";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
+  public debugShowDegenerateRays = false;
+  public relativeStepSize = 1.0;
+  public opacityMultiplier = 1.0;
+  public earlyTerminationAlpha = 0.99;
 
   private channels_: Required<Channel>[];
   private channelToTextureIndex_: Map<number, number> = new Map();
@@ -126,6 +130,10 @@ export class VolumeRenderable extends RenderableObject {
           this.voxelScale[1],
           this.voxelScale[2],
         ],
+        DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
+        RelativeStepSize: this.relativeStepSize,
+        OpacityMultiplier: this.opacityMultiplier,
+        EarlyTerminationAlpha: this.earlyTerminationAlpha,
       }
     );
   }
