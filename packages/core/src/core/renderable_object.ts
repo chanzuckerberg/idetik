@@ -55,10 +55,7 @@ export abstract class RenderableObject extends Node {
     this.wireframeGeometry_ = null;
   }
 
-  public get programName(): Shader {
-    if (this.programName_ === null) {
-      throw new Error("Program name not set");
-    }
+  public get programName(): Shader | null {
     return this.programName_;
   }
 
