@@ -61,6 +61,8 @@ export class WebGLRenderer extends Renderer {
   }
 
   public render(viewport: Viewport) {
+    let viewportIsVisible =
+      getComputedStyle(viewport.element).visibility !== "hidden";
     const viewportBox = viewport.getBoxRelativeTo(this.canvas);
     const rendererBox = new Box2(
       vec2.fromValues(0, 0),
@@ -76,11 +78,13 @@ export class WebGLRenderer extends Renderer {
         "WebGLRenderer",
         `Viewport ${viewport.id} is entirely outside canvas bounds, skipping render`
       );
-      return;
+      viewportIsVisible = false;
     }
     this.state_.setViewport(viewportBox);
     this.renderedObjectsPerFrame_ = 0;
-    this.clear();
+    if (viewportIsVisible) {
+      this.clear();
+    }
 
     const { opaque, transparent } = viewport.layerManager.partitionLayers();
 
@@ -91,7 +95,7 @@ export class WebGLRenderer extends Renderer {
 
     for (const layer of opaque) {
       layer.update(renderContext);
-      if (layer.state === "ready") {
+      if (layer.state === "ready" && viewportIsVisible) {
         this.renderLayer(layer, viewport.camera, frustum);
       }
     }
@@ -99,8 +103,9 @@ export class WebGLRenderer extends Renderer {
     this.state_.setDepthMask(false);
     for (const layer of transparent) {
       layer.update(renderContext);
-      if (layer.state !== "ready") continue;
-      this.renderLayer(layer, viewport.camera, frustum);
+      if (layer.state === "ready" && viewportIsVisible) {
+        this.renderLayer(layer, viewport.camera, frustum);
+      }
     }
     this.state_.setDepthMask(true);
 
