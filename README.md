@@ -2,7 +2,15 @@
 
 A layer-based library for interactive visualization of large datasets.
 
-## Getting started
+## Project Status
+
+This project is under active development and not yet stable. We welcome bug reports and new ideas, but are not prepared to review or accept major contributions at this time.
+
+## Reporting Security Issues
+
+If you believe you have found a security issue, please responsibly disclose via the process in our [Security Policy](SECURITY.md).
+
+## Getting started (development)
 
 1. Install the development version of node.
 
@@ -29,15 +37,15 @@ A layer-based library for interactive visualization of large datasets.
 
    `npm run dev`
 
-4. To run the unit test suite on Chrome, from the core workspace run:
+4. To run the unit test suite (headless Chrome using playwright), run:
 
-   `npm test` or `npm run coverage` to generate a coverage report.
+   `npm test` or `npm run test-with-coverage` to generate a coverage report.
 
    By default, the test runner will watch for changes to the source files and re-run the tests
    automatically, so you can leave it running while you work. To run the tests once and exit, use
    `npm run test -- --run`.
 
-5. See [package.json](package.json) for other commands available.
+5. See [package.json](package.json) for other available commands.
 
 ## Release
 
@@ -77,7 +85,7 @@ We use [semantic-release](https://github.com/semantic-release/semantic-release) 
       on the PR after release
 - For manual releases:
     - Set `NPM_TOKEN` env var with an npm token with publish access to `@idetik` scope
-    - You must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM (for manual releases only)
+    - You must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM
 
 ### Manual Release Process (Fallback)
 
@@ -116,3 +124,7 @@ If you need to manually release (e.g., if the automated process fails), follow t
    - Click "Create a new release"
    - Select the tag you just created
    - Add release notes describing the changes
+
+## Code of Conduct
+
+This project adheres to the Contributor Covenant [code of conduct](https://www.contributor-covenant.org/version/3/0/code_of_conduct/). By participating, you are expected to uphold this code. Please report unacceptable behavior to opensource@chanzuckerberg.com.

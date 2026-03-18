@@ -1,6 +1,6 @@
 # @idetik/core
 
-A layer-based visualization abstraction for interactive rendering of large datasets, with particular focus on scientific imaging and bioinformatics data formats.
+A layer-based library for interactive visualization of large datasets.
 
 ## Installation
 
@@ -8,16 +8,10 @@ A layer-based visualization abstraction for interactive rendering of large datas
 npm install @idetik/core
 ```
 
-## Releasing
+## Project Status
 
-This package is automatically released using [semantic-release](https://github.com/semantic-release/semantic-release).
+This project is under active development and not yet stable. We welcome bug reports and new ideas, but are not prepared to review or accept major contributions at this time.
 
-### Automatic Releases
+## Documentation
 
-When PRs are merged to `main` with conventional commit messages, a new version is automatically:
-- Versioned based on commit types (`feat`, `fix`, `BREAKING CHANGE`, etc.)
-- Published to npm
-- Tagged in GitHub with release notes
-- Documented in the auto-generated CHANGELOG.md
-
-See the [root README](../../README.md#release) for complete release documentation.
+For complete documentation, development setup, and contribution guidelines, see the [main repository](https://github.com/chanzuckerberg/idetik).
