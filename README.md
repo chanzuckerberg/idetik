@@ -2,7 +2,15 @@
 
 A layer-based library for interactive visualization of large datasets.
 
-## Getting started
+## Project Status
+
+This project is under active development and not yet stable. We welcome bug reports and new ideas, but are not prepared to review or accept major contributions at this time.
+
+## Reporting Security Issues
+
+If you believe you have found a security issue, please responsibly disclose by contacting us at security@chanzuckerberg.com. More information can be found in our [Security Policy](SECURITY.md).
+
+## Getting started (development)
 
 1. Install the development version of node.
 
@@ -116,3 +124,7 @@ If you need to manually release (e.g., if the automated process fails), follow t
    - Click "Create a new release"
    - Select the tag you just created
    - Add release notes describing the changes
+
+## Code of Conduct
+
+This project adheres to the Contributor Covenant [code of conduct](https://www.contributor-covenant.org/version/3/0/code_of_conduct/). By participating, you are expected to uphold this code. Please report unacceptable behavior to opensource@chanzuckerberg.com.
