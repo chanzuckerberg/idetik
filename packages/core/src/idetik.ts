@@ -4,6 +4,7 @@ import { ChunkManager } from "./core/chunk_manager";
 import { createStats, type Stats } from "./utilities/stats";
 import {
   parseViewportConfigs,
+  validateNewViewport,
   Viewport,
   ViewportConfig,
 } from "./core/viewport";
@@ -15,7 +16,7 @@ type Overlay = {
 
 type IdetikParams = {
   canvas: HTMLCanvasElement;
-  viewports: [ViewportConfig, ...ViewportConfig[]]; // at least one viewport required
+  viewports?: ViewportConfig[];
   overlays?: Overlay[];
   showStats?: boolean;
 };
@@ -28,7 +29,7 @@ export class Idetik {
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
   private readonly renderer_: WebGLRenderer;
-  private readonly viewports_: Viewport[];
+  private viewports_: Viewport[];
   public readonly canvas: HTMLCanvasElement;
   public readonly overlays: Overlay[];
   private readonly stats_?: Stats;
@@ -43,7 +44,7 @@ export class Idetik {
    *
    * @param params - Configuration parameters for the Idetik instance
    * @param params.canvas - HTMLCanvasElement to render to
-   * @param params.viewports - Array of viewport configurations. (At least one required.)
+   * @param params.viewports - Optional array of viewport configurations.
    *   Each viewport renders with its own camera, layers, and controls.
    *   The `element` property is optional and defaults to the canvas if not provided.
    *   Elements must be unique across viewports.
@@ -83,15 +84,10 @@ export class Idetik {
    *   ]
    * });
    *
-   * @throws {Error} If viewports array is empty or not provided
    * @throws {Error} If viewports have duplicate IDs or shared elements
    */
   constructor(params: IdetikParams) {
     this.canvas = params.canvas;
-
-    if (params.viewports.length === 0) {
-      throw new Error("At least one viewport config must be specified.");
-    }
 
     this.renderer_ = new WebGLRenderer(this.canvas);
     this.chunkManager_ = new ChunkManager();
@@ -100,7 +96,7 @@ export class Idetik {
     };
 
     this.viewports_ = parseViewportConfigs(
-      params.viewports,
+      params.viewports ?? [],
       this.canvas,
       this.context_
     );
@@ -144,13 +140,61 @@ export class Idetik {
     return this.viewports_;
   }
 
+  public get running(): boolean {
+    return this.lastAnimationId_ !== undefined;
+  }
+
   public getViewport(id: string): Viewport | undefined {
     return this.viewports_.find((v) => v.id === id);
   }
 
+  public addViewport(config: ViewportConfig): Viewport {
+    const [viewport] = parseViewportConfigs(
+      [config],
+      this.canvas,
+      this.context_
+    );
+
+    validateNewViewport(viewport, this.viewports_);
+    this.viewports_.push(viewport);
+
+    if (this.running) {
+      viewport.events.connect();
+      if (viewport.element !== this.canvas) {
+        this.sizeObserver_.observe(viewport.element);
+      }
+    }
+
+    Logger.info("Idetik", `Added viewport "${viewport.id}"`);
+    return viewport;
+  }
+
+  public removeViewport(viewport: Viewport): boolean {
+    const index = this.viewports_.indexOf(viewport);
+
+    if (index === -1) {
+      Logger.warn(
+        "Idetik",
+        `Viewport "${viewport.id}" not found, nothing to remove`
+      );
+      return false;
+    }
+
+    if (this.running) {
+      viewport.events.disconnect();
+      if (viewport.element !== this.canvas) {
+        this.sizeObserver_.unobserve(viewport.element);
+      }
+    }
+
+    this.viewports_.splice(index, 1);
+    Logger.info("Idetik", `Removed viewport "${viewport.id}"`);
+    return true;
+  }
+
   public start() {
     Logger.info("Idetik", "Idetik runtime starting");
-    if (this.lastAnimationId_ === undefined) {
+    if (!this.running) {
       for (const viewport of this.viewports_) {
         viewport.events.connect();
       }
@@ -193,14 +237,15 @@ export class Idetik {
 
   public stop() {
     Logger.info("Idetik", "Idetik runtime stopping");
-    if (this.lastAnimationId_ === undefined) {
+    if (!this.running) {
       Logger.warn("Idetik", "Idetik runtime not started");
     } else {
       this.sizeObserver_.disconnect();
       for (const viewport of this.viewports_) {
         viewport.events.disconnect();
       }
-      cancelAnimationFrame(this.lastAnimationId_);
+      // safe non-null assertion: this.running is true, so lastAnimationId_ is defined
+      cancelAnimationFrame(this.lastAnimationId_!);
       this.lastAnimationId_ = undefined;
     }
   }

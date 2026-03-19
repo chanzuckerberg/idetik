@@ -135,29 +135,33 @@ export class Viewport {
   }
 }
 
-function validateViewportProps(viewportProps: ViewportProps[]): void {
-  const elementToViewportId = new Map<HTMLElement, string>();
-  const seenViewportIds = new Set<string>();
-
-  for (const props of viewportProps) {
-    if (seenViewportIds.has(props.id)) {
+export function validateNewViewport(
+  viewport: { id: string; element: HTMLElement },
+  existingViewports: { id: string; element: HTMLElement }[]
+): void {
+  for (const existing of existingViewports) {
+    if (existing.id === viewport.id) {
       throw new Error(
-        `Duplicate viewport ID "${props.id}". Each viewport must have a unique ID.`
+        `Duplicate viewport ID "${viewport.id}". Each viewport must have a unique ID.`
       );
     }
-    seenViewportIds.add(props.id);
-
-    if (elementToViewportId.has(props.element)) {
-      const existingViewportId = elementToViewportId.get(props.element)!;
+    if (existing.element === viewport.element) {
       const elementDescription =
-        props.element.tagName.toLowerCase() +
-        (props.element.id ? `#${props.element.id}` : "[element has no id]");
+        viewport.element.tagName.toLowerCase() +
+        (viewport.element.id
+          ? `#${viewport.element.id}`
+          : "[element has no id]");
       throw new Error(
         "Multiple viewports cannot share the same HTML element: " +
-          `viewports "${existingViewportId}" and "${props.id}" both use ${elementDescription}`
+          `viewports "${existing.id}" and "${viewport.id}" both use ${elementDescription}`
       );
     }
-    elementToViewportId.set(props.element, props.id);
+  }
+}
+
+function validateViewportProps(viewportProps: ViewportProps[]): void {
+  for (let i = 0; i < viewportProps.length; i++) {
+    validateNewViewport(viewportProps[i], viewportProps.slice(0, i));
   }
 }
 
