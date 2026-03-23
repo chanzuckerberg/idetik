@@ -71,15 +71,27 @@ export class OmeZarrImageLoader {
     if (this.dimensions_.z) {
       chunkCoords[this.dimensions_.z.index] = chunk.chunkIndex.z;
     }
+
+    // internal (ChunkStore) chunks have size 1 in C and T
+    // so divide by the actual chunkSize to get the chunkCoord here
     if (this.dimensions_.c) {
-      chunkCoords[this.dimensions_.c.index] = chunk.chunkIndex.c;
+      const cLod = this.dimensions_.c.lods[chunk.lod];
+      chunkCoords[this.dimensions_.c.index] = Math.floor(
+        chunk.chunkIndex.c / cLod.chunkSize
+      );
     }
     if (this.dimensions_.t) {
-      chunkCoords[this.dimensions_.t.index] = chunk.chunkIndex.t;
+      const tLod = this.dimensions_.t.lods[chunk.lod];
+      chunkCoords[this.dimensions_.t.index] = Math.floor(
+        chunk.chunkIndex.t / tLod.chunkSize
+      );
     }
 
     const array = this.arrays_[chunk.lod];
     const arrayParams = this.arrayParams_[chunk.lod];
+
+    // NOTE: if source chunks have multiple channels/timepoints
+    // this results in duplicate fetching and decompression
     const receivedChunk = await getChunk(array, arrayParams, chunkCoords, {
       signal,
     });
@@ -92,40 +104,11 @@ export class OmeZarrImageLoader {
 
     validateTightlyPackedChunk(receivedChunk);
 
-    const receivedShape = {
-      x: receivedChunk.shape[this.dimensions_.x.index],
-      y: receivedChunk.shape[this.dimensions_.y.index],
-      z: this.dimensions_.z
-        ? receivedChunk.shape[this.dimensions_.z.index]
-        : chunk.shape.z,
-    };
-
-    const receivedChunkTooSmall =
-      receivedShape.x < chunk.shape.x ||
-      receivedShape.y < chunk.shape.y ||
-      receivedShape.z < chunk.shape.z;
-
-    if (receivedChunkTooSmall) {
-      throw new Error(
-        `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
-          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
-      );
-    }
-
-    const receivedChunkHasPadding =
-      receivedShape.x > chunk.shape.x ||
-      receivedShape.y > chunk.shape.y ||
-      receivedShape.z > chunk.shape.z;
-
-    if (receivedChunkHasPadding) {
-      chunk.data = this.trimChunkPadding(
-        chunk,
-        receivedChunk.data,
-        receivedChunk.stride
-      );
-    } else {
-      chunk.data = receivedChunk.data;
-    }
+    chunk.data = this.sliceSourceChunk(
+      chunk,
+      receivedChunk.data,
+      receivedChunk.stride
+    );
 
     const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
     if (!isTextureUnpackRowAlignment(rowAlignment)) {
@@ -136,29 +119,49 @@ export class OmeZarrImageLoader {
     chunk.rowAlignmentBytes = rowAlignment;
   }
 
-  private trimChunkPadding(
+  // trim any padding (XYZ padding for edge chunks)
+  // and extract the channel/timepoint
+  private sliceSourceChunk(
     chunk: Chunk,
-    receivedChunkData: ChunkData,
-    receivedChunkStride: number[]
+    sourceData: ChunkData,
+    sourceStride: number[]
   ): ChunkData {
-    const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
-    const compactData =
-      new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
+    const cLod = this.dimensions_.c?.lods[chunk.lod];
+    const tLod = this.dimensions_.t?.lods[chunk.lod];
 
-    let offset = 0;
-    const zStride = this.dimensions_.z
-      ? receivedChunkStride[this.dimensions_.z.index]
+    const cOffsetInSource = cLod ? chunk.chunkIndex.c % cLod.chunkSize : 0;
+    const tOffsetInSource = tLod ? chunk.chunkIndex.t % tLod.chunkSize : 0;
+
+    // internal chunks are compact 3D XYZ, with size 1 in C and T
+    const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
+    const compactData = new (sourceData.constructor as ChunkDataConstructor)(
+      compactSize
+    );
+
+    const cStride = this.dimensions_.c
+      ? sourceStride[this.dimensions_.c.index]
       : 0;
-    const yStride = receivedChunkStride[this.dimensions_.y.index];
+    const tStride = this.dimensions_.t
+      ? sourceStride[this.dimensions_.t.index]
+      : 0;
+    const zStride = this.dimensions_.z
+      ? sourceStride[this.dimensions_.z.index]
+      : 0;
+    const yStride = sourceStride[this.dimensions_.y.index];
+
+    // note: this assumes tczyx ordering
+    const baseOffset = tOffsetInSource * tStride + cOffsetInSource * cStride;
+    let destOffset = 0;
     for (let z = 0; z < chunk.shape.z; z++) {
-      const zStart = z * zStride;
+      const zStart = baseOffset + z * zStride;
       for (let y = 0; y < chunk.shape.y; y++) {
         const srcStart = zStart + y * yStride;
         const srcEnd = srcStart + chunk.shape.x;
-        compactData.set(receivedChunkData.subarray(srcStart, srcEnd), offset);
-        offset += chunk.shape.x;
+        compactData.set(sourceData.subarray(srcStart, srcEnd), destOffset);
+        destOffset += chunk.shape.x;
       }
     }
+
     return compactData;
   }
 
