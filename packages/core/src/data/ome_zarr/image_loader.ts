@@ -104,7 +104,7 @@ export class OmeZarrImageLoader {
 
     validateTightlyPackedChunk(receivedChunk);
 
-    chunk.data = this.sliceSourceChunk(
+    chunk.data = this.sliceReceivedChunk(
       chunk,
       receivedChunk.data,
       receivedChunk.stride
@@ -121,10 +121,10 @@ export class OmeZarrImageLoader {
 
   // trim any padding (XYZ padding for edge chunks)
   // and extract the channel/timepoint
-  private sliceSourceChunk(
+  private sliceReceivedChunk(
     chunk: Chunk,
-    sourceData: ChunkData,
-    sourceStride: number[]
+    receivedChunkData: ChunkData,
+    receivedChunkStride: number[]
   ): ChunkData {
     const cLod = this.dimensions_.c?.lods[chunk.lod];
     const tLod = this.dimensions_.t?.lods[chunk.lod];
@@ -134,20 +134,19 @@ export class OmeZarrImageLoader {
 
     // internal chunks are compact 3D XYZ, with size 1 in C and T
     const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
-    const compactData = new (sourceData.constructor as ChunkDataConstructor)(
-      compactSize
-    );
+    const compactData =
+      new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
 
     const cStride = this.dimensions_.c
-      ? sourceStride[this.dimensions_.c.index]
+      ? receivedChunkStride[this.dimensions_.c.index]
       : 0;
     const tStride = this.dimensions_.t
-      ? sourceStride[this.dimensions_.t.index]
+      ? receivedChunkStride[this.dimensions_.t.index]
       : 0;
     const zStride = this.dimensions_.z
-      ? sourceStride[this.dimensions_.z.index]
+      ? receivedChunkStride[this.dimensions_.z.index]
       : 0;
-    const yStride = sourceStride[this.dimensions_.y.index];
+    const yStride = receivedChunkStride[this.dimensions_.y.index];
 
     // note: this assumes tczyx ordering
     const baseOffset = tOffsetInSource * tStride + cOffsetInSource * cStride;
@@ -157,7 +156,10 @@ export class OmeZarrImageLoader {
       for (let y = 0; y < chunk.shape.y; y++) {
         const srcStart = zStart + y * yStride;
         const srcEnd = srcStart + chunk.shape.x;
-        compactData.set(sourceData.subarray(srcStart, srcEnd), destOffset);
+        compactData.set(
+          receivedChunkData.subarray(srcStart, srcEnd),
+          destOffset
+        );
         destOffset += chunk.shape.x;
       }
     }
