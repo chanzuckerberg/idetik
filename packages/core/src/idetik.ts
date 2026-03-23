@@ -1,14 +1,14 @@
+import { ChunkManager } from "./core/chunk_manager";
+import {
+    parseViewportConfigs,
+    type Viewport,
+    type ViewportConfig,
+    validateNewViewport,
+} from "./core/viewport";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { Logger } from "./utilities/logger";
-import { ChunkManager } from "./core/chunk_manager";
-import { createStats, type Stats } from "./utilities/stats";
-import {
-  parseViewportConfigs,
-  validateNewViewport,
-  Viewport,
-  ViewportConfig,
-} from "./core/viewport";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
+import { createStats, type Stats } from "./utilities/stats";
 
 type Overlay = {
   update(idetik: Idetik): void;
@@ -187,6 +187,7 @@ export class Idetik {
       }
     }
 
+    this.renderer_.disposeViewportResources(viewport);
     this.viewports_.splice(index, 1);
     Logger.info("Idetik", `Removed viewport "${viewport.id}"`);
     return true;

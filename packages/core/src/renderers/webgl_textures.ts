@@ -1,15 +1,14 @@
-import { Logger } from "../utilities/logger";
 import type {
   Texture,
+  TextureDataFormat,
+  TextureDataType,
   TextureFilter,
   TextureWrapMode,
-  TextureDataType,
-  TextureDataFormat,
 } from "../objects/textures/texture";
-
-import { Texture2D } from "../objects/textures/texture_2d";
-import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { Texture3D } from "../objects/textures/texture_3d";
+import type { Texture2D } from "../objects/textures/texture_2d";
+import type { Texture2DArray } from "../objects/textures/texture_2d_array";
+import type { Texture3D } from "../objects/textures/texture_3d";
+import { Logger } from "../utilities/logger";
 
 type TextureFormatInfo = {
   internalFormat: number;
@@ -361,5 +360,58 @@ export class WebGLTextures {
 
   private isTexture3D(texture: Texture): texture is Texture3D {
     return texture.type === "Texture3D";
+  }
+}
+
+export class ImageTexture2D {
+  public texture: WebGLTexture;
+
+  private readonly gl_: WebGL2RenderingContext;
+  private width_: number;
+  private height_: number;
+
+  constructor(gl: WebGL2RenderingContext, width: number, height: number) {
+    this.gl_ = gl;
+    this.width_ = width;
+    this.height_ = height;
+    this.texture = this.gl_.createTexture();
+    this.setupTexture();
+  }
+
+  public get width() {
+    return this.width_;
+  }
+
+  public get height() {
+    return this.height_;
+  }
+
+  private setupTexture() {
+    this.bind();
+    const gl = this.gl_;
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      this.width_,
+      this.height_,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null
+    );
+    gl.bindTexture(gl.TEXTURE_2D, null);
+  }
+
+  public bind() {
+    this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture);
+  }
+
+  public dispose() {
+    this.gl_.deleteTexture(this.texture);
   }
 }

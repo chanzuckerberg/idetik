@@ -1,21 +1,19 @@
-import { Renderer } from "../core/renderer";
-import { WebGLShaderProgram } from "./webgl_shader_program";
-import { WebGLShaderPrograms } from "./webgl_shader_programs";
-import { Logger } from "../utilities/logger";
-
-import { WebGLBuffers } from "./webgl_buffers";
-import { WebGLTextures } from "./webgl_textures";
-
-import { Layer } from "../core/layer";
-import { WebGLState } from "./WebGLState";
-import { RenderableObject } from "../core/renderable_object";
-import { Geometry, Primitive } from "../core/geometry";
-import { Box2 } from "../math/box2";
-import { Viewport } from "../core/viewport";
-import { Camera } from "../objects/cameras/camera";
-
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
-import { Frustum } from "../math/frustum";
+import type { Geometry, Primitive } from "../core/geometry";
+import type { Layer } from "../core/layer";
+import type { RenderableObject } from "../core/renderable_object";
+import { Renderer } from "../core/renderer";
+import type { Viewport } from "../core/viewport";
+import { Box2 } from "../math/box2";
+import type { Frustum } from "../math/frustum";
+import type { Camera } from "../objects/cameras/camera";
+import { Logger } from "../utilities/logger";
+import { WebGLState } from "./WebGLState";
+import { WebGLBuffers } from "./webgl_buffers";
+import { DownsampledFramebuffer } from "./webgl_framebuffers";
+import type { WebGLShaderProgram } from "./webgl_shader_program";
+import { WebGLShaderPrograms } from "./webgl_shader_programs";
+import { WebGLTextures } from "./webgl_textures";
 
 // Idetik defines screen-space with +Y pointing downward.
 // With the default camera, the basis vectors are:
@@ -26,6 +24,31 @@ import { Frustum } from "../math/frustum";
 // To match this convention, we flip Y in the projection matrix.
 // This is a mirror transform, which also flips triangle winding.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
+const DOWNSAMPLE_FACTOR = 4;
+
+class CompositePass {
+  private readonly gl_: WebGL2RenderingContext;
+  private readonly vao_: WebGLVertexArrayObject;
+
+  constructor(gl: WebGL2RenderingContext) {
+    this.gl_ = gl;
+    this.vao_ = gl.createVertexArray();
+  }
+
+  draw(buffer: DownsampledFramebuffer, programs: WebGLShaderPrograms) {
+    this.gl_.bindVertexArray(this.vao_);
+    buffer.bindTexture();
+    this.gl_.enable(this.gl_.BLEND);
+    this.gl_.blendFunc(this.gl_.ONE, this.gl_.ONE_MINUS_SRC_ALPHA);
+    const program = programs.use("downsampleComposite");
+    program.setUniform("u_texture", 0);
+    this.gl_.drawArrays(this.gl_.TRIANGLES, 0, 3);
+  }
+
+  dispose() {
+    this.gl_.deleteVertexArray(this.vao_);
+  }
+}
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext;
@@ -33,6 +56,8 @@ export class WebGLRenderer extends Renderer {
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
+  private readonly downsampledFrameBuffers_;
+  private readonly compositePass_: CompositePass;
   private renderedObjectsPerFrame_ = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -55,6 +80,8 @@ export class WebGLRenderer extends Renderer {
     this.programs_ = new WebGLShaderPrograms(gl);
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
+    this.downsampledFrameBuffers_ = new Map<Viewport, DownsampledFramebuffer>();
+    this.compositePass_ = new CompositePass(gl);
     this.state_ = new WebGLState(gl);
     this.initStencil();
     this.resize(this.canvas.width, this.canvas.height);
@@ -80,6 +107,7 @@ export class WebGLRenderer extends Renderer {
       );
       viewportIsVisible = false;
     }
+
     this.state_.setViewport(viewportBox);
     this.renderedObjectsPerFrame_ = 0;
     if (viewportIsVisible) {
@@ -100,20 +128,124 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
-    this.state_.setDepthMask(false);
-    for (const layer of transparent) {
-      layer.update(renderContext);
-      if (layer.state === "ready" && viewportIsVisible) {
-        this.renderLayer(layer, viewport.camera, frustum);
-      }
+    const cameraIsMoving = viewport.cameraControls?.isMoving ?? false;
+    const shouldDownsample =
+      cameraIsMoving &&
+      transparent.length > 0 &&
+      viewportIsVisible &&
+      DOWNSAMPLE_FACTOR > 1;
+
+    if (shouldDownsample) {
+      this.renderTransparentDownsampled(
+        transparent,
+        viewport,
+        viewportBox,
+        rendererBox,
+        frustum,
+        renderContext
+      );
+    } else {
+      this.renderTransparentLayers(
+        transparent,
+        viewport.camera,
+        frustum,
+        renderContext,
+        viewportIsVisible
+      );
     }
-    this.state_.setDepthMask(true);
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
   public get textureInfo() {
     return this.textures_.textureInfo;
+  }
+
+  public disposeViewportResources(viewport: Viewport) {
+    const framebuffer = this.downsampledFrameBuffers_.get(viewport);
+    if (framebuffer) {
+      framebuffer.dispose();
+      this.downsampledFrameBuffers_.delete(viewport);
+    }
+  }
+
+  private renderTransparentLayers(
+    layers: Layer[],
+    camera: Camera,
+    frustum: Frustum,
+    renderContext: { viewport: Viewport },
+    viewportIsVisible: boolean
+  ) {
+    this.state_.setDepthMask(false);
+    for (const layer of layers) {
+      layer.update(renderContext);
+      if (layer.state === "ready" && viewportIsVisible) {
+        this.renderLayer(layer, camera, frustum);
+      }
+    }
+    this.state_.setDepthMask(true);
+  }
+
+  private renderTransparentDownsampled(
+    layers: Layer[],
+    viewport: Viewport,
+    viewportBox: Box2,
+    rendererBox: Box2,
+    frustum: Frustum,
+    renderContext: { viewport: Viewport }
+  ) {
+    const { width: vpWidth, height: vpHeight } = viewportBox.toRect();
+    const dsWeight = Math.max(1, Math.floor(vpWidth / DOWNSAMPLE_FACTOR));
+    const dsHeight = Math.max(1, Math.floor(vpHeight / DOWNSAMPLE_FACTOR));
+    const downscaledViewport = new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(dsWeight, dsHeight)
+    );
+
+    // Switch to the framebuffer
+    const framebuffer = this.aquireFramebuffer(viewport, dsWeight, dsHeight);
+
+    framebuffer.begin();
+    this.state_.setViewport(downscaledViewport);
+    this.state_.setScissorTest(false);
+    this.renderTransparentLayers(
+      layers,
+      viewport.camera,
+      frustum,
+      renderContext,
+      true
+    );
+    framebuffer.end();
+
+    // Switch back to the original viewport
+    this.state_.setViewport(viewportBox);
+    // Apply ScissorTest if necessary
+    if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
+      this.state_.setScissorTest(false);
+    } else if (Box2.intersects(viewportBox, rendererBox)) {
+      this.state_.setScissor(viewportBox);
+      this.state_.setScissorTest(true);
+    }
+    this.state_.setDepthTesting(false);
+    this.state_.setDepthMask(false);
+    this.state_.setCullFaceMode("none");
+    this.state_.setStencilTest(false);
+    this.compositePass_.draw(framebuffer, this.programs_);
+    this.state_.setDepthMask(true);
+  }
+
+  private aquireFramebuffer(
+    viewport: Viewport,
+    width: number,
+    height: number
+  ): DownsampledFramebuffer {
+    let framebuffer = this.downsampledFrameBuffers_.get(viewport);
+    if (framebuffer) {
+      return framebuffer;
+    }
+    framebuffer = new DownsampledFramebuffer(this.gl_, width, height);
+    this.downsampledFrameBuffers_.set(viewport, framebuffer);
+    return framebuffer;
   }
 
   private initStencil() {

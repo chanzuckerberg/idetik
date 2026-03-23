@@ -45,7 +45,7 @@ function replaceSourceDefines(
   source: string,
   defines?: ReadonlyMap<string, string>
 ): string {
-  if (defines === undefined || defines.size == 0) return source;
+  if (defines === undefined || defines.size === 0) return source;
   if (!source.includes(pragmaInjectDefines)) {
     throw new Error(
       `Shader source does not contain "${pragmaInjectDefines}" directive`
