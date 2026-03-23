@@ -104,6 +104,26 @@ export class OmeZarrImageLoader {
 
     validateTightlyPackedChunk(receivedChunk);
 
+    const receivedShape = {
+      x: receivedChunk.shape[this.dimensions_.x.index],
+      y: receivedChunk.shape[this.dimensions_.y.index],
+      z: this.dimensions_.z
+        ? receivedChunk.shape[this.dimensions_.z.index]
+        : chunk.shape.z,
+    };
+
+    const receivedChunkTooSmall =
+      receivedShape.x < chunk.shape.x ||
+      receivedShape.y < chunk.shape.y ||
+      receivedShape.z < chunk.shape.z;
+
+    if (receivedChunkTooSmall) {
+      throw new Error(
+        `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
+          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
+      );
+    }
+
     chunk.data = this.sliceReceivedChunk(
       chunk,
       receivedChunk.data,
