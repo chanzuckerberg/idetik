@@ -124,11 +124,7 @@ export class OmeZarrImageLoader {
       );
     }
 
-    chunk.data = this.sliceReceivedChunk(
-      chunk,
-      receivedChunk.data,
-      receivedChunk.stride
-    );
+    chunk.data = this.sliceReceivedChunk(chunk, receivedChunk);
 
     const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
     if (!isTextureUnpackRowAlignment(rowAlignment)) {
@@ -143,9 +139,19 @@ export class OmeZarrImageLoader {
   // and extract the channel/timepoint
   private sliceReceivedChunk(
     chunk: Chunk,
-    receivedChunkData: ChunkData,
-    receivedChunkStride: number[]
+    receivedChunk: zarr.Chunk<zarr.DataType>
   ): ChunkData {
+    const receivedChunkData = receivedChunk.data as ChunkData;
+    const receivedChunkStride = receivedChunk.stride;
+
+    const receivedShape = {
+      x: receivedChunk.shape[this.dimensions_.x.index],
+      y: receivedChunk.shape[this.dimensions_.y.index],
+      z: this.dimensions_.z
+        ? receivedChunk.shape[this.dimensions_.z.index]
+        : chunk.shape.z,
+    };
+
     const cLod = this.dimensions_.c?.lods[chunk.lod];
     const tLod = this.dimensions_.t?.lods[chunk.lod];
 
@@ -165,9 +171,16 @@ export class OmeZarrImageLoader {
     // note: this assumes tczyx ordering
     const srcOffset = tOffsetInSource * tStride + cOffsetInSource * cStride;
 
-    const alreadyCompact =
-      srcOffset === 0 && receivedChunkData.length === compactSize;
-    if (alreadyCompact) {
+    const receivedExactShape =
+      receivedShape.x === chunk.shape.x &&
+      receivedShape.y === chunk.shape.y &&
+      receivedShape.z === chunk.shape.z;
+
+    const noSlicingNeeded =
+      srcOffset === 0 &&
+      receivedChunkData.length === compactSize &&
+      receivedExactShape;
+    if (noSlicingNeeded) {
       return receivedChunkData;
     }
 
