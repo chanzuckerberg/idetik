@@ -29,6 +29,10 @@ uniform highp vec3 CameraPositionModel;
 uniform vec3 VoxelScale;
 in highp vec3 PositionModel;
 
+// The bounding box in model space is normalized to -0.5 to 0.5
+vec3 boundingboxMin = vec3(-0.50);
+vec3 boundingboxMax = vec3(0.50);
+
 // Volume rendering parameters
 uniform bool DebugShowDegenerateRays;
 uniform float RelativeStepSize;
@@ -40,8 +44,8 @@ uniform vec4 Visible;
 uniform vec4 ValueOffset;
 uniform vec4 ValueScale;
 uniform vec3 Color[4];
-uniform vec3 BoxMinModel;
-uniform vec3 BoxMaxModel;
+uniform vec3 BoxMinUV;
+uniform vec3 BoxSizeUV;
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -85,7 +89,8 @@ void main() {
     // The ray in model space goes from the camera to the point on the back face
     vec3 RayDirModel = normalize(PositionModel - CameraPositionModel);
 
-    vec2 rayIntersections = findBoxIntersectionsAlongRay(CameraPositionModel, RayDirModel, BoxMinModel, BoxMaxModel);
+    // Compute ray intersections in normalized model space of clipped proxy
+    vec2 rayIntersections = findBoxIntersectionsAlongRay(CameraPositionModel, RayDirModel, boundingboxMin, boundingboxMax);
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
 
@@ -94,10 +99,13 @@ void main() {
         return;
     }
 
-    vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter;
-    entryPoint = clamp(entryPoint + 0.5, 0.0, 1.0);
-    vec3 exitPoint = CameraPositionModel + RayDirModel * tExit;
-    exitPoint = clamp(exitPoint + 0.5, 0.0, 1.0);
+    vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter + 0.5;
+    vec3 exitPoint = CameraPositionModel + RayDirModel * tExit + 0.5;
+
+    // Map from clipped proxy model space to full volume model space
+    // This allows supporting axis aligned clipping in volume rendering
+    entryPoint = clamp(BoxMinUV + (entryPoint * BoxSizeUV), 0.0, 1.0);
+    exitPoint = clamp(BoxMinUV + (exitPoint * BoxSizeUV), 0.0, 1.0);
 
     // Step 2 - calculate the number of samples based on the length of the ray
     vec3 rayWithinModel = exitPoint - entryPoint;

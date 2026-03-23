@@ -9,7 +9,6 @@ import { vec3 } from "gl-matrix";
 import { sortFrontToBack } from "../math/sort_by_distance";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
 import { Box3 } from "@/math/box3";
-import { Logger } from "@/utilities/logger";
 
 export type VolumeLayerProps = {
   source: ChunkSource;
@@ -82,7 +81,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       ? vec3.clone(max)
       : vec3.fromValues(Infinity, Infinity, Infinity);
     for (const volume of this.currentVolumes_.values()) {
-      this.updateVolumeTransform(volume);
+      volume.applyBoxClip(this.clipBounds_);
     }
   }
 
@@ -141,7 +140,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.volumeToPoolKey_.set(volume, poolKey);
 
     for (const chunk of chunks) volume.updateVolumeWithChunk(chunk);
-    this.updateVolumeTransform(volume, chunks[0]);
     return volume;
   }
 
@@ -186,6 +184,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     for (const [key, chunks] of groupedChunks) {
       const volume = this.getOrCreateVolume(key, chunks);
+      volume.applyBoxClip(this.clipBounds_);
       volume.wireframeEnabled = this.debugShowWireframes;
       this.currentVolumes_.set(key, volume);
       this.addObject(volume);
@@ -193,93 +192,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     this.lastLoadedTime_ = currentTime;
     if (this.state !== "ready") this.setState("ready");
-  }
-
-  private updateVolumeTransform(volume: VolumeRenderable, chunk?: Chunk) {
-    if (chunk) {
-      volume.worldSize = vec3.fromValues(
-        chunk.shape.x * chunk.scale.x,
-        chunk.shape.y * chunk.scale.y,
-        chunk.shape.z * chunk.scale.z
-      );
-      vec3.set(volume.voxelScale, chunk.scale.x, chunk.scale.y, chunk.scale.z);
-      const originOffset = {
-        x: volume.worldSize[0] / 2,
-        y: volume.worldSize[1] / 2,
-        z: volume.worldSize[2] / 2,
-      };
-      volume.worldOrigin = vec3.fromValues(
-        chunk.offset.x + originOffset.x,
-        chunk.offset.y + originOffset.y,
-        chunk.offset.z + originOffset.z
-      );
-      volume.boxMinWorld = vec3.fromValues(
-        chunk.offset.x,
-        chunk.offset.y,
-        chunk.offset.z
-      );
-      volume.boxMaxWorld = vec3.fromValues(
-        chunk.offset.x + volume.worldSize[0],
-        chunk.offset.y + volume.worldSize[1],
-        chunk.offset.z + volume.worldSize[2]
-      );
-    }
-
-    const clippedVolumeMin = vec3.max(
-      vec3.create(),
-      volume.boxMinWorld,
-      this.clipBounds_.min
-    );
-    const clippedVolumeMax = vec3.min(
-      vec3.create(),
-      volume.boxMaxWorld,
-      this.clipBounds_.max
-    );
-    volume.visible = Box3.intersects(volume.boundingBox, this.clipBounds_);
-    if (!volume.visible) return;
-
-    const boxWorldMinSize = vec3.subtract(
-      vec3.create(),
-      clippedVolumeMin,
-      volume.worldOrigin
-    );
-    const boxWorldMaxSize = vec3.subtract(
-      vec3.create(),
-      clippedVolumeMax,
-      volume.worldOrigin
-    );
-    volume.boxMinModel = vec3.fromValues(
-      boxWorldMinSize[0] / volume.worldSize[0],
-      boxWorldMinSize[1] / volume.worldSize[1],
-      boxWorldMinSize[2] / volume.worldSize[2]
-    );
-    volume.boxMaxModel = vec3.fromValues(
-      boxWorldMaxSize[0] / volume.worldSize[0],
-      boxWorldMaxSize[1] / volume.worldSize[1],
-      boxWorldMaxSize[2] / volume.worldSize[2]
-    );
-
-    // TODO this is ending up slightly off
-    // const proxyScale = vec3.fromValues(
-    //   clippedVolumeMax[0] - clippedVolumeMin[0],
-    //   clippedVolumeMax[1] - clippedVolumeMin[1],
-    //   clippedVolumeMax[2] - clippedVolumeMin[2]
-    // );
-    // const proxyTranslation = vec3.fromValues(
-    //   (clippedVolumeMax[0] + clippedVolumeMin[0]) / 2,
-    //   (clippedVolumeMax[1] + clippedVolumeMin[1]) / 2,
-    //   (clippedVolumeMax[2] + clippedVolumeMin[2]) / 2
-    // );
-    const scale = volume.worldSize;
-    const translation = volume.worldOrigin;
-    volume.transform.setScale(scale);
-    volume.transform.setTranslation(translation);
-    volume.realTransform.setScale(scale);
-    volume.realTransform.setTranslation(translation);
-    Logger.debug(
-      "VolumeLayer",
-      `Updated volume transform. World origin: ${volume.worldOrigin}, world size: ${volume.worldSize}, boxMinModel: ${volume.boxMinModel}, boxMaxModel: ${volume.boxMaxModel}, visible: ${volume.visible}`
-    );
   }
 
   private releaseAndRemoveVolumes(volumes: Iterable<VolumeRenderable>) {

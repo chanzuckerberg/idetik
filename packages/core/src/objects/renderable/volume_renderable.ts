@@ -11,17 +11,16 @@ import {
 import { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";
-import { TrsTransform } from "../../core/transforms";
+import { Box3 } from "@/math/box3";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
-  public boxMinModel = vec3.fromValues(0, 0, 0);
-  public boxMaxModel = vec3.fromValues(1, 1, 1);
-  public boxMinWorld = vec3.fromValues(0, 0, 0);
-  public boxMaxWorld = vec3.fromValues(1, 1, 1);
-  public worldSize = vec3.fromValues(1, 1, 1);
-  public worldOrigin = vec3.fromValues(0, 0, 0);
-  public realTransform = new TrsTransform();
+  public boxMinUV = vec3.fromValues(0, 0, 0);
+  public boxSizeUV = vec3.fromValues(1, 1, 1);
+  private boxMinWorld_ = vec3.fromValues(0, 0, 0);
+  private boxMaxWorld_ = vec3.fromValues(1, 1, 1);
+  private worldSize_ = vec3.fromValues(1, 1, 1);
+  private worldOrigin_ = vec3.fromValues(0, 0, 0);
 
   private channels_: Required<Channel>[];
   private channelToTextureIndex_: Map<number, number> = new Map();
@@ -49,7 +48,83 @@ export class VolumeRenderable extends RenderableObject {
       this.addChannelTexture(channelIndex, chunk);
     }
 
+    this.setSizeFromChunk(chunk);
     this.loadedChannels_.add(channelIndex);
+  }
+
+  private setSizeFromChunk(chunk: Chunk) {
+    this.worldSize_ = vec3.fromValues(
+      chunk.shape.x * chunk.scale.x,
+      chunk.shape.y * chunk.scale.y,
+      chunk.shape.z * chunk.scale.z
+    );
+
+    vec3.set(this.voxelScale, chunk.scale.x, chunk.scale.y, chunk.scale.z);
+
+    this.worldOrigin_ = vec3.fromValues(
+      chunk.offset.x + this.worldSize_[0] / 2,
+      chunk.offset.y + this.worldSize_[1] / 2,
+      chunk.offset.z + this.worldSize_[2] / 2
+    );
+
+    this.boxMinWorld_ = vec3.fromValues(
+      chunk.offset.x,
+      chunk.offset.y,
+      chunk.offset.z
+    );
+
+    this.boxMaxWorld_ = vec3.fromValues(
+      chunk.offset.x + this.worldSize_[0],
+      chunk.offset.y + this.worldSize_[1],
+      chunk.offset.z + this.worldSize_[2]
+    );
+  }
+
+  public applyBoxClip(clipBounds: Box3) {
+    const clippedVolumeMin = vec3.max(
+      vec3.create(),
+      this.boxMinWorld_,
+      clipBounds.min
+    );
+    const clippedVolumeMax = vec3.min(
+      vec3.create(),
+      this.boxMaxWorld_,
+      clipBounds.max
+    );
+    const proxyGeometryScale = vec3.subtract(
+      vec3.create(),
+      clippedVolumeMax,
+      clippedVolumeMin
+    );
+    const proxyGeometryCenter = vec3.add(
+      vec3.create(),
+      clippedVolumeMin,
+      vec3.scale(vec3.create(), proxyGeometryScale, 0.5)
+    );
+    this.transform.setScale(proxyGeometryScale);
+    this.transform.setTranslation(proxyGeometryCenter);
+    this.visible = Box3.intersects(clipBounds, this.boundingBox);
+
+    const boxWorldMinSize = vec3.subtract(
+      vec3.create(),
+      clippedVolumeMin,
+      this.worldOrigin_
+    );
+    const boxWorldMaxSize = vec3.subtract(
+      vec3.create(),
+      clippedVolumeMax,
+      this.worldOrigin_
+    );
+    this.boxMinUV = vec3.fromValues(
+      boxWorldMinSize[0] / this.worldSize_[0] + 0.5,
+      boxWorldMinSize[1] / this.worldSize_[1] + 0.5,
+      boxWorldMinSize[2] / this.worldSize_[2] + 0.5
+    );
+    this.boxSizeUV = vec3.fromValues(
+      (boxWorldMaxSize[0] - boxWorldMinSize[0]) / this.worldSize_[0],
+      (boxWorldMaxSize[1] - boxWorldMinSize[1]) / this.worldSize_[1],
+      (boxWorldMaxSize[2] - boxWorldMinSize[2]) / this.worldSize_[2]
+    );
   }
 
   private addChannelTexture(channelIndex: number, chunk: Chunk): void {
@@ -137,16 +212,8 @@ export class VolumeRenderable extends RenderableObject {
           this.voxelScale[1],
           this.voxelScale[2],
         ],
-        BoxMinModel: [
-          this.boxMinModel[0],
-          this.boxMinModel[1],
-          this.boxMinModel[2],
-        ],
-        BoxMaxModel: [
-          this.boxMaxModel[0],
-          this.boxMaxModel[1],
-          this.boxMaxModel[2],
-        ], // TODO could cache and store transform
+        BoxMinUV: [this.boxMinUV[0], this.boxMinUV[1], this.boxMinUV[2]],
+        BoxSizeUV: [this.boxSizeUV[0], this.boxSizeUV[1], this.boxSizeUV[2]],
       }
     );
   }
