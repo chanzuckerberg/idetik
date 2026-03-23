@@ -11,9 +11,17 @@ import {
 import { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";
+import { TrsTransform } from "../../core/transforms";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
+  public boxMinModel = vec3.fromValues(0, 0, 0);
+  public boxMaxModel = vec3.fromValues(1, 1, 1);
+  public boxMinWorld = vec3.fromValues(0, 0, 0);
+  public boxMaxWorld = vec3.fromValues(1, 1, 1);
+  public worldSize = vec3.fromValues(1, 1, 1);
+  public worldOrigin = vec3.fromValues(0, 0, 0);
+  public realTransform = new TrsTransform();
 
   private channels_: Required<Channel>[];
   private channelToTextureIndex_: Map<number, number> = new Map();
@@ -129,6 +137,16 @@ export class VolumeRenderable extends RenderableObject {
           this.voxelScale[1],
           this.voxelScale[2],
         ],
+        BoxMinModel: [
+          this.boxMinModel[0],
+          this.boxMinModel[1],
+          this.boxMinModel[2],
+        ],
+        BoxMaxModel: [
+          this.boxMaxModel[0],
+          this.boxMaxModel[1],
+          this.boxMaxModel[2],
+        ], // TODO could cache and store transform
       }
     );
   }

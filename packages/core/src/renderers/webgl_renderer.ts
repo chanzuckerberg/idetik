@@ -16,6 +16,7 @@ import { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
+import { VolumeRenderable } from "@/objects/renderable/volume_renderable";
 
 // Idetik defines screen-space with +Y pointing downward.
 // With the default camera, the basis vectors are:
@@ -150,7 +151,7 @@ export class WebGLRenderer extends Renderer {
       this.textures_.disposeTexture(texture);
     });
 
-    if (!object.programName) return;
+    if (!object.programName || !object.visible) return;
     this.state_.setCullFaceMode(object.cullFaceMode);
     this.state_.setDepthTesting(object.depthTest);
     this.state_.setDepthMask(object.depthTest);
@@ -217,7 +218,12 @@ export class WebGLRenderer extends Renderer {
           program.setUniform(uniformName, layer.opacity);
           break;
         case "CameraPositionModel": {
-          const inverseModelView = mat4.invert(mat4.create(), modelView);
+          const realModelView = mat4.multiply(
+            mat4.create(),
+            camera.viewMatrix,
+            (object as VolumeRenderable).realTransform.matrix
+          );
+          const inverseModelView = mat4.invert(mat4.create(), realModelView);
           const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
           const cameraPositionModel = vec4.transformMat4(
             vec4.create(),

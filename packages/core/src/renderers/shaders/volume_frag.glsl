@@ -29,10 +29,6 @@ uniform highp vec3 CameraPositionModel;
 uniform vec3 VoxelScale;
 in highp vec3 PositionModel;
 
-// The bounding box in model space is normalized to -0.5 to 0.5
-vec3 boundingboxMin = vec3(-0.50);
-vec3 boundingboxMax = vec3(0.50);
-
 // Volume rendering parameters
 uniform bool DebugShowDegenerateRays;
 uniform float RelativeStepSize;
@@ -44,6 +40,8 @@ uniform vec4 Visible;
 uniform vec4 ValueOffset;
 uniform vec4 ValueScale;
 uniform vec3 Color[4];
+uniform vec3 BoxMinModel;
+uniform vec3 BoxMaxModel;
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -87,7 +85,7 @@ void main() {
     // The ray in model space goes from the camera to the point on the back face
     vec3 RayDirModel = normalize(PositionModel - CameraPositionModel);
 
-    vec2 rayIntersections = findBoxIntersectionsAlongRay(CameraPositionModel, RayDirModel, boundingboxMin, boundingboxMax);
+    vec2 rayIntersections = findBoxIntersectionsAlongRay(CameraPositionModel, RayDirModel, BoxMinModel, BoxMaxModel);
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
 

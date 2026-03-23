@@ -11,6 +11,7 @@ export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
   public wireframeColor = Color.WHITE;
   public depthTest = true;
+  public visible = true;
   private readonly textures_: Texture[] = [];
   private staleTextures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();
