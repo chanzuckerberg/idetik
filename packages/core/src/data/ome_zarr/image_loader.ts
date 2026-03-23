@@ -154,8 +154,6 @@ export class OmeZarrImageLoader {
 
     // internal chunks are compact 3D XYZ, with size 1 in C and T
     const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
-    const compactData =
-      new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
 
     const cStride = this.dimensions_.c
       ? receivedChunkStride[this.dimensions_.c.index]
@@ -163,16 +161,26 @@ export class OmeZarrImageLoader {
     const tStride = this.dimensions_.t
       ? receivedChunkStride[this.dimensions_.t.index]
       : 0;
+
+    // note: this assumes tczyx ordering
+    const srcOffset = tOffsetInSource * tStride + cOffsetInSource * cStride;
+
+    const alreadyCompact =
+      srcOffset === 0 && receivedChunkData.length === compactSize;
+    if (alreadyCompact) {
+      return receivedChunkData;
+    }
+
+    const compactData =
+      new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
+
     const zStride = this.dimensions_.z
       ? receivedChunkStride[this.dimensions_.z.index]
       : 0;
     const yStride = receivedChunkStride[this.dimensions_.y.index];
-
-    // note: this assumes tczyx ordering
-    const baseOffset = tOffsetInSource * tStride + cOffsetInSource * cStride;
     let destOffset = 0;
     for (let z = 0; z < chunk.shape.z; z++) {
-      const zStart = baseOffset + z * zStride;
+      const zStart = srcOffset + z * zStride;
       for (let y = 0; y < chunk.shape.y; y++) {
         const srcStart = zStart + y * yStride;
         const srcEnd = srcStart + chunk.shape.x;
