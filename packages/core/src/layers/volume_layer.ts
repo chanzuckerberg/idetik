@@ -138,6 +138,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     const existing = this.currentVolumes_.get(key);
     if (existing) {
       for (const chunk of chunks) existing.updateVolumeWithChunk(chunk);
+      existing.updateWorldScaleAndBoundsFromChunk(chunks[0]);
       return existing;
     }
 
@@ -147,6 +148,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.volumeToPoolKey_.set(volume, poolKey);
 
     for (const chunk of chunks) volume.updateVolumeWithChunk(chunk);
+    volume.updateWorldScaleAndBoundsFromChunk(chunks[0]);
     return volume;
   }
 

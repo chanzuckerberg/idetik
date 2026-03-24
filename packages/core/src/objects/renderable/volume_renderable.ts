@@ -47,11 +47,10 @@ export class VolumeRenderable extends RenderableObject {
       this.addChannelTexture(channelIndex, chunk);
     }
 
-    this.updateWorldScaleAndBoundsFromChunk(chunk);
     this.loadedChannels_.add(channelIndex);
   }
 
-  private updateWorldScaleAndBoundsFromChunk(chunk: Chunk) {
+  public updateWorldScaleAndBoundsFromChunk(chunk: Chunk) {
     vec3.set(this.voxelScale, chunk.scale.x, chunk.scale.y, chunk.scale.z);
     this.fullVolumeWorldBounds_.min = vec3.fromValues(
       chunk.offset.x,
