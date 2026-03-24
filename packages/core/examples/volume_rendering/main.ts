@@ -167,14 +167,14 @@ volumeFolder
   .add(volumeLayer, "earlyTerminationAlpha", 0.8, 1.0, 0.01)
   .name("Early termination threshold");
 
-// Volume Bounds Controls
+const volumeMaxBounds = { x: 82.55, y: 82.26, z: 8.5 };
 const boundsControls = {
   minX: 0,
   minY: 0,
   minZ: 0,
-  maxX: 82.55,
-  maxY: 82.26,
-  maxZ: 8.5,
+  maxX: volumeMaxBounds.x,
+  maxY: volumeMaxBounds.y,
+  maxZ: volumeMaxBounds.z,
 };
 
 function updateVolumeBounds() {
@@ -192,30 +192,29 @@ function updateVolumeBounds() {
 }
 
 const boundsFolder = volumeFolder.addFolder("Clip Bounds");
-
 boundsFolder
-  .add(boundsControls, "minX", 0, 82.55, 0.01)
+  .add(boundsControls, "minX", 0, volumeMaxBounds.x, 0.01)
   .name("Min X")
   .onChange(updateVolumeBounds);
 boundsFolder
-  .add(boundsControls, "minY", 0, 82.26, 0.01)
+  .add(boundsControls, "minY", 0, volumeMaxBounds.y, 0.01)
   .name("Min Y")
   .onChange(updateVolumeBounds);
 boundsFolder
-  .add(boundsControls, "minZ", 0, 8.5, 0.01)
+  .add(boundsControls, "minZ", 0, volumeMaxBounds.z, 0.01)
   .name("Min Z")
   .onChange(updateVolumeBounds);
 
 boundsFolder
-  .add(boundsControls, "maxX", 0, 82.55, 0.01)
+  .add(boundsControls, "maxX", 0, volumeMaxBounds.x, 0.01)
   .name("Max X")
   .onChange(updateVolumeBounds);
 boundsFolder
-  .add(boundsControls, "maxY", 0, 82.26, 0.01)
+  .add(boundsControls, "maxY", 0, volumeMaxBounds.y, 0.01)
   .name("Max Y")
   .onChange(updateVolumeBounds);
 boundsFolder
-  .add(boundsControls, "maxZ", 0, 8.5, 0.01)
+  .add(boundsControls, "maxZ", 0, volumeMaxBounds.z, 0.01)
   .name("Max Z")
   .onChange(updateVolumeBounds);
 
