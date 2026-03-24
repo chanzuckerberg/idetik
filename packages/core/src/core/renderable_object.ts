@@ -11,7 +11,7 @@ export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
   public wireframeColor = Color.WHITE;
   public depthTest = true;
-  public visible = true;
+  protected visible_ = true;
   private readonly textures_: Texture[] = [];
   private staleTextures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();
@@ -32,6 +32,10 @@ export abstract class RenderableObject extends Node {
     const stale = this.staleTextures_;
     this.staleTextures_ = [];
     return stale;
+  }
+
+  public get visible() {
+    return this.visible_;
   }
 
   public get geometry() {

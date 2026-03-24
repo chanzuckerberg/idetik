@@ -84,8 +84,8 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public clipToBounds(clipBounds: Box3) {
-    this.visible = Box3.intersects(clipBounds, this.fullVolumeWorldBounds_);
-    if (!this.visible) return;
+    this.visible_ = Box3.intersects(clipBounds, this.fullVolumeWorldBounds_);
+    if (!this.visible_) return;
 
     const clippedMin = vec3.max(
       vec3.create(),
@@ -99,7 +99,7 @@ export class VolumeRenderable extends RenderableObject {
     );
     const proxySize = vec3.subtract(vec3.create(), clippedMax, clippedMin);
     if (proxySize[0] <= 0 || proxySize[1] <= 0 || proxySize[2] <= 0) {
-      this.visible = false;
+      this.visible_ = false;
       return;
     }
     const proxyCenter = vec3.scaleAndAdd(
