@@ -33,10 +33,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
   private channelProps_?: ChannelProps[];
-  private clipBounds_ = new Box3(
-    vec3.fromValues(-Infinity, -Infinity, -Infinity),
-    vec3.fromValues(Infinity, Infinity, Infinity)
-  );
+  private clipBounds_?: Box3;
 
   private lastLoadedTime_: number | undefined = undefined;
   private lastNumRenderedChannelChunks_: number | undefined = undefined;
@@ -74,14 +71,18 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   public setClipBounds(min?: vec3, max?: vec3) {
-    this.clipBounds_.min = min
-      ? vec3.clone(min)
-      : vec3.fromValues(-Infinity, -Infinity, -Infinity);
-    this.clipBounds_.max = max
-      ? vec3.clone(max)
-      : vec3.fromValues(Infinity, Infinity, Infinity);
+    if (!this.clipBounds_) {
+      this.clipBounds_ = new Box3(min, max);
+    } else {
+      this.clipBounds_.min = min
+        ? vec3.clone(min)
+        : vec3.fromValues(-Infinity, -Infinity, -Infinity);
+      this.clipBounds_.max = max
+        ? vec3.clone(max)
+        : vec3.fromValues(Infinity, Infinity, Infinity);
+    }
     for (const volume of this.currentVolumes_.values()) {
-      volume.applyBoxClip(this.clipBounds_);
+      volume.clipVolumeToBounds(this.clipBounds_);
     }
   }
 
@@ -184,7 +185,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     for (const [key, chunks] of groupedChunks) {
       const volume = this.getOrCreateVolume(key, chunks);
-      volume.applyBoxClip(this.clipBounds_);
+      if (this.clipBounds_) volume.clipVolumeToBounds(this.clipBounds_);
       volume.wireframeEnabled = this.debugShowWireframes;
       this.currentVolumes_.set(key, volume);
       this.addObject(volume);

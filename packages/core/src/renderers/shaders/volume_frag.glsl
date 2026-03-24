@@ -45,7 +45,7 @@ uniform vec4 ValueOffset;
 uniform vec4 ValueScale;
 uniform vec3 Color[4];
 uniform vec3 BoxMinUV;
-uniform vec3 BoxSizeUV;
+uniform vec3 BoxMaxUV;
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -104,8 +104,8 @@ void main() {
 
     // Map from clipped proxy model space to full volume model space
     // This allows supporting axis aligned clipping in volume rendering
-    entryPoint = clamp(BoxMinUV + (entryPoint * BoxSizeUV), 0.0, 1.0);
-    exitPoint = clamp(BoxMinUV + (exitPoint * BoxSizeUV), 0.0, 1.0);
+    entryPoint = clamp(BoxMinUV + entryPoint * (BoxMaxUV - BoxMinUV), 0.0, 1.0);
+    exitPoint = clamp(BoxMinUV + exitPoint * (BoxMaxUV - BoxMinUV), 0.0, 1.0);
 
     // Step 2 - calculate the number of samples based on the length of the ray
     vec3 rayWithinModel = exitPoint - entryPoint;

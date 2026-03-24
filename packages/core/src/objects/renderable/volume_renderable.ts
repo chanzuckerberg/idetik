@@ -15,12 +15,11 @@ import { Box3 } from "@/math/box3";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
-  public boxMinUV = vec3.fromValues(0, 0, 0);
-  public boxSizeUV = vec3.fromValues(1, 1, 1);
-  private boxMinWorld_ = vec3.fromValues(0, 0, 0);
-  private boxMaxWorld_ = vec3.fromValues(1, 1, 1);
-  private worldSize_ = vec3.fromValues(1, 1, 1);
-  private worldOrigin_ = vec3.fromValues(0, 0, 0);
+  private fullVolumeWorldBounds_: Box3 = new Box3();
+  private clippedVolumeUVWBounds_: Box3 = new Box3(
+    vec3.fromValues(0, 0, 0),
+    vec3.fromValues(1, 1, 1)
+  );
 
   private channels_: Required<Channel>[];
   private channelToTextureIndex_: Map<number, number> = new Map();
@@ -48,82 +47,85 @@ export class VolumeRenderable extends RenderableObject {
       this.addChannelTexture(channelIndex, chunk);
     }
 
-    this.setSizeFromChunk(chunk);
+    this.updateWorldScaleAndBoundsFromChunk(chunk);
     this.loadedChannels_.add(channelIndex);
   }
 
-  private setSizeFromChunk(chunk: Chunk) {
-    this.worldSize_ = vec3.fromValues(
-      chunk.shape.x * chunk.scale.x,
-      chunk.shape.y * chunk.scale.y,
-      chunk.shape.z * chunk.scale.z
-    );
-
+  private updateWorldScaleAndBoundsFromChunk(chunk: Chunk) {
     vec3.set(this.voxelScale, chunk.scale.x, chunk.scale.y, chunk.scale.z);
-
-    this.worldOrigin_ = vec3.fromValues(
-      chunk.offset.x + this.worldSize_[0] / 2,
-      chunk.offset.y + this.worldSize_[1] / 2,
-      chunk.offset.z + this.worldSize_[2] / 2
-    );
-
-    this.boxMinWorld_ = vec3.fromValues(
+    this.fullVolumeWorldBounds_.min = vec3.fromValues(
       chunk.offset.x,
       chunk.offset.y,
       chunk.offset.z
     );
-
-    this.boxMaxWorld_ = vec3.fromValues(
-      chunk.offset.x + this.worldSize_[0],
-      chunk.offset.y + this.worldSize_[1],
-      chunk.offset.z + this.worldSize_[2]
+    this.fullVolumeWorldBounds_.max = vec3.fromValues(
+      chunk.offset.x + chunk.shape.x * chunk.scale.x,
+      chunk.offset.y + chunk.shape.y * chunk.scale.y,
+      chunk.offset.z + chunk.shape.z * chunk.scale.z
+    );
+    this.transform.setScale(
+      vec3.subtract(
+        vec3.create(),
+        this.fullVolumeWorldBounds_.max,
+        this.fullVolumeWorldBounds_.min
+      )
+    );
+    this.transform.setTranslation(
+      vec3.scaleAndAdd(
+        vec3.create(),
+        this.fullVolumeWorldBounds_.min,
+        vec3.subtract(
+          vec3.create(),
+          this.fullVolumeWorldBounds_.max,
+          this.fullVolumeWorldBounds_.min
+        ),
+        0.5
+      )
     );
   }
 
-  public applyBoxClip(clipBounds: Box3) {
-    const clippedVolumeMin = vec3.max(
+  public clipVolumeToBounds(clipBounds: Box3) {
+    // Set proxy geometry transform to match the clipped region
+    const clippedMin = vec3.max(
       vec3.create(),
-      this.boxMinWorld_,
+      this.fullVolumeWorldBounds_.min,
       clipBounds.min
     );
-    const clippedVolumeMax = vec3.min(
+    const clippedMax = vec3.min(
       vec3.create(),
-      this.boxMaxWorld_,
+      this.fullVolumeWorldBounds_.max,
       clipBounds.max
     );
-    const proxyGeometryScale = vec3.subtract(
+    const proxySize = vec3.subtract(vec3.create(), clippedMax, clippedMin);
+    const proxyCenter = vec3.scaleAndAdd(
       vec3.create(),
-      clippedVolumeMax,
-      clippedVolumeMin
+      clippedMin,
+      proxySize,
+      0.5
     );
-    const proxyGeometryCenter = vec3.add(
-      vec3.create(),
-      clippedVolumeMin,
-      vec3.scale(vec3.create(), proxyGeometryScale, 0.5)
-    );
-    this.transform.setScale(proxyGeometryScale);
-    this.transform.setTranslation(proxyGeometryCenter);
-    this.visible = Box3.intersects(clipBounds, this.boundingBox);
+    this.transform.setScale(proxySize);
+    this.transform.setTranslation(proxyCenter);
+    this.visible = Box3.intersects(clipBounds, this.fullVolumeWorldBounds_);
+    if (!this.visible) return;
 
-    const boxWorldMinSize = vec3.subtract(
+    // Compute UVW bounds for the clipped region
+    // Transform clipped world bounds to normalized volume space [0,1]
+    const volumeSize = vec3.subtract(
       vec3.create(),
-      clippedVolumeMin,
-      this.worldOrigin_
+      this.fullVolumeWorldBounds_.max,
+      this.fullVolumeWorldBounds_.min
     );
-    const boxWorldMaxSize = vec3.subtract(
-      vec3.create(),
-      clippedVolumeMax,
-      this.worldOrigin_
+
+    this.clippedVolumeUVWBounds_.min = vec3.fromValues(
+      (clippedMin[0] - this.fullVolumeWorldBounds_.min[0]) / volumeSize[0],
+      (clippedMin[1] - this.fullVolumeWorldBounds_.min[1]) / volumeSize[1],
+      (clippedMin[2] - this.fullVolumeWorldBounds_.min[2]) / volumeSize[2]
     );
-    this.boxMinUV = vec3.fromValues(
-      boxWorldMinSize[0] / this.worldSize_[0] + 0.5,
-      boxWorldMinSize[1] / this.worldSize_[1] + 0.5,
-      boxWorldMinSize[2] / this.worldSize_[2] + 0.5
-    );
-    this.boxSizeUV = vec3.fromValues(
-      (boxWorldMaxSize[0] - boxWorldMinSize[0]) / this.worldSize_[0],
-      (boxWorldMaxSize[1] - boxWorldMinSize[1]) / this.worldSize_[1],
-      (boxWorldMaxSize[2] - boxWorldMinSize[2]) / this.worldSize_[2]
+
+    this.clippedVolumeUVWBounds_.max = vec3.fromValues(
+      (clippedMax[0] - this.fullVolumeWorldBounds_.min[0]) / volumeSize[0],
+      (clippedMax[1] - this.fullVolumeWorldBounds_.min[1]) / volumeSize[1],
+      (clippedMax[2] - this.fullVolumeWorldBounds_.min[2]) / volumeSize[2]
     );
   }
 
@@ -212,8 +214,16 @@ export class VolumeRenderable extends RenderableObject {
           this.voxelScale[1],
           this.voxelScale[2],
         ],
-        BoxMinUV: [this.boxMinUV[0], this.boxMinUV[1], this.boxMinUV[2]],
-        BoxSizeUV: [this.boxSizeUV[0], this.boxSizeUV[1], this.boxSizeUV[2]],
+        BoxMinUV: [
+          this.clippedVolumeUVWBounds_.min[0],
+          this.clippedVolumeUVWBounds_.min[1],
+          this.clippedVolumeUVWBounds_.min[2],
+        ],
+        BoxMaxUV: [
+          this.clippedVolumeUVWBounds_.max[0],
+          this.clippedVolumeUVWBounds_.max[1],
+          this.clippedVolumeUVWBounds_.max[2],
+        ],
       }
     );
   }
