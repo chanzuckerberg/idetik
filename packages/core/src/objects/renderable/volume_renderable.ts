@@ -84,7 +84,9 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public clipVolumeToBounds(clipBounds: Box3) {
-    // Set proxy geometry transform to match the clipped region
+    this.visible = Box3.intersects(clipBounds, this.fullVolumeWorldBounds_);
+    if (!this.visible) return;
+
     const clippedMin = vec3.max(
       vec3.create(),
       this.fullVolumeWorldBounds_.min,
@@ -108,17 +110,12 @@ export class VolumeRenderable extends RenderableObject {
     );
     this.transform.setScale(proxySize);
     this.transform.setTranslation(proxyCenter);
-    this.visible = Box3.intersects(clipBounds, this.fullVolumeWorldBounds_);
-    if (!this.visible) return;
 
-    // Compute UVW bounds for the clipped region
-    // Transform clipped world bounds to normalized volume space [0,1]
     const volumeSize = vec3.subtract(
       vec3.create(),
       this.fullVolumeWorldBounds_.max,
       this.fullVolumeWorldBounds_.min
     );
-
     this.clippedVolumeUVWBounds_.min = vec3.fromValues(
       (clippedMin[0] - this.fullVolumeWorldBounds_.min[0]) / volumeSize[0],
       (clippedMin[1] - this.fullVolumeWorldBounds_.min[1]) / volumeSize[1],
