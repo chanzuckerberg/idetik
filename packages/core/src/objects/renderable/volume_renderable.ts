@@ -83,7 +83,7 @@ export class VolumeRenderable extends RenderableObject {
     );
   }
 
-  public clipVolumeToBounds(clipBounds: Box3) {
+  public clipToBounds(clipBounds: Box3) {
     this.visible = Box3.intersects(clipBounds, this.fullVolumeWorldBounds_);
     if (!this.visible) return;
 

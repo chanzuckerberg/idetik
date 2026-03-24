@@ -88,7 +88,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       this.clipBounds_.max = maxBound;
     }
     for (const volume of this.currentVolumes_.values()) {
-      volume.clipVolumeToBounds(this.clipBounds_);
+      volume.clipToBounds(this.clipBounds_);
     }
   }
 
@@ -193,7 +193,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     for (const [key, chunks] of groupedChunks) {
       const volume = this.getOrCreateVolume(key, chunks);
-      if (this.clipBounds_) volume.clipVolumeToBounds(this.clipBounds_);
+      if (this.clipBounds_) volume.clipToBounds(this.clipBounds_);
       volume.wireframeEnabled = this.debugShowWireframes;
       this.currentVolumes_.set(key, volume);
       this.addObject(volume);
