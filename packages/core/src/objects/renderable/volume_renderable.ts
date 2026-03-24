@@ -97,6 +97,10 @@ export class VolumeRenderable extends RenderableObject {
       clipBounds.max
     );
     const proxySize = vec3.subtract(vec3.create(), clippedMax, clippedMin);
+    if (proxySize[0] <= 0 || proxySize[1] <= 0 || proxySize[2] <= 0) {
+      this.visible = false;
+      return;
+    }
     const proxyCenter = vec3.scaleAndAdd(
       vec3.create(),
       clippedMin,
