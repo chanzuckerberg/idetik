@@ -214,12 +214,12 @@ export class VolumeRenderable extends RenderableObject {
           this.voxelScale[1],
           this.voxelScale[2],
         ],
-        BoxMinUV: [
+        BoxMinUVW: [
           this.clippedVolumeUVWBounds_.min[0],
           this.clippedVolumeUVWBounds_.min[1],
           this.clippedVolumeUVWBounds_.min[2],
         ],
-        BoxMaxUV: [
+        BoxMaxUVW: [
           this.clippedVolumeUVWBounds_.max[0],
           this.clippedVolumeUVWBounds_.max[1],
           this.clippedVolumeUVWBounds_.max[2],
