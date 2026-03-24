@@ -71,15 +71,17 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   public setClipBounds(min?: vec3, max?: vec3) {
+    const minBound = min
+      ? vec3.clone(min)
+      : vec3.fromValues(-Infinity, -Infinity, -Infinity);
+    const maxBound = max
+      ? vec3.clone(max)
+      : vec3.fromValues(Infinity, Infinity, Infinity);
     if (!this.clipBounds_) {
-      this.clipBounds_ = new Box3(min, max);
+      this.clipBounds_ = new Box3(minBound, maxBound);
     } else {
-      this.clipBounds_.min = min
-        ? vec3.clone(min)
-        : vec3.fromValues(-Infinity, -Infinity, -Infinity);
-      this.clipBounds_.max = max
-        ? vec3.clone(max)
-        : vec3.fromValues(Infinity, Infinity, Infinity);
+      this.clipBounds_.min = minBound;
+      this.clipBounds_.max = maxBound;
     }
     for (const volume of this.currentVolumes_.values()) {
       volume.clipVolumeToBounds(this.clipBounds_);
