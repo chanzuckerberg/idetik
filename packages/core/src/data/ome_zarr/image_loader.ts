@@ -96,7 +96,25 @@ export class OmeZarrImageLoader {
       signal,
     });
 
-    if (!isChunkData(receivedChunk.data)) {
+    chunk.data = this.sliceReceivedChunk(chunk, receivedChunk);
+
+    const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
+    if (!isTextureUnpackRowAlignment(rowAlignment)) {
+      throw new Error(
+        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
+      );
+    }
+    chunk.rowAlignmentBytes = rowAlignment;
+  }
+
+  // trim any padding (XYZ padding for edge chunks)
+  // and extract the channel/timepoint
+  private sliceReceivedChunk(
+    chunk: Chunk,
+    receivedChunk: zarr.Chunk<zarr.DataType>
+  ): ChunkData {
+    const receivedChunkData = receivedChunk.data;
+    if (!isChunkData(receivedChunkData)) {
       throw new Error(
         `Received chunk has an unsupported data type, data=${receivedChunk.data.constructor.name}`
       );
@@ -124,33 +142,7 @@ export class OmeZarrImageLoader {
       );
     }
 
-    chunk.data = this.sliceReceivedChunk(chunk, receivedChunk);
-
-    const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
-    if (!isTextureUnpackRowAlignment(rowAlignment)) {
-      throw new Error(
-        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
-      );
-    }
-    chunk.rowAlignmentBytes = rowAlignment;
-  }
-
-  // trim any padding (XYZ padding for edge chunks)
-  // and extract the channel/timepoint
-  private sliceReceivedChunk(
-    chunk: Chunk,
-    receivedChunk: zarr.Chunk<zarr.DataType>
-  ): ChunkData {
-    const receivedChunkData = receivedChunk.data as ChunkData;
     const receivedChunkStride = receivedChunk.stride;
-
-    const receivedShape = {
-      x: receivedChunk.shape[this.dimensions_.x.index],
-      y: receivedChunk.shape[this.dimensions_.y.index],
-      z: this.dimensions_.z
-        ? receivedChunk.shape[this.dimensions_.z.index]
-        : chunk.shape.z,
-    };
 
     const cLod = this.dimensions_.c?.lods[chunk.lod];
     const tLod = this.dimensions_.t?.lods[chunk.lod];
