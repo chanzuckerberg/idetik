@@ -71,6 +71,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   public setClipBounds(min?: vec3, max?: vec3) {
+    if (min === undefined && max === undefined) {
+      this.clipBounds_ = undefined;
+      return;
+    }
     const minBound = min
       ? vec3.clone(min)
       : vec3.fromValues(-Infinity, -Infinity, -Infinity);
