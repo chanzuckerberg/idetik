@@ -71,20 +71,50 @@ export class OmeZarrImageLoader {
     if (this.dimensions_.z) {
       chunkCoords[this.dimensions_.z.index] = chunk.chunkIndex.z;
     }
+
+    // internal (ChunkStore) chunks have size 1 in C and T
+    // so divide by the actual chunkSize to get the chunkCoord here
     if (this.dimensions_.c) {
-      chunkCoords[this.dimensions_.c.index] = chunk.chunkIndex.c;
+      const cLod = this.dimensions_.c.lods[chunk.lod];
+      chunkCoords[this.dimensions_.c.index] = Math.floor(
+        chunk.chunkIndex.c / cLod.chunkSize
+      );
     }
     if (this.dimensions_.t) {
-      chunkCoords[this.dimensions_.t.index] = chunk.chunkIndex.t;
+      const tLod = this.dimensions_.t.lods[chunk.lod];
+      chunkCoords[this.dimensions_.t.index] = Math.floor(
+        chunk.chunkIndex.t / tLod.chunkSize
+      );
     }
 
     const array = this.arrays_[chunk.lod];
     const arrayParams = this.arrayParams_[chunk.lod];
+
+    // NOTE: if source chunks have multiple channels/timepoints
+    // this results in duplicate fetching and decompression
     const receivedChunk = await getChunk(array, arrayParams, chunkCoords, {
       signal,
     });
 
-    if (!isChunkData(receivedChunk.data)) {
+    chunk.data = this.sliceReceivedChunk(chunk, receivedChunk);
+
+    const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
+    if (!isTextureUnpackRowAlignment(rowAlignment)) {
+      throw new Error(
+        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
+      );
+    }
+    chunk.rowAlignmentBytes = rowAlignment;
+  }
+
+  // trim any padding (XYZ padding for edge chunks)
+  // and extract the channel/timepoint
+  private sliceReceivedChunk(
+    chunk: Chunk,
+    receivedChunk: zarr.Chunk<zarr.DataType>
+  ): ChunkData {
+    const receivedChunkData = receivedChunk.data;
+    if (!isChunkData(receivedChunkData)) {
       throw new Error(
         `Received chunk has an unsupported data type, data=${receivedChunk.data.constructor.name}`
       );
@@ -112,53 +142,61 @@ export class OmeZarrImageLoader {
       );
     }
 
-    const receivedChunkHasPadding =
-      receivedShape.x > chunk.shape.x ||
-      receivedShape.y > chunk.shape.y ||
-      receivedShape.z > chunk.shape.z;
+    const receivedChunkStride = receivedChunk.stride;
 
-    if (receivedChunkHasPadding) {
-      chunk.data = this.trimChunkPadding(
-        chunk,
-        receivedChunk.data,
-        receivedChunk.stride
-      );
-    } else {
-      chunk.data = receivedChunk.data;
-    }
+    const cLod = this.dimensions_.c?.lods[chunk.lod];
+    const tLod = this.dimensions_.t?.lods[chunk.lod];
 
-    const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
-    if (!isTextureUnpackRowAlignment(rowAlignment)) {
-      throw new Error(
-        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
-      );
-    }
-    chunk.rowAlignmentBytes = rowAlignment;
-  }
+    const cOffsetInSource = cLod ? chunk.chunkIndex.c % cLod.chunkSize : 0;
+    const tOffsetInSource = tLod ? chunk.chunkIndex.t % tLod.chunkSize : 0;
 
-  private trimChunkPadding(
-    chunk: Chunk,
-    receivedChunkData: ChunkData,
-    receivedChunkStride: number[]
-  ): ChunkData {
+    // internal chunks are compact 3D XYZ, with size 1 in C and T
     const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
+
+    const cStride = this.dimensions_.c
+      ? receivedChunkStride[this.dimensions_.c.index]
+      : 0;
+    const tStride = this.dimensions_.t
+      ? receivedChunkStride[this.dimensions_.t.index]
+      : 0;
+
+    // note: this assumes tczyx ordering
+    const srcOffset = tOffsetInSource * tStride + cOffsetInSource * cStride;
+
+    const receivedExactShape =
+      receivedShape.x === chunk.shape.x &&
+      receivedShape.y === chunk.shape.y &&
+      receivedShape.z === chunk.shape.z;
+
+    const noSlicingNeeded =
+      srcOffset === 0 &&
+      receivedChunkData.length === compactSize &&
+      receivedExactShape;
+    if (noSlicingNeeded) {
+      return receivedChunkData;
+    }
+
     const compactData =
       new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
 
-    let offset = 0;
     const zStride = this.dimensions_.z
       ? receivedChunkStride[this.dimensions_.z.index]
       : 0;
     const yStride = receivedChunkStride[this.dimensions_.y.index];
+    let destOffset = 0;
     for (let z = 0; z < chunk.shape.z; z++) {
-      const zStart = z * zStride;
+      const zStart = srcOffset + z * zStride;
       for (let y = 0; y < chunk.shape.y; y++) {
         const srcStart = zStart + y * yStride;
         const srcEnd = srcStart + chunk.shape.x;
-        compactData.set(receivedChunkData.subarray(srcStart, srcEnd), offset);
-        offset += chunk.shape.x;
+        compactData.set(
+          receivedChunkData.subarray(srcStart, srcEnd),
+          destOffset
+        );
+        destOffset += chunk.shape.x;
       }
     }
+
     return compactData;
   }
 
