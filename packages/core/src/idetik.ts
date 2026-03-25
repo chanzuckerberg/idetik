@@ -1,9 +1,9 @@
 import { ChunkManager } from "./core/chunk_manager";
 import {
-    parseViewportConfigs,
-    type Viewport,
-    type ViewportConfig,
-    validateNewViewport,
+  parseViewportConfigs,
+  type Viewport,
+  type ViewportConfig,
+  validateNewViewport,
 } from "./core/viewport";
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { Logger } from "./utilities/logger";
@@ -187,7 +187,6 @@ export class Idetik {
       }
     }
 
-    this.renderer_.disposeViewportResources(viewport);
     this.viewports_.splice(index, 1);
     Logger.info("Idetik", `Removed viewport "${viewport.id}"`);
     return true;

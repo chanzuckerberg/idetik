@@ -24,18 +24,32 @@ import { WebGLTextures } from "./webgl_textures";
 // To match this convention, we flip Y in the projection matrix.
 // This is a mirror transform, which also flips triangle winding.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
-const DOWNSAMPLE_FACTOR = 4;
 
-class CompositePass {
+class DownsamplingCompositePass {
   private readonly gl_: WebGL2RenderingContext;
+  private readonly state_: WebGLState;
   private readonly vao_: WebGLVertexArrayObject;
 
-  constructor(gl: WebGL2RenderingContext) {
+  constructor(gl: WebGL2RenderingContext, state: WebGLState) {
     this.gl_ = gl;
+    this.state_ = state;
     this.vao_ = gl.createVertexArray();
   }
 
+  private begin() {
+    this.state_.setDepthTesting(false);
+    this.state_.setDepthMask(false);
+    this.state_.setCullFaceMode("none");
+    this.state_.setStencilTest(false);
+  }
+
   draw(buffer: DownsampledFramebuffer, programs: WebGLShaderPrograms) {
+    this.begin();
+    this.draw_(buffer, programs);
+    this.end();
+  }
+
+  private draw_(buffer: DownsampledFramebuffer, programs: WebGLShaderPrograms) {
     this.gl_.bindVertexArray(this.vao_);
     buffer.bindTexture();
     this.gl_.enable(this.gl_.BLEND);
@@ -43,6 +57,10 @@ class CompositePass {
     const program = programs.use("downsampleComposite");
     program.setUniform("u_texture", 0);
     this.gl_.drawArrays(this.gl_.TRIANGLES, 0, 3);
+  }
+
+  private end() {
+    this.state_.setDepthMask(true);
   }
 
   dispose() {
@@ -56,8 +74,7 @@ export class WebGLRenderer extends Renderer {
   private readonly bindings_: WebGLBuffers;
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
-  private readonly downsampledFrameBuffers_;
-  private readonly compositePass_: CompositePass;
+  private readonly downsamplingPass_: DownsamplingCompositePass;
   private renderedObjectsPerFrame_ = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -80,9 +97,8 @@ export class WebGLRenderer extends Renderer {
     this.programs_ = new WebGLShaderPrograms(gl);
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
-    this.downsampledFrameBuffers_ = new Map<Viewport, DownsampledFramebuffer>();
-    this.compositePass_ = new CompositePass(gl);
     this.state_ = new WebGLState(gl);
+    this.downsamplingPass_ = new DownsamplingCompositePass(gl, this.state_);
     this.initStencil();
     this.resize(this.canvas.width, this.canvas.height);
   }
@@ -91,22 +107,16 @@ export class WebGLRenderer extends Renderer {
     let viewportIsVisible =
       getComputedStyle(viewport.element).visibility !== "hidden";
     const viewportBox = viewport.getBoxRelativeTo(this.canvas);
-    const rendererBox = new Box2(
-      vec2.fromValues(0, 0),
-      vec2.fromValues(this.width, this.height)
-    );
-    if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
-      this.state_.setScissorTest(false);
-    } else if (Box2.intersects(viewportBox, rendererBox)) {
-      this.state_.setScissor(viewportBox);
-      this.state_.setScissorTest(true);
-    } else {
+    const scissorBox = this.computeScissorBox(viewportBox);
+
+    if (scissorBox === null) {
       Logger.warn(
         "WebGLRenderer",
         `Viewport ${viewport.id} is entirely outside canvas bounds, skipping render`
       );
       viewportIsVisible = false;
     }
+    this.applyScissor(scissorBox);
 
     this.state_.setViewport(viewportBox);
     this.renderedObjectsPerFrame_ = 0;
@@ -128,29 +138,14 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
-    const cameraIsMoving = viewport.cameraControls?.isMoving ?? false;
-    const shouldDownsample =
-      cameraIsMoving &&
-      transparent.length > 0 &&
-      viewportIsVisible &&
-      DOWNSAMPLE_FACTOR > 1;
-
-    if (shouldDownsample) {
+    if (viewportIsVisible) {
       this.renderTransparentDownsampled(
         transparent,
         viewport,
         viewportBox,
-        rendererBox,
+        scissorBox,
         frustum,
         renderContext
-      );
-    } else {
-      this.renderTransparentLayers(
-        transparent,
-        viewport.camera,
-        frustum,
-        renderContext,
-        viewportIsVisible
       );
     }
 
@@ -161,25 +156,16 @@ export class WebGLRenderer extends Renderer {
     return this.textures_.textureInfo;
   }
 
-  public disposeViewportResources(viewport: Viewport) {
-    const framebuffer = this.downsampledFrameBuffers_.get(viewport);
-    if (framebuffer) {
-      framebuffer.dispose();
-      this.downsampledFrameBuffers_.delete(viewport);
-    }
-  }
-
   private renderTransparentLayers(
     layers: Layer[],
     camera: Camera,
     frustum: Frustum,
-    renderContext: { viewport: Viewport },
-    viewportIsVisible: boolean
+    renderContext: { viewport: Viewport }
   ) {
     this.state_.setDepthMask(false);
     for (const layer of layers) {
       layer.update(renderContext);
-      if (layer.state === "ready" && viewportIsVisible) {
+      if (layer.state === "ready") {
         this.renderLayer(layer, camera, frustum);
       }
     }
@@ -190,21 +176,35 @@ export class WebGLRenderer extends Renderer {
     layers: Layer[],
     viewport: Viewport,
     viewportBox: Box2,
-    rendererBox: Box2,
+    scissorBox: Box2 | null | undefined,
     frustum: Frustum,
     renderContext: { viewport: Viewport }
   ) {
+    const cameraIsMoving = viewport.cameraControls?.isMoving ?? false;
+    const shouldDownsample =
+      cameraIsMoving && layers.length > 0 && viewport.downsamplingFactor > 1;
+
+    if (!shouldDownsample) {
+      this.renderTransparentLayers(
+        layers,
+        viewport.camera,
+        frustum,
+        renderContext
+      );
+      return;
+    }
+
     const { width: vpWidth, height: vpHeight } = viewportBox.toRect();
-    const dsWeight = Math.max(1, Math.floor(vpWidth / DOWNSAMPLE_FACTOR));
-    const dsHeight = Math.max(1, Math.floor(vpHeight / DOWNSAMPLE_FACTOR));
+    const dsFactor = viewport.downsamplingFactor;
+    const dsWidth = Math.max(1, Math.floor(vpWidth / dsFactor));
+    const dsHeight = Math.max(1, Math.floor(vpHeight / dsFactor));
     const downscaledViewport = new Box2(
       vec2.fromValues(0, 0),
-      vec2.fromValues(dsWeight, dsHeight)
+      vec2.fromValues(dsWidth, dsHeight)
     );
 
-    // Switch to the framebuffer
-    const framebuffer = this.aquireFramebuffer(viewport, dsWeight, dsHeight);
-
+    // Render transparent layers into the downsampled framebuffer
+    const framebuffer = new DownsampledFramebuffer(this.gl_, dsWidth, dsHeight);
     framebuffer.begin();
     this.state_.setViewport(downscaledViewport);
     this.state_.setScissorTest(false);
@@ -212,40 +212,41 @@ export class WebGLRenderer extends Renderer {
       layers,
       viewport.camera,
       frustum,
-      renderContext,
-      true
+      renderContext
     );
     framebuffer.end();
 
-    // Switch back to the original viewport
+    // Composite back to the main framebuffer
     this.state_.setViewport(viewportBox);
-    // Apply ScissorTest if necessary
-    if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
-      this.state_.setScissorTest(false);
-    } else if (Box2.intersects(viewportBox, rendererBox)) {
-      this.state_.setScissor(viewportBox);
-      this.state_.setScissorTest(true);
-    }
-    this.state_.setDepthTesting(false);
-    this.state_.setDepthMask(false);
-    this.state_.setCullFaceMode("none");
-    this.state_.setStencilTest(false);
-    this.compositePass_.draw(framebuffer, this.programs_);
-    this.state_.setDepthMask(true);
+    this.applyScissor(scissorBox);
+    this.downsamplingPass_.draw(framebuffer, this.programs_);
+    framebuffer.dispose();
   }
 
-  private aquireFramebuffer(
-    viewport: Viewport,
-    width: number,
-    height: number
-  ): DownsampledFramebuffer {
-    let framebuffer = this.downsampledFrameBuffers_.get(viewport);
-    if (framebuffer) {
-      return framebuffer;
+  // Returns the scissor box if clipping is needed,
+  // - undefined if not
+  // - null if viewport is outside canvas
+  private computeScissorBox(viewportBox: Box2): Box2 | undefined | null {
+    const rendererBox = new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(this.width, this.height)
+    );
+    if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
+      return undefined; // full canvas, no scissor needed
     }
-    framebuffer = new DownsampledFramebuffer(this.gl_, width, height);
-    this.downsampledFrameBuffers_.set(viewport, framebuffer);
-    return framebuffer;
+    if (Box2.intersects(viewportBox, rendererBox)) {
+      return viewportBox; // partial overlap, scissor to viewport
+    }
+    return null; // entirely outside
+  }
+
+  private applyScissor(scissorBox: Box2 | null | undefined) {
+    if (scissorBox) {
+      this.state_.setScissor(scissorBox);
+      this.state_.setScissorTest(true);
+      return;
+    }
+    this.state_.setScissorTest(false);
   }
 
   private initStencil() {

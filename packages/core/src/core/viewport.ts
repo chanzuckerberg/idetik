@@ -1,13 +1,15 @@
-import { Camera } from "../objects/cameras/camera";
-import { Layer } from "./layer";
-import { LayerManager } from "./layer_manager";
-import { CameraControls } from "../objects/cameras/controls";
-import { Box2 } from "../math/box2";
 import { vec2, vec3 } from "gl-matrix";
-import { generateUUID } from "../utilities/uuid_generator";
+import type { IdetikContext } from "../idetik";
+import { Box2 } from "../math/box2";
+import type { Camera } from "../objects/cameras/camera";
+import type { CameraControls } from "../objects/cameras/controls";
 import { Logger } from "../utilities/logger";
-import { EventContext, EventDispatcher } from "./event_dispatcher";
-import { IdetikContext } from "../idetik";
+import { generateUUID } from "../utilities/uuid_generator";
+import { type EventContext, EventDispatcher } from "./event_dispatcher";
+import type { Layer } from "./layer";
+import { LayerManager } from "./layer_manager";
+
+const NO_DOWNSAMPLING = 1;
 
 export interface ViewportConfig {
   id?: string;
@@ -15,6 +17,7 @@ export interface ViewportConfig {
   camera: Camera;
   layers?: Layer[];
   cameraControls?: CameraControls;
+  downsamplingFactor?: number;
 }
 
 interface ViewportProps extends ViewportConfig {
@@ -29,6 +32,7 @@ export class Viewport {
   public readonly camera: Camera;
   public readonly layerManager: LayerManager;
   public readonly events: EventDispatcher;
+  public readonly downsamplingFactor: number;
   public cameraControls?: CameraControls;
 
   constructor(props: ViewportProps) {
@@ -37,6 +41,7 @@ export class Viewport {
     this.camera = props.camera;
     this.layerManager = props.layerManager;
     this.cameraControls = props.cameraControls;
+    this.downsamplingFactor = props.downsamplingFactor ?? NO_DOWNSAMPLING;
     this.updateAspectRatio();
     this.events = new EventDispatcher(this.element);
     this.events.addEventListener((event: EventContext) => {

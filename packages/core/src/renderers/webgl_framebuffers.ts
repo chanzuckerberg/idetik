@@ -71,9 +71,7 @@ export class DownsampledFramebuffer {
 
     const status = this.gl_.checkFramebufferStatus(this.gl_.FRAMEBUFFER);
     if (status !== this.gl_.FRAMEBUFFER_COMPLETE) {
-      throw new Error(
-        `DownsampledFramebuffer incomplete: status ${status}`
-      );
+      throw new Error(`DownsampledFramebuffer incomplete: status ${status}`);
     }
 
     this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, null);
