@@ -264,8 +264,9 @@ export class ChunkStore {
       const cLod = this.dimensions_.c?.lods[lod];
       if (!cLod) continue;
       if (cLod.scale !== 1) {
-        throw new Error(
-          `ChunkStore does not support scale in c. Found ${cLod.scale} at LOD ${lod}`
+        Logger.warn(
+          "ChunkStore",
+          `Idetik does not make use of non-unity scale in c. Found ${cLod.scale} at LOD ${lod}`
         );
       }
       if (cLod.translation !== 0) {
