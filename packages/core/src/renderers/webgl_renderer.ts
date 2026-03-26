@@ -75,6 +75,7 @@ export class WebGLRenderer extends Renderer {
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
   private readonly downsamplingPass_: DownsamplingCompositePass;
+  private downsamplingFramebuffer_: DownsampledFramebuffer | undefined;
   private renderedObjectsPerFrame_ = 0;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -139,14 +140,22 @@ export class WebGLRenderer extends Renderer {
     }
 
     if (viewportIsVisible) {
-      this.renderTransparentDownsampled(
-        transparent,
+      const isDownsampling = this.beginDownsampling(
         viewport,
         viewportBox,
-        scissorBox,
+        transparent.length > 0
+      );
+
+      this.renderTransparentLayers(
+        transparent,
+        viewport.camera,
         frustum,
         renderContext
       );
+
+      if (isDownsampling) {
+        this.endDownsampling(viewportBox, scissorBox);
+      }
     }
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
@@ -172,55 +181,51 @@ export class WebGLRenderer extends Renderer {
     this.state_.setDepthMask(true);
   }
 
-  private renderTransparentDownsampled(
-    layers: Layer[],
+  private beginDownsampling(
     viewport: Viewport,
     viewportBox: Box2,
-    scissorBox: Box2 | null | undefined,
-    frustum: Frustum,
-    renderContext: { viewport: Viewport }
-  ) {
+    hasLayers: boolean
+  ): boolean {
     const cameraIsMoving = viewport.cameraControls?.isMoving ?? false;
-    const shouldDownsample =
-      cameraIsMoving && layers.length > 0 && viewport.downsamplingFactor > 1;
-
-    if (!shouldDownsample) {
-      this.renderTransparentLayers(
-        layers,
-        viewport.camera,
-        frustum,
-        renderContext
-      );
-      return;
+    if (!cameraIsMoving || !hasLayers || viewport.downsamplingFactor <= 1) {
+      return false;
     }
 
     const { width: vpWidth, height: vpHeight } = viewportBox.toRect();
     const dsFactor = viewport.downsamplingFactor;
     const dsWidth = Math.max(1, Math.floor(vpWidth / dsFactor));
     const dsHeight = Math.max(1, Math.floor(vpHeight / dsFactor));
+
+    if (!this.downsamplingFramebuffer_) {
+      this.downsamplingFramebuffer_ = new DownsampledFramebuffer(
+        this.gl_,
+        dsWidth,
+        dsHeight
+      );
+    } else {
+      this.downsamplingFramebuffer_.resize(dsWidth, dsHeight);
+    }
+
+    this.downsamplingFramebuffer_.begin();
     const downscaledViewport = new Box2(
       vec2.fromValues(0, 0),
       vec2.fromValues(dsWidth, dsHeight)
     );
-
-    // Render transparent layers into the downsampled framebuffer
-    const framebuffer = new DownsampledFramebuffer(this.gl_, dsWidth, dsHeight);
-    framebuffer.begin();
     this.state_.setViewport(downscaledViewport);
     this.state_.setScissorTest(false);
-    this.renderTransparentLayers(
-      layers,
-      viewport.camera,
-      frustum,
-      renderContext
-    );
-    framebuffer.end();
 
-    // Composite back to the main framebuffer
+    return true;
+  }
+
+  private endDownsampling(
+    viewportBox: Box2,
+    scissorBox: Box2 | null | undefined
+  ) {
+    // null-assertions are ok here, we are sure downsamplingFramebuffer_ is not undefined
+    this.downsamplingFramebuffer_!.end();
     this.state_.setViewport(viewportBox);
     this.applyScissor(scissorBox);
-    this.downsamplingPass_.draw(framebuffer, this.programs_);
-    framebuffer.dispose();
+    this.downsamplingPass_.draw(this.downsamplingFramebuffer_!, this.programs_);
   }
 
   // Returns the scissor box if clipping is needed,
