@@ -15,6 +15,10 @@ export class WebGLBuffers {
     this.gl_ = gl;
   }
 
+  public invalidateActiveGeometry() {
+    this.currentGeometry_ = null;
+  }
+
   public bindGeometry(geometry: Geometry) {
     if (this.alreadyActive(geometry)) return;
 

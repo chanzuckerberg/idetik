@@ -60,6 +60,7 @@ class DownsamplingCompositePass {
   }
 
   private end() {
+    this.gl_.bindVertexArray(null);
     this.state_.setDepthMask(true);
   }
 
@@ -226,6 +227,7 @@ export class WebGLRenderer extends Renderer {
     this.state_.setViewport(viewportBox);
     this.applyScissor(scissorBox);
     this.downsamplingPass_.draw(this.downsamplingFramebuffer_!, this.programs_);
+    this.bindings_.invalidateActiveGeometry();
   }
 
   // Returns the scissor box if clipping is needed,
