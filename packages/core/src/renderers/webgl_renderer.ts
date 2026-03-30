@@ -140,6 +140,10 @@ export class WebGLRenderer extends Renderer {
       }
     }
 
+    for (const layer of transparent) {
+      layer.update(renderContext);
+    }
+
     if (viewportIsVisible) {
       const isDownsampling = this.beginDownsampling(
         viewport,
@@ -149,7 +153,6 @@ export class WebGLRenderer extends Renderer {
 
       this.state_.setDepthMask(false);
       for (const layer of transparent) {
-        layer.update(renderContext);
         if (layer.state === "ready") {
           this.renderLayer(layer, viewport.camera, frustum);
         }
