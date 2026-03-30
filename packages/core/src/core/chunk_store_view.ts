@@ -28,6 +28,7 @@ export class ChunkStoreView {
   private lastTCoord_?: number;
 
   private sourceMaxSquareDistance2D_: number;
+  private maxSquareDistance3D_: number | null = null;
   private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
 
   private isDisposed_ = false;
@@ -215,12 +216,22 @@ export class ChunkStoreView {
 
     const fallbackLOD = this.fallbackLOD();
 
+    this.maxSquareDistance3D_ = null;
     for (const chunk of currentTimeChunks) {
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === fallbackLOD;
       if (!isCurrentLOD && !isFallbackLOD) continue;
 
+      // Check channel first to avoid more expensive frustum intersection test
       if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
+
+      if (
+        !viewport.camera.frustum.intersectsWithBox3(
+          this.computeChunkBounds(chunk)
+        )
+      ) {
+        continue;
+      }
       const priority = this.computePriority(
         isFallbackLOD,
         isCurrentLOD,
@@ -228,17 +239,27 @@ export class ChunkStoreView {
         false, // isPrefetch
         true // isChannelInSlice
       );
+      if (priority === null) continue;
 
+      const orderKey = this.squareDistance3D(chunk, viewport.camera.position);
+      this.maxSquareDistance3D_ = Math.max(
+        this.maxSquareDistance3D_ ?? 0,
+        orderKey
+      );
       this.chunkViewStates_.set(chunk, {
         visible: true,
         prefetch: false,
         priority,
-        orderKey: 0, // All chunks have the same ordering for volume rendering
+        orderKey,
       });
     }
 
     if (sliceCoords.t !== undefined) {
-      this.markTimeChunksForPrefetchVolume(currentTimeIndex, sliceCoords);
+      this.markTimeChunksForPrefetchVolume(
+        currentTimeIndex,
+        sliceCoords,
+        viewport
+      );
     }
 
     this.policyChanged_ = false;
@@ -422,7 +443,8 @@ export class ChunkStoreView {
 
   private markTimeChunksForPrefetchVolume(
     currentTimeIndex: number,
-    sliceCoords: SliceCoordinates
+    sliceCoords: SliceCoordinates,
+    viewport: Viewport
   ) {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const tEnd = Math.min(
@@ -432,12 +454,30 @@ export class ChunkStoreView {
     const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
 
+    let maxDistance = 0;
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.store_.getChunksAtTime(t)) {
         if (chunk.lod !== fallbackLOD) continue;
         if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
+        if (
+          !viewport.camera.frustum.intersectsWithBox3(
+            this.computeChunkBounds(chunk)
+          )
+        ) {
+          continue;
+        }
 
-        const orderKey = t - currentTimeIndex; // nearer future timepoints first
+        const squareDistance = this.squareDistance3D(
+          chunk,
+          viewport.camera.position
+        );
+        const normalizedDistance = clamp(
+          squareDistance / (this.maxSquareDistance3D_ ?? 1),
+          0,
+          1 - Number.EPSILON
+        );
+        maxDistance = Math.max(maxDistance, squareDistance);
+        const orderKey = t - currentTimeIndex + normalizedDistance; // first order by time distance, then by spatial distance
 
         this.chunkViewStates_.set(chunk, {
           visible: false,
@@ -447,6 +487,8 @@ export class ChunkStoreView {
         });
       }
     }
+    this.maxSquareDistance3D_ =
+      maxDistance > 0 ? maxDistance : this.maxSquareDistance3D_;
   }
 
   private computePriority(
@@ -467,8 +509,8 @@ export class ChunkStoreView {
     return null;
   }
 
-  private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
-    const chunkBounds = new Box3(
+  private computeChunkBounds(chunk: Chunk): Box3 {
+    return new Box3(
       vec3.fromValues(chunk.offset.x, chunk.offset.y, chunk.offset.z),
       vec3.fromValues(
         chunk.offset.x + chunk.shape.x * chunk.scale.x,
@@ -476,7 +518,10 @@ export class ChunkStoreView {
         chunk.offset.z + chunk.shape.z * chunk.scale.z
       )
     );
-    return Box3.intersects(chunkBounds, bounds);
+  }
+
+  private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
+    return Box3.intersects(this.computeChunkBounds(chunk), bounds);
   }
 
   private fallbackLOD(): number {
@@ -569,6 +614,15 @@ export class ChunkStoreView {
     const dx = chunkCenter.x - center[0];
     const dy = chunkCenter.y - center[1];
     return dx * dx + dy * dy;
+  }
+
+  private squareDistance3D(chunk: Chunk, center: vec3): number {
+    const chunkCenter = vec3.fromValues(
+      chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
+      chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
+      chunk.offset.z + 0.5 * chunk.shape.z * chunk.scale.z
+    );
+    return vec3.squaredDistance(chunkCenter, center);
   }
 }
 
