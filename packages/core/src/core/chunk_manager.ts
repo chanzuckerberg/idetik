@@ -1,5 +1,10 @@
 import { ChunkSource } from "../data/chunk";
 import { ChunkQueue } from "../data/chunk_queue";
+
+export type QueueStats = {
+  pending: number;
+  running: number;
+};
 import { ChunkStore } from "./chunk_store";
 import { ChunkStoreView } from "./chunk_store_view";
 import { ImageSourcePolicy } from "./image_source_policy";
@@ -8,6 +13,13 @@ export class ChunkManager {
   private readonly stores_ = new Map<ChunkSource, ChunkStore>();
   private readonly pendingStores_ = new Map<ChunkSource, Promise<ChunkStore>>();
   private readonly queue_ = new ChunkQueue();
+
+  public get queueStats(): QueueStats {
+    return {
+      pending: this.queue_.pendingCount,
+      running: this.queue_.runningCount,
+    };
+  }
 
   public async addView(
     source: ChunkSource,

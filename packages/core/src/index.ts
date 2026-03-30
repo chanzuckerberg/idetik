@@ -1,4 +1,5 @@
 export { Idetik } from "./idetik";
+export type { Overlay } from "./idetik";
 
 export { WebGLRenderer } from "./renderers/webgl_renderer";
 export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
@@ -26,6 +27,7 @@ export { ChunkedImageLayer } from "./layers/chunked_image_layer";
 export { VolumeLayer } from "./layers/volume_layer";
 export { ImageLayer } from "./layers/image_layer";
 export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
+export type { QueueStats } from "./core/chunk_manager";
 export { LabelImageLayer } from "./layers/label_image_layer";
 export type { PointPickingResult } from "./layers/point_picking";
 export { ImageSeriesLayer } from "./layers/image_series_layer";
