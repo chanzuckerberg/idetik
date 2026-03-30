@@ -147,12 +147,14 @@ export class WebGLRenderer extends Renderer {
         transparent.length > 0
       );
 
-      this.renderTransparentLayers(
-        transparent,
-        viewport.camera,
-        frustum,
-        renderContext
-      );
+      this.state_.setDepthMask(false);
+      for (const layer of transparent) {
+        layer.update(renderContext);
+        if (layer.state === "ready") {
+          this.renderLayer(layer, viewport.camera, frustum);
+        }
+      }
+      this.state_.setDepthMask(true);
 
       if (isDownsampling) {
         this.endDownsampling(viewportBox, scissorBox);
@@ -164,22 +166,6 @@ export class WebGLRenderer extends Renderer {
 
   public get textureInfo() {
     return this.textures_.textureInfo;
-  }
-
-  private renderTransparentLayers(
-    layers: Layer[],
-    camera: Camera,
-    frustum: Frustum,
-    renderContext: { viewport: Viewport }
-  ) {
-    this.state_.setDepthMask(false);
-    for (const layer of layers) {
-      layer.update(renderContext);
-      if (layer.state === "ready") {
-        this.renderLayer(layer, camera, frustum);
-      }
-    }
-    this.state_.setDepthMask(true);
   }
 
   private beginDownsampling(
@@ -239,12 +225,12 @@ export class WebGLRenderer extends Renderer {
       vec2.fromValues(this.width, this.height)
     );
     if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
-      return undefined; // full canvas, no scissor needed
+      return undefined;
     }
     if (Box2.intersects(viewportBox, rendererBox)) {
-      return viewportBox; // partial overlap, scissor to viewport
+      return viewportBox;
     }
-    return null; // entirely outside
+    return null;
   }
 
   private applyScissor(scissorBox: Box2 | null | undefined) {
