@@ -13,11 +13,10 @@ const sliceCoords = {
   z: undefined,
   c: undefined, // Show all channels
 };
-const controls = { lod: 2 };
 
 const camera = new PerspectiveCamera();
 const policy = createExplorationPolicy({
-  lod: { min: controls.lod, max: controls.lod },
+  lod: { min: 0, max: 2 },
 });
 
 const channelNames = ["Phase 3D", "Prime DAPI", "Prime GFP"];
@@ -135,15 +134,6 @@ function createChannelControls(
 
 // Add GUI controls to manipulate rendering
 const gui = new GUI({ width: 500 });
-gui
-  .add(controls, "lod", 0, 2, 1)
-  .name("Level of Detail (LOD)")
-  .onChange(
-    (lod: number) =>
-      (volumeLayer.sourcePolicy = createExplorationPolicy({
-        lod: { min: lod, max: lod },
-      }))
-  );
 
 const volumeFolder = gui.addFolder("Volume Rendering");
 volumeFolder

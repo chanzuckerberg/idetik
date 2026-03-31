@@ -1,5 +1,5 @@
 import { Chunk, SliceCoordinates, ChunkViewState } from "../data/chunk";
-import type { ChunkStore } from "./chunk_store";
+import { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";
@@ -9,6 +9,7 @@ import { Box3 } from "../math/box3";
 import type { Frustum } from "../math/frustum";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
+import { PerspectiveCamera } from "../objects/cameras/perspective_camera";
 
 /*
 Unique symbol used as a capability token to allow internal modules to update
@@ -42,6 +43,10 @@ export class ChunkStoreView {
     string,
     { bounds: Box3; inFrustum: boolean }
   >();
+  private volumeCenterCache_: { chunks: Chunk[] | null; center: vec3 } = {
+    chunks: null,
+    center: vec3.create(),
+  };
 
   private isDisposed_ = false;
 
@@ -123,14 +128,6 @@ export class ChunkStoreView {
 
     const orthoCamera = camera as OrthographicCamera;
     const viewBounds2D = orthoCamera.getWorldViewRect();
-    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const canvasElement = viewport.element as HTMLCanvasElement;
-    const bufferWidth = viewport.getBoxRelativeTo(canvasElement).toRect().width;
-    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
-    const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
-
-    this.setLOD(lodFactor);
-
     const zBounds = this.getZBounds(sliceCoords);
     const changed =
       this.policyChanged_ ||
@@ -139,6 +136,8 @@ export class ChunkStoreView {
       this.lastTCoord_ !== sliceCoords.t;
 
     if (!changed) return;
+    const lodFactor = this.computeOrtographicLODFactor(viewport, viewBounds2D);
+    this.setLOD(lodFactor);
 
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
@@ -191,13 +190,20 @@ export class ChunkStoreView {
     sliceCoords: SliceCoordinates,
     viewport: Viewport
   ): void {
+    const camera = viewport.camera;
+    if (camera.type !== "PerspectiveCamera") {
+      throw new Error(
+        "ChunkStoreView for volume rendering currently supports only perspective cameras. " +
+          "Update the implementation before using an orthographic camera."
+      );
+    }
     // Each call allocates a new mat4 and computes projection * view.
     // This is intentional for simplicity. If this ever shows up in profiles
     // avoid multiply entirely by caching and comparing view/projection separately.
     const viewProjection = mat4.multiply(
       mat4.create(),
-      viewport.camera.projectionMatrix,
-      viewport.camera.viewMatrix
+      camera.projectionMatrix,
+      camera.viewMatrix
     );
 
     const changed =
@@ -219,14 +225,19 @@ export class ChunkStoreView {
       return;
     }
 
-    // TODO: Calculate LOD dynamically based on view frustum for volume rendering
-    // (similar to zoom-based LOD calculation in updateChunksForImage).
-    // Currently uses a fixed LOD from policy.
-    this.currentLOD_ = this.policy_.lod.min;
+    const fallbackLOD = this.fallbackLOD();
+    const volumeCenter = this.computeVolumeCenterCached(
+      currentTimeChunks.filter((chunk) => chunk.lod === fallbackLOD)
+    );
+    const lodFactor = this.computePerspectiveLODFactor(
+      camera as PerspectiveCamera,
+      viewport,
+      volumeCenter
+    );
+    this.setLOD(lodFactor);
 
     this.chunkViewStates_.forEach(resetChunkViewState);
 
-    const fallbackLOD = this.fallbackLOD();
     const cameraFrustum = viewport.camera.frustum;
     const cameraPosition = viewport.camera.position;
     this.maxSquareDistance3D_ = null;
@@ -344,10 +355,14 @@ export class ChunkStoreView {
   }
 
   private setLOD(lodFactor: number): void {
-    // `scale0` is the x pixel size (world units) at LOD 0.
+    // `scale0` is the smallest dimension pixel size (world units) at LOD 0.
     // With 2x downsampling per LOD, selection happens in log2 space.
     const dimensions = this.store_.dimensions;
-    const scale0 = dimensions.x.lods[0].scale;
+    const scale0 = Math.min(
+      dimensions.x.lods[0].scale,
+      dimensions.y.lods[0].scale,
+      dimensions.z?.lods[0].scale ?? Infinity
+    );
     const bias = this.policy_.lod.bias;
 
     // How many LOD 0 pixels per screen pixel, normalized by source scale and bias.
@@ -368,6 +383,10 @@ export class ChunkStoreView {
     const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
     if (target !== this.currentLOD_) {
       this.currentLOD_ = target;
+      Logger.debug(
+        "ChunkStoreView",
+        `Set LOD to ${this.currentLOD_} (factor: ${lodFactor.toFixed(2)})`
+      );
     }
   }
 
@@ -680,6 +699,90 @@ export class ChunkStoreView {
     const dx = chunkCenter.x - center[0];
     const dy = chunkCenter.y - center[1];
     return dx * dx + dy * dy;
+  }
+
+  private computePerspectiveLODFactor(
+    camera: PerspectiveCamera,
+    viewport: Viewport,
+    volumeCenter: vec3
+  ): number {
+    const cameraToCenter = vec3.subtract(
+      vec3.create(),
+      volumeCenter,
+      camera.position
+    );
+    const distanceToVolumeCenter = vec3.length(cameraToCenter);
+
+    // Project line across screen vertical back into world space at volume center
+    // to determine how many world units the screen covers vertically
+    // For perspective projection: height = 2 * distance * tan(vertical fov/2)
+    const fovRadians = (camera.fov * Math.PI) / 180;
+    const worldHeightAtCenter =
+      2 * distanceToVolumeCenter * Math.tan(fovRadians / 2);
+
+    // Divide total world height by screen height in pixels to get per pixel value
+    const canvasElement = viewport.element as HTMLCanvasElement;
+    const screenHeightInPixels = viewport
+      .getBoxRelativeTo(canvasElement)
+      .toRect().height;
+    const worldUnitsPerPixel = worldHeightAtCenter / screenHeightInPixels;
+    return Math.log2(1 / worldUnitsPerPixel);
+  }
+
+  private computeOrtographicLODFactor(
+    viewport: Viewport,
+    viewBounds2D: Box2
+  ): number {
+    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
+    const canvasElement = viewport.element as HTMLCanvasElement;
+    const bufferWidth = viewport.getBoxRelativeTo(canvasElement).toRect().width;
+    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
+    return Math.log2(1 / virtualUnitsPerScreenPixel);
+  }
+
+  private computeVolumeCenterCached(chunks: Chunk[]): vec3 {
+    if (this.volumeCenterCache_.chunks !== chunks) {
+      this.volumeCenterCache_.center = this.computeVolumeCenter(chunks);
+      this.volumeCenterCache_.chunks = chunks;
+    }
+    return this.volumeCenterCache_.center;
+  }
+
+  private computeVolumeCenter(chunks: Chunk[]): vec3 {
+    const fallbackLod = this.fallbackLOD();
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+
+    for (const chunk of chunks) {
+      if (chunk.lod !== fallbackLod) continue;
+
+      const { bounds } = this.getCachedChunkBoundsInfo(chunk);
+
+      if (bounds.min[0] < minX) minX = bounds.min[0];
+      if (bounds.max[0] > maxX) maxX = bounds.max[0];
+      if (bounds.min[1] < minY) minY = bounds.min[1];
+      if (bounds.max[1] > maxY) maxY = bounds.max[1];
+      if (bounds.min[2] < minZ) minZ = bounds.min[2];
+      if (bounds.max[2] > maxZ) maxZ = bounds.max[2];
+    }
+    if (minX === Infinity || minY === Infinity || minZ === Infinity) {
+      Logger.warn(
+        "ChunkStoreView",
+        "Unable to compute volume center, no chunks found at fallback LOD"
+      );
+      return vec3.fromValues(0, 0, 0);
+    }
+
+    return vec3.fromValues(
+      0.5 * (minX + maxX),
+      0.5 * (minY + maxY),
+      0.5 * (minZ + maxZ)
+    );
   }
 }
 
