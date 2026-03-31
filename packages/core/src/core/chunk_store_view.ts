@@ -1,13 +1,15 @@
 import { Chunk, SliceCoordinates, ChunkViewState } from "../data/chunk";
-import type { ChunkStore } from "./chunk_store";
+import { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";
 import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
+import type { Frustum } from "../math/frustum";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
+import { PerspectiveCamera } from "../objects/cameras/perspective_camera";
 
 /*
 Unique symbol used as a capability token to allow internal modules to update
@@ -28,7 +30,23 @@ export class ChunkStoreView {
   private lastTCoord_?: number;
 
   private sourceMaxSquareDistance2D_: number;
+  private maxSquareDistance3D_: number | null = null;
   private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
+  private readonly chunkBoundsCache_ = new Map<
+    Chunk,
+    { bounds: Box3; center: vec3 }
+  >();
+  // This frustum cache can be simplified if we can assume that
+  // chunks at the same xyz indices at a given LOD across time
+  // all share the same bounds (can remove the bounds here and bounds check)
+  private readonly frustumCheckCache_ = new Map<
+    string,
+    { bounds: Box3; inFrustum: boolean }
+  >();
+  private volumeCenterCache_: { chunks: Chunk[] | null; center: vec3 } = {
+    chunks: null,
+    center: vec3.create(),
+  };
 
   private isDisposed_ = false;
 
@@ -71,7 +89,10 @@ export class ChunkStoreView {
     return this.store_.lodCount;
   }
 
-  public getChunksToRender(sliceCoords: SliceCoordinates): Chunk[] {
+  public getChunksToRender(
+    sliceCoords: SliceCoordinates,
+    includeFallback: boolean = true
+  ): Chunk[] {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
     const currentLODChunks = currentTimeChunks.filter(
@@ -82,7 +103,7 @@ export class ChunkStoreView {
     );
 
     const fallbackLOD = this.fallbackLOD();
-    if (this.currentLOD_ === fallbackLOD) {
+    if (!includeFallback || this.currentLOD_ === fallbackLOD) {
       return currentLODChunks;
     }
 
@@ -110,14 +131,6 @@ export class ChunkStoreView {
 
     const orthoCamera = camera as OrthographicCamera;
     const viewBounds2D = orthoCamera.getWorldViewRect();
-    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const canvasElement = viewport.element as HTMLCanvasElement;
-    const bufferWidth = viewport.getBoxRelativeTo(canvasElement).toRect().width;
-    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
-    const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
-
-    this.setLOD(lodFactor);
-
     const zBounds = this.getZBounds(sliceCoords);
     const changed =
       this.policyChanged_ ||
@@ -126,6 +139,8 @@ export class ChunkStoreView {
       this.lastTCoord_ !== sliceCoords.t;
 
     if (!changed) return;
+    const lodFactor = this.computeOrtographicLODFactor(viewport, viewBounds2D);
+    this.setLOD(lodFactor);
 
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
@@ -178,13 +193,20 @@ export class ChunkStoreView {
     sliceCoords: SliceCoordinates,
     viewport: Viewport
   ): void {
+    const camera = viewport.camera;
+    if (camera.type !== "PerspectiveCamera") {
+      throw new Error(
+        "ChunkStoreView for volume rendering currently supports only perspective cameras. " +
+          "Update the implementation before using an orthographic camera."
+      );
+    }
     // Each call allocates a new mat4 and computes projection * view.
     // This is intentional for simplicity. If this ever shows up in profiles
     // avoid multiply entirely by caching and comparing view/projection separately.
     const viewProjection = mat4.multiply(
       mat4.create(),
-      viewport.camera.projectionMatrix,
-      viewport.camera.viewMatrix
+      camera.projectionMatrix,
+      camera.viewMatrix
     );
 
     const changed =
@@ -206,21 +228,48 @@ export class ChunkStoreView {
       return;
     }
 
-    // TODO: Calculate LOD dynamically based on view frustum for volume rendering
-    // (similar to zoom-based LOD calculation in updateChunksForImage).
-    // Currently uses a fixed LOD from policy.
-    this.currentLOD_ = this.policy_.lod.min;
+    const fallbackLOD = this.fallbackLOD();
+    const volumeCenter = this.computeVolumeCenterCached(
+      currentTimeChunks.filter((chunk) => chunk.lod === fallbackLOD)
+    );
+    const lodFactor = this.computePerspectiveLODFactor(
+      camera as PerspectiveCamera,
+      viewport,
+      volumeCenter
+    );
+    this.setLOD(lodFactor);
 
     this.chunkViewStates_.forEach(resetChunkViewState);
 
-    const fallbackLOD = this.fallbackLOD();
+    const cameraFrustum = viewport.camera.frustum;
+    const cameraPosition = viewport.camera.position;
+    this.maxSquareDistance3D_ = null;
 
     for (const chunk of currentTimeChunks) {
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === fallbackLOD;
       if (!isCurrentLOD && !isFallbackLOD) continue;
 
+      // Check channel first to avoid more expensive frustum intersection test
       if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
+
+      const { bounds: chunkBounds, center: chunkCenter } =
+        this.getCachedChunkBoundsInfo(chunk);
+      const inFrustum = cameraFrustum.intersectsWithBox3(chunkBounds);
+
+      // If t-prefetch is enabled, cache frustum check results to avoid redundant
+      // checks for subsequent time points with the same spatial bounds
+      if (sliceCoords.t !== undefined) {
+        const spatialKey = this.getSpatialKey(chunk);
+        this.frustumCheckCache_.set(spatialKey, {
+          bounds: chunkBounds,
+          inFrustum,
+        });
+      }
+
+      if (!inFrustum) {
+        continue;
+      }
       const priority = this.computePriority(
         isFallbackLOD,
         isCurrentLOD,
@@ -228,17 +277,28 @@ export class ChunkStoreView {
         false, // isPrefetch
         true // isChannelInSlice
       );
+      if (priority === null) continue;
 
+      const orderKey = vec3.squaredDistance(chunkCenter, cameraPosition);
+      this.maxSquareDistance3D_ = Math.max(
+        this.maxSquareDistance3D_ ?? 0,
+        orderKey
+      );
       this.chunkViewStates_.set(chunk, {
         visible: true,
         prefetch: false,
         priority,
-        orderKey: 0, // All chunks have the same ordering for volume rendering
+        orderKey,
       });
     }
 
     if (sliceCoords.t !== undefined) {
-      this.markTimeChunksForPrefetchVolume(currentTimeIndex, sliceCoords);
+      this.markTimeChunksForPrefetchVolume(
+        currentTimeIndex,
+        sliceCoords,
+        cameraFrustum,
+        cameraPosition
+      );
     }
 
     this.policyChanged_ = false;
@@ -277,6 +337,7 @@ export class ChunkStoreView {
   public dispose(): void {
     this.isDisposed_ = true;
     this.chunkViewStates_.forEach(resetChunkViewState);
+    this.chunkBoundsCache_.clear();
   }
 
   public setImageSourcePolicy(newPolicy: ImageSourcePolicy, key: symbol) {
@@ -297,10 +358,14 @@ export class ChunkStoreView {
   }
 
   private setLOD(lodFactor: number): void {
-    // `scale0` is the x pixel size (world units) at LOD 0.
+    // `scale0` is the smallest dimension pixel size (world units) at LOD 0.
     // With 2x downsampling per LOD, selection happens in log2 space.
     const dimensions = this.store_.dimensions;
-    const scale0 = dimensions.x.lods[0].scale;
+    const scale0 = Math.min(
+      dimensions.x.lods[0].scale,
+      dimensions.y.lods[0].scale,
+      dimensions.z?.lods[0].scale ?? Infinity
+    );
     const bias = this.policy_.lod.bias;
 
     // How many LOD 0 pixels per screen pixel, normalized by source scale and bias.
@@ -321,6 +386,10 @@ export class ChunkStoreView {
     const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
     if (target !== this.currentLOD_) {
       this.currentLOD_ = target;
+      Logger.debug(
+        "ChunkStoreView",
+        `Set LOD to ${this.currentLOD_} (factor: ${lodFactor.toFixed(2)})`
+      );
     }
   }
 
@@ -422,7 +491,9 @@ export class ChunkStoreView {
 
   private markTimeChunksForPrefetchVolume(
     currentTimeIndex: number,
-    sliceCoords: SliceCoordinates
+    sliceCoords: SliceCoordinates,
+    frustum: Frustum,
+    cameraPosition: vec3
   ) {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const tEnd = Math.min(
@@ -432,12 +503,37 @@ export class ChunkStoreView {
     const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
 
+    let maxDistance = 0;
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       for (const chunk of this.store_.getChunksAtTime(t)) {
         if (chunk.lod !== fallbackLOD) continue;
         if (!this.isChunkChannelInSlice(chunk, sliceCoords)) continue;
 
-        const orderKey = t - currentTimeIndex; // nearer future timepoints first
+        const { bounds: chunkBounds, center: chunkCenter } =
+          this.getCachedChunkBoundsInfo(chunk);
+
+        const spatialKey = this.getSpatialKey(chunk);
+        const cached = this.frustumCheckCache_.get(spatialKey);
+        // This check can be removed if we can guarantee that all chunks at the same
+        // xyz indices and LOD across time share the same bounds
+        if (cached && this.boundsEqual(cached.bounds, chunkBounds)) {
+          if (!cached.inFrustum) continue;
+        } else {
+          if (!frustum.intersectsWithBox3(chunkBounds)) continue;
+        }
+
+        const squareDistance = vec3.squaredDistance(
+          chunkCenter,
+          cameraPosition
+        );
+        const normalizedDistance = clamp(
+          squareDistance / (this.maxSquareDistance3D_ ?? 1),
+          0,
+          1 - Number.EPSILON
+        );
+        maxDistance = Math.max(maxDistance, squareDistance);
+        // first order by time distance, then by spatial distance
+        const orderKey = t - currentTimeIndex + normalizedDistance;
 
         this.chunkViewStates_.set(chunk, {
           visible: false,
@@ -447,6 +543,8 @@ export class ChunkStoreView {
         });
       }
     }
+    this.maxSquareDistance3D_ =
+      maxDistance > 0 ? maxDistance : this.maxSquareDistance3D_;
   }
 
   private computePriority(
@@ -467,8 +565,14 @@ export class ChunkStoreView {
     return null;
   }
 
-  private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
-    const chunkBounds = new Box3(
+  private getCachedChunkBoundsInfo(chunk: Chunk): {
+    bounds: Box3;
+    center: vec3;
+  } {
+    const cached = this.chunkBoundsCache_.get(chunk);
+    if (cached) return cached;
+
+    const bounds = new Box3(
       vec3.fromValues(chunk.offset.x, chunk.offset.y, chunk.offset.z),
       vec3.fromValues(
         chunk.offset.x + chunk.shape.x * chunk.scale.x,
@@ -476,7 +580,36 @@ export class ChunkStoreView {
         chunk.offset.z + chunk.shape.z * chunk.scale.z
       )
     );
-    return Box3.intersects(chunkBounds, bounds);
+    const boundsInfo = {
+      bounds,
+      center: vec3.fromValues(
+        (bounds.min[0] + bounds.max[0]) * 0.5,
+        (bounds.min[1] + bounds.max[1]) * 0.5,
+        (bounds.min[2] + bounds.max[2]) * 0.5
+      ),
+    };
+    this.chunkBoundsCache_.set(chunk, boundsInfo);
+    return boundsInfo;
+  }
+
+  private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
+    return Box3.intersects(this.getCachedChunkBoundsInfo(chunk).bounds, bounds);
+  }
+
+  private getSpatialKey(chunk: Chunk): string {
+    const { x, y, z } = chunk.chunkIndex;
+    return `${x}:${y}:${z}:lod${chunk.lod}`;
+  }
+
+  private boundsEqual(a: Box3, b: Box3): boolean {
+    return (
+      a.min[0] === b.min[0] &&
+      a.min[1] === b.min[1] &&
+      a.min[2] === b.min[2] &&
+      a.max[0] === b.max[0] &&
+      a.max[1] === b.max[1] &&
+      a.max[2] === b.max[2]
+    );
   }
 
   private fallbackLOD(): number {
@@ -569,6 +702,90 @@ export class ChunkStoreView {
     const dx = chunkCenter.x - center[0];
     const dy = chunkCenter.y - center[1];
     return dx * dx + dy * dy;
+  }
+
+  private computePerspectiveLODFactor(
+    camera: PerspectiveCamera,
+    viewport: Viewport,
+    volumeCenter: vec3
+  ): number {
+    const cameraToCenter = vec3.subtract(
+      vec3.create(),
+      volumeCenter,
+      camera.position
+    );
+    const distanceToVolumeCenter = vec3.length(cameraToCenter);
+
+    // Project line across screen vertical back into world space at volume center
+    // to determine how many world units the screen covers vertically
+    // For perspective projection: height = 2 * distance * tan(vertical fov/2)
+    const fovRadians = (camera.fov * Math.PI) / 180;
+    const worldHeightAtCenter =
+      2 * distanceToVolumeCenter * Math.tan(fovRadians / 2);
+
+    // Divide total world height by screen height in pixels to get per pixel value
+    const canvasElement = viewport.element as HTMLCanvasElement;
+    const screenHeightInPixels = viewport
+      .getBoxRelativeTo(canvasElement)
+      .toRect().height;
+    const worldUnitsPerPixel = worldHeightAtCenter / screenHeightInPixels;
+    return Math.log2(1 / worldUnitsPerPixel);
+  }
+
+  private computeOrtographicLODFactor(
+    viewport: Viewport,
+    viewBounds2D: Box2
+  ): number {
+    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
+    const canvasElement = viewport.element as HTMLCanvasElement;
+    const bufferWidth = viewport.getBoxRelativeTo(canvasElement).toRect().width;
+    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
+    return Math.log2(1 / virtualUnitsPerScreenPixel);
+  }
+
+  private computeVolumeCenterCached(chunks: Chunk[]): vec3 {
+    if (this.volumeCenterCache_.chunks !== chunks) {
+      this.volumeCenterCache_.center = this.computeVolumeCenter(chunks);
+      this.volumeCenterCache_.chunks = chunks;
+    }
+    return this.volumeCenterCache_.center;
+  }
+
+  private computeVolumeCenter(chunks: Chunk[]): vec3 {
+    const fallbackLod = this.fallbackLOD();
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+
+    for (const chunk of chunks) {
+      if (chunk.lod !== fallbackLod) continue;
+
+      const { bounds } = this.getCachedChunkBoundsInfo(chunk);
+
+      if (bounds.min[0] < minX) minX = bounds.min[0];
+      if (bounds.max[0] > maxX) maxX = bounds.max[0];
+      if (bounds.min[1] < minY) minY = bounds.min[1];
+      if (bounds.max[1] > maxY) maxY = bounds.max[1];
+      if (bounds.min[2] < minZ) minZ = bounds.min[2];
+      if (bounds.max[2] > maxZ) maxZ = bounds.max[2];
+    }
+    if (minX === Infinity || minY === Infinity || minZ === Infinity) {
+      Logger.warn(
+        "ChunkStoreView",
+        "Unable to compute volume center, no chunks found at fallback LOD"
+      );
+      return vec3.fromValues(0, 0, 0);
+    }
+
+    return vec3.fromValues(
+      0.5 * (minX + maxX),
+      0.5 * (minY + maxY),
+      0.5 * (minZ + maxZ)
+    );
   }
 }
 

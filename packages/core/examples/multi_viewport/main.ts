@@ -49,7 +49,7 @@ const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer({
   source,
   sliceCoords: volumeCoords,
-  policy: createPlaybackPolicy({ lod: { min: 2, max: 2 } }),
+  policy: createPlaybackPolicy({ lod: { min: 0, max: 2 } }),
   channelProps: [{ contrastLimits: [0, 200] }],
 });
 

@@ -16,17 +16,20 @@ export function sortFrontToBack(
   camera: Camera
 ): RenderableObject[] {
   const cameraPosition = camera.position;
-  const centerA = vec3.create();
-  const centerB = vec3.create();
+
+  // Pre-compute bounding box centers to avoid repeated allocations during sort
+  const centers = new Map<RenderableObject, vec3>();
+  for (const obj of objects) {
+    const bbox = obj.boundingBox;
+    const center = vec3.create();
+    vec3.add(center, bbox.max, bbox.min);
+    vec3.scale(center, center, 0.5);
+    centers.set(obj, center);
+  }
 
   objects.sort((a, b) => {
-    vec3.add(centerA, a.boundingBox.max, a.boundingBox.min);
-    vec3.scale(centerA, centerA, 0.5);
-    vec3.add(centerB, b.boundingBox.max, b.boundingBox.min);
-    vec3.scale(centerB, centerB, 0.5);
-
-    const cam2aDistance = vec3.squaredDistance(cameraPosition, centerA);
-    const cam2bDistance = vec3.squaredDistance(cameraPosition, centerB);
+    const cam2aDistance = vec3.squaredDistance(cameraPosition, centers.get(a)!);
+    const cam2bDistance = vec3.squaredDistance(cameraPosition, centers.get(b)!);
 
     return cam2aDistance - cam2bDistance;
   });

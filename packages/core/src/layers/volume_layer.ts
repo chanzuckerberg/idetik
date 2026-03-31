@@ -136,7 +136,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public onDetached(_context: IdetikContext): void {
     if (!this.chunkStoreView_) return;
-    this.releaseAndRemoveVolumes(this.currentVolumes_.values());
+    for (const volume of this.currentVolumes_.values()) {
+      this.releaseAndRemoveVolume(volume);
+    }
     this.clearObjects();
     this.chunkStoreView_.dispose();
     this.chunkStoreView_ = undefined;
@@ -146,7 +148,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     if (!this.chunkStoreView_) return;
 
     const chunksToRender = this.chunkStoreView_.getChunksToRender(
-      this.sliceCoords_
+      this.sliceCoords_,
+      false /* includeFallback */
     );
     const currentTime = this.sliceCoords_.t ?? -1;
     const groupedChunks = groupBySpatialIndex(chunksToRender);
@@ -155,17 +158,16 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       this.lastLoadedTime_ !== currentTime ||
       groupedChunks.size !== this.currentVolumes_.size ||
       this.lastNumRenderedChannelChunks_ !== chunksToRender.length;
-    this.lastNumRenderedChannelChunks_ = chunksToRender.length;
     if (!needsUpdate) return;
 
-    const volumesToRemove = Array.from(this.currentVolumes_.entries())
-      .filter(([key]) => !groupedChunks.has(key))
-      .map(([, volume]) => volume);
-    this.releaseAndRemoveVolumes(volumesToRemove);
+    for (const [key, volume] of this.currentVolumes_) {
+      if (!groupedChunks.has(key)) {
+        this.releaseAndRemoveVolume(volume);
+        this.currentVolumes_.delete(key);
+      }
+    }
 
-    this.currentVolumes_.clear();
     this.clearObjects();
-
     for (const [key, chunks] of groupedChunks) {
       const volume = this.getOrCreateVolume(key, chunks);
       volume.wireframeEnabled = this.debugShowWireframes;
@@ -174,6 +176,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     }
 
     this.lastLoadedTime_ = currentTime;
+    this.lastNumRenderedChannelChunks_ = chunksToRender.length;
     if (this.state !== "ready") this.setState("ready");
   }
 
@@ -197,12 +200,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     ]);
   }
 
-  private releaseAndRemoveVolumes(volumes: Iterable<VolumeRenderable>) {
-    for (const volume of volumes) {
-      volume.clearLoadedChannels();
-      this.pool_.release(this.volumeToPoolKey_.get(volume)!, volume);
-      this.volumeToPoolKey_.delete(volume);
-    }
+  private releaseAndRemoveVolume(volume: VolumeRenderable) {
+    volume.clearLoadedChannels();
+    this.pool_.release(this.volumeToPoolKey_.get(volume)!, volume);
+    this.volumeToPoolKey_.delete(volume);
   }
 
   public update(context?: RenderContext) {
@@ -239,7 +240,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
 function spatialKey(chunk: Chunk): string {
   const { x, y, z, t } = chunk.chunkIndex;
-  return `${x}:${y}:${z}:${t}`;
+  return `${x}:${y}:${z}:${t}:lod${chunk.lod}`;
 }
 
 function groupBySpatialIndex(chunks: Chunk[]): Map<string, Chunk[]> {
