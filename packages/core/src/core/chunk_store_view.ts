@@ -35,6 +35,13 @@ export class ChunkStoreView {
     Chunk,
     { bounds: Box3; center: vec3 }
   >();
+  // This frustum cache can be simplified if we can assume that
+  // chunks at the same xyz indices at a given LOD across time
+  // all share the same bounds (can remove the bounds here and bounds check)
+  private readonly frustumCheckCache_ = new Map<
+    string,
+    { bounds: Box3; inFrustum: boolean }
+  >();
 
   private isDisposed_ = false;
 
@@ -223,6 +230,7 @@ export class ChunkStoreView {
     const cameraFrustum = viewport.camera.frustum;
     const cameraPosition = viewport.camera.position;
     this.maxSquareDistance3D_ = null;
+
     for (const chunk of currentTimeChunks) {
       const isCurrentLOD = chunk.lod === this.currentLOD_;
       const isFallbackLOD = chunk.lod === fallbackLOD;
@@ -233,7 +241,19 @@ export class ChunkStoreView {
 
       const { bounds: chunkBounds, center: chunkCenter } =
         this.getCachedChunkBoundsInfo(chunk);
-      if (!cameraFrustum.intersectsWithBox3(chunkBounds)) {
+      const inFrustum = cameraFrustum.intersectsWithBox3(chunkBounds);
+
+      // If t-prefetch is enabled, cache frustum check results to avoid redundant
+      // checks for subsequent time points with the same spatial bounds
+      if (sliceCoords.t !== undefined) {
+        const spatialKey = this.getSpatialKey(chunk);
+        this.frustumCheckCache_.set(spatialKey, {
+          bounds: chunkBounds,
+          inFrustum,
+        });
+      }
+
+      if (!inFrustum) {
         continue;
       }
       const priority = this.computePriority(
@@ -469,8 +489,15 @@ export class ChunkStoreView {
 
         const { bounds: chunkBounds, center: chunkCenter } =
           this.getCachedChunkBoundsInfo(chunk);
-        if (!frustum.intersectsWithBox3(chunkBounds)) {
-          continue;
+
+        const spatialKey = this.getSpatialKey(chunk);
+        const cached = this.frustumCheckCache_.get(spatialKey);
+        // This check can be removed if we can guarantee that all chunks at the same
+        // xyz indices and LOD across time share the same bounds
+        if (cached && this.boundsEqual(cached.bounds, chunkBounds)) {
+          if (!cached.inFrustum) continue;
+        } else {
+          if (!frustum.intersectsWithBox3(chunkBounds)) continue;
         }
 
         const squareDistance = vec3.squaredDistance(
@@ -545,6 +572,22 @@ export class ChunkStoreView {
 
   private isChunkWithinBounds(chunk: Chunk, bounds: Box3): boolean {
     return Box3.intersects(this.getCachedChunkBoundsInfo(chunk).bounds, bounds);
+  }
+
+  private getSpatialKey(chunk: Chunk): string {
+    const { x, y, z } = chunk.chunkIndex;
+    return `${x}:${y}:${z}:lod${chunk.lod}`;
+  }
+
+  private boundsEqual(a: Box3, b: Box3): boolean {
+    return (
+      a.min[0] === b.min[0] &&
+      a.min[1] === b.min[1] &&
+      a.min[2] === b.min[2] &&
+      a.max[0] === b.max[0] &&
+      a.max[1] === b.max[1] &&
+      a.max[2] === b.max[2]
+    );
   }
 
   private fallbackLOD(): number {
