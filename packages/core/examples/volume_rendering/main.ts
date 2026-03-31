@@ -56,6 +56,7 @@ const idetik = new Idetik({
         target: vec3.fromValues(40, 40, 10), // Volume center,
       }),
       layers: [volumeLayer],
+      downsamplingFactor: 4,
     },
   ],
   showStats: true,

@@ -1,14 +1,14 @@
-import { WebGLRenderer } from "./renderers/webgl_renderer";
-import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
-import { createStats, type Stats } from "./utilities/stats";
 import {
   parseViewportConfigs,
+  type Viewport,
+  type ViewportConfig,
   validateNewViewport,
-  Viewport,
-  ViewportConfig,
 } from "./core/viewport";
+import { WebGLRenderer } from "./renderers/webgl_renderer";
+import { Logger } from "./utilities/logger";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
+import { createStats, type Stats } from "./utilities/stats";
 
 export type Overlay = {
   update(idetik: Idetik): void;

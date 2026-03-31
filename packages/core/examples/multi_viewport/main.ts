@@ -1,18 +1,17 @@
+import { vec3 } from "gl-matrix";
+import GUI from "lil-gui";
 import {
-  Idetik,
   ChunkedImageLayer,
+  Idetik,
   OmeZarrImageSource,
   OrthographicCamera,
   PerspectiveCamera,
   VolumeLayer,
 } from "@";
+import { createPlaybackPolicy } from "@/core/image_source_policy";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { addDimensionSlider } from "../lil_gui_utils";
-import { createPlaybackPolicy } from "@/core/image_source_policy";
-import { vec3 } from "gl-matrix";
-
-import GUI from "lil-gui";
 
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
@@ -80,6 +79,7 @@ new Idetik({
         target: volumeCenter,
       }),
       layers: [volumeLayer],
+      downsamplingFactor: 4,
     },
     {
       id: "slice",

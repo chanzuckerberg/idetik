@@ -1,15 +1,17 @@
-import projectedLineVertexShader from "./projected_line_vert.glsl";
-import projectedLineFragmentShader from "./projected_line_frag.glsl";
-import meshVertexShader from "./mesh_vert.glsl";
-import scalarImageFragmentShader from "./scalar_image_frag.glsl";
-import scalarImageArrayFragmentShader from "./scalar_image_array_frag.glsl";
-import pointsVertexShader from "./points_vert.glsl";
-import pointsFragmentShader from "./points_frag.glsl";
-import wireframeVertexShader from "./wireframe_vert.glsl";
-import wireframeFragmentShader from "./wireframe_frag.glsl";
-import volumeVertexShader from "./volume_vert.glsl";
-import volumeFragmentShader from "./volume_frag.glsl";
+import downsampleCompositeFragmentShader from "./downsample_composite_frag.glsl";
+import downsampleCompositeVertexShader from "./downsample_composite_vert.glsl";
 import labelImage from "./label_image_frag.glsl";
+import meshVertexShader from "./mesh_vert.glsl";
+import pointsFragmentShader from "./points_frag.glsl";
+import pointsVertexShader from "./points_vert.glsl";
+import projectedLineFragmentShader from "./projected_line_frag.glsl";
+import projectedLineVertexShader from "./projected_line_vert.glsl";
+import scalarImageArrayFragmentShader from "./scalar_image_array_frag.glsl";
+import scalarImageFragmentShader from "./scalar_image_frag.glsl";
+import volumeFragmentShader from "./volume_frag.glsl";
+import volumeVertexShader from "./volume_vert.glsl";
+import wireframeFragmentShader from "./wireframe_frag.glsl";
+import wireframeVertexShader from "./wireframe_vert.glsl";
 
 export type Shader =
   | "floatScalarImage"
@@ -24,7 +26,8 @@ export type Shader =
   | "uintScalarImage"
   | "uintScalarImageArray"
   | "uintVolume"
-  | "wireframe";
+  | "wireframe"
+  | "downsampleComposite";
 
 type ShaderCode = {
   vertex: string;
@@ -91,5 +94,9 @@ export const shaderCode: Record<Shader, ShaderCode> = {
     vertex: volumeVertexShader,
     fragment: volumeFragmentShader,
     fragmentDefines: new Map([["TEXTURE_DATA_TYPE_UINT", "1"]]),
+  },
+  downsampleComposite: {
+    vertex: downsampleCompositeVertexShader,
+    fragment: downsampleCompositeFragmentShader,
   },
 };
