@@ -148,7 +148,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     if (!this.chunkStoreView_) return;
 
     const chunksToRender = this.chunkStoreView_.getChunksToRender(
-      this.sliceCoords_
+      this.sliceCoords_,
+      false /* includeFallback */
     );
     const currentTime = this.sliceCoords_.t ?? -1;
     const groupedChunks = groupBySpatialIndex(chunksToRender);

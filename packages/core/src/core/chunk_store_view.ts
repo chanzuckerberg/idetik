@@ -89,7 +89,10 @@ export class ChunkStoreView {
     return this.store_.lodCount;
   }
 
-  public getChunksToRender(sliceCoords: SliceCoordinates): Chunk[] {
+  public getChunksToRender(
+    sliceCoords: SliceCoordinates,
+    includeFallback: boolean = true
+  ): Chunk[] {
     const currentTimeIndex = this.store_.getTimeIndex(sliceCoords);
     const currentTimeChunks = this.store_.getChunksAtTime(currentTimeIndex);
     const currentLODChunks = currentTimeChunks.filter(
@@ -100,7 +103,7 @@ export class ChunkStoreView {
     );
 
     const fallbackLOD = this.fallbackLOD();
-    if (this.currentLOD_ === fallbackLOD) {
+    if (!includeFallback || this.currentLOD_ === fallbackLOD) {
       return currentLODChunks;
     }
 
