@@ -10,7 +10,7 @@ import {
 } from "./core/viewport";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 
-type Overlay = {
+export type Overlay = {
   update(idetik: Idetik): void;
 };
 
@@ -118,6 +118,10 @@ export class Idetik {
         this.renderer_.render(viewport);
       }
     });
+  }
+
+  public get chunkQueueStats() {
+    return this.chunkManager_.queueStats;
   }
 
   public get renderedObjects() {
