@@ -4,7 +4,7 @@ import { LayerManager } from "./layer_manager";
 import { CameraControls } from "../objects/cameras/controls";
 import { Box2 } from "../math/box2";
 import { vec2, vec3 } from "gl-matrix";
-import { generateUUID } from "../utilities/uuid_generator";
+import { generateID } from "../utilities/id_generator";
 import { Logger } from "../utilities/logger";
 import { EventContext, EventDispatcher } from "./event_dispatcher";
 import { IdetikContext } from "../idetik";
@@ -175,7 +175,7 @@ export function parseViewportConfigs(
     return {
       ...config,
       element,
-      id: config.id ?? element.id ?? generateUUID(),
+      id: config.id ?? element.id ?? generateID("viewport"),
       layerManager: new LayerManager(context),
     };
   });

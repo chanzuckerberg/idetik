@@ -1,7 +1,7 @@
-import { generateUUID } from "../utilities/uuid_generator";
+import { generateID } from "../utilities/id_generator";
 
 export abstract class Node {
-  public readonly uuid = generateUUID();
+  public readonly id = generateID();
 
   public abstract get type(): string;
 }
