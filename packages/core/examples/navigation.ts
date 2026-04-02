@@ -48,7 +48,7 @@ class IdetikNavigation {
 
   private async loadExamples(): Promise<void> {
     try {
-      const response = await fetch(`/examples-manifest.json?t=${Date.now()}`);
+      const response = await fetch(`examples-manifest.json?t=${Date.now()}`);
       const manifest: Manifest = await response.json();
       this.examples_ = manifest.examples || [];
       this.renderExamples();
