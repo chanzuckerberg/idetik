@@ -36,7 +36,7 @@ jobs:
         run: npm run build --workspace=@idetik/core
 
       - name: Build examples for production
-        run: npm run build:examples --workspace=@idetik/core
+        run: npm run build:examples --workspace=@idetik/core -- --base=/idetik/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
