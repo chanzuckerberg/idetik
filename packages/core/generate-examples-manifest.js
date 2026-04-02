@@ -36,7 +36,7 @@ function generateExamplesManifest() {
       return {
         id: example.name,
         title: title,
-        path: `/${example.name}/`,
+        path: `${example.name}/`,
         directory: example.name
       };
     });
