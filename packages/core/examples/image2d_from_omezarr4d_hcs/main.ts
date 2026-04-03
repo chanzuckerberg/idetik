@@ -1,5 +1,6 @@
 import {
   Idetik,
+  ChannelProps,
   OrthographicCamera,
   OmeZarrImageSource,
   PanZoomControls,
@@ -70,16 +71,30 @@ const onImageChange = async () => {
     [omeroChannels[2].window!.start, omeroChannels[2].window!.end],
   ];
 
+  const channelProps: ChannelProps[] = [
+    { visible: false },
+    {
+      visible: true,
+      color: [0, 1, 1],
+      contrastLimits: contrastLimits[0],
+    },
+    {
+      visible: true,
+      color: [1, 0, 1],
+      contrastLimits: contrastLimits[1],
+    },
+  ];
+
   const layer1 = new ChunkedImageLayer({
     source,
-    sliceCoords: { t: 0, z: initZ, c: 1 },
-    channelProps: [{ color: [0, 1, 1], contrastLimits: contrastLimits[0] }],
+    sliceCoords: { t: 0, z: initZ, c: [1] },
+    channelProps,
     policy,
   });
   const layer2 = new ChunkedImageLayer({
     source,
-    sliceCoords: { t: 0, z: initZ, c: 2 },
-    channelProps: [{ color: [1, 0, 1], contrastLimits: contrastLimits[1] }],
+    sliceCoords: { t: 0, z: initZ, c: [2] },
+    channelProps,
     policy,
     transparent: true,
     blendMode: "additive",

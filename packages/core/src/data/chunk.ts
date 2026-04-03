@@ -96,7 +96,7 @@ export type SourceDimensionLod = {
 
 export type SliceCoordinates = {
   z?: number;
-  c?: number;
+  c?: number[];
   t?: number;
 };
 

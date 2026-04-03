@@ -43,7 +43,7 @@ const volumeCoords = {
   get t() {
     return sharedTime.t;
   },
-  c: 0,
+  c: [0],
 };
 const camera3D = new PerspectiveCamera();
 const volumeLayer = new VolumeLayer({
@@ -59,7 +59,7 @@ const sliceCoords = {
     return sharedTime.t;
   },
   z: 300,
-  c: 0,
+  c: [0],
 };
 const imageLayer = new ChunkedImageLayer({
   source,

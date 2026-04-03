@@ -11,7 +11,7 @@ const source = OmeZarrImageSource.fromHttp({ url });
 const sliceCoords = {
   t: 0,
   z: undefined,
-  c: undefined, // Show all channels
+  c: [], // Show all channels
 };
 const controls = { lod: 2 };
 

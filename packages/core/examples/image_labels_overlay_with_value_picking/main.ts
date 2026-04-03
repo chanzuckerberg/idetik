@@ -41,7 +41,7 @@ const yStopPoint = yLod.size * yLod.scale;
 
 const sliceCoords = {
   t: tStartPoint,
-  c: phaseChannelIndex,
+  c: [phaseChannelIndex],
   z: zMidPoint,
 };
 
@@ -75,7 +75,11 @@ const imageLayer = new ChunkedImageLayer({
   sliceCoords,
   policy: createExplorationPolicy(),
   transparent: true,
-  channelProps: [{ contrastLimits: phaseContrastLimits }],
+  channelProps: [
+    { visible: true, contrastLimits: phaseContrastLimits },
+    { visible: false },
+    { visible: false },
+  ],
 });
 
 // Function to create label layer with current mode
