@@ -150,7 +150,7 @@ export class WebGLRenderer extends Renderer {
       this.textures_.disposeTexture(texture);
     });
 
-    if (!object.programName) return;
+    if (!object.programName || !object.visible) return;
     this.state_.setCullFaceMode(object.cullFaceMode);
     this.state_.setDepthTesting(object.depthTest);
     this.state_.setDepthMask(object.depthTest);

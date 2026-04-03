@@ -11,9 +11,15 @@ import {
 import { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";
+import { Box3 } from "@/math/box3";
 
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
+  private fullVolumeWorldBounds_: Box3 = new Box3();
+  private clippedVolumeUVWBounds_: Box3 = new Box3(
+    vec3.fromValues(0, 0, 0),
+    vec3.fromValues(1, 1, 1)
+  );
 
   private channels_: Required<Channel>[];
   private channelToTextureIndex_: Map<number, number> = new Map();
@@ -42,6 +48,85 @@ export class VolumeRenderable extends RenderableObject {
     }
 
     this.loadedChannels_.add(channelIndex);
+  }
+
+  public updateWorldScaleAndBoundsFromChunk(chunk: Chunk) {
+    vec3.set(this.voxelScale, chunk.scale.x, chunk.scale.y, chunk.scale.z);
+    this.fullVolumeWorldBounds_.min = vec3.fromValues(
+      chunk.offset.x,
+      chunk.offset.y,
+      chunk.offset.z
+    );
+    this.fullVolumeWorldBounds_.max = vec3.fromValues(
+      chunk.offset.x + chunk.shape.x * chunk.scale.x,
+      chunk.offset.y + chunk.shape.y * chunk.scale.y,
+      chunk.offset.z + chunk.shape.z * chunk.scale.z
+    );
+    this.transform.setScale(
+      vec3.subtract(
+        vec3.create(),
+        this.fullVolumeWorldBounds_.max,
+        this.fullVolumeWorldBounds_.min
+      )
+    );
+    this.transform.setTranslation(
+      vec3.scaleAndAdd(
+        vec3.create(),
+        this.fullVolumeWorldBounds_.min,
+        vec3.subtract(
+          vec3.create(),
+          this.fullVolumeWorldBounds_.max,
+          this.fullVolumeWorldBounds_.min
+        ),
+        0.5
+      )
+    );
+  }
+
+  public clipToBounds(clipBounds: Box3) {
+    this.visible_ = Box3.intersects(clipBounds, this.fullVolumeWorldBounds_);
+    if (!this.visible_) return;
+
+    const clippedMin = vec3.max(
+      vec3.create(),
+      this.fullVolumeWorldBounds_.min,
+      clipBounds.min
+    );
+    const clippedMax = vec3.min(
+      vec3.create(),
+      this.fullVolumeWorldBounds_.max,
+      clipBounds.max
+    );
+    const proxySize = vec3.subtract(vec3.create(), clippedMax, clippedMin);
+    if (proxySize[0] <= 0 || proxySize[1] <= 0 || proxySize[2] <= 0) {
+      this.visible_ = false;
+      return;
+    }
+    const proxyCenter = vec3.scaleAndAdd(
+      vec3.create(),
+      clippedMin,
+      proxySize,
+      0.5
+    );
+    this.transform.setScale(proxySize);
+    this.transform.setTranslation(proxyCenter);
+
+    const volumeSize = vec3.subtract(
+      vec3.create(),
+      this.fullVolumeWorldBounds_.max,
+      this.fullVolumeWorldBounds_.min
+    );
+    this.clippedVolumeUVWBounds_.min = vec3.fromValues(
+      (clippedMin[0] - this.fullVolumeWorldBounds_.min[0]) / volumeSize[0],
+      (clippedMin[1] - this.fullVolumeWorldBounds_.min[1]) / volumeSize[1],
+      (clippedMin[2] - this.fullVolumeWorldBounds_.min[2]) / volumeSize[2]
+    );
+
+    this.clippedVolumeUVWBounds_.max = vec3.fromValues(
+      (clippedMax[0] - this.fullVolumeWorldBounds_.min[0]) / volumeSize[0],
+      (clippedMax[1] - this.fullVolumeWorldBounds_.min[1]) / volumeSize[1],
+      (clippedMax[2] - this.fullVolumeWorldBounds_.min[2]) / volumeSize[2]
+    );
   }
 
   private addChannelTexture(channelIndex: number, chunk: Chunk): void {
@@ -128,6 +213,16 @@ export class VolumeRenderable extends RenderableObject {
           this.voxelScale[0],
           this.voxelScale[1],
           this.voxelScale[2],
+        ],
+        BoxMinUVW: [
+          this.clippedVolumeUVWBounds_.min[0],
+          this.clippedVolumeUVWBounds_.min[1],
+          this.clippedVolumeUVWBounds_.min[2],
+        ],
+        BoxMaxUVW: [
+          this.clippedVolumeUVWBounds_.max[0],
+          this.clippedVolumeUVWBounds_.max[1],
+          this.clippedVolumeUVWBounds_.max[2],
         ],
       }
     );

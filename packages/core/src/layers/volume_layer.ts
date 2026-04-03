@@ -8,6 +8,7 @@ import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
 import { sortFrontToBack } from "../math/sort_by_distance";
 import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import { Box3 } from "@/math/box3";
 
 export type VolumeLayerProps = {
   source: ChunkSource;
@@ -32,6 +33,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private sourcePolicy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
   private channelProps_?: ChannelProps[];
+  private clipBounds_?: Box3;
 
   private lastLoadedTime_: number | undefined = undefined;
   private lastNumRenderedChannelChunks_: number | undefined = undefined;
@@ -65,6 +67,28 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
           INTERNAL_POLICY_KEY
         );
       }
+    }
+  }
+
+  public setClipBounds(min?: vec3, max?: vec3) {
+    if (min === undefined && max === undefined) {
+      this.clipBounds_ = undefined;
+      return;
+    }
+    const minBound = min
+      ? vec3.clone(min)
+      : vec3.fromValues(-Infinity, -Infinity, -Infinity);
+    const maxBound = max
+      ? vec3.clone(max)
+      : vec3.fromValues(Infinity, Infinity, Infinity);
+    if (!this.clipBounds_) {
+      this.clipBounds_ = new Box3(minBound, maxBound);
+    } else {
+      this.clipBounds_.min = minBound;
+      this.clipBounds_.max = maxBound;
+    }
+    for (const volume of this.currentVolumes_.values()) {
+      volume.clipToBounds(this.clipBounds_);
     }
   }
 
@@ -114,6 +138,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     const existing = this.currentVolumes_.get(key);
     if (existing) {
       for (const chunk of chunks) existing.updateVolumeWithChunk(chunk);
+      existing.updateWorldScaleAndBoundsFromChunk(chunks[0]);
       return existing;
     }
 
@@ -123,7 +148,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.volumeToPoolKey_.set(volume, poolKey);
 
     for (const chunk of chunks) volume.updateVolumeWithChunk(chunk);
-    this.updateVolumeTransform(volume, chunks[0]);
+    volume.updateWorldScaleAndBoundsFromChunk(chunks[0]);
     return volume;
   }
 
@@ -168,6 +193,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     for (const [key, chunks] of groupedChunks) {
       const volume = this.getOrCreateVolume(key, chunks);
+      if (this.clipBounds_) volume.clipToBounds(this.clipBounds_);
       volume.wireframeEnabled = this.debugShowWireframes;
       this.currentVolumes_.set(key, volume);
       this.addObject(volume);
@@ -175,26 +201,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     this.lastLoadedTime_ = currentTime;
     if (this.state !== "ready") this.setState("ready");
-  }
-
-  private updateVolumeTransform(volume: VolumeRenderable, chunk: Chunk) {
-    const worldSize = {
-      x: chunk.shape.x * chunk.scale.x,
-      y: chunk.shape.y * chunk.scale.y,
-      z: chunk.shape.z * chunk.scale.z,
-    };
-    volume.transform.setScale([worldSize.x, worldSize.y, worldSize.z]);
-    vec3.set(volume.voxelScale, chunk.scale.x, chunk.scale.y, chunk.scale.z);
-    const originOffset = {
-      x: (chunk.shape.x * chunk.scale.x) / 2,
-      y: (chunk.shape.y * chunk.scale.y) / 2,
-      z: (chunk.shape.z * chunk.scale.z) / 2,
-    };
-    volume.transform.setTranslation([
-      chunk.offset.x + originOffset.x,
-      chunk.offset.y + originOffset.y,
-      chunk.offset.z + originOffset.z,
-    ]);
   }
 
   private releaseAndRemoveVolumes(volumes: Iterable<VolumeRenderable>) {

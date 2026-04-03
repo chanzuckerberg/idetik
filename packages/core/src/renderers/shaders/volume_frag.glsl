@@ -44,6 +44,8 @@ uniform vec4 Visible;
 uniform vec4 ValueOffset;
 uniform vec4 ValueScale;
 uniform vec3 Color[4];
+uniform vec3 BoxMinUVW;
+uniform vec3 BoxMaxUVW;
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -87,6 +89,7 @@ void main() {
     // The ray in model space goes from the camera to the point on the back face
     vec3 RayDirModel = normalize(PositionModel - CameraPositionModel);
 
+    // Compute ray intersections in normalized model space of clipped proxy
     vec2 rayIntersections = findBoxIntersectionsAlongRay(CameraPositionModel, RayDirModel, boundingboxMin, boundingboxMax);
     float tEnter = rayIntersections.x;
     float tExit = rayIntersections.y;
@@ -96,10 +99,12 @@ void main() {
         return;
     }
 
-    vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter;
-    entryPoint = clamp(entryPoint + 0.5, 0.0, 1.0);
-    vec3 exitPoint = CameraPositionModel + RayDirModel * tExit;
-    exitPoint = clamp(exitPoint + 0.5, 0.0, 1.0);
+    vec3 entryPoint = CameraPositionModel + RayDirModel * tEnter + 0.5;
+    vec3 exitPoint = CameraPositionModel + RayDirModel * tExit + 0.5;
+
+    // Map from clipped proxy model space to texture UVW space
+    entryPoint = clamp(BoxMinUVW + entryPoint * (BoxMaxUVW - BoxMinUVW), 0.0, 1.0);
+    exitPoint = clamp(BoxMinUVW + exitPoint * (BoxMaxUVW - BoxMinUVW), 0.0, 1.0);
 
     // Step 2 - calculate the number of samples based on the length of the ray
     vec3 rayWithinModel = exitPoint - entryPoint;
