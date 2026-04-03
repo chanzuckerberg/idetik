@@ -1,13 +1,21 @@
-import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { Layer, RenderContext } from "../core/layer";
-import { VolumeRenderable } from "../objects/renderable/volume_renderable";
-import { IdetikContext } from "../idetik";
-import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
-import { ImageSourcePolicy } from "../core/image_source_policy";
-import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
+import {
+  type ChunkStoreView,
+  INTERNAL_POLICY_KEY,
+} from "../core/chunk_store_view";
+import type { ImageSourcePolicy } from "../core/image_source_policy";
+import { Layer, type RenderContext } from "../core/layer";
+import type { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import type { IdetikContext } from "../idetik";
 import { sortFrontToBack } from "../math/sort_by_distance";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import { VolumeRenderable } from "../objects/renderable/volume_renderable";
+import {
+  type ChannelProps,
+  type ChannelsEnabled,
+  expandVisibleChannels,
+  visibleChannelIndices,
+} from "../objects/textures/channel";
+import { RenderablePool } from "../utilities/renderable_pool";
 
 export type VolumeLayerProps = {
   source: ChunkSource;
@@ -70,6 +78,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
+    this.sliceCoords_.c = expandVisibleChannels(
+      this.sliceCoords_.c,
+      channelProps
+    );
     for (const volume of this.currentVolumes_.values()) {
       volume.setChannelProps(channelProps);
     }
@@ -107,6 +119,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.sourcePolicy_ = policy;
     this.initialChannelProps_ = channelProps;
     this.channelProps_ = channelProps;
+    if (channelProps) {
+      this.sliceCoords_.c = visibleChannelIndices(channelProps);
+    }
     this.setState("initialized");
   }
 

@@ -1,7 +1,7 @@
-import { Region } from "./region";
-import { TextureUnpackRowAlignment } from "../objects/textures/texture";
-import { PromiseScheduler } from "./promise_scheduler";
+import type { TextureUnpackRowAlignment } from "../objects/textures/texture";
 import { Logger } from "../utilities/logger";
+import type { PromiseScheduler } from "./promise_scheduler";
+import type { Region } from "./region";
 
 const chunkDataTypes = [
   Int8Array,
@@ -96,7 +96,7 @@ export type SourceDimensionLod = {
 
 export type SliceCoordinates = {
   z?: number;
-  c?: number;
+  c?: number | number[];
   t?: number;
 };
 

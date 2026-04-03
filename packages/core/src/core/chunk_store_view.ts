@@ -1,13 +1,13 @@
-import { Chunk, SliceCoordinates, ChunkViewState } from "../data/chunk";
-import type { ChunkStore } from "./chunk_store";
-import { Viewport } from "./viewport";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
-import { ImageSourcePolicy } from "./image_source_policy";
-import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
-import { Box2 } from "../math/box2";
+import { mat4, type ReadonlyVec2, vec2, vec3 } from "gl-matrix";
+import type { Chunk, ChunkViewState, SliceCoordinates } from "../data/chunk";
+import type { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
-import { Logger } from "../utilities/logger";
+import type { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { clamp } from "../utilities/clamp";
+import { Logger } from "../utilities/logger";
+import type { ChunkStore } from "./chunk_store";
+import type { ImageSourcePolicy } from "./image_source_policy";
+import type { Viewport } from "./viewport";
 
 /*
 Unique symbol used as a capability token to allow internal modules to update
@@ -26,6 +26,7 @@ export class ChunkStoreView {
   private lastViewProjection_: mat4 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
+  private lastCCoord_?: number | number[];
 
   private sourceMaxSquareDistance2D_: number;
   private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
@@ -123,7 +124,8 @@ export class ChunkStoreView {
       this.policyChanged_ ||
       this.viewBounds2DChanged(viewBounds2D) ||
       this.zBoundsChanged(zBounds) ||
-      this.lastTCoord_ !== sliceCoords.t;
+      this.lastTCoord_ !== sliceCoords.t ||
+      this.cCoordChanged(sliceCoords.c);
 
     if (!changed) return;
 
@@ -172,6 +174,7 @@ export class ChunkStoreView {
     this.lastViewBounds2D_ = viewBounds2D.clone();
     this.lastZBounds_ = zBounds;
     this.lastTCoord_ = sliceCoords.t;
+    this.lastCCoord_ = sliceCoords.c;
   }
 
   public updateChunksForVolume(
@@ -190,7 +193,8 @@ export class ChunkStoreView {
     const changed =
       this.policyChanged_ ||
       this.hasViewProjectionChanged(viewProjection) ||
-      this.lastTCoord_ !== sliceCoords.t;
+      this.lastTCoord_ !== sliceCoords.t ||
+      this.cCoordChanged(sliceCoords.c);
 
     if (!changed) return;
 
@@ -243,6 +247,7 @@ export class ChunkStoreView {
 
     this.policyChanged_ = false;
     this.lastTCoord_ = sliceCoords.t;
+    this.lastCCoord_ = sliceCoords.c;
     this.lastViewProjection_ = viewProjection;
   }
 
@@ -328,7 +333,11 @@ export class ChunkStoreView {
     chunk: Chunk,
     sliceCoords: SliceCoordinates
   ): boolean {
-    return sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
+    if (sliceCoords.c === undefined) return true;
+    if (Array.isArray(sliceCoords.c)) {
+      return sliceCoords.c.includes(chunk.chunkIndex.c);
+    }
+    return sliceCoords.c === chunk.chunkIndex.c;
   }
 
   private updateChunksAtTimeIndex(
@@ -531,6 +540,25 @@ export class ChunkStoreView {
 
   private zBoundsChanged(newBounds: [number, number]): boolean {
     return !this.lastZBounds_ || !vec2.equals(this.lastZBounds_, newBounds);
+  }
+
+  private cCoordChanged(c: number | number[] | undefined): boolean {
+    const last = this.lastCCoord_;
+    if (last === c) return false;
+    if (last === undefined || c === undefined) return true;
+    const lastIsArray = Array.isArray(last);
+    const newIsArray = Array.isArray(c);
+
+    if (lastIsArray !== newIsArray) return true;
+    if (lastIsArray && newIsArray) {
+      const lastSorted = last.sort();
+      const newSorted = c.sort();
+      return (
+        last.length !== c.length ||
+        lastSorted.some((v, i) => v !== newSorted[i])
+      );
+    }
+    return last !== c;
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {

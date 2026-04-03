@@ -1,19 +1,24 @@
-import { Layer, LayerOptions, RenderContext } from "../core/layer";
-import type { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import { type vec2, vec3 } from "gl-matrix";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
-import { ImageSourcePolicy } from "../core/image_source_policy";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
-import { ImageRenderable } from "../objects/renderable/image_renderable";
-import { Texture2DArray } from "../objects/textures/texture_2d_array";
-import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
-import { vec2, vec3 } from "gl-matrix";
-import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
+import { ImageSourcePolicy } from "../core/image_source_policy";
+import { Layer, LayerOptions, RenderContext } from "../core/layer";
+import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import type { IdetikContext } from "../idetik";
+import { ImageRenderable } from "../objects/renderable/image_renderable";
+import {
+  ChannelProps,
+  ChannelsEnabled,
+  expandVisibleChannels,
+  visibleChannelIndices,
+} from "../objects/textures/channel";
+import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
+import { Logger } from "../utilities/logger";
 import { RenderablePool } from "../utilities/renderable_pool";
+import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 
 export type ChunkedImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -67,6 +72,9 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
+    if (channelProps) {
+      this.sliceCoords_.c = visibleChannelIndices(channelProps);
+    }
   }
 
   public async onAttached(context: IdetikContext) {
@@ -348,6 +356,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
+    this.sliceCoords_.c = expandVisibleChannels(
+      this.sliceCoords_.c,
+      channelProps
+    );
     this.visibleChunks_.forEach((image) => {
       image.setChannelProps(channelProps);
     });

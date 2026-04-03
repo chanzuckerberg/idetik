@@ -1,9 +1,9 @@
+import type { Chunk, ChunkData } from "../../data/chunk";
 import {
-  DataTextureTypedArray,
-  Texture,
   bufferToDataType,
+  type DataTextureTypedArray,
+  Texture,
 } from "../../objects/textures/texture";
-import { Chunk, ChunkData } from "../../data/chunk";
 
 export class Texture2D extends Texture {
   private data_: DataTextureTypedArray;
@@ -52,9 +52,9 @@ export class Texture2D extends Texture {
     if (this.data === source) return;
 
     if (
-      this.width != chunk.shape.x ||
-      this.height != chunk.shape.y ||
-      this.dataType != bufferToDataType(source)
+      this.width !== chunk.shape.x ||
+      this.height !== chunk.shape.y ||
+      this.dataType !== bufferToDataType(source)
     ) {
       throw new Error("Unable to update texture, texture buffer mismatch.");
     }
