@@ -3,7 +3,11 @@ import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import {
+  ChannelProps,
+  ChannelsEnabled,
+  validateChannelPropsCount,
+} from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { Logger } from "../utilities/logger";
@@ -79,6 +83,17 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       this.source_,
       this.policy_
     );
+
+    const channelCount = this.chunkStoreView_.channelCount;
+    validateChannelPropsCount(this.channelProps_, channelCount);
+
+    if (channelCount > 1 && this.sliceCoords_.c?.length !== 1) {
+      throw new Error(
+        `ChunkedImageLayer requires exactly one channel in sliceCoords.c ` +
+          `for multi-channel sources (found ${channelCount} channels). ` +
+          `Use one layer per channel.`
+      );
+    }
   }
 
   public onDetached(_context: IdetikContext): void {
@@ -232,13 +247,16 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       const texture = pooled.textures[0] as Texture2DArray;
       texture.updateWithChunk(chunk, this.getDataForImage(chunk));
       this.updateImageChunk(pooled, chunk);
-      if (this.channelProps_) {
-        pooled.setChannelProps(this.channelProps_);
-      }
+      pooled.setChannelProps(this.getChannelPropsForChunk(chunk));
       return pooled;
     }
 
     return this.createImage(chunk);
+  }
+
+  private getChannelPropsForChunk(chunk: Chunk): ChannelProps[] {
+    if (!this.channelProps_) return [{}];
+    return [this.channelProps_[chunk.chunkIndex.c] ?? {}];
   }
 
   private createImage(chunk: Chunk) {
@@ -246,7 +264,7 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       chunk.shape.x,
       chunk.shape.y,
       Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
-      this.channelProps_ ?? [{}]
+      this.getChannelPropsForChunk(chunk)
     );
     this.updateImageChunk(image, chunk);
     return image;
@@ -348,8 +366,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
 
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
-    this.visibleChunks_.forEach((image) => {
-      image.setChannelProps(channelProps);
+    this.visibleChunks_.forEach((image, chunk) => {
+      image.setChannelProps(this.getChannelPropsForChunk(chunk));
     });
     this.channelChangeCallbacks_.forEach((callback) => {
       callback();

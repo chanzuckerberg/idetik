@@ -7,7 +7,11 @@ import { ImageSourcePolicy } from "../core/image_source_policy";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
 import { sortFrontToBack } from "../math/sort_by_distance";
-import { ChannelProps, ChannelsEnabled } from "../objects/textures/channel";
+import {
+  ChannelProps,
+  ChannelsEnabled,
+  validateChannelPropsCount,
+} from "../objects/textures/channel";
 
 export type VolumeLayerProps = {
   source: ChunkSource;
@@ -131,6 +135,11 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.chunkStoreView_ = await context.chunkManager.addView(
       this.source_,
       this.sourcePolicy_
+    );
+
+    validateChannelPropsCount(
+      this.channelProps_,
+      this.chunkStoreView_.channelCount
     );
   }
 

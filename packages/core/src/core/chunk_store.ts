@@ -102,6 +102,10 @@ export class ChunkStore {
     return this.lowestResLOD_ + 1;
   }
 
+  public get channelCount(): number {
+    return this.dimensions_.c?.lods[0].size ?? 1;
+  }
+
   public get dimensions() {
     return this.dimensions_;
   }

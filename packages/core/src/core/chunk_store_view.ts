@@ -26,6 +26,7 @@ export class ChunkStoreView {
   private lastViewProjection_: mat4 | null = null;
   private lastZBounds_?: [number, number];
   private lastTCoord_?: number;
+  private lastCCoords_?: number[];
 
   private sourceMaxSquareDistance2D_: number;
   private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
@@ -69,6 +70,10 @@ export class ChunkStoreView {
 
   public get lodCount(): number {
     return this.store_.lodCount;
+  }
+
+  public get channelCount(): number {
+    return this.store_.channelCount;
   }
 
   public getChunksToRender(sliceCoords: SliceCoordinates): Chunk[] {
@@ -123,7 +128,8 @@ export class ChunkStoreView {
       this.policyChanged_ ||
       this.viewBounds2DChanged(viewBounds2D) ||
       this.zBoundsChanged(zBounds) ||
-      this.lastTCoord_ !== sliceCoords.t;
+      this.lastTCoord_ !== sliceCoords.t ||
+      this.cCoordsChanged(sliceCoords.c);
 
     if (!changed) return;
 
@@ -172,6 +178,7 @@ export class ChunkStoreView {
     this.lastViewBounds2D_ = viewBounds2D.clone();
     this.lastZBounds_ = zBounds;
     this.lastTCoord_ = sliceCoords.t;
+    this.lastCCoords_ = sliceCoords.c ? [...sliceCoords.c] : undefined;
   }
 
   public updateChunksForVolume(
@@ -190,7 +197,8 @@ export class ChunkStoreView {
     const changed =
       this.policyChanged_ ||
       this.hasViewProjectionChanged(viewProjection) ||
-      this.lastTCoord_ !== sliceCoords.t;
+      this.lastTCoord_ !== sliceCoords.t ||
+      this.cCoordsChanged(sliceCoords.c);
 
     if (!changed) return;
 
@@ -243,6 +251,7 @@ export class ChunkStoreView {
 
     this.policyChanged_ = false;
     this.lastTCoord_ = sliceCoords.t;
+    this.lastCCoords_ = sliceCoords.c ? [...sliceCoords.c] : undefined;
     this.lastViewProjection_ = viewProjection;
   }
 
@@ -328,7 +337,8 @@ export class ChunkStoreView {
     chunk: Chunk,
     sliceCoords: SliceCoordinates
   ): boolean {
-    return sliceCoords.c === undefined || sliceCoords.c === chunk.chunkIndex.c;
+    if (!sliceCoords.c || sliceCoords.c.length === 0) return true;
+    return sliceCoords.c.includes(chunk.chunkIndex.c);
   }
 
   private updateChunksAtTimeIndex(
@@ -531,6 +541,13 @@ export class ChunkStoreView {
 
   private zBoundsChanged(newBounds: [number, number]): boolean {
     return !this.lastZBounds_ || !vec2.equals(this.lastZBounds_, newBounds);
+  }
+
+  private cCoordsChanged(newC?: number[]): boolean {
+    if (!this.lastCCoords_ && !newC) return false;
+    if (!this.lastCCoords_ || !newC) return true;
+    if (this.lastCCoords_.length !== newC.length) return true;
+    return !this.lastCCoords_.every((v, i) => v === newC[i]);
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {

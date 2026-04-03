@@ -27,7 +27,7 @@ const source = OmeZarrImageSource.fromHttp({ url });
 const sliceCoords = {
   t: 400,
   z: 300,
-  c: 0,
+  c: [0],
 };
 
 // values copied from source
