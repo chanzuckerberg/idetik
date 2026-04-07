@@ -337,7 +337,8 @@ export class ChunkStoreView {
     chunk: Chunk,
     sliceCoords: SliceCoordinates
   ): boolean {
-    if (!sliceCoords.c || sliceCoords.c.length === 0) return true;
+    if (sliceCoords.c === undefined) return true;
+    if (sliceCoords.c.length === 0) return false;
     return sliceCoords.c.includes(chunk.chunkIndex.c);
   }
 

@@ -26,10 +26,6 @@ const lod = 0;
 const loader = await imageSource.open();
 const dimensions = loader.getSourceDimensionMap();
 
-// Phase contrast limits were chosen qualitatively.
-const phaseChannelIndex = 0;
-const phaseContrastLimits: [number, number] = [20, 200];
-
 const tStartPoint = 0;
 
 const zLod = dimensions.z!.lods[0];
@@ -41,7 +37,7 @@ const yStopPoint = yLod.size * yLod.scale;
 
 const sliceCoords = {
   t: tStartPoint,
-  c: [phaseChannelIndex],
+  c: [0],
   z: zMidPoint,
 };
 
@@ -76,7 +72,7 @@ const imageLayer = new ChunkedImageLayer({
   policy: createExplorationPolicy(),
   transparent: true,
   channelProps: [
-    { visible: true, contrastLimits: phaseContrastLimits },
+    { visible: true, contrastLimits: [20, 200] },
     { visible: false },
     { visible: false },
   ],

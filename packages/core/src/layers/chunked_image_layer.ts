@@ -87,7 +87,11 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     const channelCount = this.chunkStoreView_.channelCount;
     validateChannelPropsCount(this.channelProps_, channelCount);
 
-    if (channelCount > 1 && this.sliceCoords_.c?.length !== 1) {
+    if (
+      channelCount > 1 &&
+      this.sliceCoords_.c !== undefined &&
+      this.sliceCoords_.c.length > 1
+    ) {
       throw new Error(
         `ChunkedImageLayer requires exactly one channel in sliceCoords.c ` +
           `for multi-channel sources (found ${channelCount} channels). ` +

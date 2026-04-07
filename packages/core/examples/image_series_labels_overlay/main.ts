@@ -25,10 +25,6 @@ const lod = 0;
 const loader = await imageSource.open();
 const dimensions = loader.getSourceDimensionMap();
 
-// Phase contrast limits were chosen qualitatively.
-const phaseChannelIndex = 0;
-const phaseContrastLimits: [number, number] = [20, 200];
-
 const tLod = dimensions.t!.lods[lod];
 const tMin = 0;
 const tMax = tLod.size;
@@ -37,7 +33,7 @@ const zMidPoint = 0.5 * zLod.size * zLod.scale;
 
 const region: Region = [
   { dimension: "T", index: { type: "full" } },
-  { dimension: "C", index: { type: "point", value: phaseChannelIndex } },
+  { dimension: "C", index: { type: "point", value: 0 } },
   { dimension: "Z", index: { type: "point", value: zMidPoint } },
   { dimension: "X", index: { type: "full" } },
   { dimension: "Y", index: { type: "full" } },
@@ -52,7 +48,7 @@ const imageLayer = new ImageSeriesLayer({
     {
       visible: true,
       color: Color.WHITE,
-      contrastLimits: phaseContrastLimits,
+      contrastLimits: [20, 200],
     },
   ],
 });
