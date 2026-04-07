@@ -78,6 +78,18 @@ export function validateChannels(
   return channelProps.map((props) => validateChannel(texture, props));
 }
 
+export function validateChannelPropsCount(
+  channelProps: ChannelProps[] | undefined,
+  sourceChannelCount: number
+): void {
+  if (channelProps && channelProps.length !== sourceChannelCount) {
+    throw new Error(
+      `channelProps length (${channelProps.length}) must match ` +
+        `source channel count (${sourceChannelCount}).`
+    );
+  }
+}
+
 function validateContrastLimits(
   contrastLimits: [number, number] | undefined,
   texture: Texture

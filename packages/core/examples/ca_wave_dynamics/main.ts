@@ -33,14 +33,17 @@ const tRange = { min: tMin, max: tMax };
 const sliceCoords = {
   t: tMin,
   z: 0,
-  c: 1,
+  c: [1],
 };
 
-const channelColor = Color.GREEN;
 const channelProps: ChannelProps[] = [
   {
+    visible: false,
+  },
+  {
+    visible: true,
     contrastLimits: [409, 3000],
-    color: channelColor,
+    color: Color.GREEN,
   },
 ];
 
