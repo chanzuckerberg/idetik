@@ -1,6 +1,12 @@
 import { Layer, LayerOptions, RenderContext } from "../core/layer";
 import type { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import {
+  Chunk,
+  ChunkSource,
+  ChannelDataStats,
+  SliceCoordinates,
+  computeChannelDataStats,
+} from "../data/chunk";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import {
@@ -394,6 +400,10 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
+  }
+
+  public getVisibleDataRange(): ChannelDataStats {
+    return computeChannelDataStats(this.visibleChunks_.keys());
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {

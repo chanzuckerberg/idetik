@@ -5,10 +5,11 @@ import {
   Chunk,
   SourceDimension,
   SourceDimensionMap,
-  isChunkData,
   ChunkData,
   ChunkDataConstructor,
   SourceDimensionLod,
+  computeChunkDataStats,
+  isChunkData,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
@@ -105,6 +106,7 @@ export class OmeZarrImageLoader {
       );
     }
     chunk.rowAlignmentBytes = rowAlignment;
+    chunk.dataStats = computeChunkDataStats(chunk.data);
   }
 
   // trim any padding (XYZ padding for edge chunks)
