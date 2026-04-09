@@ -8,7 +8,7 @@ import {
   ChunkData,
   ChunkDataConstructor,
   SourceDimensionLod,
-  computeChunkDataStats,
+  computeChunkDataRange,
   isChunkData,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
@@ -105,8 +105,9 @@ export class OmeZarrImageLoader {
         "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
       );
     }
+
     chunk.rowAlignmentBytes = rowAlignment;
-    chunk.dataStats = computeChunkDataStats(chunk.data);
+    chunk.dataRange = computeChunkDataRange(chunk.data);
   }
 
   // trim any padding (XYZ padding for edge chunks)

@@ -1,9 +1,8 @@
 import {
   Chunk,
   ChunkSource,
-  ChannelDataStats,
   SliceCoordinates,
-  computeChannelDataStats,
+  computeChannelDataRange,
 } from "../data/chunk";
 import { Layer, RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
@@ -110,8 +109,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.channelChangeCallbacks_.splice(index, 1);
   }
 
-  public getVisibleDataRange(): ChannelDataStats {
-    return computeChannelDataStats(this.visibleChunks_);
+  public getVisibleDataRange() {
+    return computeChannelDataRange(this.visibleChunks_);
   }
 
   constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {

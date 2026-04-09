@@ -34,14 +34,14 @@ export type ChunkViewState = {
   orderKey: number | null;
 };
 
-export type ChunkDataStats = {
+export type ChunkDataRange = {
   min: number;
   max: number;
 };
 
 export type Chunk = {
   data?: ChunkData;
-  dataStats?: ChunkDataStats;
+  dataRange?: ChunkDataRange;
   state: "unloaded" | "queued" | "loading" | "loaded";
   lod: number;
   shape: {
@@ -122,7 +122,7 @@ export type ChunkLoader = {
   loadChunkData(chunk: Chunk, signal: AbortSignal): Promise<void>;
 };
 
-export function computeChunkDataStats(data: ChunkData): ChunkDataStats {
+export function computeChunkDataRange(data: ChunkData): ChunkDataRange {
   let min = Infinity;
   let max = -Infinity;
   for (let i = 0; i < data.length; i++) {
@@ -133,21 +133,21 @@ export function computeChunkDataStats(data: ChunkData): ChunkDataStats {
   return { min, max };
 }
 
-export type ChannelDataStats = Record<number, ChunkDataStats>;
+type ChannelDataRange = Record<number, ChunkDataRange>;
 
-export function computeChannelDataStats(
+export function computeChannelDataRange(
   chunks: Iterable<Chunk>
-): ChannelDataStats {
-  const result: ChannelDataStats = {};
+): ChannelDataRange {
+  const result: ChannelDataRange = {};
   for (const chunk of chunks) {
-    if (!chunk.dataStats) continue;
+    if (!chunk.dataRange) continue;
     const c = chunk.chunkIndex.c;
     const existing = result[c];
     if (!existing) {
-      result[c] = { min: chunk.dataStats.min, max: chunk.dataStats.max };
+      result[c] = { min: chunk.dataRange.min, max: chunk.dataRange.max };
     } else {
-      existing.min = Math.min(existing.min, chunk.dataStats.min);
-      existing.max = Math.max(existing.max, chunk.dataStats.max);
+      existing.min = Math.min(existing.min, chunk.dataRange.min);
+      existing.max = Math.max(existing.max, chunk.dataRange.max);
     }
   }
   return result;

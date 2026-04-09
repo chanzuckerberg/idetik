@@ -3,9 +3,8 @@ import type { IdetikContext } from "../idetik";
 import {
   Chunk,
   ChunkSource,
-  ChannelDataStats,
   SliceCoordinates,
-  computeChannelDataStats,
+  computeChannelDataRange,
 } from "../data/chunk";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
@@ -402,8 +401,8 @@ export class ChunkedImageLayer extends Layer implements ChannelsEnabled {
     this.channelChangeCallbacks_.splice(index, 1);
   }
 
-  public getVisibleDataRange(): ChannelDataStats {
-    return computeChannelDataStats(this.visibleChunks_.keys());
+  public getVisibleDataRange() {
+    return computeChannelDataRange(this.visibleChunks_.keys());
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
