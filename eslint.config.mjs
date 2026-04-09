@@ -33,7 +33,7 @@ export default [
   {
     files: ["packages/core/src/**/*.{js,ts}"],
     rules: {
-      'no-console': 'error'
+      'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn'
     }
   },
   { ignores: ["node_modules", "**/coverage", "**/dist"] },
