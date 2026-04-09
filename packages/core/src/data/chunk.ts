@@ -34,8 +34,14 @@ export type ChunkViewState = {
   orderKey: number | null;
 };
 
+export type ChunkDataRange = {
+  min: number;
+  max: number;
+};
+
 export type Chunk = {
   data?: ChunkData;
+  dataRange?: ChunkDataRange;
   state: "unloaded" | "queued" | "loading" | "loaded";
   lod: number;
   shape: {
@@ -115,6 +121,37 @@ export type ChunkLoader = {
 
   loadChunkData(chunk: Chunk, signal: AbortSignal): Promise<void>;
 };
+
+export function computeChunkDataRange(data: ChunkData): ChunkDataRange {
+  let min = Infinity;
+  let max = -Infinity;
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i];
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return { min, max };
+}
+
+type ChannelDataRange = Record<number, ChunkDataRange>;
+
+export function computeChannelDataRange(
+  chunks: Iterable<Chunk>
+): ChannelDataRange {
+  const result: ChannelDataRange = {};
+  for (const chunk of chunks) {
+    if (!chunk.dataRange) continue;
+    const c = chunk.chunkIndex.c;
+    const existing = result[c];
+    if (!existing) {
+      result[c] = { min: chunk.dataRange.min, max: chunk.dataRange.max };
+    } else {
+      existing.min = Math.min(existing.min, chunk.dataRange.min);
+      existing.max = Math.max(existing.max, chunk.dataRange.max);
+    }
+  }
+  return result;
+}
 
 export function coordToIndex(lod: SourceDimensionLod, coord: number): number {
   return Math.round((coord - lod.translation) / lod.scale);
