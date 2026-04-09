@@ -2,6 +2,11 @@
   "name": "@idetik/core",
   "version": "0.1.0",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chanzuckerberg/idetik.git",
+    "directory": "packages/core"
+  },
   "scripts": {
     "dev": "vite",
     "compile": "tsc",
