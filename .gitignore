@@ -26,3 +26,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated manifests
+examples/examples-manifest.json
+public/examples-manifest.json

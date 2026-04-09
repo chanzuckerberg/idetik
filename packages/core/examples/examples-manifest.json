@@ -1,0 +1,95 @@
+{
+  "generated": "2026-04-09T18:06:17.305Z",
+  "examples": [
+    {
+      "id": "chunk_streaming",
+      "title": "Chunk Streaming",
+      "path": "chunk_streaming/",
+      "directory": "chunk_streaming"
+    },
+    {
+      "id": "ca_wave_dynamics",
+      "title": "GFP Ca Wave Dynamics",
+      "path": "ca_wave_dynamics/",
+      "directory": "ca_wave_dynamics"
+    },
+    {
+      "id": "image2d_from_omezarr4d_hcs",
+      "title": "Image 2D from OME-Zarr 4D HCS",
+      "path": "image2d_from_omezarr4d_hcs/",
+      "directory": "image2d_from_omezarr4d_hcs"
+    },
+    {
+      "id": "image2d_from_omezarr5d_u16",
+      "title": "Image 2D from OME-Zarr 5D U16",
+      "path": "image2d_from_omezarr5d_u16/",
+      "directory": "image2d_from_omezarr5d_u16"
+    },
+    {
+      "id": "image_labels_overlay_with_value_picking",
+      "title": "Image Labels Overlay with Value Picking",
+      "path": "image_labels_overlay_with_value_picking/",
+      "directory": "image_labels_overlay_with_value_picking"
+    },
+    {
+      "id": "image_mask_overlay",
+      "title": "Image Mask Overlay",
+      "path": "image_mask_overlay/",
+      "directory": "image_mask_overlay"
+    },
+    {
+      "id": "image_series_from_omezarr5d_u8",
+      "title": "Image Series from OME-Zarr 5D U8",
+      "path": "image_series_from_omezarr5d_u8/",
+      "directory": "image_series_from_omezarr5d_u8"
+    },
+    {
+      "id": "image_series_labels_overlay",
+      "title": "Image Series Labels Overlay",
+      "path": "image_series_labels_overlay/",
+      "directory": "image_series_labels_overlay"
+    },
+    {
+      "id": "layer_blending",
+      "title": "Layer Blending",
+      "path": "layer_blending/",
+      "directory": "layer_blending"
+    },
+    {
+      "id": "multi_viewport",
+      "title": "Multiple Viewports",
+      "path": "multi_viewport/",
+      "directory": "multi_viewport"
+    },
+    {
+      "id": "ome_zarr_v05",
+      "title": "OME-Zarr v0.5",
+      "path": "ome_zarr_v05/",
+      "directory": "ome_zarr_v05"
+    },
+    {
+      "id": "points",
+      "title": "Points",
+      "path": "points/",
+      "directory": "points"
+    },
+    {
+      "id": "projected_lines",
+      "title": "Projected Lines",
+      "path": "projected_lines/",
+      "directory": "projected_lines"
+    },
+    {
+      "id": "tracks",
+      "title": "Tracks",
+      "path": "tracks/",
+      "directory": "tracks"
+    },
+    {
+      "id": "volume_rendering",
+      "title": "Volume Rendering",
+      "path": "volume_rendering/",
+      "directory": "volume_rendering"
+    }
+  ]
+}
