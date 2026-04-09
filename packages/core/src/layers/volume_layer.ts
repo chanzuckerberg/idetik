@@ -248,7 +248,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
 function spatialKey(chunk: Chunk): string {
   const { x, y, z, t } = chunk.chunkIndex;
-  return `${x}:${y}:${z}:${t}`;
+  return `${x}:${y}:${z}:${t}:lod${chunk.lod}`;
 }
 
 function groupBySpatialIndex(chunks: Chunk[]): Map<string, Chunk[]> {
