@@ -33,10 +33,6 @@ If you believe you have found a security issue, please responsibly disclose via 
 
    This will start a server on <http://localhost:5173>.
 
-   You can also run this from the core workspace with:
-
-   `npm run dev`
-
 4. To run the unit test suite (headless Chrome using playwright), run:
 
    `npm test` or `npm run test-with-coverage` to generate a coverage report.
@@ -69,7 +65,7 @@ We use [semantic-release](https://github.com/semantic-release/semantic-release) 
 3. **Merge to Main**: When your PR is merged to `main`, the release workflow automatically:
    - Analyzes commits since the last release
    - Determines the version bump
-   - Updates the version in `packages/core/package.json`
+   - Updates the version in `package.json`
    - Generates/updates `CHANGELOG.md`
    - Publishes to npm as `@idetik/core`
    - Creates a GitHub release with release notes
@@ -94,7 +90,6 @@ If you need to manually release (e.g., if the automated process fails), follow t
 1. **Bump the version**:
    ```shell
    git switch -c your-name/prerelease-X-Y-Z
-   cd packages/core
    npm version [major|minor|patch]  # Choose appropriate bump
    npm install  # Updates package-lock.json
    npm run build
@@ -108,7 +103,6 @@ If you need to manually release (e.g., if the automated process fails), follow t
    ```shell
    git checkout main
    git pull
-   cd packages/core
    npm login
    npm run pub
    ```
