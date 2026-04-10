@@ -1,6 +1,7 @@
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
+import { Renderer } from "./core/renderer";
 import { createStats, type Stats } from "./utilities/stats";
 import {
   parseViewportConfigs,
@@ -28,8 +29,8 @@ export type IdetikContext = {
 export class Idetik {
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
-  private readonly renderer_: WebGLRenderer;
-  private viewports_: Viewport[];
+  private readonly renderer_: Renderer;
+  private readonly viewports_: Viewport[];
   public readonly canvas: HTMLCanvasElement;
   public readonly overlays: Overlay[];
   private readonly stats_?: Stats;
@@ -134,10 +135,6 @@ export class Idetik {
 
   public get height() {
     return this.renderer_.height;
-  }
-
-  public get textureInfo() {
-    return this.renderer_.textureInfo;
   }
 
   public get viewports(): readonly Viewport[] {
