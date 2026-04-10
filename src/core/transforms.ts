@@ -77,7 +77,7 @@ export class TrsTransform {
   }
 
   public get inverse() {
-    return mat4.invert(mat4.create(), this.matrix);
+    return mat4.invert(mat4.create(), this.matrix)!;
   }
 
   private computeMatrix() {

@@ -57,7 +57,7 @@ export abstract class Camera extends RenderableObject {
     const projectionInverse = mat4.invert(
       mat4.create(),
       this.projectionMatrix_
-    );
+    )!;
     const viewPos = vec4.transformMat4(
       vec4.create(),
       clipPos,

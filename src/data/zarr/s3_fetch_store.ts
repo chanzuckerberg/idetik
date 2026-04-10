@@ -53,7 +53,7 @@ export class S3FetchStore extends FetchStore {
   public readonly credentials?: AwsCredentials;
   public readonly region?: string;
   // Cache signing keys per date/region combination (valid for 24 hours)
-  private signingKeyCache_ = new Map<string, Uint8Array>();
+  private signingKeyCache_ = new Map<string, Uint8Array<ArrayBuffer>>();
   public readonly overrides?: RequestInit;
   public readonly useSuffixRequest?: boolean;
 
@@ -240,7 +240,10 @@ export class S3FetchStore extends FetchStore {
     return this.bufferToHex(new Uint8Array(hashBuffer));
   }
 
-  private async hmacSha256(key: Uint8Array, message: string): Promise<string> {
+  private async hmacSha256(
+    key: Uint8Array<ArrayBuffer>,
+    message: string
+  ): Promise<string> {
     const encoder = new TextEncoder();
     const msgData = encoder.encode(message);
 
@@ -257,9 +260,9 @@ export class S3FetchStore extends FetchStore {
   }
 
   private async hmacSha256Bytes(
-    key: Uint8Array | string,
+    key: Uint8Array<ArrayBuffer> | string,
     message: string
-  ): Promise<Uint8Array> {
+  ): Promise<Uint8Array<ArrayBuffer>> {
     const encoder = new TextEncoder();
     const keyData = typeof key === "string" ? encoder.encode(key) : key;
     const msgData = encoder.encode(message);
@@ -285,7 +288,7 @@ export class S3FetchStore extends FetchStore {
     dateStamp: string,
     region: string,
     service: string
-  ): Promise<Uint8Array> {
+  ): Promise<Uint8Array<ArrayBuffer>> {
     // Cache key: dateStamp + region (credentials are per-instance, so we don't need to include them)
     const cacheKey = `${dateStamp}-${region}`;
 

@@ -217,7 +217,7 @@ export class WebGLRenderer extends Renderer {
           program.setUniform(uniformName, layer.opacity);
           break;
         case "CameraPositionModel": {
-          const inverseModelView = mat4.invert(mat4.create(), modelView);
+          const inverseModelView = mat4.invert(mat4.create(), modelView)!;
           const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
           const cameraPositionModel = vec4.transformMat4(
             vec4.create(),
