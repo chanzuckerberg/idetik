@@ -26,7 +26,6 @@ export type { ImageLayerProps } from "./layers/image_layer";
 export { VolumeLayer } from "./layers/volume_layer";
 export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
 export type { QueueStats } from "./core/chunk_manager";
-export { LabelImageLayer } from "./layers/label_image_layer";
 export { LabelLayer } from "./layers/label_layer";
 export type { LabelLayerProps } from "./layers/label_layer";
 export type { LabelColorMapProps } from "./objects/renderable/label_color_map";
