@@ -112,10 +112,6 @@ export class WebGLRenderer extends Renderer {
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
-  public get textureInfo() {
-    return this.textures_.textureInfo;
-  }
-
   private initStencil() {
     // We use the stencil buffer to mark pixels objects have been drawn,
     // which is used to avoid overdrawing high resolution tiles with lower

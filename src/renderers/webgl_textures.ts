@@ -86,13 +86,6 @@ export class WebGLTextures {
     this.textureCount_ = 0;
   }
 
-  public get textureInfo() {
-    return {
-      textures: this.textureCount_,
-      totalBytes: this.gpuTextureBytes_,
-    };
-  }
-
   private alreadyActive(texture: Texture) {
     return this.currentTexture_ === texture && !texture.needsUpdate;
   }
