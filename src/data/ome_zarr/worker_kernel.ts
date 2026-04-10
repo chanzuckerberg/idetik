@@ -2,6 +2,8 @@
 
 import * as zarr from "zarrita";
 import { openArrayFromParams, ZarrArrayParams } from "../zarr/open";
+import { isChunkData, ChunkData, ChunkDataRange } from "../chunk";
+import { SliceSpec, processChunk } from "./chunk_processing";
 
 type ZarrWorkerMessageType = "getChunk" | "cancel";
 
@@ -12,6 +14,7 @@ export type ZarrWorkerRequest = {
       type: "getChunk";
       arrayParams: ZarrArrayParams;
       index: number[];
+      sliceSpec: SliceSpec;
     }
   | {
       type: "cancel";
@@ -24,7 +27,8 @@ export type ZarrWorkerResponse = {
   | {
       success: true;
       type: "getChunk";
-      chunk: zarr.Chunk<zarr.DataType>;
+      data: ChunkData;
+      dataRange: ChunkDataRange;
     }
   | {
       success: false;
@@ -42,8 +46,8 @@ self.addEventListener("message", async (e: MessageEvent<ZarrWorkerRequest>) => {
 
   try {
     if (type === "getChunk") {
-      const { arrayParams, index } = e.data;
-      await handleGetChunkMessage(id, arrayParams, index);
+      const { arrayParams, index, sliceSpec } = e.data;
+      await handleGetChunkMessage(id, arrayParams, index, sliceSpec);
     } else if (type === "cancel") {
       await handleCancelMessage(id);
     } else {
@@ -69,7 +73,8 @@ async function handleCancelMessage(id: number): Promise<void> {
 async function handleGetChunkMessage(
   id: number,
   arrayParams: ZarrArrayParams,
-  index: number[]
+  index: number[],
+  sliceSpec: SliceSpec
 ): Promise<void> {
   const abortController = new AbortController();
   activeRequests.set(id, abortController);
@@ -90,20 +95,25 @@ async function handleGetChunkMessage(
     activeRequests.delete(id);
   }
 
-  if (!ArrayBuffer.isView(chunk.data)) {
-    throw new Error(`Expected TypedArray, got ${typeof chunk.data}`);
+  if (!isChunkData(chunk.data)) {
+    throw new Error(
+      `Unsupported chunk data type: ${chunk.data.constructor.name}`
+    );
   }
 
+  const processStart = performance.now();
+  const { data, dataRange } = processChunk(
+    chunk.data,
+    chunk.shape,
+    chunk.stride,
+    sliceSpec
+  );
+  performance.measure("processChunk", { start: processStart });
+
   try {
-    self.postMessage(
-      {
-        id,
-        success: true,
-        type: "getChunk",
-        chunk,
-      },
-      [chunk.data.buffer]
-    );
+    self.postMessage({ id, success: true, type: "getChunk", data, dataRange }, [
+      data.buffer,
+    ]);
   } catch (postError) {
     throw new Error(
       `Failed to send result: ${postError instanceof Error ? postError.message : String(postError)}`

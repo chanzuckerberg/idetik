@@ -1,14 +1,16 @@
 import * as zarr from "zarrita";
 import { Logger } from "../../utilities/logger";
 import { ZarrArrayParams } from "../zarr/open";
+import { isChunkData } from "../chunk";
 import { ZarrWorkerRequest, ZarrWorkerResponse } from "./worker_kernel";
+import { SliceSpec, ProcessedChunk, processChunk } from "./chunk_processing";
 // "inline" import to ensure worker code works in dependent projects
 // this is a workaround for a vite limitation when building a library
 // see https://github.com/vitejs/vite/issues/11672
 import WorkerKernel from "./worker_kernel.ts?worker&inline";
 
 type PendingGetChunkRequest = {
-  resolve: (value: zarr.Chunk<zarr.DataType>) => void;
+  resolve: (value: ProcessedChunk) => void;
   reject: (error: Error) => void;
   abortListener?: () => void;
   abortSignal?: AbortSignal;
@@ -21,7 +23,7 @@ type WorkerInstance = {
   workerId: number;
 };
 
-const DEFAULT_WORKER_COUNT = Math.min(navigator.hardwareConcurrency, 8);
+const DEFAULT_WORKER_COUNT = 3;
 let workerPool: WorkerInstance[] = [];
 let messageId = 0;
 let workerId = 0;
@@ -76,7 +78,7 @@ function handleWorkerMessage(
   }
 
   if (success && e.data.type === "getChunk") {
-    pending.resolve(e.data.chunk);
+    pending.resolve({ data: e.data.data, dataRange: e.data.dataRange });
   } else if (!success) {
     pending.reject(new Error(e.data.error || "Unknown worker error"));
   }
@@ -148,11 +150,12 @@ function getLeastBusyWorker(): WorkerInstance {
   return workerPool.sort((a, b) => a.pendingCount - b.pendingCount)[0];
 }
 
-async function getChunkInWorker(
+async function fetchAndProcessChunkInWorker(
   zarrParams: ZarrArrayParams,
   chunkIndex: number[],
+  sliceSpec: SliceSpec,
   options?: { signal?: AbortSignal }
-): Promise<zarr.Chunk<zarr.DataType>> {
+): Promise<ProcessedChunk> {
   return new Promise((resolve, reject) => {
     const workerInstance = getLeastBusyWorker();
 
@@ -200,6 +203,7 @@ async function getChunkInWorker(
       type: "getChunk",
       arrayParams: zarrParams,
       index: chunkIndex,
+      sliceSpec,
     } as ZarrWorkerRequest);
   });
 }
@@ -227,24 +231,39 @@ function ensureWorkerPool(): void {
   }
 }
 
-export async function getChunk(
+export async function fetchAndProcessChunk(
   array: zarr.Array<zarr.DataType, zarr.Readable>,
   arrayParams: ZarrArrayParams,
   chunkCoords: number[],
+  sliceSpec: SliceSpec,
   options?: { signal?: AbortSignal }
-): Promise<zarr.Chunk<zarr.DataType>> {
+): Promise<ProcessedChunk> {
   ensureWorkerPool();
   try {
-    return await getChunkInWorker(arrayParams, chunkCoords, options);
+    return await fetchAndProcessChunkInWorker(
+      arrayParams,
+      chunkCoords,
+      sliceSpec,
+      options
+    );
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw error;
     }
 
     Logger.warn("ZarrWorker", "Falling back to main thread", error);
-    const chunk = await array.getChunk(chunkCoords, options);
-
-    return chunk;
+    const rawChunk = await array.getChunk(chunkCoords, options);
+    if (!isChunkData(rawChunk.data)) {
+      throw new Error(
+        `Unsupported chunk data type: ${rawChunk.data.constructor.name}`
+      );
+    }
+    return processChunk(
+      rawChunk.data,
+      rawChunk.shape,
+      rawChunk.stride,
+      sliceSpec
+    );
   }
 }
 
