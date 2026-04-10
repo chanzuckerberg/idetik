@@ -8,7 +8,7 @@ import {
   loadOmeroDefaults,
   loadOmeZarrPlate,
   loadOmeZarrWell,
-  ChunkedImageLayer,
+  ImageLayer,
   createNoPrefetchPolicy,
 } from "@";
 
@@ -85,13 +85,13 @@ const onImageChange = async () => {
     },
   ];
 
-  const layer1 = new ChunkedImageLayer({
+  const layer1 = new ImageLayer({
     source,
     sliceCoords: { t: 0, z: initZ, c: [1] },
     channelProps,
     policy,
   });
-  const layer2 = new ChunkedImageLayer({
+  const layer2 = new ImageLayer({
     source,
     sliceCoords: { t: 0, z: initZ, c: [2] },
     channelProps,

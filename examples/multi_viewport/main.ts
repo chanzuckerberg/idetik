@@ -1,6 +1,6 @@
 import {
   Idetik,
-  ChunkedImageLayer,
+  ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   PerspectiveCamera,
@@ -61,7 +61,7 @@ const sliceCoords = {
   z: 300,
   c: [0],
 };
-const imageLayer = new ChunkedImageLayer({
+const imageLayer = new ImageLayer({
   source,
   sliceCoords: sliceCoords,
   policy: createPlaybackPolicy(),

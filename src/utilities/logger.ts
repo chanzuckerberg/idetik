@@ -23,7 +23,6 @@ type Module =
   | "ChunkQueue"
   | "ChunkStore"
   | "ChunkStoreView"
-  | "ChunkedImageLayer"
   | "EventDispatcher"
   | "Idetik"
   | "ImageLayer"

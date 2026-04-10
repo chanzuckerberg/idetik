@@ -33,14 +33,43 @@
         user-select: none;
       }
 
-      #time-point {
+      #left-overlays {
         position: absolute;
         bottom: 0.5em;
         left: 0.3em;
         margin: 1em;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5em;
+        width: 15%;
+      }
+
+      #time-point {
         padding: 1em;
         color: white;
         background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      #scale-bar-box {
+        display: flex;
+        flex-direction: column;
+        padding: 1em;
+        gap: 0.5em;
+        align-items: start;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.5);
+        user-select: none;
+      }
+
+      #scale-bar-text {
+        color: white;
+        text-align: start;
+      }
+
+      #scale-bar-line {
+        width: 100%;
+        height: 1em;
+        background-color: white;
       }
     </style>
   </head>
@@ -48,7 +77,13 @@
   <body>
     <canvas id="canvas"></canvas>
     <div id="chunk-info">Chunks: Loading...</div>
-    <div id="time-point"></div>
+    <div id="left-overlays">
+      <div id="time-point"></div>
+      <div id="scale-bar-box">
+        <div id="scale-bar-text"></div>
+        <div id="scale-bar-line"></div>
+      </div>
+    </div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
