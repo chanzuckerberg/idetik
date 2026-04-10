@@ -5,10 +5,7 @@ import {
   Chunk,
   SourceDimension,
   SourceDimensionMap,
-  ChunkData,
-  ChunkDataConstructor,
   SourceDimensionLod,
-  computeChunkDataRange,
   isChunkData,
 } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
@@ -17,7 +14,8 @@ import { PromiseScheduler } from "../promise_scheduler";
 import { Image as OmeZarrImage } from "./0.5/image";
 
 import { ZarrArrayParams } from "../zarr/open";
-import { getChunk } from "./worker_pool";
+import { SliceSpec } from "./chunk_processing";
+import { fetchAndProcessChunk } from "./worker_pool";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -91,116 +89,42 @@ export class OmeZarrImageLoader {
     const array = this.arrays_[chunk.lod];
     const arrayParams = this.arrayParams_[chunk.lod];
 
+    const cLod = this.dimensions_.c?.lods[chunk.lod];
+    const tLod = this.dimensions_.t?.lods[chunk.lod];
+
+    const sliceSpec: SliceSpec = {
+      targetShape: chunk.shape,
+      chunkIndex: { c: chunk.chunkIndex.c, t: chunk.chunkIndex.t },
+      dimIndices: {
+        x: this.dimensions_.x.index,
+        y: this.dimensions_.y.index,
+        z: this.dimensions_.z?.index,
+        c: this.dimensions_.c?.index,
+        t: this.dimensions_.t?.index,
+      },
+      cChunkSize: cLod?.chunkSize,
+      tChunkSize: tLod?.chunkSize,
+    };
+
     // NOTE: if source chunks have multiple channels/timepoints
     // this results in duplicate fetching and decompression
-    const receivedChunk = await getChunk(array, arrayParams, chunkCoords, {
-      signal,
-    });
+    const { data, dataRange } = await fetchAndProcessChunk(
+      array,
+      arrayParams,
+      chunkCoords,
+      sliceSpec,
+      { signal }
+    );
 
-    chunk.data = this.sliceReceivedChunk(chunk, receivedChunk);
-
-    const rowAlignment = chunk.data.BYTES_PER_ELEMENT;
+    const rowAlignment = data.BYTES_PER_ELEMENT;
     if (!isTextureUnpackRowAlignment(rowAlignment)) {
       throw new Error(
         "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
       );
     }
-
     chunk.rowAlignmentBytes = rowAlignment;
-    chunk.dataRange = computeChunkDataRange(chunk.data);
-  }
-
-  // trim any padding (XYZ padding for edge chunks)
-  // and extract the channel/timepoint
-  private sliceReceivedChunk(
-    chunk: Chunk,
-    receivedChunk: zarr.Chunk<zarr.DataType>
-  ): ChunkData {
-    const receivedChunkData = receivedChunk.data;
-    if (!isChunkData(receivedChunkData)) {
-      throw new Error(
-        `Received chunk has an unsupported data type, data=${receivedChunk.data.constructor.name}`
-      );
-    }
-
-    validateTightlyPackedChunk(receivedChunk);
-
-    const receivedShape = {
-      x: receivedChunk.shape[this.dimensions_.x.index],
-      y: receivedChunk.shape[this.dimensions_.y.index],
-      z: this.dimensions_.z
-        ? receivedChunk.shape[this.dimensions_.z.index]
-        : chunk.shape.z,
-    };
-
-    const receivedChunkTooSmall =
-      receivedShape.x < chunk.shape.x ||
-      receivedShape.y < chunk.shape.y ||
-      receivedShape.z < chunk.shape.z;
-
-    if (receivedChunkTooSmall) {
-      throw new Error(
-        `Received incompatible shape for chunkIndex ${JSON.stringify(chunk.chunkIndex)} at LOD ${chunk.lod}: ` +
-          `expected shape: ${JSON.stringify(chunk.shape)}, received shape: ${JSON.stringify(receivedShape)} (too small)`
-      );
-    }
-
-    const receivedChunkStride = receivedChunk.stride;
-
-    const cLod = this.dimensions_.c?.lods[chunk.lod];
-    const tLod = this.dimensions_.t?.lods[chunk.lod];
-
-    const cOffsetInSource = cLod ? chunk.chunkIndex.c % cLod.chunkSize : 0;
-    const tOffsetInSource = tLod ? chunk.chunkIndex.t % tLod.chunkSize : 0;
-
-    // internal chunks are compact 3D XYZ, with size 1 in C and T
-    const compactSize = chunk.shape.x * chunk.shape.y * chunk.shape.z;
-
-    const cStride = this.dimensions_.c
-      ? receivedChunkStride[this.dimensions_.c.index]
-      : 0;
-    const tStride = this.dimensions_.t
-      ? receivedChunkStride[this.dimensions_.t.index]
-      : 0;
-
-    // note: this assumes tczyx ordering
-    const srcOffset = tOffsetInSource * tStride + cOffsetInSource * cStride;
-
-    const receivedExactShape =
-      receivedShape.x === chunk.shape.x &&
-      receivedShape.y === chunk.shape.y &&
-      receivedShape.z === chunk.shape.z;
-
-    const noSlicingNeeded =
-      srcOffset === 0 &&
-      receivedChunkData.length === compactSize &&
-      receivedExactShape;
-    if (noSlicingNeeded) {
-      return receivedChunkData;
-    }
-
-    const compactData =
-      new (receivedChunkData.constructor as ChunkDataConstructor)(compactSize);
-
-    const zStride = this.dimensions_.z
-      ? receivedChunkStride[this.dimensions_.z.index]
-      : 0;
-    const yStride = receivedChunkStride[this.dimensions_.y.index];
-    let destOffset = 0;
-    for (let z = 0; z < chunk.shape.z; z++) {
-      const zStart = srcOffset + z * zStride;
-      for (let y = 0; y < chunk.shape.y; y++) {
-        const srcStart = zStart + y * yStride;
-        const srcEnd = srcStart + chunk.shape.x;
-        compactData.set(
-          receivedChunkData.subarray(srcStart, srcEnd),
-          destOffset
-        );
-        destOffset += chunk.shape.x;
-      }
-    }
-
-    return compactData;
+    chunk.data = data;
+    chunk.dataRange = dataRange;
   }
 
   public async loadRegion(
