@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { vec2 } from "gl-matrix";
-import { WebGLState } from "../src/renderers/WebGLState";
+import { WebGLState } from "../src/renderers/webgl_state";
 import { Box2 } from "../src/math/box2";
 
 function createTestWebGLContext(): WebGL2RenderingContext {

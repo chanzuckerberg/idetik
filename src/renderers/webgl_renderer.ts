@@ -7,7 +7,7 @@ import { WebGLBuffers } from "./webgl_buffers";
 import { WebGLTextures } from "./webgl_textures";
 
 import { Layer } from "../core/layer";
-import { WebGLState } from "./WebGLState";
+import { WebGLState } from "./webgl_state";
 import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
