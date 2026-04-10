@@ -170,7 +170,7 @@ test("inverse", () => {
   t1.addRotation(rotation);
   t1.addTranslation(translation);
   t1.addScale(scale);
-  expectMatrixEquals(t0.inverse, mat4.invert(mat4.create(), t1.matrix));
+  expectMatrixEquals(t0.inverse, mat4.invert(mat4.create(), t1.matrix)!);
 });
 
 test("matrix is cached on repeat access", () => {

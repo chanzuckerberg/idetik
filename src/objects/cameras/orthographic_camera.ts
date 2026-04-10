@@ -70,7 +70,7 @@ export class OrthographicCamera extends Camera {
       this.viewMatrix
     );
 
-    const inv = mat4.invert(mat4.create(), viewProjection);
+    const inv = mat4.invert(mat4.create(), viewProjection)!;
     topLeft = vec4.transformMat4(vec4.create(), topLeft, inv);
     bottomRight = vec4.transformMat4(vec4.create(), bottomRight, inv);
 
