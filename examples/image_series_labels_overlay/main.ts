@@ -6,6 +6,7 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   Color,
+  PointPickingResult,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { createExplorationPolicy } from "@/core/image_source_policy";
@@ -65,27 +66,49 @@ imageLayer.addStateChangeCallback((newState: LayerState) => {
   stateEl.textContent = newState;
 });
 
-const labelsLayer = new LabelLayer({
-  source: labelsSource,
-  sliceCoords: labelsSliceCoords,
-  policy: createExplorationPolicy(),
-  transparent: true,
-  opacity: 0.25,
-  blendMode: "normal",
-});
+const pickInfoEl = document.querySelector<HTMLDivElement>("#pick-info")!;
+let outlineMode = false;
+
+function createLabelsLayer() {
+  return new LabelLayer({
+    source: labelsSource,
+    sliceCoords: labelsSliceCoords,
+    policy: createExplorationPolicy(),
+    transparent: true,
+    opacity: 0.25,
+    blendMode: "normal",
+    outlineSelected: outlineMode,
+    onPickValue: (info: PointPickingResult) => {
+      const { world, value } = info;
+      pickInfoEl.innerHTML = `
+        World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
+        Label: ${value}
+      `;
+      if (!outlineMode) {
+        labelsLayer.setColorMap({
+          cycle: Array.from(labelsLayer.colorMap.cycle),
+          lookupTable: new Map([[value, Color.WHITE]]),
+        });
+      }
+    },
+  });
+}
+
+let labelsLayer = createLabelsLayer();
 
 const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;
 const tIndexEl = document.querySelector<HTMLSpanElement>("#t-index")!;
 const tTotalEl = document.querySelector<HTMLSpanElement>("#t-total")!;
 const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
+const outlineToggleEl =
+  document.querySelector<HTMLButtonElement>("#outline-toggle")!;
 
-// Initialize sliders
+// Initialize slider
 tSlider.min = `${tMin}`;
 tSlider.max = `${tMax - 1}`;
 tSlider.value = "0";
 tTotalEl.textContent = `${tMax - tMin - 1}`;
 
-// set up event handler with debouncing
 let debounce: ReturnType<typeof setTimeout>;
 tSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
@@ -96,7 +119,7 @@ tSlider.addEventListener("input", (event) => {
 });
 
 const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
-new Idetik({
+const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
     {
@@ -105,7 +128,17 @@ new Idetik({
       layers: [imageLayer, labelsLayer],
     },
   ],
-}).start();
+});
+
+const viewport = idetik.viewports[0];
+
+outlineToggleEl.addEventListener("click", () => {
+  outlineMode = !outlineMode;
+  outlineToggleEl.textContent = outlineMode ? "Outline" : "Fill";
+  viewport.layerManager.remove(labelsLayer);
+  labelsLayer = createLabelsLayer();
+  viewport.layerManager.add(labelsLayer);
+});
 
 function setTimeIndex(index: number) {
   sliceCoords.t = index * tScale;
@@ -116,13 +149,11 @@ function setTimeIndex(index: number) {
 document
   .querySelector<HTMLButtonElement>("#color-cycle-default")!
   .addEventListener("click", () => {
-    console.debug("Resetting color map to default");
     labelsLayer.setColorMap({});
   });
 document
   .querySelector<HTMLButtonElement>("#color-cycle-cmy")!
   .addEventListener("click", () => {
-    console.debug("Resetting color map to CMY cycle");
     labelsLayer.setColorMap({
       cycle: [Color.CYAN, Color.MAGENTA, Color.YELLOW],
     });
@@ -130,6 +161,7 @@ document
 document
   .querySelector<HTMLButtonElement>("#color-cycle-rgb")!
   .addEventListener("click", () => {
-    console.debug("Resetting color map to RGB cycle");
     labelsLayer.setColorMap({ cycle: [Color.RED, Color.GREEN, Color.BLUE] });
   });
+
+idetik.start();
