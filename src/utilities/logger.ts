@@ -28,6 +28,7 @@ type Module =
   | "ImageLayer"
   | "ImageSeriesLoader"
   | "LabelImageLayer"
+  | "LabelLayer"
   | "Layer"
   | "OrbitControls"
   | "PixelSizeObserver"
