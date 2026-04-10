@@ -26,8 +26,6 @@ type Module =
   | "EventDispatcher"
   | "Idetik"
   | "ImageLayer"
-  | "ImageSeriesLoader"
-  | "LabelImageLayer"
   | "LabelLayer"
   | "Layer"
   | "OrbitControls"
