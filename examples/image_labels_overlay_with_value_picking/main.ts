@@ -2,12 +2,11 @@ import {
   Idetik,
   OmeZarrImageSource,
   OrthographicCamera,
-  Region,
   Color,
   ImageLayer,
+  LabelLayer,
+  PointPickingResult,
 } from "@";
-import { LabelImageLayer } from "@/layers/label_image_layer";
-import { PointPickingResult } from "@/layers/point_picking";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 
@@ -22,7 +21,6 @@ const labelsUrl = `${baseUrl}/2024_11_07_A549_SEC61_DENV_tracking.zarr/${fovName
 const imageSource = OmeZarrImageSource.fromHttp({ url: imageUrl });
 const labelsSource = OmeZarrImageSource.fromHttp({ url: labelsUrl });
 
-const lod = 0;
 const loader = await imageSource.open();
 const dimensions = loader.getSourceDimensionMap();
 
@@ -41,14 +39,11 @@ const sliceCoords = {
   z: zMidPoint,
 };
 
-// Labels provide C and Z dimensions, but they are unitary.
-const labelsRegion: Region = [
-  { dimension: "T", index: { type: "point", value: tStartPoint } },
-  { dimension: "C", index: { type: "point", value: 0 } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
-  { dimension: "Y", index: { type: "full" } },
-  { dimension: "X", index: { type: "full" } },
-];
+// Labels have unitary C and Z dimensions.
+const labelsSliceCoords = {
+  t: tStartPoint,
+  c: [0],
+};
 
 const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
 const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
@@ -80,13 +75,13 @@ const imageLayer = new ImageLayer({
 
 // Function to create label layer with current mode
 function createLabelsLayer() {
-  return new LabelImageLayer({
+  return new LabelLayer({
     source: labelsSource,
-    region: labelsRegion,
+    sliceCoords: labelsSliceCoords,
+    policy: createExplorationPolicy(),
     transparent: true,
     opacity: 0.25,
     blendMode: "normal",
-    lod,
     outlineSelected: outlineMode,
     onPickValue: (info: PointPickingResult) => {
       const { world, value } = info;
@@ -96,10 +91,8 @@ function createLabelsLayer() {
         Label Value: ${value}
       `;
 
-      if (outlineMode) {
-        // In outline mode, the layer handles the selection internally
-      } else {
-        // In fill mode, use the old white fill behavior
+      if (!outlineMode) {
+        // In fill mode, highlight the picked label with white
         labelsLayer.setColorMap({
           cycle: Array.from(labelsLayer.colorMap.cycle),
           lookupTable: new Map([[value, Color.WHITE]]),

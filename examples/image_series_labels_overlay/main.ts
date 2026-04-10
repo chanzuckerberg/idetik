@@ -2,12 +2,11 @@ import {
   Idetik,
   LayerState,
   ImageLayer,
+  LabelLayer,
   OmeZarrImageSource,
   OrthographicCamera,
-  Region,
   Color,
 } from "@";
-import { LabelImageSeriesLayer } from "@/layers/label_image_series_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 
@@ -43,6 +42,12 @@ const sliceCoords = {
   z: zMidPoint,
 };
 
+// Labels have unitary C and Z dimensions.
+const labelsSliceCoords = {
+  t: tMin * tScale,
+  c: [0],
+};
+
 const imageLayer = new ImageLayer({
   source: imageSource,
   sliceCoords,
@@ -60,30 +65,19 @@ imageLayer.addStateChangeCallback((newState: LayerState) => {
   stateEl.textContent = newState;
 });
 
-// Labels provide C and Z dimensions, but they are unitary.
-const labelsRegion: Region = [
-  { dimension: "T", index: { type: "full" } },
-  { dimension: "C", index: { type: "point", value: 0 } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
-  { dimension: "Y", index: { type: "full" } },
-  { dimension: "X", index: { type: "full" } },
-];
-
-const labelsLayer = new LabelImageSeriesLayer({
+const labelsLayer = new LabelLayer({
   source: labelsSource,
-  region: labelsRegion,
-  seriesDimensionName: "T",
+  sliceCoords: labelsSliceCoords,
+  policy: createExplorationPolicy(),
   transparent: true,
   opacity: 0.25,
   blendMode: "normal",
-  lod,
 });
 
 const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;
 const tIndexEl = document.querySelector<HTMLSpanElement>("#t-index")!;
 const tTotalEl = document.querySelector<HTMLSpanElement>("#t-total")!;
 const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
-const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all")!;
 
 // Initialize sliders
 tSlider.min = `${tMin}`;
@@ -97,7 +91,7 @@ tSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(() => {
-    setLayerIndex(value);
+    setTimeIndex(value);
   }, 20);
 });
 
@@ -113,32 +107,10 @@ new Idetik({
   ],
 }).start();
 
-setLayerIndex(tSlider.valueAsNumber);
-
-loadAllButton.addEventListener("click", () => {
-  try {
-    preloadAllSlices();
-  } catch (error) {
-    console.error("Error preloading slices:", error);
-    loadAllButton.value = "Error loading slices";
-  }
-});
-
-async function preloadAllSlices() {
-  console.log("loading all slices");
-  loadAllButton.disabled = true;
-  loadAllButton.value = "Loading all slices...";
-  await labelsLayer.preloadSeries();
-  loadAllButton.value = "Loaded all slices";
-}
-
-async function setLayerIndex(index: number) {
-  tIndexEl!.textContent = "...";
+function setTimeIndex(index: number) {
   sliceCoords.t = index * tScale;
-  const labelsResult = await labelsLayer.setIndex(index);
-  if (labelsResult.success) {
-    tIndexEl!.textContent = `${index}`;
-  }
+  labelsSliceCoords.t = index * tScale;
+  tIndexEl.textContent = `${index}`;
 }
 
 document
