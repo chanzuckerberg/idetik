@@ -46,12 +46,7 @@
         }
       }
     ],
-    [
-      "@semantic-release/npm",
-      {
-        "pkgRoot": "packages/core"
-      }
-    ],
+    "@semantic-release/npm",
     "@semantic-release/github"
   ]
 }

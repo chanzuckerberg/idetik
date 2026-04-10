@@ -7,7 +7,6 @@ on:
     paths:
       - 'package.json'
       - 'package-lock.json'
-      - 'packages/core/package.json'
       - '.releaserc.json'
       - '.github/workflows/release.yml'
 

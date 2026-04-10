@@ -31,7 +31,11 @@ export default [
     }
   },
   {
-    files: ["packages/core/src/**/*.{js,ts}"],
+    files: ["eslint.config.mjs"],
+    languageOptions: { globals: globals.node }
+  },
+  {
+    files: ["src/**/*.{js,ts}"],
     rules: {
       'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn'
     }
