@@ -4,7 +4,7 @@ import {
   OrthographicCamera,
   Region,
   Color,
-  ChunkedImageLayer,
+  ImageLayer,
 } from "@";
 import { LabelImageLayer } from "@/layers/label_image_layer";
 import { PointPickingResult } from "@/layers/point_picking";
@@ -66,7 +66,7 @@ toggleDiv.style.cursor = "pointer";
 infoBox.appendChild(toggleDiv);
 
 // Create base image layer
-const imageLayer = new ChunkedImageLayer({
+const imageLayer = new ImageLayer({
   source: imageSource,
   sliceCoords,
   policy: createExplorationPolicy(),

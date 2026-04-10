@@ -1,7 +1,7 @@
 import {
   ChannelProps,
   Idetik,
-  ChunkedImageLayer,
+  ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   PointPickingResult,
@@ -38,7 +38,7 @@ const onPickValue = (info: PointPickingResult) => {
   `;
 };
 
-const layer = new ChunkedImageLayer({
+const layer = new ImageLayer({
   source,
   sliceCoords,
   policy: createExplorationPolicy(),

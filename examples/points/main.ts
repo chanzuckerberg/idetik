@@ -6,11 +6,11 @@ import {
   Points,
   OrthographicCamera,
   OmeZarrImageSource,
-  Region,
   Texture2DArray,
   LayerState,
-  ImageSeriesLayer,
+  ImageLayer,
   Color,
+  createNoPrefetchPolicy,
 } from "@";
 
 import { vec3 } from "gl-matrix";
@@ -193,24 +193,28 @@ const dimensions = loader.getSourceDimensionMap();
 
 const zDimName = "z";
 const zMin = 0;
-const zMax = dimensions.z!.lods[dimensions.numLods - 1].size;
+const lowestLod = dimensions.numLods - 1;
+const zMax = dimensions.z!.lods[lowestLod].size;
+const xLod = dimensions.x!.lods[lowestLod];
+const yLod = dimensions.y!.lods[lowestLod];
+const xExtent = xLod.size * xLod.scale;
+const yExtent = yLod.size * yLod.scale;
+
 const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
 zSlider.min = `${zMin}`;
 zSlider.max = `${zMax - 1}`;
 zSlider.value = `${INITIAL_Z_POSITION / IMAGE_SCALE_2}`;
-const region: Region = [
-  { dimension: "z", index: { type: "full" } },
-  { dimension: "y", index: { type: "full" } },
-  { dimension: "x", index: { type: "full" } },
-];
-const imageLayer = new ImageSeriesLayer({
+
+const sliceCoords = { [zDimName]: INITIAL_Z_POSITION };
+
+const imageLayer = new ImageLayer({
   source: imageSource,
-  region,
-  seriesDimensionName: zDimName,
+  sliceCoords,
+  policy: createNoPrefetchPolicy(),
   channelProps: [{ color: Color.WHITE, contrastLimits: [-0.00001, 0.00001] }],
 });
 
-const camera = new OrthographicCamera(0, 1024, 0, 1024, -10000, 10000);
+const camera = new OrthographicCamera(0, xExtent, 0, yExtent, -10000, 10000);
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
@@ -224,8 +228,7 @@ const app = new Idetik({
 const viewport = app.viewports[0];
 
 const onFirstImageLoad = (newState: LayerState) => {
-  if (newState === "ready" && imageLayer.extent !== undefined) {
-    camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
+  if (newState === "ready") {
     viewport.cameraControls = new PanZoomControls(camera);
     camera.update();
 
@@ -239,16 +242,16 @@ const onFirstImageLoad = (newState: LayerState) => {
 };
 
 imageLayer.addStateChangeCallback(onFirstImageLoad);
-imageLayer.setPosition(INITIAL_Z_POSITION);
 
 let debounce: ReturnType<typeof setTimeout>;
 zSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
-  debounce = setTimeout(async () => {
-    await imageLayer.setPosition(value * IMAGE_SCALE_2);
-    ribosomes.setDepth(value * IMAGE_SCALE_2);
-    ferritin.setDepth(value * IMAGE_SCALE_2);
-    virusLike.setDepth(value * IMAGE_SCALE_2);
+  debounce = setTimeout(() => {
+    const worldZ = value * IMAGE_SCALE_2;
+    sliceCoords[zDimName] = worldZ;
+    ribosomes.setDepth(worldZ);
+    ferritin.setDepth(worldZ);
+    virusLike.setDepth(worldZ);
   }, 20);
 });

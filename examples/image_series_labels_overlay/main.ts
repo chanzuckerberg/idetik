@@ -1,7 +1,7 @@
 import {
   Idetik,
   LayerState,
-  ImageSeriesLayer,
+  ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   Region,
@@ -9,6 +9,7 @@ import {
 } from "@";
 import { LabelImageSeriesLayer } from "@/layers/label_image_series_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
+import { createExplorationPolicy } from "@/core/image_source_policy";
 
 // These roughly correspond in terms of content and the number of time-points.
 // But the image is smaller in XY than the labels, and has a Z-stack, so it
@@ -28,22 +29,24 @@ const dimensions = loader.getSourceDimensionMap();
 const tLod = dimensions.t!.lods[lod];
 const tMin = 0;
 const tMax = tLod.size;
+const tScale = tLod.scale;
 const zLod = dimensions.z!.lods[lod];
 const zMidPoint = 0.5 * zLod.size * zLod.scale;
+const xLod = dimensions.x!.lods[lod];
+const xStopPoint = xLod.size * xLod.scale;
+const yLod = dimensions.y!.lods[lod];
+const yStopPoint = yLod.size * yLod.scale;
 
-const region: Region = [
-  { dimension: "T", index: { type: "full" } },
-  { dimension: "C", index: { type: "point", value: 0 } },
-  { dimension: "Z", index: { type: "point", value: zMidPoint } },
-  { dimension: "X", index: { type: "full" } },
-  { dimension: "Y", index: { type: "full" } },
-];
+const sliceCoords = {
+  t: tMin * tScale,
+  c: [0],
+  z: zMidPoint,
+};
 
-const imageLayer = new ImageSeriesLayer({
+const imageLayer = new ImageLayer({
   source: imageSource,
-  region,
-  seriesDimensionName: "T",
-  lod,
+  sliceCoords,
+  policy: createExplorationPolicy(),
   channelProps: [
     {
       visible: true,
@@ -98,30 +101,18 @@ tSlider.addEventListener("input", (event) => {
   }, 20);
 });
 
-const camera = new OrthographicCamera(0, 128, 0, 128);
-const app = new Idetik({
+const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
+new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
     {
       camera,
+      cameraControls: new PanZoomControls(camera),
       layers: [imageLayer, labelsLayer],
     },
   ],
 }).start();
 
-const viewport = app.viewports[0];
-
-imageLayer.setIndex(tSlider.valueAsNumber);
-const setCameraFrame = (newState: LayerState) => {
-  if (newState === "ready" && imageLayer.extent !== undefined) {
-    camera.setFrame(0, imageLayer.extent.x, 0, imageLayer.extent.y);
-    viewport.cameraControls = new PanZoomControls(camera);
-    camera.update();
-    // remove the callback to only set the camera frame once
-    imageLayer.removeStateChangeCallback(setCameraFrame);
-  }
-};
-imageLayer.addStateChangeCallback(setCameraFrame);
 setLayerIndex(tSlider.valueAsNumber);
 
 loadAllButton.addEventListener("click", () => {
@@ -137,16 +128,15 @@ async function preloadAllSlices() {
   console.log("loading all slices");
   loadAllButton.disabled = true;
   loadAllButton.value = "Loading all slices...";
-  await imageLayer.preloadSeries();
   await labelsLayer.preloadSeries();
   loadAllButton.value = "Loaded all slices";
 }
 
 async function setLayerIndex(index: number) {
   tIndexEl!.textContent = "...";
-  const imageResult = await imageLayer.setIndex(index);
+  sliceCoords.t = index * tScale;
   const labelsResult = await labelsLayer.setIndex(index);
-  if (imageResult.success && labelsResult.success) {
+  if (labelsResult.success) {
     tIndexEl!.textContent = `${index}`;
   }
 }

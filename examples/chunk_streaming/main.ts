@@ -1,12 +1,13 @@
 import {
   ChannelProps,
   Idetik,
-  ChunkedImageLayer,
+  ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
 } from "@";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { ChunkInfoOverlay } from "./chunk_info_overlay";
+import { ScaleBar } from "./scale_bar";
 import { addDimensionSlider } from "../lil_gui_utils";
 import {
   createExplorationPolicy,
@@ -53,7 +54,7 @@ const channelProps: ChannelProps[] = [
 ];
 
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkedImageLayer({
+const imageLayer = new ImageLayer({
   source,
   sliceCoords,
   policy: createExplorationPolicy(),
@@ -75,6 +76,12 @@ const timePointOverlay = {
   },
 };
 
+const scaleBar = new ScaleBar({
+  textDiv: document.querySelector<HTMLDivElement>("#scale-bar-text")!,
+  lineDiv: document.querySelector<HTMLDivElement>("#scale-bar-line")!,
+  unit: "μm",
+});
+
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
@@ -84,7 +91,7 @@ new Idetik({
       layers: [imageLayer],
     },
   ],
-  overlays: [chunkInfoOverlay, timePointOverlay],
+  overlays: [chunkInfoOverlay, timePointOverlay, scaleBar],
   showStats: true,
 }).start();
 

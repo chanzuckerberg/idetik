@@ -1,7 +1,7 @@
 import {
   ChannelProps,
   Idetik,
-  ChunkedImageLayer,
+  ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
   Color,
@@ -55,7 +55,7 @@ const playbackPolicy = createPlaybackPolicy({
 });
 
 const camera = new OrthographicCamera(left, right, top, bottom);
-const imageLayer = new ChunkedImageLayer({
+const imageLayer = new ImageLayer({
   source,
   sliceCoords,
   policy: pausedPolicy,
