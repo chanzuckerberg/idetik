@@ -1,4 +1,5 @@
 import { WebGLRenderer } from "./renderers/webgl_renderer";
+import { createWebGPURenderer } from "./renderers/webgpu/webgpu_renderer";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./core/chunk_manager";
 import { Renderer } from "./core/renderer";
@@ -87,10 +88,17 @@ export class Idetik {
    *
    * @throws {Error} If viewports have duplicate IDs or shared elements
    */
-  constructor(params: IdetikParams) {
+  static async create(
+    params: IdetikParams & { renderer: "webgpu-experimental" }
+  ): Promise<Idetik> {
+    const renderer = await createWebGPURenderer(params.canvas);
+    return new Idetik(params, renderer);
+  }
+
+  constructor(params: IdetikParams, renderer?: Renderer) {
     this.canvas = params.canvas;
 
-    this.renderer_ = new WebGLRenderer(this.canvas);
+    this.renderer_ = renderer ?? new WebGLRenderer(this.canvas);
     this.chunkManager_ = new ChunkManager();
     this.context_ = {
       chunkManager: this.chunkManager_,
