@@ -122,6 +122,7 @@ export class Idetik {
     }
     this.sizeObserver_ = new PixelSizeObserver(sizeDependents, () => {
       this.renderer_.updateSize();
+      this.renderer_.beginFrame();
       for (const viewport of this.viewports_) {
         viewport.updateSize();
         this.renderer_.render(viewport);
@@ -227,6 +228,7 @@ export class Idetik {
 
     this.lastTimestamp_ = timestamp;
 
+    this.renderer_.beginFrame();
     for (const viewport of this.viewports_) {
       viewport.cameraControls?.onUpdate(dt);
       this.renderer_.render(viewport);

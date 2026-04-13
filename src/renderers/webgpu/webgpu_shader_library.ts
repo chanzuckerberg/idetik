@@ -1,3 +1,5 @@
+import { Logger } from "@/utilities/logger";
+
 import shaderBasicPassthrough from "./shaders/basic_passthrough.wgsl";
 
 type Shader = "basic_passthrough";
@@ -28,7 +30,7 @@ export default class WebGPUShaderLibrary {
     const compilationInfo = await module.getCompilationInfo();
     if (compilationInfo.messages.some((m) => m.type === "error")) {
       for (const msg of compilationInfo.messages) {
-        console.error(`${msg.type}: ${msg.message}`);
+        Logger.error("WebGPUShaderLibrary", `${msg.type}: ${msg.message}`);
       }
       throw new Error(`Failed to compile WGSL shader ${name}.wgsl`);
     }
