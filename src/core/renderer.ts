@@ -23,6 +23,8 @@ export abstract class Renderer {
     this.updateRendererSize();
   }
 
+  public beginFrame(): void {}
+
   public abstract render(viewport: Viewport): void;
 
   public updateSize(): void {

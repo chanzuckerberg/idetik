@@ -1,13 +1,17 @@
+import { Box2 } from "@/math/box2";
 import { Camera } from "@/objects/cameras/camera";
 import { Layer } from "@/core/layer";
 import { Logger } from "@/utilities/logger";
 import { Renderer } from "@/core/renderer";
 import { Viewport } from "@/core/viewport";
 
+import { vec2 } from "gl-matrix";
+
 import WebGPUShaderLibrary from "./webgpu_shader_library";
 import WebGPUPipelines from "./webgpu_pipelines";
 import WebGPUBindingGroups from "./webgpu_binding_groups";
 import WebGPUBufferPool from "./webgpu_buffer_pool";
+import { Frustum } from "@/math/frustum";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -30,6 +34,14 @@ class WebGPURenderer extends Renderer {
   private readonly pipelines_: WebGPUPipelines;
   private readonly bindingGroups_: WebGPUBindingGroups;
   private readonly bufferPool_: WebGPUBufferPool;
+
+  private depthStencilTexture_: GPUTexture | null = null;
+  private passEncoder_: GPURenderPassEncoder | null = null;
+
+  private renderedObjectsPerFrame_ = 0;
+  private currentDepthWrite_ = true;
+  private currentStencil_ = false;
+  private needsClear_ = true;
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     super(canvas);
@@ -54,32 +66,145 @@ class WebGPURenderer extends Renderer {
     });
 
     Logger.info("WebGPURenderer", "WebGPU Initialized");
+
+    this.resize(this.width, this.height);
   }
 
-  public render(_viewport: Viewport) {
-    const commandEncoder = this.device_.createCommandEncoder();
-    const passEncoder = commandEncoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: this.context_.getCurrentTexture().createView(),
-          clearValue: { r: 0, g: 0, b: 0, a: 1 },
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-    });
+  public override beginFrame() {
+    this.needsClear_ = true;
+  }
 
-    passEncoder.end();
+  public render(viewport: Viewport) {
+    this.renderedObjects_ = 0;
+    this.renderedObjectsPerFrame_ = 0;
+
+    const { opaque, transparent } = viewport.layerManager.partitionLayers();
+    for (const layer of [...opaque, ...transparent]) {
+      layer.update({ viewport });
+    }
+
+    if (getComputedStyle(viewport.element).visibility === "hidden") return;
+
+    const viewportBox = viewport.getBoxRelativeTo(this.canvas);
+    const surfaceBox = new Box2(
+      vec2.fromValues(0, 0),
+      vec2.fromValues(this.width, this.height)
+    );
+
+    if (!Box2.intersects(viewportBox, surfaceBox)) {
+      Logger.warn(
+        "WebGPURenderer",
+        `Viewport ${viewport.id} is entirely outside canvas bounds`
+      );
+      return;
+    }
+
+    const commandEncoder = this.device_.createCommandEncoder();
+    this.passEncoder_ = this.beginRenderPass(commandEncoder);
+
+    const { x, y, width, height } = viewportBox.floor().toRect();
+    this.passEncoder_.setViewport(x, y, width, height, 0, 1);
+
+    if (!Box2.equals(viewportBox.floor(), surfaceBox.floor())) {
+      this.passEncoder_.setScissorRect(x, y, width, height);
+    }
+
+    const frustum = viewport.camera.frustum;
+
+    this.currentDepthWrite_ = true;
+    for (const layer of opaque) {
+      if (layer.state === "ready") {
+        this.renderLayer(layer, viewport.camera, frustum);
+      }
+    }
+
+    this.currentDepthWrite_ = false;
+    for (const layer of transparent) {
+      if (layer.state === "ready") {
+        this.renderLayer(layer, viewport.camera, frustum);
+      }
+    }
+
+    this.passEncoder_.end();
     this.device_.queue.submit([commandEncoder.finish()]);
+
+    this.renderedObjects_ = this.renderedObjectsPerFrame_;
+  }
+
+  private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
+    if (layer.type !== "ImageLayer") {
+      throw new Error("Experimental WebGPU renderer only support image layers");
+    }
+
+    if (layer.objects.length === 0) {
+      return;
+    }
+
+    this.currentStencil_ = layer.hasMultipleLODs();
+    if (this.currentStencil_) {
+      this.passEncoder_!.setStencilReference(0);
+    }
+
+    layer.objects.forEach((object, i) => {
+      if (frustum.intersectsWithBox3(object.boundingBox)) {
+        this.renderObject(layer, i, camera);
+        this.renderedObjectsPerFrame_ += 1;
+      }
+    });
   }
 
   protected renderObject(
     _layer: Layer,
     _objectIndex: number,
     _camera: Camera
-  ): void {}
+  ): void {
+    // TODO: implement
+  }
 
-  protected clear() {}
+  protected resize(width: number, height: number) {
+    if (this.depthStencilTexture_) {
+      this.depthStencilTexture_.destroy();
+    }
+    this.depthStencilTexture_ = this.device_.createTexture({
+      size: { width, height },
+      format: "depth24plus-stencil8",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+  }
 
-  protected resize() {}
+  private beginRenderPass(encoder: GPUCommandEncoder) {
+    const colorAttachment = this.context_.getCurrentTexture().createView();
+    const depthAttachment = this.depthStencilTexture_!.createView();
+    const loadOp: GPULoadOp = this.needsClear_ ? "clear" : "load";
+    this.needsClear_ = false;
+    return encoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: colorAttachment,
+          loadOp,
+          storeOp: "store",
+          clearValue: {
+            r: this.backgroundColor.r,
+            g: this.backgroundColor.g,
+            b: this.backgroundColor.b,
+            a: this.backgroundColor.a,
+          },
+        },
+      ],
+      depthStencilAttachment: {
+        view: depthAttachment,
+        depthLoadOp: loadOp,
+        depthStoreOp: "store",
+        depthClearValue: 1.0,
+        stencilLoadOp: loadOp,
+        stencilStoreOp: "store",
+        stencilClearValue: 0,
+      },
+    });
+  }
+
+  protected clear() {
+    // No-op. In WebGPU, clearing is handled by the render pass loadOp
+    // in beginRenderPass(). There is no imperative clear command.
+  }
 }

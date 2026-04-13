@@ -38,6 +38,7 @@ type Module =
   | "WebGLShaderProgram"
   | "WebGLTexture"
   | "WebGPURenderer"
+  | "WebGPUShaderLibrary"
   | "WireframeGeometry"
   | "ZarrWorker";
 
