@@ -61,53 +61,55 @@ export class WebGLRenderer extends Renderer {
   }
 
   public render(viewport: Viewport) {
-    let viewportIsVisible =
-      getComputedStyle(viewport.element).visibility !== "hidden";
+    this.renderedObjects_ = 0;
+    this.renderedObjectsPerFrame_ = 0;
+
+    const { opaque, transparent } = viewport.layerManager.partitionLayers();
+    for (const layer of [...opaque, ...transparent]) {
+      layer.update({ viewport });
+    }
+
+    if (getComputedStyle(viewport.element).visibility === "hidden") return;
+
     const viewportBox = viewport.getBoxRelativeTo(this.canvas);
-    const rendererBox = new Box2(
+    const surfaceBox = new Box2(
       vec2.fromValues(0, 0),
       vec2.fromValues(this.width, this.height)
     );
-    if (Box2.equals(viewportBox.floor(), rendererBox.floor())) {
+
+    const viewportEquals = Box2.equals(viewportBox.floor(), surfaceBox.floor());
+    const viewportIntersects = Box2.intersects(viewportBox, surfaceBox);
+
+    if (viewportEquals) {
       this.state_.setScissorTest(false);
-    } else if (Box2.intersects(viewportBox, rendererBox)) {
-      this.state_.setScissor(viewportBox);
+    } else if (viewportIntersects) {
       this.state_.setScissorTest(true);
+      this.state_.setScissor(viewportBox);
     } else {
       Logger.warn(
         "WebGLRenderer",
         `Viewport ${viewport.id} is entirely outside canvas bounds, skipping render`
       );
-      viewportIsVisible = false;
-    }
-    this.state_.setViewport(viewportBox);
-    this.renderedObjectsPerFrame_ = 0;
-    if (viewportIsVisible) {
-      this.clear();
+      return;
     }
 
-    const { opaque, transparent } = viewport.layerManager.partitionLayers();
-
-    this.state_.setDepthMask(true);
+    this.clear();
 
     const frustum = viewport.camera.frustum;
-    const renderContext = { viewport };
 
+    this.state_.setDepthMask(true);
     for (const layer of opaque) {
-      layer.update(renderContext);
-      if (layer.state === "ready" && viewportIsVisible) {
+      if (layer.state === "ready") {
         this.renderLayer(layer, viewport.camera, frustum);
       }
     }
 
     this.state_.setDepthMask(false);
     for (const layer of transparent) {
-      layer.update(renderContext);
-      if (layer.state === "ready" && viewportIsVisible) {
+      if (layer.state === "ready") {
         this.renderLayer(layer, viewport.camera, frustum);
       }
     }
-    this.state_.setDepthMask(true);
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
