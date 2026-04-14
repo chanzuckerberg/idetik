@@ -2,10 +2,10 @@ import { Logger } from "@/utilities/logger";
 
 import shaderBasicPassthrough from "./shaders/basic_passthrough.wgsl";
 
-type Shader = "basic_passthrough";
+export type ShaderName = "basic_passthrough";
 
 type WebGPUShader = {
-  name: Shader;
+  name: ShaderName;
   module: GPUShaderModule;
   bindGroupLayouts: GPUBindGroupLayout[];
 };
@@ -19,12 +19,11 @@ export default class WebGPUShaderLibrary {
     this.shaders_ = [];
   }
 
-  public async getShader(name: Shader) {
-    const cached = this.shaders_.find((s) => s.name === name);
-    if (cached) return cached;
+  public async compile(name: ShaderName) {
+    if (this.shaders_.some((s) => s.name === name)) return;
 
     const module = this.device_.createShaderModule({
-      code: this.shaderSourceFromName(name),
+      code: shaderSourceFromName(name),
     });
 
     const compilationInfo = await module.getCompilationInfo();
@@ -36,17 +35,13 @@ export default class WebGPUShaderLibrary {
     }
 
     const bindGroupLayouts = this.createBindGroupLayouts();
-    const shader: WebGPUShader = { name, module, bindGroupLayouts };
-
-    this.shaders_.push(shader);
-    return shader;
+    this.shaders_.push({ name, module, bindGroupLayouts });
   }
 
-  private shaderSourceFromName(name: Shader) {
-    switch (name) {
-      case "basic_passthrough":
-        return shaderBasicPassthrough;
-    }
+  public get(name: ShaderName) {
+    const cached = this.shaders_.find((s) => s.name === name);
+    if (!cached) throw new Error(`Shader "${name}" not compiled`);
+    return cached;
   }
 
   private createBindGroupLayouts() {
@@ -71,5 +66,12 @@ export default class WebGPUShaderLibrary {
     });
 
     return [frameLayout, objectLayout];
+  }
+}
+
+function shaderSourceFromName(name: ShaderName) {
+  switch (name) {
+    case "basic_passthrough":
+      return shaderBasicPassthrough;
   }
 }
