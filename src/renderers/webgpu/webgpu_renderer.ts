@@ -9,9 +9,9 @@ import { Viewport } from "@/core/viewport";
 import { vec2 } from "gl-matrix";
 
 import WebGPUShaderLibrary from "./webgpu_shader_library";
-import WebGPUPipelines, { PipelineKey } from "./webgpu_pipelines";
+import WebGPUPipelines from "./webgpu_pipelines";
 import WebGPUBindingGroups from "./webgpu_binding_groups";
-import WebGPUBufferPool from "./webgpu_buffer_pool";
+import WebGPUGeometryBuffers from "./webgpu_geometry_buffers";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -36,7 +36,7 @@ class WebGPURenderer extends Renderer {
   private readonly shaderLibrary_: WebGPUShaderLibrary;
   private readonly pipelines_: WebGPUPipelines;
   private readonly bindingGroups_: WebGPUBindingGroups;
-  private readonly bufferPool_: WebGPUBufferPool;
+  private readonly geometryBuffers_: WebGPUGeometryBuffers;
   private readonly depthFormat_: GPUTextureFormat;
 
   private depthStencilTexture_: GPUTexture | null = null;
@@ -55,7 +55,7 @@ class WebGPURenderer extends Renderer {
     this.depthFormat_ = "depth24plus-stencil8";
     this.shaderLibrary_ = new WebGPUShaderLibrary(device);
     this.bindingGroups_ = new WebGPUBindingGroups(device, this.shaderLibrary_);
-    this.bufferPool_ = new WebGPUBufferPool(device);
+    this.geometryBuffers_ = new WebGPUGeometryBuffers(device);
     this.pipelines_ = new WebGPUPipelines(
       device,
       this.shaderLibrary_,
