@@ -1,5 +1,6 @@
 import { Box2 } from "@/math/box2";
 import { Camera } from "@/objects/cameras/camera";
+import { Frustum } from "@/math/frustum";
 import { Layer } from "@/core/layer";
 import { Logger } from "@/utilities/logger";
 import { Renderer } from "@/core/renderer";
@@ -8,10 +9,9 @@ import { Viewport } from "@/core/viewport";
 import { vec2 } from "gl-matrix";
 
 import WebGPUShaderLibrary from "./webgpu_shader_library";
-import WebGPUPipelines from "./webgpu_pipelines";
+import WebGPUPipelines, { PipelineKey } from "./webgpu_pipelines";
 import WebGPUBindingGroups from "./webgpu_binding_groups";
 import WebGPUBufferPool from "./webgpu_buffer_pool";
-import { Frustum } from "@/math/frustum";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -23,17 +23,21 @@ export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
     throw new Error("Failed to obtain a WebGPU Adapter");
   }
 
-  return new WebGPURenderer(canvas, await adapter.requestDevice());
+  const renderer = new WebGPURenderer(canvas, await adapter.requestDevice());
+  await renderer.compileShaders();
+
+  return renderer;
 }
 
 class WebGPURenderer extends Renderer {
   private readonly device_: GPUDevice;
-  private readonly format_: GPUTextureFormat;
+  private readonly colorFormat_: GPUTextureFormat;
   private readonly context_: GPUCanvasContext;
   private readonly shaderLibrary_: WebGPUShaderLibrary;
   private readonly pipelines_: WebGPUPipelines;
   private readonly bindingGroups_: WebGPUBindingGroups;
   private readonly bufferPool_: WebGPUBufferPool;
+  private readonly depthFormat_: GPUTextureFormat;
 
   private depthStencilTexture_: GPUTexture | null = null;
   private passEncoder_: GPURenderPassEncoder | null = null;
@@ -47,11 +51,17 @@ class WebGPURenderer extends Renderer {
     super(canvas);
 
     this.device_ = device;
+    this.colorFormat_ = navigator.gpu.getPreferredCanvasFormat();
+    this.depthFormat_ = "depth24plus-stencil8";
     this.shaderLibrary_ = new WebGPUShaderLibrary(device);
-    this.pipelines_ = new WebGPUPipelines(device, this.shaderLibrary_);
     this.bindingGroups_ = new WebGPUBindingGroups(device, this.shaderLibrary_);
     this.bufferPool_ = new WebGPUBufferPool(device);
-    this.format_ = navigator.gpu.getPreferredCanvasFormat();
+    this.pipelines_ = new WebGPUPipelines(
+      device,
+      this.shaderLibrary_,
+      this.colorFormat_,
+      this.depthFormat_
+    );
 
     const context = canvas.getContext("webgpu");
     if (!context) {
@@ -61,7 +71,7 @@ class WebGPURenderer extends Renderer {
     this.context_ = context;
     this.context_.configure({
       device: this.device_,
-      format: this.format_,
+      format: this.colorFormat_,
       alphaMode: "opaque",
     });
 
@@ -70,11 +80,15 @@ class WebGPURenderer extends Renderer {
     this.resize(this.width, this.height);
   }
 
+  public async compileShaders() {
+    await this.shaderLibrary_.compile("basic_passthrough");
+  }
+
   public override beginFrame() {
     this.needsClear_ = true;
   }
 
-  public render(viewport: Viewport) {
+  public override render(viewport: Viewport) {
     this.renderedObjects_ = 0;
     this.renderedObjectsPerFrame_ = 0;
 
@@ -153,21 +167,35 @@ class WebGPURenderer extends Renderer {
     });
   }
 
-  protected renderObject(
-    _layer: Layer,
-    _objectIndex: number,
+  protected override renderObject(
+    layer: Layer,
+    objectIndex: number,
     _camera: Camera
-  ): void {
-    // TODO: implement
+  ) {
+    const object = layer.objects[objectIndex];
+    if (!object.programName) return;
+
+    const renderPass = this.passEncoder_!;
+
+    renderPass.setPipeline(
+      this.pipelines_.get({
+        shaderName: "basic_passthrough",
+        depthWrite: this.currentDepthWrite_,
+        depthTest: object.depthTest,
+        stencil: this.currentStencil_,
+        cullMode: "back",
+        topology: "triangle-list",
+      })
+    );
   }
 
-  protected resize(width: number, height: number) {
+  protected override resize(width: number, height: number) {
     if (this.depthStencilTexture_) {
       this.depthStencilTexture_.destroy();
     }
     this.depthStencilTexture_ = this.device_.createTexture({
       size: { width, height },
-      format: "depth24plus-stencil8",
+      format: this.depthFormat_,
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
   }
@@ -203,7 +231,7 @@ class WebGPURenderer extends Renderer {
     });
   }
 
-  protected clear() {
+  protected override clear() {
     // No-op. In WebGPU, clearing is handled by the render pass loadOp
     // in beginRenderPass(). There is no imperative clear command.
   }
