@@ -1,10 +1,6 @@
 import * as zarr from "zarrita";
 
-import {
-  Chunk,
-  SourceDimension,
-  SourceDimensionMap,
-} from "../chunk";
+import { Chunk, SourceDimension, SourceDimensionMap } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
 

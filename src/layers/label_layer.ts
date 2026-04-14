@@ -76,6 +76,14 @@ export class LabelLayer extends Layer {
       this.source_,
       this.policy_
     );
+
+    if (this.chunkStoreView_.channelCount > 1) {
+      throw new Error(
+        `LabelLayer does not support multi-channel sources ` +
+          `(found ${this.chunkStoreView_.channelCount} channels). ` +
+          `Label data must be single-channel.`
+      );
+    }
   }
 
   public onDetached(_context: IdetikContext): void {
