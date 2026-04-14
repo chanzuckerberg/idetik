@@ -12,11 +12,34 @@ type WebGPUShader = {
 
 export default class WebGPUShaderLibrary {
   private readonly device_: GPUDevice;
+  private readonly frameLayout_: GPUBindGroupLayout;
+  private readonly layerLayout_: GPUBindGroupLayout;
+
   private readonly shaders_: WebGPUShader[];
 
   constructor(device: GPUDevice) {
     this.device_ = device;
     this.shaders_ = [];
+
+    this.frameLayout_ = this.device_.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0, // projection matrix
+          visibility: GPUShaderStage.VERTEX,
+          buffer: {},
+        },
+      ],
+    });
+
+    this.layerLayout_ = this.device_.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0, // opacity
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: {},
+        }
+      ]
+    });
   }
 
   public async compile(name: ShaderName) {
@@ -35,6 +58,7 @@ export default class WebGPUShaderLibrary {
     }
 
     const bindGroupLayouts = this.createBindGroupLayouts();
+
     this.shaders_.push({ name, module, bindGroupLayouts });
   }
 
@@ -45,16 +69,6 @@ export default class WebGPUShaderLibrary {
   }
 
   private createBindGroupLayouts() {
-    const frameLayout = this.device_.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0, // projection matrix
-          visibility: GPUShaderStage.VERTEX,
-          buffer: {},
-        },
-      ],
-    });
-
     const objectLayout = this.device_.createBindGroupLayout({
       entries: [
         {
@@ -65,7 +79,7 @@ export default class WebGPUShaderLibrary {
       ],
     });
 
-    return [frameLayout, objectLayout];
+    return [this.frameLayout_, this.layerLayout_, objectLayout];
   }
 }
 
