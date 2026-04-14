@@ -176,16 +176,21 @@ class WebGPURenderer extends Renderer {
     if (!object.programName) return;
 
     const renderPass = this.passEncoder_!;
+    const geometryBuffer = this.geometryBuffers_.get(object.geometry);
 
     renderPass.setPipeline(
-      this.pipelines_.get({
-        shaderName: "basic_passthrough",
-        depthWrite: this.currentDepthWrite_,
-        depthTest: object.depthTest,
-        stencil: this.currentStencil_,
-        cullMode: "back",
-        topology: "triangle-list",
-      })
+      this.pipelines_.get(
+        {
+          shaderName: "basic_passthrough",
+          depthWrite: this.currentDepthWrite_,
+          depthTest: object.depthTest,
+          stencil: this.currentStencil_,
+          cullMode: "back",
+          topology: "triangle-list",
+          vertexAttributesStr: geometryBuffer.attributesKey,
+        },
+        geometryBuffer
+      )
     );
   }
 
