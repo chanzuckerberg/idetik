@@ -70,7 +70,6 @@ function createMockLoader(): ChunkLoader {
   return {
     getSourceDimensionMap: createSimpleDimensions,
     loadChunkData: vi.fn(),
-    loadRegion: vi.fn(),
   };
 }
 

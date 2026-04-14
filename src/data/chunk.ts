@@ -1,6 +1,4 @@
-import { Region } from "./region";
 import { TextureUnpackRowAlignment } from "../objects/textures/texture";
-import { PromiseScheduler } from "./promise_scheduler";
 import { Logger } from "../utilities/logger";
 
 const chunkDataTypes = [
@@ -93,7 +91,7 @@ export type SourceDimension = {
 // of a multi-resolution image pyramid.
 // For example, combines zarr array metadata (size, chunkSize) with
 // OME-zarr coordinate transform (scale, translation).
-export type SourceDimensionLod = {
+type SourceDimensionLod = {
   size: number;
   chunkSize: number;
   scale: number;
@@ -111,12 +109,6 @@ export type ChunkSource = {
 };
 
 export type ChunkLoader = {
-  loadRegion(
-    input: Region,
-    lod: number,
-    scheduler?: PromiseScheduler
-  ): Promise<Chunk>;
-
   getSourceDimensionMap(): SourceDimensionMap;
 
   loadChunkData(chunk: Chunk, signal: AbortSignal): Promise<void>;

@@ -51,7 +51,6 @@ export { Frustum } from "./math/frustum";
 export { Plane } from "./math/plane";
 export { Spherical } from "./math/spherical";
 
-export type { Region } from "./data/region";
 export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";
 export {
   loadOmeroChannels,
