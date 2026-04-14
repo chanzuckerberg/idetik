@@ -34,7 +34,7 @@ export default class WebGPUPipelines {
     this.shaderLibrary_ = shaderLibrary;
   }
 
-  public get(key: PipelineKey): GPURenderPipeline {
+  public get(key: PipelineKey) {
     const cached = this.getCachedPipeline(key);
     if (cached) return cached.pipeline;
 
@@ -64,8 +64,18 @@ export default class WebGPUPipelines {
                 offset: 0,
                 format: "float32x3",
               },
+              {
+                shaderLocation: 1,
+                offset: 4 * 3,
+                format: "float32x3",
+              },
+              {
+                shaderLocation: 2,
+                offset: 4 * 6,
+                format: "float32x2",
+              },
             ],
-            arrayStride: 4 * 3,
+            arrayStride: 4 * 8,
             stepMode: "vertex",
           },
         ],
