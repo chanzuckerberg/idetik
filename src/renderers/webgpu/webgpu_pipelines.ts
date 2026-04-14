@@ -1,4 +1,5 @@
 import WebGPUShaderLibrary, { ShaderName } from "./webgpu_shader_library";
+import { WebGPUGeometryBuffer } from "./webgpu_geometry_buffers";
 
 export type PipelineKey = {
   shaderName: ShaderName;
@@ -7,6 +8,7 @@ export type PipelineKey = {
   stencil: boolean;
   cullMode: GPUCullMode;
   topology: GPUPrimitiveTopology;
+  vertexAttributesStr: string;
 };
 
 type WebGPUPipeline = {
@@ -34,7 +36,7 @@ export default class WebGPUPipelines {
     this.shaderLibrary_ = shaderLibrary;
   }
 
-  public get(key: PipelineKey) {
+  public get(key: PipelineKey, geometryBuffer: WebGPUGeometryBuffer) {
     const cached = this.getCachedPipeline(key);
     if (cached) return cached.pipeline;
 
@@ -58,24 +60,8 @@ export default class WebGPUPipelines {
         entryPoint: "vert",
         buffers: [
           {
-            attributes: [
-              {
-                shaderLocation: 0,
-                offset: 0,
-                format: "float32x3",
-              },
-              {
-                shaderLocation: 1,
-                offset: 4 * 3,
-                format: "float32x3",
-              },
-              {
-                shaderLocation: 2,
-                offset: 4 * 6,
-                format: "float32x2",
-              },
-            ],
-            arrayStride: 4 * 8,
+            attributes: geometryBuffer.attributes,
+            arrayStride: geometryBuffer.geometry.strideBytes,
             stepMode: "vertex",
           },
         ],
@@ -109,12 +95,13 @@ export default class WebGPUPipelines {
   private getCachedPipeline(key: PipelineKey) {
     return this.pipelines_.find(
       (p) =>
-        p.key.shaderName === key.shaderName &&
-        p.key.depthWrite === key.depthWrite &&
-        p.key.depthTest === key.depthTest &&
-        p.key.stencil === key.stencil &&
         p.key.cullMode === key.cullMode &&
-        p.key.topology === key.topology
+        p.key.depthTest === key.depthTest &&
+        p.key.depthWrite === key.depthWrite &&
+        p.key.shaderName === key.shaderName &&
+        p.key.stencil === key.stencil &&
+        p.key.topology === key.topology &&
+        p.key.vertexAttributesStr === key.vertexAttributesStr
     );
   }
 }
