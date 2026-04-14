@@ -1,6 +1,5 @@
 import {
   Idetik,
-  LayerState,
   ImageLayer,
   LabelLayer,
   OmeZarrImageSource,
@@ -59,11 +58,9 @@ const imageLayer = new ImageLayer({
       color: Color.WHITE,
       contrastLimits: [20, 200],
     },
+    { visible: false },
+    { visible: false },
   ],
-});
-
-imageLayer.addStateChangeCallback((newState: LayerState) => {
-  stateEl.textContent = newState;
 });
 
 const pickInfoEl = document.querySelector<HTMLDivElement>("#pick-info")!;
@@ -99,7 +96,6 @@ let labelsLayer = createLabelsLayer();
 const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;
 const tIndexEl = document.querySelector<HTMLSpanElement>("#t-index")!;
 const tTotalEl = document.querySelector<HTMLSpanElement>("#t-total")!;
-const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
 const outlineToggleEl =
   document.querySelector<HTMLButtonElement>("#outline-toggle")!;
 
