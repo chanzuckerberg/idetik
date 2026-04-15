@@ -79,7 +79,7 @@ class WebGPURenderer extends Renderer {
   }
 
   public async compileShaders() {
-    await this.shaderLibrary_.compile("basic_passthrough");
+    await this.shaderLibrary_.compile("image");
   }
 
   public override beginFrame() {
@@ -179,7 +179,7 @@ class WebGPURenderer extends Renderer {
     renderPass.setPipeline(
       this.pipelines_.get(
         {
-          shaderName: "basic_passthrough",
+          shaderName: "image",
           depthWrite: this.currentDepthWrite_,
           depthTest: object.depthTest,
           stencil: this.currentStencil_,
