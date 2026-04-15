@@ -51,7 +51,9 @@ export default class WebGPUUniformBuffer<T> {
       this.staging_
     );
 
+    const offset = this.cursor_ * this.alignedSlotSize_;
     this.cursor_++;
+    return offset;
   }
 
   private resize() {
