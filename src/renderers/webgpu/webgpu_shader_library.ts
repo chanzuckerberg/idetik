@@ -10,7 +10,7 @@ import {
 
 export type ShaderName = "image";
 
-type WebGPUShader = {
+export type WebGPUShader = {
   name: ShaderName;
   module: GPUShaderModule;
   bindGroupLayouts: GPUBindGroupLayout[];
