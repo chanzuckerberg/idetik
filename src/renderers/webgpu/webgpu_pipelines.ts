@@ -1,4 +1,7 @@
-import WebGPUShaderLibrary, { ShaderName } from "./webgpu_shader_library";
+import WebGPUShaderLibrary, {
+  ShaderName,
+  WebGPUShader,
+} from "./webgpu_shader_library";
 import { WebGPUGeometryBuffer } from "./webgpu_geometry_buffers";
 
 export type PipelineKey = {
@@ -14,6 +17,7 @@ export type PipelineKey = {
 type WebGPUPipeline = {
   key: PipelineKey;
   pipeline: GPURenderPipeline;
+  shader: WebGPUShader;
 };
 
 export default class WebGPUPipelines {
@@ -38,7 +42,7 @@ export default class WebGPUPipelines {
 
   public get(key: PipelineKey, geometryBuffer: WebGPUGeometryBuffer) {
     const cached = this.getCachedPipeline(key);
-    if (cached) return cached.pipeline;
+    if (cached) return cached;
 
     const shader = this.shaderLibrary_.get(key.shaderName);
     const layout = this.device_.createPipelineLayout({
@@ -87,9 +91,10 @@ export default class WebGPUPipelines {
       },
     });
 
-    this.pipelines_.push({ key, pipeline });
+    const entry: WebGPUPipeline = { key, pipeline, shader };
+    this.pipelines_.push(entry);
 
-    return pipeline;
+    return entry;
   }
 
   private getCachedPipeline(key: PipelineKey) {
