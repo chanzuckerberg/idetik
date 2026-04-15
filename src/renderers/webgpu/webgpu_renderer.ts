@@ -10,15 +10,18 @@ import { vec2, mat4 } from "gl-matrix";
 
 import WebGPUGeometryBuffers from "./webgpu_geometry_buffers";
 import WebGPUPipelines from "./webgpu_pipelines";
-import WebGPUShaderLibrary from "./webgpu_shader_library";
+import WebGPUShaderLibrary, { WebGPUShader } from "./webgpu_shader_library";
 import WebGPUUniformBuffer from "./webgpu_uniform_buffer";
 
 import {
   FrameUniforms,
   FrameUniformsDef,
+  ImageObjectDefs,
+  ImageObjectUniforms,
   LayerUniforms,
   LayerUniformsDef,
 } from "./webgpu_uniform_defs";
+import { RenderableObject } from "@/core/renderable_object";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -64,8 +67,11 @@ class WebGPURenderer extends Renderer {
   private currentStencil_ = false;
   private needsClear_ = true;
 
-  private readonly frameUniformBuffer: WebGPUUniformBuffer<FrameUniforms>;
-  private readonly layerUniformBuffer: WebGPUUniformBuffer<LayerUniforms>;
+  private readonly frameUniformBuffer_: WebGPUUniformBuffer<FrameUniforms>;
+  private readonly layerUniformBuffer_: WebGPUUniformBuffer<LayerUniforms>;
+
+  private imageUniformBuffer_?: WebGPUUniformBuffer<ImageObjectUniforms>;
+
   private readonly scratchMat4_ = mat4.create();
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
@@ -100,13 +106,13 @@ class WebGPURenderer extends Renderer {
 
     this.resize(this.width, this.height);
 
-    this.frameUniformBuffer = new WebGPUUniformBuffer(
+    this.frameUniformBuffer_ = new WebGPUUniformBuffer(
       this.device_,
       FrameUniformsDef,
       this.shaderLibrary_.frameLayout
     );
 
-    this.layerUniformBuffer = new WebGPUUniformBuffer(
+    this.layerUniformBuffer_ = new WebGPUUniformBuffer(
       this.device_,
       LayerUniformsDef,
       this.shaderLibrary_.layerLayout
@@ -158,11 +164,12 @@ class WebGPURenderer extends Renderer {
 
     const frustum = viewport.camera.frustum;
 
-    this.layerUniformBuffer.reset();
-    this.frameUniformBuffer.reset();
+    this.layerUniformBuffer_.reset();
+    this.frameUniformBuffer_.reset();
+    this.imageUniformBuffer_?.reset();
 
-    this.passEncoder_.setBindGroup(0, this.frameUniformBuffer.bindGroup, [
-      this.frameUniformBuffer.write({
+    this.passEncoder_.setBindGroup(0, this.frameUniformBuffer_.bindGroup, [
+      this.frameUniformBuffer_.write({
         projection: this.projection(viewport.camera.projectionMatrix),
       }),
     ]);
@@ -203,8 +210,8 @@ class WebGPURenderer extends Renderer {
       this.passEncoder_.setStencilReference(0);
     }
 
-    this.passEncoder_.setBindGroup(1, this.layerUniformBuffer.bindGroup, [
-      this.layerUniformBuffer.write({
+    this.passEncoder_.setBindGroup(1, this.layerUniformBuffer_.bindGroup, [
+      this.layerUniformBuffer_.write({
         opacity: layer.opacity,
       }),
     ]);
@@ -220,7 +227,7 @@ class WebGPURenderer extends Renderer {
   protected override renderObject(
     layer: Layer,
     objectIndex: number,
-    _camera: Camera
+    camera: Camera
   ) {
     const object = layer.objects[objectIndex];
     if (!object.programName) return;
@@ -228,20 +235,30 @@ class WebGPURenderer extends Renderer {
     const renderPass = this.passEncoder_!;
     const geometryBuffer = this.geometryBuffers_.get(object.geometry);
 
-    renderPass.setPipeline(
-      this.pipelines_.get(
-        {
-          shaderName: "image",
-          depthWrite: this.currentDepthWrite_,
-          depthTest: object.depthTest,
-          stencil: this.currentStencil_,
-          cullMode: "back",
-          topology: "triangle-list",
-          vertexAttributesStr: geometryBuffer.attributesKey,
-        },
-        geometryBuffer
-      )
+    const { pipeline, shader } = this.pipelines_.get(
+      {
+        shaderName: "image",
+        depthWrite: this.currentDepthWrite_,
+        depthTest: object.depthTest,
+        stencil: this.currentStencil_,
+        cullMode: "back",
+        topology: "triangle-list",
+        vertexAttributesStr: geometryBuffer.attributesKey,
+      },
+      geometryBuffer
     );
+
+    renderPass.setPipeline(pipeline);
+
+    this.setUniformsForObject(object, shader, camera);
+
+    renderPass.setVertexBuffer(0, geometryBuffer.vertex);
+    if (geometryBuffer.index.size > 0) {
+      renderPass.setIndexBuffer(geometryBuffer.index, "uint32");
+      renderPass.drawIndexed(object.geometry.indexData.length);
+    } else {
+      renderPass.draw(object.geometry.vertexCount);
+    }
   }
 
   protected override resize(width: number, height: number) {
@@ -289,6 +306,32 @@ class WebGPURenderer extends Renderer {
   protected override clear() {
     // No-op. In WebGPU, clearing is handled by the render pass loadOp
     // in beginRenderPass(). There is no imperative clear command.
+  }
+
+  private setUniformsForObject(
+    object: RenderableObject,
+    shader: WebGPUShader,
+    camera: Camera
+  ) {
+    const modelView = mat4.multiply(
+      this.scratchMat4_,
+      camera.viewMatrix,
+      object.transform.matrix
+    );
+
+    if (object.type === "ImageRenderable") {
+      this.imageUniformBuffer_ ??= new WebGPUUniformBuffer(
+        this.device_,
+        ImageObjectDefs,
+        shader.bindGroupLayouts[2]
+      );
+
+      this.passEncoder_!.setBindGroup(2, this.imageUniformBuffer_.bindGroup, [
+        this.imageUniformBuffer_.write({
+          modelView: modelView as Float32Array,
+        }),
+      ]);
+    }
   }
 
   private projection(projectionMatrix: mat4) {
