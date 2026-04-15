@@ -168,11 +168,11 @@ class WebGPURenderer extends Renderer {
     this.frameUniformBuffer_.reset();
     this.imageUniformBuffer_?.reset();
 
-    this.passEncoder_.setBindGroup(0, this.frameUniformBuffer_.bindGroup, [
-      this.frameUniformBuffer_.write({
-        projection: this.projection(viewport.camera.projectionMatrix),
-      }),
-    ]);
+    const { bindGroup, offset } = this.frameUniformBuffer_.write({
+      projection: this.projection(viewport.camera.projectionMatrix),
+    });
+
+    this.passEncoder_.setBindGroup(0, bindGroup, [offset]);
 
     this.currentDepthWrite_ = true;
     for (const layer of opaque) {
@@ -210,11 +210,11 @@ class WebGPURenderer extends Renderer {
       this.passEncoder_.setStencilReference(0);
     }
 
-    this.passEncoder_.setBindGroup(1, this.layerUniformBuffer_.bindGroup, [
-      this.layerUniformBuffer_.write({
-        opacity: layer.opacity,
-      }),
-    ]);
+    const { bindGroup, offset } = this.layerUniformBuffer_.write({
+      opacity: layer.opacity,
+    });
+
+    this.passEncoder_.setBindGroup(1, bindGroup, [offset]);
 
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
@@ -326,11 +326,11 @@ class WebGPURenderer extends Renderer {
         shader.bindGroupLayouts[2]
       );
 
-      this.passEncoder_!.setBindGroup(2, this.imageUniformBuffer_.bindGroup, [
-        this.imageUniformBuffer_.write({
-          modelView: modelView as Float32Array,
-        }),
-      ]);
+      const { bindGroup, offset } = this.imageUniformBuffer_.write({
+        modelView: modelView as Float32Array,
+      });
+
+      this.passEncoder_!.setBindGroup(2, bindGroup, [offset]);
     }
   }
 

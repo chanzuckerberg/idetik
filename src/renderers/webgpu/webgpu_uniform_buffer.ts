@@ -31,10 +31,6 @@ export default class WebGPUUniformBuffer<T> {
     this.bindGroup_ = this.createBindGroup();
   }
 
-  get bindGroup() {
-    return this.bindGroup_;
-  }
-
   public reset() {
     this.cursor_ = 0;
   }
@@ -53,7 +49,7 @@ export default class WebGPUUniformBuffer<T> {
 
     const offset = this.cursor_ * this.alignedSlotSize_;
     this.cursor_++;
-    return offset;
+    return { bindGroup: this.bindGroup_, offset };
   }
 
   private resize() {
