@@ -2,6 +2,12 @@ import { Logger } from "@/utilities/logger";
 
 import shaderBasicPassthrough from "./shaders/basic_passthrough.wgsl";
 
+import {
+  FrameUniformsDef,
+  LayerUniformsDef,
+  PassthroughObjectDef,
+} from "./webgpu_uniform_defs";
+
 export type ShaderName = "basic_passthrough";
 
 type WebGPUShader = {
@@ -14,7 +20,6 @@ export default class WebGPUShaderLibrary {
   private readonly device_: GPUDevice;
   private readonly frameLayout_: GPUBindGroupLayout;
   private readonly layerLayout_: GPUBindGroupLayout;
-
   private readonly shaders_: WebGPUShader[];
 
   constructor(device: GPUDevice) {
@@ -22,23 +27,11 @@ export default class WebGPUShaderLibrary {
     this.shaders_ = [];
 
     this.frameLayout_ = this.device_.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0, // projection matrix
-          visibility: GPUShaderStage.VERTEX,
-          buffer: {},
-        },
-      ],
+      entries: FrameUniformsDef.entries,
     });
 
     this.layerLayout_ = this.device_.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0, // opacity
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: {},
-        }
-      ]
+      entries: LayerUniformsDef.entries,
     });
   }
 
@@ -57,9 +50,23 @@ export default class WebGPUShaderLibrary {
       throw new Error(`Failed to compile WGSL shader ${name}.wgsl`);
     }
 
-    const bindGroupLayouts = this.createBindGroupLayouts();
+    const objectLayout = this.device_.createBindGroupLayout({
+      entries: objectDefsFromName(name).entries,
+    });
 
-    this.shaders_.push({ name, module, bindGroupLayouts });
+    this.shaders_.push({
+      name,
+      module,
+      bindGroupLayouts: [this.frameLayout_, this.layerLayout_, objectLayout],
+    });
+  }
+
+  get frameLayout() {
+    return this.frameLayout_;
+  }
+
+  get layerLayout() {
+    return this.layerLayout_;
   }
 
   public get(name: ShaderName) {
@@ -67,25 +74,18 @@ export default class WebGPUShaderLibrary {
     if (!cached) throw new Error(`Shader "${name}" not compiled`);
     return cached;
   }
-
-  private createBindGroupLayouts() {
-    const objectLayout = this.device_.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0, // model-view matrix
-          visibility: GPUShaderStage.VERTEX,
-          buffer: {},
-        },
-      ],
-    });
-
-    return [this.frameLayout_, this.layerLayout_, objectLayout];
-  }
 }
 
 function shaderSourceFromName(name: ShaderName) {
   switch (name) {
     case "basic_passthrough":
       return shaderBasicPassthrough;
+  }
+}
+
+function objectDefsFromName(name: ShaderName) {
+  switch (name) {
+    case "basic_passthrough":
+      return PassthroughObjectDef;
   }
 }
