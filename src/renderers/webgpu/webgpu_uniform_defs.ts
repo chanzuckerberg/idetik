@@ -46,11 +46,11 @@ export const LayerUniformsDef: UniformDef<LayerUniforms> = {
 
 // --- Group 2: Object - per shader --- //
 
-export type PassthroughObjectUniforms = {
+export type ImageObjectUniforms = {
   modelView: Float32Array;
 };
 
-export const PassthroughObjectDef: UniformDef<PassthroughObjectUniforms> = {
+export const ImageObjectDefs: UniformDef<ImageObjectUniforms> = {
   size: 64,
   entries: [
     {

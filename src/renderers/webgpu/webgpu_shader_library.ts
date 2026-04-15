@@ -1,14 +1,14 @@
 import { Logger } from "@/utilities/logger";
 
-import shaderBasicPassthrough from "./shaders/basic_passthrough.wgsl";
+import shaderImage from "./shaders/image.wgsl";
 
 import {
   FrameUniformsDef,
   LayerUniformsDef,
-  PassthroughObjectDef,
+  ImageObjectDefs,
 } from "./webgpu_uniform_defs";
 
-export type ShaderName = "basic_passthrough";
+export type ShaderName = "image";
 
 type WebGPUShader = {
   name: ShaderName;
@@ -78,14 +78,14 @@ export default class WebGPUShaderLibrary {
 
 function shaderSourceFromName(name: ShaderName) {
   switch (name) {
-    case "basic_passthrough":
-      return shaderBasicPassthrough;
+    case "image":
+      return shaderImage;
   }
 }
 
 function objectDefsFromName(name: ShaderName) {
   switch (name) {
-    case "basic_passthrough":
-      return PassthroughObjectDef;
+    case "image":
+      return ImageObjectDefs;
   }
 }
