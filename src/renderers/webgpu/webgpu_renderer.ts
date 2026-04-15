@@ -6,11 +6,19 @@ import { Logger } from "@/utilities/logger";
 import { Renderer } from "@/core/renderer";
 import { Viewport } from "@/core/viewport";
 
-import { vec2 } from "gl-matrix";
+import { vec2, mat4 } from "gl-matrix";
 
-import WebGPUShaderLibrary from "./webgpu_shader_library";
-import WebGPUPipelines from "./webgpu_pipelines";
 import WebGPUGeometryBuffers from "./webgpu_geometry_buffers";
+import WebGPUPipelines from "./webgpu_pipelines";
+import WebGPUShaderLibrary from "./webgpu_shader_library";
+import WebGPUUniformBuffer from "./webgpu_uniform_buffer";
+
+import {
+  FrameUniforms,
+  FrameUniformsDef,
+  LayerUniforms,
+  LayerUniformsDef,
+} from "./webgpu_uniform_defs";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -28,6 +36,17 @@ export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   return renderer;
 }
 
+// WebGL to WebGPU clip-space correction:
+// 1. Flip Y (WebGPU framebuffer Y=0 is top)
+// 2. Remap Z from [-1,1] to [0,1] (WebGPU depth range)
+// prettier-ignore
+const clipSpaceCorrection = mat4.fromValues(
+  1.0,  0.0,  0.0,  0.0, // column 0
+  0.0, -1.0,  0.0,  0.0, // column 1
+  0.0,  0.0,  0.5,  0.0, // column 2
+  0.0,  0.0,  0.5,  1.0  // column 3
+);
+
 class WebGPURenderer extends Renderer {
   private readonly device_: GPUDevice;
   private readonly colorFormat_: GPUTextureFormat;
@@ -44,6 +63,10 @@ class WebGPURenderer extends Renderer {
   private currentDepthWrite_ = true;
   private currentStencil_ = false;
   private needsClear_ = true;
+
+  private readonly frameUniformBuffer: WebGPUUniformBuffer<FrameUniforms>;
+  private readonly layerUniformBuffer: WebGPUUniformBuffer<LayerUniforms>;
+  private readonly scratchMat4_ = mat4.create();
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     super(canvas);
@@ -76,6 +99,18 @@ class WebGPURenderer extends Renderer {
     Logger.info("WebGPURenderer", "WebGPU Initialized");
 
     this.resize(this.width, this.height);
+
+    this.frameUniformBuffer = new WebGPUUniformBuffer(
+      this.device_,
+      FrameUniformsDef,
+      this.shaderLibrary_.frameLayout
+    );
+
+    this.layerUniformBuffer = new WebGPUUniformBuffer(
+      this.device_,
+      LayerUniformsDef,
+      this.shaderLibrary_.layerLayout
+    );
   }
 
   public async compileShaders() {
@@ -123,6 +158,15 @@ class WebGPURenderer extends Renderer {
 
     const frustum = viewport.camera.frustum;
 
+    this.layerUniformBuffer.reset();
+    this.frameUniformBuffer.reset();
+
+    this.passEncoder_.setBindGroup(0, this.frameUniformBuffer.bindGroup, [
+      this.frameUniformBuffer.write({
+        projection: this.projection(viewport.camera.projectionMatrix),
+      }),
+    ]);
+
     this.currentDepthWrite_ = true;
     for (const layer of opaque) {
       if (layer.state === "ready") {
@@ -144,6 +188,8 @@ class WebGPURenderer extends Renderer {
   }
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
+    if (!this.passEncoder_) return;
+
     if (layer.type !== "ImageLayer") {
       throw new Error("Experimental WebGPU renderer only support image layers");
     }
@@ -154,8 +200,14 @@ class WebGPURenderer extends Renderer {
 
     this.currentStencil_ = layer.hasMultipleLODs();
     if (this.currentStencil_) {
-      this.passEncoder_!.setStencilReference(0);
+      this.passEncoder_.setStencilReference(0);
     }
+
+    this.passEncoder_.setBindGroup(1, this.layerUniformBuffer.bindGroup, [
+      this.layerUniformBuffer.write({
+        opacity: layer.opacity,
+      }),
+    ]);
 
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
@@ -237,5 +289,13 @@ class WebGPURenderer extends Renderer {
   protected override clear() {
     // No-op. In WebGPU, clearing is handled by the render pass loadOp
     // in beginRenderPass(). There is no imperative clear command.
+  }
+
+  private projection(projectionMatrix: mat4) {
+    return mat4.multiply(
+      this.scratchMat4_,
+      clipSpaceCorrection,
+      projectionMatrix
+    ) as Float32Array;
   }
 }
