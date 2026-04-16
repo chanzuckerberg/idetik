@@ -5,8 +5,8 @@ import shaderImage from "./shaders/image.wgsl";
 import {
   FrameUniformsDef,
   LayerUniformsDef,
-  ImageObjectDefs,
-} from "./webgpu_uniform_defs";
+  ImageUniformDefs,
+} from "./webgpu_bind_groups_defs";
 
 export type ShaderName = "image";
 
@@ -86,6 +86,6 @@ function shaderSourceFromName(name: ShaderName) {
 function objectDefsFromName(name: ShaderName) {
   switch (name) {
     case "image":
-      return ImageObjectDefs;
+      return ImageUniformDefs;
   }
 }
