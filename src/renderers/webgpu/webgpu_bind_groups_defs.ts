@@ -48,19 +48,25 @@ export const LayerUniformsDef: UniformDef<LayerUniforms> = {
 
 export type ImageObjectUniforms = {
   modelView: Float32Array;
+  color: Float32Array;
+  valueOffset: number;
+  valueScale: number;
 };
 
 export const ImageUniformDefs: UniformDef<ImageObjectUniforms> = {
-  size: 64,
+  size: 96,
   entries: [
     {
       binding: 0,
-      visibility: GPUShaderStage.VERTEX,
+      visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
       buffer: { hasDynamicOffset: true },
     },
   ],
   pack(target, offset, data) {
     target.set(data.modelView, offset);
+    target.set(data.color, offset + 16);
+    target[offset + 20] = data.valueOffset;
+    target[offset + 21] = data.valueScale;
   },
 };
 
