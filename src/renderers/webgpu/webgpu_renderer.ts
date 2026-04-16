@@ -16,11 +16,11 @@ import WebGPUUniformBuffer from "./webgpu_uniform_buffer";
 import {
   FrameUniforms,
   FrameUniformsDef,
-  ImageObjectDefs,
+  ImageUniformDefs,
   ImageObjectUniforms,
   LayerUniforms,
   LayerUniformsDef,
-} from "./webgpu_uniform_defs";
+} from "./webgpu_bind_groups_defs";
 import { RenderableObject } from "@/core/renderable_object";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
@@ -322,7 +322,7 @@ class WebGPURenderer extends Renderer {
     if (object.type === "ImageRenderable") {
       this.imageUniformBuffer_ ??= new WebGPUUniformBuffer(
         this.device_,
-        ImageObjectDefs,
+        ImageUniformDefs,
         shader.bindGroupLayouts[2]
       );
 

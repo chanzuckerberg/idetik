@@ -44,13 +44,13 @@ export const LayerUniformsDef: UniformDef<LayerUniforms> = {
   },
 };
 
-// --- Group 2: Object - per shader --- //
+// --- Group 2: Object uniforms - per shader --- //
 
 export type ImageObjectUniforms = {
   modelView: Float32Array;
 };
 
-export const ImageObjectDefs: UniformDef<ImageObjectUniforms> = {
+export const ImageUniformDefs: UniformDef<ImageObjectUniforms> = {
   size: 64,
   entries: [
     {
@@ -63,3 +63,9 @@ export const ImageObjectDefs: UniformDef<ImageObjectUniforms> = {
     target.set(data.modelView, offset);
   },
 };
+
+// --- Group 3: Object textures - per shader --- //
+
+export const ImageTextureDefs: GPUBindGroupLayoutEntry[] = [
+  { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+];

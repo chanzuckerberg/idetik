@@ -48,7 +48,7 @@ export default class WebGPUTexturePool {
 
     this.device_.queue.writeTexture(
       { texture: buffer },
-      texture.data as ArrayBufferView,
+      texture.data as BufferSource,
       { bytesPerRow },
       size
     );
