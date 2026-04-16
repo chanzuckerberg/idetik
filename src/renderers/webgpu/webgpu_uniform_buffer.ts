@@ -1,4 +1,4 @@
-import { UniformDef } from "./webgpu_uniform_defs";
+import { UniformDef } from "./webgpu_bind_groups_defs";
 
 const INITIAL_CAPACITY = 16;
 
