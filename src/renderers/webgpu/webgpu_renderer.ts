@@ -3,6 +3,7 @@ import { Camera } from "@/objects/cameras/camera";
 import { Frustum } from "@/math/frustum";
 import { Layer } from "@/core/layer";
 import { Logger } from "@/utilities/logger";
+import { RenderableObject } from "@/core/renderable_object";
 import { Renderer } from "@/core/renderer";
 import { Viewport } from "@/core/viewport";
 
@@ -21,7 +22,6 @@ import {
   LayerUniforms,
   LayerUniformsDef,
 } from "./webgpu_bind_groups_defs";
-import { RenderableObject } from "@/core/renderable_object";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -328,6 +328,9 @@ class WebGPURenderer extends Renderer {
 
       const { bindGroup, offset } = this.imageUniformBuffer_.write({
         modelView: modelView as Float32Array,
+        color: new Float32Array([0.0, 1.0, 0.0, 1.0]),
+        valueOffset: 0.0,
+        valueScale: 0.5,
       });
 
       this.passEncoder_!.setBindGroup(2, bindGroup, [offset]);
