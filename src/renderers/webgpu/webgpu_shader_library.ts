@@ -6,6 +6,7 @@ import {
   FrameUniformsDef,
   LayerUniformsDef,
   ImageUniformDefs,
+  ImageTextureDefs,
 } from "./webgpu_bind_groups_defs";
 
 export type ShaderName = "image";
@@ -21,6 +22,9 @@ export default class WebGPUShaderLibrary {
   private readonly frameLayout_: GPUBindGroupLayout;
   private readonly layerLayout_: GPUBindGroupLayout;
   private readonly shaders_: WebGPUShader[];
+
+  static readonly objectBindGroup = 2;
+  static readonly textureBindGroup = 3;
 
   constructor(device: GPUDevice) {
     this.device_ = device;
@@ -54,10 +58,19 @@ export default class WebGPUShaderLibrary {
       entries: objectDefsFromName(name).entries,
     });
 
+    const textureLayout = this.device_.createBindGroupLayout({
+      entries: textureDefsFromName(name),
+    });
+
     this.shaders_.push({
       name,
       module,
-      bindGroupLayouts: [this.frameLayout_, this.layerLayout_, objectLayout],
+      bindGroupLayouts: [
+        this.frameLayout_,
+        this.layerLayout_,
+        objectLayout,
+        textureLayout,
+      ],
     });
   }
 
@@ -87,5 +100,12 @@ function objectDefsFromName(name: ShaderName) {
   switch (name) {
     case "image":
       return ImageUniformDefs;
+  }
+}
+
+function textureDefsFromName(name: ShaderName) {
+  switch (name) {
+    case "image":
+      return ImageTextureDefs;
   }
 }
