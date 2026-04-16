@@ -5,7 +5,6 @@ import {
   textureDefaultValueRange,
 } from "../../objects/textures/texture";
 import { MAX_CHANNELS } from "../../core/constants";
-import { Texture2DArray } from "./texture_2d_array";
 import { Logger } from "../../utilities/logger";
 
 export type Channel = {
@@ -64,15 +63,6 @@ export function validateChannels(
 ): Channel[] {
   if (channelProps.length > MAX_CHANNELS) {
     throw new Error(`Maximum number of channels is ${MAX_CHANNELS}`);
-  }
-
-  if (texture?.type === "Texture2DArray") {
-    const depth = (texture as Texture2DArray).depth;
-    if (channelProps.length !== depth) {
-      throw new Error(
-        `Number of channels (${channelProps.length}) must match depth of texture (${depth}).`
-      );
-    }
   }
 
   return channelProps.map((props) => validateChannel(texture, props));
