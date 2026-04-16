@@ -1,13 +1,12 @@
 import {
   Idetik,
-  LayerState,
   ImageLayer,
+  LabelLayer,
   OmeZarrImageSource,
   OrthographicCamera,
-  Region,
   Color,
+  PointPickingResult,
 } from "@";
-import { LabelImageSeriesLayer } from "@/layers/label_image_series_layer";
 import { PanZoomControls } from "@/objects/cameras/controls";
 import { createExplorationPolicy } from "@/core/image_source_policy";
 
@@ -43,6 +42,12 @@ const sliceCoords = {
   z: zMidPoint,
 };
 
+// Labels have unitary C and Z dimensions.
+const labelsSliceCoords = {
+  t: tMin * tScale,
+  c: [0],
+};
+
 const imageLayer = new ImageLayer({
   source: imageSource,
   sliceCoords,
@@ -53,56 +58,64 @@ const imageLayer = new ImageLayer({
       color: Color.WHITE,
       contrastLimits: [20, 200],
     },
+    { visible: false },
+    { visible: false },
   ],
 });
 
-imageLayer.addStateChangeCallback((newState: LayerState) => {
-  stateEl.textContent = newState;
-});
+const pickInfoEl = document.querySelector<HTMLDivElement>("#pick-info")!;
+let outlineMode = false;
 
-// Labels provide C and Z dimensions, but they are unitary.
-const labelsRegion: Region = [
-  { dimension: "T", index: { type: "full" } },
-  { dimension: "C", index: { type: "point", value: 0 } },
-  { dimension: "Z", index: { type: "point", value: 0 } },
-  { dimension: "Y", index: { type: "full" } },
-  { dimension: "X", index: { type: "full" } },
-];
+function createLabelsLayer() {
+  return new LabelLayer({
+    source: labelsSource,
+    sliceCoords: labelsSliceCoords,
+    policy: createExplorationPolicy(),
+    transparent: true,
+    opacity: 0.25,
+    blendMode: "normal",
+    outlineSelected: outlineMode,
+    onPickValue: (info: PointPickingResult) => {
+      const { world, value } = info;
+      pickInfoEl.innerHTML = `
+        World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>
+        Label: ${value}
+      `;
+      if (!outlineMode) {
+        labelsLayer.setColorMap({
+          cycle: Array.from(labelsLayer.colorMap.cycle),
+          lookupTable: new Map([[value, Color.WHITE]]),
+        });
+      }
+    },
+  });
+}
 
-const labelsLayer = new LabelImageSeriesLayer({
-  source: labelsSource,
-  region: labelsRegion,
-  seriesDimensionName: "T",
-  transparent: true,
-  opacity: 0.25,
-  blendMode: "normal",
-  lod,
-});
+let labelsLayer = createLabelsLayer();
 
 const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;
 const tIndexEl = document.querySelector<HTMLSpanElement>("#t-index")!;
 const tTotalEl = document.querySelector<HTMLSpanElement>("#t-total")!;
-const stateEl = document.querySelector<HTMLSpanElement>("#layer-state")!;
-const loadAllButton = document.querySelector<HTMLButtonElement>("#load-all")!;
+const outlineToggleEl =
+  document.querySelector<HTMLButtonElement>("#outline-toggle")!;
 
-// Initialize sliders
+// Initialize slider
 tSlider.min = `${tMin}`;
 tSlider.max = `${tMax - 1}`;
 tSlider.value = "0";
 tTotalEl.textContent = `${tMax - tMin - 1}`;
 
-// set up event handler with debouncing
 let debounce: ReturnType<typeof setTimeout>;
 tSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(() => {
-    setLayerIndex(value);
+    setTimeIndex(value);
   }, 20);
 });
 
 const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
-new Idetik({
+const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
     {
@@ -111,46 +124,32 @@ new Idetik({
       layers: [imageLayer, labelsLayer],
     },
   ],
-}).start();
-
-setLayerIndex(tSlider.valueAsNumber);
-
-loadAllButton.addEventListener("click", () => {
-  try {
-    preloadAllSlices();
-  } catch (error) {
-    console.error("Error preloading slices:", error);
-    loadAllButton.value = "Error loading slices";
-  }
 });
 
-async function preloadAllSlices() {
-  console.log("loading all slices");
-  loadAllButton.disabled = true;
-  loadAllButton.value = "Loading all slices...";
-  await labelsLayer.preloadSeries();
-  loadAllButton.value = "Loaded all slices";
-}
+const viewport = idetik.viewports[0];
 
-async function setLayerIndex(index: number) {
-  tIndexEl!.textContent = "...";
+outlineToggleEl.addEventListener("click", () => {
+  outlineMode = !outlineMode;
+  outlineToggleEl.textContent = outlineMode ? "Outline" : "Fill";
+  viewport.layerManager.remove(labelsLayer);
+  labelsLayer = createLabelsLayer();
+  viewport.layerManager.add(labelsLayer);
+});
+
+function setTimeIndex(index: number) {
   sliceCoords.t = index * tScale;
-  const labelsResult = await labelsLayer.setIndex(index);
-  if (labelsResult.success) {
-    tIndexEl!.textContent = `${index}`;
-  }
+  labelsSliceCoords.t = index * tScale;
+  tIndexEl.textContent = `${index}`;
 }
 
 document
   .querySelector<HTMLButtonElement>("#color-cycle-default")!
   .addEventListener("click", () => {
-    console.debug("Resetting color map to default");
     labelsLayer.setColorMap({});
   });
 document
   .querySelector<HTMLButtonElement>("#color-cycle-cmy")!
   .addEventListener("click", () => {
-    console.debug("Resetting color map to CMY cycle");
     labelsLayer.setColorMap({
       cycle: [Color.CYAN, Color.MAGENTA, Color.YELLOW],
     });
@@ -158,6 +157,7 @@ document
 document
   .querySelector<HTMLButtonElement>("#color-cycle-rgb")!
   .addEventListener("click", () => {
-    console.debug("Resetting color map to RGB cycle");
     labelsLayer.setColorMap({ cycle: [Color.RED, Color.GREEN, Color.BLUE] });
   });
+
+idetik.start();

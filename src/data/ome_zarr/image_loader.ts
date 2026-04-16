@@ -1,13 +1,6 @@
 import * as zarr from "zarrita";
 
-import { Region } from "../region";
-import {
-  Chunk,
-  SourceDimension,
-  SourceDimensionMap,
-  SourceDimensionLod,
-  isChunkData,
-} from "../chunk";
+import { Chunk, SourceDimension, SourceDimensionMap } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 import { PromiseScheduler } from "../promise_scheduler";
 
@@ -126,135 +119,6 @@ export class OmeZarrImageLoader {
     chunk.data = data;
     chunk.dataRange = dataRange;
   }
-
-  public async loadRegion(
-    region: Region,
-    lod: number,
-    scheduler?: PromiseScheduler
-  ): Promise<Chunk> {
-    if (lod >= this.arrays_.length) {
-      throw new Error(
-        `Invalid LOD index: ${lod}. Only ${this.arrays_.length} lod(s) available`
-      );
-    }
-
-    const indices = this.regionToIndices(region, lod);
-
-    const array = this.arrays_[lod];
-
-    let options = {};
-    if (scheduler !== undefined) {
-      options = {
-        create_queue: () => new PromiseQueue(scheduler),
-        opts: { signal: scheduler.abortSignal },
-      };
-    }
-    const subarray = await zarr.get(array, indices, options);
-
-    if (!isChunkData(subarray.data)) {
-      throw new Error(
-        `Subarray has an unsupported data type, data=${subarray.data.constructor.name}`
-      );
-    }
-
-    validateTightlyPackedChunk(subarray);
-
-    if (subarray.shape.length !== 2 && subarray.shape.length !== 3) {
-      throw new Error(
-        `Expected to receive a 2D or 3D subarray. Instead chunk has shape ${subarray.shape}`
-      );
-    }
-
-    const rowAlignment = subarray.data.BYTES_PER_ELEMENT;
-    if (!isTextureUnpackRowAlignment(rowAlignment)) {
-      throw new Error(
-        "Invalid row alignment value. Possible values are 1, 2, 4, or 8"
-      );
-    }
-
-    const calculateOffset = (
-      index: number | zarr.Slice,
-      lod: SourceDimensionLod
-    ) => {
-      if (typeof index === "number") {
-        return index * lod.scale + lod.translation;
-      } else if (index.start === null) {
-        return lod.translation;
-      }
-      return index.start * lod.scale + lod.translation;
-    };
-
-    const xLod = this.dimensions_.x.lods[lod];
-    const xIndex = indices[this.dimensions_.x.index];
-    const xOffset = calculateOffset(xIndex, xLod);
-    const yIndex = indices[this.dimensions_.y.index];
-    const yLod = this.dimensions_.y.lods[lod];
-    const yOffset = calculateOffset(yIndex, yLod);
-
-    const chunk: Chunk = {
-      state: "loaded",
-      lod: lod,
-      visible: true,
-      prefetch: false,
-      priority: null,
-      orderKey: null,
-      data: subarray.data,
-      shape: {
-        x: subarray.shape[subarray.shape.length - 1],
-        y: subarray.shape[subarray.shape.length - 2],
-        z: 1,
-        c: subarray.shape.length === 3 ? subarray.shape[0] : 1,
-      },
-      chunkIndex: { x: 0, y: 0, z: 0, c: 0, t: 0 },
-      rowAlignmentBytes: rowAlignment,
-      scale: {
-        x: xLod.scale,
-        y: yLod.scale,
-        z: 1,
-      },
-      offset: { x: xOffset, y: yOffset, z: 0 },
-    };
-    return chunk;
-  }
-
-  private regionToIndices(
-    region: Region,
-    lod: number
-  ): Array<zarr.Slice | number> {
-    const dimensions = [
-      this.dimensions_.x,
-      this.dimensions_.y,
-      this.dimensions_.z,
-      this.dimensions_.c,
-      this.dimensions_.t,
-    ]
-      .filter((d): d is SourceDimension => d !== undefined)
-      .sort((a, b) => a.index - b.index);
-
-    const indices: Array<zarr.Slice | number> = [];
-    for (const d of dimensions) {
-      const match = region.find((s) => compareDimensions(s.dimension, d.name));
-      if (!match) {
-        throw new Error(`Region does not contain a slice for ${d.name}`);
-      }
-      const dLod = d.lods[lod];
-      let index: zarr.Slice | number;
-      const regionIndex = match.index;
-      if (regionIndex.type === "full") {
-        // null slice is the complete extent of a dimension like Python's `slice(None)`.
-        index = zarr.slice(null);
-      } else if (regionIndex.type === "point") {
-        index = Math.round((regionIndex.value - dLod.translation) / dLod.scale);
-      } else {
-        index = zarr.slice(
-          Math.floor((regionIndex.start - dLod.translation) / dLod.scale),
-          Math.ceil((regionIndex.stop - dLod.translation) / dLod.scale)
-        );
-      }
-      indices.push(index);
-    }
-    return indices;
-  }
 }
 
 function inferSourceDimensionMap(
@@ -335,16 +199,4 @@ function findDimensionIndex(dimensions: string[], target: string): number {
 
 function findDimensionIndexSafe(dimensions: string[], target: string): number {
   return dimensions.findIndex((d) => compareDimensions(d, target));
-}
-
-function validateTightlyPackedChunk(chunk: zarr.Chunk<zarr.DataType>): void {
-  let stride = 1;
-  for (let i = chunk.shape.length - 1; i >= 0; i--) {
-    if (chunk.stride[i] !== stride) {
-      throw new Error(
-        `Chunk data is not tightly packed, stride=${JSON.stringify(chunk.stride)}, shape=${JSON.stringify(chunk.shape)}`
-      );
-    }
-    stride *= chunk.shape[i];
-  }
 }

@@ -26,7 +26,9 @@ export type { ImageLayerProps } from "./layers/image_layer";
 export { VolumeLayer } from "./layers/volume_layer";
 export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
 export type { QueueStats } from "./core/chunk_manager";
-export { LabelImageLayer } from "./layers/label_image_layer";
+export { LabelLayer } from "./layers/label_layer";
+export type { LabelLayerProps } from "./layers/label_layer";
+export type { LabelColorMapProps } from "./objects/renderable/label_color_map";
 export type { PointPickingResult } from "./layers/point_picking";
 export { OmeZarrImageSource } from "./data/ome_zarr/image_source";
 
@@ -49,7 +51,6 @@ export { Frustum } from "./math/frustum";
 export { Plane } from "./math/plane";
 export { Spherical } from "./math/spherical";
 
-export type { Region } from "./data/region";
 export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";
 export {
   loadOmeroChannels,

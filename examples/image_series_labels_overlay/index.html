@@ -16,6 +16,7 @@
         background-color: black;
       }
       #main {
+        position: relative;
         display: flex;
         flex-direction: column;
         width: 100%;
@@ -49,14 +50,28 @@
       input[type="range"] {
         width: 100%;
       }
-      input[type="button"] {
-        margin-left: 1rem;
+      input[type="button"],
+      button {
+        margin-left: 0.5rem;
+      }
+      #pick-info-box {
+        position: absolute;
+        top: 1em;
+        right: 1em;
+        padding: 0.75em 1em;
+        background-color: rgba(0, 0, 0, 0.75);
+        font-family: monospace;
+        font-size: 0.85em;
+        pointer-events: none;
       }
     </style>
   </head>
   <body>
     <div id="main">
       <canvas id="canvas"></canvas>
+      <div id="pick-info-box">
+        <div id="pick-info">Click to pick a label value</div>
+      </div>
       <div id="controls">
         <div class="control-row">
           <div class="control-label">Time point:</div>
@@ -68,8 +83,8 @@
           </div>
         </div>
         <div class="control-row">
-          Layer State: &nbsp; <span id="layer-state">initialized</span>
-          <input type="button" id="load-all" value="Load all slices" />
+          <div class="control-label">Pick mode:</div>
+          <button id="outline-toggle">Fill</button>
         </div>
         <div class="control-row">
           <div class="control-label">Color cycle:</div>
