@@ -10,7 +10,7 @@ import {
 import { vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 
-type SingleUniformValues = {
+export type SingleUniformValues = {
   ImageSampler: number;
   Color: vec3;
   ValueOffset: number;

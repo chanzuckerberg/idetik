@@ -12,6 +12,9 @@ struct LayerUniforms {
 
 struct ObjectUniforms {
     modelView: mat4x4f,
+    color: vec4f,
+    valueOffset: f32,
+    valueScale: f32,
 };
 
 @group(0) @binding(0) var<uniform> frame: FrameUniforms;
@@ -27,5 +30,5 @@ fn vert(@location(0) aPos: vec3f) -> Varyings {
 
 @fragment
 fn frag(in: Varyings) -> @location(0) vec4f {
-    return vec4f(1.0, 1.0, 1.0, layer.opacity);
+    return vec4f(object.color.rgb * object.valueScale, layer.opacity);
 }
