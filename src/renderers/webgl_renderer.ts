@@ -93,6 +93,7 @@ export class WebGLRenderer extends Renderer {
       return;
     }
 
+    this.state_.setViewport(viewportBox);
     this.clear();
 
     const frustum = viewport.camera.frustum;
