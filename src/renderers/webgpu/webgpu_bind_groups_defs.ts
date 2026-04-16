@@ -65,13 +65,17 @@ export const ImageUniformDefs: UniformDef<ImageObjectUniforms> = {
   pack(target, offset, data) {
     target.set(data.modelView, offset);
     target.set(data.color, offset + 16);
-    target[offset + 20] = data.valueOffset;
-    target[offset + 21] = data.valueScale;
+    target[offset + 19] = data.valueOffset;
+    target[offset + 20] = data.valueScale;
   },
 };
 
 // --- Group 3: Object textures - per shader --- //
 
 export const ImageTextureDefs: GPUBindGroupLayoutEntry[] = [
-  { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: {} },
+  {
+    binding: 0,
+    visibility: GPUShaderStage.FRAGMENT,
+    texture: { sampleType: "uint" },
+  },
 ];

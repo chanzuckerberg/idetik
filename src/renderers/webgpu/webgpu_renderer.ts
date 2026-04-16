@@ -22,6 +22,7 @@ import {
   LayerUniforms,
   LayerUniformsDef,
 } from "./webgpu_bind_groups_defs";
+import WebGPUTexturePool from "./webgpu_texture_pool";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -51,13 +52,14 @@ const clipSpaceCorrection = mat4.fromValues(
 );
 
 class WebGPURenderer extends Renderer {
-  private readonly device_: GPUDevice;
   private readonly colorFormat_: GPUTextureFormat;
   private readonly context_: GPUCanvasContext;
-  private readonly shaderLibrary_: WebGPUShaderLibrary;
-  private readonly pipelines_: WebGPUPipelines;
-  private readonly geometryBuffers_: WebGPUGeometryBuffers;
   private readonly depthFormat_: GPUTextureFormat;
+  private readonly device_: GPUDevice;
+  private readonly geometryBuffers_: WebGPUGeometryBuffers;
+  private readonly pipelines_: WebGPUPipelines;
+  private readonly shaderLibrary_: WebGPUShaderLibrary;
+  private readonly texturePool_: WebGPUTexturePool;
 
   private depthStencilTexture_: GPUTexture | null = null;
   private passEncoder_: GPURenderPassEncoder | null = null;
@@ -77,11 +79,12 @@ class WebGPURenderer extends Renderer {
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     super(canvas);
 
-    this.device_ = device;
     this.colorFormat_ = navigator.gpu.getPreferredCanvasFormat();
     this.depthFormat_ = "depth24plus-stencil8";
-    this.shaderLibrary_ = new WebGPUShaderLibrary(device);
+    this.device_ = device;
     this.geometryBuffers_ = new WebGPUGeometryBuffers(device);
+    this.shaderLibrary_ = new WebGPUShaderLibrary(device);
+    this.texturePool_ = new WebGPUTexturePool(device);
 
     this.pipelines_ = new WebGPUPipelines(
       device,
@@ -251,6 +254,7 @@ class WebGPURenderer extends Renderer {
     renderPass.setPipeline(pipeline);
 
     this.setUniformsForObject(object, shader, camera);
+    this.setTexturesForObject(object, shader);
 
     renderPass.setVertexBuffer(0, geometryBuffer.vertex);
     if (geometryBuffer.index.size > 0) {
@@ -323,17 +327,40 @@ class WebGPURenderer extends Renderer {
       this.imageUniformBuffer_ ??= new WebGPUUniformBuffer(
         this.device_,
         ImageUniformDefs,
-        shader.bindGroupLayouts[2]
+        shader.bindGroupLayouts[WebGPUShaderLibrary.objectBindGroup]
       );
 
       const { bindGroup, offset } = this.imageUniformBuffer_.write({
         modelView: modelView as Float32Array,
-        color: new Float32Array([0.0, 1.0, 0.0, 1.0]),
+        color: new Float32Array([1.0, 1.0, 1.0]),
         valueOffset: 0.0,
-        valueScale: 0.5,
+        valueScale: 0.00819672131147541,
       });
 
-      this.passEncoder_!.setBindGroup(2, bindGroup, [offset]);
+      this.passEncoder_!.setBindGroup(
+        WebGPUShaderLibrary.objectBindGroup,
+        bindGroup,
+        [offset]
+      );
+    }
+  }
+
+  private setTexturesForObject(object: RenderableObject, shader: WebGPUShader) {
+    if (object.type === "ImageRenderable") {
+      const group = this.device_.createBindGroup({
+        layout: shader.bindGroupLayouts[WebGPUShaderLibrary.textureBindGroup],
+        entries: [
+          {
+            binding: 0,
+            resource: this.texturePool_.get(object.textures[0]).createView(),
+          },
+        ],
+      });
+
+      this.passEncoder_!.setBindGroup(
+        WebGPUShaderLibrary.textureBindGroup,
+        group
+      );
     }
   }
 
