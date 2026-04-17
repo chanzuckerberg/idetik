@@ -75,7 +75,8 @@ const scaleBar = new ScaleBar({
   unit: "μm",
 });
 
-new Idetik({
+const idetik = await Idetik.create({
+  renderer: "webgpu-experimental",
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
@@ -86,7 +87,9 @@ new Idetik({
   ],
   overlays: [timePointOverlay, scaleBar],
   showStats: true,
-}).start();
+});
+
+idetik.start();
 
 const controls = {
   showWireframes: imageLayer.debugMode,
