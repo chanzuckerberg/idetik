@@ -1,46 +1,40 @@
-import { UniformDef } from "./webgpu_bind_groups_defs";
-
 const INITIAL_CAPACITY = 16;
 
-export default class WebGPUUniformBuffer<T> {
+export default class WebGPUUniformBuffer {
   private readonly device_: GPUDevice;
-  private readonly defs_: UniformDef<T>;
   private readonly layout_: GPUBindGroupLayout;
   private readonly alignedSlotSize_: number;
   private readonly staging_: Float32Array<ArrayBuffer>;
+  private readonly size_: number;
 
   private buffer_: GPUBuffer;
   private bindGroup_: GPUBindGroup;
   private capacity_ = INITIAL_CAPACITY;
   private cursor_ = 0;
 
-  constructor(
-    device: GPUDevice,
-    defs: UniformDef<T>,
-    layout: GPUBindGroupLayout
-  ) {
+  constructor(device: GPUDevice, size: number, layout: GPUBindGroupLayout) {
     this.device_ = device;
-    this.defs_ = defs;
     this.layout_ = layout;
+    this.size_ = size;
 
     const alignment = this.device_.limits.minUniformBufferOffsetAlignment;
 
-    this.alignedSlotSize_ = Math.ceil(defs.size / alignment) * alignment;
-    this.staging_ = new Float32Array(new ArrayBuffer(defs.size));
+    this.alignedSlotSize_ = Math.ceil(size / alignment) * alignment;
+    this.staging_ = new Float32Array(new ArrayBuffer(size));
     this.buffer_ = this.createBuffer();
     this.bindGroup_ = this.createBindGroup();
   }
 
-  public reset() {
+  public clear() {
     this.cursor_ = 0;
   }
 
-  public write(values: T) {
+  public write(pack: (target: Float32Array) => void) {
     if (this.cursor_ >= this.capacity_) {
       this.resize();
     }
 
-    this.defs_.pack(this.staging_, 0, values);
+    pack(this.staging_);
     this.device_.queue.writeBuffer(
       this.buffer_,
       this.cursor_ * this.alignedSlotSize_,
@@ -88,7 +82,7 @@ export default class WebGPUUniformBuffer<T> {
           binding: 0,
           resource: {
             buffer: this.buffer_,
-            size: this.defs_.size,
+            size: this.size_,
           },
         },
       ],

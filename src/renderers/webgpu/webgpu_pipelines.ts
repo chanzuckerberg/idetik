@@ -1,8 +1,6 @@
-import { FrameUniformsDef, LayerUniformsDef } from "./webgpu_bind_groups_defs";
 import { WebGPUGeometryBuffer } from "./webgpu_geometry_buffers";
+import { ImageScalarUnsignedShader } from "./shaders/image_scalar_unsigned";
 import { Logger } from "@/utilities/logger";
-
-import shaderImage from "./shaders/image.wgsl";
 
 export type PipelineKey = {
   shaderName: ShaderName;
@@ -42,6 +40,9 @@ export default class WebGPUPipelines {
   private readonly frameLayout_: WebGPUBindGroupLayout;
   private readonly layerLayout_: WebGPUBindGroupLayout;
 
+  static readonly frameUniformSize = 64;
+  static readonly layerUniformSize = 4;
+
   constructor(
     device: GPUDevice,
     colorFormat: GPUTextureFormat,
@@ -56,14 +57,26 @@ export default class WebGPUPipelines {
     this.frameLayout_ = {
       group: 0,
       layout: this.device_.createBindGroupLayout({
-        entries: FrameUniformsDef.entries,
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: { hasDynamicOffset: true },
+          },
+        ],
       }),
     };
 
     this.layerLayout_ = {
       group: 1,
       layout: this.device_.createBindGroupLayout({
-        entries: LayerUniformsDef.entries,
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: { hasDynamicOffset: true },
+          },
+        ],
       }),
     };
   }
@@ -71,8 +84,9 @@ export default class WebGPUPipelines {
   public async compileShader(name: ShaderName) {
     if (this.shaderModules_.some((s) => s.name === name)) return;
 
+    const shader = shaderFromName(name);
     const module = this.device_.createShaderModule({
-      code: shaderSourceFromName(name),
+      code: shader.source,
     });
 
     const compilationInfo = await module.getCompilationInfo();
@@ -90,14 +104,22 @@ export default class WebGPUPipelines {
     const cached = this.getCachedPipeline(key);
     if (cached) return cached;
 
-    const shader = this.shaderModules_.find((s) => s.name === key.shaderName);
-    if (!shader) {
+    const shaderModule = this.shaderModules_.find(
+      (s) => s.name === key.shaderName
+    );
+    if (!shaderModule) {
       throw new Error(`Shader module not found`);
     }
 
-    const { uniformLayout, textureLayout } = this.getShaderLayout(
-      key.shaderName
-    );
+    const shader = shaderFromName(key.shaderName);
+
+    const uniformLayout = this.device_.createBindGroupLayout({
+      entries: shader.uniforms.entries,
+    });
+
+    const textureLayout = this.device_.createBindGroupLayout({
+      entries: shader.textures,
+    });
 
     const layout = this.device_.createPipelineLayout({
       bindGroupLayouts: [
@@ -119,7 +141,7 @@ export default class WebGPUPipelines {
     const pipeline = this.device_.createRenderPipeline({
       layout,
       vertex: {
-        module: shader.module,
+        module: shaderModule.module,
         entryPoint: "vert",
         buffers: [
           {
@@ -130,7 +152,7 @@ export default class WebGPUPipelines {
         ],
       },
       fragment: {
-        module: shader.module,
+        module: shaderModule.module,
         entryPoint: "frag",
         targets: [{ format: this.colorFormat_ }],
       },
@@ -169,6 +191,14 @@ export default class WebGPUPipelines {
     return this.layerLayout_;
   }
 
+  public static packFrameUniforms(target: Float32Array, projection: Float32Array) {
+    target.set(projection, 0);
+  }
+
+  public static packLayerUniforms(target: Float32Array, opacity: number) {
+    target[0] = opacity;
+  }
+
   private getCachedPipeline(key: PipelineKey) {
     return this.pipelines_.find(
       (p) =>
@@ -181,39 +211,11 @@ export default class WebGPUPipelines {
         p.key.vertexAttributesStr === key.vertexAttributesStr
     );
   }
-
-  private getShaderLayout(name: ShaderName) {
-    switch (name) {
-      case "image": {
-        const uniformLayout = this.device_.createBindGroupLayout({
-          entries: [
-            {
-              binding: 0,
-              visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-              buffer: { hasDynamicOffset: true },
-            },
-          ],
-        });
-
-        const textureLayout = this.device_.createBindGroupLayout({
-          entries: [
-            {
-              binding: 0,
-              visibility: GPUShaderStage.FRAGMENT,
-              texture: { sampleType: "uint" },
-            },
-          ],
-        });
-
-        return { uniformLayout, textureLayout };
-      }
-    }
-  }
 }
 
-function shaderSourceFromName(name: ShaderName) {
+function shaderFromName(name: ShaderName) {
   switch (name) {
     case "image":
-      return shaderImage;
+      return ImageScalarUnsignedShader;
   }
 }

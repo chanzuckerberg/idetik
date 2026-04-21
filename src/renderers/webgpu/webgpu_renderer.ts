@@ -12,14 +12,7 @@ import WebGPUGeometryBuffers from "./webgpu_geometry_buffers";
 import WebGPUPipelines, { WebGPUBindGroupLayout } from "./webgpu_pipelines";
 import WebGPUUniformBuffer from "./webgpu_uniform_buffer";
 
-import {
-  FrameUniforms,
-  FrameUniformsDef,
-  ImageObjectUniforms,
-  ImageUniformDefs,
-  LayerUniforms,
-  LayerUniformsDef,
-} from "./webgpu_bind_groups_defs";
+import { ImageScalarUnsignedShader } from "./shaders/image_scalar_unsigned";
 import { RenderableObject } from "@/core/renderable_object";
 
 import WebGPUTexturePool from "./webgpu_texture_pool";
@@ -68,10 +61,10 @@ class WebGPURenderer extends Renderer {
   private currentStencil_ = false;
   private needsClear_ = true;
 
-  private readonly frameUniformBuffer_: WebGPUUniformBuffer<FrameUniforms>;
-  private readonly layerUniformBuffer_: WebGPUUniformBuffer<LayerUniforms>;
+  private readonly frameUniformBuffer_: WebGPUUniformBuffer;
+  private readonly layerUniformBuffer_: WebGPUUniformBuffer;
 
-  private imageUniformBuffer_?: WebGPUUniformBuffer<ImageObjectUniforms>;
+  private imageUniformBuffer_?: WebGPUUniformBuffer;
 
   private readonly scratchMat4_ = mat4.create();
 
@@ -108,13 +101,13 @@ class WebGPURenderer extends Renderer {
 
     this.frameUniformBuffer_ = new WebGPUUniformBuffer(
       this.device_,
-      FrameUniformsDef,
+      WebGPUPipelines.frameUniformSize,
       this.pipelines_.frameLayout.layout
     );
 
     this.layerUniformBuffer_ = new WebGPUUniformBuffer(
       this.device_,
-      LayerUniformsDef,
+      WebGPUPipelines.layerUniformSize,
       this.pipelines_.layerLayout.layout
     );
   }
@@ -164,12 +157,13 @@ class WebGPURenderer extends Renderer {
 
     const frustum = viewport.camera.frustum;
 
-    this.layerUniformBuffer_.reset();
-    this.frameUniformBuffer_.reset();
-    this.imageUniformBuffer_?.reset();
+    this.layerUniformBuffer_.clear();
+    this.frameUniformBuffer_.clear();
+    this.imageUniformBuffer_?.clear();
 
-    const { bindGroup, offset } = this.frameUniformBuffer_.write({
-      projection: this.projection(viewport.camera.projectionMatrix),
+    const projection = this.projection(viewport.camera.projectionMatrix);
+    const { bindGroup, offset } = this.frameUniformBuffer_.write((target) => {
+      WebGPUPipelines.packFrameUniforms(target, projection);
     });
 
     this.passEncoder_.setBindGroup(
@@ -214,8 +208,8 @@ class WebGPURenderer extends Renderer {
       this.passEncoder_.setStencilReference(0);
     }
 
-    const { bindGroup, offset } = this.layerUniformBuffer_.write({
-      opacity: layer.opacity,
+    const { bindGroup, offset } = this.layerUniformBuffer_.write((target) => {
+      WebGPUPipelines.packLayerUniforms(target, layer.opacity);
     });
 
     this.passEncoder_.setBindGroup(
@@ -331,15 +325,17 @@ class WebGPURenderer extends Renderer {
     if (object.type === "ImageRenderable") {
       this.imageUniformBuffer_ ??= new WebGPUUniformBuffer(
         this.device_,
-        ImageUniformDefs,
+        ImageScalarUnsignedShader.uniforms.size,
         layout.layout
       );
 
-      const { bindGroup, offset } = this.imageUniformBuffer_.write({
-        modelView: modelView as Float32Array,
-        color: new Float32Array([1.0, 1.0, 1.0]),
-        valueOffset: 0.0,
-        valueScale: 0.00819672131147541,
+      const { bindGroup, offset } = this.imageUniformBuffer_.write((target) => {
+        ImageScalarUnsignedShader.uniforms.pack(target, 0, {
+          modelView,
+          color: new Float32Array([1.0, 1.0, 1.0]),
+          valueOffset: 0.0,
+          valueScale: 0.00819672131147541,
+        });
       });
 
       this.passEncoder_!.setBindGroup(layout.group, bindGroup, [offset]);
