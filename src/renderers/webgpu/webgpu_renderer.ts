@@ -9,13 +9,12 @@ import { Viewport } from "@/core/viewport";
 import { vec2, mat4 } from "gl-matrix";
 
 import WebGPUGeometryBuffers from "./webgpu_geometry_buffers";
-import WebGPUPipelines, { WebGPUBindGroupLayout } from "./webgpu_pipelines";
+import WebGPUPipelines, { WebGPUPipeline } from "./webgpu_pipelines";
 import WebGPUUniformBuffer from "./webgpu_uniform_buffer";
-
-import { ImageScalarUnsignedShader } from "./shaders/image_scalar_unsigned";
-import { RenderableObject } from "@/core/renderable_object";
-
 import WebGPUTexturePool from "./webgpu_texture_pool";
+
+import { RenderableObject } from "@/core/renderable_object";
+import { makeStructuredView } from "webgpu-utils";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -102,13 +101,13 @@ class WebGPURenderer extends Renderer {
     this.frameUniformBuffer_ = new WebGPUUniformBuffer(
       this.device_,
       WebGPUPipelines.frameUniformSize,
-      this.pipelines_.frameLayout.layout
+      this.pipelines_.frameLayout
     );
 
     this.layerUniformBuffer_ = new WebGPUUniformBuffer(
       this.device_,
       WebGPUPipelines.layerUniformSize,
-      this.pipelines_.layerLayout.layout
+      this.pipelines_.layerLayout
     );
   }
 
@@ -162,15 +161,11 @@ class WebGPURenderer extends Renderer {
     this.imageUniformBuffer_?.clear();
 
     const projection = this.projection(viewport.camera.projectionMatrix);
-    const { bindGroup, offset } = this.frameUniformBuffer_.write((target) => {
-      WebGPUPipelines.packFrameUniforms(target, projection);
-    });
 
-    this.passEncoder_.setBindGroup(
-      this.pipelines_.frameLayout.group,
-      bindGroup,
-      [offset]
-    );
+    const buffer = new Float32Array(new ArrayBuffer(WebGPUPipelines.frameUniformSize));
+    WebGPUPipelines.packFrameUniforms(buffer, projection);
+    const { bindGroup, offset } = this.frameUniformBuffer_.write(buffer);
+    this.passEncoder_.setBindGroup(0, bindGroup, [offset]);
 
     this.currentDepthWrite_ = true;
     for (const layer of opaque) {
@@ -208,15 +203,10 @@ class WebGPURenderer extends Renderer {
       this.passEncoder_.setStencilReference(0);
     }
 
-    const { bindGroup, offset } = this.layerUniformBuffer_.write((target) => {
-      WebGPUPipelines.packLayerUniforms(target, layer.opacity);
-    });
-
-    this.passEncoder_.setBindGroup(
-      this.pipelines_.layerLayout.group,
-      bindGroup,
-      [offset]
-    );
+    const buffer = new Float32Array(new ArrayBuffer(WebGPUPipelines.layerUniformSize));
+    WebGPUPipelines.packLayerUniforms(buffer, layer.opacity);
+    const { bindGroup, offset } = this.layerUniformBuffer_.write(buffer);
+    this.passEncoder_.setBindGroup(1, bindGroup, [offset]);
 
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
@@ -237,7 +227,7 @@ class WebGPURenderer extends Renderer {
     const renderPass = this.passEncoder_!;
     const geometryBuffer = this.geometryBuffers_.get(object.geometry);
 
-    const { pipeline, uniformLayout, textureLayout } = this.pipelines_.get(
+    const pipeline = this.pipelines_.get(
       {
         shaderName: "image",
         depthWrite: this.currentDepthWrite_,
@@ -250,10 +240,10 @@ class WebGPURenderer extends Renderer {
       geometryBuffer
     );
 
-    renderPass.setPipeline(pipeline);
+    renderPass.setPipeline(pipeline.pipeline);
 
-    this.setUniformsForObject(object, uniformLayout, camera);
-    this.setTexturesForObject(object, textureLayout);
+    this.setUniformsForObject(object, pipeline, camera);
+    this.setTexturesForObject(object, pipeline);
 
     renderPass.setVertexBuffer(0, geometryBuffer.vertex);
     if (geometryBuffer.index.size > 0) {
@@ -313,7 +303,7 @@ class WebGPURenderer extends Renderer {
 
   private setUniformsForObject(
     object: RenderableObject,
-    layout: WebGPUBindGroupLayout,
+    pipeline: WebGPUPipeline,
     camera: Camera
   ) {
     const modelView = mat4.multiply(
@@ -322,33 +312,33 @@ class WebGPURenderer extends Renderer {
       object.transform.matrix
     );
 
+    const values = makeStructuredView(pipeline.shaderDefs.uniforms.object);
     if (object.type === "ImageRenderable") {
       this.imageUniformBuffer_ ??= new WebGPUUniformBuffer(
         this.device_,
-        ImageScalarUnsignedShader.uniforms.size,
-        layout.layout
+        values.arrayBuffer.byteLength,
+        pipeline.uniformLayout
       );
 
-      const { bindGroup, offset } = this.imageUniformBuffer_.write((target) => {
-        ImageScalarUnsignedShader.uniforms.pack(target, 0, {
-          modelView,
-          color: new Float32Array([1.0, 1.0, 1.0]),
-          valueOffset: 0.0,
-          valueScale: 0.00819672131147541,
-        });
+      values.set({
+        modelView,
+        color: new Float32Array([1.0, 1.0, 1.0]),
+        valueOffset: 0.0,
+        valueScale: 0.00819672131147541,
       });
 
-      this.passEncoder_!.setBindGroup(layout.group, bindGroup, [offset]);
+      const { bindGroup, offset } = this.imageUniformBuffer_.write(new Float32Array(values.arrayBuffer));
+      this.passEncoder_!.setBindGroup(2, bindGroup, [offset]);
     }
   }
 
   private setTexturesForObject(
     object: RenderableObject,
-    layout: WebGPUBindGroupLayout
+    pipeline: WebGPUPipeline
   ) {
     if (object.type === "ImageRenderable") {
       const group = this.device_.createBindGroup({
-        layout: layout.layout,
+        layout: pipeline.textureLayout,
         entries: [
           {
             binding: 0,
@@ -356,7 +346,7 @@ class WebGPURenderer extends Renderer {
           },
         ],
       });
-      this.passEncoder_!.setBindGroup(layout.group, group);
+      this.passEncoder_!.setBindGroup(3, group);
     }
   }
 

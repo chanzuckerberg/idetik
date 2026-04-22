@@ -1,6 +1,14 @@
 import { WebGPUGeometryBuffer } from "./webgpu_geometry_buffers";
-import { ImageScalarUnsignedShader } from "./shaders/image_scalar_unsigned";
+
 import { Logger } from "@/utilities/logger";
+
+import { ImageScalarUnsigned } from "./shaders/image_scalar_unsigned";
+
+import {
+  ShaderDataDefinitions,
+  makeBindGroupLayoutDescriptors,
+  makeShaderDataDefinitions,
+} from "webgpu-utils";
 
 export type PipelineKey = {
   shaderName: ShaderName;
@@ -12,23 +20,20 @@ export type PipelineKey = {
   vertexAttributesStr: string;
 };
 
-export type WebGPUBindGroupLayout = {
-  group: number;
-  layout: GPUBindGroupLayout;
+export type WebGPUPipeline = {
+  key: PipelineKey;
+  pipeline: GPURenderPipeline;
+  shaderDefs: ShaderDataDefinitions;
+  uniformLayout: GPUBindGroupLayout;
+  textureLayout: GPUBindGroupLayout;
 };
 
 type ShaderName = "image";
 
-type WebGPUPipeline = {
-  key: PipelineKey;
-  pipeline: GPURenderPipeline;
-  uniformLayout: WebGPUBindGroupLayout;
-  textureLayout: WebGPUBindGroupLayout;
-};
-
 type WebGPUShaderModule = {
   name: ShaderName;
   module: GPUShaderModule;
+  defs: ShaderDataDefinitions;
 };
 
 export default class WebGPUPipelines {
@@ -37,8 +42,8 @@ export default class WebGPUPipelines {
   private readonly device_: GPUDevice;
   private readonly pipelines_: WebGPUPipeline[];
   private readonly shaderModules_: WebGPUShaderModule[];
-  private readonly frameLayout_: WebGPUBindGroupLayout;
-  private readonly layerLayout_: WebGPUBindGroupLayout;
+  private readonly frameLayout_: GPUBindGroupLayout;
+  private readonly layerLayout_: GPUBindGroupLayout;
 
   static readonly frameUniformSize = 64;
   static readonly layerUniformSize = 4;
@@ -54,39 +59,33 @@ export default class WebGPUPipelines {
     this.pipelines_ = [];
     this.shaderModules_ = [];
 
-    this.frameLayout_ = {
-      group: 0,
-      layout: this.device_.createBindGroupLayout({
-        entries: [
-          {
-            binding: 0,
-            visibility: GPUShaderStage.VERTEX,
-            buffer: { hasDynamicOffset: true },
-          },
-        ],
-      }),
-    };
+    this.frameLayout_ = this.device_.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: { hasDynamicOffset: true },
+        },
+      ],
+    });
 
-    this.layerLayout_ = {
-      group: 1,
-      layout: this.device_.createBindGroupLayout({
-        entries: [
-          {
-            binding: 0,
-            visibility: GPUShaderStage.FRAGMENT,
-            buffer: { hasDynamicOffset: true },
-          },
-        ],
-      }),
-    };
+    this.layerLayout_ = this.device_.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: { hasDynamicOffset: true },
+        },
+      ],
+    });
   }
 
   public async compileShader(name: ShaderName) {
     if (this.shaderModules_.some((s) => s.name === name)) return;
 
-    const shader = shaderFromName(name);
+    const source = shaderSourceFromName(name);
     const module = this.device_.createShaderModule({
-      code: shader.source,
+      code: source,
     });
 
     const compilationInfo = await module.getCompilationInfo();
@@ -97,7 +96,9 @@ export default class WebGPUPipelines {
       throw new Error(`Failed to compile WGSL shader ${name}.wgsl`);
     }
 
-    this.shaderModules_.push({ name, module });
+    const defs = makeShaderDataDefinitions(source);
+
+    this.shaderModules_.push({ name, module, defs });
   }
 
   public get(key: PipelineKey, geometryBuffer: WebGPUGeometryBuffer) {
@@ -107,28 +108,10 @@ export default class WebGPUPipelines {
     const shaderModule = this.shaderModules_.find(
       (s) => s.name === key.shaderName
     );
+
     if (!shaderModule) {
       throw new Error(`Shader module not found`);
     }
-
-    const shader = shaderFromName(key.shaderName);
-
-    const uniformLayout = this.device_.createBindGroupLayout({
-      entries: shader.uniforms.entries,
-    });
-
-    const textureLayout = this.device_.createBindGroupLayout({
-      entries: shader.textures,
-    });
-
-    const layout = this.device_.createPipelineLayout({
-      bindGroupLayouts: [
-        this.frameLayout_.layout,
-        this.layerLayout_.layout,
-        uniformLayout,
-        textureLayout,
-      ],
-    });
 
     const depthCompare: GPUCompareFunction = key.depthTest
       ? "less-equal"
@@ -138,8 +121,7 @@ export default class WebGPUPipelines {
       ? { compare: "always", passOp: "replace" }
       : {};
 
-    const pipeline = this.device_.createRenderPipeline({
-      layout,
+    const pipelineDesc = {
       vertex: {
         module: shaderModule.module,
         entryPoint: "vert",
@@ -170,14 +152,45 @@ export default class WebGPUPipelines {
         stencilReadMask: 0xff,
         stencilWriteMask: key.stencil ? 0xff : 0x00,
       },
+    };
+
+    const descriptors = makeBindGroupLayoutDescriptors(
+      shaderModule.defs,
+      pipelineDesc
+    );
+
+    const objectDescriptor = descriptors[2];
+    for (const entry of objectDescriptor.entries as GPUBindGroupLayoutEntry[]) {
+      if (entry.buffer) {
+        entry.buffer = { ...entry.buffer, hasDynamicOffset: true };
+      }
+    }
+
+    const objectLayout = this.device_.createBindGroupLayout(objectDescriptor);
+    const textureLayout = this.device_.createBindGroupLayout(descriptors[3]);
+
+    const layout = this.device_.createPipelineLayout({
+      bindGroupLayouts: [
+        this.frameLayout_,
+        this.layerLayout_,
+        objectLayout,
+        textureLayout,
+      ],
     });
+
+    const pipeline = this.device_.createRenderPipeline({
+      layout,
+      ...pipelineDesc,
+    } as GPURenderPipelineDescriptor);
 
     const entry: WebGPUPipeline = {
       key,
       pipeline,
-      uniformLayout: { group: 2, layout: uniformLayout },
-      textureLayout: { group: 3, layout: textureLayout },
+      shaderDefs: shaderModule.defs,
+      uniformLayout: objectLayout,
+      textureLayout: textureLayout,
     };
+
     this.pipelines_.push(entry);
 
     return entry;
@@ -191,7 +204,10 @@ export default class WebGPUPipelines {
     return this.layerLayout_;
   }
 
-  public static packFrameUniforms(target: Float32Array, projection: Float32Array) {
+  public static packFrameUniforms(
+    target: Float32Array,
+    projection: Float32Array
+  ) {
     target.set(projection, 0);
   }
 
@@ -213,9 +229,9 @@ export default class WebGPUPipelines {
   }
 }
 
-function shaderFromName(name: ShaderName) {
+function shaderSourceFromName(name: ShaderName) {
   switch (name) {
     case "image":
-      return ImageScalarUnsignedShader;
+      return ImageScalarUnsigned;
   }
 }
