@@ -2,7 +2,7 @@ import { WebGPUGeometryBuffer } from "./webgpu_geometry_buffers";
 
 import { Logger } from "@/utilities/logger";
 
-import { ImageScalarUnsigned } from "./shaders/image_scalar_unsigned";
+import ImageScalarUnsigned from "./shaders/image_scalar_unsigned.wgsl";
 
 import {
   ShaderDataDefinitions,
@@ -24,8 +24,10 @@ export type WebGPUPipeline = {
   key: PipelineKey;
   pipeline: GPURenderPipeline;
   shaderDefs: ShaderDataDefinitions;
-  uniformLayout: GPUBindGroupLayout;
-  textureLayout: GPUBindGroupLayout;
+  layouts: {
+    object: GPUBindGroupLayout;
+    texture: GPUBindGroupLayout;
+  };
 };
 
 type ShaderName = "image";
@@ -42,11 +44,6 @@ export default class WebGPUPipelines {
   private readonly device_: GPUDevice;
   private readonly pipelines_: WebGPUPipeline[];
   private readonly shaderModules_: WebGPUShaderModule[];
-  private readonly frameLayout_: GPUBindGroupLayout;
-  private readonly layerLayout_: GPUBindGroupLayout;
-
-  static readonly frameUniformSize = 64;
-  static readonly layerUniformSize = 4;
 
   constructor(
     device: GPUDevice,
@@ -58,26 +55,6 @@ export default class WebGPUPipelines {
     this.device_ = device;
     this.pipelines_ = [];
     this.shaderModules_ = [];
-
-    this.frameLayout_ = this.device_.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: { hasDynamicOffset: true },
-        },
-      ],
-    });
-
-    this.layerLayout_ = this.device_.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: { hasDynamicOffset: true },
-        },
-      ],
-    });
   }
 
   public async compileShader(name: ShaderName) {
@@ -159,7 +136,9 @@ export default class WebGPUPipelines {
       pipelineDesc
     );
 
-    const objectDescriptor = descriptors[2];
+    const objectDescriptor = descriptors[0];
+    const textureDescriptor = descriptors[1];
+
     for (const entry of objectDescriptor.entries as GPUBindGroupLayoutEntry[]) {
       if (entry.buffer) {
         entry.buffer = { ...entry.buffer, hasDynamicOffset: true };
@@ -167,12 +146,10 @@ export default class WebGPUPipelines {
     }
 
     const objectLayout = this.device_.createBindGroupLayout(objectDescriptor);
-    const textureLayout = this.device_.createBindGroupLayout(descriptors[3]);
+    const textureLayout = this.device_.createBindGroupLayout(textureDescriptor);
 
     const layout = this.device_.createPipelineLayout({
       bindGroupLayouts: [
-        this.frameLayout_,
-        this.layerLayout_,
         objectLayout,
         textureLayout,
       ],
@@ -187,32 +164,15 @@ export default class WebGPUPipelines {
       key,
       pipeline,
       shaderDefs: shaderModule.defs,
-      uniformLayout: objectLayout,
-      textureLayout: textureLayout,
+      layouts: {
+        object: objectLayout,
+        texture: textureLayout,
+      },
     };
 
     this.pipelines_.push(entry);
 
     return entry;
-  }
-
-  public get frameLayout() {
-    return this.frameLayout_;
-  }
-
-  public get layerLayout() {
-    return this.layerLayout_;
-  }
-
-  public static packFrameUniforms(
-    target: Float32Array,
-    projection: Float32Array
-  ) {
-    target.set(projection, 0);
-  }
-
-  public static packLayerUniforms(target: Float32Array, opacity: number) {
-    target[0] = opacity;
   }
 
   private getCachedPipeline(key: PipelineKey) {
