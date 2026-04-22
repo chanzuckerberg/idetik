@@ -14,7 +14,7 @@ import {
   validateChannelPropsCount,
 } from "../objects/textures/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
-import { Texture2DArray } from "../objects/textures/texture_2d_array";
+import { Texture2D } from "../objects/textures/texture_2d";
 import { Logger } from "../utilities/logger";
 import { Color } from "../core/color";
 import { EventContext } from "../core/event_dispatcher";
@@ -184,7 +184,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       if (chunk.state !== "loaded" || !chunk.data) continue;
       const data = this.slicePlane(chunk, zPointWorld);
       if (data) {
-        const texture = image.textures[0] as Texture2DArray;
+        const texture = image.textures[0] as Texture2D;
         texture.updateWithChunk(chunk, data);
       }
     }
@@ -253,7 +253,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
-      const texture = pooled.textures[0] as Texture2DArray;
+      const texture = pooled.textures[0] as Texture2D;
       texture.updateWithChunk(chunk, this.getDataForImage(chunk));
       this.updateImageChunk(pooled, chunk);
       pooled.setChannelProps(this.getChannelPropsForChunk(chunk));
@@ -272,7 +272,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     const image = new ImageRenderable(
       chunk.shape.x,
       chunk.shape.y,
-      Texture2DArray.createWithChunk(chunk, this.getDataForImage(chunk)),
+      Texture2D.createWithChunk(chunk, this.getDataForImage(chunk)),
       this.getChannelPropsForChunk(chunk)
     );
     this.updateImageChunk(image, chunk);
