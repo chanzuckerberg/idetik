@@ -8,9 +8,9 @@ import { Viewport } from "@/core/viewport";
 
 import { vec2, mat4 } from "gl-matrix";
 
+import WebGPUBindings from "./webgpu_bindings";
 import WebGPUGeometryBuffers from "./webgpu_geometry_buffers";
 import WebGPUPipelines, { WebGPUPipeline } from "./webgpu_pipelines";
-import WebGPUUniformBuffer from "./webgpu_uniform_buffer";
 import WebGPUTexturePool from "./webgpu_texture_pool";
 
 import { RenderableObject } from "@/core/renderable_object";
@@ -44,10 +44,13 @@ const clipSpaceCorrection = mat4.fromValues(
 );
 
 class WebGPURenderer extends Renderer {
+
   private readonly colorFormat_: GPUTextureFormat;
   private readonly context_: GPUCanvasContext;
   private readonly depthFormat_: GPUTextureFormat;
   private readonly device_: GPUDevice;
+
+  private readonly bindings_: WebGPUBindings;
   private readonly geometryBuffers_: WebGPUGeometryBuffers;
   private readonly pipelines_: WebGPUPipelines;
   private readonly texturePool_: WebGPUTexturePool;
@@ -58,14 +61,11 @@ class WebGPURenderer extends Renderer {
   private renderedObjectsPerFrame_ = 0;
   private currentDepthWrite_ = true;
   private currentStencil_ = false;
+  private currentOpacity_ = 1.0;
   private needsClear_ = true;
 
-  private readonly frameUniformBuffer_: WebGPUUniformBuffer;
-  private readonly layerUniformBuffer_: WebGPUUniformBuffer;
-
-  private imageUniformBuffer_?: WebGPUUniformBuffer;
-
-  private readonly scratchMat4_ = mat4.create();
+  private readonly currentProjection_ = mat4.create();
+  private readonly scratchModelView_ = mat4.create();
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     super(canvas);
@@ -73,9 +73,10 @@ class WebGPURenderer extends Renderer {
     this.colorFormat_ = navigator.gpu.getPreferredCanvasFormat();
     this.depthFormat_ = "depth24plus-stencil8";
     this.device_ = device;
+
+    this.bindings_ = new WebGPUBindings(device);
     this.geometryBuffers_ = new WebGPUGeometryBuffers(device);
     this.texturePool_ = new WebGPUTexturePool(device);
-
     this.pipelines_ = new WebGPUPipelines(
       device,
       this.colorFormat_,
@@ -97,18 +98,6 @@ class WebGPURenderer extends Renderer {
     Logger.info("WebGPURenderer", "WebGPU Initialized");
 
     this.resize(this.width, this.height);
-
-    this.frameUniformBuffer_ = new WebGPUUniformBuffer(
-      this.device_,
-      WebGPUPipelines.frameUniformSize,
-      this.pipelines_.frameLayout
-    );
-
-    this.layerUniformBuffer_ = new WebGPUUniformBuffer(
-      this.device_,
-      WebGPUPipelines.layerUniformSize,
-      this.pipelines_.layerLayout
-    );
   }
 
   public async compileShaders() {
@@ -156,18 +145,9 @@ class WebGPURenderer extends Renderer {
 
     const frustum = viewport.camera.frustum;
 
-    this.layerUniformBuffer_.clear();
-    this.frameUniformBuffer_.clear();
-    this.imageUniformBuffer_?.clear();
+    this.bindings_.clear();
 
-    const projection = this.projection(viewport.camera.projectionMatrix);
-
-    const buffer = new Float32Array(
-      new ArrayBuffer(WebGPUPipelines.frameUniformSize)
-    );
-    WebGPUPipelines.packFrameUniforms(buffer, projection);
-    const { bindGroup, offset } = this.frameUniformBuffer_.write(buffer);
-    this.passEncoder_.setBindGroup(0, bindGroup, [offset]);
+    this.projection(viewport.camera.projectionMatrix);
 
     this.currentDepthWrite_ = true;
     for (const layer of opaque) {
@@ -205,12 +185,7 @@ class WebGPURenderer extends Renderer {
       this.passEncoder_.setStencilReference(0);
     }
 
-    const buffer = new Float32Array(
-      new ArrayBuffer(WebGPUPipelines.layerUniformSize)
-    );
-    WebGPUPipelines.packLayerUniforms(buffer, layer.opacity);
-    const { bindGroup, offset } = this.layerUniformBuffer_.write(buffer);
-    this.passEncoder_.setBindGroup(1, bindGroup, [offset]);
+    this.currentOpacity_ = layer.opacity;
 
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
@@ -310,57 +285,50 @@ class WebGPURenderer extends Renderer {
     pipeline: WebGPUPipeline,
     camera: Camera
   ) {
+    if (object.type !== "ImageRenderable") return;
+
     const modelView = mat4.multiply(
-      this.scratchMat4_,
+      this.scratchModelView_,
       camera.viewMatrix,
       object.transform.matrix
     );
 
     const values = makeStructuredView(pipeline.shaderDefs.uniforms.object);
-    if (object.type === "ImageRenderable") {
-      this.imageUniformBuffer_ ??= new WebGPUUniformBuffer(
-        this.device_,
-        values.arrayBuffer.byteLength,
-        pipeline.uniformLayout
-      );
 
-      values.set({
-        modelView,
-        color: new Float32Array([1.0, 1.0, 1.0]),
-        valueOffset: 0.0,
-        valueScale: 0.00819672131147541,
-      });
+    values.set({
+      projection: this.currentProjection_,
+      modelView,
+      color: new Float32Array([1.0, 1.0, 1.0]),
+      valueOffset: 0.0,
+      valueScale: 0.00819672131147541,
+      opacity: this.currentOpacity_,
+    });
 
-      const { bindGroup, offset } = this.imageUniformBuffer_.write(
-        new Float32Array(values.arrayBuffer)
-      );
-      this.passEncoder_!.setBindGroup(2, bindGroup, [offset]);
-    }
+    this.bindings_.setUniforms(
+      this.passEncoder_!,
+      pipeline,
+      new Float32Array(values.arrayBuffer)
+    );
   }
 
   private setTexturesForObject(
     object: RenderableObject,
     pipeline: WebGPUPipeline
   ) {
-    if (object.type === "ImageRenderable") {
-      const group = this.device_.createBindGroup({
-        layout: pipeline.textureLayout,
-        entries: [
-          {
-            binding: 0,
-            resource: this.texturePool_.get(object.textures[0]).createView(),
-          },
-        ],
-      });
-      this.passEncoder_!.setBindGroup(3, group);
-    }
+    if (object.type !== "ImageRenderable") return;
+
+    this.bindings_.setTexture(
+      this.passEncoder_!,
+      pipeline,
+      this.texturePool_.get(object.textures[0])
+    );
   }
 
   private projection(projectionMatrix: mat4) {
-    return mat4.multiply(
-      this.scratchMat4_,
+    mat4.multiply(
+      this.currentProjection_,
       clipSpaceCorrection,
       projectionMatrix
-    ) as Float32Array;
+    );
   }
 }
