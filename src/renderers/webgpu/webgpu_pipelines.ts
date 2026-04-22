@@ -23,7 +23,7 @@ export type PipelineKey = {
 export type WebGPUPipeline = {
   key: PipelineKey;
   pipeline: GPURenderPipeline;
-  shaderDefs: ShaderDataDefinitions;
+  dataDefinitions: ShaderDataDefinitions;
   layouts: {
     object: GPUBindGroupLayout;
     texture: GPUBindGroupLayout;
@@ -131,13 +131,14 @@ export default class WebGPUPipelines {
       },
     };
 
+    const definitions = shaderModule.defs;
     const descriptors = makeBindGroupLayoutDescriptors(
-      shaderModule.defs,
+      definitions,
       pipelineDesc
     );
 
-    const objectDescriptor = descriptors[0];
-    const textureDescriptor = descriptors[1];
+    const objectDescriptor = descriptors[definitions.uniforms.object.group];
+    const textureDescriptor = descriptors[definitions.textures.texture.group];
 
     for (const entry of objectDescriptor.entries as GPUBindGroupLayoutEntry[]) {
       if (entry.buffer) {
@@ -149,10 +150,7 @@ export default class WebGPUPipelines {
     const textureLayout = this.device_.createBindGroupLayout(textureDescriptor);
 
     const layout = this.device_.createPipelineLayout({
-      bindGroupLayouts: [
-        objectLayout,
-        textureLayout,
-      ],
+      bindGroupLayouts: [objectLayout, textureLayout],
     });
 
     const pipeline = this.device_.createRenderPipeline({
@@ -163,7 +161,7 @@ export default class WebGPUPipelines {
     const entry: WebGPUPipeline = {
       key,
       pipeline,
-      shaderDefs: shaderModule.defs,
+      dataDefinitions: definitions,
       layouts: {
         object: objectLayout,
         texture: textureLayout,

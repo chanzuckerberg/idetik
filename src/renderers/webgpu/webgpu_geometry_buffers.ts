@@ -3,7 +3,7 @@ import { Geometry, GeometryAttributeIndex } from "@/core/geometry";
 export type WebGPUGeometryBuffer = {
   geometry: Geometry;
   vertex: GPUBuffer;
-  index: GPUBuffer;
+  index: GPUBuffer | null;
   attributes: GPUVertexAttribute[];
   attributesKey: string;
 };
@@ -29,13 +29,16 @@ export default class WebGPUGeometryBuffers {
     new Float32Array(vertex.getMappedRange()).set(geometry.vertexData);
     vertex.unmap();
 
-    const index = this.device_.createBuffer({
-      size: geometry.indexData.byteLength,
-      usage: GPUBufferUsage.INDEX,
-      mappedAtCreation: true,
-    });
-    new Uint32Array(index.getMappedRange()).set(geometry.indexData);
-    index.unmap();
+    let index: GPUBuffer | null = null;
+    if (geometry.indexData.byteLength > 0) {
+      index = this.device_.createBuffer({
+        size: geometry.indexData.byteLength,
+        usage: GPUBufferUsage.INDEX,
+        mappedAtCreation: true,
+      });
+      new Uint32Array(index.getMappedRange()).set(geometry.indexData);
+      index.unmap();
+    }
 
     const { attributes, attributesKey } = remapAttributes(geometry);
     const buffers = { geometry, vertex, index, attributes, attributesKey };
