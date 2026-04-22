@@ -29,12 +29,12 @@ export default class WebGPUUniformBuffer {
     this.cursor_ = 0;
   }
 
-  public write(pack: (target: Float32Array) => void) {
+  public write(target: Float32Array) {
     if (this.cursor_ >= this.capacity_) {
       this.resize();
     }
 
-    pack(this.staging_);
+    this.staging_.set(target);
     this.device_.queue.writeBuffer(
       this.buffer_,
       this.cursor_ * this.alignedSlotSize_,

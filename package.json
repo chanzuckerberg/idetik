@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "gl-matrix": "^3.4.3",
+    "webgpu-utils": "^2.1.0",
     "zarrita": "^0.5.4",
     "zod": "^3.24.1"
   },
