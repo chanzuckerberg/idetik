@@ -44,7 +44,6 @@ const clipSpaceCorrection = mat4.fromValues(
 );
 
 class WebGPURenderer extends Renderer {
-
   private readonly colorFormat_: GPUTextureFormat;
   private readonly context_: GPUCanvasContext;
   private readonly depthFormat_: GPUTextureFormat;
@@ -105,13 +104,12 @@ class WebGPURenderer extends Renderer {
   }
 
   public override beginFrame() {
+    this.renderedObjects_ = 0;
+    this.renderedObjectsPerFrame_ = 0;
     this.needsClear_ = true;
   }
 
   public override render(viewport: Viewport) {
-    this.renderedObjects_ = 0;
-    this.renderedObjectsPerFrame_ = 0;
-
     const { opaque, transparent } = viewport.layerManager.partitionLayers();
     for (const layer of [...opaque, ...transparent]) {
       layer.update({ viewport });
@@ -147,7 +145,7 @@ class WebGPURenderer extends Renderer {
 
     this.bindings_.clear();
 
-    this.projection(viewport.camera.projectionMatrix);
+    this.updateProjection(viewport.camera.projectionMatrix);
 
     this.currentDepthWrite_ = true;
     for (const layer of opaque) {
@@ -165,7 +163,6 @@ class WebGPURenderer extends Renderer {
 
     this.passEncoder_.end();
     this.device_.queue.submit([commandEncoder.finish()]);
-
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
@@ -225,7 +222,7 @@ class WebGPURenderer extends Renderer {
     this.setTexturesForObject(object, pipeline);
 
     renderPass.setVertexBuffer(0, geometryBuffer.vertex);
-    if (geometryBuffer.index.size > 0) {
+    if (geometryBuffer.index) {
       renderPass.setIndexBuffer(geometryBuffer.index, "uint32");
       renderPass.drawIndexed(object.geometry.indexData.length);
     } else {
@@ -293,7 +290,7 @@ class WebGPURenderer extends Renderer {
       object.transform.matrix
     );
 
-    const values = makeStructuredView(pipeline.shaderDefs.uniforms.object);
+    const values = makeStructuredView(pipeline.dataDefinitions.uniforms.object);
 
     values.set({
       projection: this.currentProjection_,
@@ -324,7 +321,7 @@ class WebGPURenderer extends Renderer {
     );
   }
 
-  private projection(projectionMatrix: mat4) {
+  private updateProjection(projectionMatrix: mat4) {
     mat4.multiply(
       this.currentProjection_,
       clipSpaceCorrection,

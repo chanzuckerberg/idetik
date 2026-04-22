@@ -5,9 +5,9 @@ struct Varyings {
 
 struct ObjectUniforms {
   modelView: mat4x4f,
-  opacity: f32,
   projection: mat4x4f,
   color: vec3f,
+  opacity: f32,
   valueOffset: f32,
   valueScale: f32,
 };
