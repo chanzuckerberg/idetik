@@ -52,6 +52,29 @@ function modeToRoot(mode) {
 }
 
 export default defineConfig(({ mode }) => {
+  if (mode === 'examples') {
+    return {
+      root: 'examples',
+      base: '/_example-preview/',
+      plugins: [eslint(), glsl(), examplesManifestPlugin()],
+      publicDir: path.resolve(_dirname, 'public'),
+      build: {
+        outDir: path.resolve(_dirname, 'docs/public/_example-preview'),
+        emptyOutDir: true,
+        target: 'es2022',
+      },
+      worker: {
+        format: 'es',
+        rollupOptions: {
+          output: { format: 'es', inlineDynamicImports: true },
+        },
+      },
+      resolve: {
+        alias: { '@': path.resolve(_dirname, 'src') },
+      },
+    }
+  }
+
   const productionBuildOptions = {
     sourcemap: true,
     minify: 'esbuild',

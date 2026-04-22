@@ -42,7 +42,10 @@
     "format": "prettier --write './**/*.{ts,tsx,html,json}'",
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
     "lint": "eslint .",
-    "pub": "npm run build; npm publish --access=public"
+    "pub": "npm run build; npm publish --access=public",
+    "docs:dev": "npm run build:examples && vitepress dev",
+    "docs:build": "npm run build:examples && vitepress build",
+    "docs:preview": "vitepress preview"
   },
   "dependencies": {
     "gl-matrix": "^3.4.3",
