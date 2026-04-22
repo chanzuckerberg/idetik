@@ -162,7 +162,9 @@ class WebGPURenderer extends Renderer {
 
     const projection = this.projection(viewport.camera.projectionMatrix);
 
-    const buffer = new Float32Array(new ArrayBuffer(WebGPUPipelines.frameUniformSize));
+    const buffer = new Float32Array(
+      new ArrayBuffer(WebGPUPipelines.frameUniformSize)
+    );
     WebGPUPipelines.packFrameUniforms(buffer, projection);
     const { bindGroup, offset } = this.frameUniformBuffer_.write(buffer);
     this.passEncoder_.setBindGroup(0, bindGroup, [offset]);
@@ -203,7 +205,9 @@ class WebGPURenderer extends Renderer {
       this.passEncoder_.setStencilReference(0);
     }
 
-    const buffer = new Float32Array(new ArrayBuffer(WebGPUPipelines.layerUniformSize));
+    const buffer = new Float32Array(
+      new ArrayBuffer(WebGPUPipelines.layerUniformSize)
+    );
     WebGPUPipelines.packLayerUniforms(buffer, layer.opacity);
     const { bindGroup, offset } = this.layerUniformBuffer_.write(buffer);
     this.passEncoder_.setBindGroup(1, bindGroup, [offset]);
@@ -327,7 +331,9 @@ class WebGPURenderer extends Renderer {
         valueScale: 0.00819672131147541,
       });
 
-      const { bindGroup, offset } = this.imageUniformBuffer_.write(new Float32Array(values.arrayBuffer));
+      const { bindGroup, offset } = this.imageUniformBuffer_.write(
+        new Float32Array(values.arrayBuffer)
+      );
       this.passEncoder_!.setBindGroup(2, bindGroup, [offset]);
     }
   }
