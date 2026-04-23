@@ -61,14 +61,17 @@ class WebGPURenderer extends Renderer {
   private passEncoder_: GPURenderPassEncoder | null = null;
 
   private renderedObjectsPerFrame_ = 0;
-  private currentDepthWrite_ = true;
-  private currentStencil_ = false;
-  private currentBlendMode_: BlendMode = "none";
-  private currentOpacity_ = 1.0;
   private needsClear_ = true;
 
   private readonly currentProjection_ = mat4.create();
   private readonly scratchModelView_ = mat4.create();
+
+  // Per-layer state set in renderLayer() and consumed by renderObject().
+  // Kept as fields because renderObject's signature is fixed by the base class.
+  private currentDepthWrite_ = true;
+  private currentStencil_ = false;
+  private currentBlendMode_: BlendMode = "none";
+  private currentOpacity_ = 1.0;
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     super(canvas);
@@ -95,7 +98,7 @@ class WebGPURenderer extends Renderer {
     this.context_.configure({
       device: this.device_,
       format: this.colorFormat_,
-      alphaMode: "opaque",
+      alphaMode: "premultiplied",
     });
 
     Logger.info("WebGPURenderer", "WebGPU Initialized");
@@ -139,52 +142,68 @@ class WebGPURenderer extends Renderer {
       return;
     }
 
-    const commandEncoder = this.device_.createCommandEncoder();
-    this.passEncoder_ = this.beginRenderPass(commandEncoder);
-
-    const { x, y, width, height } = viewportBox.floor().toRect();
-    this.passEncoder_.setViewport(x, y, width, height, 0, 1);
-
-    if (!Box2.equals(viewportBox.floor(), surfaceBox.floor())) {
-      this.passEncoder_.setScissorRect(x, y, width, height);
-    }
-
     const frustum = viewport.camera.frustum;
+    const needsScissor = !Box2.equals(viewportBox.floor(), surfaceBox.floor());
 
     this.bindings_.clear();
-
     this.updateProjection(viewport.camera.projectionMatrix);
 
     this.currentDepthWrite_ = true;
     for (const layer of opaque) {
       if (layer.state === "ready") {
-        this.renderLayer(layer, viewport.camera, frustum);
+        this.renderLayer(
+          layer,
+          viewport.camera,
+          frustum,
+          viewportBox,
+          needsScissor
+        );
       }
     }
 
     this.currentDepthWrite_ = false;
     for (const layer of transparent) {
       if (layer.state === "ready") {
-        this.renderLayer(layer, viewport.camera, frustum);
+        this.renderLayer(
+          layer,
+          viewport.camera,
+          frustum,
+          viewportBox,
+          needsScissor
+        );
       }
     }
 
-    this.passEncoder_.end();
-    this.device_.queue.submit([commandEncoder.finish()]);
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
-  private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
-    if (!this.passEncoder_) return;
-
+  private renderLayer(
+    layer: Layer,
+    camera: Camera,
+    frustum: Frustum,
+    viewportBox: Box2,
+    needsScissor: boolean
+  ) {
     if (layer.type !== "ImageLayer") {
       throw new Error(
         "Experimental WebGPU renderer only supports image layers"
       );
     }
 
-    if (layer.objects.length === 0) {
-      return;
+    if (layer.objects.length === 0) return;
+
+    // One render pass (and one command encoder) per layer. WebGPU has no
+    // in-pass stencil clear, so a fresh pass per layer is the simplest
+    // equivalent of WebGL's per-layer `clear(STENCIL_BUFFER_BIT)`.
+    // If we do channel blending without the stencil buffer we could use
+    // a single render pass for all layers.
+    const commandEncoder = this.device_.createCommandEncoder();
+    this.passEncoder_ = this.beginRenderPass(commandEncoder);
+
+    const { x, y, width, height } = viewportBox.floor().toRect();
+    this.passEncoder_.setViewport(x, y, width, height, 0, 1);
+    if (needsScissor) {
+      this.passEncoder_.setScissorRect(x, y, width, height);
     }
 
     this.currentStencil_ = layer.hasMultipleLODs();
@@ -201,6 +220,10 @@ class WebGPURenderer extends Renderer {
         this.renderedObjectsPerFrame_ += 1;
       }
     });
+
+    this.passEncoder_.end();
+    this.device_.queue.submit([commandEncoder.finish()]);
+    this.passEncoder_ = null;
   }
 
   protected override renderObject(
@@ -209,6 +232,13 @@ class WebGPURenderer extends Renderer {
     camera: Camera
   ) {
     const object = layer.objects[objectIndex];
+
+    if (object.type !== "ImageRenderable") {
+      throw new Error(
+        "Experimental WebGPU renderer only supports image renderables"
+      );
+    }
+
     object.popStaleTextures().forEach((texture) => {
       this.texturePool_.dispose(texture);
     });
@@ -258,14 +288,12 @@ class WebGPURenderer extends Renderer {
   }
 
   private beginRenderPass(encoder: GPUCommandEncoder) {
-    const colorAttachment = this.context_.getCurrentTexture().createView();
-    const depthAttachment = this.depthStencilTexture_!.createView();
     const loadOp: GPULoadOp = this.needsClear_ ? "clear" : "load";
     this.needsClear_ = false;
     return encoder.beginRenderPass({
       colorAttachments: [
         {
-          view: colorAttachment,
+          view: this.context_.getCurrentTexture().createView(),
           loadOp,
           storeOp: "store",
           clearValue: {
@@ -277,11 +305,11 @@ class WebGPURenderer extends Renderer {
         },
       ],
       depthStencilAttachment: {
-        view: depthAttachment,
+        view: this.depthStencilTexture_!.createView(),
         depthLoadOp: loadOp,
         depthStoreOp: "store",
         depthClearValue: 1.0,
-        stencilLoadOp: loadOp,
+        stencilLoadOp: "clear",
         stencilStoreOp: "store",
         stencilClearValue: 0,
       },
@@ -298,18 +326,6 @@ class WebGPURenderer extends Renderer {
     pipeline: WebGPUPipeline,
     camera: Camera
   ) {
-    if (!this.passEncoder_) {
-      throw new Error(
-        "Valid render pass encoder must be set before updating uniforms"
-      );
-    }
-
-    if (object.type !== "ImageRenderable") {
-      throw new Error(
-        "Experimental WebGPU renderer only supports image renderables"
-      );
-    }
-
     const modelView = mat4.multiply(
       this.scratchModelView_,
       camera.viewMatrix,
@@ -327,25 +343,13 @@ class WebGPURenderer extends Renderer {
       opacity: this.currentOpacity_,
     });
 
-    this.bindings_.setUniforms(this.passEncoder_, pipeline);
+    this.bindings_.setUniforms(this.passEncoder_!, pipeline);
   }
 
   private setTexturesForObject(
     object: RenderableObject,
     pipeline: WebGPUPipeline
   ) {
-    if (!this.passEncoder_) {
-      throw new Error(
-        "Valid render pass encoder must be set before updating textures"
-      );
-    }
-
-    if (object.type !== "ImageRenderable") {
-      throw new Error(
-        "Experimental WebGPU renderer only supports image renderables"
-      );
-    }
-
     if (object.textures.length > 1) {
       throw new Error(
         "Experimental WebGPU renderer only supports single textures"
@@ -353,7 +357,7 @@ class WebGPURenderer extends Renderer {
     }
 
     this.bindings_.setTexture(
-      this.passEncoder_,
+      this.passEncoder_!,
       pipeline,
       this.texturePool_.get(object.textures[0])
     );
