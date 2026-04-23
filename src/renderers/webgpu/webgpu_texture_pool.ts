@@ -40,6 +40,19 @@ export default class WebGPUTexturePool {
     return buffer;
   }
 
+  public dispose(texture: Texture) {
+    const index = this.textures_.findIndex((t) => t.texture === texture);
+    if (index === -1) return;
+
+    this.textures_[index].buffer.destroy();
+    this.textures_.splice(index, 1);
+  }
+
+  public disposeAll() {
+    for (const t of this.textures_) t.buffer.destroy();
+    this.textures_.length = 0;
+  }
+
   private upload(texture: Texture, buffer: GPUTexture) {
     const size = { width: texture.width, height: texture.height };
     const channelCount = textureChannelCount(texture);

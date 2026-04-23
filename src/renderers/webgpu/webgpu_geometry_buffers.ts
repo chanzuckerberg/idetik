@@ -47,6 +47,24 @@ export default class WebGPUGeometryBuffers {
 
     return buffers;
   }
+
+  public dispose(geometry: Geometry) {
+    const index = this.buffers_.findIndex((b) => b.geometry === geometry);
+    if (index === -1) return;
+
+    const buffers = this.buffers_[index];
+    buffers.vertex.destroy();
+    buffers.index?.destroy();
+    this.buffers_.splice(index, 1);
+  }
+
+  public disposeAll() {
+    for (const buffers of this.buffers_) {
+      buffers.vertex.destroy();
+      buffers.index?.destroy();
+    }
+    this.buffers_.length = 0;
+  }
 }
 
 function getVertexFormat(n: number): GPUVertexFormat {

@@ -199,6 +199,10 @@ class WebGPURenderer extends Renderer {
     camera: Camera
   ) {
     const object = layer.objects[objectIndex];
+    object.popStaleTextures().forEach((texture) => {
+      this.texturePool_.dispose(texture);
+    });
+
     if (!object.programName) return;
 
     const renderPass = this.passEncoder_!;
