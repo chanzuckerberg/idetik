@@ -6,7 +6,8 @@ import { EventContext } from "./event_dispatcher";
 import { Viewport } from "./viewport";
 
 export type LayerState = "initialized" | "loading" | "ready";
-export type blendMode =
+export type BlendMode =
+  | "none"
   | "normal"
   | "additive"
   | "subtractive"
@@ -21,7 +22,7 @@ type StateChangeCallback = (
 export interface LayerOptions {
   transparent?: boolean;
   opacity?: number;
-  blendMode?: blendMode;
+  blendMode?: BlendMode;
 }
 
 export type RenderContext = {
@@ -37,7 +38,7 @@ export abstract class Layer {
 
   public transparent: boolean;
   private opacity_: number;
-  public blendMode: blendMode;
+  public blendMode: BlendMode;
 
   constructor({
     transparent = false,
