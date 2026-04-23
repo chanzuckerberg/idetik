@@ -6,8 +6,10 @@ import ImageScalarUnsigned from "./shaders/image_scalar_unsigned.wgsl";
 
 import {
   ShaderDataDefinitions,
+  StructuredView,
   makeBindGroupLayoutDescriptors,
   makeShaderDataDefinitions,
+  makeStructuredView,
 } from "webgpu-utils";
 
 export type PipelineKey = {
@@ -23,14 +25,15 @@ export type PipelineKey = {
 export type WebGPUPipeline = {
   key: PipelineKey;
   pipeline: GPURenderPipeline;
-  dataDefinitions: ShaderDataDefinitions;
+  uniformsView: StructuredView;
+  uniformsData: Float32Array;
   layouts: {
     object: GPUBindGroupLayout;
     texture: GPUBindGroupLayout;
   };
 };
 
-type ShaderName = "image";
+type ShaderName = "image_scalar_unsigned";
 
 type WebGPUShaderModule = {
   name: ShaderName;
@@ -158,10 +161,13 @@ export default class WebGPUPipelines {
       ...pipelineDesc,
     } as GPURenderPipelineDescriptor);
 
+    const uniformsView = makeStructuredView(definitions.uniforms.object);
+
     const entry: WebGPUPipeline = {
       key,
       pipeline,
-      dataDefinitions: definitions,
+      uniformsView,
+      uniformsData: new Float32Array(uniformsView.arrayBuffer),
       layouts: {
         object: objectLayout,
         texture: textureLayout,
@@ -189,7 +195,7 @@ export default class WebGPUPipelines {
 
 function shaderSourceFromName(name: ShaderName) {
   switch (name) {
-    case "image":
+    case "image_scalar_unsigned":
       return ImageScalarUnsigned;
   }
 }

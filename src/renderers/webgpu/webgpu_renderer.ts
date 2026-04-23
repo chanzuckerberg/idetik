@@ -14,7 +14,6 @@ import WebGPUPipelines, { WebGPUPipeline } from "./webgpu_pipelines";
 import WebGPUTexturePool from "./webgpu_texture_pool";
 
 import { RenderableObject } from "@/core/renderable_object";
-import { makeStructuredView } from "webgpu-utils";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -100,7 +99,7 @@ class WebGPURenderer extends Renderer {
   }
 
   public async compileShaders() {
-    await this.pipelines_.compileShader("image");
+    await this.pipelines_.compileShader("image_scalar_unsigned");
   }
 
   public override beginFrame() {
@@ -170,7 +169,9 @@ class WebGPURenderer extends Renderer {
     if (!this.passEncoder_) return;
 
     if (layer.type !== "ImageLayer") {
-      throw new Error("Experimental WebGPU renderer only support image layers");
+      throw new Error(
+        "Experimental WebGPU renderer only supports image layers"
+      );
     }
 
     if (layer.objects.length === 0) {
@@ -205,7 +206,7 @@ class WebGPURenderer extends Renderer {
 
     const pipeline = this.pipelines_.get(
       {
-        shaderName: "image",
+        shaderName: "image_scalar_unsigned",
         depthWrite: this.currentDepthWrite_,
         depthTest: object.depthTest,
         stencil: this.currentStencil_,
@@ -282,7 +283,17 @@ class WebGPURenderer extends Renderer {
     pipeline: WebGPUPipeline,
     camera: Camera
   ) {
-    if (object.type !== "ImageRenderable") return;
+    if (object.type !== "ImageRenderable") {
+      throw new Error(
+        "Experimental WebGPU renderer only supports image renderables"
+      );
+    }
+
+    if (!this.passEncoder_) {
+      throw new Error(
+        "Valid render pass encoder must be set before updating uniforms"
+      );
+    }
 
     const modelView = mat4.multiply(
       this.scratchModelView_,
@@ -290,32 +301,38 @@ class WebGPURenderer extends Renderer {
       object.transform.matrix
     );
 
-    const values = makeStructuredView(pipeline.dataDefinitions.uniforms.object);
+    const uniforms = object.getUniforms();
 
-    values.set({
+    pipeline.uniformsView.set({
       projection: this.currentProjection_,
       modelView,
-      color: new Float32Array([1.0, 1.0, 1.0]),
-      valueOffset: 0.0,
-      valueScale: 0.00819672131147541,
+      color: uniforms.Color,
+      valueOffset: uniforms.ValueOffset,
+      valueScale: uniforms.ValueScale,
       opacity: this.currentOpacity_,
     });
 
-    this.bindings_.setUniforms(
-      this.passEncoder_!,
-      pipeline,
-      new Float32Array(values.arrayBuffer)
-    );
+    this.bindings_.setUniforms(this.passEncoder_, pipeline);
   }
 
   private setTexturesForObject(
     object: RenderableObject,
     pipeline: WebGPUPipeline
   ) {
-    if (object.type !== "ImageRenderable") return;
+    if (object.type !== "ImageRenderable") {
+      throw new Error(
+        "Experimental WebGPU renderer only supports image renderables"
+      );
+    }
+
+    if (!this.passEncoder_) {
+      throw new Error(
+        "Valid render pass encoder must be set before updating textures"
+      );
+    }
 
     this.bindings_.setTexture(
-      this.passEncoder_!,
+      this.passEncoder_,
       pipeline,
       this.texturePool_.get(object.textures[0])
     );

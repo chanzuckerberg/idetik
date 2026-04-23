@@ -29,14 +29,12 @@ export default class WebGPUBindings {
     }
   }
 
-  public setUniforms(
-    pass: GPURenderPassEncoder,
-    pipeline: WebGPUPipeline,
-    data: Float32Array
-  ) {
+  public setUniforms(pass: GPURenderPassEncoder, pipeline: WebGPUPipeline) {
     const layout = pipeline.layouts.object;
+    const data = pipeline.uniformsData;
 
     let entry = this.uniformEntries_.find((e) => e.layout === layout);
+
     if (!entry) {
       const buffer = new WebGPUDynamicBuffer(this.device_, data.byteLength);
       const group = this.createUniformBindGroup(
@@ -72,6 +70,7 @@ export default class WebGPUBindings {
     let entry = this.textureEntries_.find(
       (e) => e.layout === layout && e.texture === texture
     );
+
     if (!entry) {
       const group = this.device_.createBindGroup({
         layout,
