@@ -3,7 +3,9 @@ import { WebGPUGeometryBuffer } from "./webgpu_geometry_buffers";
 import { BlendMode } from "@/core/layer";
 import { Logger } from "@/utilities/logger";
 
-import ImageScalarUnsigned from "./shaders/image_scalar_unsigned.wgsl";
+import ImageScalarU32 from "./shaders/image_scalar_u32.wgsl";
+import ImageScalarI32 from "./shaders/image_scalar_i32.wgsl";
+import ImageScalarF32 from "./shaders/image_scalar_f32.wgsl";
 
 import {
   ShaderDataDefinitions,
@@ -35,7 +37,10 @@ export type WebGPUPipeline = {
   };
 };
 
-type ShaderName = "image_scalar_unsigned";
+export type ShaderName =
+  | "image_scalar_u32"
+  | "image_scalar_i32"
+  | "image_scalar_f32";
 
 type WebGPUShaderModule = {
   name: ShaderName;
@@ -95,6 +100,17 @@ export default class WebGPUPipelines {
     for (const entry of objectDescriptor.entries as GPUBindGroupLayoutEntry[]) {
       if (entry.buffer) {
         entry.buffer = { ...entry.buffer, hasDynamicOffset: true };
+      }
+    }
+
+    // r32float isn't filterable without the `float32-filterable` feature.
+    // Since we don't use a sampler, it's safe to use unfilterable-float
+    // across all float-valued formats.
+    if (name === "image_scalar_f32") {
+      for (const entry of textureDescriptor.entries as GPUBindGroupLayoutEntry[]) {
+        if (entry.texture) {
+          entry.texture = { ...entry.texture, sampleType: "unfilterable-float" };
+        }
       }
     }
 
@@ -208,8 +224,12 @@ export default class WebGPUPipelines {
 
 function shaderSourceFromName(name: ShaderName) {
   switch (name) {
-    case "image_scalar_unsigned":
-      return ImageScalarUnsigned;
+    case "image_scalar_u32":
+      return ImageScalarU32;
+    case "image_scalar_i32":
+      return ImageScalarI32;
+    case "image_scalar_f32":
+      return ImageScalarF32;
   }
 }
 
