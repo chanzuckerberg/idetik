@@ -71,7 +71,8 @@ const timePointOverlay = {
   },
 };
 
-new Idetik({
+const idetik = await Idetik.create({
+  renderer: "webgpu-experimental",
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
@@ -82,7 +83,9 @@ new Idetik({
   ],
   overlays: [timePointOverlay],
   showStats: true,
-}).start();
+});
+
+idetik.start();
 
 const controls = {
   showWireframes: imageLayer.debugMode,

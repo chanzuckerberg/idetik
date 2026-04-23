@@ -109,7 +109,10 @@ export default class WebGPUPipelines {
     if (name === "image_scalar_f32") {
       for (const entry of textureDescriptor.entries as GPUBindGroupLayoutEntry[]) {
         if (entry.texture) {
-          entry.texture = { ...entry.texture, sampleType: "unfilterable-float" };
+          entry.texture = {
+            ...entry.texture,
+            sampleType: "unfilterable-float",
+          };
         }
       }
     }

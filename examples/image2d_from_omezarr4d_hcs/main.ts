@@ -43,7 +43,8 @@ const policy = createNoPrefetchPolicy();
 
 const camera = new OrthographicCamera(0, xSize * xScale, 0, ySize * yScale);
 
-const app = new Idetik({
+const idetik = await Idetik.create({
+  renderer: "webgpu-experimental",
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
     {
@@ -51,9 +52,11 @@ const app = new Idetik({
       cameraControls: new PanZoomControls(camera),
     },
   ],
-}).start();
+});
 
-const viewport = app.viewports[0];
+idetik.start();
+
+const viewport = idetik.viewports[0];
 const imageSelector = document.querySelector("#image") as HTMLSelectElement;
 
 const onImageChange = async () => {
