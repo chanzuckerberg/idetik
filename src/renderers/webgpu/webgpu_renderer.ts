@@ -10,10 +10,14 @@ import { vec2, mat4 } from "gl-matrix";
 
 import WebGPUBindings from "./webgpu_bindings";
 import WebGPUGeometryBuffers from "./webgpu_geometry_buffers";
-import WebGPUPipelines, { WebGPUPipeline } from "./webgpu_pipelines";
+import WebGPUPipelines, {
+  ShaderName,
+  WebGPUPipeline,
+} from "./webgpu_pipelines";
 import WebGPUTexturePool from "./webgpu_texture_pool";
 
 import { RenderableObject } from "@/core/renderable_object";
+import { Texture } from "@/objects/textures/texture";
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -100,7 +104,11 @@ class WebGPURenderer extends Renderer {
   }
 
   public async compileShaders() {
-    await this.pipelines_.compileShader("image_scalar_unsigned");
+    await Promise.all([
+      this.pipelines_.compileShader("image_scalar_u32"),
+      this.pipelines_.compileShader("image_scalar_i32"),
+      this.pipelines_.compileShader("image_scalar_f32"),
+    ]);
   }
 
   public override beginFrame() {
@@ -212,7 +220,7 @@ class WebGPURenderer extends Renderer {
 
     const pipeline = this.pipelines_.get(
       {
-        shaderName: "image_scalar_unsigned",
+        shaderName: shaderNameForTexture(object.textures[0]),
         depthWrite: this.currentDepthWrite_,
         depthTest: object.depthTest,
         stencil: this.currentStencil_,
@@ -357,5 +365,20 @@ class WebGPURenderer extends Renderer {
       clipSpaceCorrection,
       projectionMatrix
     );
+  }
+}
+
+function shaderNameForTexture(texture: Texture): ShaderName {
+  switch (texture.dataType) {
+    case "byte":
+    case "unsigned_byte":
+    case "float":
+      return "image_scalar_f32";
+    case "short":
+    case "int":
+      return "image_scalar_i32";
+    case "unsigned_short":
+    case "unsigned_int":
+      return "image_scalar_u32";
   }
 }

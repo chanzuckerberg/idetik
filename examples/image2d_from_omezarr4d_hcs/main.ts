@@ -42,6 +42,7 @@ wellPaths.forEach((path) => {
 const policy = createNoPrefetchPolicy();
 
 const camera = new OrthographicCamera(0, xSize * xScale, 0, ySize * yScale);
+
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
