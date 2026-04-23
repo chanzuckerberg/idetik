@@ -98,7 +98,7 @@ export default class WebGPUPipelines {
       : "always";
 
     const stencilFace: GPUStencilFaceState = key.stencil
-      ? { compare: "always", passOp: "replace" }
+      ? { compare: "equal", passOp: "increment-clamp" }
       : {};
 
     const pipelineDesc = {
@@ -130,7 +130,7 @@ export default class WebGPUPipelines {
         stencilFront: stencilFace,
         stencilBack: stencilFace,
         stencilReadMask: 0xff,
-        stencilWriteMask: key.stencil ? 0xff : 0x00,
+        stencilWriteMask: 0xff,
       },
     };
 

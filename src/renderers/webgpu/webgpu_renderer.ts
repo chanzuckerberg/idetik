@@ -283,15 +283,15 @@ class WebGPURenderer extends Renderer {
     pipeline: WebGPUPipeline,
     camera: Camera
   ) {
-    if (object.type !== "ImageRenderable") {
-      throw new Error(
-        "Experimental WebGPU renderer only supports image renderables"
-      );
-    }
-
     if (!this.passEncoder_) {
       throw new Error(
         "Valid render pass encoder must be set before updating uniforms"
+      );
+    }
+
+    if (object.type !== "ImageRenderable") {
+      throw new Error(
+        "Experimental WebGPU renderer only supports image renderables"
       );
     }
 
@@ -319,15 +319,21 @@ class WebGPURenderer extends Renderer {
     object: RenderableObject,
     pipeline: WebGPUPipeline
   ) {
+    if (!this.passEncoder_) {
+      throw new Error(
+        "Valid render pass encoder must be set before updating textures"
+      );
+    }
+
     if (object.type !== "ImageRenderable") {
       throw new Error(
         "Experimental WebGPU renderer only supports image renderables"
       );
     }
 
-    if (!this.passEncoder_) {
+    if (object.textures.length > 1) {
       throw new Error(
-        "Valid render pass encoder must be set before updating textures"
+        "Experimental WebGPU renderer only supports single textures"
       );
     }
 
