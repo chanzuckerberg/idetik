@@ -1,7 +1,7 @@
 import { Box2 } from "@/math/box2";
 import { Camera } from "@/objects/cameras/camera";
 import { Frustum } from "@/math/frustum";
-import { Layer } from "@/core/layer";
+import { Layer, BlendMode } from "@/core/layer";
 import { Logger } from "@/utilities/logger";
 import { Renderer } from "@/core/renderer";
 import { Viewport } from "@/core/viewport";
@@ -59,6 +59,7 @@ class WebGPURenderer extends Renderer {
   private renderedObjectsPerFrame_ = 0;
   private currentDepthWrite_ = true;
   private currentStencil_ = false;
+  private currentBlendMode_: BlendMode = "none";
   private currentOpacity_ = 1.0;
   private needsClear_ = true;
 
@@ -183,6 +184,7 @@ class WebGPURenderer extends Renderer {
       this.passEncoder_.setStencilReference(0);
     }
 
+    this.currentBlendMode_ = layer.transparent ? layer.blendMode : "none";
     this.currentOpacity_ = layer.opacity;
 
     layer.objects.forEach((object, i) => {
@@ -214,6 +216,7 @@ class WebGPURenderer extends Renderer {
         depthWrite: this.currentDepthWrite_,
         depthTest: object.depthTest,
         stencil: this.currentStencil_,
+        blendMode: this.currentBlendMode_,
         cullMode: "back",
         topology: "triangle-list",
         vertexAttributesStr: geometryBuffer.attributesKey,

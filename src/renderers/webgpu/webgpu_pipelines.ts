@@ -1,5 +1,6 @@
 import { WebGPUGeometryBuffer } from "./webgpu_geometry_buffers";
 
+import { BlendMode } from "@/core/layer";
 import { Logger } from "@/utilities/logger";
 
 import ImageScalarUnsigned from "./shaders/image_scalar_unsigned.wgsl";
@@ -17,6 +18,7 @@ export type PipelineKey = {
   depthWrite: boolean;
   depthTest: boolean;
   stencil: boolean;
+  blendMode: BlendMode;
   cullMode: GPUCullMode;
   topology: GPUPrimitiveTopology;
   vertexAttributesStr: string;
@@ -139,7 +141,12 @@ export default class WebGPUPipelines {
       fragment: {
         module: shaderModule.module,
         entryPoint: "frag",
-        targets: [{ format: this.colorFormat_ }],
+        targets: [
+          {
+            format: this.colorFormat_,
+            blend: blendStateFromMode(key.blendMode),
+          },
+        ],
       },
       primitive: {
         topology: key.topology,
@@ -187,6 +194,7 @@ export default class WebGPUPipelines {
   private getCachedPipeline(key: PipelineKey) {
     return this.pipelines_.find(
       (p) =>
+        p.key.blendMode === key.blendMode &&
         p.key.cullMode === key.cullMode &&
         p.key.depthTest === key.depthTest &&
         p.key.depthWrite === key.depthWrite &&
@@ -203,4 +211,42 @@ function shaderSourceFromName(name: ShaderName) {
     case "image_scalar_unsigned":
       return ImageScalarUnsigned;
   }
+}
+
+function blendStateFromMode(mode: BlendMode): GPUBlendState | undefined {
+  let srcFactor: GPUBlendFactor;
+  let dstFactor: GPUBlendFactor;
+
+  switch (mode) {
+    case "none":
+      return undefined;
+    case "additive":
+      srcFactor = "src-alpha";
+      dstFactor = "one";
+      break;
+    case "multiply":
+      srcFactor = "dst";
+      dstFactor = "zero";
+      break;
+    case "subtractive":
+      srcFactor = "zero";
+      dstFactor = "one-minus-src";
+      break;
+    case "premultiplied":
+      srcFactor = "one-minus-dst-alpha";
+      dstFactor = "one";
+      break;
+    case "normal":
+      srcFactor = "src-alpha";
+      dstFactor = "one-minus-src-alpha";
+      break;
+  }
+
+  const component: GPUBlendComponent = {
+    srcFactor,
+    dstFactor,
+    operation: "add",
+  };
+
+  return { color: component, alpha: component };
 }
