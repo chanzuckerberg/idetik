@@ -57,6 +57,7 @@ class WebGPURenderer extends Renderer {
   private readonly pipelines_: WebGPUPipelines;
   private readonly texturePool_: WebGPUTexturePool;
 
+  private colorMSAATexture_: GPUTexture | null = null;
   private depthStencilTexture_: GPUTexture | null = null;
   private passEncoder_: GPURenderPassEncoder | null = null;
 
@@ -277,12 +278,25 @@ class WebGPURenderer extends Renderer {
   }
 
   protected override resize(width: number, height: number) {
+    if (this.colorMSAATexture_) {
+      this.colorMSAATexture_.destroy();
+    }
+
+    this.colorMSAATexture_ = this.device_.createTexture({
+      size: { width, height },
+      format: this.colorFormat_,
+      sampleCount: 4,
+      usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+
     if (this.depthStencilTexture_) {
       this.depthStencilTexture_.destroy();
     }
+
     this.depthStencilTexture_ = this.device_.createTexture({
       size: { width, height },
       format: this.depthFormat_,
+      sampleCount: 4,
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
   }
@@ -293,7 +307,8 @@ class WebGPURenderer extends Renderer {
     return encoder.beginRenderPass({
       colorAttachments: [
         {
-          view: this.context_.getCurrentTexture().createView(),
+          view: this.colorMSAATexture_!.createView(),
+          resolveTarget: this.context_.getCurrentTexture().createView(),
           loadOp,
           storeOp: "store",
           clearValue: {

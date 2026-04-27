@@ -181,6 +181,7 @@ export default class WebGPUPipelines {
         stencilReadMask: 0xff,
         stencilWriteMask: 0xff,
       },
+      multisample: { count: 4 },
     };
 
     const layout = this.device_.createPipelineLayout({
