@@ -1,7 +1,6 @@
 import * as zarr from "zarrita";
 import { Location, Readable, FetchStore } from "zarrita";
 import WebFileSystemStore from "./web_file_system_store";
-import { S3FetchStore, type S3FetchStoreProps } from "./s3_fetch_store";
 
 export type Version = "v2" | "v3";
 
@@ -13,9 +12,6 @@ export type ZarrArrayParams = {
       type: "fetch";
       url: string;
     }
-  | ({
-      type: "s3";
-    } & S3FetchStoreProps)
   | {
       type: "filesystem";
       directoryHandle: FileSystemDirectoryHandle;
@@ -84,11 +80,6 @@ export async function openArrayFromParams(
       rootLocation = new Location(store);
       break;
     }
-    case "s3": {
-      const store = new S3FetchStore(params);
-      rootLocation = new Location(store);
-      break;
-    }
     case "filesystem": {
       rootLocation = new Location(
         new WebFileSystemStore(params.directoryHandle),
@@ -114,18 +105,7 @@ export function createZarrArrayParams(
   arrayPath: string,
   zarrVersion: Version | undefined
 ): ZarrArrayParams {
-  if (location.store instanceof S3FetchStore) {
-    return {
-      type: "s3",
-      arrayPath,
-      zarrVersion,
-      url: location.store.url.toString(),
-      region: location.store.region,
-      credentials: location.store.credentials,
-      overrides: location.store.overrides,
-      useSuffixRequest: location.store.useSuffixRequest,
-    };
-  } else if (location.store instanceof FetchStore) {
+  if (location.store instanceof FetchStore) {
     return {
       type: "fetch",
       arrayPath,

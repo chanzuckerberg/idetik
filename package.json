@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "gl-matrix": "^3.4.3",
-    "zarrita": "^0.5.4",
+    "zarrita": "^0.7.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {
