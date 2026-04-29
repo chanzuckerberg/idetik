@@ -112,6 +112,7 @@ class WebGPURenderer extends Renderer {
       this.pipelines_.compileShader("image_scalar_u32"),
       this.pipelines_.compileShader("image_scalar_i32"),
       this.pipelines_.compileShader("image_scalar_f32"),
+      this.pipelines_.compileShader("wireframe"),
     ]);
   }
 
@@ -274,6 +275,55 @@ class WebGPURenderer extends Renderer {
       renderPass.drawIndexed(object.geometry.indexData.length);
     } else {
       renderPass.draw(object.geometry.vertexCount);
+    }
+
+    if (object.wireframeEnabled) {
+      this.renderWireframe(object, camera);
+    }
+  }
+
+  private renderWireframe(object: RenderableObject, camera: Camera) {
+    const wireframeGeometry = object.wireframeGeometry;
+    if (wireframeGeometry.indexData.length === 0) return;
+
+    const renderPass = this.passEncoder_!;
+    const geometryBuffer = this.geometryBuffers_.get(wireframeGeometry);
+
+    const pipeline = this.pipelines_.get(
+      {
+        shaderName: "wireframe",
+        depthWrite: this.currentDepthWrite_,
+        depthTest: object.depthTest,
+        stencil: this.currentStencil_,
+        blendMode: this.currentBlendMode_,
+        cullMode: "none",
+        topology: "line-list",
+        vertexAttributesStr: geometryBuffer.attributesKey,
+      },
+      geometryBuffer
+    );
+
+    renderPass.setPipeline(pipeline.pipeline);
+
+    const modelView = mat4.multiply(
+      this.scratchModelView_,
+      camera.viewMatrix,
+      object.transform.matrix
+    );
+
+    pipeline.uniformsView.set({
+      projection: this.currentProjection_,
+      modelView,
+      color: object.wireframeColor.rgb,
+      opacity: this.currentOpacity_,
+    });
+
+    this.bindings_.setUniforms(renderPass, pipeline);
+
+    renderPass.setVertexBuffer(0, geometryBuffer.vertex);
+    if (geometryBuffer.index) {
+      renderPass.setIndexBuffer(geometryBuffer.index, "uint32");
+      renderPass.drawIndexed(wireframeGeometry.indexData.length);
     }
   }
 

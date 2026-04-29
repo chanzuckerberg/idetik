@@ -66,6 +66,9 @@ export default class WebGPUBindings {
     texture: GPUTexture
   ) {
     const layout = pipeline.layouts.texture;
+    if (!layout) {
+      throw new Error("setTexture called on pipeline without a texture layout");
+    }
 
     let entry = this.textureEntries_.find(
       (e) => e.layout === layout && e.texture === texture

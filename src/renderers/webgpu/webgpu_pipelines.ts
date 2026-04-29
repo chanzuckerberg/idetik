@@ -6,6 +6,7 @@ import { Logger } from "@/utilities/logger";
 import ImageScalarU32 from "./shaders/image_scalar_u32.wgsl";
 import ImageScalarI32 from "./shaders/image_scalar_i32.wgsl";
 import ImageScalarF32 from "./shaders/image_scalar_f32.wgsl";
+import Wireframe from "./shaders/wireframe.wgsl";
 
 import {
   ShaderDataDefinitions,
@@ -33,14 +34,15 @@ export type WebGPUPipeline = {
   uniformsData: Float32Array;
   layouts: {
     object: GPUBindGroupLayout;
-    texture: GPUBindGroupLayout;
+    texture?: GPUBindGroupLayout;
   };
 };
 
 export type ShaderName =
   | "image_scalar_u32"
   | "image_scalar_i32"
-  | "image_scalar_f32";
+  | "image_scalar_f32"
+  | "wireframe";
 
 type WebGPUShaderModule = {
   name: ShaderName;
@@ -48,7 +50,7 @@ type WebGPUShaderModule = {
   defs: ShaderDataDefinitions;
   layouts: {
     object: GPUBindGroupLayout;
-    texture: GPUBindGroupLayout;
+    texture?: GPUBindGroupLayout;
   };
 };
 
@@ -95,7 +97,6 @@ export default class WebGPUPipelines {
     });
 
     const objectDescriptor = descriptors[defs.uniforms.object.group];
-    const textureDescriptor = descriptors[defs.textures.texture.group];
 
     for (const entry of objectDescriptor.entries as GPUBindGroupLayoutEntry[]) {
       if (entry.buffer) {
@@ -103,26 +104,37 @@ export default class WebGPUPipelines {
       }
     }
 
-    // r32float isn't filterable without the `float32-filterable` feature.
-    // Since we don't use a sampler, it's safe to use unfilterable-float
-    // across all float-valued formats.
-    if (name === "image_scalar_f32") {
-      for (const entry of textureDescriptor.entries as GPUBindGroupLayoutEntry[]) {
-        if (entry.texture) {
-          entry.texture = {
-            ...entry.texture,
-            sampleType: "unfilterable-float",
-          };
+    const textureDef = defs.textures?.texture;
+    let textureLayout: GPUBindGroupLayout | undefined;
+    if (textureDef) {
+      const textureDescriptor = descriptors[textureDef.group];
+
+      // r32float isn't filterable without the `float32-filterable` feature.
+      // Since we don't use a sampler, it's safe to use unfilterable-float
+      // across all float-valued formats.
+      if (name === "image_scalar_f32") {
+        for (const entry of textureDescriptor.entries as GPUBindGroupLayoutEntry[]) {
+          if (entry.texture) {
+            entry.texture = {
+              ...entry.texture,
+              sampleType: "unfilterable-float",
+            };
+          }
         }
       }
+
+      textureLayout = this.device_.createBindGroupLayout(textureDescriptor);
     }
 
-    const layouts = {
-      object: this.device_.createBindGroupLayout(objectDescriptor),
-      texture: this.device_.createBindGroupLayout(textureDescriptor),
-    };
-
-    this.shaderModules_.push({ name, module, defs, layouts });
+    this.shaderModules_.push({
+      name,
+      module,
+      defs,
+      layouts: {
+        object: this.device_.createBindGroupLayout(objectDescriptor),
+        texture: textureLayout,
+      },
+    });
   }
 
   public get(key: PipelineKey, geometryBuffer: WebGPUGeometryBuffer) {
@@ -184,12 +196,14 @@ export default class WebGPUPipelines {
       multisample: { count: 4 },
     };
 
-    const layout = this.device_.createPipelineLayout({
-      bindGroupLayouts: [
-        shaderModule.layouts.object,
-        shaderModule.layouts.texture,
-      ],
-    });
+    const bindGroupLayouts: GPUBindGroupLayout[] = [
+      shaderModule.layouts.object,
+    ];
+    if (shaderModule.layouts.texture) {
+      bindGroupLayouts.push(shaderModule.layouts.texture);
+    }
+
+    const layout = this.device_.createPipelineLayout({ bindGroupLayouts });
 
     const pipeline = this.device_.createRenderPipeline({
       layout,
@@ -234,6 +248,8 @@ function shaderSourceFromName(name: ShaderName) {
       return ImageScalarI32;
     case "image_scalar_f32":
       return ImageScalarF32;
+    case "wireframe":
+      return Wireframe;
   }
 }
 
