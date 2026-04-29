@@ -3,7 +3,7 @@ struct Varyings {
   @location(0) tex_coords: vec2f,
 };
 
-struct ObjectUniforms {
+struct Uniforms {
   modelView: mat4x4f,
   projection: mat4x4f,
   color: vec3f,
@@ -12,7 +12,7 @@ struct ObjectUniforms {
   valueScale: f32,
 };
 
-@group(0) @binding(0) var<uniform> object: ObjectUniforms;
+@group(0) @binding(0) var<uniform> uniforms: Uniforms;
 @group(1) @binding(0) var texture: texture_2d<u32>;
 
 @vertex
@@ -21,7 +21,7 @@ fn vert(
   @location(2) aTexCoords: vec2f,
 ) -> Varyings {
   var out = Varyings();
-  out.position = object.projection * object.modelView * vec4f(aPos, 1.0);
+  out.position = uniforms.projection * uniforms.modelView * vec4f(aPos, 1.0);
   out.tex_coords = aTexCoords;
   return out;
 }
@@ -31,6 +31,6 @@ fn frag(in: Varyings) -> @location(0) vec4f {
   let dims = textureDimensions(texture);
   let coords = vec2u(in.tex_coords * vec2f(dims));
   let texel = f32(textureLoad(texture, coords, 0).r);
-  let value = (texel + object.valueOffset) * object.valueScale;
-  return vec4f(value * object.color, object.opacity);
+  let value = (texel + uniforms.valueOffset) * uniforms.valueScale;
+  return vec4f(value * uniforms.color, uniforms.opacity);
 }

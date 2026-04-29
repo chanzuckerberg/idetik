@@ -96,7 +96,7 @@ export default class WebGPUPipelines {
       fragment: { entryPoint: "frag" },
     });
 
-    const objectDescriptor = descriptors[defs.uniforms.object.group];
+    const objectDescriptor = descriptors[defs.uniforms.uniforms.group];
 
     for (const entry of objectDescriptor.entries as GPUBindGroupLayoutEntry[]) {
       if (entry.buffer) {
@@ -210,7 +210,7 @@ export default class WebGPUPipelines {
       ...pipelineDesc,
     } as GPURenderPipelineDescriptor);
 
-    const uniformsView = makeStructuredView(shaderModule.defs.uniforms.object);
+    const uniformsView = makeStructuredView(shaderModule.defs.uniforms.uniforms);
 
     const entry: WebGPUPipeline = {
       key,
