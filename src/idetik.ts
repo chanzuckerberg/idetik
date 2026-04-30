@@ -11,6 +11,10 @@ import {
 } from "./core/viewport";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 import { FrameTimer, type FrameTimingStats } from "./utilities/frame_timer";
+import {
+  createFrameTimingOverlay,
+  updateFrameTimingOverlay,
+} from "./utilities/frame_timing_overlay";
 
 export type Overlay = {
   update(idetik: Idetik): void;
@@ -21,6 +25,7 @@ type IdetikParams = {
   viewports?: ViewportConfig[];
   overlays?: Overlay[];
   showStats?: boolean;
+  showFrameTiming?: boolean;
 };
 
 export type IdetikContext = {
@@ -36,6 +41,7 @@ export class Idetik {
   public readonly overlays: Overlay[];
   private readonly stats_?: Stats;
   private readonly frameTimer_ = new FrameTimer();
+  private readonly frameTimingOverlay_?: HTMLElement;
   private readonly sizeObserver_: PixelSizeObserver;
   private lastAnimationId_?: number;
 
@@ -107,6 +113,9 @@ export class Idetik {
     this.overlays = params.overlays ?? [];
 
     if (params.showStats) this.stats_ = createStats();
+    if (params.showFrameTiming) {
+      this.frameTimingOverlay_ = createFrameTimingOverlay();
+    }
 
     const sizeDependents: HTMLElement[] = [this.canvas];
     for (const viewport of this.viewports_) {
@@ -223,6 +232,7 @@ export class Idetik {
     // cap dt to prevent large time-step jumps when resuming from background tabs
     const dt = Math.min(timestamp - this.lastTimestamp_, 100) / 1000;
 
+    const frameDeltaMs = timestamp - this.lastTimestamp_;
     this.lastTimestamp_ = timestamp;
 
     const renderStart = performance.now();
@@ -232,7 +242,21 @@ export class Idetik {
       this.renderer_.render(viewport);
     }
 
-    this.frameTimer_.recordFrame(performance.now() - renderStart);
+    const renderSubmitMs = performance.now() - renderStart;
+
+    this.frameTimer_.recordFrame({
+      frameDeltaMs,
+      renderSubmitMs,
+      gpuTimeMs: this.renderer_.gpuFrameTimeMs,
+    });
+
+    if (this.frameTimingOverlay_) {
+      updateFrameTimingOverlay(
+        this.frameTimingOverlay_,
+        this.frameTimer_,
+        this.renderer_.renderedObjects
+      );
+    }
 
     this.chunkManager_.update();
 

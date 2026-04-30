@@ -58,6 +58,11 @@ export abstract class Renderer {
     return this.renderedObjects_;
   }
 
+  /** GPU execution time in ms. Override in subclasses that support GPU timing. */
+  public get gpuFrameTimeMs(): number {
+    return 0;
+  }
+
   public set backgroundColor(color: ColorLike) {
     this.backgroundColor_ = Color.from(color);
   }
