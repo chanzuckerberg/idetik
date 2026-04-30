@@ -25,7 +25,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vite-plugin-glsl/ext", "vite/client", "node"]
+    "types": ["vite-plugin-glsl/ext", "vite/client", "node", "@webgpu/types"]
   },
   "include": ["examples", "src", "test"]
 }

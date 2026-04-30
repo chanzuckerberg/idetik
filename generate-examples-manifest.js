@@ -1,4 +1,3 @@
-/* eslint-env node */
 /* global process */
 
 import { readdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';

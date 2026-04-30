@@ -68,8 +68,9 @@ const imageLayer = new ImageLayer({
   channelProps: [{ contrastLimits: [0, 200] }],
 });
 
-new Idetik({
-  canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
+const idetik = await Idetik.create({
+  renderer: "webgpu-experimental",
+  canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
     {
       id: "volume",
@@ -89,8 +90,10 @@ new Idetik({
       layers: [imageLayer],
     },
   ],
-  showStats: true,
-}).start();
+  showStats: true
+});
+
+idetik.start();
 
 const gui = new GUI({ width: 300 });
 
