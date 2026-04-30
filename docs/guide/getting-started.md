@@ -22,15 +22,12 @@ const source = OmeZarrImageSource.fromHttp({
   url: 'https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/'
 })
 
-const loader = await source.open()
-const dimMap = loader.getSourceDimensionMap()
-
 const camera = new OrthographicCamera(100, 900, 100, 900)
 const layer = new ChunkedImageLayer({
-  source: { open: () => Promise.resolve(loader) },
-  sliceCoords: { t: 0, z: 0, c: 0 },
+  source,
+  sliceCoords: { t: 0, c: 0, z: 0 },
   policy: createExplorationPolicy(),
-  channelProps: [{ contrastLimits: [0, 150] }],
+  channelProps: [{ contrastLimits: [0, 150], visible: true }],
 })
 
 const idetik = new Idetik({

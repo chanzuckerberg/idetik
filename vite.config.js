@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => {
   if (mode === 'examples') {
     return {
       root: 'examples',
-      base: '/_example-preview/',
+      base: './',
       plugins: [eslint(), glsl(), examplesManifestPlugin()],
       publicDir: path.resolve(_dirname, 'public'),
       build: {

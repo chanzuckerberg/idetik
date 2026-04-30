@@ -10,6 +10,22 @@ const MIME = {
   '.wasm': 'application/wasm',
 }
 
+function reloadOnExampleRebuildPlugin() {
+  const previewDir = path.resolve(__dirname, '../docs/public/_example-preview')
+  return {
+    name: 'reload-on-example-rebuild',
+    configureServer(server) {
+      server.watcher.add(previewDir)
+      server.watcher.on('change', (file) => {
+        if (file.startsWith(previewDir)) server.ws.send({ type: 'full-reload' })
+      })
+    }
+  }
+}
+
+// VitePress registers its HTML middleware before Vite's static file middleware,
+// so directory requests to /_example-preview/ get caught by VitePress's 404
+// handler instead of being served as index.html. enforce:'pre' runs this first.
 function servePreviewPlugin() {
   const previewDir = path.resolve(__dirname, '../docs/public/_example-preview')
   return {
@@ -17,8 +33,11 @@ function servePreviewPlugin() {
     enforce: 'pre',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (!req.url?.startsWith('/_example-preview')) return next()
-        let urlPath = req.url.split('?')[0].slice('/_example-preview'.length)
+        const base = server.config.base?.replace(/\/$/, '') ?? ''
+        let url = req.url?.split('?')[0] ?? ''
+        if (url.startsWith(base)) url = url.slice(base.length)
+        if (!url.startsWith('/_example-preview')) return next()
+        let urlPath = url.slice('/_example-preview'.length)
         if (!urlPath || urlPath.endsWith('/')) urlPath = (urlPath || '') + 'index.html'
         const filePath = path.resolve(previewDir, urlPath.slice(1))
         if (!filePath.startsWith(previewDir) || !existsSync(filePath)) return next()
@@ -37,7 +56,7 @@ function getExampleSidebarItems() {
     .map(e => {
       const html = readFileSync(path.resolve(examplesDir, e.name, 'index.html'), 'utf-8')
       const match = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-      return { text: match?.[1] ?? e.name, link: `/_example-preview/${e.name}/` }
+      return { text: match?.[1] ?? e.name, link: `/_example-preview/#${e.name}/`, target: '_blank' }
     })
     .sort((a, b) => a.text.localeCompare(b.text))
 }
@@ -49,7 +68,7 @@ export default defineConfig({
   srcDir: 'docs',
 
   vite: {
-    plugins: [servePreviewPlugin()],
+    plugins: [reloadOnExampleRebuildPlugin(), servePreviewPlugin()],
     server: { port: 5174 },
   },
 

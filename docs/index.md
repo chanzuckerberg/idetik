@@ -15,9 +15,9 @@ hero:
 
 features:
   - title: Large-scale bioimaging
-    details: Stream and render terabyte-scale microscopy datasets directly in the browser using chunked, level-of-detail loading.
+    details: Stream and render terabyte-scale microscopy datasets directly in the browser with GPU-accelerated rendering.
   - title: OME-Zarr native
-    details: First-class support for OME-Zarr v0.4 and v0.5, the community standard for cloud-hosted bioimaging data.
+    details: First-class support for OME-Zarr, the community standard for cloud-hosted bioimaging data.
   - title: Framework agnostic
     details: Works with any frontend stack — or none at all. Pure TypeScript with no required framework dependencies.
   - title: Composable architecture

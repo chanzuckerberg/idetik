@@ -43,9 +43,9 @@
     "format-check": "prettier --check './**/*.{ts,tsx,html,json}'",
     "lint": "eslint .",
     "pub": "npm run build; npm publish --access=public",
-    "docs:dev": "npm run build:examples && vitepress dev",
+    "docs:dev": "npm run build:examples && (trap 'kill 0' EXIT; vite build --watch --mode examples & vitepress dev; wait)",
     "docs:build": "npm run build:examples && vitepress build",
-    "docs:preview": "vitepress preview"
+    "docs:preview": "npm run docs:build && vitepress preview"
   },
   "dependencies": {
     "gl-matrix": "^3.4.3",
