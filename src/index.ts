@@ -1,5 +1,6 @@
 export { Idetik } from "./idetik";
 export type { Overlay } from "./idetik";
+export type { FrameTimingStats } from "./utilities/frame_timer";
 
 export { WebGLRenderer } from "./renderers/webgl_renderer";
 export { OrthographicCamera } from "./objects/cameras/orthographic_camera";

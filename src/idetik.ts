@@ -10,6 +10,7 @@ import {
   ViewportConfig,
 } from "./core/viewport";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
+import { FrameTimer, type FrameTimingStats } from "./utilities/frame_timer";
 
 export type Overlay = {
   update(idetik: Idetik): void;
@@ -34,6 +35,7 @@ export class Idetik {
   public readonly canvas: HTMLCanvasElement;
   public readonly overlays: Overlay[];
   private readonly stats_?: Stats;
+  private readonly frameTimer_ = new FrameTimer();
   private readonly sizeObserver_: PixelSizeObserver;
   private lastAnimationId_?: number;
 
@@ -123,6 +125,10 @@ export class Idetik {
 
   public get chunkQueueStats() {
     return this.chunkManager_.queueStats;
+  }
+
+  public get frameTimingStats(): FrameTimingStats {
+    return this.frameTimer_.stats;
   }
 
   public get renderedObjects() {
@@ -219,10 +225,14 @@ export class Idetik {
 
     this.lastTimestamp_ = timestamp;
 
+    const renderStart = performance.now();
+
     for (const viewport of this.viewports_) {
       viewport.cameraControls?.onUpdate(dt);
       this.renderer_.render(viewport);
     }
+
+    this.frameTimer_.recordFrame(performance.now() - renderStart);
 
     this.chunkManager_.update();
 
