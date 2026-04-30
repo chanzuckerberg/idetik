@@ -46,7 +46,9 @@ export function updateFrameTimingOverlay(
     lines.push(`gpu        ---`);
   }
 
-  lines.push(`fps   ${s.fps.toFixed(0).padStart(7)}    objects ${renderedObjects}`);
+  lines.push(
+    `fps   ${s.fps.toFixed(0).padStart(7)}    objects ${renderedObjects}`
+  );
 
   el.textContent = lines.join("\n");
 }
