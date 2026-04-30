@@ -10,7 +10,7 @@ type UniformEntry = {
 
 type TextureEntry = {
   layout: GPUBindGroupLayout;
-  texture: GPUTexture;
+  textures: GPUTexture[];
   group: GPUBindGroup;
 };
 
@@ -26,6 +26,18 @@ export default class WebGPUBindings {
   public clear() {
     for (const entry of this.uniformEntries_) {
       entry.buffer.clear();
+    }
+  }
+
+  // Drop cached bind groups that reference a texture whose GPU resource is
+  // about to be destroyed. Without this, entries pile up referencing dead
+  // GPUTextures -- they never match again (new textures have new identities)
+  // but the find() walk in setTextures still has to iterate them every draw.
+  public removeTexture(texture: GPUTexture) {
+    for (let i = this.textureEntries_.length - 1; i >= 0; i--) {
+      if (this.textureEntries_[i].textures.includes(texture)) {
+        this.textureEntries_.splice(i, 1);
+      }
     }
   }
 
@@ -60,31 +72,32 @@ export default class WebGPUBindings {
     pass.setBindGroup(0, entry.group, [offset]);
   }
 
-  public setTexture(
+  public setTextures(
     pass: GPURenderPassEncoder,
     pipeline: WebGPUPipeline,
-    texture: GPUTexture
+    textures: GPUTexture[]
   ) {
     const layout = pipeline.layouts.texture;
     if (!layout) {
-      throw new Error("setTexture called on pipeline without a texture layout");
+      throw new Error("setTextures called on pipeline without a texture layout");
     }
 
     let entry = this.textureEntries_.find(
-      (e) => e.layout === layout && e.texture === texture
+      (e) =>
+        e.layout === layout &&
+        e.textures.length === textures.length &&
+        e.textures.every((t, i) => t === textures[i])
     );
 
     if (!entry) {
       const group = this.device_.createBindGroup({
         layout,
-        entries: [
-          {
-            binding: 0,
-            resource: texture.createView(),
-          },
-        ],
+        entries: textures.map((texture, i) => ({
+          binding: i,
+          resource: texture.createView(),
+        })),
       });
-      entry = { layout, texture, group };
+      entry = { layout, textures: [...textures], group };
       this.textureEntries_.push(entry);
     }
 

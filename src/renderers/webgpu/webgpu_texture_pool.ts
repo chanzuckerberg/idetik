@@ -3,6 +3,7 @@ import {
   textureBytesPerChannel,
   textureChannelCount,
 } from "@/objects/textures/texture";
+import { Texture3D } from "@/objects/textures/texture_3d";
 
 type WebGPUTexture = {
   texture: Texture;
@@ -12,6 +13,7 @@ type WebGPUTexture = {
 export default class WebGPUTexturePool {
   private readonly device_: GPUDevice;
   private readonly textures_: WebGPUTexture[];
+  private dummy3D_: GPUTexture | null = null;
 
   constructor(device: GPUDevice) {
     this.device_ = device;
@@ -27,44 +29,95 @@ export default class WebGPUTexturePool {
       return cached.buffer;
     }
 
-    const size = { width: texture.width, height: texture.height };
-    const buffer = this.device_.createTexture({
-      size,
-      format: textureGPUFormat(texture),
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-    });
-
+    const buffer = this.create(texture);
     this.upload(texture, buffer);
     this.textures_.push({ texture, buffer });
 
     return buffer;
   }
 
-  public dispose(texture: Texture) {
-    const index = this.textures_.findIndex((t) => t.texture === texture);
-    if (index === -1) return;
+  public dummy3D() {
+    if (!this.dummy3D_) {
+      this.dummy3D_ = this.device_.createTexture({
+        size: { width: 1, height: 1, depthOrArrayLayers: 1 },
+        dimension: "3d",
+        format: "r32uint",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      });
+      this.device_.queue.writeTexture(
+        { texture: this.dummy3D_ },
+        new Uint32Array([0]),
+        { bytesPerRow: 4, rowsPerImage: 1 },
+        { width: 1, height: 1, depthOrArrayLayers: 1 }
+      );
+    }
+    return this.dummy3D_;
+  }
 
-    this.textures_[index].buffer.destroy();
+  public dispose(texture: Texture): GPUTexture | null {
+    const index = this.textures_.findIndex((t) => t.texture === texture);
+    if (index === -1) return null;
+
+    const buffer = this.textures_[index].buffer;
+    buffer.destroy();
     this.textures_.splice(index, 1);
+    return buffer;
   }
 
   public disposeAll() {
     for (const t of this.textures_) t.buffer.destroy();
     this.textures_.length = 0;
+    if (this.dummy3D_) {
+      this.dummy3D_.destroy();
+      this.dummy3D_ = null;
+    }
+  }
+
+  private create(texture: Texture): GPUTexture {
+    if (texture instanceof Texture3D) {
+      return this.device_.createTexture({
+        size: {
+          width: texture.width,
+          height: texture.height,
+          depthOrArrayLayers: texture.depth,
+        },
+        dimension: "3d",
+        format: textureGPUFormat(texture),
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      });
+    }
+
+    return this.device_.createTexture({
+      size: { width: texture.width, height: texture.height },
+      format: textureGPUFormat(texture),
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
   }
 
   private upload(texture: Texture, buffer: GPUTexture) {
-    const size = { width: texture.width, height: texture.height };
     const channelCount = textureChannelCount(texture);
     const bytesPerChannel = textureBytesPerChannel(texture);
     const bytesPerRow = texture.width * channelCount * bytesPerChannel;
 
-    this.device_.queue.writeTexture(
-      { texture: buffer },
-      texture.data as BufferSource,
-      { bytesPerRow },
-      size
-    );
+    if (texture instanceof Texture3D) {
+      this.device_.queue.writeTexture(
+        { texture: buffer },
+        texture.data as BufferSource,
+        { bytesPerRow, rowsPerImage: texture.height },
+        {
+          width: texture.width,
+          height: texture.height,
+          depthOrArrayLayers: texture.depth,
+        }
+      );
+    } else {
+      this.device_.queue.writeTexture(
+        { texture: buffer },
+        texture.data as BufferSource,
+        { bytesPerRow },
+        { width: texture.width, height: texture.height }
+      );
+    }
 
     texture.needsUpdate = false;
   }
@@ -73,6 +126,23 @@ export default class WebGPUTexturePool {
 export function textureGPUFormat(texture: Texture): GPUTextureFormat {
   if (texture.dataFormat === "rgb") {
     throw new Error("RGB texture format is not supported in WebGPU");
+  }
+
+  // 3D textures are only used by the volume renderer, which expects uint
+  // formats matching its `texture_3d<u32>` shader binding.
+  if (texture instanceof Texture3D) {
+    switch (texture.dataType) {
+      case "unsigned_byte":
+        return "r8uint";
+      case "unsigned_short":
+        return "r16uint";
+      case "unsigned_int":
+        return "r32uint";
+      default:
+        throw new Error(
+          `3D textures are only supported with unsigned data types (got ${texture.dataType})`
+        );
+    }
   }
 
   if (texture.dataFormat === "scalar") {

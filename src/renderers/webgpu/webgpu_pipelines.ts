@@ -6,6 +6,7 @@ import { Logger } from "@/utilities/logger";
 import ImageScalarU32 from "./shaders/image_scalar_u32.wgsl";
 import ImageScalarI32 from "./shaders/image_scalar_i32.wgsl";
 import ImageScalarF32 from "./shaders/image_scalar_f32.wgsl";
+import VolumeScalarU32 from "./shaders/volume_scalar_u32.wgsl";
 import Wireframe from "./shaders/wireframe.wgsl";
 
 import {
@@ -42,6 +43,7 @@ export type ShaderName =
   | "image_scalar_u32"
   | "image_scalar_i32"
   | "image_scalar_f32"
+  | "volume_scalar_u32"
   | "wireframe";
 
 type WebGPUShaderModule = {
@@ -104,10 +106,14 @@ export default class WebGPUPipelines {
       }
     }
 
-    const textureDef = defs.textures?.texture;
+    // Pull the shader's texture group index from any one declared texture --
+    // all of them share the same bind group, so a single layout covers them.
+    const firstTexture = defs.textures
+      ? Object.values(defs.textures)[0]
+      : undefined;
     let textureLayout: GPUBindGroupLayout | undefined;
-    if (textureDef) {
-      const textureDescriptor = descriptors[textureDef.group];
+    if (firstTexture) {
+      const textureDescriptor = descriptors[firstTexture.group];
 
       // r32float isn't filterable without the `float32-filterable` feature.
       // Since we don't use a sampler, it's safe to use unfilterable-float
@@ -248,6 +254,8 @@ function shaderSourceFromName(name: ShaderName) {
       return ImageScalarI32;
     case "image_scalar_f32":
       return ImageScalarF32;
+    case "volume_scalar_u32":
+      return VolumeScalarU32;
     case "wireframe":
       return Wireframe;
   }
