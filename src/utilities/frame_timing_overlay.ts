@@ -27,12 +27,14 @@ function fmt(ms: number): string {
 export function updateFrameTimingOverlay(
   el: HTMLElement,
   frameTimer: FrameTimer,
-  renderedObjects: number
+  renderedObjects: number,
+  rendererName: string
 ) {
   const s = frameTimer.stats;
   if (s.frameCount === 0) return;
 
   const lines = [
+    `renderer  ${rendererName}`,
     `         avg      last     min      max`,
     `frame ${fmt(s.average.frameDeltaMs)} ${fmt(s.current.frameDeltaMs)} ${fmt(s.min.frameDeltaMs)} ${fmt(s.max.frameDeltaMs)} ms`,
     `cpu   ${fmt(s.average.renderSubmitMs)} ${fmt(s.current.renderSubmitMs)} ${fmt(s.min.renderSubmitMs)} ${fmt(s.max.renderSubmitMs)} ms`,

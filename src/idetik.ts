@@ -140,6 +140,10 @@ export class Idetik {
     return this.frameTimer_.stats;
   }
 
+  public get rendererName(): string {
+    return this.renderer_.name;
+  }
+
   public get renderedObjects() {
     return this.renderer_.renderedObjects;
   }
@@ -254,7 +258,8 @@ export class Idetik {
       updateFrameTimingOverlay(
         this.frameTimingOverlay_,
         this.frameTimer_,
-        this.renderer_.renderedObjects
+        this.renderer_.renderedObjects,
+        this.renderer_.name
       );
     }
 
