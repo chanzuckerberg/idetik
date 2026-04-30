@@ -64,7 +64,7 @@ function getExampleSidebarItems() {
 export default defineConfig({
   title: 'Idetik',
   description: 'A library for creating interactive viewers for large bioimaging data',
-  base: '/idetik/',
+
   srcDir: 'docs',
 
   vite: {
