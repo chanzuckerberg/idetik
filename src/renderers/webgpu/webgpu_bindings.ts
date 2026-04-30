@@ -1,5 +1,5 @@
 import WebGPUDynamicBuffer from "./webgpu_dynamic_buffer";
-import { WebGPUPipeline } from "./webgpu_pipelines";
+import { WebGPUPipeline, WebGPUComputePipeline } from "./webgpu_pipelines";
 
 type UniformEntry = {
   layout: GPUBindGroupLayout;
@@ -13,6 +13,11 @@ type TextureEntry = {
   textures: GPUTexture[];
   group: GPUBindGroup;
 };
+
+// Both render and compute pass encoders implement this mixin, so the same
+// bind-group helpers work for either pass type.
+type BindablePass = GPUBindingCommandsMixin;
+type BindablePipeline = WebGPUPipeline | WebGPUComputePipeline;
 
 export default class WebGPUBindings {
   private readonly device_: GPUDevice;
@@ -41,7 +46,7 @@ export default class WebGPUBindings {
     }
   }
 
-  public setUniforms(pass: GPURenderPassEncoder, pipeline: WebGPUPipeline) {
+  public setUniforms(pass: BindablePass, pipeline: BindablePipeline) {
     const layout = pipeline.layouts.object;
     const data = pipeline.uniformsData;
 
@@ -73,8 +78,8 @@ export default class WebGPUBindings {
   }
 
   public setTextures(
-    pass: GPURenderPassEncoder,
-    pipeline: WebGPUPipeline,
+    pass: BindablePass,
+    pipeline: BindablePipeline,
     textures: GPUTexture[]
   ) {
     const layout = pipeline.layouts.texture;

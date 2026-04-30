@@ -1,13 +1,9 @@
-struct Varyings {
-  @builtin(position) position: vec4f,
-  @location(0) position_model: vec3f,
-};
-
 struct Uniforms {
-  modelView: mat4x4f,
-  projection: mat4x4f,
+  clipToModel: mat4x4f,
   cameraPositionModel: vec3f,
   voxelScale: vec3f,
+  viewportOffset: vec2f,
+  viewportSize: vec2f,
   visible: vec4f,
   valueOffset: vec4f,
   valueScale: vec4f,
@@ -23,17 +19,10 @@ struct Uniforms {
 @group(1) @binding(1) var channel1: texture_3d<u32>;
 @group(1) @binding(2) var channel2: texture_3d<u32>;
 @group(1) @binding(3) var channel3: texture_3d<u32>;
+@group(2) @binding(0) var output: texture_storage_2d<rgba16float, write>;
 
 const BBOX_MIN = vec3f(-0.5);
 const BBOX_MAX = vec3f(0.5);
-
-@vertex
-fn vert(@location(0) aPos: vec3f) -> Varyings {
-  var out = Varyings();
-  out.position = uniforms.projection * uniforms.modelView * vec4f(aPos, 1.0);
-  out.position_model = aPos;
-  return out;
-}
 
 fn rayBoxIntersect(origin: vec3f, dir: vec3f) -> vec2f {
   let inv = 1.0 / dir;
@@ -70,15 +59,41 @@ fn anyTextureSize() -> vec3f {
   return vec3f(1.0);
 }
 
-@fragment
-fn frag(in: Varyings) -> @location(0) vec4f {
-  let rayDir = normalize(in.position_model - uniforms.cameraPositionModel);
+@compute @workgroup_size(8, 8, 1)
+fn main(@builtin(global_invocation_id) gid: vec3u) {
+  let viewportPixel = vec2f(gid.xy) + vec2f(0.5);
+  if (viewportPixel.x >= uniforms.viewportSize.x ||
+      viewportPixel.y >= uniforms.viewportSize.y) {
+    return;
+  }
+
+  let outCoords = vec2i(uniforms.viewportOffset + viewportPixel);
+
+  // The render-pass path runs vertices through clipSpaceCorrection (a Y
+  // flip) and then through the rasterizer's NDC→framebuffer mapping (also a
+  // Y flip), so the two cancel and model-Y aligns with framebuffer-Y. To
+  // match that convention from a compute thread (which writes framebuffer
+  // pixels directly), use the same direct mapping with no Y flip.
+  let ndc = vec2f(
+    viewportPixel.x / uniforms.viewportSize.x * 2.0 - 1.0,
+    viewportPixel.y / uniforms.viewportSize.y * 2.0 - 1.0
+  );
+  let nearModel = uniforms.clipToModel * vec4f(ndc, 0.0, 1.0);
+  let nearModelPos = nearModel.xyz / nearModel.w;
+  let rayDir = normalize(nearModelPos - uniforms.cameraPositionModel);
+
   let isect = rayBoxIntersect(uniforms.cameraPositionModel, rayDir);
   let tEnter = isect.x;
   let tExit = isect.y;
 
   if (uniforms.debugShowDegenerateRays > 0.0 && tEnter == tExit) {
-    return vec4f(1.0, 0.0, 0.0, 1.0);
+    textureStore(output, outCoords, vec4f(1.0, 0.0, 0.0, 1.0));
+    return;
+  }
+
+  if (tExit <= tEnter) {
+    textureStore(output, outCoords, vec4f(0.0));
+    return;
   }
 
   let entry = clamp(
@@ -97,8 +112,6 @@ fn frag(in: Varyings) -> @location(0) vec4f {
   let numSamples = max(i32(ceil(rayLenInVoxels / uniforms.relativeStepSize)), 1);
   let stepIncrement = rayWithinModel / f32(numSamples);
 
-  // World-space step length is used to keep brightness constant for
-  // anisotropic voxels regardless of viewing angle.
   let stepInWorld = stepIncrement * texSize * uniforms.voxelScale;
   let intensityScale = uniforms.opacityMultiplier * length(stepInWorld);
 
@@ -134,5 +147,5 @@ fn frag(in: Varyings) -> @location(0) vec4f {
     pos = pos + stepIncrement;
   }
 
-  return accum;
+  textureStore(output, outCoords, accum);
 }

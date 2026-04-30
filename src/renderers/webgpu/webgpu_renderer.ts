@@ -13,12 +13,16 @@ import WebGPUBindings from "./webgpu_bindings";
 import WebGPUGeometryBuffers from "./webgpu_geometry_buffers";
 import WebGPUPipelines, {
   ShaderName,
+  WebGPUComputePipeline,
   WebGPUPipeline,
 } from "./webgpu_pipelines";
 import WebGPUTexturePool from "./webgpu_texture_pool";
 
 import { RenderableObject } from "@/core/renderable_object";
 import { Texture } from "@/objects/textures/texture";
+
+const VOLUME_STORAGE_FORMAT: GPUTextureFormat = "rgba16float";
+const COMPUTE_WORKGROUP_SIZE = 8;
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -62,6 +66,12 @@ class WebGPURenderer extends Renderer {
   private depthStencilTexture_: GPUTexture | null = null;
   private passEncoder_: GPURenderPassEncoder | null = null;
 
+  // Storage target for volume compute output. Canvas-sized, rgba16float.
+  // Re-created on every resize; bind groups against it are invalidated then.
+  private volumeStorageTexture_: GPUTexture | null = null;
+  private volumeStorageWriteGroup_: GPUBindGroup | null = null;
+  private volumeStorageSampleGroup_: GPUBindGroup | null = null;
+
   private renderedObjectsPerFrame_ = 0;
   private needsClear_ = true;
 
@@ -74,7 +84,6 @@ class WebGPURenderer extends Renderer {
   private currentStencil_ = false;
   private currentBlendMode_: BlendMode = "none";
   private currentOpacity_ = 1.0;
-  private currentLayer_: Layer | null = null;
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     super(canvas);
@@ -114,9 +123,36 @@ class WebGPURenderer extends Renderer {
       this.pipelines_.compileShader("image_scalar_u32"),
       this.pipelines_.compileShader("image_scalar_i32"),
       this.pipelines_.compileShader("image_scalar_f32"),
-      this.pipelines_.compileShader("volume_scalar_u32"),
       this.pipelines_.compileShader("wireframe"),
+      this.pipelines_.compileComputeShader("volume_compute_u32"),
+      this.pipelines_.compileComposite(this.colorFormat_),
     ]);
+    this.rebuildVolumeStorageBindGroups();
+  }
+
+  private rebuildVolumeStorageBindGroups() {
+    if (!this.volumeStorageTexture_) return;
+
+    // No-op if pipelines haven't been compiled yet (e.g., resize from
+    // constructor). compileShaders() calls this again afterward.
+    let computeLayouts: WebGPUComputePipeline["layouts"];
+    let compositeLayout: GPUBindGroupLayout;
+    try {
+      computeLayouts = this.pipelines_.getCompute("volume_compute_u32").layouts;
+      compositeLayout = this.pipelines_.getComposite().textureLayout;
+    } catch {
+      return;
+    }
+
+    const view = this.volumeStorageTexture_.createView();
+    this.volumeStorageWriteGroup_ = this.device_.createBindGroup({
+      layout: computeLayouts.storage,
+      entries: [{ binding: 0, resource: view }],
+    });
+    this.volumeStorageSampleGroup_ = this.device_.createBindGroup({
+      layout: compositeLayout,
+      entries: [{ binding: 0, resource: view }],
+    });
   }
 
   public override beginFrame() {
@@ -197,13 +233,26 @@ class WebGPURenderer extends Renderer {
 
     if (layer.objects.length === 0) return;
 
-    this.currentLayer_ = layer;
+    this.currentBlendMode_ = layer.transparent ? layer.blendMode : "none";
+    this.currentOpacity_ = layer.opacity;
 
+    if (layer.type === "VolumeLayer") {
+      this.renderVolumeLayer(layer, camera, frustum, viewportBox, needsScissor);
+    } else {
+      this.renderImageLayer(layer, camera, frustum, viewportBox, needsScissor);
+    }
+  }
+
+  private renderImageLayer(
+    layer: Layer,
+    camera: Camera,
+    frustum: Frustum,
+    viewportBox: Box2,
+    needsScissor: boolean
+  ) {
     // One render pass (and one command encoder) per layer. WebGPU has no
     // in-pass stencil clear, so a fresh pass per layer is the simplest
     // equivalent of WebGL's per-layer `clear(STENCIL_BUFFER_BIT)`.
-    // If we do channel blending without the stencil buffer we could use
-    // a single render pass for all layers.
     const commandEncoder = this.device_.createCommandEncoder();
     this.passEncoder_ = this.beginRenderPass(commandEncoder);
 
@@ -218,9 +267,6 @@ class WebGPURenderer extends Renderer {
       this.passEncoder_.setStencilReference(0);
     }
 
-    this.currentBlendMode_ = layer.transparent ? layer.blendMode : "none";
-    this.currentOpacity_ = layer.opacity;
-
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
         this.renderObject(layer, i, camera);
@@ -231,7 +277,161 @@ class WebGPURenderer extends Renderer {
     this.passEncoder_.end();
     this.device_.queue.submit([commandEncoder.finish()]);
     this.passEncoder_ = null;
-    this.currentLayer_ = null;
+  }
+
+  private renderVolumeLayer(
+    layer: Layer,
+    camera: Camera,
+    frustum: Frustum,
+    viewportBox: Box2,
+    needsScissor: boolean
+  ) {
+    this.currentStencil_ = false;
+
+    const commandEncoder = this.device_.createCommandEncoder();
+    const computePipeline = this.pipelines_.getCompute("volume_compute_u32");
+    const compositePipeline = this.pipelines_.getComposite();
+
+    const layerUniforms = layer.getUniforms();
+    const { x, y, width, height } = viewportBox.floor().toRect();
+
+    layer.objects.forEach((object) => {
+      if (object.type !== "VolumeRenderable") {
+        throw new Error(
+          `Volume layer contained unexpected renderable type ${object.type}`
+        );
+      }
+      if (!frustum.intersectsWithBox3(object.boundingBox)) return;
+      if (object.programName !== "uintVolume") {
+        throw new Error(
+          `WebGPU volume rendering only supports unsigned data types (got ${object.programName})`
+        );
+      }
+
+      object.popStaleTextures().forEach((texture) => {
+        const gpuTexture = this.texturePool_.dispose(texture);
+        if (gpuTexture) this.bindings_.removeTexture(gpuTexture);
+      });
+
+      this.dispatchVolumeCompute(
+        commandEncoder,
+        computePipeline,
+        object,
+        camera,
+        layerUniforms,
+        { x, y, width, height }
+      );
+      this.compositeVolumeOutput(
+        commandEncoder,
+        compositePipeline,
+        { x, y, width, height },
+        needsScissor
+      );
+
+      this.renderedObjectsPerFrame_ += 1;
+    });
+
+    this.device_.queue.submit([commandEncoder.finish()]);
+  }
+
+  private dispatchVolumeCompute(
+    encoder: GPUCommandEncoder,
+    pipeline: WebGPUComputePipeline,
+    object: RenderableObject,
+    camera: Camera,
+    layerUniforms: Record<string, unknown>,
+    rect: { x: number; y: number; width: number; height: number }
+  ) {
+    const objectUniforms = object.getUniforms();
+
+    // clipToModel = inverse(camera.projection * camera.view * model). Note we
+    // use the *raw* projection matrix (not the WebGPU-corrected one) because
+    // we're reconstructing rays in camera-natural NDC space.
+    const projView = mat4.multiply(
+      scratchProjView,
+      camera.projectionMatrix,
+      camera.viewMatrix
+    );
+    const projViewModel = mat4.multiply(
+      scratchProjViewModel,
+      projView,
+      object.transform.matrix
+    );
+    const clipToModel = mat4.invert(scratchClipToModel, projViewModel)!;
+
+    const modelView = mat4.multiply(
+      this.scratchModelView_,
+      camera.viewMatrix,
+      object.transform.matrix
+    );
+    const cameraInModel = vec4.transformMat4(
+      scratchCameraInModel,
+      cameraOrigin,
+      mat4.invert(scratchInverseModelView, modelView)!
+    );
+
+    pipeline.uniformsView.set({
+      clipToModel,
+      cameraPositionModel: [
+        cameraInModel[0],
+        cameraInModel[1],
+        cameraInModel[2],
+      ],
+      voxelScale: objectUniforms.VoxelScale,
+      viewportOffset: [rect.x, rect.y],
+      viewportSize: [rect.width, rect.height],
+      visible: objectUniforms.Visible,
+      valueOffset: objectUniforms.ValueOffset,
+      valueScale: objectUniforms.ValueScale,
+      colors: padColorsToRgba(objectUniforms["Color[0]"] as number[]),
+      relativeStepSize: layerUniforms.RelativeStepSize,
+      opacityMultiplier: layerUniforms.OpacityMultiplier,
+      earlyTerminationAlpha: layerUniforms.EarlyTerminationAlpha,
+      debugShowDegenerateRays: layerUniforms.DebugShowDegenerateRays,
+    });
+
+    const computePass = encoder.beginComputePass();
+    computePass.setPipeline(pipeline.pipeline);
+    this.bindings_.setUniforms(computePass, pipeline);
+    this.bindings_.setTextures(
+      computePass,
+      pipeline,
+      this.gatherVolumeTextures(object)
+    );
+    computePass.setBindGroup(2, this.volumeStorageWriteGroup_!);
+    computePass.dispatchWorkgroups(
+      Math.ceil(rect.width / COMPUTE_WORKGROUP_SIZE),
+      Math.ceil(rect.height / COMPUTE_WORKGROUP_SIZE),
+      1
+    );
+    computePass.end();
+  }
+
+  private compositeVolumeOutput(
+    encoder: GPUCommandEncoder,
+    pipeline: { pipeline: GPURenderPipeline },
+    rect: { x: number; y: number; width: number; height: number },
+    needsScissor: boolean
+  ) {
+    const pass = this.beginRenderPass(encoder);
+    pass.setViewport(rect.x, rect.y, rect.width, rect.height, 0, 1);
+    if (needsScissor) {
+      pass.setScissorRect(rect.x, rect.y, rect.width, rect.height);
+    }
+    pass.setPipeline(pipeline.pipeline);
+    pass.setBindGroup(0, this.volumeStorageSampleGroup_!);
+    pass.draw(3);
+    pass.end();
+  }
+
+  private gatherVolumeTextures(object: RenderableObject): GPUTexture[] {
+    const dummy = this.texturePool_.dummy3D();
+    const textures: GPUTexture[] = [];
+    for (let i = 0; i < 4; i++) {
+      const tex = object.textures[i];
+      textures.push(tex ? this.texturePool_.get(tex) : dummy);
+    }
+    return textures;
   }
 
   protected override renderObject(
@@ -241,10 +441,7 @@ class WebGPURenderer extends Renderer {
   ) {
     const object = layer.objects[objectIndex];
 
-    if (
-      object.type !== "ImageRenderable" &&
-      object.type !== "VolumeRenderable"
-    ) {
+    if (object.type !== "ImageRenderable") {
       throw new Error(
         `Experimental WebGPU renderer does not support renderable type ${object.type}`
       );
@@ -262,7 +459,7 @@ class WebGPURenderer extends Renderer {
 
     const pipeline = this.pipelines_.get(
       {
-        shaderName: shaderNameForObject(object),
+        shaderName: shaderNameForImageTexture(object.textures[0]),
         depthWrite: this.currentDepthWrite_,
         depthTest: object.depthTest,
         stencil: this.currentStencil_,
@@ -359,6 +556,27 @@ class WebGPURenderer extends Renderer {
       sampleCount: 4,
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
+
+    this.resizeVolumeStorage(width, height);
+  }
+
+  private resizeVolumeStorage(width: number, height: number) {
+    if (this.volumeStorageTexture_) {
+      this.volumeStorageTexture_.destroy();
+    }
+
+    this.volumeStorageTexture_ = this.device_.createTexture({
+      size: { width, height },
+      format: VOLUME_STORAGE_FORMAT,
+      usage:
+        GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
+    });
+
+    // Bind groups depend on pipeline layouts that aren't compiled yet on the
+    // first call (constructor resize). compileShaders() will rebuild them.
+    this.volumeStorageWriteGroup_ = null;
+    this.volumeStorageSampleGroup_ = null;
+    this.rebuildVolumeStorageBindGroups();
   }
 
   private beginRenderPass(encoder: GPUCommandEncoder) {
@@ -408,43 +626,15 @@ class WebGPURenderer extends Renderer {
     );
 
     const objectUniforms = object.getUniforms();
-    const layerUniforms = this.currentLayer_!.getUniforms();
 
-    if (object.type === "VolumeRenderable") {
-      const cameraInModel = vec4.transformMat4(
-        scratchCameraInModel,
-        cameraOrigin,
-        mat4.invert(scratchInverseModelView, modelView)!
-      );
-
-      pipeline.uniformsView.set({
-        projection: this.currentProjection_,
-        modelView,
-        cameraPositionModel: [
-          cameraInModel[0],
-          cameraInModel[1],
-          cameraInModel[2],
-        ],
-        voxelScale: objectUniforms.VoxelScale,
-        visible: objectUniforms.Visible,
-        valueOffset: objectUniforms.ValueOffset,
-        valueScale: objectUniforms.ValueScale,
-        colors: padColorsToRgba(objectUniforms["Color[0]"] as number[]),
-        relativeStepSize: layerUniforms.RelativeStepSize,
-        opacityMultiplier: layerUniforms.OpacityMultiplier,
-        earlyTerminationAlpha: layerUniforms.EarlyTerminationAlpha,
-        debugShowDegenerateRays: layerUniforms.DebugShowDegenerateRays,
-      });
-    } else {
-      pipeline.uniformsView.set({
-        projection: this.currentProjection_,
-        modelView,
-        color: objectUniforms.Color,
-        valueOffset: objectUniforms.ValueOffset,
-        valueScale: objectUniforms.ValueScale,
-        opacity: this.currentOpacity_,
-      });
-    }
+    pipeline.uniformsView.set({
+      projection: this.currentProjection_,
+      modelView,
+      color: objectUniforms.Color,
+      valueOffset: objectUniforms.ValueOffset,
+      valueScale: objectUniforms.ValueScale,
+      opacity: this.currentOpacity_,
+    });
 
     this.bindings_.setUniforms(this.passEncoder_!, pipeline);
   }
@@ -453,17 +643,6 @@ class WebGPURenderer extends Renderer {
     object: RenderableObject,
     pipeline: WebGPUPipeline
   ) {
-    if (object.type === "VolumeRenderable") {
-      const dummy = this.texturePool_.dummy3D();
-      const textures: GPUTexture[] = [];
-      for (let i = 0; i < 4; i++) {
-        const tex = object.textures[i];
-        textures.push(tex ? this.texturePool_.get(tex) : dummy);
-      }
-      this.bindings_.setTextures(this.passEncoder_!, pipeline, textures);
-      return;
-    }
-
     if (object.textures.length > 1) {
       throw new Error(
         "Experimental WebGPU renderer only supports single textures for images"
@@ -500,19 +679,9 @@ function gpuCullMode(mode: CullingMode): GPUCullMode {
 const cameraOrigin = vec4.fromValues(0, 0, 0, 1);
 const scratchCameraInModel = vec4.create();
 const scratchInverseModelView = mat4.create();
-
-function shaderNameForObject(object: RenderableObject): ShaderName {
-  if (object.type === "VolumeRenderable") {
-    if (object.programName !== "uintVolume") {
-      throw new Error(
-        `WebGPU volume rendering only supports unsigned data types (got ${object.programName})`
-      );
-    }
-    return "volume_scalar_u32";
-  }
-
-  return shaderNameForImageTexture(object.textures[0]);
-}
+const scratchProjView = mat4.create();
+const scratchProjViewModel = mat4.create();
+const scratchClipToModel = mat4.create();
 
 function shaderNameForImageTexture(texture: Texture): ShaderName {
   switch (texture.dataType) {

@@ -6,7 +6,8 @@ import { Logger } from "@/utilities/logger";
 import ImageScalarU32 from "./shaders/image_scalar_u32.wgsl";
 import ImageScalarI32 from "./shaders/image_scalar_i32.wgsl";
 import ImageScalarF32 from "./shaders/image_scalar_f32.wgsl";
-import VolumeScalarU32 from "./shaders/volume_scalar_u32.wgsl";
+import VolumeComputeU32 from "./shaders/volume_compute_u32.wgsl";
+import VolumeComposite from "./shaders/volume_composite.wgsl";
 import Wireframe from "./shaders/wireframe.wgsl";
 
 import {
@@ -39,11 +40,28 @@ export type WebGPUPipeline = {
   };
 };
 
+export type WebGPUComputePipeline = {
+  pipeline: GPUComputePipeline;
+  uniformsView: StructuredView;
+  uniformsData: Float32Array;
+  layouts: {
+    object: GPUBindGroupLayout;
+    texture: GPUBindGroupLayout;
+    storage: GPUBindGroupLayout;
+  };
+};
+
+export type WebGPUCompositePipeline = {
+  pipeline: GPURenderPipeline;
+  textureLayout: GPUBindGroupLayout;
+};
+
 export type ShaderName =
   | "image_scalar_u32"
   | "image_scalar_i32"
   | "image_scalar_f32"
-  | "volume_scalar_u32"
+  | "volume_compute_u32"
+  | "volume_composite"
   | "wireframe";
 
 type WebGPUShaderModule = {
@@ -56,12 +74,26 @@ type WebGPUShaderModule = {
   };
 };
 
+type WebGPUComputeShaderModule = {
+  name: ShaderName;
+  module: GPUShaderModule;
+  defs: ShaderDataDefinitions;
+  layouts: {
+    object: GPUBindGroupLayout;
+    texture: GPUBindGroupLayout;
+    storage: GPUBindGroupLayout;
+  };
+};
+
 export default class WebGPUPipelines {
   private readonly colorFormat_: GPUTextureFormat;
   private readonly depthFormat_: GPUTextureFormat;
   private readonly device_: GPUDevice;
   private readonly pipelines_: WebGPUPipeline[];
   private readonly shaderModules_: WebGPUShaderModule[];
+  private readonly computeModules_: WebGPUComputeShaderModule[] = [];
+  private readonly computePipelines_: { name: ShaderName; entry: WebGPUComputePipeline }[] = [];
+  private compositePipeline_: WebGPUCompositePipeline | null = null;
 
   constructor(
     device: GPUDevice,
@@ -244,6 +276,160 @@ export default class WebGPUPipelines {
         p.key.vertexAttributesStr === key.vertexAttributesStr
     );
   }
+
+  public async compileComputeShader(name: ShaderName) {
+    if (this.computeModules_.some((s) => s.name === name)) return;
+
+    const source = shaderSourceFromName(name);
+    const module = this.device_.createShaderModule({ code: source });
+
+    const compilationInfo = await module.getCompilationInfo();
+    if (compilationInfo.messages.some((m) => m.type === "error")) {
+      for (const msg of compilationInfo.messages) {
+        Logger.error("WebGPUPipelines", `${msg.type}: ${msg.message}`);
+      }
+      throw new Error(`Failed to compile WGSL compute shader ${name}.wgsl`);
+    }
+
+    const defs = makeShaderDataDefinitions(source);
+    const descriptors = makeBindGroupLayoutDescriptors(defs, {
+      compute: { entryPoint: "main" },
+    });
+
+    const objectDescriptor = descriptors[defs.uniforms.uniforms.group];
+    for (const entry of objectDescriptor.entries as GPUBindGroupLayoutEntry[]) {
+      if (entry.buffer) {
+        entry.buffer = { ...entry.buffer, hasDynamicOffset: true };
+      }
+    }
+
+    const firstTexture = defs.textures
+      ? Object.values(defs.textures)[0]
+      : undefined;
+    if (!firstTexture) {
+      throw new Error(`Compute shader ${name} must declare textures at group 1`);
+    }
+    const textureDescriptor = descriptors[firstTexture.group];
+
+    const firstStorage = defs.storageTextures
+      ? Object.values(defs.storageTextures)[0]
+      : undefined;
+    if (!firstStorage) {
+      throw new Error(
+        `Compute shader ${name} must declare a storage texture at group 2`
+      );
+    }
+    const storageDescriptor = descriptors[firstStorage.group];
+
+    this.computeModules_.push({
+      name,
+      module,
+      defs,
+      layouts: {
+        object: this.device_.createBindGroupLayout(objectDescriptor),
+        texture: this.device_.createBindGroupLayout(textureDescriptor),
+        storage: this.device_.createBindGroupLayout(storageDescriptor),
+      },
+    });
+  }
+
+  public getCompute(name: ShaderName): WebGPUComputePipeline {
+    const cached = this.computePipelines_.find((p) => p.name === name);
+    if (cached) return cached.entry;
+
+    const shaderModule = this.computeModules_.find((s) => s.name === name);
+    if (!shaderModule) {
+      throw new Error(`Compute shader module ${name} not compiled`);
+    }
+
+    const layout = this.device_.createPipelineLayout({
+      bindGroupLayouts: [
+        shaderModule.layouts.object,
+        shaderModule.layouts.texture,
+        shaderModule.layouts.storage,
+      ],
+    });
+
+    const pipeline = this.device_.createComputePipeline({
+      layout,
+      compute: { module: shaderModule.module, entryPoint: "main" },
+    });
+
+    const uniformsView = makeStructuredView(shaderModule.defs.uniforms.uniforms);
+
+    const entry: WebGPUComputePipeline = {
+      pipeline,
+      uniformsView,
+      uniformsData: new Float32Array(uniformsView.arrayBuffer),
+      layouts: shaderModule.layouts,
+    };
+
+    this.computePipelines_.push({ name, entry });
+    return entry;
+  }
+
+  // The composite shader is a one-off fullscreen blit; it has no uniforms,
+  // no vertex buffer, and a single sampled texture binding. It doesn't fit
+  // the general render-shader compile path, so it lives here on its own.
+  public async compileComposite(targetFormat: GPUTextureFormat) {
+    if (this.compositePipeline_) return;
+
+    const source = shaderSourceFromName("volume_composite");
+    const module = this.device_.createShaderModule({ code: source });
+
+    const compilationInfo = await module.getCompilationInfo();
+    if (compilationInfo.messages.some((m) => m.type === "error")) {
+      for (const msg of compilationInfo.messages) {
+        Logger.error("WebGPUPipelines", `${msg.type}: ${msg.message}`);
+      }
+      throw new Error("Failed to compile WGSL shader volume_composite.wgsl");
+    }
+
+    const textureLayout = this.device_.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "unfilterable-float", viewDimension: "2d" },
+        },
+      ],
+    });
+
+    const layout = this.device_.createPipelineLayout({
+      bindGroupLayouts: [textureLayout],
+    });
+
+    const pipeline = this.device_.createRenderPipeline({
+      layout,
+      vertex: { module, entryPoint: "vert" },
+      fragment: {
+        module,
+        entryPoint: "frag",
+        targets: [
+          {
+            format: targetFormat,
+            blend: blendStateFromMode("premultiplied"),
+          },
+        ],
+      },
+      primitive: { topology: "triangle-list", cullMode: "none" },
+      depthStencil: {
+        format: this.depthFormat_,
+        depthWriteEnabled: false,
+        depthCompare: "always",
+      },
+      multisample: { count: 4 },
+    });
+
+    this.compositePipeline_ = { pipeline, textureLayout };
+  }
+
+  public getComposite(): WebGPUCompositePipeline {
+    if (!this.compositePipeline_) {
+      throw new Error("Composite pipeline not compiled");
+    }
+    return this.compositePipeline_;
+  }
 }
 
 function shaderSourceFromName(name: ShaderName) {
@@ -254,8 +440,10 @@ function shaderSourceFromName(name: ShaderName) {
       return ImageScalarI32;
     case "image_scalar_f32":
       return ImageScalarF32;
-    case "volume_scalar_u32":
-      return VolumeScalarU32;
+    case "volume_compute_u32":
+      return VolumeComputeU32;
+    case "volume_composite":
+      return VolumeComposite;
     case "wireframe":
       return Wireframe;
   }
