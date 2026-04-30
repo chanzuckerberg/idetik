@@ -67,8 +67,6 @@ export default defineConfig({
 
   srcDir: 'docs',
 
-  base: './',
-
   vite: {
     plugins: [reloadOnExampleRebuildPlugin(), servePreviewPlugin()],
     server: { port: 5174 },
