@@ -5,8 +5,8 @@ import {
 } from "@/objects/textures/texture";
 
 type WebGPUTexture = {
-  texture: Texture;
-  buffer: GPUTexture;
+  entry: Texture;
+  texture: GPUTexture;
 };
 
 export default class WebGPUTexturePool {
@@ -18,55 +18,55 @@ export default class WebGPUTexturePool {
     this.textures_ = [];
   }
 
-  public get(texture: Texture) {
-    const cached = this.textures_.find((t) => t.texture === texture);
+  public get(entry: Texture) {
+    const cached = this.textures_.find((t) => t.entry === entry);
     if (cached) {
-      if (texture.needsUpdate) {
-        this.upload(texture, cached.buffer);
+      if (entry.needsUpdate) {
+        this.upload(entry, cached.texture);
       }
-      return cached.buffer;
+      return cached.texture;
     }
 
-    const size = { width: texture.width, height: texture.height };
-    const buffer = this.device_.createTexture({
+    const size = { width: entry.width, height: entry.height };
+    const texture = this.device_.createTexture({
       size,
-      format: textureGPUFormat(texture),
+      format: textureGPUFormat(entry),
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
 
-    this.upload(texture, buffer);
-    this.textures_.push({ texture, buffer });
+    this.upload(entry, texture);
+    this.textures_.push({ entry: entry, texture: texture });
 
-    return buffer;
+    return texture;
   }
 
-  public dispose(texture: Texture) {
-    const index = this.textures_.findIndex((t) => t.texture === texture);
-    if (index === -1) return;
-
-    this.textures_[index].buffer.destroy();
-    this.textures_.splice(index, 1);
-  }
-
-  public disposeAll() {
-    for (const t of this.textures_) t.buffer.destroy();
-    this.textures_.length = 0;
-  }
-
-  private upload(texture: Texture, buffer: GPUTexture) {
-    const size = { width: texture.width, height: texture.height };
-    const channelCount = textureChannelCount(texture);
-    const bytesPerChannel = textureBytesPerChannel(texture);
-    const bytesPerRow = texture.width * channelCount * bytesPerChannel;
+  private upload(entry: Texture, texture: GPUTexture) {
+    const size = { width: entry.width, height: entry.height };
+    const channelCount = textureChannelCount(entry);
+    const bytesPerChannel = textureBytesPerChannel(entry);
+    const bytesPerRow = entry.width * channelCount * bytesPerChannel;
 
     this.device_.queue.writeTexture(
-      { texture: buffer },
-      texture.data as BufferSource,
+      { texture: texture },
+      entry.data as BufferSource,
       { bytesPerRow },
       size
     );
 
-    texture.needsUpdate = false;
+    entry.needsUpdate = false;
+  }
+
+  public dispose(texture: Texture) {
+    const index = this.textures_.findIndex((t) => t.entry === texture);
+    if (index === -1) return;
+
+    this.textures_[index].texture.destroy();
+    this.textures_.splice(index, 1);
+  }
+
+  public disposeAll() {
+    for (const t of this.textures_) t.texture.destroy();
+    this.textures_.length = 0;
   }
 }
 
