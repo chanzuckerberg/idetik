@@ -199,12 +199,12 @@ export default class WebGPUPipelines {
     const bindGroupLayouts: GPUBindGroupLayout[] = [
       shaderModule.layouts.object,
     ];
+
     if (shaderModule.layouts.texture) {
       bindGroupLayouts.push(shaderModule.layouts.texture);
     }
 
     const layout = this.device_.createPipelineLayout({ bindGroupLayouts });
-
     const pipeline = this.device_.createRenderPipeline({
       layout,
       ...pipelineDesc,

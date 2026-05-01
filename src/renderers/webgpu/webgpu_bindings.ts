@@ -1,30 +1,33 @@
 import WebGPUDynamicBuffer from "./webgpu_dynamic_buffer";
 import { WebGPUPipeline } from "./webgpu_pipelines";
 
-type UniformEntry = {
+type UniformBinding = {
   layout: GPUBindGroupLayout;
   buffer: WebGPUDynamicBuffer;
   group: GPUBindGroup;
   version: number;
 };
 
-type TextureEntry = {
+type TextureBinding = {
   layout: GPUBindGroupLayout;
   texture: GPUTexture;
   group: GPUBindGroup;
 };
 
+const uniformsGroup = 0;
+const texturesGroup = 1;
+
 export default class WebGPUBindings {
   private readonly device_: GPUDevice;
-  private readonly uniformEntries_: UniformEntry[] = [];
-  private readonly textureEntries_: TextureEntry[] = [];
+  private readonly uniformBindings_: UniformBinding[] = [];
+  private readonly textureBindings_: TextureBinding[] = [];
 
   constructor(device: GPUDevice) {
     this.device_ = device;
   }
 
-  public clear() {
-    for (const entry of this.uniformEntries_) {
+  public clearUniformBindings() {
+    for (const entry of this.uniformBindings_) {
       entry.buffer.clear();
     }
   }
@@ -33,23 +36,24 @@ export default class WebGPUBindings {
     const layout = pipeline.layouts.object;
     const data = pipeline.uniformsData;
 
-    let entry = this.uniformEntries_.find((e) => e.layout === layout);
+    let entry = this.uniformBindings_.find((e) => e.layout === layout);
 
     if (!entry) {
       const buffer = new WebGPUDynamicBuffer(this.device_, data.byteLength);
-      const group = this.createUniformBindGroup(
+      const group = this.createUniformsBindGroup(
         layout,
         buffer,
         data.byteLength
       );
       entry = { layout, buffer, group, version: buffer.version };
-      this.uniformEntries_.push(entry);
+      this.uniformBindings_.push(entry);
     }
 
     const offset = entry.buffer.write(data);
+    const bufferSizeChanged = entry.version !== entry.buffer.version;
 
-    if (entry.version !== entry.buffer.version) {
-      entry.group = this.createUniformBindGroup(
+    if (bufferSizeChanged) {
+      entry.group = this.createUniformsBindGroup(
         layout,
         entry.buffer,
         data.byteLength
@@ -57,7 +61,7 @@ export default class WebGPUBindings {
       entry.version = entry.buffer.version;
     }
 
-    pass.setBindGroup(0, entry.group, [offset]);
+    pass.setBindGroup(uniformsGroup, entry.group, [offset]);
   }
 
   public setTexture(
@@ -70,28 +74,20 @@ export default class WebGPUBindings {
       throw new Error("setTexture called on pipeline without a texture layout");
     }
 
-    let entry = this.textureEntries_.find(
+    let entry = this.textureBindings_.find(
       (e) => e.layout === layout && e.texture === texture
     );
 
     if (!entry) {
-      const group = this.device_.createBindGroup({
-        layout,
-        entries: [
-          {
-            binding: 0,
-            resource: texture.createView(),
-          },
-        ],
-      });
+      const group = this.createTexturesBindGroup(layout, texture);
       entry = { layout, texture, group };
-      this.textureEntries_.push(entry);
+      this.textureBindings_.push(entry);
     }
 
-    pass.setBindGroup(1, entry.group);
+    pass.setBindGroup(texturesGroup, entry.group);
   }
 
-  private createUniformBindGroup(
+  private createUniformsBindGroup(
     layout: GPUBindGroupLayout,
     buffer: WebGPUDynamicBuffer,
     size: number
@@ -105,6 +101,21 @@ export default class WebGPUBindings {
             buffer: buffer.buffer,
             size,
           },
+        },
+      ],
+    });
+  }
+
+  private createTexturesBindGroup(
+    layout: GPUBindGroupLayout,
+    texture: GPUTexture
+  ) {
+    return this.device_.createBindGroup({
+      layout,
+      entries: [
+        {
+          binding: 0,
+          resource: texture.createView(),
         },
       ],
     });

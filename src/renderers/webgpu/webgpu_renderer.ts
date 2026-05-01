@@ -147,7 +147,7 @@ class WebGPURenderer extends Renderer {
     const frustum = viewport.camera.frustum;
     const needsScissor = !Box2.equals(viewportBox.floor(), surfaceBox.floor());
 
-    this.bindings_.clear();
+    this.bindings_.clearUniformBindings();
     this.updateProjection(viewport.camera.projectionMatrix);
 
     this.currentDepthWrite_ = true;
