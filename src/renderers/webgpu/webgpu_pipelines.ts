@@ -210,7 +210,9 @@ export default class WebGPUPipelines {
       ...pipelineDesc,
     } as GPURenderPipelineDescriptor);
 
-    const uniformsView = makeStructuredView(shaderModule.defs.uniforms.uniforms);
+    const uniformsView = makeStructuredView(
+      shaderModule.defs.uniforms.uniforms
+    );
 
     const entry: WebGPUPipeline = {
       key,

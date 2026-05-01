@@ -89,9 +89,12 @@ export class Idetik {
    * @throws {Error} If viewports have duplicate IDs or shared elements
    */
   static async create(
-    params: IdetikParams & { renderer: "webgpu-experimental" }
+    params: IdetikParams & { renderer?: "webgl" | "webgpu-experimental" }
   ): Promise<Idetik> {
-    const renderer = await createWebGPURenderer(params.canvas);
+    const renderer =
+      params.renderer === "webgpu-experimental"
+        ? await createWebGPURenderer(params.canvas)
+        : new WebGLRenderer(params.canvas);
     return new Idetik(params, renderer);
   }
 
