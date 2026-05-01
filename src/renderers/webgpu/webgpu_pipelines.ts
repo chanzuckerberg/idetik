@@ -31,7 +31,7 @@ export type WebGPUPipeline = {
   key: PipelineKey;
   pipeline: GPURenderPipeline;
   uniformsView: StructuredView;
-  uniformsData: Float32Array;
+  uniformsData: Float32Array<ArrayBuffer>;
   layouts: {
     object: GPUBindGroupLayout;
     texture?: GPUBindGroupLayout;
