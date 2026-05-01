@@ -1,6 +1,6 @@
 struct Varyings {
   @builtin(position) position: vec4f,
-  @location(0) tex_coords: vec2f,
+  @location(0) texCoords: vec2f,
 };
 
 struct Uniforms {
@@ -18,18 +18,18 @@ struct Uniforms {
 @vertex
 fn vert(
   @location(0) aPos: vec3f,
+  // @location(1) is reserved for normals, unused here
   @location(2) aTexCoords: vec2f,
 ) -> Varyings {
   var out = Varyings();
   out.position = uniforms.projection * uniforms.modelView * vec4f(aPos, 1.0);
-  out.tex_coords = aTexCoords;
+  out.texCoords = aTexCoords;
   return out;
 }
 
 @fragment
 fn frag(in: Varyings) -> @location(0) vec4f {
-  let dims = textureDimensions(texture);
-  let coords = vec2u(in.tex_coords * vec2f(dims));
+  let coords = vec2u(in.texCoords * vec2f(textureDimensions(texture)));
   let texel = f32(textureLoad(texture, coords, 0).r);
   let value = (texel + uniforms.valueOffset) * uniforms.valueScale;
   return vec4f(value * uniforms.color, uniforms.opacity);
