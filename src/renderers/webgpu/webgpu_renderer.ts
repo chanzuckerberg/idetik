@@ -269,9 +269,9 @@ class WebGPURenderer extends Renderer {
     this.setUniformsForObject(object, pipeline, camera);
     this.setTexturesForObject(object, pipeline);
 
-    renderPass.setVertexBuffer(0, geometryBuffer.vertex);
-    if (geometryBuffer.index) {
-      renderPass.setIndexBuffer(geometryBuffer.index, "uint32");
+    renderPass.setVertexBuffer(0, geometryBuffer.vertexBuffer);
+    if (geometryBuffer.indexBuffer) {
+      renderPass.setIndexBuffer(geometryBuffer.indexBuffer, "uint32");
       renderPass.drawIndexed(object.geometry.indexData.length);
     } else {
       renderPass.draw(object.geometry.vertexCount);
@@ -320,9 +320,9 @@ class WebGPURenderer extends Renderer {
 
     this.bindings_.setUniforms(renderPass, pipeline);
 
-    renderPass.setVertexBuffer(0, geometryBuffer.vertex);
-    if (geometryBuffer.index) {
-      renderPass.setIndexBuffer(geometryBuffer.index, "uint32");
+    renderPass.setVertexBuffer(0, geometryBuffer.vertexBuffer);
+    if (geometryBuffer.indexBuffer) {
+      renderPass.setIndexBuffer(geometryBuffer.indexBuffer, "uint32");
       renderPass.drawIndexed(wireframeGeometry.indexData.length);
     }
   }

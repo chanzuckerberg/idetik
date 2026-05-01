@@ -2,8 +2,8 @@ import { Geometry, GeometryAttributeIndex } from "@/core/geometry";
 
 export type WebGPUGeometryBuffer = {
   geometry: Geometry;
-  vertex: GPUBuffer;
-  index: GPUBuffer | null;
+  vertexBuffer: GPUBuffer;
+  indexBuffer: GPUBuffer | null;
   attributes: GPUVertexAttribute[];
   attributesKey: string;
 };
@@ -13,35 +13,43 @@ export default class WebGPUGeometryBuffers {
   private readonly buffers_: WebGPUGeometryBuffer[];
 
   constructor(device: GPUDevice) {
-    this.buffers_ = [];
     this.device_ = device;
+    this.buffers_ = [];
   }
 
   public get(geometry: Geometry) {
     const cached = this.buffers_.find((b) => b.geometry === geometry);
     if (cached) return cached;
 
-    const vertex = this.device_.createBuffer({
+    const vertexBuffer = this.device_.createBuffer({
       size: geometry.vertexData.byteLength,
       usage: GPUBufferUsage.VERTEX,
       mappedAtCreation: true,
     });
-    new Float32Array(vertex.getMappedRange()).set(geometry.vertexData);
-    vertex.unmap();
 
-    let index: GPUBuffer | null = null;
+    new Float32Array(vertexBuffer.getMappedRange()).set(geometry.vertexData);
+    vertexBuffer.unmap();
+
+    let indexBuffer: GPUBuffer | null = null;
     if (geometry.indexData.byteLength > 0) {
-      index = this.device_.createBuffer({
+      indexBuffer = this.device_.createBuffer({
         size: geometry.indexData.byteLength,
         usage: GPUBufferUsage.INDEX,
         mappedAtCreation: true,
       });
-      new Uint32Array(index.getMappedRange()).set(geometry.indexData);
-      index.unmap();
+
+      new Uint32Array(indexBuffer.getMappedRange()).set(geometry.indexData);
+      indexBuffer.unmap();
     }
 
     const { attributes, attributesKey } = remapAttributes(geometry);
-    const buffers = { geometry, vertex, index, attributes, attributesKey };
+    const buffers = {
+      geometry,
+      vertexBuffer,
+      indexBuffer,
+      attributes,
+      attributesKey,
+    };
 
     this.buffers_.push(buffers);
 
@@ -53,15 +61,15 @@ export default class WebGPUGeometryBuffers {
     if (index === -1) return;
 
     const buffers = this.buffers_[index];
-    buffers.vertex.destroy();
-    buffers.index?.destroy();
+    buffers.vertexBuffer.destroy();
+    buffers.indexBuffer?.destroy();
     this.buffers_.splice(index, 1);
   }
 
   public disposeAll() {
     for (const buffers of this.buffers_) {
-      buffers.vertex.destroy();
-      buffers.index?.destroy();
+      buffers.vertexBuffer.destroy();
+      buffers.indexBuffer?.destroy();
     }
     this.buffers_.length = 0;
   }

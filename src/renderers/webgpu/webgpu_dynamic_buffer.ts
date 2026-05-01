@@ -8,6 +8,7 @@ export default class WebGPUDynamicBuffer {
   private capacity_ = INITIAL_CAPACITY;
   private cursor_ = 0;
   private version_ = 0;
+  private readonly clear_: GPUBuffer[] = [];
 
   constructor(device: GPUDevice, perObjectDataSize: number) {
     const minAlignment = device.limits.minUniformBufferOffsetAlignment;
@@ -18,6 +19,8 @@ export default class WebGPUDynamicBuffer {
   }
 
   public clear() {
+    for (const buffer of this.clear_) buffer.destroy();
+    this.clear_.length = 0;
     this.cursor_ = 0;
   }
 
@@ -59,10 +62,9 @@ export default class WebGPUDynamicBuffer {
       0,
       prevBuffer.size
     );
+
     this.device_.queue.submit([commandEncoder.finish()]);
-
-    prevBuffer.destroy();
-
+    this.clear_.push(prevBuffer);
     this.version_++;
   }
 
