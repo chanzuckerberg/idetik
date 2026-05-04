@@ -10,14 +10,25 @@ import { vec2, mat4 } from "gl-matrix";
 
 import WebGPUBindings from "./webgpu_bindings";
 import WebGPUGeometryBuffers from "./webgpu_geometry_buffers";
+import WebGPUTexturePool from "./webgpu_texture_pool";
 import WebGPUPipelines, {
   ShaderName,
   WebGPUPipeline,
 } from "./webgpu_pipelines";
-import WebGPUTexturePool from "./webgpu_texture_pool";
 
 import { RenderableObject } from "@/core/renderable_object";
 import { Texture } from "@/objects/textures/texture";
+
+// WebGL to WebGPU clip-space correction:
+// 1. Flip Y (WebGPU framebuffer Y=0 is top)
+// 2. Remap Z from [-1,1] to [0,1] (WebGPU depth range)
+// prettier-ignore
+const clipSpaceCorrection = mat4.fromValues(
+  1.0,  0.0,  0.0,  0.0, // column 0
+  0.0, -1.0,  0.0,  0.0, // column 1
+  0.0,  0.0,  0.5,  0.0, // column 2
+  0.0,  0.0,  0.5,  1.0  // column 3
+);
 
 export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   if (!navigator.gpu) {
@@ -35,27 +46,19 @@ export async function createWebGPURenderer(canvas: HTMLCanvasElement) {
   return renderer;
 }
 
-// WebGL to WebGPU clip-space correction:
-// 1. Flip Y (WebGPU framebuffer Y=0 is top)
-// 2. Remap Z from [-1,1] to [0,1] (WebGPU depth range)
-// prettier-ignore
-const clipSpaceCorrection = mat4.fromValues(
-  1.0,  0.0,  0.0,  0.0, // column 0
-  0.0, -1.0,  0.0,  0.0, // column 1
-  0.0,  0.0,  0.5,  0.0, // column 2
-  0.0,  0.0,  0.5,  1.0  // column 3
-);
-
 class WebGPURenderer extends Renderer {
+  private readonly bindings_: WebGPUBindings;
+  private readonly geometryBuffers_: WebGPUGeometryBuffers;
+  private readonly pipelines_: WebGPUPipelines;
+  private readonly texturePool_: WebGPUTexturePool;
+
   private readonly colorFormat_: GPUTextureFormat;
   private readonly context_: GPUCanvasContext;
   private readonly depthFormat_: GPUTextureFormat;
   private readonly device_: GPUDevice;
 
-  private readonly bindings_: WebGPUBindings;
-  private readonly geometryBuffers_: WebGPUGeometryBuffers;
-  private readonly pipelines_: WebGPUPipelines;
-  private readonly texturePool_: WebGPUTexturePool;
+  private readonly currentProjection_ = mat4.create();
+  private readonly currentModelView_ = mat4.create();
 
   private colorMSAATexture_: GPUTexture | null = null;
   private depthStencilTexture_: GPUTexture | null = null;
@@ -63,9 +66,6 @@ class WebGPURenderer extends Renderer {
 
   private renderedObjectsPerFrame_ = 0;
   private needsClear_ = true;
-
-  private readonly currentProjection_ = mat4.create();
-  private readonly scratchModelView_ = mat4.create();
 
   // Per-layer state set in renderLayer() and consumed by renderObject().
   // Kept as fields because renderObject's signature is fixed by the base class.
@@ -81,6 +81,18 @@ class WebGPURenderer extends Renderer {
     this.depthFormat_ = "depth24plus-stencil8";
     this.device_ = device;
 
+    const context = canvas.getContext("webgpu");
+    if (!context) {
+      throw new Error("Failed to initialize WebGPU context");
+    }
+
+    context.configure({
+      device: this.device_,
+      format: this.colorFormat_,
+      alphaMode: "premultiplied",
+    });
+
+    this.context_ = context;
     this.bindings_ = new WebGPUBindings(device);
     this.geometryBuffers_ = new WebGPUGeometryBuffers(device);
     this.texturePool_ = new WebGPUTexturePool(device);
@@ -89,18 +101,6 @@ class WebGPURenderer extends Renderer {
       this.colorFormat_,
       this.depthFormat_
     );
-
-    const context = canvas.getContext("webgpu");
-    if (!context) {
-      throw new Error("Failed to initialize WebGPU context");
-    }
-
-    this.context_ = context;
-    this.context_.configure({
-      device: this.device_,
-      format: this.colorFormat_,
-      alphaMode: "premultiplied",
-    });
 
     Logger.info("WebGPURenderer", "WebGPU Initialized");
 
@@ -305,15 +305,15 @@ class WebGPURenderer extends Renderer {
 
     renderPass.setPipeline(pipeline.pipeline);
 
-    const modelView = mat4.multiply(
-      this.scratchModelView_,
+    mat4.multiply(
+      this.currentModelView_,
       camera.viewMatrix,
       object.transform.matrix
     );
 
     pipeline.uniformsView.set({
       projection: this.currentProjection_,
-      modelView,
+      modelView: this.currentModelView_,
       color: object.wireframeColor.rgb,
       opacity: this.currentOpacity_,
     });
@@ -391,8 +391,8 @@ class WebGPURenderer extends Renderer {
     pipeline: WebGPUPipeline,
     camera: Camera
   ) {
-    const modelView = mat4.multiply(
-      this.scratchModelView_,
+    mat4.multiply(
+      this.currentModelView_,
       camera.viewMatrix,
       object.transform.matrix
     );
@@ -401,7 +401,7 @@ class WebGPURenderer extends Renderer {
 
     pipeline.uniformsView.set({
       projection: this.currentProjection_,
-      modelView,
+      modelView: this.currentModelView_,
       color: uniforms.Color,
       valueOffset: uniforms.ValueOffset,
       valueScale: uniforms.ValueScale,
