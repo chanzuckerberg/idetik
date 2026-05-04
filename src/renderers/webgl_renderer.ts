@@ -28,6 +28,10 @@ import { Frustum } from "../math/frustum";
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
 export class WebGLRenderer extends Renderer {
+  public override get name() {
+    return "WebGL2";
+  }
+
   private readonly gl_: WebGL2RenderingContext;
   private readonly programs_: WebGLShaderPrograms;
   private readonly bindings_: WebGLBuffers;

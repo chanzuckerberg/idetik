@@ -58,6 +58,16 @@ export abstract class Renderer {
     return this.renderedObjects_;
   }
 
+  /** Display name of the renderer. Override in subclasses. */
+  public get name(): string {
+    return "Unknown";
+  }
+
+  /** GPU execution time in ms. Override in subclasses that support GPU timing. */
+  public get gpuFrameTimeMs(): number {
+    return 0;
+  }
+
   public set backgroundColor(color: ColorLike) {
     this.backgroundColor_ = Color.from(color);
   }
