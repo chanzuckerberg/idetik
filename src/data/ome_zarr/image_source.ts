@@ -11,7 +11,6 @@ import {
   parseOmeZarrImage,
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
-import { S3FetchStore, type S3FetchStoreProps } from "../zarr/s3_fetch_store";
 
 type OmeZarrImageSourceProps = {
   location: Location<Readable>;
@@ -20,10 +19,6 @@ type OmeZarrImageSourceProps = {
 
 type HttpOmeZarrImageSourceProps = {
   url: string;
-  version?: OmeZarrVersion;
-};
-
-type S3OmeZarrImageSourceProps = S3FetchStoreProps & {
   version?: OmeZarrVersion;
 };
 
@@ -89,24 +84,6 @@ export class OmeZarrImageSource {
    */
   public static fromHttp(props: HttpOmeZarrImageSourceProps) {
     const store = new FetchStore(props.url);
-    return new OmeZarrImageSource({
-      location: new Location(store),
-      version: props.version,
-    });
-  }
-
-  /**
-   * Creates an OmeZarrImageSource from an S3 HTTP(S) URL.
-   *
-   * @param url URL of Zarr root
-   * @param version OME-Zarr version
-   * @param credentials AWS credentials for S3 authentication (will generate signatures per-request)
-   * @param region AWS region for S3 bucket (e.g., 'us-east-1')
-   * @param overrides RequestInit overrides to customize fetch behavior (e.g., custom headers for S3 authentication)
-   * @param useSuffixRequest Whether to use suffix requests for range queries
-   */
-  public static fromS3(props: S3OmeZarrImageSourceProps) {
-    const store = new S3FetchStore(props);
     return new OmeZarrImageSource({
       location: new Location(store),
       version: props.version,
