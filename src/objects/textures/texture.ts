@@ -53,6 +53,32 @@ export function bufferToDataType(
   throw new Error("Unsupported buffer type.");
 }
 
+export function textureChannelCount(texture: Texture) {
+  switch (texture.dataFormat) {
+    case "scalar":
+      return 1;
+    case "rgb":
+      return 3;
+    case "rgba":
+      return 4;
+  }
+}
+
+export function textureBytesPerChannel(texture: Texture) {
+  switch (texture.dataType) {
+    case "byte":
+    case "unsigned_byte":
+      return 1;
+    case "short":
+    case "unsigned_short":
+      return 2;
+    case "int":
+    case "unsigned_int":
+    case "float":
+      return 4;
+  }
+}
+
 export function textureDefaultValueRange(texture: Texture): [number, number] {
   if (texture.dataFormat === "rgb" || texture.dataFormat === "rgba") {
     return [0, 1];
