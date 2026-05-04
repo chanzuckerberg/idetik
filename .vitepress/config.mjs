@@ -87,7 +87,10 @@ export default defineConfig({
       },
       {
         text: 'Examples',
-        items: getExampleSidebarItems(),
+        items: [
+          { text: 'Overview', link: '/examples/' },
+          ...getExampleSidebarItems(),
+        ],
       },
     ],
 
