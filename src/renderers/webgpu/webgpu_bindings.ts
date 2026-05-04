@@ -33,7 +33,7 @@ export default class WebGPUBindings {
   }
 
   public setUniforms(pass: GPURenderPassEncoder, pipeline: WebGPUPipeline) {
-    const layout = pipeline.layouts.uniforms;
+    const layout = pipeline.shaderModule.layouts.uniforms;
     const data = pipeline.uniformsData;
 
     let entry = this.uniformBindings_.find((e) => e.layout === layout);
@@ -69,7 +69,7 @@ export default class WebGPUBindings {
     pipeline: WebGPUPipeline,
     texture: GPUTexture
   ) {
-    const layout = pipeline.layouts.textures;
+    const layout = pipeline.shaderModule.layouts.textures;
     if (!layout) {
       throw new Error("setTexture called on pipeline without a texture layout");
     }

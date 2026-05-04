@@ -32,18 +32,7 @@ export type PipelineKey = {
   vertexAttributesStr: string;
 };
 
-export type WebGPUPipeline = {
-  key: PipelineKey;
-  pipeline: GPURenderPipeline;
-  uniformsView: StructuredView;
-  uniformsData: Float32Array<ArrayBuffer>;
-  layouts: {
-    uniforms: GPUBindGroupLayout;
-    textures?: GPUBindGroupLayout;
-  };
-};
-
-type WebGPUShaderModule = {
+export type WebGPUShaderModule = {
   name: ShaderName;
   module: GPUShaderModule;
   defs: ShaderDataDefinitions;
@@ -51,6 +40,14 @@ type WebGPUShaderModule = {
     uniforms: GPUBindGroupLayout;
     textures?: GPUBindGroupLayout;
   };
+};
+
+export type WebGPUPipeline = {
+  key: PipelineKey;
+  pipeline: GPURenderPipeline;
+  uniformsView: StructuredView;
+  uniformsData: Float32Array<ArrayBuffer>;
+  shaderModule: WebGPUShaderModule;
 };
 
 export default class WebGPUPipelines {
@@ -91,10 +88,10 @@ export default class WebGPUPipelines {
     const uniformsDescriptor = descriptors[defs.uniforms.uniforms.group];
     applyDynamicOffsets(uniformsDescriptor);
 
-    const textureDef = defs.textures?.texture;
+    const texture = defs.textures?.texture;
     let texturesLayout: GPUBindGroupLayout | undefined;
-    if (textureDef) {
-      const textureDescriptor = descriptors[textureDef.group];
+    if (texture) {
+      const textureDescriptor = descriptors[texture.group];
 
       if (name === "image_scalar_f32") {
         // r32float isn't filterable without the `float32-filterable` feature.
@@ -125,9 +122,7 @@ export default class WebGPUPipelines {
       (s) => s.name === key.shaderName
     );
 
-    if (!shaderModule) {
-      throw new Error(`Shader module not found`);
-    }
+    if (!shaderModule) throw new Error(`Shader module not found`);
 
     const depthCompare: GPUCompareFunction = key.depthTest
       ? "less-equal"
@@ -199,7 +194,7 @@ export default class WebGPUPipelines {
       pipeline,
       uniformsView,
       uniformsData: new Float32Array(uniformsView.arrayBuffer),
-      layouts: shaderModule.layouts,
+      shaderModule,
     };
 
     this.pipelines_.push(entry);
