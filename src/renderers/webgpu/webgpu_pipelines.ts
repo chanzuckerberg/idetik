@@ -1,12 +1,6 @@
 import { WebGPUGeometryBuffer } from "./webgpu_geometry_buffers";
-
 import { BlendMode } from "@/core/layer";
 import { Logger } from "@/utilities/logger";
-
-import ImageScalarU32 from "./shaders/image_scalar_u32.wgsl";
-import ImageScalarI32 from "./shaders/image_scalar_i32.wgsl";
-import ImageScalarF32 from "./shaders/image_scalar_f32.wgsl";
-import Wireframe from "./shaders/wireframe.wgsl";
 
 import {
   ShaderDataDefinitions,
@@ -15,6 +9,17 @@ import {
   makeShaderDataDefinitions,
   makeStructuredView,
 } from "webgpu-utils";
+
+import ImageScalarU32 from "./shaders/image_scalar_u32.wgsl";
+import ImageScalarI32 from "./shaders/image_scalar_i32.wgsl";
+import ImageScalarF32 from "./shaders/image_scalar_f32.wgsl";
+import Wireframe from "./shaders/wireframe.wgsl";
+
+export type ShaderName =
+  | "image_scalar_u32"
+  | "image_scalar_i32"
+  | "image_scalar_f32"
+  | "wireframe";
 
 export type PipelineKey = {
   shaderName: ShaderName;
@@ -33,24 +38,18 @@ export type WebGPUPipeline = {
   uniformsView: StructuredView;
   uniformsData: Float32Array<ArrayBuffer>;
   layouts: {
-    object: GPUBindGroupLayout;
-    texture?: GPUBindGroupLayout;
+    uniforms: GPUBindGroupLayout;
+    textures?: GPUBindGroupLayout;
   };
 };
-
-export type ShaderName =
-  | "image_scalar_u32"
-  | "image_scalar_i32"
-  | "image_scalar_f32"
-  | "wireframe";
 
 type WebGPUShaderModule = {
   name: ShaderName;
   module: GPUShaderModule;
   defs: ShaderDataDefinitions;
   layouts: {
-    object: GPUBindGroupLayout;
-    texture?: GPUBindGroupLayout;
+    uniforms: GPUBindGroupLayout;
+    textures?: GPUBindGroupLayout;
   };
 };
 
@@ -81,49 +80,30 @@ export default class WebGPUPipelines {
       code: source,
     });
 
-    const compilationInfo = await module.getCompilationInfo();
-    if (compilationInfo.messages.some((m) => m.type === "error")) {
-      for (const msg of compilationInfo.messages) {
-        Logger.error("WebGPUPipelines", `${msg.type}: ${msg.message}`);
-      }
-      throw new Error(`Failed to compile WGSL shader ${name}.wgsl`);
-    }
+    await validateShaderCompilation(name, module);
 
     const defs = makeShaderDataDefinitions(source);
-
     const descriptors = makeBindGroupLayoutDescriptors(defs, {
       vertex: { entryPoint: "vert" },
       fragment: { entryPoint: "frag" },
     });
 
-    const objectDescriptor = descriptors[defs.uniforms.uniforms.group];
-
-    for (const entry of objectDescriptor.entries as GPUBindGroupLayoutEntry[]) {
-      if (entry.buffer) {
-        entry.buffer = { ...entry.buffer, hasDynamicOffset: true };
-      }
-    }
+    const uniformsDescriptor = descriptors[defs.uniforms.uniforms.group];
+    applyDynamicOffsets(uniformsDescriptor);
 
     const textureDef = defs.textures?.texture;
-    let textureLayout: GPUBindGroupLayout | undefined;
+    let texturesLayout: GPUBindGroupLayout | undefined;
     if (textureDef) {
       const textureDescriptor = descriptors[textureDef.group];
 
-      // r32float isn't filterable without the `float32-filterable` feature.
-      // Since we don't use a sampler, it's safe to use unfilterable-float
-      // across all float-valued formats.
       if (name === "image_scalar_f32") {
-        for (const entry of textureDescriptor.entries as GPUBindGroupLayoutEntry[]) {
-          if (entry.texture) {
-            entry.texture = {
-              ...entry.texture,
-              sampleType: "unfilterable-float",
-            };
-          }
-        }
+        // r32float isn't filterable without the `float32-filterable` feature.
+        // Since we don't use a sampler, it's safe to use unfilterable-float
+        // across all float-valued formats.
+        forceUnfilterableFloat(textureDescriptor);
       }
 
-      textureLayout = this.device_.createBindGroupLayout(textureDescriptor);
+      texturesLayout = this.device_.createBindGroupLayout(textureDescriptor);
     }
 
     this.shaderModules_.push({
@@ -131,8 +111,8 @@ export default class WebGPUPipelines {
       module,
       defs,
       layouts: {
-        object: this.device_.createBindGroupLayout(objectDescriptor),
-        texture: textureLayout,
+        uniforms: this.device_.createBindGroupLayout(uniformsDescriptor),
+        textures: texturesLayout,
       },
     });
   }
@@ -197,11 +177,11 @@ export default class WebGPUPipelines {
     };
 
     const bindGroupLayouts: GPUBindGroupLayout[] = [
-      shaderModule.layouts.object,
+      shaderModule.layouts.uniforms,
     ];
 
-    if (shaderModule.layouts.texture) {
-      bindGroupLayouts.push(shaderModule.layouts.texture);
+    if (shaderModule.layouts.textures) {
+      bindGroupLayouts.push(shaderModule.layouts.textures);
     }
 
     const layout = this.device_.createPipelineLayout({ bindGroupLayouts });
@@ -239,6 +219,38 @@ export default class WebGPUPipelines {
         p.key.topology === key.topology &&
         p.key.vertexAttributesStr === key.vertexAttributesStr
     );
+  }
+}
+
+async function validateShaderCompilation(
+  name: ShaderName,
+  module: GPUShaderModule
+) {
+  const compilationInfo = await module.getCompilationInfo();
+  if (compilationInfo.messages.some((m) => m.type === "error")) {
+    for (const msg of compilationInfo.messages) {
+      Logger.error("WebGPUPipelines", `${msg.type}: ${msg.message}`);
+    }
+    throw new Error(`Failed to compile WGSL shader ${name}.wgsl`);
+  }
+}
+
+function applyDynamicOffsets(object: GPUBindGroupLayoutDescriptor) {
+  for (const entry of object.entries as GPUBindGroupLayoutEntry[]) {
+    if (entry.buffer) {
+      entry.buffer = { ...entry.buffer, hasDynamicOffset: true };
+    }
+  }
+}
+
+function forceUnfilterableFloat(object: GPUBindGroupLayoutDescriptor) {
+  for (const entry of object.entries as GPUBindGroupLayoutEntry[]) {
+    if (entry.texture) {
+      entry.texture = {
+        ...entry.texture,
+        sampleType: "unfilterable-float",
+      };
+    }
   }
 }
 
