@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitepress'
 import path from 'path'
 import { readdirSync, existsSync, readFileSync } from 'fs'
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
