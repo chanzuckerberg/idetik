@@ -2,7 +2,7 @@
 
 import * as zarr from "zarrita";
 import { openArrayFromParams, ZarrArrayParams } from "../zarr/open";
-import { isChunkData, ChunkData, ChunkDataRange } from "../chunk";
+import { isChunkData, ChunkData, ChunkDataRange, computeChunkDataRange } from "../chunk";
 import { SliceSpec, processChunk } from "./chunk_processing";
 
 type ZarrWorkerMessageType = "getChunk" | "cancel";
@@ -28,6 +28,9 @@ export type ZarrWorkerResponse = {
       success: true;
       type: "getChunk";
       data: ChunkData;
+    }
+  | {
+      type: "dataRange";
       dataRange: ChunkDataRange;
     }
   | {
@@ -81,6 +84,7 @@ async function handleGetChunkMessage(
 
   const array = await getOrOpenArray(arrayParams);
 
+  const fetchStart = performance.now();
   let chunk;
   try {
     chunk = await array.getChunk(index, { signal: abortController.signal });
@@ -94,6 +98,7 @@ async function handleGetChunkMessage(
   } finally {
     activeRequests.delete(id);
   }
+  performance.measure("zarrFetch", { start: fetchStart });
 
   if (!isChunkData(chunk.data)) {
     throw new Error(
@@ -101,17 +106,17 @@ async function handleGetChunkMessage(
     );
   }
 
-  const processStart = performance.now();
-  const { data, dataRange } = processChunk(
-    chunk.data,
-    chunk.shape,
-    chunk.stride,
-    sliceSpec
-  );
-  performance.measure("processChunk", { start: processStart });
+  const sliceStart = performance.now();
+  const data = processChunk(chunk.data, chunk.shape, chunk.stride, sliceSpec);
+  performance.measure("processChunk", { start: sliceStart });
+
+  const copyStart = performance.now();
+  // Copy before transfer so range computation can run after the data is sent.
+  const dataCopy = data.slice();
+  performance.measure("copyChunk", { start: copyStart });
 
   try {
-    self.postMessage({ id, success: true, type: "getChunk", data, dataRange }, [
+    self.postMessage({ id, success: true, type: "getChunk", data }, [
       data.buffer,
     ]);
   } catch (postError) {
@@ -119,6 +124,11 @@ async function handleGetChunkMessage(
       `Failed to send result: ${postError instanceof Error ? postError.message : String(postError)}`
     );
   }
+
+  const rangeStart = performance.now();
+  const dataRange = computeChunkDataRange(dataCopy);
+  performance.measure("computeChunkDataRange", { start: rangeStart });
+  self.postMessage({ id, type: "dataRange", dataRange });
 }
 
 // we need to open arrays in each worker since we can't transfer them

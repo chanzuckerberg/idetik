@@ -1,9 +1,4 @@
-import {
-  ChunkData,
-  ChunkDataConstructor,
-  ChunkDataRange,
-  computeChunkDataRange,
-} from "../chunk";
+import { ChunkData, ChunkDataConstructor, ChunkDataRange } from "../chunk";
 
 export type SliceSpec = {
   targetShape: { x: number; y: number; z: number };
@@ -15,7 +10,7 @@ export type SliceSpec = {
 
 export type ProcessedChunk = {
   data: ChunkData;
-  dataRange: ChunkDataRange;
+  dataRange: Promise<ChunkDataRange>;
 };
 
 export function processChunk(
@@ -23,15 +18,8 @@ export function processChunk(
   receivedShape: number[],
   receivedStride: number[],
   spec: SliceSpec
-): ProcessedChunk {
-  const data = sliceReceivedChunk(
-    receivedData,
-    receivedShape,
-    receivedStride,
-    spec
-  );
-  const dataRange = computeChunkDataRange(data);
-  return { data, dataRange };
+): ChunkData {
+  return sliceReceivedChunk(receivedData, receivedShape, receivedStride, spec);
 }
 
 function sliceReceivedChunk(

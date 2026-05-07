@@ -1,7 +1,7 @@
 import * as zarr from "zarrita";
 import { Logger } from "../../utilities/logger";
 import { ZarrArrayParams } from "../zarr/open";
-import { isChunkData } from "../chunk";
+import { isChunkData, ChunkDataRange, computeChunkDataRange } from "../chunk";
 import { ZarrWorkerRequest, ZarrWorkerResponse } from "./worker_kernel";
 import { SliceSpec, ProcessedChunk, processChunk } from "./chunk_processing";
 // "inline" import to ensure worker code works in dependent projects
@@ -23,12 +23,14 @@ type WorkerInstance = {
   workerId: number;
 };
 
-const DEFAULT_WORKER_COUNT = 3;
+// leave 2 cores for the main thread and the OS/other tabs
+const DEFAULT_WORKER_COUNT = Math.max(1, navigator.hardwareConcurrency - 2);
 let workerPool: WorkerInstance[] = [];
 let messageId = 0;
 let workerId = 0;
 const pendingMessages = new Map<number, PendingGetChunkRequest>();
 const canceledMessages = new Set<number>();
+const pendingDataRanges = new Map<number, (range: ChunkDataRange) => void>();
 
 function getWorkerInstance(worker: Worker): WorkerInstance | undefined {
   const instance = workerPool.find((w) => w.worker === worker);
@@ -45,7 +47,18 @@ function handleWorkerMessage(
   e: MessageEvent<ZarrWorkerResponse>,
   worker: Worker
 ): void {
-  const { id, success } = e.data;
+  const { id } = e.data;
+
+  if (e.data.type === "dataRange") {
+    const resolveRange = pendingDataRanges.get(id);
+    if (resolveRange) {
+      resolveRange(e.data.dataRange);
+      pendingDataRanges.delete(id);
+    }
+    return;
+  }
+
+  const { success } = e.data;
   const pending = pendingMessages.get(id);
 
   if (!pending) {
@@ -78,7 +91,10 @@ function handleWorkerMessage(
   }
 
   if (success && e.data.type === "getChunk") {
-    pending.resolve({ data: e.data.data, dataRange: e.data.dataRange });
+    const dataRange = new Promise<ChunkDataRange>((resolve) => {
+      pendingDataRanges.set(id, resolve);
+    });
+    pending.resolve({ data: e.data.data, dataRange });
   } else if (!success) {
     pending.reject(new Error(e.data.error || "Unknown worker error"));
   }
@@ -258,12 +274,13 @@ export async function fetchAndProcessChunk(
         `Unsupported chunk data type: ${rawChunk.data.constructor.name}`
       );
     }
-    return processChunk(
+    const data = processChunk(
       rawChunk.data,
       rawChunk.shape,
       rawChunk.stride,
       sliceSpec
     );
+    return { data, dataRange: Promise.resolve(computeChunkDataRange(data)) };
   }
 }
 
@@ -273,4 +290,5 @@ export function terminateWorkerPool(): void {
   }
   workerPool = [];
   pendingMessages.clear();
+  pendingDataRanges.clear();
 }

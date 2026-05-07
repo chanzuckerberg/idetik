@@ -117,7 +117,9 @@ export class OmeZarrImageLoader {
     }
     chunk.rowAlignmentBytes = rowAlignment;
     chunk.data = data;
-    chunk.dataRange = dataRange;
+    dataRange.then((range) => {
+      chunk.dataRange = range;
+    });
   }
 }
 
