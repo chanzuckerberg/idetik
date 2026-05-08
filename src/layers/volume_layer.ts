@@ -1,9 +1,4 @@
-import {
-  Chunk,
-  ChunkSource,
-  SliceCoordinates,
-  computeChannelDataRange,
-} from "../data/chunk";
+import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { Layer, RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
@@ -41,7 +36,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private chunkStoreView_?: ChunkStoreView;
   private channelProps_?: ChannelProps[];
 
-  private visibleChunks_: Chunk[] = [];
   private lastLoadedTime_: number | undefined = undefined;
   private lastNumRenderedChannelChunks_: number | undefined = undefined;
   private interactiveStepSizeScale_ = 1.0;
@@ -109,10 +103,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.channelChangeCallbacks_.splice(index, 1);
   }
 
-  public getVisibleDataRange() {
-    return computeChannelDataRange(this.visibleChunks_);
-  }
-
   constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {
     super({ transparent: true, blendMode: "premultiplied" });
     this.source_ = source;
@@ -168,7 +158,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     const chunksToRender = this.chunkStoreView_.getChunksToRender(
       this.sliceCoords_
     );
-    this.visibleChunks_ = chunksToRender;
     const currentTime = this.sliceCoords_.t ?? -1;
     const groupedChunks = groupBySpatialIndex(chunksToRender);
 

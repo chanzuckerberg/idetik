@@ -101,7 +101,7 @@ export class OmeZarrImageLoader {
 
     // NOTE: if source chunks have multiple channels/timepoints
     // this results in duplicate fetching and decompression
-    const { data, dataRange } = await fetchAndProcessChunk(
+    const data = await fetchAndProcessChunk(
       array,
       arrayParams,
       chunkCoords,
@@ -117,7 +117,6 @@ export class OmeZarrImageLoader {
     }
     chunk.rowAlignmentBytes = rowAlignment;
     chunk.data = data;
-    chunk.dataRange = dataRange;
   }
 }
 

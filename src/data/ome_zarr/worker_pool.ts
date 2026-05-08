@@ -1,16 +1,16 @@
 import * as zarr from "zarrita";
 import { Logger } from "../../utilities/logger";
 import { ZarrArrayParams } from "../zarr/open";
-import { isChunkData } from "../chunk";
+import { isChunkData, ChunkData } from "../chunk";
 import { ZarrWorkerRequest, ZarrWorkerResponse } from "./worker_kernel";
-import { SliceSpec, ProcessedChunk, processChunk } from "./chunk_processing";
+import { SliceSpec, processChunk } from "./chunk_processing";
 // "inline" import to ensure worker code works in dependent projects
 // this is a workaround for a vite limitation when building a library
 // see https://github.com/vitejs/vite/issues/11672
 import WorkerKernel from "./worker_kernel.ts?worker&inline";
 
 type PendingGetChunkRequest = {
-  resolve: (value: ProcessedChunk) => void;
+  resolve: (value: ChunkData) => void;
   reject: (error: Error) => void;
   abortListener?: () => void;
   abortSignal?: AbortSignal;
@@ -23,7 +23,8 @@ type WorkerInstance = {
   workerId: number;
 };
 
-const DEFAULT_WORKER_COUNT = 3;
+// leave 2 cores for the main thread and the OS/other tabs
+const DEFAULT_WORKER_COUNT = Math.max(1, navigator.hardwareConcurrency - 2);
 let workerPool: WorkerInstance[] = [];
 let messageId = 0;
 let workerId = 0;
@@ -78,7 +79,7 @@ function handleWorkerMessage(
   }
 
   if (success && e.data.type === "getChunk") {
-    pending.resolve({ data: e.data.data, dataRange: e.data.dataRange });
+    pending.resolve(e.data.data);
   } else if (!success) {
     pending.reject(new Error(e.data.error || "Unknown worker error"));
   }
@@ -155,7 +156,7 @@ async function fetchAndProcessChunkInWorker(
   chunkIndex: number[],
   sliceSpec: SliceSpec,
   options?: { signal?: AbortSignal }
-): Promise<ProcessedChunk> {
+): Promise<ChunkData> {
   return new Promise((resolve, reject) => {
     const workerInstance = getLeastBusyWorker();
 
@@ -237,7 +238,7 @@ export async function fetchAndProcessChunk(
   chunkCoords: number[],
   sliceSpec: SliceSpec,
   options?: { signal?: AbortSignal }
-): Promise<ProcessedChunk> {
+): Promise<ChunkData> {
   ensureWorkerPool();
   try {
     return await fetchAndProcessChunkInWorker(
