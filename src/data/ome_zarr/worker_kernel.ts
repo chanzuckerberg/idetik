@@ -2,7 +2,7 @@
 
 import * as zarr from "zarrita";
 import { openArrayFromParams, ZarrArrayParams } from "../zarr/open";
-import { isChunkData, ChunkData, ChunkDataRange, computeChunkDataRange } from "../chunk";
+import { isChunkData, ChunkData } from "../chunk";
 import { SliceSpec, processChunk } from "./chunk_processing";
 
 type ZarrWorkerMessageType = "getChunk" | "cancel";
@@ -28,10 +28,6 @@ export type ZarrWorkerResponse = {
       success: true;
       type: "getChunk";
       data: ChunkData;
-    }
-  | {
-      type: "dataRange";
-      dataRange: ChunkDataRange;
     }
   | {
       success: false;
@@ -110,11 +106,6 @@ async function handleGetChunkMessage(
   const data = processChunk(chunk.data, chunk.shape, chunk.stride, sliceSpec);
   performance.measure("processChunk", { start: sliceStart });
 
-  const copyStart = performance.now();
-  // Copy before transfer so range computation can run after the data is sent.
-  const dataCopy = data.slice();
-  performance.measure("copyChunk", { start: copyStart });
-
   try {
     self.postMessage({ id, success: true, type: "getChunk", data }, [
       data.buffer,
@@ -124,11 +115,6 @@ async function handleGetChunkMessage(
       `Failed to send result: ${postError instanceof Error ? postError.message : String(postError)}`
     );
   }
-
-  const rangeStart = performance.now();
-  const dataRange = computeChunkDataRange(dataCopy);
-  performance.measure("computeChunkDataRange", { start: rangeStart });
-  self.postMessage({ id, type: "dataRange", dataRange });
 }
 
 // we need to open arrays in each worker since we can't transfer them

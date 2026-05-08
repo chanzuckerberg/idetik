@@ -1,16 +1,16 @@
 import * as zarr from "zarrita";
 import { Logger } from "../../utilities/logger";
 import { ZarrArrayParams } from "../zarr/open";
-import { isChunkData, ChunkDataRange, computeChunkDataRange } from "../chunk";
+import { isChunkData, ChunkData } from "../chunk";
 import { ZarrWorkerRequest, ZarrWorkerResponse } from "./worker_kernel";
-import { SliceSpec, ProcessedChunk, processChunk } from "./chunk_processing";
+import { SliceSpec, processChunk } from "./chunk_processing";
 // "inline" import to ensure worker code works in dependent projects
 // this is a workaround for a vite limitation when building a library
 // see https://github.com/vitejs/vite/issues/11672
 import WorkerKernel from "./worker_kernel.ts?worker&inline";
 
 type PendingGetChunkRequest = {
-  resolve: (value: ProcessedChunk) => void;
+  resolve: (value: ChunkData) => void;
   reject: (error: Error) => void;
   abortListener?: () => void;
   abortSignal?: AbortSignal;
@@ -30,7 +30,6 @@ let messageId = 0;
 let workerId = 0;
 const pendingMessages = new Map<number, PendingGetChunkRequest>();
 const canceledMessages = new Set<number>();
-const pendingDataRanges = new Map<number, (range: ChunkDataRange) => void>();
 
 function getWorkerInstance(worker: Worker): WorkerInstance | undefined {
   const instance = workerPool.find((w) => w.worker === worker);
@@ -47,18 +46,7 @@ function handleWorkerMessage(
   e: MessageEvent<ZarrWorkerResponse>,
   worker: Worker
 ): void {
-  const { id } = e.data;
-
-  if (e.data.type === "dataRange") {
-    const resolveRange = pendingDataRanges.get(id);
-    if (resolveRange) {
-      resolveRange(e.data.dataRange);
-      pendingDataRanges.delete(id);
-    }
-    return;
-  }
-
-  const { success } = e.data;
+  const { id, success } = e.data;
   const pending = pendingMessages.get(id);
 
   if (!pending) {
@@ -91,10 +79,7 @@ function handleWorkerMessage(
   }
 
   if (success && e.data.type === "getChunk") {
-    const dataRange = new Promise<ChunkDataRange>((resolve) => {
-      pendingDataRanges.set(id, resolve);
-    });
-    pending.resolve({ data: e.data.data, dataRange });
+    pending.resolve(e.data.data);
   } else if (!success) {
     pending.reject(new Error(e.data.error || "Unknown worker error"));
   }
@@ -171,7 +156,7 @@ async function fetchAndProcessChunkInWorker(
   chunkIndex: number[],
   sliceSpec: SliceSpec,
   options?: { signal?: AbortSignal }
-): Promise<ProcessedChunk> {
+): Promise<ChunkData> {
   return new Promise((resolve, reject) => {
     const workerInstance = getLeastBusyWorker();
 
@@ -253,7 +238,7 @@ export async function fetchAndProcessChunk(
   chunkCoords: number[],
   sliceSpec: SliceSpec,
   options?: { signal?: AbortSignal }
-): Promise<ProcessedChunk> {
+): Promise<ChunkData> {
   ensureWorkerPool();
   try {
     return await fetchAndProcessChunkInWorker(
@@ -274,13 +259,12 @@ export async function fetchAndProcessChunk(
         `Unsupported chunk data type: ${rawChunk.data.constructor.name}`
       );
     }
-    const data = processChunk(
+    return processChunk(
       rawChunk.data,
       rawChunk.shape,
       rawChunk.stride,
       sliceSpec
     );
-    return { data, dataRange: Promise.resolve(computeChunkDataRange(data)) };
   }
 }
 
@@ -290,5 +274,4 @@ export function terminateWorkerPool(): void {
   }
   workerPool = [];
   pendingMessages.clear();
-  pendingDataRanges.clear();
 }

@@ -1,4 +1,4 @@
-import { ChunkData, ChunkDataConstructor, ChunkDataRange } from "../chunk";
+import { ChunkData, ChunkDataConstructor } from "../chunk";
 
 export type SliceSpec = {
   targetShape: { x: number; y: number; z: number };
@@ -6,11 +6,6 @@ export type SliceSpec = {
   dimIndices: { x: number; y: number; z?: number; c?: number; t?: number };
   cChunkSize?: number;
   tChunkSize?: number;
-};
-
-export type ProcessedChunk = {
-  data: ChunkData;
-  dataRange: Promise<ChunkDataRange>;
 };
 
 export function processChunk(
