@@ -73,6 +73,7 @@ export class OmeZarrImageSource {
       metadata,
       arrays,
       arrayParams,
+      omeZarrVersion: adaptedOmeImage.originalVersion,
     });
   }
 

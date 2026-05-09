@@ -9,6 +9,7 @@ import { Image as OmeZarrImage } from "./0.5/image";
 import { ZarrArrayParams } from "../zarr/open";
 import { SliceSpec } from "./chunk_processing";
 import { fetchAndProcessChunk } from "./worker_pool";
+import { Version as OmeZarrVersion } from "./metadata_loaders";
 
 // Implements the interface required for getting array chunks in zarrita:
 // https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
@@ -33,6 +34,7 @@ type OmeZarrImageLoaderProps = {
   metadata: OmeZarrImage["ome"]["multiscales"][number];
   arrays: zarr.Array<zarr.DataType, zarr.Readable>[];
   arrayParams: ZarrArrayParams[];
+  omeZarrVersion: OmeZarrVersion;
 };
 
 // Loads chunks from a multiscale image implementing OME-Zarr v0.5:
@@ -44,12 +46,16 @@ export class OmeZarrImageLoader {
   >;
   private readonly arrayParams_: ReadonlyArray<ZarrArrayParams>;
   private readonly dimensions_: SourceDimensionMap;
+  // OME-Zarr version resolved when the source was opened; "0.4" maps to Zarr v2
+  // and "0.5" to Zarr v3.
+  public readonly omeZarrVersion: OmeZarrVersion;
 
   constructor(props: OmeZarrImageLoaderProps) {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.arrayParams_ = props.arrayParams;
     this.dimensions_ = inferSourceDimensionMap(this.metadata_, this.arrays_);
+    this.omeZarrVersion = props.omeZarrVersion;
   }
 
   public getSourceDimensionMap(): SourceDimensionMap {
