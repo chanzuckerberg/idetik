@@ -322,12 +322,26 @@ function formatDatasetInfo(
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 
+  let totalChunks = 0;
+  for (let lod = 0; lod < dims.numLods; ++lod) {
+    const xLod = dims.x.lods[lod];
+    const yLod = dims.y.lods[lod];
+    const zLod = dims.z?.lods[lod];
+    const chunksX = Math.ceil(xLod.size / xLod.chunkSize);
+    const chunksY = Math.ceil(yLod.size / yLod.chunkSize);
+    const chunksZ = zLod ? Math.ceil(zLod.size / zLod.chunkSize) : 1;
+    const chunksT = tL?.size ?? 1;
+    const chunksC = cL?.size ?? 1;
+    totalChunks += chunksT * chunksC * chunksZ * chunksY * chunksX;
+  }
+
   return (
     `<div class="label">${escapedLabel}</div>` +
     `<div class="meta">` +
     [
       `shape:  ${shape}`,
       `LODs:   ${dims.numLods}`,
+      `chunks: ${totalChunks.toLocaleString()}`,
       `voxel:  ${scale}${unit ? " " + unit : ""}`,
     ].join("\n") +
     `</div>`
