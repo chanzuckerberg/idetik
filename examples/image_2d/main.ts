@@ -15,17 +15,15 @@ import {
 } from "@/core/image_source_policy";
 import GUI from "lil-gui";
 
-// A 2D OME-Zarr image viewer with a dataset selector. Pre-populated with three
+// A 2D OME-Zarr image viewer with a dataset selector. Pre-populated with
 // public datasets covering both Zarr v2 (OME-Zarr 0.4) and Zarr v3 (OME-Zarr
-// 0.5), plus a custom-URL field. Selection persists across reloads via the URL
-// hash.
+// 0.5), plus a custom-URL field.
 
 type DatasetConfig = {
   id: string;
   label: string;
   url: string;
-  /** Pass to OmeZarrImageSource.fromHttp; undefined => let the loader detect. */
-  version?: "0.5";
+  version?: "0.4" | "0.5";
   channel: number;
   contrastLimits: [number, number];
   channelColor?: string;
@@ -46,10 +44,11 @@ const PRESETS: DatasetConfig[] = [
     version: "0.5",
     channel: 1,
     contrastLimits: [409, 3000],
+    channelColor: "#00ff00",
   },
   {
     id: "exaspim",
-    label: "exaSPIM Fused (zarr v2, ~7.9M chunks)",
+    label: "exaSPIM Fused (zarr v2, large)",
     url: "https://aind-open-data.s3.amazonaws.com/exaSPIM_822177_2026-04-24_17-36-07_processed_2026-05-04_09-30-27/fusion/fused.zarr/",
     channel: 0,
     contrastLimits: [0, 15],
@@ -99,7 +98,6 @@ datasetInfoDiv.textContent = `Loading ${config.label}…\n${config.url}`;
 
 const loader = await source.open();
 const dimensions = loader.getSourceDimensionMap();
-const zarrFormat = loader.omeZarrVersion === "0.5" ? "v3" : "v2";
 
 const xLod = dimensions.x.lods[0];
 const yLod = dimensions.y.lods[0];
@@ -110,18 +108,26 @@ const sliceCoords: SliceCoordinates = {
   c: [config.channel],
 };
 if (zLod) {
-  sliceCoords.z = zLod.translation + 0.5 * zLod.size * zLod.scale;
+  const midIndex = Math.floor((zLod.size - 1) / 2);
+  sliceCoords.z = zLod.translation + midIndex * zLod.scale;
 }
 if (tLod) {
-  sliceCoords.t = tLod.translation;
+  const midIndex = Math.floor((tLod.size - 1) / 2);
+  sliceCoords.t = tLod.translation + midIndex * tLod.scale;
 }
 
-const channelProps: ChannelProps[] = [
-  {
-    contrastLimits: config.contrastLimits,
-    color: config.channelColor ?? "#ffffff",
-  },
-];
+const channelCount = dimensions.c?.lods[0].size ?? 1;
+const channelProps: ChannelProps[] = Array.from(
+  { length: channelCount },
+  (_, idx) =>
+    idx === config.channel
+      ? {
+          visible: true,
+          contrastLimits: config.contrastLimits,
+          color: config.channelColor ?? "#ffffff",
+        }
+      : { visible: false }
+);
 
 const imageLayer = new ImageLayer({
   source,
@@ -154,7 +160,8 @@ const scaleBar = new ScaleBar({
 
 });
 
-const idetik = new Idetik({
+const idetik = await Idetik.create({
+  renderer: "webgpu-experimental",
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
@@ -165,34 +172,26 @@ const idetik = new Idetik({
   ],
   overlays: [timePointOverlay, scaleBar],
   showStats: true,
-}).start();
+});
+idetik.start();
 
-datasetInfoDiv.innerHTML = formatDatasetInfo(config, dimensions, zarrFormat);
+datasetInfoDiv.innerHTML = formatDatasetInfo(config, dimensions);
 
-// --- GUI ---------------------------------------------------------------
 
 const gui = new GUI({ width: 380 });
 
-// Dataset selector
-const datasetFolder = gui.addFolder("Dataset");
 const datasetState = {
   selection: parsed.preset?.label ?? CUSTOM_LABEL,
   customUrl: parsed.customUrl ?? "",
 };
 const allLabels = [...PRESETS.map((p) => p.label), CUSTOM_LABEL];
-datasetFolder
+const datasetSelect = gui
   .add(datasetState, "selection", allLabels)
-  .name("Dataset")
-  .onChange((label: string) => {
-    if (label === CUSTOM_LABEL) {
-      // Stay put; user enters URL below and clicks Load.
-      return;
-    }
-    const preset = PRESETS.find((p) => p.label === label);
-    if (preset) setHashAndReload(`#dataset=${preset.id}`);
-  });
-datasetFolder.add(datasetState, "customUrl").name("Custom URL");
-datasetFolder
+  .name("Dataset");
+const customUrlController = gui
+  .add(datasetState, "customUrl")
+  .name("Custom URL");
+const customLoadController = gui
   .add(
     {
       load: () => {
@@ -204,8 +203,26 @@ datasetFolder
     "load"
   )
   .name("Load custom URL");
+function updateCustomVisibility(label: string) {
+  if (label === CUSTOM_LABEL) {
+    customUrlController.show();
+    customLoadController.show();
+  } else {
+    customUrlController.hide();
+    customLoadController.hide();
+  }
+}
+datasetSelect.onChange((label: string) => {
+  updateCustomVisibility(label);
+  if (label === CUSTOM_LABEL) {
+    // Stay put; user enters URL below and clicks Load.
+    return;
+  }
+  const preset = PRESETS.find((p) => p.label === label);
+  if (preset) setHashAndReload(`#dataset=${preset.id}`);
+});
+updateCustomVisibility(datasetState.selection);
 
-// Slice (t, z) sliders -- only show if the dataset has those dims.
 if (zLod && zLod.size > 1) {
   addDimensionSlider({
     gui,
@@ -234,7 +251,6 @@ if (tLod && tLod.size > 1) {
   });
 }
 
-// Channel
 const channelFolder = gui.addFolder("Channel");
 const channelState = {
   contrastMin: config.contrastLimits[0],
@@ -256,15 +272,21 @@ channelFolder
 
 function updateChannel() {
   if (channelState.contrastMin >= channelState.contrastMax) return;
-  imageLayer.setChannelProps([
-    {
-      contrastLimits: [channelState.contrastMin, channelState.contrastMax],
-      color: channelState.color,
-    },
-  ]);
+  const next = Array.from({ length: channelCount }, (_, idx) =>
+    idx === config.channel
+      ? {
+          visible: true,
+          contrastLimits: [channelState.contrastMin, channelState.contrastMax] as [
+            number,
+            number,
+          ],
+          color: channelState.color,
+        }
+      : { visible: false }
+  );
+  imageLayer.setChannelProps(next);
 }
 
-// Debug
 const debugFolder = gui.addFolder("Debug");
 const debugState = { showWireframes: imageLayer.debugMode };
 debugFolder
@@ -274,12 +296,9 @@ debugFolder
 
 void idetik;
 
-// --- helpers -----------------------------------------------------------
-
 function formatDatasetInfo(
   cfg: DatasetConfig,
-  dims: ReturnType<typeof loader.getSourceDimensionMap>,
-  format: "v2" | "v3"
+  dims: ReturnType<typeof loader.getSourceDimensionMap>
 ): string {
   const xL = dims.x.lods[0];
   const yL = dims.y.lods[0];
@@ -298,23 +317,15 @@ function formatDatasetInfo(
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  return [
-    `<div class="label">${escapedLabel}</div>`,
-    `<div class="meta">`,
-    `format: zarr ${format} (OME-Zarr ${loader.omeZarrVersion})`,
-    `shape:  ${shape}  ${labelAxes(dims)}`,
-    `LODs:   ${dims.numLods}`,
-    `voxel:  ${scale}${unit ? " " + unit : ""}`,
-    `</div>`,
-  ].join("\n");
-}
 
-function labelAxes(dims: ReturnType<typeof loader.getSourceDimensionMap>) {
-  const axes: string[] = [];
-  if (dims.t) axes.push("T");
-  if (dims.c) axes.push("C");
-  if (dims.z) axes.push("Z");
-  axes.push("Y");
-  axes.push("X");
-  return `(${axes.join(" × ")})`;
+  return (
+    `<div class="label">${escapedLabel}</div>` +
+    `<div class="meta">` +
+    [
+      `shape:  ${shape}`,
+      `LODs:   ${dims.numLods}`,
+      `voxel:  ${scale}${unit ? " " + unit : ""}`,
+    ].join("\n") +
+    `</div>`
+  );
 }
