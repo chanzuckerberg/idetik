@@ -150,6 +150,21 @@ function inferSourceDimensionMap(
         translation: translation[index],
       });
     }
+    // Normalize translations on spatial axes so chunk.offset = trans + chunkIdx
+    // * chunkSize * scale uniformly refers to the voxel-cell corner. Two
+    // conventions appear in the wild: "voxel-center" pyramids encode the
+    // half-voxel shift across LODs (translation_k - translation_{k-1} === 0.5
+    // * (scale_k - scale_{k-1})), "voxel-corner" pyramids keep translation
+    // constant. Detect by inspecting the pyramid; if it matches the center
+    // pattern, shift translations by -0.5 * scale per LOD so downstream code
+    // uses corner extents uniformly. Skip non-spatial axes (c, t) where the
+    // convention doesn't apply and ChunkStore enforces translation == 0.
+    if (
+      image.axes[index].type === "space" &&
+      isVoxelCenterConvention(lods)
+    ) {
+      for (const lod of lods) lod.translation -= 0.5 * lod.scale;
+    }
     return {
       name,
       index,
@@ -198,4 +213,16 @@ function findDimensionIndex(dimensions: string[], target: string): number {
 
 function findDimensionIndexSafe(dimensions: string[], target: string): number {
   return dimensions.findIndex((d) => compareDimensions(d, target));
+}
+
+function isVoxelCenterConvention(
+  lods: ReadonlyArray<{ scale: number; translation: number }>
+): boolean {
+  if (lods.length <= 1) return false;
+  for (let i = 1; i < lods.length; i++) {
+    const expected = 0.5 * (lods[i].scale - lods[i - 1].scale);
+    const actual = lods[i].translation - lods[i - 1].translation;
+    if (Math.abs(actual - expected) > 1e-6) return false;
+  }
+  return true;
 }
