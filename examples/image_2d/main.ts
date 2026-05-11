@@ -38,6 +38,14 @@ const PRESETS: DatasetConfig[] = [
     contrastLimits: [0, 60],
   },
   {
+    id: "exaspim",
+    label: "exaSPIM Fused (zarr v2, large)",
+    url: "https://aind-open-data.s3.amazonaws.com/exaSPIM_822177_2026-04-24_17-36-07_processed_2026-05-04_09-30-27/fusion/fused.zarr/",
+    channel: 0,
+    contrastLimits: [0, 15],
+    channelColor: "#00ffff",
+  },
+  {
     id: "gfp_ca_waves",
     label: "GFP Ca wave dynamics (zarr v3)",
     url: "https://uk1s3.embassy.ebi.ac.uk/ebi-ngff-challenge-2024/c0e5d621-62cc-43a6-9dad-2ddab8959d17.zarr",
@@ -47,12 +55,12 @@ const PRESETS: DatasetConfig[] = [
     channelColor: "#00ff00",
   },
   {
-    id: "exaspim",
-    label: "exaSPIM Fused (zarr v2, large)",
-    url: "https://aind-open-data.s3.amazonaws.com/exaSPIM_822177_2026-04-24_17-36-07_processed_2026-05-04_09-30-27/fusion/fused.zarr/",
+    id: "marmoset_neurons",
+    label: "Marmoset Neurons (zarr v3)",
+    url: "https://ome-zarr-scivis.s3.us-east-1.amazonaws.com/v0.5/96x2/marmoset_neurons.ome.zarr",
+    version: "0.5",
     channel: 0,
-    contrastLimits: [0, 15],
-    channelColor: "#00ffff",
+    contrastLimits: [0, 1],
   },
 ];
 
