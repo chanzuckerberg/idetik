@@ -159,10 +159,7 @@ function inferSourceDimensionMap(
     // pattern, shift translations by -0.5 * scale per LOD so downstream code
     // uses corner extents uniformly. Skip non-spatial axes (c, t) where the
     // convention doesn't apply and ChunkStore enforces translation == 0.
-    if (
-      image.axes[index].type === "space" &&
-      isVoxelCenterConvention(lods)
-    ) {
+    if (image.axes[index].type === "space" && isVoxelCenterConvention(lods)) {
       for (const lod of lods) lod.translation -= 0.5 * lod.scale;
     }
     return {
