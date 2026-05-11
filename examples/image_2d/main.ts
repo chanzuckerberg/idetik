@@ -100,8 +100,7 @@ const source = OmeZarrImageSource.fromHttp({
   version: config.version,
 });
 
-const datasetInfoDiv =
-  document.querySelector<HTMLDivElement>("#dataset-info")!;
+const datasetInfoDiv = document.querySelector<HTMLDivElement>("#dataset-info")!;
 datasetInfoDiv.textContent = `Loading ${config.label}…\n${config.url}`;
 
 const loader = await source.open();
@@ -156,8 +155,7 @@ if (!tLod) timePointDiv.style.display = "none";
 const timePointOverlay = {
   update() {
     const time = imageLayer.lastPresentationTimeCoord;
-    timePointDiv.textContent =
-      time === undefined ? "" : `t = ${time}`;
+    timePointDiv.textContent = time === undefined ? "" : `t = ${time}`;
   },
 };
 
@@ -165,7 +163,6 @@ const scaleBar = new ScaleBar({
   textDiv: document.querySelector<HTMLDivElement>("#scale-bar-text")!,
   lineDiv: document.querySelector<HTMLDivElement>("#scale-bar-line")!,
   unit: dimensions.x.unit ?? "",
-
 });
 
 const idetik = await Idetik.create({
@@ -184,7 +181,6 @@ const idetik = await Idetik.create({
 idetik.start();
 
 datasetInfoDiv.innerHTML = formatDatasetInfo(config, dimensions);
-
 
 const gui = new GUI({ width: 380 });
 
@@ -284,10 +280,10 @@ function updateChannel() {
     idx === config.channel
       ? {
           visible: true,
-          contrastLimits: [channelState.contrastMin, channelState.contrastMax] as [
-            number,
-            number,
-          ],
+          contrastLimits: [
+            channelState.contrastMin,
+            channelState.contrastMax,
+          ] as [number, number],
           color: channelState.color,
         }
       : { visible: false }
