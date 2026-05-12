@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chunk Streaming</title>
+    <title>Image 2D</title>
     <style>
       html,
       body {
@@ -59,11 +59,33 @@
         height: 1em;
         background-color: white;
       }
+
+      #dataset-info {
+        position: absolute;
+        bottom: 0.5em;
+        right: 0.5em;
+        margin: 1em;
+        padding: 1em;
+        max-width: 30em;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.5);
+        white-space: pre-line;
+        line-height: 1.4;
+      }
+
+      #dataset-info .label {
+        font-weight: bold;
+      }
+
+      #dataset-info .meta {
+        opacity: 0.85;
+      }
     </style>
   </head>
 
   <body>
     <canvas id="canvas"></canvas>
+    <div id="dataset-info">Loading...</div>
     <div id="left-overlays">
       <div id="time-point"></div>
       <div id="scale-bar-box">
