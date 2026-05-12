@@ -1,10 +1,4 @@
-import {
-  Chunk,
-  SourceDimensionMap,
-  ChunkLoader,
-  SliceCoordinates,
-  coordToIndex,
-} from "../data/chunk";
+import { Chunk, SourceDimensionMap, ChunkLoader } from "../data/chunk";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { ChunkStoreView } from "./chunk_store_view";
@@ -100,8 +94,8 @@ export class ChunkStore {
   }
 
   public getChunkGrid(
-    t: number,
     lod: number,
+    t: number,
     c: number
   ): Chunk[][][] | undefined {
     return this.chunks_[lod]?.[t]?.[c];
@@ -109,12 +103,6 @@ export class ChunkStore {
 
   public hasChunksAtTime(timeIndex: number): boolean {
     return this.chunks_[0]?.[timeIndex] !== undefined;
-  }
-
-  public getTimeIndex(sliceCoords: SliceCoordinates): number {
-    if (sliceCoords.t === undefined) return 0;
-    if (this.dimensions_.t === undefined) return 0;
-    return coordToIndex(this.dimensions_.t.lods[0], sliceCoords.t);
   }
 
   public get lodCount() {
