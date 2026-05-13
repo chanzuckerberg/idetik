@@ -6,10 +6,10 @@ import {
 } from "../data/chunk";
 import type { ChunkStore } from "./chunk_store";
 import { Viewport } from "./viewport";
+import { Camera } from "../objects/cameras/camera";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";
 import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
-import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
@@ -27,9 +27,8 @@ export class ChunkStoreView {
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
   private currentLOD_: number = 0;
-  private lastViewBounds2D_: Box2 | null = null;
   private lastViewProjection_: mat4 | null = null;
-  private lastZBounds_?: [number, number];
+  private lastSliceIdx_?: number;
   private lastTCoord_?: number;
   private lastCCoords_?: number[];
 
@@ -100,8 +99,7 @@ export class ChunkStoreView {
     const camera = viewport.camera;
     if (camera.type !== "OrthographicCamera") {
       throw new Error(
-        "ChunkStoreView currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
+        "ChunkStoreView slice mode currently supports only orthographic cameras."
       );
     }
 
@@ -115,11 +113,23 @@ export class ChunkStoreView {
 
     this.setLOD(lodFactor);
 
-    const zBounds = this.getZBounds(sliceCoords);
+    // Slice slab on z, from the integer chunk index — no slab math, no
+    // float-precision risk at chunk boundaries.
+    const sliceIdx =
+      sliceCoords.z !== undefined && this.store_.dimensions.z !== undefined
+        ? this.store_.sliceChunkIndex("z", this.currentLOD_, sliceCoords.z)
+        : 0;
+
+    const viewProjection = mat4.multiply(
+      mat4.create(),
+      camera.projectionMatrix,
+      camera.viewMatrix
+    );
+
     const changed =
       this.policyChanged_ ||
-      this.viewBounds2DChanged(viewBounds2D) ||
-      this.zBoundsChanged(zBounds) ||
+      this.hasViewProjectionChanged(viewProjection) ||
+      this.lastSliceIdx_ !== sliceIdx ||
       this.lastTCoord_ !== sliceCoords.t ||
       this.cCoordsChanged(sliceCoords.c);
 
@@ -129,7 +139,7 @@ export class ChunkStoreView {
     if (!this.store_.hasChunksAtTime(currentTimeIndex)) {
       Logger.warn(
         "ChunkStoreView",
-        "updateChunkViewStates called with no chunks initialized"
+        "updateChunksForImage called with no chunks initialized"
       );
       this.chunkViewStates_.clear();
       return;
@@ -138,22 +148,17 @@ export class ChunkStoreView {
     const viewBoundsCenter2D = vec2.create();
     vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
 
-    const [zMin, zMax] = this.getZBounds(sliceCoords);
+    const [zMin, zMax] = this.sliceSlabBounds("z", sliceIdx);
     const viewBounds3D = new Box3(
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
     );
+    const prefetchAabb = this.getPaddedBounds(viewBounds3D);
 
-    // reset all existing chunk view states to "not needed" to start
-    // logic below will override this for chunks that are actually visible/prefetch
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     const channels = this.channelsOfInterest(sliceCoords);
     const fallbackLOD = this.fallbackLOD();
-    const prefetchAabb = this.getPaddedBounds(viewBounds3D);
-
-    // Range-query the prefetch AABB at currentLOD (and fallbackLOD when
-    // distinct); fallback chunks act as a backdrop while currentLOD loads.
     const lodsToVisit =
       this.currentLOD_ === fallbackLOD
         ? [this.currentLOD_]
@@ -188,16 +193,16 @@ export class ChunkStoreView {
       );
     }
 
-    this.markTimeChunksForPrefetchImage(
+    this.prefetchTimeChunksWithinBounds(
       currentTimeIndex,
-      sliceCoords,
+      channels,
       viewBounds3D,
       viewBoundsCenter2D
     );
 
     this.policyChanged_ = false;
-    this.lastViewBounds2D_ = viewBounds2D.clone();
-    this.lastZBounds_ = zBounds;
+    this.lastViewProjection_ = viewProjection;
+    this.lastSliceIdx_ = sliceIdx;
     this.lastTCoord_ = sliceCoords.t;
     this.lastCCoords_ = sliceCoords.c ? [...sliceCoords.c] : undefined;
   }
@@ -233,55 +238,55 @@ export class ChunkStoreView {
       return;
     }
 
-    // TODO: Calculate LOD dynamically based on view frustum for volume rendering
-    // (similar to zoom-based LOD calculation in updateChunksForImage).
-    // Currently uses a fixed LOD from policy.
+    // TODO: derive volume LOD from frustum extent.
     this.currentLOD_ = this.policy_.lod.min;
+
+    const visibleAabb = this.cameraFrustumWorldAabb(viewport.camera);
+    const frustum = viewport.camera.frustum;
 
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     const channels = this.channelsOfInterest(sliceCoords);
     const fallbackLOD = this.fallbackLOD();
-
-    const markVolumeChunkVisible = (chunk: Chunk) => {
-      const isFallbackLOD = chunk.lod === fallbackLOD;
-      const isCurrentLOD = chunk.lod === this.currentLOD_;
-      const priority = this.computePriority(
-        isFallbackLOD,
-        isCurrentLOD,
-        true,
-        false,
-        true
-      );
-      if (priority === null) return;
-      this.chunkViewStates_.set(chunk, {
-        visible: true,
-        prefetch: false,
-        priority,
-        orderKey: 0,
-      });
-    };
-    this.iterateAllChunksAtLod(
-      currentTimeIndex,
-      this.currentLOD_,
-      channels,
-      markVolumeChunkVisible
-    );
-    if (this.currentLOD_ !== fallbackLOD) {
-      this.iterateAllChunksAtLod(
+    const lodsToVisit =
+      this.currentLOD_ === fallbackLOD
+        ? [this.currentLOD_]
+        : [this.currentLOD_, fallbackLOD];
+    for (const lod of lodsToVisit) {
+      const isCurrent = lod === this.currentLOD_;
+      const isFallback = lod === fallbackLOD;
+      this.iterateChunksInBox(
         currentTimeIndex,
-        fallbackLOD,
+        lod,
         channels,
-        markVolumeChunkVisible
+        visibleAabb,
+        (chunk, chunkBox) => {
+          const isInBounds = frustum.intersectsWithBox3(chunkBox);
+          const priority = this.computePriority(
+            isFallback,
+            isCurrent,
+            isInBounds,
+            false,
+            true
+          );
+          if (priority !== null) {
+            this.chunkViewStates_.set(chunk, {
+              visible: isInBounds,
+              prefetch: false,
+              priority,
+              orderKey: 0,
+            });
+          }
+        }
       );
     }
 
-    this.markTimeChunksForPrefetchVolume(currentTimeIndex, sliceCoords);
+    this.prefetchTimeChunksAtFallback(currentTimeIndex, channels);
 
     this.policyChanged_ = false;
+    this.lastViewProjection_ = viewProjection;
     this.lastTCoord_ = sliceCoords.t;
     this.lastCCoords_ = sliceCoords.c ? [...sliceCoords.c] : undefined;
-    this.lastViewProjection_ = viewProjection;
   }
 
   public allVisibleFallbackLODLoaded(): boolean {
@@ -344,7 +349,6 @@ export class ChunkStoreView {
     const desiredLOD = Math.floor(sourceAdjusted);
 
     const lowestResLOD = this.store_.getLowestResLOD();
-    // Intersect dataset bounds with policy bounds.
     const minPolicyLOD = Math.max(
       0,
       Math.min(lowestResLOD, this.policy_.lod.min)
@@ -360,9 +364,9 @@ export class ChunkStoreView {
     }
   }
 
-  private markTimeChunksForPrefetchImage(
+  private prefetchTimeChunksWithinBounds(
     currentTimeIndex: number,
-    sliceCoords: SliceCoordinates,
+    channels: number[],
     viewBounds3D: Box3,
     viewBoundsCenter2D: ReadonlyVec2
   ): void {
@@ -373,7 +377,6 @@ export class ChunkStoreView {
     );
     const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
-    const channels = this.channelsOfInterest(sliceCoords);
 
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       this.iterateChunksInBox(
@@ -404,10 +407,10 @@ export class ChunkStoreView {
     }
   }
 
-  private markTimeChunksForPrefetchVolume(
+  private prefetchTimeChunksAtFallback(
     currentTimeIndex: number,
-    sliceCoords: SliceCoordinates
-  ) {
+    channels: number[]
+  ): void {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const tEnd = Math.min(
       numTimePoints - 1,
@@ -415,7 +418,6 @@ export class ChunkStoreView {
     );
     const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
-    const channels = this.channelsOfInterest(sliceCoords);
 
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
       this.iterateAllChunksAtLod(t, fallbackLOD, channels, (chunk) => {
@@ -554,43 +556,33 @@ export class ChunkStoreView {
     return coordToIndex(tDim.lods[0], sliceCoords.t);
   }
 
-  private getZBounds(sliceCoords: SliceCoordinates): [number, number] {
-    const zDim = this.store_.dimensions.z;
-    if (zDim === undefined) return [0, 1];
-
-    // If z is undefined, return bounds that encompass all z slices (for volume rendering)
-    if (sliceCoords.z === undefined) {
-      const zLod = zDim.lods[this.currentLOD_];
-      return [zLod.translation, zLod.translation + zLod.size * zLod.scale];
-    }
-
-    const zLod = zDim.lods[this.currentLOD_];
-    const zShape = zLod.size;
-    const zScale = zLod.scale;
-    const zTran = zLod.translation;
-    const zPoint = Math.floor((sliceCoords.z - zTran) / zScale);
-    const chunkDepth = zLod.chunkSize;
-
-    const zChunk = Math.max(
-      0,
-      Math.min(
-        Math.floor(zPoint / chunkDepth),
-        Math.ceil(zShape / chunkDepth) - 1
-      )
-    );
-
+  // World-space extent of the chunk at index `sliceIdx` on `axis`, current
+  // LOD. Pairs with `ChunkStore.sliceChunkIndex` to derive the slab
+  // integer-first (no float-precision risk at chunk boundaries).
+  private sliceSlabBounds(
+    axis: "x" | "y" | "z",
+    sliceIdx: number
+  ): [number, number] {
+    const dim = this.store_.dimensions[axis];
+    if (dim === undefined) return [-Infinity, Infinity];
+    const lod = dim.lods[this.currentLOD_];
+    const stride = lod.chunkSize * lod.scale;
     return [
-      zTran + zChunk * chunkDepth * zScale,
-      zTran + (zChunk + 1) * chunkDepth * zScale,
+      lod.translation + sliceIdx * stride,
+      lod.translation + (sliceIdx + 1) * stride,
     ];
   }
 
-  private viewBounds2DChanged(newBounds: Box2): boolean {
-    return (
-      this.lastViewBounds2D_ === null ||
-      !vec2.equals(this.lastViewBounds2D_.min, newBounds.min) ||
-      !vec2.equals(this.lastViewBounds2D_.max, newBounds.max)
-    );
+  private cameraFrustumWorldAabb(camera: Camera): Box3 {
+    const aabb = new Box3();
+    const ndc = vec3.create();
+    for (let i = 0; i < 8; ++i) {
+      ndc[0] = i & 1 ? 1 : -1;
+      ndc[1] = i & 2 ? 1 : -1;
+      ndc[2] = i & 4 ? 1 : -1;
+      aabb.expandWithPoint(camera.clipToWorld(ndc));
+    }
+    return aabb;
   }
 
   private hasViewProjectionChanged(viewProjection: mat4) {
@@ -598,10 +590,6 @@ export class ChunkStoreView {
       this.lastViewProjection_ === null ||
       !mat4.equals(this.lastViewProjection_, viewProjection)
     );
-  }
-
-  private zBoundsChanged(newBounds: [number, number]): boolean {
-    return !this.lastZBounds_ || !vec2.equals(this.lastZBounds_, newBounds);
   }
 
   private cCoordsChanged(newC?: number[]): boolean {
