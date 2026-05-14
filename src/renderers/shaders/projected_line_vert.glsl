@@ -1,7 +1,5 @@
 #version 300 es
 
-const float PI = 3.14159265;
-
 layout (location = 0) in vec3 inPosition;
 layout (location = 3) in vec3 inPrevPosition;
 layout (location = 4) in vec3 inNextPosition;
@@ -12,8 +10,6 @@ uniform mat4 Projection;
 uniform mat4 ModelView;
 uniform vec2 Resolution;
 uniform float LineWidth;
-uniform float TaperOffset;
-uniform float TaperPower;
 
 // adapted from https://github.com/mattdesl/webgl-lines
 void main() {
@@ -29,15 +25,7 @@ void main() {
     vec2 nextScreen = (nextPos.xy / nextPos.w) * aspectVec;
 
     // direction is + or -; which way to project the vertex away from the path
-    // path_proportion is the distance along the path, from 0 to 1
     float d = sign(direction);
-    float taper = 1.0;
-    if (TaperPower > 0.0) {
-      // glsl `pow(x, y)` is undefined if x < 0 or x = 0 and y <= 0
-      float t = clamp(path_proportion - TaperOffset, -0.5, 0.5);
-      float angle = PI * t;
-      taper = pow(cos(angle), TaperPower);
-    }
 
     // `normal` points perpendicular to the path in screen space
     vec2 normal;
@@ -64,7 +52,7 @@ void main() {
 
     // `normal * LineWidth / Resolution` means LineWidth is in pixels
     vec4 offset = vec4(
-        (normal * LineWidth / Resolution) * miterLength * taper * d,
+        (normal * LineWidth / Resolution) * miterLength * d,
         0.0,
         0.0
     );
