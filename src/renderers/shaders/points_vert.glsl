@@ -3,9 +3,9 @@
 precision mediump float;
 
 layout (location = 0) in vec3 inPosition;
-layout (location = 7) in vec4 inColor;
-layout (location = 8) in float inSize;
-layout (location = 9) in float inMarker;
+layout (location = 6) in vec4 inColor;
+layout (location = 7) in float inSize;
+layout (location = 8) in float inMarker;
 
 uniform mat4 Projection;
 uniform mat4 ModelView;

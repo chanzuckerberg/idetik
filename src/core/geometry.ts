@@ -22,9 +22,9 @@ export const GeometryAttributeIndex: Record<GeometryAttributeType, number> = {
   next_position: 3,
   previous_position: 4,
   direction: 5,
-  color: 7,
-  size: 8,
-  marker: 9,
+  color: 6,
+  size: 7,
+  marker: 8,
 };
 
 type GeometryAttribute = {
