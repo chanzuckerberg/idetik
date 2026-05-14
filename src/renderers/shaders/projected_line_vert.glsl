@@ -28,22 +28,6 @@ void main() {
     vec2 currScreen = (currPos.xy / currPos.w) * aspectVec;
     vec2 nextScreen = (nextPos.xy / nextPos.w) * aspectVec;
 
-    vec2 diff;
-    if (prevPos == currPos) {
-        // first point on the path
-        diff = nextScreen - currScreen;
-    } else if (nextPos == currPos) {
-        // last point on the path
-        diff = currScreen - prevScreen;
-    } else {
-        // middle point on the path
-        // combine the two directions to get a cheap miter
-        // this is not a true miter join, but it also doesn't explode
-        vec2 prevDiff = currScreen - prevScreen;
-        vec2 nextDiff = nextScreen - currScreen;
-        diff = normalize(prevDiff) + normalize(nextDiff);
-    }
-
     // direction is + or -; which way to project the vertex away from the path
     // path_proportion is the distance along the path, from 0 to 1
     float d = sign(direction);
@@ -54,10 +38,33 @@ void main() {
       float angle = PI * t;
       taper = pow(cos(angle), TaperPower);
     }
-    vec2 normal = normalize(vec2(-diff.y, diff.x));
 
+    // `normal` points perpendicular to the path in screen space
+    vec2 normal;
+    // `miterLength` extends the offset along the normal (with a limit)
+    // this make a nicer corner and keeps the line thickness more uniform;
+    float miterLength = 1.0;
+    if (prevPos == currPos) {
+        // first point on the path
+        vec2 dir = normalize(nextScreen - currScreen);
+        normal = vec2(-dir.y, dir.x);
+    } else if (nextPos == currPos) {
+        // last point on the path
+        vec2 dir = normalize(currScreen - prevScreen);
+        normal = vec2(-dir.y, dir.x);
+    } else {
+        // middle point on the path: add miter along the bisector
+        vec2 prevDir = normalize(currScreen - prevScreen);
+        vec2 nextDir = normalize(nextScreen - currScreen);
+        vec2 tangent = normalize(prevDir + nextDir);
+        normal = vec2(-tangent.y, tangent.x);
+        vec2 perpPrev = vec2(-prevDir.y, prevDir.x);
+        miterLength = 1.0 / max(dot(normal, perpPrev), 0.1);
+    }
+
+    // `normal * LineWidth / Resolution` means LineWidth is in pixels
     vec4 offset = vec4(
-        normal * d * taper * LineWidth / 2.0 / aspectVec,
+        (normal * LineWidth / Resolution) * miterLength * taper * d,
         0.0,
         0.0
     );

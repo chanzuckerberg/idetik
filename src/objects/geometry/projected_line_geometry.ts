@@ -44,6 +44,14 @@ export class ProjectedLineGeometry extends Geometry {
   private createVertices(path: vec3[]): Float32Array {
     const vertices = new Float32Array(2 * path.length * (3 + 3 + 3 + 1 + 1));
 
+    // If the path's first and last points coincide, treat it as a closed
+    // loop: the first vertex's `previous` wraps to path[n-2] and the last
+    // vertex's `next` wraps to path[1]. Both endpoints then take the
+    // middle-vertex branch in the shader and produce a proper miter at the
+    // closing seam.
+    const closed =
+      path.length >= 3 && vec3.equals(path[0], path[path.length - 1]);
+
     let c = 0;
     let path_proportion = 0.0;
     const total_distance = path.reduce((acc, curr, i) => {
@@ -56,12 +64,14 @@ export class ProjectedLineGeometry extends Geometry {
         vertices[c++] = current[1];
         vertices[c++] = current[2];
 
-        const previous = path[i - 1] ?? path[i];
+        const previous =
+          i === 0 ? (closed ? path[path.length - 2] : path[i]) : path[i - 1];
         vertices[c++] = previous[0];
         vertices[c++] = previous[1];
         vertices[c++] = previous[2];
 
-        const next = path[i + 1] ?? path[i];
+        const next =
+          i === path.length - 1 ? (closed ? path[1] : path[i]) : path[i + 1];
         vertices[c++] = next[0];
         vertices[c++] = next[1];
         vertices[c++] = next[2];
