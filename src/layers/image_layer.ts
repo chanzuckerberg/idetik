@@ -126,7 +126,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
     if (
       this.visibleChunks_.size > 0 &&
-      !this.chunkStoreView_.allVisibleFallbackLODLoaded(this.sliceCoords_) &&
+      !this.chunkStoreView_.allVisibleFallbackLODLoaded() &&
       !this.isPresentationStale()
     ) {
       return;
@@ -134,9 +134,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
-    const orderedByLOD = this.chunkStoreView_.getChunksToRender(
-      this.sliceCoords_
-    );
+    const orderedByLOD = this.chunkStoreView_.getChunksToRender();
     const current = new Set(orderedByLOD);
     const nonVisibleChunks = Array.from(this.visibleChunks_.keys()).filter(
       (chunk) => !current.has(chunk)

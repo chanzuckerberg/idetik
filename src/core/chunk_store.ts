@@ -1,17 +1,12 @@
-import {
-  Chunk,
-  SourceDimensionMap,
-  ChunkLoader,
-  SliceCoordinates,
-  coordToIndex,
-} from "../data/chunk";
+import { Chunk, SourceDimensionMap, ChunkLoader } from "../data/chunk";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { ChunkStoreView } from "./chunk_store_view";
 import { ImageSourcePolicy } from "./image_source_policy";
 
 export class ChunkStore {
-  private readonly chunks_: Chunk[][];
+  // Chunks indexed as chunks_[lod][t][c][z][y][x].
+  private readonly chunks_: Chunk[][][][][][];
   private readonly loader_: ChunkLoader;
   private readonly lowestResLOD_: number;
   private readonly dimensions_: SourceDimensionMap;
@@ -27,34 +22,44 @@ export class ChunkStore {
     const { size: chunksT } = this.getAndValidateTimeDimension();
     const { size: chunksC } = this.getAndValidateChannelDimension();
 
-    this.chunks_ = Array.from({ length: chunksT }, () => []);
-    for (let t = 0; t < chunksT; ++t) {
-      const chunksAtT = this.chunks_[t];
-      for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-        const xLod = this.dimensions_.x.lods[lod];
-        const yLod = this.dimensions_.y.lods[lod];
-        const zLod = this.dimensions_.z?.lods[lod];
+    const numLods = this.dimensions_.numLods;
+    this.chunks_ = new Array(numLods);
 
-        const chunkWidth = xLod.chunkSize;
-        const chunkHeight = yLod.chunkSize;
-        const chunkDepth = zLod?.chunkSize ?? 1;
+    for (let lod = 0; lod < numLods; ++lod) {
+      const xLod = this.dimensions_.x.lods[lod];
+      const yLod = this.dimensions_.y.lods[lod];
+      const zLod = this.dimensions_.z?.lods[lod];
 
-        const chunksX = Math.ceil(xLod.size / chunkWidth);
-        const chunksY = Math.ceil(yLod.size / chunkHeight);
-        const chunksZ = Math.ceil((zLod?.size ?? 1) / chunkDepth);
+      const chunkWidth = xLod.chunkSize;
+      const chunkHeight = yLod.chunkSize;
+      const chunkDepth = zLod?.chunkSize ?? 1;
 
+      const chunksX = Math.ceil(xLod.size / chunkWidth);
+      const chunksY = Math.ceil(yLod.size / chunkHeight);
+      const chunksZ = zLod ? Math.ceil(zLod.size / chunkDepth) : 1;
+
+      const lodArr: Chunk[][][][][] = new Array(chunksT);
+      this.chunks_[lod] = lodArr;
+      for (let t = 0; t < chunksT; ++t) {
+        const tArr: Chunk[][][][] = new Array(chunksC);
+        lodArr[t] = tArr;
         for (let c = 0; c < chunksC; ++c) {
-          for (let x = 0; x < chunksX; ++x) {
-            const xOffset = xLod.translation + x * xLod.chunkSize * xLod.scale;
+          const cArr: Chunk[][][] = new Array(chunksZ);
+          tArr[c] = cArr;
+          for (let z = 0; z < chunksZ; ++z) {
+            const zOffset =
+              zLod !== undefined
+                ? zLod.translation + z * chunkDepth * zLod.scale
+                : 0;
+            const yArr: Chunk[][] = new Array(chunksY);
+            cArr[z] = yArr;
             for (let y = 0; y < chunksY; ++y) {
-              const yOffset =
-                yLod.translation + y * yLod.chunkSize * yLod.scale;
-              for (let z = 0; z < chunksZ; ++z) {
-                const zOffset =
-                  zLod !== undefined
-                    ? zLod.translation + z * chunkDepth * zLod.scale
-                    : 0;
-                chunksAtT.push({
+              const yOffset = yLod.translation + y * chunkHeight * yLod.scale;
+              const xArr: Chunk[] = new Array(chunksX);
+              yArr[y] = xArr;
+              for (let x = 0; x < chunksX; ++x) {
+                const xOffset = xLod.translation + x * chunkWidth * xLod.scale;
+                xArr[x] = {
                   state: "unloaded",
                   lod,
                   visible: false,
@@ -79,7 +84,7 @@ export class ChunkStore {
                     y: yOffset,
                     z: zOffset,
                   },
-                });
+                };
               }
             }
           }
@@ -88,14 +93,16 @@ export class ChunkStore {
     }
   }
 
-  public getChunksAtTime(timeIndex: number): Chunk[] {
-    return this.chunks_[timeIndex];
+  public getChunkGrid(
+    lod: number,
+    t: number,
+    c: number
+  ): Chunk[][][] | undefined {
+    return this.chunks_[lod]?.[t]?.[c];
   }
 
-  public getTimeIndex(sliceCoords: SliceCoordinates): number {
-    if (sliceCoords.t === undefined) return 0;
-    if (this.dimensions_.t === undefined) return 0;
-    return coordToIndex(this.dimensions_.t.lods[0], sliceCoords.t);
+  public hasChunksAtTime(timeIndex: number): boolean {
+    return this.chunks_[0]?.[timeIndex] !== undefined;
   }
 
   public get lodCount() {
