@@ -11,7 +11,6 @@ type GeometryAttributeType =
   | "next_position"
   | "previous_position"
   | "direction"
-  | "path_proportion"
   | "color"
   | "size"
   | "marker";
@@ -23,10 +22,9 @@ export const GeometryAttributeIndex: Record<GeometryAttributeType, number> = {
   next_position: 3,
   previous_position: 4,
   direction: 5,
-  path_proportion: 6,
-  color: 7,
-  size: 8,
-  marker: 9,
+  color: 6,
+  size: 7,
+  marker: 8,
 };
 
 type GeometryAttribute = {

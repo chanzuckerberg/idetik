@@ -34,6 +34,7 @@ export class WebGLRenderer extends Renderer {
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
   private renderedObjectsPerFrame_ = 0;
+  private currentViewportSize_: [number, number] = [0, 0];
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -95,6 +96,9 @@ export class WebGLRenderer extends Renderer {
 
     this.state_.setViewport(viewportBox);
     this.clear();
+
+    const viewportRect = viewportBox.toRect();
+    this.currentViewportSize_ = [viewportRect.width, viewportRect.height];
 
     const frustum = viewport.camera.frustum;
 
@@ -192,7 +196,10 @@ export class WebGLRenderer extends Renderer {
       axisDirection,
       camera.projectionMatrix
     );
-    const resolution = [this.canvas.width, this.canvas.height];
+
+    // per-viewport size in pixels — shaders that compute screen-space offsets
+    // need the actual rendered region, not the full-canvas dimensions
+    const resolution = this.currentViewportSize_;
 
     const objectUniforms = object.getUniforms();
     const layerUniforms = layer.getUniforms();
