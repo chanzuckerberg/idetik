@@ -242,10 +242,17 @@ export class ChunkStoreView {
 
     const channels = this.channelsOfInterest(sliceCoords);
     const fallbackLOD = this.fallbackLOD();
-    const markVolumeChunkVisible = (chunk: Chunk, isFallbackLOD: boolean) => {
+    // Derive isFallbackLOD/isCurrentLOD from the chunk's own LOD so that
+    // when currentLOD === fallbackLOD both flags are true on the same
+    // chunk — `computePriority` then returns `fallbackVisible` (priority 0)
+    // instead of `visibleCurrent`. Without this, in playback the current
+    // frame waits behind the entire `prefetchTime` queue.
+    const markVolumeChunkVisible = (chunk: Chunk) => {
+      const isFallbackLOD = chunk.lod === fallbackLOD;
+      const isCurrentLOD = chunk.lod === this.currentLOD_;
       const priority = this.computePriority(
         isFallbackLOD,
-        !isFallbackLOD,
+        isCurrentLOD,
         true,
         false,
         true
@@ -262,14 +269,14 @@ export class ChunkStoreView {
       currentTimeIndex,
       this.currentLOD_,
       channels,
-      (chunk) => markVolumeChunkVisible(chunk, false)
+      markVolumeChunkVisible
     );
     if (this.currentLOD_ !== fallbackLOD) {
       this.iterateAllChunksAtLod(
         currentTimeIndex,
         fallbackLOD,
         channels,
-        (chunk) => markVolumeChunkVisible(chunk, true)
+        markVolumeChunkVisible
       );
     }
 
