@@ -100,7 +100,7 @@ export class ChunkStoreView {
     const camera = viewport.camera;
     if (camera.type !== "OrthographicCamera") {
       throw new Error(
-        "ChunkStoreView slice mode currently supports only orthographic cameras."
+        "ChunkStoreView currently only supports orthographic cameras for 2D slice views."
       );
     }
 
@@ -114,10 +114,14 @@ export class ChunkStoreView {
 
     this.setLOD(lodFactor);
 
-    const sliceIdx =
-      sliceCoords.z !== undefined && this.store_.dimensions.z !== undefined
-        ? this.store_.sliceChunkIndex("z", this.currentLOD_, sliceCoords.z)
-        : 0;
+    // Slice slab on z, from the integer chunk index — no slab math, no
+    // float-precision risk at chunk boundaries. `sliceChunkIndex` is safe
+    // on 2D datasets (z normalized to a size-1 placeholder): it returns 0.
+    const sliceIdx = this.store_.sliceChunkIndex(
+      "z",
+      this.currentLOD_,
+      sliceCoords.z ?? 0
+    );
 
     const viewProjection = mat4.multiply(
       mat4.create(),
@@ -242,7 +246,9 @@ export class ChunkStoreView {
       return;
     }
 
-    // TODO: derive volume LOD from frustum extent.
+    // TODO: Calculate LOD dynamically based on view frustum for volume rendering
+    // (similar to zoom-based LOD calculation in updateChunksForImage).
+    // Currently uses a fixed LOD from policy.
     this.currentLOD_ = this.policy_.lod.min;
 
     const visibleAabb = this.cameraFrustumWorldAabb(viewport.camera);
@@ -384,7 +390,7 @@ export class ChunkStoreView {
     viewBounds3D: Box3,
     viewBoundsCenter2D: ReadonlyVec2
   ): void {
-    const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
+    const numTimePoints = this.store_.dimensions.t.lods[0].size;
     const tEnd = Math.min(
       numTimePoints - 1,
       currentTimeIndex + this.policy_.prefetch.t
@@ -427,7 +433,7 @@ export class ChunkStoreView {
     visibleAabb: Box3,
     frustum: Frustum
   ): void {
-    const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
+    const numTimePoints = this.store_.dimensions.t.lods[0].size;
     const tEnd = Math.min(
       numTimePoints - 1,
       currentTimeIndex + this.policy_.prefetch.t
@@ -489,29 +495,25 @@ export class ChunkStoreView {
     const dim = this.store_.dimensions;
     const xLod = dim.x.lods[lod];
     const yLod = dim.y.lods[lod];
-    const zLod = dim.z?.lods[lod];
+    const zLod = dim.z.lods[lod];
 
     const xCount = Math.ceil(xLod.size / xLod.chunkSize);
     const yCount = Math.ceil(yLod.size / yLod.chunkSize);
-    const zCount = zLod ? Math.ceil(zLod.size / zLod.chunkSize) : 1;
+    const zCount = Math.ceil(zLod.size / zLod.chunkSize);
 
     const xStride = xLod.chunkSize * xLod.scale;
     const yStride = yLod.chunkSize * yLod.scale;
-    const zStride = zLod ? zLod.chunkSize * zLod.scale : 1;
+    const zStride = zLod.chunkSize * zLod.scale;
     const xTran = xLod.translation;
     const yTran = yLod.translation;
-    const zTran = zLod?.translation ?? 0;
+    const zTran = zLod.translation;
 
     const xMin = Math.max(0, Math.floor((bounds.min[0] - xTran) / xStride));
     const xMax = Math.min(xCount, Math.ceil((bounds.max[0] - xTran) / xStride));
     const yMin = Math.max(0, Math.floor((bounds.min[1] - yTran) / yStride));
     const yMax = Math.min(yCount, Math.ceil((bounds.max[1] - yTran) / yStride));
-    const zMin = zLod
-      ? Math.max(0, Math.floor((bounds.min[2] - zTran) / zStride))
-      : 0;
-    const zMax = zLod
-      ? Math.min(zCount, Math.ceil((bounds.max[2] - zTran) / zStride))
-      : 1;
+    const zMin = Math.max(0, Math.floor((bounds.min[2] - zTran) / zStride));
+    const zMax = Math.min(zCount, Math.ceil((bounds.max[2] - zTran) / zStride));
 
     if (xMin >= xMax || yMin >= yMax || zMin >= zMax) return null;
     return { xMin, xMax, yMin, yMax, zMin, zMax };
@@ -558,9 +560,8 @@ export class ChunkStoreView {
   }
 
   private timeIndex(sliceCoords: SliceCoordinates): number {
-    const tDim = this.store_.dimensions.t;
-    if (sliceCoords.t === undefined || tDim === undefined) return 0;
-    return coordToIndex(tDim.lods[0], sliceCoords.t);
+    if (sliceCoords.t === undefined) return 0;
+    return coordToIndex(this.store_.dimensions.t.lods[0], sliceCoords.t);
   }
 
   // world-extent of the chunk at index `sliceIdx` on `axis`, current LOD
@@ -568,9 +569,7 @@ export class ChunkStoreView {
     axis: "x" | "y" | "z",
     sliceIdx: number
   ): [number, number] {
-    const dim = this.store_.dimensions[axis];
-    if (dim === undefined) return [-Infinity, Infinity];
-    const lod = dim.lods[this.currentLOD_];
+    const lod = this.store_.dimensions[axis].lods[this.currentLOD_];
     const thickness = lod.chunkSize * lod.scale;
     const start = lod.translation + sliceIdx * thickness;
     const stop = start + thickness;
@@ -607,15 +606,11 @@ export class ChunkStoreView {
     const dimensions = this.store_.dimensions;
     const xLod = dimensions.x.lods[this.currentLOD_];
     const yLod = dimensions.y.lods[this.currentLOD_];
-    const zLod = dimensions.z?.lods[this.currentLOD_];
+    const zLod = dimensions.z.lods[this.currentLOD_];
 
     const padX = xLod.chunkSize * xLod.scale * this.policy_.prefetch.x;
     const padY = yLod.chunkSize * yLod.scale * this.policy_.prefetch.y;
-
-    let padZ = 0;
-    if (zLod) {
-      padZ = zLod.chunkSize * zLod.scale * this.policy_.prefetch.z;
-    }
+    const padZ = zLod.chunkSize * zLod.scale * this.policy_.prefetch.z;
 
     return new Box3(
       vec3.fromValues(

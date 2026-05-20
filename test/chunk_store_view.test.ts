@@ -74,6 +74,12 @@ function createMockLoader(): ChunkLoader {
 }
 
 function createSimpleDimensions(): SourceDimensionMap {
+  // Size-1 placeholder for c and t (this fixture only exercises spatial
+  // axes); see `SourceDimensionMap` for the always-5D convention.
+  const placeholder = (name: string) => ({
+    name,
+    lods: [{ size: 1, chunkSize: 1, scale: 1, translation: 0 }],
+  });
   return {
     x: {
       name: "x",
@@ -111,6 +117,8 @@ function createSimpleDimensions(): SourceDimensionMap {
         },
       ],
     },
+    c: placeholder("c"),
+    t: placeholder("t"),
     numLods: 1,
   };
 }

@@ -1,4 +1,4 @@
-import { Chunk, SourceDimensionMap, ChunkLoader } from "../data/chunk";
+import { Chunk, ChunkLoader, SourceDimensionMap } from "../data/chunk";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { Logger } from "../utilities/logger";
@@ -29,15 +29,15 @@ export class ChunkStore {
     for (let lod = 0; lod < numLods; ++lod) {
       const xLod = this.dimensions_.x.lods[lod];
       const yLod = this.dimensions_.y.lods[lod];
-      const zLod = this.dimensions_.z?.lods[lod];
+      const zLod = this.dimensions_.z.lods[lod];
 
       const chunkWidth = xLod.chunkSize;
       const chunkHeight = yLod.chunkSize;
-      const chunkDepth = zLod?.chunkSize ?? 1;
+      const chunkDepth = zLod.chunkSize;
 
       const chunksX = Math.ceil(xLod.size / chunkWidth);
       const chunksY = Math.ceil(yLod.size / chunkHeight);
-      const chunksZ = zLod ? Math.ceil(zLod.size / chunkDepth) : 1;
+      const chunksZ = Math.ceil(zLod.size / chunkDepth);
 
       const lodArr: Chunk[][][][][] = new Array(chunksT);
       this.chunks_[lod] = lodArr;
@@ -48,10 +48,7 @@ export class ChunkStore {
           const cArr: Chunk[][][] = new Array(chunksZ);
           tArr[c] = cArr;
           for (let z = 0; z < chunksZ; ++z) {
-            const zOffset =
-              zLod !== undefined
-                ? zLod.translation + z * chunkDepth * zLod.scale
-                : 0;
+            const zOffset = zLod.translation + z * chunkDepth * zLod.scale;
             const yArr: Chunk[][] = new Array(chunksY);
             cArr[z] = yArr;
             for (let y = 0; y < chunksY; ++y) {
@@ -70,7 +67,7 @@ export class ChunkStore {
                   shape: {
                     x: Math.min(chunkWidth, xLod.size - x * chunkWidth),
                     y: Math.min(chunkHeight, yLod.size - y * chunkHeight),
-                    z: Math.min(chunkDepth, (zLod?.size ?? 1) - z * chunkDepth),
+                    z: Math.min(chunkDepth, zLod.size - z * chunkDepth),
                     c: 1,
                   },
                   rowAlignmentBytes: 1,
@@ -78,7 +75,7 @@ export class ChunkStore {
                   scale: {
                     x: xLod.scale,
                     y: yLod.scale,
-                    z: zLod?.scale ?? 1,
+                    z: zLod.scale,
                   },
                   offset: {
                     x: xOffset,
@@ -113,9 +110,7 @@ export class ChunkStore {
     lod: number,
     position: number
   ): number {
-    const dim = this.dimensions_[axis];
-    if (dim === undefined) return 0;
-    const ld = dim.lods[lod];
+    const ld = this.dimensions_[axis].lods[lod];
     const voxelIdx = Math.floor((position - ld.translation) / ld.scale);
     const chunkIdx = Math.floor(voxelIdx / ld.chunkSize);
     const chunkCount = Math.ceil(ld.size / ld.chunkSize);
@@ -127,10 +122,10 @@ export class ChunkStore {
   }
 
   public get channelCount(): number {
-    return this.dimensions_.c?.lods[0].size ?? 1;
+    return this.dimensions_.c.lods[0].size;
   }
 
-  public get dimensions() {
+  public get dimensions(): SourceDimensionMap {
     return this.dimensions_;
   }
 
@@ -271,26 +266,21 @@ export class ChunkStore {
   }
 
   private getAndValidateTimeDimension() {
-    for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-      const tLod = this.dimensions_.t?.lods[lod];
-      if (!tLod) continue;
-      const prevTLod = this.dimensions_.t?.lods[lod - 1];
-      if (!prevTLod) continue;
+    for (let lod = 1; lod < this.dimensions_.numLods; ++lod) {
+      const tLod = this.dimensions_.t.lods[lod];
+      const prevTLod = this.dimensions_.t.lods[lod - 1];
       if (tLod.size !== prevTLod.size) {
         throw new Error(
           `ChunkStore does not support downsampling in t. Found ${prevTLod.size} at LOD ${lod - 1} → ${tLod.size} at LOD ${lod}`
         );
       }
     }
-    return {
-      size: this.dimensions_.t?.lods[0].size ?? 1,
-    };
+    return { size: this.dimensions_.t.lods[0].size };
   }
 
   private getAndValidateChannelDimension() {
     for (let lod = 0; lod < this.dimensions_.numLods; ++lod) {
-      const cLod = this.dimensions_.c?.lods[lod];
-      if (!cLod) continue;
+      const cLod = this.dimensions_.c.lods[lod];
       if (cLod.scale !== 1) {
         Logger.warn(
           "ChunkStore",
@@ -302,16 +292,14 @@ export class ChunkStore {
           `ChunkStore does not support translation in c. Found ${cLod.translation} at LOD ${lod}`
         );
       }
-      const prevCLod = this.dimensions_.c?.lods[lod - 1];
-      if (!prevCLod) continue;
+      if (lod === 0) continue;
+      const prevCLod = this.dimensions_.c.lods[lod - 1];
       if (cLod.size !== prevCLod.size) {
         throw new Error(
           `ChunkStore does not support downsampling in c. Found ${prevCLod.size} at LOD ${lod - 1} → ${cLod.size} at LOD ${lod}`
         );
       }
     }
-    return {
-      size: this.dimensions_.c?.lods[0].size ?? 1,
-    };
+    return { size: this.dimensions_.c.lods[0].size };
   }
 }

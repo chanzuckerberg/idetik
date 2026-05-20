@@ -57,46 +57,49 @@ export class OmeZarrImageLoader {
   }
 
   public async loadChunkData(chunk: Chunk, signal: AbortSignal) {
+    const { x, y, z, c, t } = this.dimensions_;
+    // x and y always have a real source-array index (any source is at
+    // least 2D). z, c, t may be synthetic placeholders (index undefined)
+    // for axes the source doesn't have.
+    if (x.index === undefined || y.index === undefined) {
+      throw new Error(
+        "OmeZarrImageLoader: x and y must map to real source-array axes"
+      );
+    }
+
     const chunkCoords: number[] = [];
-    chunkCoords[this.dimensions_.x.index] = chunk.chunkIndex.x;
-    chunkCoords[this.dimensions_.y.index] = chunk.chunkIndex.y;
-    if (this.dimensions_.z) {
-      chunkCoords[this.dimensions_.z.index] = chunk.chunkIndex.z;
+    chunkCoords[x.index] = chunk.chunkIndex.x;
+    chunkCoords[y.index] = chunk.chunkIndex.y;
+    if (z.index !== undefined) {
+      chunkCoords[z.index] = chunk.chunkIndex.z;
     }
 
     // internal (ChunkStore) chunks have size 1 in C and T
     // so divide by the actual chunkSize to get the chunkCoord here
-    if (this.dimensions_.c) {
-      const cLod = this.dimensions_.c.lods[chunk.lod];
-      chunkCoords[this.dimensions_.c.index] = Math.floor(
-        chunk.chunkIndex.c / cLod.chunkSize
-      );
+    const cLod = c.lods[chunk.lod];
+    if (c.index !== undefined) {
+      chunkCoords[c.index] = Math.floor(chunk.chunkIndex.c / cLod.chunkSize);
     }
-    if (this.dimensions_.t) {
-      const tLod = this.dimensions_.t.lods[chunk.lod];
-      chunkCoords[this.dimensions_.t.index] = Math.floor(
-        chunk.chunkIndex.t / tLod.chunkSize
-      );
+    const tLod = t.lods[chunk.lod];
+    if (t.index !== undefined) {
+      chunkCoords[t.index] = Math.floor(chunk.chunkIndex.t / tLod.chunkSize);
     }
 
     const array = this.arrays_[chunk.lod];
     const arrayParams = this.arrayParams_[chunk.lod];
 
-    const cLod = this.dimensions_.c?.lods[chunk.lod];
-    const tLod = this.dimensions_.t?.lods[chunk.lod];
-
     const sliceSpec: SliceSpec = {
       targetShape: chunk.shape,
       chunkIndex: { c: chunk.chunkIndex.c, t: chunk.chunkIndex.t },
       dimIndices: {
-        x: this.dimensions_.x.index,
-        y: this.dimensions_.y.index,
-        z: this.dimensions_.z?.index,
-        c: this.dimensions_.c?.index,
-        t: this.dimensions_.t?.index,
+        x: x.index,
+        y: y.index,
+        z: z.index,
+        c: c.index,
+        t: t.index,
       },
-      cChunkSize: cLod?.chunkSize,
-      tChunkSize: tLod?.chunkSize,
+      cChunkSize: c.index !== undefined ? cLod.chunkSize : undefined,
+      tChunkSize: t.index !== undefined ? tLod.chunkSize : undefined,
     };
 
     // NOTE: if source chunks have multiple channels/timepoints
@@ -170,28 +173,31 @@ function inferSourceDimensionMap(
     };
   };
 
-  const dims: SourceDimensionMap = {
-    x: makeSourceDimension(dimensionNames[xIndex], xIndex),
-    y: makeSourceDimension(dimensionNames[yIndex], yIndex),
-    numLods: arrays.length,
+  // use a size-1 placeholder with index: undefined for axes not present in the source
+  const placeholder = (name: string): SourceDimension => ({
+    name,
+    lods: Array.from({ length: arrays.length }, () => ({
+      size: 1,
+      chunkSize: 1,
+      scale: 1,
+      translation: 0,
+    })),
+  });
+  const lookup = (target: string): SourceDimension => {
+    const idx = findDimensionIndexSafe(dimensionNames, target);
+    return idx !== -1
+      ? makeSourceDimension(dimensionNames[idx], idx)
+      : placeholder(target);
   };
 
-  const zIndex = findDimensionIndexSafe(dimensionNames, "z");
-  if (zIndex !== -1) {
-    dims.z = makeSourceDimension(dimensionNames[zIndex], zIndex);
-  }
-
-  const cIndex = findDimensionIndexSafe(dimensionNames, "c");
-  if (cIndex !== -1) {
-    dims.c = makeSourceDimension(dimensionNames[cIndex], cIndex);
-  }
-
-  const tIndex = findDimensionIndexSafe(dimensionNames, "t");
-  if (tIndex !== -1) {
-    dims.t = makeSourceDimension(dimensionNames[tIndex], tIndex);
-  }
-
-  return dims;
+  return {
+    x: makeSourceDimension(dimensionNames[xIndex], xIndex),
+    y: makeSourceDimension(dimensionNames[yIndex], yIndex),
+    z: lookup("z"),
+    c: lookup("c"),
+    t: lookup("t"),
+    numLods: arrays.length,
+  };
 }
 
 function compareDimensions(a: string, b: string): boolean {

@@ -62,21 +62,28 @@ export type Chunk = {
   };
 } & ChunkViewState;
 
-// Maps Idetik spatial dimensions (x, y, z) and non-spatial dimensions (c, t)
-// dimensions to a chunk source's dimensions.
+// Maps Idetik dimensions (x, y, z spatial; c, t non-spatial) to a source's
+// dimensions. All five axes are required — keeping them required simplifies
+// downstream consumption. For sources that lack an axis (e.g. z on a 2D
+// image), a loader maps a size-1 placeholder dimension with
+// `index === undefined`; loaders use that to skip source-array access on
+// synthetic axes.
 export type SourceDimensionMap = {
   x: SourceDimension;
   y: SourceDimension;
-  z?: SourceDimension;
-  c?: SourceDimension;
-  t?: SourceDimension;
+  z: SourceDimension;
+  c: SourceDimension;
+  t: SourceDimension;
   numLods: number;
 };
 
 // A dimension in a chunk source with multiple levels of detail (LODs).
+// `index` is the axis's position in the source array, or `undefined` if
+// this dimension is a synthetic placeholder for an axis the source
+// doesn't have (see `SourceDimensionMap`).
 export type SourceDimension = {
   name: string;
-  index: number;
+  index?: number;
   unit?: string;
   lods: SourceDimensionLod[];
 };
