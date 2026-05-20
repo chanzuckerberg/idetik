@@ -104,7 +104,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {
-    super({ transparent: true, blendMode: "premultiplied" });
+    super({ blendMode: "premultiplied" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.sourcePolicy_ = policy;

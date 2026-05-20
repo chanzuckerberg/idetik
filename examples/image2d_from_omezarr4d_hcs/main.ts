@@ -100,7 +100,6 @@ const onImageChange = async () => {
     sliceCoords: { t: 0, z: initZ, c: [2] },
     channelProps,
     policy,
-    transparent: true,
     blendMode: "additive",
   });
   viewport.layerManager.add(layer1);

@@ -20,7 +20,6 @@ type StateChangeCallback = (
 ) => void;
 
 export interface LayerOptions {
-  transparent?: boolean;
   opacity?: number;
   blendMode?: BlendMode;
 }
@@ -36,22 +35,16 @@ export abstract class Layer {
   private state_: LayerState = "initialized";
   private readonly callbacks_: StateChangeCallback[] = [];
 
-  public transparent: boolean;
   private opacity_: number;
   public blendMode: BlendMode;
 
-  constructor({
-    transparent = false,
-    opacity = 1.0,
-    blendMode = "normal",
-  }: LayerOptions = {}) {
+  constructor({ opacity = 1.0, blendMode = "none" }: LayerOptions = {}) {
     if (opacity < 0 || opacity > 1) {
       Logger.warn(
         "Layer",
         `Layer opacity out of bounds: ${opacity} — clamping to [0.0, 1.0]`
       );
     }
-    this.transparent = transparent;
     this.opacity_ = clamp(opacity, 0.0, 1.0);
     this.blendMode = blendMode;
   }
