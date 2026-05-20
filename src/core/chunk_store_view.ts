@@ -11,6 +11,7 @@ import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "./image_source_policy";
 import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box3 } from "../math/box3";
+import { Frustum } from "../math/frustum";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
 
@@ -261,17 +262,22 @@ export class ChunkStoreView {
         channels,
         visibleAabb,
         (chunk, chunkBox) => {
-          const isInBounds = frustum.intersectsWithBox3(chunkBox);
+          // visibleAabb (the world-AABB of the camera frustum) is the
+          // tightest AABB iteration we can do, but for a perspective
+          // frustum it's much looser than the frustum itself. Without the
+          // precise frustum test, chunks at the AABB's corners would land
+          // at `fallbackBackground` priority and stay loaded indefinitely.
+          if (!frustum.intersectsWithBox3(chunkBox)) return;
           const priority = this.computePriority(
             isFallback,
             isCurrent,
-            isInBounds,
+            true,
             false,
             true
           );
           if (priority !== null) {
             this.chunkViewStates_.set(chunk, {
-              visible: isInBounds,
+              visible: true,
               prefetch: false,
               priority,
               orderKey: 0,
@@ -281,7 +287,12 @@ export class ChunkStoreView {
       );
     }
 
-    this.prefetchTimeChunksAtFallback(currentTimeIndex, channels);
+    this.prefetchTimeChunksAtFallback(
+      currentTimeIndex,
+      channels,
+      visibleAabb,
+      frustum
+    );
 
     this.policyChanged_ = false;
     this.lastViewProjection_ = viewProjection;
@@ -409,7 +420,9 @@ export class ChunkStoreView {
 
   private prefetchTimeChunksAtFallback(
     currentTimeIndex: number,
-    channels: number[]
+    channels: number[],
+    visibleAabb: Box3,
+    frustum: Frustum
   ): void {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const tEnd = Math.min(
@@ -420,15 +433,25 @@ export class ChunkStoreView {
     const priority = this.policy_.priorityMap["prefetchTime"];
 
     for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
-      this.iterateAllChunksAtLod(t, fallbackLOD, channels, (chunk) => {
-        const orderKey = t - currentTimeIndex; // nearer future timepoints first
-        this.chunkViewStates_.set(chunk, {
-          visible: false,
-          prefetch: true,
-          priority,
-          orderKey,
-        });
-      });
+      this.iterateChunksInBox(
+        t,
+        fallbackLOD,
+        channels,
+        visibleAabb,
+        (chunk, chunkBox) => {
+          // Same precise-frustum filter as the current-time path: AABB
+          // iteration is necessary for spatial bounding, but only chunks
+          // actually inside the perspective frustum get prefetched.
+          if (!frustum.intersectsWithBox3(chunkBox)) return;
+          const orderKey = t - currentTimeIndex; // nearer future timepoints first
+          this.chunkViewStates_.set(chunk, {
+            visible: false,
+            prefetch: true,
+            priority,
+            orderKey,
+          });
+        }
+      );
     }
   }
 
@@ -509,25 +532,6 @@ export class ChunkStoreView {
           const xRow = yPlane[yi];
           for (let xi = range.xMin; xi < range.xMax; ++xi) {
             const chunk = xRow[xi];
-            callback(chunk, this.getChunkAabb(chunk));
-          }
-        }
-      }
-    }
-  }
-
-  private iterateAllChunksAtLod(
-    timeIndex: number,
-    lod: number,
-    channels: number[],
-    callback: (chunk: Chunk, chunkBox: Box3) => void
-  ): void {
-    for (const c of channels) {
-      const grid = this.store_.getChunkGrid(lod, timeIndex, c);
-      if (!grid) continue;
-      for (const yPlane of grid) {
-        for (const xRow of yPlane) {
-          for (const chunk of xRow) {
             callback(chunk, this.getChunkAabb(chunk));
           }
         }
