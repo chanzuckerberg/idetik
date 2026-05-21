@@ -213,7 +213,7 @@ class WebGPURenderer extends Renderer {
       this.passEncoder_.setStencilReference(0);
     }
 
-    this.currentBlendMode_ = layer.transparent ? layer.blendMode : "none";
+    this.currentBlendMode_ = layer.blendMode;
     this.currentOpacity_ = layer.opacity;
 
     layer.objects.forEach((object, i) => {

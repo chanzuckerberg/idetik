@@ -19,10 +19,10 @@ export class LayerManager {
     const transparent: Layer[] = [];
 
     for (const layer of this.layers) {
-      if (layer.transparent) {
-        transparent.push(layer);
-      } else {
+      if (layer.blendMode === "none") {
         opaque.push(layer);
+      } else {
+        transparent.push(layer);
       }
     }
 

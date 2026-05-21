@@ -71,7 +71,6 @@ function createLabelsLayer() {
     source: labelsSource,
     sliceCoords: labelsSliceCoords,
     policy: createExplorationPolicy(),
-    transparent: true,
     opacity: 0.25,
     blendMode: "normal",
     outlineSelected: outlineMode,
