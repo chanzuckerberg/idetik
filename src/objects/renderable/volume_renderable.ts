@@ -86,6 +86,7 @@ export class VolumeRenderable extends RenderableObject {
     ]
     const valueOffset = [0, 0, 0, 0];
     const valueScale = [1, 1, 1, 1];
+    const channelOpacity = [1, 1, 1, 1];
     const samplerUniforms: number[] = [];
 
     // Allow to render without channel props specified
@@ -112,6 +113,8 @@ export class VolumeRenderable extends RenderableObject {
       valueScale[k] =
         1 / (channel.contrastLimits[1] - channel.contrastLimits[0]);
       loadedAndVisibleTextures[k] = 1;
+
+      channelOpacity[k] = channel.opacity;
     }
 
     return samplerUniforms.reduce<Record<string, number[] | number>>(
@@ -124,6 +127,7 @@ export class VolumeRenderable extends RenderableObject {
         "Color[0]": colors,
         ValueOffset: valueOffset,
         ValueScale: valueScale,
+        ChannelOpacity: channelOpacity,
         VoxelScale: [
           this.voxelScale[0],
           this.voxelScale[1],

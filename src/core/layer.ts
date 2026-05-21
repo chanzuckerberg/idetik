@@ -39,12 +39,6 @@ export abstract class Layer {
   public blendMode: BlendMode;
 
   constructor({ opacity = 1.0, blendMode = "none" }: LayerOptions = {}) {
-    if (opacity < 0 || opacity > 1) {
-      Logger.warn(
-        "Layer",
-        `Layer opacity out of bounds: ${opacity} — clamping to [0.0, 1.0]`
-      );
-    }
     this.opacity_ = clamp(opacity, 0.0, 1.0);
     this.blendMode = blendMode;
   }

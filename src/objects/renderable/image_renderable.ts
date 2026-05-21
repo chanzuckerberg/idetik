@@ -11,8 +11,9 @@ import { vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 
 type UniformValues = {
-  ImageSampler: number;
   Color: vec3;
+  ImageSampler: number;
+  Opacity: number;
   ValueOffset: number;
   ValueScale: number;
 };
@@ -60,13 +61,15 @@ export class ImageRenderable extends RenderableObject {
       throw new Error("No texture set");
     }
 
-    const { color, contrastLimits } =
+    const { color, contrastLimits, opacity } =
       this.channels_[0] ?? validateChannel(texture, {});
+
     return {
       ImageSampler: 0,
       Color: color.rgb,
       ValueOffset: -contrastLimits[0],
       ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
+      Opacity: opacity,
     };
   }
 }

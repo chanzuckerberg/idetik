@@ -6,17 +6,20 @@ import {
 } from "../../objects/textures/texture";
 import { MAX_CHANNELS } from "../../core/constants";
 import { Logger } from "../../utilities/logger";
+import { clamp } from "../../utilities/clamp";
 
 export type Channel = {
   visible: boolean;
   color: Color;
   contrastLimits: [number, number];
+  opacity: number;
 };
 
 export type ChannelProps = {
   visible?: boolean;
   color?: ColorLike;
   contrastLimits?: [number, number];
+  opacity?: number;
 };
 
 /** Layer that exposes channel controls. */
@@ -30,16 +33,11 @@ export interface ChannelsEnabled {
 
 export function validateChannel(
   texture: Texture | null,
-  { visible, color, contrastLimits }: ChannelProps
+  { visible, color, contrastLimits, opacity }: ChannelProps
 ): Channel {
-  if (visible === undefined) {
-    visible = true;
-  }
-  if (color === undefined) {
-    color = Color.WHITE;
-  } else {
-    color = Color.from(color);
-  }
+  visible ??= true;
+  color = color === undefined ? Color.WHITE : Color.from(color);
+  opacity = opacity === undefined ? 1 : clamp(opacity, 0, 1);
 
   if (texture !== null) {
     contrastLimits = validateContrastLimits(contrastLimits, texture);
@@ -50,10 +48,12 @@ export function validateChannel(
     );
     contrastLimits = [0, 1];
   }
+
   return {
     visible,
     color,
     contrastLimits,
+    opacity,
   };
 }
 

@@ -72,7 +72,7 @@ class WebGPURenderer extends Renderer {
   private currentDepthWrite_ = true;
   private currentStencil_ = false;
   private currentBlendMode_: BlendMode = "none";
-  private currentOpacity_ = 1.0;
+  private currentLayerOpacity_ = 1.0;
 
   constructor(canvas: HTMLCanvasElement, device: GPUDevice) {
     super(canvas);
@@ -214,7 +214,7 @@ class WebGPURenderer extends Renderer {
     }
 
     this.currentBlendMode_ = layer.blendMode;
-    this.currentOpacity_ = layer.opacity;
+    this.currentLayerOpacity_ = layer.opacity;
 
     layer.objects.forEach((object, i) => {
       if (frustum.intersectsWithBox3(object.boundingBox)) {
@@ -315,7 +315,7 @@ class WebGPURenderer extends Renderer {
       projection: this.currentProjection_,
       modelView: this.currentModelView_,
       color: object.wireframeColor.rgb,
-      opacity: this.currentOpacity_,
+      opacity: this.currentLayerOpacity_,
     });
 
     this.bindings_.setUniforms(renderPass, pipeline);
@@ -398,6 +398,7 @@ class WebGPURenderer extends Renderer {
     );
 
     const uniforms = object.getUniforms();
+    const objectOpacity = (uniforms.Opacity as number | undefined) ?? 1;
 
     pipeline.uniformsView.set({
       projection: this.currentProjection_,
@@ -405,7 +406,7 @@ class WebGPURenderer extends Renderer {
       color: uniforms.Color,
       valueOffset: uniforms.ValueOffset,
       valueScale: uniforms.ValueScale,
-      opacity: this.currentOpacity_,
+      opacity: this.currentLayerOpacity_ * objectOpacity,
     });
 
     this.bindings_.setUniforms(this.passEncoder_!, pipeline);
