@@ -90,6 +90,7 @@ function createChannelControls(
   // Local version of the channel config to avoid mutating the original when adjusting contrast limits, e.g. if setting the max below the min
   const guiConfig: ChannelProps = {
     ...config,
+    opacity: config.opacity ?? 1,
     contrastLimits: config.contrastLimits
       ? [config.contrastLimits[0], config.contrastLimits[1]]
       : undefined,
@@ -107,6 +108,13 @@ function createChannelControls(
     .name("Color")
     .onChange((hex: string) => {
       updateChannelProperty(index, "color", hex);
+    });
+
+  channelFolder
+    .add(guiConfig, "opacity", 0, 1, 0.01)
+    .name("Opacity")
+    .onChange((opacity: number) => {
+      updateChannelProperty(index, "opacity", opacity);
     });
 
   if (guiConfig.contrastLimits) {

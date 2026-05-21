@@ -220,7 +220,11 @@ export class WebGLRenderer extends Renderer {
           program.setUniform(uniformName, resolution);
           break;
         case "u_opacity":
-          program.setUniform(uniformName, layer.opacity);
+          program.setUniform(
+            uniformName,
+            layer.opacity *
+              ((objectUniforms.Opacity as number | undefined) ?? 1)
+          );
           break;
         case "CameraPositionModel": {
           const inverseModelView = mat4.invert(mat4.create(), modelView)!;

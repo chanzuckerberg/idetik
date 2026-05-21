@@ -43,6 +43,7 @@ uniform float EarlyTerminationAlpha;
 uniform vec4 Visible;
 uniform vec4 ValueOffset;
 uniform vec4 ValueScale;
+uniform vec4 ChannelOpacity;
 uniform vec3 Color[4];
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
@@ -132,7 +133,7 @@ void main() {
         for (int ch = 0; ch < 4; ch++) {
             if (!bool(Visible[ch]) || sampleValues[ch] == 0.0) continue;
             sampleColor = Color[ch];
-            sampleAlpha = clamp(sampleValues[ch] * intensityScale, 0.0, 1.0);
+            sampleAlpha = clamp(sampleValues[ch] * intensityScale * ChannelOpacity[ch], 0.0, 1.0);
             blendedSampleAlpha = (1.0 - accumulatedColor.a) * sampleAlpha;
 
             // Front-to-back compositing
