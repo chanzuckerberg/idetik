@@ -1,5 +1,6 @@
 import { Chunk, SourceDimensionMap, ChunkLoader } from "../data/chunk";
 import { almostEqual } from "../utilities/almost_equal";
+import { clamp } from "../utilities/clamp";
 import { Logger } from "../utilities/logger";
 import { ChunkStoreView } from "./chunk_store_view";
 import { ImageSourcePolicy } from "./image_source_policy";
@@ -103,6 +104,22 @@ export class ChunkStore {
 
   public hasChunksAtTime(timeIndex: number): boolean {
     return this.chunks_[0]?.[timeIndex] !== undefined;
+  }
+
+  // for axis-aligned slicing: which chunk on `axis` at this LOD contains the
+  // given world-space `position`
+  public sliceChunkIndex(
+    axis: "x" | "y" | "z",
+    lod: number,
+    position: number
+  ): number {
+    const dim = this.dimensions_[axis];
+    if (dim === undefined) return 0;
+    const ld = dim.lods[lod];
+    const voxelIdx = Math.floor((position - ld.translation) / ld.scale);
+    const chunkIdx = Math.floor(voxelIdx / ld.chunkSize);
+    const chunkCount = Math.ceil(ld.size / ld.chunkSize);
+    return clamp(chunkIdx, 0, chunkCount - 1);
   }
 
   public get lodCount() {
