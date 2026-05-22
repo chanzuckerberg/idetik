@@ -114,8 +114,6 @@ export class ChunkStoreView {
 
     this.setLOD(lodFactor);
 
-    // Slice slab on z, from the integer chunk index — no slab math, no
-    // float-precision risk at chunk boundaries.
     const sliceIdx =
       sliceCoords.z !== undefined && this.store_.dimensions.z !== undefined
         ? this.store_.sliceChunkIndex("z", this.currentLOD_, sliceCoords.z)
@@ -154,12 +152,17 @@ export class ChunkStoreView {
       vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
       vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
     );
-    const prefetchAabb = this.getPaddedBounds(viewBounds3D);
 
+    // reset all existing chunk view states to "not needed" to start
+    // logic below will override this for chunks that are actually visible/prefetch
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     const channels = this.channelsOfInterest(sliceCoords);
     const fallbackLOD = this.fallbackLOD();
+    const prefetchAabb = this.getPaddedBounds(viewBounds3D);
+
+    // Range-query the prefetch AABB at currentLOD (and fallbackLOD when
+    // distinct); fallback chunks act as a backdrop while currentLOD loads.
     const lodsToVisit =
       this.currentLOD_ === fallbackLOD
         ? [this.currentLOD_]
@@ -245,6 +248,8 @@ export class ChunkStoreView {
     const visibleAabb = this.cameraFrustumWorldAabb(viewport.camera);
     const frustum = viewport.camera.frustum;
 
+    // reset all existing chunk view states to "not needed" to start
+    // logic below will override this for chunks that are actually visible/prefetch
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     const channels = this.channelsOfInterest(sliceCoords);
@@ -262,11 +267,9 @@ export class ChunkStoreView {
         channels,
         visibleAabb,
         (chunk, chunkBox) => {
-          // visibleAabb (the world-AABB of the camera frustum) is the
-          // tightest AABB iteration we can do, but for a perspective
-          // frustum it's much looser than the frustum itself. Without the
-          // precise frustum test, chunks at the AABB's corners would land
-          // at `fallbackBackground` priority and stay loaded indefinitely.
+          // visibleAabb (world-AABB of the camera frustum) is the
+          // tightest AABB iteration we can do, but we still want the
+          // precise frustum test on which chunks are actually needed
           if (!frustum.intersectsWithBox3(chunkBox)) return;
           const priority = this.computePriority(
             isFallback,
@@ -439,9 +442,9 @@ export class ChunkStoreView {
         channels,
         visibleAabb,
         (chunk, chunkBox) => {
-          // Same precise-frustum filter as the current-time path: AABB
-          // iteration is necessary for spatial bounding, but only chunks
-          // actually inside the perspective frustum get prefetched.
+          // same filter as the current-time path: AABB
+          // reduces iteration for performance, but only chunks
+          // actually inside the frustum get prefetched
           if (!frustum.intersectsWithBox3(chunkBox)) return;
           const orderKey = t - currentTimeIndex; // nearer future timepoints first
           this.chunkViewStates_.set(chunk, {
@@ -560,9 +563,7 @@ export class ChunkStoreView {
     return coordToIndex(tDim.lods[0], sliceCoords.t);
   }
 
-  // World-space extent of the chunk at index `sliceIdx` on `axis`, current
-  // LOD. Pairs with `ChunkStore.sliceChunkIndex` to derive the slab
-  // integer-first (no float-precision risk at chunk boundaries).
+  // world-extent of the chunk at index `sliceIdx` on `axis`, current LOD
   private sliceSlabBounds(
     axis: "x" | "y" | "z",
     sliceIdx: number
@@ -570,11 +571,10 @@ export class ChunkStoreView {
     const dim = this.store_.dimensions[axis];
     if (dim === undefined) return [-Infinity, Infinity];
     const lod = dim.lods[this.currentLOD_];
-    const stride = lod.chunkSize * lod.scale;
-    return [
-      lod.translation + sliceIdx * stride,
-      lod.translation + (sliceIdx + 1) * stride,
-    ];
+    const thickness = lod.chunkSize * lod.scale;
+    const start = lod.translation + sliceIdx * thickness;
+    const stop = start + thickness;
+    return [start, stop];
   }
 
   private cameraFrustumWorldAabb(camera: Camera): Box3 {

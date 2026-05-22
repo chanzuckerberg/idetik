@@ -106,9 +106,8 @@ export class ChunkStore {
     return this.chunks_[0]?.[timeIndex] !== undefined;
   }
 
-  // For axis-aligned slicing: which chunk on `axis` at this LOD contains the
-  // given world-space `position`. Returns the clamped chunk index (always
-  // valid). Skips slab-arithmetic dance — caller gets the integer directly.
+  // for axis-aligned slicing: which chunk on `axis` at this LOD contains the
+  // given world-space `position`
   public sliceChunkIndex(
     axis: "x" | "y" | "z",
     lod: number,
