@@ -192,9 +192,23 @@ export class WebGLTextures {
         );
       }
       // With `gpuProfilingEnabled`, force the GPU pipeline to drain before
-      // the surrounding `profile()` measure ends — captures real upload
-      // time at the cost of a main-thread stall.
-      if (isGpuProfilingEnabled()) this.gl_.finish();
+      // the surrounding `profile()` measure ends — captures real upload time
+      // at the cost of a main-thread stall. `gl.finish()` is unreliable in
+      // Chromium (the WebGL context is a client to the out-of-process GPU
+      // service and `finish` often just round-trips IPC), so use a fence +
+      // `clientWaitSync` — `SYNC_FLUSH_COMMANDS_BIT` issues the flush as
+      // part of the wait, then blocks the CPU until the GPU signals.
+      if (isGpuProfilingEnabled()) {
+        const sync = this.gl_.fenceSync(this.gl_.SYNC_GPU_COMMANDS_COMPLETE, 0);
+        if (sync) {
+          this.gl_.clientWaitSync(
+            sync,
+            this.gl_.SYNC_FLUSH_COMMANDS_BIT,
+            1_000_000_000
+          );
+          this.gl_.deleteSync(sync);
+        }
+      }
     });
   }
 
