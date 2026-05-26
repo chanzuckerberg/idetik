@@ -25,6 +25,8 @@ export class WebGLTextures {
   private readonly maxTextureUnits_: number;
   private gpuTextureBytes_ = 0;
   private textureCount_ = 0;
+  // Reused 1x1 RGBA8 buffer for the `readPixels` GPU sync hammer.
+  private readonly gpuSyncBuf_ = new Uint8Array(4);
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -194,26 +196,18 @@ export class WebGLTextures {
       // With `gpuProfilingEnabled`, force the GPU pipeline to drain before
       // the surrounding `profile()` measure ends — captures real upload time
       // at the cost of a main-thread stall. `gl.finish()` is unreliable in
-      // Chromium (the WebGL context is a client to the out-of-process GPU
-      // service and `finish` often just round-trips IPC). `clientWaitSync`
-      // with a non-zero timeout is also disallowed on the main thread
-      // (MAX_CLIENT_WAIT_TIMEOUT_WEBGL is 0 in browsers), so poll with
-      // timeout=0 in a busy loop instead — that's the only legal sync hammer.
+      // Chromium and `clientWaitSync` is crippled on the main thread (max
+      // timeout is 0; busy-polling deadlocks because the GPU service signals
+      // completion via IPC pumped on event-loop turns). `readPixels` is the
+      // only sync hammer that works across the browser GPU-process boundary:
+      // it's an IPC call whose response IS the data, so the renderer blocks
+      // on the IPC response and the GPU service drains the pipeline first.
       if (isGpuProfilingEnabled()) {
         const gl = this.gl_;
-        const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-        if (sync) {
-          gl.flush();
-          const start = performance.now();
-          let status = gl.clientWaitSync(sync, 0, 0);
-          while (
-            status === gl.TIMEOUT_EXPIRED &&
-            performance.now() - start < 1000
-          ) {
-            status = gl.clientWaitSync(sync, 0, 0);
-          }
-          gl.deleteSync(sync);
-        }
+        const prevRead = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.gpuSyncBuf_);
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, prevRead);
       }
     });
   }
