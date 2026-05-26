@@ -11,6 +11,7 @@ import {
   ViewportConfig,
 } from "./core/viewport";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
+import { profile, setGpuProfilingEnabled } from "./utilities/profiling";
 
 export type Overlay = {
   update(idetik: Idetik): void;
@@ -21,6 +22,10 @@ type IdetikParams = {
   viewports?: ViewportConfig[];
   overlays?: Overlay[];
   showStats?: boolean;
+  // When true, inserts `gl.finish()` after texture uploads so the surrounding
+  // `profile()` block captures real GPU upload time (at the cost of a
+  // main-thread stall). Diagnosis only — never enable in production.
+  profileGpu?: boolean;
 };
 
 export type IdetikContext = {
@@ -100,6 +105,8 @@ export class Idetik {
 
   constructor(params: IdetikParams, renderer?: Renderer) {
     this.canvas = params.canvas;
+
+    if (params.profileGpu) setGpuProfilingEnabled(true);
 
     this.renderer_ = renderer ?? new WebGLRenderer(this.canvas);
     this.chunkManager_ = new ChunkManager();
@@ -224,26 +231,30 @@ export class Idetik {
   }
 
   private animate(timestamp: DOMHighResTimeStamp) {
-    if (this.stats_) this.stats_.begin();
+    profile("idetik:frame", () => {
+      if (this.stats_) this.stats_.begin();
 
-    // cap dt to prevent large time-step jumps when resuming from background tabs
-    const dt = Math.min(timestamp - this.lastTimestamp_, 100) / 1000;
+      // cap dt to prevent large time-step jumps when resuming from background tabs
+      const dt = Math.min(timestamp - this.lastTimestamp_, 100) / 1000;
 
-    this.lastTimestamp_ = timestamp;
+      this.lastTimestamp_ = timestamp;
 
-    this.renderer_.beginFrame();
-    for (const viewport of this.viewports_) {
-      viewport.cameraControls?.onUpdate(dt);
-      this.renderer_.render(viewport);
-    }
+      this.renderer_.beginFrame();
+      profile("idetik:render", () => {
+        for (const viewport of this.viewports_) {
+          viewport.cameraControls?.onUpdate(dt);
+          this.renderer_.render(viewport);
+        }
+      });
 
-    this.chunkManager_.update();
+      this.chunkManager_.update();
 
-    for (const overlay of this.overlays) {
-      overlay.update(this);
-    }
+      for (const overlay of this.overlays) {
+        overlay.update(this);
+      }
 
-    if (this.stats_) this.stats_.end();
+      if (this.stats_) this.stats_.end();
+    });
     this.lastAnimationId_ = requestAnimationFrame((timestamp) =>
       this.animate(timestamp)
     );

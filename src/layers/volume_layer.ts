@@ -7,6 +7,7 @@ import { ImageSourcePolicy } from "../core/image_source_policy";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
 import { sortFrontToBack } from "../math/sort_by_distance";
+import { profile } from "../utilities/profiling";
 import {
   ChannelProps,
   ChannelsEnabled,
@@ -153,6 +154,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   private updateChunks() {
+    profile("volumeLayer:updateChunks", () => this.updateChunksImpl());
+  }
+
+  private updateChunksImpl() {
     if (!this.chunkStoreView_) return;
 
     const chunksToRender = this.chunkStoreView_.getChunksToRender();

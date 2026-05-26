@@ -13,6 +13,7 @@ import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box3 } from "../math/box3";
 import { Frustum } from "../math/frustum";
 import { Logger } from "../utilities/logger";
+import { profile } from "../utilities/profiling";
 import { clamp } from "../utilities/clamp";
 
 /*
@@ -94,6 +95,15 @@ export class ChunkStoreView {
   }
 
   public updateChunksForImage(
+    sliceCoords: SliceCoordinates,
+    viewport: Viewport
+  ): void {
+    profile("view:updateChunksForImage", () =>
+      this.updateChunksForImageImpl(sliceCoords, viewport)
+    );
+  }
+
+  private updateChunksForImageImpl(
     sliceCoords: SliceCoordinates,
     viewport: Viewport
   ): void {
@@ -212,6 +222,15 @@ export class ChunkStoreView {
   }
 
   public updateChunksForVolume(
+    sliceCoords: SliceCoordinates,
+    viewport: Viewport
+  ): void {
+    profile("view:updateChunksForVolume", () =>
+      this.updateChunksForVolumeImpl(sliceCoords, viewport)
+    );
+  }
+
+  private updateChunksForVolumeImpl(
     sliceCoords: SliceCoordinates,
     viewport: Viewport
   ): void {

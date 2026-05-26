@@ -1,5 +1,6 @@
 import { ChunkSource } from "../data/chunk";
 import { ChunkQueue } from "../data/chunk_queue";
+import { profile } from "../utilities/profiling";
 
 export type QueueStats = {
   pending: number;
@@ -57,26 +58,32 @@ export class ChunkManager {
   }
 
   public update() {
-    for (const [_, store] of this.stores_) {
-      const updatedChunks = store.updateAndCollectChunkChanges();
+    profile("manager:update", () => {
+      for (const [_, store] of this.stores_) {
+        const updatedChunks = profile("manager:aggregate", () =>
+          store.updateAndCollectChunkChanges()
+        );
 
-      for (const chunk of updatedChunks) {
-        if (chunk.priority === null) {
-          this.queue_.cancel(chunk);
-        } else if (chunk.state === "queued") {
-          this.queue_.enqueue(chunk, (signal) =>
-            store.loadChunkData(chunk, signal)
-          );
+        profile("manager:enqueue", () => {
+          for (const chunk of updatedChunks) {
+            if (chunk.priority === null) {
+              this.queue_.cancel(chunk);
+            } else if (chunk.state === "queued") {
+              this.queue_.enqueue(chunk, (signal) =>
+                store.loadChunkData(chunk, signal)
+              );
+            }
+          }
+        });
+      }
+
+      profile("manager:flush", () => this.queue_.flush());
+
+      for (const [source, store] of this.stores_) {
+        if (store.canDispose()) {
+          this.stores_.delete(source);
         }
       }
-    }
-
-    this.queue_.flush();
-
-    for (const [source, store] of this.stores_) {
-      if (store.canDispose()) {
-        this.stores_.delete(source);
-      }
-    }
+    });
   }
 }

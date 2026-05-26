@@ -17,6 +17,7 @@ import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
+import { profile } from "../utilities/profiling";
 import { RenderablePool } from "../utilities/renderable_pool";
 
 export type ImageLayerProps = LayerOptions & {
@@ -121,6 +122,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private updateChunks() {
+    profile("imageLayer:updateChunks", () => this.updateChunksImpl());
+  }
+
+  private updateChunksImpl() {
     if (!this.chunkStoreView_) return;
     if (this.state !== "ready") this.setState("ready");
 

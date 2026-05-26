@@ -1,4 +1,5 @@
 import { Logger } from "../utilities/logger";
+import { isGpuProfilingEnabled, profile } from "../utilities/profiling";
 import type {
   Texture,
   TextureFilter,
@@ -151,41 +152,50 @@ export class WebGLTextures {
     // Zero offsets because entire dataset is overwritten.
     const offset = { x: 0, y: 0, z: 0 };
 
-    if (this.isTexture2D(texture)) {
-      this.gl_.texSubImage2D(
-        type,
-        mipmapLevel,
-        offset.x,
-        offset.y,
-        texture.width,
-        texture.height,
-        info.format,
-        info.type,
-        // This function has multiple overloads. We are temporarily casting it to
-        // ArrayBufferView to ensure the correct overload is called. Once we
-        // consolidate Texture2D and DataTexture2D, we can remove this cast.
-        // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D#syntax
-        texture.data as ArrayBufferView
-      );
-    } else if (this.isTextureStorage3D(texture)) {
-      this.gl_.texSubImage3D(
-        type,
-        mipmapLevel,
-        offset.x,
-        offset.y,
-        offset.z,
-        texture.width,
-        texture.height,
-        texture.depth,
-        info.format,
-        info.type,
-        texture.data as ArrayBufferView
-      );
-    } else {
-      throw new Error(
-        "Attempting to upload data for an unsupported texture type"
-      );
-    }
+    const label = this.isTextureStorage3D(texture)
+      ? "texture:upload3d"
+      : "texture:upload2d";
+    profile(label, () => {
+      if (this.isTexture2D(texture)) {
+        this.gl_.texSubImage2D(
+          type,
+          mipmapLevel,
+          offset.x,
+          offset.y,
+          texture.width,
+          texture.height,
+          info.format,
+          info.type,
+          // This function has multiple overloads. We are temporarily casting it to
+          // ArrayBufferView to ensure the correct overload is called. Once we
+          // consolidate Texture2D and DataTexture2D, we can remove this cast.
+          // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/texSubImage2D#syntax
+          texture.data as ArrayBufferView
+        );
+      } else if (this.isTextureStorage3D(texture)) {
+        this.gl_.texSubImage3D(
+          type,
+          mipmapLevel,
+          offset.x,
+          offset.y,
+          offset.z,
+          texture.width,
+          texture.height,
+          texture.depth,
+          info.format,
+          info.type,
+          texture.data as ArrayBufferView
+        );
+      } else {
+        throw new Error(
+          "Attempting to upload data for an unsupported texture type"
+        );
+      }
+      // With `gpuProfilingEnabled`, force the GPU pipeline to drain before
+      // the surrounding `profile()` measure ends — captures real upload
+      // time at the cost of a main-thread stall.
+      if (isGpuProfilingEnabled()) this.gl_.finish();
+    });
   }
 
   private getFilter(filter: TextureFilter, texture: Texture) {

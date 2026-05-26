@@ -2,6 +2,7 @@ import * as zarr from "zarrita";
 
 import { Chunk, SourceDimension, SourceDimensionMap } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
+import { profileAsync } from "../../utilities/profiling";
 import { PromiseScheduler } from "../promise_scheduler";
 
 import { Image as OmeZarrImage } from "./0.5/image";
@@ -101,12 +102,10 @@ export class OmeZarrImageLoader {
 
     // NOTE: if source chunks have multiple channels/timepoints
     // this results in duplicate fetching and decompression
-    const data = await fetchAndProcessChunk(
-      array,
-      arrayParams,
-      chunkCoords,
-      sliceSpec,
-      { signal }
+    const data = await profileAsync("loader:fetchAndProcessChunk", () =>
+      fetchAndProcessChunk(array, arrayParams, chunkCoords, sliceSpec, {
+        signal,
+      })
     );
 
     const rowAlignment = data.BYTES_PER_ELEMENT;
