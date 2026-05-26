@@ -103,26 +103,31 @@ export class WebGLTextures {
 
     this.gl_.bindTexture(type, textureId);
 
-    if (this.isTexture2D(texture)) {
-      this.gl_.texStorage2D(
-        type,
-        texture.mipmapLevels,
-        info.internalFormat,
-        texture.width,
-        texture.height
-      );
-    } else if (this.isTextureStorage3D(texture)) {
-      this.gl_.texStorage3D(
-        type,
-        texture.mipmapLevels,
-        info.internalFormat,
-        texture.width,
-        texture.height,
-        texture.depth
-      );
-    } else {
-      throw new Error(`Unknown texture type ${texture.type}`);
-    }
+    const label = this.isTextureStorage3D(texture)
+      ? "texture:generate3d"
+      : "texture:generate2d";
+    profile(label, () => {
+      if (this.isTexture2D(texture)) {
+        this.gl_.texStorage2D(
+          type,
+          texture.mipmapLevels,
+          info.internalFormat,
+          texture.width,
+          texture.height
+        );
+      } else if (this.isTextureStorage3D(texture)) {
+        this.gl_.texStorage3D(
+          type,
+          texture.mipmapLevels,
+          info.internalFormat,
+          texture.width,
+          texture.height,
+          texture.depth
+        );
+      } else {
+        throw new Error(`Unknown texture type ${texture.type}`);
+      }
+    });
 
     this.gpuTextureBytes_ += this.computeStorageBytes(texture, info);
     this.textureCount_ += 1;
