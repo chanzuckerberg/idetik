@@ -195,18 +195,24 @@ export class WebGLTextures {
       // the surrounding `profile()` measure ends — captures real upload time
       // at the cost of a main-thread stall. `gl.finish()` is unreliable in
       // Chromium (the WebGL context is a client to the out-of-process GPU
-      // service and `finish` often just round-trips IPC), so use a fence +
-      // `clientWaitSync` — `SYNC_FLUSH_COMMANDS_BIT` issues the flush as
-      // part of the wait, then blocks the CPU until the GPU signals.
+      // service and `finish` often just round-trips IPC). `clientWaitSync`
+      // with a non-zero timeout is also disallowed on the main thread
+      // (MAX_CLIENT_WAIT_TIMEOUT_WEBGL is 0 in browsers), so poll with
+      // timeout=0 in a busy loop instead — that's the only legal sync hammer.
       if (isGpuProfilingEnabled()) {
-        const sync = this.gl_.fenceSync(this.gl_.SYNC_GPU_COMMANDS_COMPLETE, 0);
+        const gl = this.gl_;
+        const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
         if (sync) {
-          this.gl_.clientWaitSync(
-            sync,
-            this.gl_.SYNC_FLUSH_COMMANDS_BIT,
-            1_000_000_000
-          );
-          this.gl_.deleteSync(sync);
+          gl.flush();
+          const start = performance.now();
+          let status = gl.clientWaitSync(sync, 0, 0);
+          while (
+            status === gl.TIMEOUT_EXPIRED &&
+            performance.now() - start < 1000
+          ) {
+            status = gl.clientWaitSync(sync, 0, 0);
+          }
+          gl.deleteSync(sync);
         }
       }
     });
