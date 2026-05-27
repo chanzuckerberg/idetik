@@ -2,32 +2,12 @@ import * as zarr from "zarrita";
 
 import { Chunk, SourceDimension, SourceDimensionMap } from "../chunk";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
-import { PromiseScheduler } from "../promise_scheduler";
 
 import { Image as OmeZarrImage } from "./0.5/image";
 
 import { ZarrArrayParams } from "../zarr/open";
 import { SliceSpec } from "./chunk_processing";
 import { fetchAndProcessChunk } from "./worker_pool";
-
-// Implements the interface required for getting array chunks in zarrita:
-// https://github.com/manzt/zarrita.js/blob/c15c1a14e42a83516972368ac962ebdf56a6dcdb/packages/indexing/src/types.ts#L52
-export class PromiseQueue<T> {
-  private readonly promises_: Array<() => Promise<T>> = [];
-  private readonly scheduler_: PromiseScheduler;
-
-  constructor(scheduler: PromiseScheduler) {
-    this.scheduler_ = scheduler;
-  }
-
-  add(promise: () => Promise<T>) {
-    this.promises_.push(promise);
-  }
-
-  onIdle(): Promise<Array<T>> {
-    return Promise.all(this.promises_.map((p) => this.scheduler_.submit(p)));
-  }
-}
 
 type OmeZarrImageLoaderProps = {
   metadata: OmeZarrImage["ome"]["multiscales"][number];
