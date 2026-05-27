@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { ChunkStore } from "@/core/chunk_store";
+import { ChunkStore } from "@/data/chunk_store";
 import { ChunkLoader, SourceDimensionMap } from "@/data/chunk";
 import { createNoPrefetchPolicy } from "@/core/image_source_policy";
 import { createTestViewport } from "./helpers";

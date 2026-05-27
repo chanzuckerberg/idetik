@@ -1,13 +1,8 @@
-import {
-  Chunk,
-  SliceCoordinates,
-  ChunkViewState,
-  coordToIndex,
-} from "../data/chunk";
+import { Chunk, SliceCoordinates, ChunkViewState, coordToIndex } from "./chunk";
 import type { ChunkStore } from "./chunk_store";
-import { Viewport } from "./viewport";
+import { Viewport } from "../core/viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
-import { ImageSourcePolicy } from "./image_source_policy";
+import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";

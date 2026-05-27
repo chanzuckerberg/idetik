@@ -6,7 +6,7 @@ import {
   ChannelProps,
   validateChannel,
   validateChannels,
-} from "../../objects/textures/channel";
+} from "../../core/channel";
 import { vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 

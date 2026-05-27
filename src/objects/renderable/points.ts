@@ -1,6 +1,6 @@
 import { vec3 } from "gl-matrix";
 
-import { Color } from "../../core/color";
+import { Color } from "../../math/color";
 import { RenderableObject } from "../../core/renderable_object";
 import { Texture2DArray } from "../textures/texture_2d_array";
 import { Geometry } from "../../core/geometry";

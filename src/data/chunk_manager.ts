@@ -1,5 +1,5 @@
-import { ChunkSource } from "../data/chunk";
-import { ChunkQueue } from "../data/chunk_queue";
+import { ChunkSource } from "./chunk";
+import { ChunkQueue } from "./chunk_queue";
 
 export type QueueStats = {
   pending: number;
@@ -7,7 +7,7 @@ export type QueueStats = {
 };
 import { ChunkStore } from "./chunk_store";
 import { ChunkStoreView } from "./chunk_store_view";
-import { ImageSourcePolicy } from "./image_source_policy";
+import { ImageSourcePolicy } from "../core/image_source_policy";
 
 export class ChunkManager {
   private readonly stores_ = new Map<ChunkSource, ChunkStore>();

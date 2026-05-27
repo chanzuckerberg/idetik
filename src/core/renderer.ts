@@ -1,5 +1,5 @@
 import { Camera } from "../objects/cameras/camera";
-import { Color, ColorLike } from "./color";
+import { Color, ColorLike } from "../math/color";
 import { Layer } from "./layer";
 import { Viewport } from "./viewport";
 

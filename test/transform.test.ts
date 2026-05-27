@@ -2,7 +2,7 @@ import { mat4, vec3, quat } from "gl-matrix";
 
 import { expect, test, vi } from "vitest";
 
-import { TrsTransform } from "@/core/transforms";
+import { TrsTransform } from "@/math/transforms";
 
 // NOTES:
 // * mat4 is column-major

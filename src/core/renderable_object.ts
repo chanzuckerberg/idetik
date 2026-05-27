@@ -2,9 +2,9 @@ import { Node } from "../core/node";
 import { Geometry } from "../core/geometry";
 import { WireframeGeometry } from "../core/wireframe_geometry";
 import { Texture } from "../objects/textures/texture";
-import { TrsTransform } from "../core/transforms";
+import { TrsTransform } from "../math/transforms";
 import { Shader } from "../renderers/shaders";
-import { Color } from "../core/color";
+import { Color } from "../math/color";
 import { CullingMode } from "../renderers/webgl_state";
 
 export abstract class RenderableObject extends Node {
