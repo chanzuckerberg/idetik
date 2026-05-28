@@ -1,4 +1,4 @@
-import { Color, ColorLike } from "../../core/color";
+import { Color, ColorLike } from "../../math/color";
 
 const defaultColorCycle: ColorLike[] = [
   [1.0, 0.5, 0.5],

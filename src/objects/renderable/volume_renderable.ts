@@ -7,7 +7,7 @@ import {
   ChannelProps,
   validateChannel,
   validateChannels,
-} from "../textures/channel";
+} from "../../core/channel";
 import { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";

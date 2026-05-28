@@ -1,17 +1,17 @@
 import { Layer, LayerOptions, RenderContext } from "../core/layer";
 import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
+import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import {
   ChannelProps,
   ChannelsEnabled,
   validateChannelPropsCount,
-} from "../objects/textures/channel";
+} from "../core/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Texture2D } from "../objects/textures/texture_2d";
 import { Logger } from "../utilities/logger";
-import { Color } from "../core/color";
+import { Color } from "../math/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";

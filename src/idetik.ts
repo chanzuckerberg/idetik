@@ -1,7 +1,7 @@
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { createWebGPURenderer } from "./renderers/webgpu/webgpu_renderer";
 import { Logger } from "./utilities/logger";
-import { ChunkManager } from "./core/chunk_manager";
+import { ChunkManager } from "./data/chunk_manager";
 import { Renderer } from "./core/renderer";
 import { createStats, type Stats } from "./utilities/stats";
 import {

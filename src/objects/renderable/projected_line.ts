@@ -1,6 +1,6 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { ProjectedLineGeometry } from "../../objects/geometry/projected_line_geometry";
-import { Color, ColorLike } from "../../core/color";
+import { Color, ColorLike } from "../../math/color";
 
 type LineParameters = {
   geometry: ProjectedLineGeometry;

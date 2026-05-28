@@ -1,7 +1,7 @@
 import { Layer, LayerOptions, RenderContext } from "../core/layer";
 import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
+import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import {

@@ -25,7 +25,7 @@ export { ImageLayer } from "./layers/image_layer";
 export type { ImageLayerProps } from "./layers/image_layer";
 export { VolumeLayer } from "./layers/volume_layer";
 export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
-export type { QueueStats } from "./core/chunk_manager";
+export type { QueueStats } from "./data/chunk_manager";
 export { LabelLayer } from "./layers/label_layer";
 export type { LabelLayerProps } from "./layers/label_layer";
 export type { LabelColorMapProps } from "./objects/renderable/label_color_map";
@@ -63,9 +63,9 @@ export type {
   OmeroChannel,
 } from "./data/ome_zarr/metadata_loaders";
 
-export { Color } from "./core/color";
-export type { ColorLike } from "./core/color";
-export type { ChannelProps, ChannelsEnabled } from "./objects/textures/channel";
+export { Color } from "./math/color";
+export type { ColorLike } from "./math/color";
+export type { ChannelProps, ChannelsEnabled } from "./core/channel";
 
 export { Points } from "./objects/renderable/points";
 export { Texture2DArray } from "./objects/textures/texture_2d_array";

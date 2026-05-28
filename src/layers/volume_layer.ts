@@ -2,7 +2,7 @@ import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { Layer, RenderContext } from "../core/layer";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
-import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../core/chunk_store_view";
+import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
@@ -11,7 +11,7 @@ import {
   ChannelProps,
   ChannelsEnabled,
   validateChannelPropsCount,
-} from "../objects/textures/channel";
+} from "../core/channel";
 
 export type VolumeLayerProps = {
   source: ChunkSource;

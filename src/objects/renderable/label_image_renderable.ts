@@ -1,7 +1,7 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { PlaneGeometry } from "../../objects/geometry/plane_geometry";
 import { Texture, TextureDataType } from "../../objects/textures/texture";
-import { Color } from "../../core/color";
+import { Color } from "../../math/color";
 import { Texture2D } from "../textures/texture_2d";
 import { LabelColorMap } from "./label_color_map";
 

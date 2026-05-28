@@ -1,8 +1,8 @@
-import { Chunk, SourceDimensionMap, ChunkLoader } from "../data/chunk";
+import { Chunk, SourceDimensionMap, ChunkLoader } from "./chunk";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { ChunkStoreView } from "./chunk_store_view";
-import { ImageSourcePolicy } from "./image_source_policy";
+import { ImageSourcePolicy } from "../core/image_source_policy";
 
 export class ChunkStore {
   // Chunks indexed as chunks_[lod][t][c][z][y][x].

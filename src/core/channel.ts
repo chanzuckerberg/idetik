@@ -1,12 +1,9 @@
-// TODO: move this file out of `textures`
-import { Color, ColorLike } from "../../core/color";
-import {
-  Texture,
-  textureDefaultValueRange,
-} from "../../objects/textures/texture";
-import { MAX_CHANNELS } from "../../core/constants";
-import { Logger } from "../../utilities/logger";
-import { clamp } from "../../utilities/clamp";
+import { Color, ColorLike } from "../math/color";
+import { Texture, textureDefaultValueRange } from "../objects/textures/texture";
+import { Logger } from "../utilities/logger";
+import { clamp } from "../utilities/clamp";
+
+const MAX_CHANNELS = 32;
 
 export type Channel = {
   visible: boolean;
