@@ -123,7 +123,12 @@ class WebGPURenderer extends Renderer {
   }
 
   public override render(viewport: Viewport) {
-    const { opaque, transparent } = viewport.layerManager.partitionLayers();
+    const opaque: Layer[] = [];
+    const transparent: Layer[] = [];
+    for (const layer of viewport.layers) {
+      (layer.blendMode === "none" ? opaque : transparent).push(layer);
+    }
+
     for (const layer of [...opaque, ...transparent]) {
       layer.update({ viewport });
     }

@@ -11,7 +11,7 @@ test("Runtime initializes with canvas element", () => {
   const viewport = idetik.viewports[0];
   expect(idetik.canvas).toBe(canvas);
   expect(viewport.camera).toBe(camera);
-  expect(viewport.layerManager).toBeDefined();
+  expect(viewport.layers).toEqual([]);
 });
 
 test("Runtime start/stop controls the animation loop", () => {

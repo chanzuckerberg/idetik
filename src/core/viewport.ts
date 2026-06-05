@@ -1,6 +1,5 @@
 import { Camera } from "../objects/cameras/camera";
 import { Layer } from "./layer";
-import { LayerManager } from "./layer_manager";
 import { CameraControls } from "../objects/cameras/controls";
 import { Box2 } from "../math/box2";
 import { vec2, vec3 } from "gl-matrix";
@@ -20,22 +19,28 @@ export interface ViewportConfig {
 interface ViewportProps extends ViewportConfig {
   id: string;
   element: HTMLElement;
-  layerManager: LayerManager;
+  context: IdetikContext;
 }
 
 export class Viewport {
   public readonly id: string;
   public readonly element: HTMLElement;
   public readonly camera: Camera;
-  public readonly layerManager: LayerManager;
   public readonly events: EventDispatcher;
   public cameraControls?: CameraControls;
+
+  // Carried only to relay to `layer.onAttached` / `layer.onDetached`.
+  // To be removed when the chunk-infrastructure refactor folds chunk management
+  // into the source and the attach lifecycle goes away.
+  private readonly context_: IdetikContext;
+
+  private layers_: Layer[] = [];
 
   constructor(props: ViewportProps) {
     this.id = props.id;
     this.element = props.element;
     this.camera = props.camera;
-    this.layerManager = props.layerManager;
+    this.context_ = props.context;
     this.cameraControls = props.cameraControls;
     this.updateAspectRatio();
     this.events = new EventDispatcher(this.element);
@@ -49,7 +54,7 @@ export class Viewport {
         event.clipPos = this.clientToClip(client, 0);
         event.worldPos = this.camera.clipToWorld(event.clipPos);
       }
-      for (const layer of this.layerManager.layers) {
+      for (const layer of this.layers_) {
         layer.onEvent(event);
         if (event.propagationStopped) return;
       }
@@ -57,8 +62,33 @@ export class Viewport {
     });
 
     for (const layer of props.layers ?? []) {
-      this.layerManager.add(layer);
+      this.addLayer(layer);
     }
+  }
+
+  public get layers(): readonly Layer[] {
+    return this.layers_;
+  }
+
+  public addLayer(layer: Layer): void {
+    this.layers_.push(layer);
+    layer.onAttached(this.context_);
+  }
+
+  public removeLayer(layer: Layer): void {
+    const index = this.layers_.indexOf(layer);
+    if (index === -1) {
+      throw new Error(`Layer to remove not found: ${layer}`);
+    }
+    this.layers_.splice(index, 1);
+    layer.onDetached(this.context_);
+  }
+
+  public removeAllLayers(): void {
+    for (const layer of this.layers_) {
+      layer.onDetached(this.context_);
+    }
+    this.layers_ = [];
   }
 
   public updateSize(): void {
@@ -176,7 +206,7 @@ export function parseViewportConfigs(
       ...config,
       element,
       id: config.id ?? element.id ?? generateID("viewport"),
-      layerManager: new LayerManager(context),
+      context,
     };
   });
   validateViewportProps(viewportProps);

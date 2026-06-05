@@ -232,9 +232,9 @@ const onFirstImageLoad = (newState: LayerState) => {
     viewport.cameraControls = new PanZoomControls(camera);
     camera.update();
 
-    viewport.layerManager.add(ribosomes);
-    viewport.layerManager.add(ferritin);
-    viewport.layerManager.add(virusLike);
+    viewport.addLayer(ribosomes);
+    viewport.addLayer(ferritin);
+    viewport.addLayer(virusLike);
 
     // remove the callback to only set the camera frame once
     imageLayer.removeStateChangeCallback(onFirstImageLoad);

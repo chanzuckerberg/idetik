@@ -129,9 +129,9 @@ const viewport = idetik.viewports[0];
 outlineToggleEl.addEventListener("click", () => {
   outlineMode = !outlineMode;
   outlineToggleEl.textContent = outlineMode ? "Outline" : "Fill";
-  viewport.layerManager.remove(labelsLayer);
+  viewport.removeLayer(labelsLayer);
   labelsLayer = createLabelsLayer();
-  viewport.layerManager.add(labelsLayer);
+  viewport.addLayer(labelsLayer);
 });
 
 function setTimeIndex(index: number) {
