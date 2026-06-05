@@ -9,19 +9,18 @@ import {
   createTestElement,
   createTestCamera,
   createTestContext,
-  createTestLayerManager,
 } from "./helpers";
 
 test("Viewport constructor uses provided ID", () => {
   const element = createTestElement("test-element");
   const camera = createTestCamera();
-  const layerManager = createTestLayerManager();
+  const context = createTestContext();
 
   const viewport = new Viewport({
     id: "custom-viewport",
     element,
     camera,
-    layerManager,
+    context,
   });
   expect(viewport.id).toBe("custom-viewport");
 });
@@ -29,13 +28,13 @@ test("Viewport constructor uses provided ID", () => {
 test("Viewport constructor falls back to element ID", () => {
   const element = createTestElement("element-id");
   const camera = createTestCamera();
-  const layerManager = createTestLayerManager();
+  const context = createTestContext();
 
   const viewport = new Viewport({
     id: "element-id",
     element,
     camera,
-    layerManager,
+    context,
   });
   expect(viewport.id).toBe("element-id");
 });
@@ -44,13 +43,13 @@ test("Viewport constructor requires an ID", () => {
   const element = createTestElement("");
   element.id = ""; // Ensure no ID
   const camera = createTestCamera();
-  const layerManager = createTestLayerManager();
+  const context = createTestContext();
 
   const viewport = new Viewport({
     id: "generated-id",
     element,
     camera,
-    layerManager,
+    context,
   });
   expect(viewport.id).toBe("generated-id");
 });
