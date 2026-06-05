@@ -5,7 +5,7 @@ import {
   createExplorationPolicy,
   createNoPrefetchPolicy,
   createPlaybackPolicy,
-} from "@";
+} from "@/core/image_source_policy";
 
 const VALID_PRIORITY_ORDER: PriorityCategory[] = [
   "fallbackVisible",

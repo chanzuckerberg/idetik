@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { vec3 } from "gl-matrix";
 
-import { Plane } from "@";
+import { Plane } from "@/math/plane";
 
 test("constructed with default values", () => {
   const plane = new Plane();

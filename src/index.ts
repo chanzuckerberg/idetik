@@ -1,72 +1,45 @@
 export { Idetik } from "./idetik";
-export type { Overlay } from "./idetik";
 
-export { WebGLRenderer } from "./renderers/webgl_renderer";
-export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
-export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
-export { PanZoomControls } from "./objects/cameras/controls";
-export { OrbitControls } from "./objects/cameras/orbit_controls";
-export type { CameraControls } from "./objects/cameras/controls";
-
-export { Layer } from "./core/layer";
-export type { LayerState } from "./core/layer";
-export { LayerManager } from "./core/layer_manager";
-export type { EventContext } from "./core/event_dispatcher";
-
-export {
-  Viewport,
-  parseViewportConfigs,
-  validateNewViewport,
-} from "./core/viewport";
-export type { ViewportConfig } from "./core/viewport";
-
-export { AxesLayer } from "./layers/axes_layer";
-export { ImageLayer } from "./layers/image_layer";
-export type { ImageLayerProps } from "./layers/image_layer";
-export { VolumeLayer } from "./layers/volume_layer";
-export type { Chunk, ChunkLoader, SliceCoordinates } from "./data/chunk";
-export type { QueueStats } from "./data/chunk_manager";
-export { LabelLayer } from "./layers/label_layer";
-export type { LabelLayerProps } from "./layers/label_layer";
-export type { LabelColorMapProps } from "./objects/renderable/label_color_map";
-export type { PointPickingResult } from "./layers/point_picking";
 export { OmeZarrImageSource } from "./data/ome_zarr/image_source";
 
-export type {
-  PriorityCategory,
-  ImageSourcePolicy,
-  ImageSourcePolicyConfig,
-} from "./core/image_source_policy";
-
-export {
-  createImageSourcePolicy,
-  createExplorationPolicy,
-  createNoPrefetchPolicy,
-  createPlaybackPolicy,
-} from "./core/image_source_policy";
-
-export { Box2 } from "./math/box2";
-export { Box3 } from "./math/box3";
-export { Frustum } from "./math/frustum";
-export { Plane } from "./math/plane";
-export { Spherical } from "./math/spherical";
-
-export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";
 export {
   loadOmeroChannels,
   loadOmeroDefaults,
   loadOmeZarrPlate,
   loadOmeZarrWell,
 } from "./data/ome_zarr/metadata_loaders";
-export type {
-  OmeroMetadata,
-  OmeroChannel,
-} from "./data/ome_zarr/metadata_loaders";
 
+export { Layer } from "./core/layer";
+export { AxesLayer } from "./layers/axes_layer";
+export { ImageLayer } from "./layers/image_layer";
+export { VolumeLayer } from "./layers/volume_layer";
+export { LabelLayer } from "./layers/label_layer";
+
+export { ImageRenderable } from "./objects/renderable/image_renderable";
+export { LabelColorMap } from "./objects/renderable/label_color_map";
+export { LabelImageRenderable } from "./objects/renderable/label_image_renderable";
+export { Points } from "./objects/renderable/points";
+export { ProjectedLine } from "./objects/renderable/projected_line";
+export { VolumeRenderable } from "./objects/renderable/volume_renderable";
+
+export { OrbitControls } from "./objects/cameras/orbit_controls";
+export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
+export { PanZoomControls } from "./objects/cameras/controls";
+export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
+
+export {
+  createExplorationPolicy,
+  createImageSourcePolicy,
+  createNoPrefetchPolicy,
+  createPlaybackPolicy,
+} from "./core/image_source_policy";
+
+export type { ChannelProps } from "./core/channel";
+export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";
+export type { LayerState } from "./core/layer";
+export type { Overlay } from "./idetik";
+export type { SliceCoordinates } from "./data/chunk";
+
+export { Texture2DArray } from "./objects/textures/texture_2d_array";
 export { Color } from "./math/color";
 export type { ColorLike } from "./math/color";
-export type { ChannelProps, ChannelsEnabled } from "./core/channel";
-
-export { Points } from "./objects/renderable/points";
-export { Texture2DArray } from "./objects/textures/texture_2d_array";
-export { Texture3D } from "./objects/textures/texture_3d";

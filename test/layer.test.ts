@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 
-import { Layer } from "@";
+import { Layer } from "@/core/layer";
 
 class TestLayer extends Layer {
   public readonly type = "TestLayer";

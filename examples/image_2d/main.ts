@@ -4,15 +4,13 @@ import {
   ImageLayer,
   OmeZarrImageSource,
   OrthographicCamera,
+  PanZoomControls,
   SliceCoordinates,
-} from "@";
-import { PanZoomControls } from "@/objects/cameras/controls";
-import { ScaleBar } from "./scale_bar";
-import { addDimensionSlider } from "../lil_gui_utils";
-import {
   createExplorationPolicy,
   createPlaybackPolicy,
-} from "@/core/image_source_policy";
+} from "@";
+import { ScaleBar } from "./scale_bar";
+import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
 
 // A 2D OME-Zarr image viewer with a dataset selector. Pre-populated with

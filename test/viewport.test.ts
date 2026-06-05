@@ -1,6 +1,10 @@
 import { expect, test } from "vitest";
 
-import { Viewport, ViewportConfig, parseViewportConfigs } from "@";
+import {
+  Viewport,
+  ViewportConfig,
+  parseViewportConfigs,
+} from "@/core/viewport";
 import {
   createTestElement,
   createTestCamera,
