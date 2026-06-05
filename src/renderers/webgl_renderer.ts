@@ -65,7 +65,12 @@ export class WebGLRenderer extends Renderer {
     this.renderedObjects_ = 0;
     this.renderedObjectsPerFrame_ = 0;
 
-    const { opaque, transparent } = viewport.layerManager.partitionLayers();
+    const opaque: Layer[] = [];
+    const transparent: Layer[] = [];
+    for (const layer of viewport.layers) {
+      (layer.blendMode === "none" ? opaque : transparent).push(layer);
+    }
+
     for (const layer of [...opaque, ...transparent]) {
       layer.update({ viewport });
     }

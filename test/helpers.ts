@@ -1,7 +1,6 @@
 import type { Chunk } from "../src/data/chunk";
 import { Viewport } from "@/core/viewport";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
-import { LayerManager } from "@/core/layer_manager";
 import { ChunkManager } from "@/data/chunk_manager";
 import type { IdetikContext } from "@/idetik";
 
@@ -101,15 +100,11 @@ export function createTestContext(): IdetikContext {
   return { chunkManager: new ChunkManager() };
 }
 
-export function createTestLayerManager(): LayerManager {
-  return new LayerManager(createTestContext());
-}
-
 export function createTestViewport(id: string = "test-viewport"): Viewport {
   return new Viewport({
     id,
     element: createTestElement(id),
     camera: createTestCamera(),
-    layerManager: createTestLayerManager(),
+    context: createTestContext(),
   });
 }
