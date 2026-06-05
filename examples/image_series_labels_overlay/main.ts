@@ -5,10 +5,9 @@ import {
   OmeZarrImageSource,
   OrthographicCamera,
   Color,
-  PointPickingResult,
+  PanZoomControls,
+  createExplorationPolicy,
 } from "@";
-import { PanZoomControls } from "@/objects/cameras/controls";
-import { createExplorationPolicy } from "@/core/image_source_policy";
 
 // These roughly correspond in terms of content and the number of time-points.
 // But the image is smaller in XY than the labels, and has a Z-stack, so it
@@ -74,7 +73,7 @@ function createLabelsLayer() {
     opacity: 0.25,
     blendMode: "normal",
     outlineSelected: outlineMode,
-    onPickValue: (info: PointPickingResult) => {
+    onPickValue: (info) => {
       const { world, value } = info;
       pickInfoEl.innerHTML = `
         World: (${world[0].toFixed(1)}, ${world[1].toFixed(1)}, ${world[2].toFixed(1)})<br/>

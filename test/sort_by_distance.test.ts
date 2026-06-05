@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { vec3 } from "gl-matrix";
 import { sortFrontToBack } from "@/math/sort_by_distance";
-import { PerspectiveCamera } from "@/index";
+import { PerspectiveCamera } from "@/objects/cameras/perspective_camera";
 import { RenderableObject } from "@/core/renderable_object";
 import { BoxGeometry } from "@/objects/geometry/box_geometry";
 

@@ -2,14 +2,14 @@ import {
   Idetik,
   ImageLayer,
   OmeZarrImageSource,
+  OrbitControls,
   OrthographicCamera,
+  PanZoomControls,
   PerspectiveCamera,
   VolumeLayer,
+  createPlaybackPolicy,
 } from "@";
-import { PanZoomControls } from "@/objects/cameras/controls";
-import { OrbitControls } from "@/objects/cameras/orbit_controls";
 import { addDimensionSlider } from "../lil_gui_utils";
-import { createPlaybackPolicy } from "@/core/image_source_policy";
 import { vec3 } from "gl-matrix";
 
 import GUI from "lil-gui";

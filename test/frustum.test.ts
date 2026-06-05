@@ -1,7 +1,8 @@
 import { expect, test } from "vitest";
 import { mat4, vec3 } from "gl-matrix";
 
-import { Box3, Frustum } from "@";
+import { Box3 } from "@/math/box3";
+import { Frustum } from "@/math/frustum";
 
 function identity(): mat4 {
   return mat4.create();

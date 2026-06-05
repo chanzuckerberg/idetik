@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { WebGLRenderer } from "@";
+import { WebGLRenderer } from "@/renderers/webgl_renderer";
 
 test("Instantiate WebGLRenderer", () => {
   document.body.innerHTML = '<canvas id="canvas"></canvas>';

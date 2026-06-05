@@ -1,9 +1,14 @@
 import { vec3 } from "gl-matrix";
 import GUI from "lil-gui";
-import { Idetik, OmeZarrImageSource, PerspectiveCamera, VolumeLayer } from "@";
-import { createExplorationPolicy } from "@/core/image_source_policy";
-import { OrbitControls } from "@/objects/cameras/orbit_controls";
-import type { ChannelProps } from "@/core/channel";
+import {
+  ChannelProps,
+  Idetik,
+  OmeZarrImageSource,
+  OrbitControls,
+  PerspectiveCamera,
+  VolumeLayer,
+  createExplorationPolicy,
+} from "@";
 
 const url =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/";

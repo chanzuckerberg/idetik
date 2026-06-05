@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { vec2 } from "gl-matrix";
 
-import { Box2 } from "@";
+import { Box2 } from "@/math/box2";
 
 test("default constructor yields an empty box", () => {
   const b = new Box2();

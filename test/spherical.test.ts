@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 import { vec3 } from "gl-matrix";
 
-import { Spherical } from "@";
+import { Spherical } from "@/math/spherical";
 
 const PI = Math.PI;
 const PI_OVER_2 = PI / 2;

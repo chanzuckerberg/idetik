@@ -1,4 +1,4 @@
-import { SliceCoordinates } from "@/index";
+import { SliceCoordinates } from "@";
 import { Controller, GUI } from "lil-gui";
 
 type DimensionSliderProps = {
