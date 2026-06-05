@@ -6,7 +6,6 @@ import {
   Points,
   OrthographicCamera,
   OmeZarrImageSource,
-  Texture2DArray,
   LayerState,
   ImageLayer,
   Color,
@@ -60,8 +59,7 @@ class Particles extends Layer {
   public readonly type = "Particles";
   private readonly points_: vec3[] = [];
   private readonly color_: Color;
-  private readonly markerIndex_: number = 0;
-  private static markerAtlas_: Texture2DArray;
+  private readonly marker_: Marker;
   private needsUpdate_: boolean = true;
   private depth_: number = 0;
 
@@ -70,7 +68,7 @@ class Particles extends Layer {
     this.setState("initialized");
     this.points_ = points;
     this.color_ = Color.from(color);
-    this.markerIndex_ = marker === "circle" ? 0 : marker === "square" ? 1 : 2;
+    this.marker_ = marker;
     this.refreshPointsRenderable();
     this.setState("ready");
   }
@@ -100,80 +98,12 @@ class Particles extends Layer {
         position: p,
         color: Color.from([r / zScale, g / zScale, b / zScale]),
         size: 20.0 / zScale,
-        markerIndex: this.markerIndex_,
+        marker: this.marker_,
       };
     });
-    const pointsRenderable = new Points(scaledPoints, Particles.markerAtlas);
+    const pointsRenderable = new Points(scaledPoints);
     this.objects.length = 0;
     this.addObject(pointsRenderable);
-  }
-
-  private static get markerAtlas() {
-    if (!Particles.markerAtlas_) {
-      Particles.markerAtlas_ = Particles.createMarkerAtlas();
-    }
-    return Particles.markerAtlas_;
-  }
-
-  private static createMarkerAtlas() {
-    const square = (size: number) => {
-      const w = size;
-      const h = size;
-      const data = new Float32Array(w * h);
-      data.fill(1.0);
-      return data;
-    };
-
-    const circle = (size: number) => {
-      const w = size;
-      const h = size;
-      const data = new Float32Array(w * h);
-      for (let i = 0; i < h; i++) {
-        for (let j = 0; j < w; j++) {
-          if ((i - h / 2) ** 2 + (j - w / 2) ** 2 < (w / 2) ** 2) {
-            data[i * w + j] = 1.0;
-          }
-        }
-      }
-      return data;
-    };
-
-    const triangle = (size: number) => {
-      const w = size;
-      const h = size;
-      const data = new Float32Array(w * h);
-      for (let i = 0; i < h; i++) {
-        for (let j = 0; j < w; j++) {
-          if (j >= (w - i) / 2 && j <= (w + i) / 2) {
-            data[i * w + j] = 1.0;
-          }
-        }
-      }
-      return data;
-    };
-
-    const SPRITE_SIZE = 256;
-    const numMarkers = 3;
-    const pixelsPerMarkerSprite = SPRITE_SIZE * SPRITE_SIZE;
-    const data = new Float32Array(numMarkers * pixelsPerMarkerSprite);
-    const squareData = square(SPRITE_SIZE);
-    const circleData = circle(SPRITE_SIZE);
-    const triangleData = triangle(SPRITE_SIZE);
-    for (let i = 0; i < pixelsPerMarkerSprite; i++) {
-      data[i] = circleData[i];
-      data[i + pixelsPerMarkerSprite] = squareData[i];
-      data[i + 2 * pixelsPerMarkerSprite] = triangleData[i];
-    }
-
-    // TODO: this uses f32 values, which are not (by defualt) filterable in WebGL2
-    // to enable this, we can check/add OES_texture_float_linear.
-    // we also don't need the precision of f32 for this so I'd like to use an R8
-    // texture instead, but our Texture class does not yet support it.
-    const texture = new Texture2DArray(data, SPRITE_SIZE, SPRITE_SIZE);
-    texture.wrapR = "clamp_to_edge";
-    texture.wrapS = "clamp_to_edge";
-    texture.wrapT = "clamp_to_edge";
-    return texture;
   }
 }
 const ribosomes = new Particles(ribosomeLocations, Color.RED, "circle");
