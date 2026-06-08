@@ -40,6 +40,5 @@ export type { LayerState } from "./core/layer";
 export type { Overlay } from "./idetik";
 export type { SliceCoordinates } from "./data/chunk";
 
-export { Texture2DArray } from "./objects/textures/texture_2d_array";
 export { Color } from "./math/color";
 export type { ColorLike } from "./math/color";
