@@ -30,6 +30,14 @@ export class WebGLTextures {
     this.maxTextureUnits_ = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
   }
 
+  public get gpuTextureBytes() {
+    return this.gpuTextureBytes_;
+  }
+
+  public get textureCount() {
+    return this.textureCount_;
+  }
+
   public bindTexture(texture: Texture, index: number) {
     if (this.alreadyActive(texture)) return;
 

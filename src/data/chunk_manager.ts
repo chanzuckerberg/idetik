@@ -1,5 +1,6 @@
 import { ChunkSource } from "./chunk";
 import { ChunkQueue } from "./chunk_queue";
+import { chunkMemoryStats } from "./chunk_memory";
 
 export type QueueStats = {
   pending: number;
@@ -19,6 +20,10 @@ export class ChunkManager {
       pending: this.queue_.pendingCount,
       running: this.queue_.runningCount,
     };
+  }
+
+  public get memoryStats() {
+    return chunkMemoryStats();
   }
 
   public async addView(

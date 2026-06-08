@@ -61,6 +61,14 @@ export class WebGLRenderer extends Renderer {
     this.resize(this.canvas.width, this.canvas.height);
   }
 
+  public get gpuTextureBytes() {
+    return this.textures_.gpuTextureBytes;
+  }
+
+  public get gpuTextureCount() {
+    return this.textures_.textureCount;
+  }
+
   public render(viewport: Viewport) {
     this.renderedObjects_ = 0;
     this.renderedObjectsPerFrame_ = 0;

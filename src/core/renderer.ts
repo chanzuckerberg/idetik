@@ -60,6 +60,10 @@ export abstract class Renderer {
     return this.renderedObjects_;
   }
 
+  public abstract get gpuTextureBytes(): number;
+
+  public abstract get gpuTextureCount(): number;
+
   public set backgroundColor(color: ColorLike) {
     this.backgroundColor_ = Color.from(color);
   }
