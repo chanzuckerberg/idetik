@@ -29,7 +29,7 @@ export type IdetikContext = {
 
 // JS heap usage from the non-standard performance.memory API.
 // Chromium only, undefined where the API is unavailable.
-type MemoryStats = {
+export type MemoryStats = {
   cpuChunkBytes: number;
   cpuChunkCount: number;
   gpuTextureBytes: number;

@@ -37,7 +37,7 @@ export {
 export type { ChannelProps } from "./core/channel";
 export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";
 export type { LayerState } from "./core/layer";
-export type { Overlay } from "./idetik";
+export type { MemoryStats, Overlay } from "./idetik";
 export type { SliceCoordinates } from "./data/chunk";
 
 export { Color } from "./math/color";
