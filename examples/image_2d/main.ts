@@ -93,16 +93,14 @@ const config: DatasetConfig = parsed.preset ?? {
   contrastLimits: [0, 65535],
 };
 
-const source = OmeZarrImageSource.fromHttp({
-  url: config.url,
-  version: config.version,
-});
-
 const datasetInfoDiv = document.querySelector<HTMLDivElement>("#dataset-info")!;
 datasetInfoDiv.textContent = `Loading ${config.label}…\n${config.url}`;
 
-const loader = await source.open();
-const dimensions = loader.getSourceDimensionMap();
+const source = await OmeZarrImageSource.fromHttp({
+  url: config.url,
+  version: config.version,
+});
+const dimensions = source.getDimensions();
 
 const xLod = dimensions.x.lods[0];
 const yLod = dimensions.y.lods[0];
@@ -121,7 +119,7 @@ if (tLod) {
   sliceCoords.t = tLod.translation + midIndex * tLod.scale;
 }
 
-const channelCount = dimensions.c?.lods[0].size ?? 1;
+const channelCount = source.getChannelCount();
 const channelProps: ChannelProps[] = Array.from(
   { length: channelCount },
   (_, idx) =>
@@ -300,7 +298,7 @@ void idetik;
 
 function formatDatasetInfo(
   cfg: DatasetConfig,
-  dims: ReturnType<typeof loader.getSourceDimensionMap>
+  dims: ReturnType<typeof source.getDimensions>
 ): string {
   const xL = dims.x.lods[0];
   const yL = dims.y.lods[0];

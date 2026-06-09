@@ -33,7 +33,7 @@ const volumeCenter = vec3.fromValues(
 );
 
 // shared source between viewports
-const source = OmeZarrImageSource.fromHttp({ url });
+const source = await OmeZarrImageSource.fromHttp({ url });
 
 // Shared timepoint across all viewports
 const sharedTime = { t: 400 };

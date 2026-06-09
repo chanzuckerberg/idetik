@@ -17,12 +17,11 @@ const fovName = "B/3/000000";
 const imageUrl = `${baseUrl}/2024_11_07_A549_SEC61_DENV_cropped.zarr/${fovName}`;
 const labelsUrl = `${baseUrl}/2024_11_07_A549_SEC61_DENV_tracking.zarr/${fovName}`;
 
-const imageSource = OmeZarrImageSource.fromHttp({ url: imageUrl });
-const labelsSource = OmeZarrImageSource.fromHttp({ url: labelsUrl });
+const imageSource = await OmeZarrImageSource.fromHttp({ url: imageUrl });
+const labelsSource = await OmeZarrImageSource.fromHttp({ url: labelsUrl });
 
 const lod = 0;
-const loader = await imageSource.open();
-const dimensions = loader.getSourceDimensionMap();
+const dimensions = imageSource.getDimensions();
 
 const tLod = dimensions.t!.lods[lod];
 const tMin = 0;

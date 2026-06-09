@@ -12,7 +12,7 @@ import {
 
 const url =
   "https://public.czbiohub.org/organelle_box/datasets/A549/organelle_box_crop_v1.zarr/CLTA/PFA/002000/";
-const source = OmeZarrImageSource.fromHttp({ url });
+const source = await OmeZarrImageSource.fromHttp({ url });
 const sliceCoords = {
   t: 0,
   z: undefined,

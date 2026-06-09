@@ -11,6 +11,7 @@ import {
   parseOmeZarrImage,
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
+import { SourceDimensionMap } from "../chunk";
 
 type OmeZarrImageSourceProps = {
   location: Location<Readable>;
@@ -33,12 +34,16 @@ export class OmeZarrImageSource {
   readonly location: Location<Readable>;
   readonly version?: OmeZarrVersion;
 
+  private loader_?: OmeZarrImageLoader;
+
   private constructor(props: OmeZarrImageSourceProps) {
     this.location = props.location;
     this.version = props.version;
   }
 
   public async open(): Promise<OmeZarrImageLoader> {
+    if (this.loader_) return this.loader_;
+
     let zarrVersion = omeZarrToZarrVersion(this.version);
     const root = await openGroup(this.location, zarrVersion);
     const adaptedOmeImage = parseOmeZarrImage(root.attrs);
@@ -69,25 +74,40 @@ export class OmeZarrImageSource {
         `Mismatch between number of axes (${axes.length}) and array shape (${shape.length})`
       );
     }
-    return new OmeZarrImageLoader({
-      metadata,
-      arrays,
-      arrayParams,
-    });
+    this.loader_ = new OmeZarrImageLoader({ metadata, arrays, arrayParams });
+    return this.loader_;
+  }
+
+  public getDimensions(): SourceDimensionMap {
+    if (!this.loader_) {
+      throw new Error(
+        "OmeZarrImageSource.getDimensions() requires the source to be opened first; " +
+          "use `await OmeZarrImageSource.fromHttp({ url })` or `await source.open()`."
+      );
+    }
+    return this.loader_.getSourceDimensionMap();
+  }
+
+  public getChannelCount(): number {
+    return this.getDimensions().c?.lods[0].size ?? 1;
   }
 
   /**
-   * Creates an OmeZarrImageSource from an HTTP(S) URL.
+   * Creates and opens an OmeZarrImageSource from an HTTP(S) URL.
    *
-   * @param url URL of Zarr root
-   * @param version OME-Zarr version
+   * @param props.url URL of the Zarr root
+   * @param props.version OME-Zarr version
    */
-  public static fromHttp(props: HttpOmeZarrImageSourceProps) {
+  public static async fromHttp(
+    props: HttpOmeZarrImageSourceProps
+  ): Promise<OmeZarrImageSource> {
     const store = new FetchStore(props.url);
-    return new OmeZarrImageSource({
+    const source = new OmeZarrImageSource({
       location: new Location(store),
       version: props.version,
     });
+    await source.open();
+    return source;
   }
 
   /**
@@ -99,11 +119,15 @@ export class OmeZarrImageSource {
    * @param path path to image, beginning with "/". This argument allows the application to only
    *    ask the user once for permission to the root directory
    */
-  public static fromFileSystem(props: FileSystemOmeZarrImageSourceProps) {
+  public static async fromFileSystem(
+    props: FileSystemOmeZarrImageSourceProps
+  ): Promise<OmeZarrImageSource> {
     const store = new WebFileSystemStore(props.directory);
-    return new OmeZarrImageSource({
+    const source = new OmeZarrImageSource({
       location: new Location(store, props.path),
       version: props.version,
     });
+    await source.open();
+    return source;
   }
 }

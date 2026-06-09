@@ -117,9 +117,8 @@ ribosomes.setDepth(INITIAL_Z_POSITION);
 ferritin.setDepth(INITIAL_Z_POSITION);
 virusLike.setDepth(INITIAL_Z_POSITION);
 
-const imageSource = OmeZarrImageSource.fromHttp({ url: imageUrl });
-const loader = await imageSource.open();
-const dimensions = loader.getSourceDimensionMap();
+const imageSource = await OmeZarrImageSource.fromHttp({ url: imageUrl });
+const dimensions = imageSource.getDimensions();
 
 const zDimName = "z";
 const zMin = 0;
