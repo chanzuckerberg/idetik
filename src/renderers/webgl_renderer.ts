@@ -16,6 +16,7 @@ import { Camera } from "../objects/cameras/camera";
 
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
+import type { Texture } from "../objects/textures/texture";
 
 // Idetik defines screen-space with +Y pointing downward.
 // With the default camera, the basis vectors are:
@@ -67,6 +68,14 @@ export class WebGLRenderer extends Renderer {
 
   public get gpuTextureCount() {
     return this.textures_.textureCount;
+  }
+
+  public uploadTexture(texture: Texture) {
+    this.textures_.upload(texture);
+  }
+
+  public disposeTexture(texture: Texture) {
+    this.textures_.disposeTexture(texture);
   }
 
   public render(viewport: Viewport) {

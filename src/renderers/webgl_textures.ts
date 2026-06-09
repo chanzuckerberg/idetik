@@ -70,6 +70,31 @@ export class WebGLTextures {
     this.currentTexture_ = texture;
   }
 
+  public upload(texture: Texture) {
+    if (texture.data === null) {
+      throw new Error("Cannot upload a texture that has no CPU data");
+    }
+
+    const textureType = this.getTextureType(texture);
+    const info = this.getDataFormatInfo(texture.dataFormat, texture.dataType);
+    if (!this.textures_.has(texture)) {
+      this.generateTexture(texture, info, textureType);
+    }
+
+    const textureId = this.textures_.get(texture);
+    if (!textureId) {
+      throw new Error("Failed to retrieve texture ID");
+    }
+
+    this.gl_.bindTexture(textureType, textureId);
+    this.configureTextureParameters(texture, textureType);
+    this.uploadTextureData(texture, info, textureType);
+    this.gl_.bindTexture(textureType, null);
+    this.currentTexture_ = null;
+
+    texture.needsUpdate = false;
+  }
+
   public disposeTexture(texture: Texture) {
     const id = this.textures_.get(texture);
     if (id) {

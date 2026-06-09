@@ -450,6 +450,16 @@ class WebGPURenderer extends Renderer {
   public get gpuTextureCount() {
     return 0;
   }
+
+  public uploadTexture(_texture: Texture) {
+    // Eager chunk uploads are only requested for volume sources, which the
+    // experimental WebGPU renderer does not support. Image textures upload
+    // lazily at bind time via the texture pool.
+  }
+
+  public disposeTexture(texture: Texture) {
+    this.texturePool_.dispose(texture);
+  }
 }
 
 function shaderNameForTexture(texture: Texture): ShaderName {
