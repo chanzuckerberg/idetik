@@ -27,6 +27,17 @@ export type IdetikContext = {
   chunkManager: ChunkManager;
 };
 
+// JS heap usage from the non-standard performance.memory API.
+// Chromium only, undefined where the API is unavailable.
+type MemoryStats = {
+  cpuChunkBytes: number;
+  cpuChunkCount: number;
+  gpuTextureBytes: number;
+  gpuTextureCount: number;
+  jsHeapUsedBytes?: number;
+  jsHeapLimitBytes?: number;
+};
+
 export class Idetik {
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
@@ -135,6 +146,22 @@ export class Idetik {
 
   public get chunkQueueStats() {
     return this.chunkManager_.queueStats;
+  }
+
+  public get memoryStats(): MemoryStats {
+    const perf = (
+      performance as Performance & {
+        memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number };
+      }
+    ).memory;
+
+    return {
+      ...this.chunkManager_.memoryStats,
+      gpuTextureBytes: this.renderer_.gpuTextureBytes,
+      gpuTextureCount: this.renderer_.gpuTextureCount,
+      jsHeapUsedBytes: perf?.usedJSHeapSize,
+      jsHeapLimitBytes: perf?.jsHeapSizeLimit,
+    };
   }
 
   public get renderedObjects() {

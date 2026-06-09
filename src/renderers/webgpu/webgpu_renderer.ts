@@ -441,6 +441,15 @@ class WebGPURenderer extends Renderer {
       projectionMatrix
     );
   }
+
+  // The experimental WebGPU texture pool does not track byte usage yet.
+  public get gpuTextureBytes() {
+    return 0;
+  }
+
+  public get gpuTextureCount() {
+    return 0;
+  }
 }
 
 function shaderNameForTexture(texture: Texture): ShaderName {

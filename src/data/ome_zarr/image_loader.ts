@@ -1,6 +1,7 @@
 import * as zarr from "zarrita";
 
 import { Chunk, SourceDimension, SourceDimensionMap } from "../chunk";
+import { setChunkData } from "../chunk_memory";
 import { isTextureUnpackRowAlignment } from "../../objects/textures/texture";
 
 import { Image as OmeZarrImage } from "./0.5/image";
@@ -96,7 +97,7 @@ export class OmeZarrImageLoader {
       );
     }
     chunk.rowAlignmentBytes = rowAlignment;
-    chunk.data = data;
+    setChunkData(chunk, data);
   }
 }
 
