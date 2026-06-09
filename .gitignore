@@ -27,6 +27,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Docs
+.vitepress/cache
+docs/public/_example-preview/
+
 # Generated manifests
 examples/examples-manifest.json
 public/examples-manifest.json
