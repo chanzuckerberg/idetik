@@ -130,8 +130,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     return volume;
   }
 
-  public async onAttached(context: IdetikContext) {
-    this.chunkStoreView_ = await context.chunkManager.addView(
+  public attach(context: IdetikContext): void {
+    this.chunkStoreView_ = context.chunkManager.viewFor(
       this.source_,
       this.sourcePolicy_
     );
@@ -142,7 +142,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     );
   }
 
-  public onDetached(_context: IdetikContext): void {
+  public detach(): void {
     if (!this.chunkStoreView_) return;
     for (const volume of this.currentVolumes_.values()) {
       this.releaseAndRemoveVolume(volume);

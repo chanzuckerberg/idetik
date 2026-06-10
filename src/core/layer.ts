@@ -61,13 +61,11 @@ export abstract class Layer {
 
   public onEvent(_: EventContext): void {}
 
-  // TODO: Consider making this an abstract method once chunk manager
-  // integration is finalized. Most layers will likely need access to the chunk
-  // manager, but for now, we allow optional overrides to avoid requiring
-  // placeholder implementations.
-  public async onAttached(_context: IdetikContext) {}
+  // Synchronous attach/detach. The source must be opened before a layer is attached
+  // (see ChunkManager.viewFor) so creating the layer's view needs no async step.
+  public attach(_context: IdetikContext): void {}
 
-  public onDetached(_context: IdetikContext): void {}
+  public detach(): void {}
 
   public get objects() {
     return this.objects_;
