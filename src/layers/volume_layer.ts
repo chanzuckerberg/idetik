@@ -133,7 +133,8 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   public async onAttached(context: IdetikContext) {
     this.chunkStoreView_ = await context.chunkManager.addView(
       this.source_,
-      this.sourcePolicy_
+      this.sourcePolicy_,
+      true // volume renders by sampling uploaded chunk textures
     );
 
     validateChannelPropsCount(

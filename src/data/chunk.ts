@@ -1,4 +1,7 @@
-import { TextureUnpackRowAlignment } from "../objects/textures/texture";
+import type {
+  Texture,
+  TextureUnpackRowAlignment,
+} from "../objects/textures/texture";
 import { Logger } from "../utilities/logger";
 
 const chunkDataTypes = [
@@ -34,6 +37,9 @@ export type ChunkViewState = {
 
 export type Chunk = {
   data?: ChunkData;
+  // GPU-side handle for this chunk's data, set by the chunk manager on upload
+  // and cleared on eviction. Its presence is the chunk's GPU-residency signal.
+  texture?: Texture;
   state: "unloaded" | "queued" | "loading" | "loaded";
   lod: number;
   shape: {
