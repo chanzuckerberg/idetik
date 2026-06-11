@@ -9,6 +9,7 @@ export type QueueStats = {
 import { ChunkStore } from "./chunk_store";
 import { ChunkStoreView } from "./chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
+import { Logger } from "../utilities/logger";
 
 export class ChunkManager {
   private readonly stores_ = new Map<ChunkSource, ChunkStore>();
@@ -54,11 +55,19 @@ export class ChunkManager {
     const newPending = initializeStore();
     this.pendingStores_.set(source, newPending);
 
-    const store = await newPending;
-    this.stores_.set(source, store);
-    this.pendingStores_.delete(source);
-
-    return store;
+    try {
+      const store = await newPending;
+      this.stores_.set(source, store);
+      return store;
+    } catch (error) {
+      Logger.error(
+        "ChunkManager",
+        `Failed to open chunk source: ${String(error)}`
+      );
+      throw error;
+    } finally {
+      this.pendingStores_.delete(source);
+    }
   }
 
   public update() {
