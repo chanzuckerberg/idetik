@@ -21,7 +21,9 @@ export abstract class RenderableObject extends Node {
 
   public setTexture(index: number, texture: Texture) {
     const oldTexture = this.textures_[index];
-    if (oldTexture !== undefined) {
+    // Externally-managed textures (e.g. chunk textures owned by the chunk
+    // manager) are disposed by their owner, not by the renderer on our behalf.
+    if (oldTexture !== undefined && !oldTexture.managedExternally) {
       this.staleTextures_.push(oldTexture);
     }
     this.textures_[index] = texture;

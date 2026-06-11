@@ -19,6 +19,11 @@ export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
 
 export class ChunkStoreView {
   private readonly store_: ChunkStore;
+  // When true, this view renders by sampling the chunk's uploaded GPU texture
+  // (volume rendering). The chunk manager uses this to decide which chunks to
+  // upload eagerly and whether the CPU copy can be released after upload.
+  // CPU-rendering views (2D image/label slicing, picking) leave it false.
+  private readonly rendersFromGpu_: boolean;
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
   private currentLOD_: number = 0;
@@ -33,8 +38,13 @@ export class ChunkStoreView {
 
   private isDisposed_ = false;
 
-  constructor(store: ChunkStore, policy: ImageSourcePolicy) {
+  constructor(
+    store: ChunkStore,
+    policy: ImageSourcePolicy,
+    rendersFromGpu = false
+  ) {
     this.store_ = store;
+    this.rendersFromGpu_ = rendersFromGpu;
     this.policy_ = policy;
 
     Logger.info(
@@ -59,6 +69,10 @@ export class ChunkStoreView {
     return this.isDisposed_;
   }
 
+  public get rendersFromGpu(): boolean {
+    return this.rendersFromGpu_;
+  }
+
   public get lodCount(): number {
     return this.store_.lodCount;
   }
@@ -77,7 +91,7 @@ export class ChunkStoreView {
     const lowResChunks: Chunk[] = [];
 
     for (const [chunk, state] of this.chunkViewStates_) {
-      if (!state.visible || chunk.state !== "loaded") continue;
+      if (!state.visible || !this.isChunkReady(chunk)) continue;
       if (chunk.lod === currentLOD) {
         currentLODChunks.push(chunk);
       } else if (chunk.lod === fallbackLOD && currentLOD !== fallbackLOD) {
@@ -233,7 +247,27 @@ export class ChunkStoreView {
     // Currently uses a fixed LOD from policy.
     this.currentLOD_ = this.policy_.lod.min;
 
-    this.chunkViewStates_.forEach(resetChunkViewState);
+    // Retain chunks already resident on the GPU (previous timepoints/channels/LODs)
+    // instead of nulling their priority. A null priority is exactly what triggers
+    // eviction — CPU + state="unloaded" in ChunkStore.aggregateChunkViewStates and
+    // the GPU texture in ChunkManager.update. Keeping them "loaded" + resident but
+    // not visible makes scrubbing back to an earlier timepoint instant: no
+    // re-fetch, no re-upload. They sort last (MAX_SAFE_INTEGER), so a future
+    // memory budget evicts them first.
+    //
+    // Trade-off: volume GPU residency grows without bound until the memory
+    // budget + LRU eviction lands. In-flight/never-uploaded chunks still drop
+    // and cancel as before.
+    this.chunkViewStates_.forEach((state, chunk) => {
+      if (chunk.texture === undefined) {
+        resetChunkViewState(state);
+      } else {
+        state.visible = false;
+        state.prefetch = false;
+        state.priority = Number.MAX_SAFE_INTEGER;
+        state.orderKey = null;
+      }
+    });
 
     const channels = this.channelsOfInterest(sliceCoords);
     const fallbackLOD = this.fallbackLOD();
@@ -285,9 +319,18 @@ export class ChunkStoreView {
     for (const [chunk, state] of this.chunkViewStates_) {
       if (!state.visible || chunk.lod !== fallbackLOD) continue;
       foundAny = true;
-      if (chunk.state !== "loaded") return false;
+      if (!this.isChunkReady(chunk)) return false;
     }
     return foundAny;
+  }
+
+  // A chunk is renderable for this view once its data is where the view reads
+  // from: a GPU-rendering view samples the uploaded texture (which can outlive
+  // the CPU copy), a CPU-rendering view reads the loaded voxel data.
+  private isChunkReady(chunk: Chunk): boolean {
+    return this.rendersFromGpu_
+      ? chunk.texture !== undefined
+      : chunk.state === "loaded";
   }
 
   public get currentLOD(): number {

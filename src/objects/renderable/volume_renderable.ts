@@ -32,20 +32,28 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public updateVolumeWithChunk(chunk: Chunk): void {
-    const channelIndex = chunk.chunkIndex.c;
+    const texture = chunk.texture;
+    if (!(texture instanceof Texture3D)) {
+      throw new Error(
+        "VolumeRenderable expects the chunk to have an uploaded Texture3D. " +
+          "Chunks should only be rendered once the chunk manager has uploaded them."
+      );
+    }
 
+    const channelIndex = chunk.chunkIndex.c;
     const textureIndex = this.channelToTextureIndex_.get(channelIndex);
     if (textureIndex !== undefined) {
-      this.updateChannelTexture(textureIndex, chunk);
+      // The chunk for this channel may have changed (e.g. a new timepoint).
+      // The texture is managedExternally, so swapping it won't dispose the old.
+      this.setTexture(textureIndex, texture);
     } else {
-      this.addChannelTexture(channelIndex, chunk);
+      this.addChannelTexture(channelIndex, texture);
     }
 
     this.loadedChannels_.add(channelIndex);
   }
 
-  private addChannelTexture(channelIndex: number, chunk: Chunk): void {
-    const texture = Texture3D.createWithChunk(chunk);
+  private addChannelTexture(channelIndex: number, texture: Texture3D): void {
     const textureIndex = this.textures.length;
 
     this.setTexture(textureIndex, texture);
@@ -57,18 +65,6 @@ export class VolumeRenderable extends RenderableObject {
       );
     }
     this.programName = newProgramName;
-  }
-
-  private updateChannelTexture(textureIndex: number, chunk: Chunk): void {
-    const texture = this.textures[textureIndex];
-
-    if (!(texture instanceof Texture3D)) {
-      const newTexture = Texture3D.createWithChunk(chunk);
-      this.setTexture(textureIndex, newTexture);
-      return;
-    }
-
-    texture.updateWithChunk(chunk);
   }
 
   public clearLoadedChannels() {

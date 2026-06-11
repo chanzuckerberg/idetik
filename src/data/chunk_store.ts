@@ -126,11 +126,26 @@ export class ChunkStore {
     return this.loader_.loadChunkData(chunk, signal);
   }
 
-  public createView(policy: ImageSourcePolicy): ChunkStoreView {
-    const view = new ChunkStoreView(this, policy);
+  public createView(
+    policy: ImageSourcePolicy,
+    rendersFromGpu = false
+  ): ChunkStoreView {
+    const view = new ChunkStoreView(this, policy, rendersFromGpu);
     this.views_.push(view);
     this.hasHadViews_ = true;
     return view;
+  }
+
+  // True if any view renders by sampling chunk textures (volume). The manager
+  // only uploads chunks for such stores.
+  public hasGpuRenderingView(): boolean {
+    return this.views_.some((view) => view.rendersFromGpu);
+  }
+
+  // True if any view reads chunk.data on the CPU (2D slicing, label picking).
+  // The manager keeps the CPU copy after upload while such a view exists.
+  public hasCpuRenderingView(): boolean {
+    return this.views_.some((view) => !view.rendersFromGpu);
   }
 
   public get views(): ReadonlyArray<ChunkStoreView> {
@@ -169,6 +184,7 @@ export class ChunkStore {
   private aggregateChunkViewStates(chunk: Chunk): void {
     let anyVisible = false;
     let anyPrefetch = false;
+    let anyCpuConsumerDemand = false;
     let minPriority: number | null = null;
     let orderKeyForMinPriority: number | null = null;
 
@@ -178,6 +194,9 @@ export class ChunkStore {
 
       if (viewState.visible) anyVisible = true;
       if (viewState.prefetch) anyPrefetch = true;
+      if (!view.rendersFromGpu && viewState.priority !== null) {
+        anyCpuConsumerDemand = true;
+      }
 
       if (viewState.priority !== null) {
         if (minPriority === null || viewState.priority < minPriority) {
@@ -212,6 +231,29 @@ export class ChunkStore {
     if (shouldCancelQueuedChunk) {
       chunk.state = "unloaded";
       return;
+    }
+
+    // Re-materialize: a CPU consumer (2D slice/pick) needs voxel data the GPU
+    // path released. Re-fetch through the normal queue; the GPU texture keeps
+    // the volume rendering without a gap meanwhile.
+    const shouldRefetchForCpuConsumer =
+      anyCpuConsumerDemand &&
+      chunk.state === "loaded" &&
+      chunk.data === undefined;
+    if (shouldRefetchForCpuConsumer) {
+      chunk.state = "queued";
+      return;
+    }
+
+    // Release: the chunk is on the GPU and no CPU consumer needs its CPU copy.
+    // Pairs with the re-materialize rule so toggling 3D<->2D doesn't accumulate
+    // both copies — CPU data is present iff a CPU consumer currently demands it.
+    const shouldReleaseCpuCopy =
+      !anyCpuConsumerDemand &&
+      chunk.texture !== undefined &&
+      chunk.data !== undefined;
+    if (shouldReleaseCpuCopy) {
+      clearChunkData(chunk);
     }
 
     const shouldDisposeChunk =

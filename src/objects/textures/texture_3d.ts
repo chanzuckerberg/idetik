@@ -2,7 +2,7 @@ import { DataTextureTypedArray, Texture, bufferToDataType } from "./texture";
 import { Chunk } from "../../data/chunk";
 
 export class Texture3D extends Texture {
-  private data_: DataTextureTypedArray;
+  private data_: DataTextureTypedArray | null;
   private readonly width_: number;
   private readonly height_: number;
   private readonly depth_: number;
@@ -32,8 +32,15 @@ export class Texture3D extends Texture {
     return "Texture3D";
   }
 
-  public get data() {
+  public get data(): DataTextureTypedArray | null {
     return this.data_;
+  }
+
+  // Drops the CPU-side reference to the voxel data after it has been uploaded
+  // to the GPU. The GL texture retains the pixels; needsUpdate stays false so
+  // the draw path never tries to re-upload from the now-absent data.
+  public releaseCpuData() {
+    this.data_ = null;
   }
 
   public get width() {

@@ -113,6 +113,12 @@ export abstract class Texture extends Node {
   public wrapT: TextureWrapMode = "clamp_to_edge";
   public needsUpdate = true;
 
+  // When true, this texture's GPU lifecycle is owned by something other than
+  // the renderable holding it (e.g. a chunk texture owned by the chunk
+  // manager). RenderableObject.setTexture won't queue it for disposal when it
+  // is replaced, leaving disposal to the owner.
+  public managedExternally = false;
+
   public abstract get width(): number;
   public abstract get height(): number;
   public abstract get data(): TexImageSource | ArrayBufferView | null;

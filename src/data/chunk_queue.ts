@@ -1,7 +1,7 @@
 import { Chunk } from "./chunk";
 import { Logger } from "../utilities/logger";
 
-const MAX_CONCURRENT = 8;
+const MAX_CONCURRENT = 24;
 
 type LoaderFn = (signal: AbortSignal) => Promise<void>;
 
