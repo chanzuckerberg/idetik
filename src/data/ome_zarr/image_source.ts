@@ -111,7 +111,7 @@ export class OmeZarrImageSource {
   }
 
   /**
-   * Creates an OmeZarrImageSource from a local filesystem directory.
+   * Creates and opens an OmeZarrImageSource from a local filesystem directory.
    *
    * @param directory return value of `window.showDirectoryPicker()` which gives the browser
    *    permission to access a directory (only works in Chrome/Edge)
