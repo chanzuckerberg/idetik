@@ -10,10 +10,11 @@ struct Uniforms {
   opacity: f32,
   valueOffset: f32,
   valueScale: f32,
+  zTexCoord: f32,
 };
 
 @group(0) @binding(0) var<uniform> uniforms: Uniforms;
-@group(1) @binding(0) var texture: texture_2d<i32>;
+@group(1) @binding(0) var texture: texture_3d<i32>;
 
 @vertex
 fn vert(
@@ -29,8 +30,10 @@ fn vert(
 
 @fragment
 fn frag(in: Varyings) -> @location(0) vec4f {
-  let coords = vec2u(in.texCoords * vec2f(textureDimensions(texture)));
-  let texel = f32(textureLoad(texture, coords, 0).r);
+  let dims = textureDimensions(texture);
+  let xy = vec2u(in.texCoords * vec2f(dims.xy));
+  let z = min(u32(uniforms.zTexCoord * f32(dims.z)), dims.z - 1u);
+  let texel = f32(textureLoad(texture, vec3u(xy, z), 0).r);
   let value = (texel + uniforms.valueOffset) * uniforms.valueScale;
   return vec4f(value * uniforms.color, uniforms.opacity);
 }

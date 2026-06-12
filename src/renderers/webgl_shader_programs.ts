@@ -51,7 +51,7 @@ function replaceSourceDefines(
       `Shader source does not contain "${pragmaInjectDefines}" directive`
     );
   }
-  const definesSource = Array(defines.entries())
+  const definesSource = Array.from(defines.entries())
     .map(([key, value]) => `#define ${key} ${value}`)
     .join("\n");
   // Offset the line number so that the original source file line

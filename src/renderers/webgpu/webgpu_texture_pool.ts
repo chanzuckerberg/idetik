@@ -3,6 +3,7 @@ import {
   textureBytesPerChannel,
   textureChannelCount,
 } from "@/objects/textures/texture";
+import { Texture3D } from "@/objects/textures/texture_3d";
 
 type WebGPUTexture = {
   entry: Texture;
@@ -27,9 +28,9 @@ export default class WebGPUTexturePool {
       return cached.texture;
     }
 
-    const size = { width: entry.width, height: entry.height };
     const texture = this.device_.createTexture({
-      size,
+      size: textureSize(entry),
+      dimension: entry instanceof Texture3D ? "3d" : "2d",
       format: textureGPUFormat(entry),
       usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
     });
@@ -41,7 +42,6 @@ export default class WebGPUTexturePool {
   }
 
   private upload(entry: Texture, texture: GPUTexture) {
-    const size = { width: entry.width, height: entry.height };
     const channelCount = textureChannelCount(entry);
     const bytesPerChannel = textureBytesPerChannel(entry);
     const bytesPerRow = entry.width * channelCount * bytesPerChannel;
@@ -49,8 +49,8 @@ export default class WebGPUTexturePool {
     this.device_.queue.writeTexture(
       { texture: texture },
       entry.data as BufferSource,
-      { bytesPerRow },
-      size
+      { bytesPerRow, rowsPerImage: entry.height },
+      textureSize(entry)
     );
 
     entry.needsUpdate = false;
@@ -68,6 +68,14 @@ export default class WebGPUTexturePool {
     for (const t of this.textures_) t.texture.destroy();
     this.textures_.length = 0;
   }
+}
+
+function textureSize(texture: Texture): GPUExtent3DStrict {
+  return {
+    width: texture.width,
+    height: texture.height,
+    depthOrArrayLayers: texture instanceof Texture3D ? texture.depth : 1,
+  };
 }
 
 export function textureGPUFormat(texture: Texture): GPUTextureFormat {

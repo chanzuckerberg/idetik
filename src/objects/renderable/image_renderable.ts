@@ -16,10 +16,15 @@ type UniformValues = {
   Opacity: number;
   ValueOffset: number;
   ValueScale: number;
+  ZTexCoord: number;
 };
 
 export class ImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
+
+  // The layer overwrites this per chunk with a texel-centered slice coordinate.
+  // 0.5 (the texture's center) is a safe placeholder until it does.
+  public zTexCoord = 0.5;
 
   constructor(
     width: number,
@@ -70,6 +75,7 @@ export class ImageRenderable extends RenderableObject {
       ValueOffset: -contrastLimits[0],
       ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
       Opacity: opacity,
+      ZTexCoord: this.zTexCoord,
     };
   }
 }
