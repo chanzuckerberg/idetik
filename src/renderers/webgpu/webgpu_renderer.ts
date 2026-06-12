@@ -412,6 +412,7 @@ class WebGPURenderer extends Renderer {
       valueOffset: uniforms.ValueOffset,
       valueScale: uniforms.ValueScale,
       opacity: this.currentLayerOpacity_ * objectOpacity,
+      zTexCoord: uniforms.ZTexCoord,
     });
 
     this.bindings_.setUniforms(this.passEncoder_!, pipeline);

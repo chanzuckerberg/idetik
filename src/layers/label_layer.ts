@@ -8,7 +8,7 @@ import {
   LabelColorMap,
   LabelColorMapProps,
 } from "../objects/renderable/label_color_map";
-import { Texture2D } from "../objects/textures/texture_2d";
+import { Texture3D } from "../objects/textures/texture_3d";
 import { Logger } from "../utilities/logger";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
@@ -103,7 +103,14 @@ export class LabelLayer extends Layer {
     );
 
     this.updateChunks();
-    this.resliceIfZChanged();
+
+    const zPointWorld = this.sliceCoords_.z;
+    if (zPointWorld !== undefined && this.zPrevPointWorld_ !== zPointWorld) {
+      for (const [chunk, label] of this.visibleChunks_) {
+        label.zTexCoord = this.zTexCoordForChunk(chunk);
+      }
+      this.zPrevPointWorld_ = zPointWorld;
+    }
   }
 
   private updateChunks() {
@@ -142,24 +149,6 @@ export class LabelLayer extends Layer {
       performance.now() - this.lastPresentationTimeStamp_ >
       LabelLayer.STALE_PRESENTATION_MS_
     );
-  }
-
-  private resliceIfZChanged() {
-    const zPointWorld = this.sliceCoords_.z;
-    if (zPointWorld === undefined || this.zPrevPointWorld_ === zPointWorld) {
-      return;
-    }
-
-    for (const [chunk, label] of this.visibleChunks_) {
-      if (chunk.state !== "loaded" || !chunk.data) continue;
-      const data = this.slicePlane(chunk, zPointWorld);
-      if (data) {
-        const texture = label.textures[0] as Texture2D;
-        texture.updateWithChunk(chunk, data);
-      }
-    }
-
-    this.zPrevPointWorld_ = zPointWorld;
   }
 
   public onEvent(event: EventContext) {
@@ -296,11 +285,14 @@ export class LabelLayer extends Layer {
 
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
-      const texture = pooled.textures[0] as Texture2D;
-      texture.updateWithChunk(chunk, this.getDataForLabel(chunk));
-      this.updateLabelChunk(pooled, chunk);
+      const texture = pooled.textures[0] as Texture3D;
+      texture.updateWithChunk(chunk);
+
+      pooled.zTexCoord = this.zTexCoordForChunk(chunk);
       pooled.setColorMap(this.colorMap_);
       pooled.setSelectedValue(this.selectedValue_);
+      this.updateLabelChunk(pooled, chunk);
+
       return pooled;
     }
 
@@ -311,25 +303,27 @@ export class LabelLayer extends Layer {
     const label = new LabelImageRenderable({
       width: chunk.shape.x,
       height: chunk.shape.y,
-      imageData: Texture2D.createWithChunk(chunk, this.getDataForLabel(chunk)),
+      imageData: Texture3D.createWithChunk(chunk),
       colorMap: this.colorMap_,
       outlineSelected: this.outlineSelected_,
       selectedValue: this.selectedValue_,
     });
+    label.zTexCoord = this.zTexCoordForChunk(chunk);
     this.updateLabelChunk(label, chunk);
     return label;
   }
 
-  private getDataForLabel(chunk: Chunk) {
-    const data =
-      this.sliceCoords_?.z !== undefined
-        ? this.slicePlane(chunk, this.sliceCoords_.z)
-        : chunk.data;
-    if (!data) {
-      Logger.warn("LabelLayer", "No data for label");
-      return;
+  private zTexCoordForChunk(chunk: Chunk): number {
+    const zValue = this.sliceCoords_.z;
+    if (zValue === undefined) {
+      return 0.5 / chunk.shape.z;
     }
-    return data;
+
+    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
+    const zIdx = Math.round(zLocal);
+    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
+
+    return (zClamped + 0.5) / chunk.shape.z;
   }
 
   private updateLabelChunk(label: LabelImageRenderable, chunk: Chunk) {

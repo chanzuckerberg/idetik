@@ -9,7 +9,7 @@ import {
   validateChannelPropsCount,
 } from "../core/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
-import { Texture2D } from "../objects/textures/texture_2d";
+import { Texture3D } from "../objects/textures/texture_3d";
 import { Logger } from "../utilities/logger";
 import { Color } from "../math/color";
 import { EventContext } from "../core/event_dispatcher";
@@ -117,7 +117,14 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     );
 
     this.updateChunks();
-    this.resliceIfZChanged();
+
+    const zPointWorld = this.sliceCoords_.z;
+    if (zPointWorld !== undefined && this.zPrevPointWorld_ !== zPointWorld) {
+      for (const [chunk, image] of this.visibleChunks_) {
+        image.zTexCoord = this.zTexCoordForChunk(chunk);
+      }
+      this.zPrevPointWorld_ = zPointWorld;
+    }
   }
 
   private updateChunks() {
@@ -165,24 +172,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       performance.now() - this.lastPresentationTimeStamp_ >
       ImageLayer.STALE_PRESENTATION_MS_
     );
-  }
-
-  private resliceIfZChanged() {
-    const zPointWorld = this.sliceCoords_.z;
-    if (zPointWorld === undefined || this.zPrevPointWorld_ === zPointWorld) {
-      return;
-    }
-
-    for (const [chunk, image] of this.visibleChunks_) {
-      if (chunk.state !== "loaded" || !chunk.data) continue;
-      const data = this.slicePlane(chunk, zPointWorld);
-      if (data) {
-        const texture = image.textures[0] as Texture2D;
-        texture.updateWithChunk(chunk, data);
-      }
-    }
-
-    this.zPrevPointWorld_ = zPointWorld;
   }
 
   public onEvent(event: EventContext) {
@@ -246,10 +235,13 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
-      const texture = pooled.textures[0] as Texture2D;
-      texture.updateWithChunk(chunk, this.getDataForImage(chunk));
-      this.updateImageChunk(pooled, chunk);
+      const texture = pooled.textures[0] as Texture3D;
+      texture.updateWithChunk(chunk);
+
+      pooled.zTexCoord = this.zTexCoordForChunk(chunk);
       pooled.setChannelProps(this.getChannelPropsForChunk(chunk));
+      this.updateImageChunk(pooled, chunk);
+
       return pooled;
     }
 
@@ -265,23 +257,25 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     const image = new ImageRenderable(
       chunk.shape.x,
       chunk.shape.y,
-      Texture2D.createWithChunk(chunk, this.getDataForImage(chunk)),
+      Texture3D.createWithChunk(chunk),
       this.getChannelPropsForChunk(chunk)
     );
+    image.zTexCoord = this.zTexCoordForChunk(chunk);
     this.updateImageChunk(image, chunk);
     return image;
   }
 
-  private getDataForImage(chunk: Chunk) {
-    const data =
-      this.sliceCoords_?.z !== undefined
-        ? this.slicePlane(chunk, this.sliceCoords_.z)
-        : chunk.data;
-    if (!data) {
-      Logger.warn("ImageLayer", "No data for image");
-      return;
+  private zTexCoordForChunk(chunk: Chunk): number {
+    const zValue = this.sliceCoords_.z;
+    if (zValue === undefined) {
+      return 0.5 / chunk.shape.z;
     }
-    return data;
+
+    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
+    const zIdx = Math.round(zLocal);
+    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
+
+    return (zClamped + 0.5) / chunk.shape.z;
   }
 
   private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
@@ -408,7 +402,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 export function poolKeyForImageRenderable(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }

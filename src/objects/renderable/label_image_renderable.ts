@@ -38,6 +38,10 @@ export class LabelImageRenderable extends RenderableObject {
   private outlineSelected_: boolean;
   private selectedValue_: number | null;
 
+  // The layer overwrites this per chunk with a texel-centered slice coordinate.
+  // 0.5 (the texture's center) is a safe placeholder until it does.
+  public zTexCoord = 0.5;
+
   constructor(props: LabelImageRenderableProps) {
     super();
     this.geometry = new PlaneGeometry(props.width, props.height, 1, 1);
@@ -64,6 +68,7 @@ export class LabelImageRenderable extends RenderableObject {
       ColorLookupTableSampler: 2,
       u_outlineSelected: this.outlineSelected_ ? 1.0 : 0.0,
       u_selectedValue: this.selectedValue_ ?? -1.0,
+      ZTexCoord: this.zTexCoord,
     };
   }
 
