@@ -110,7 +110,7 @@ export default defineConfig(({ mode }) => {
       },
       coverage: {
         provider: "istanbul",
-        include: ["src/**"],
+        include: ["src/**/*.{js,mjs,ts,tsx,jsx}"],
       },
     },
   }
