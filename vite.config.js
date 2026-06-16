@@ -5,6 +5,7 @@ import glsl from 'vite-plugin-glsl';
 import path from 'path';
 import typescript from '@rollup/plugin-typescript';
 import examplesManifestPlugin from './vite-plugin-examples-nav.js';
+import { playwright } from '@vitest/browser-playwright';
 
 // __dirname is not available in ES6 modules
 // https://github.com/vitejs/vite/issues/6946#issuecomment-1041506056
@@ -99,7 +100,7 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       browser: {
         enabled: true,
-        provider: "playwright",
+        provider: playwright(),
         headless: true,
         instances: [
           {
