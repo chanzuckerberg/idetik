@@ -126,7 +126,7 @@ export class ChunkStore {
     return this.loader_.loadChunkData(chunk, signal);
   }
 
-  public createView(policy: ImageSourcePolicy): ChunkStoreView {
+  public addView(policy: ImageSourcePolicy): ChunkStoreView {
     const view = new ChunkStoreView(this, policy);
     this.views_.push(view);
     this.hasHadViews_ = true;

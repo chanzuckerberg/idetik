@@ -61,11 +61,11 @@ export abstract class Layer {
 
   public onEvent(_: EventContext): void {}
 
-  // Synchronous attach/detach. The source must be opened before a layer is attached
-  // (see ChunkManager.viewFor) so creating the layer's view needs no async step.
-  public attach(_context: IdetikContext): void {}
+  // called when a layer is added to a viewport
+  public onAttached(_context: IdetikContext): void {}
 
-  public detach(): void {}
+  // called when a layer is removed from a viewport
+  public onDetached(_context: IdetikContext): void {}
 
   public get objects() {
     return this.objects_;

@@ -130,8 +130,13 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     return volume;
   }
 
-  public attach(context: IdetikContext): void {
-    this.chunkStoreView_ = context.chunkManager.viewFor(
+  public onAttached(context: IdetikContext): void {
+    if (this.chunkStoreView_) {
+      throw new Error(
+        "VolumeLayer cannot be attached to multiple viewports simultaneously."
+      );
+    }
+    this.chunkStoreView_ = context.chunkManager.addView(
       this.source_,
       this.sourcePolicy_
     );
@@ -142,7 +147,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     );
   }
 
-  public detach(): void {
+  public onDetached(_context: IdetikContext): void {
     if (!this.chunkStoreView_) return;
     for (const volume of this.currentVolumes_.values()) {
       this.releaseAndRemoveVolume(volume);

@@ -99,7 +99,6 @@ export type SliceCoordinates = {
 };
 
 export type ChunkSource = {
-  /** The source's loader. Sources are opened by their factory, so this is synchronous. */
   getLoader(): ChunkLoader;
 };
 

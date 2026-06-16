@@ -25,11 +25,8 @@ export class ChunkManager {
     return chunkMemoryStats();
   }
 
-  /**
-   * Creates a view for a source. The source is opened by its factory
-   * (`OmeZarrImageSource.fromHttp(...)` / `fromFileSystem(...)`), so this is synchronous.
-   */
-  public viewFor(
+  /** Adds a view onto `source`'s store, creating the store on first use. */
+  public addView(
     source: ChunkSource,
     policy: ImageSourcePolicy
   ): ChunkStoreView {
@@ -38,7 +35,7 @@ export class ChunkManager {
       store = new ChunkStore(source.getLoader());
       this.stores_.set(source, store);
     }
-    return store.createView(policy);
+    return store.addView(policy);
   }
 
   public update() {

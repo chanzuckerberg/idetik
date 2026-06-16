@@ -9,7 +9,7 @@ describe("ChunkStoreView disposal", () => {
     const loader = createMockLoader();
     const store = new ChunkStore(loader);
     const policy = createNoPrefetchPolicy();
-    const view = store.createView(policy);
+    const view = store.addView(policy);
     const viewport = createTestViewport();
 
     // mark some chunks as visible/needed
@@ -44,8 +44,8 @@ describe("ChunkStoreView disposal", () => {
     const store = new ChunkStore(loader);
     const policy = createNoPrefetchPolicy();
 
-    const view1 = store.createView(policy);
-    const view2 = store.createView(policy);
+    const view1 = store.addView(policy);
+    const view2 = store.addView(policy);
     const viewport = createTestViewport();
 
     // Both views mark same chunks as needed

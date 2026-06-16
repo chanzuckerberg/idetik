@@ -29,7 +29,7 @@ export class Viewport {
   public readonly events: EventDispatcher;
   public cameraControls?: CameraControls;
 
-  // Carried only to relay to `layer.attach` / `layer.detach`.
+  // Carried only to relay to `layer.onAttached` / `layer.onDetached`.
   // To be removed when the chunk-infrastructure refactor folds chunk management
   // into the source and the attach lifecycle goes away.
   private readonly context_: IdetikContext;
@@ -72,7 +72,7 @@ export class Viewport {
 
   public addLayer(layer: Layer): void {
     this.layers_.push(layer);
-    layer.attach(this.context_);
+    layer.onAttached(this.context_);
   }
 
   public removeLayer(layer: Layer): void {
@@ -81,12 +81,12 @@ export class Viewport {
       throw new Error(`Layer to remove not found: ${layer}`);
     }
     this.layers_.splice(index, 1);
-    layer.detach();
+    layer.onDetached(this.context_);
   }
 
   public removeAllLayers(): void {
     for (const layer of this.layers_) {
-      layer.detach();
+      layer.onDetached(this.context_);
     }
     this.layers_ = [];
   }

@@ -38,12 +38,9 @@ export class OmeZarrImageSource {
   private readonly loader_: OmeZarrImageLoader;
 
   /**
-   * Construct only via a static factory (`fromHttp`/`fromFileSystem`). A factory must
-   * fully open the data up front — e.g. via {@link openLoader}, which resolves to a
-   * ready loader or throws — and pass that loader in. The constructor therefore always
-   * receives an opened loader, so a source instance is never in a half-open state
-   * (`getLoader`/`getDimensions` cannot fail). To add a new factory, open the loader
-   * first, then `new OmeZarrImageSource({ location, version, loader })`.
+   * Private: construct via a static factory (`fromHttp`/`fromFileSystem`). Factories open
+   * the loader up front and pass it in, so a source's loader is non-null.
+   * errors opening a source surface early, and `getLoader`/`getDimensions` always succeed
    */
   private constructor(props: OmeZarrImageSourceProps) {
     this.location = props.location;
@@ -96,7 +93,6 @@ export class OmeZarrImageSource {
     return this.getDimensions().c?.lods[0].size ?? 1;
   }
 
-  /** The source's loader, for synchronous view creation by the chunk manager. */
   public getLoader(): OmeZarrImageLoader {
     return this.loader_;
   }
