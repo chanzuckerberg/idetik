@@ -41,7 +41,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private channelProps_?: ChannelProps[];
   private chunkStoreView_?: ChunkStoreView;
   private pointerDownPos_: vec2 | null = null;
-  private zPrevPointWorld_?: number;
   private debugMode_ = false;
 
   private static readonly STALE_PRESENTATION_MS_ = 1000;
@@ -118,12 +117,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
     this.updateChunks();
 
-    const zPointWorld = this.sliceCoords_.z;
-    if (zPointWorld !== undefined && this.zPrevPointWorld_ !== zPointWorld) {
-      for (const [chunk, image] of this.visibleChunks_) {
-        image.zTexCoord = this.zTexCoordForChunk(chunk);
-      }
-      this.zPrevPointWorld_ = zPointWorld;
+    for (const [chunk, imageRenderable] of this.visibleChunks_) {
+      imageRenderable.zTexCoord = this.zTexCoordForChunk(chunk);
     }
   }
 

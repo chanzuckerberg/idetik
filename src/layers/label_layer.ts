@@ -41,7 +41,6 @@ export class LabelLayer extends Layer {
   private policy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
   private pointerDownPos_: vec2 | null = null;
-  private zPrevPointWorld_?: number;
 
   private static readonly STALE_PRESENTATION_MS_ = 1000;
   private lastPresentationTimeStamp_?: DOMHighResTimeStamp;
@@ -104,12 +103,8 @@ export class LabelLayer extends Layer {
 
     this.updateChunks();
 
-    const zPointWorld = this.sliceCoords_.z;
-    if (zPointWorld !== undefined && this.zPrevPointWorld_ !== zPointWorld) {
-      for (const [chunk, label] of this.visibleChunks_) {
-        label.zTexCoord = this.zTexCoordForChunk(chunk);
-      }
-      this.zPrevPointWorld_ = zPointWorld;
+    for (const [chunk, labelRenderable] of this.visibleChunks_) {
+      labelRenderable.zTexCoord = this.zTexCoordForChunk(chunk);
     }
   }
 
