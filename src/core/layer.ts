@@ -61,10 +61,8 @@ export abstract class Layer {
 
   public onEvent(_: EventContext): void {}
 
-  // called when a layer is added to a viewport
   public onAttached(_context: IdetikContext): void {}
 
-  // called when a layer is removed from a viewport
   public onDetached(_context: IdetikContext): void {}
 
   public get objects() {

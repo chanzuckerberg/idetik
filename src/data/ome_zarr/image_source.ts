@@ -37,11 +37,6 @@ export class OmeZarrImageSource {
 
   private readonly loader_: OmeZarrImageLoader;
 
-  /**
-   * Private: construct via a static factory (`fromHttp`/`fromFileSystem`). Factories open
-   * the loader up front and pass it in, so a source's loader is non-null.
-   * errors opening a source surface early, and `getLoader`/`getDimensions` always succeed
-   */
   private constructor(props: OmeZarrImageSourceProps) {
     this.location = props.location;
     this.version = props.version;

@@ -25,7 +25,6 @@ export class ChunkManager {
     return chunkMemoryStats();
   }
 
-  /** Adds a view onto `source`'s store, creating the store on first use. */
   public addView(
     source: ChunkSource,
     policy: ImageSourcePolicy
