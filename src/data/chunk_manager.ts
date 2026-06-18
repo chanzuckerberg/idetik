@@ -9,11 +9,9 @@ export type QueueStats = {
 import { ChunkStore } from "./chunk_store";
 import { ChunkStoreView } from "./chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
-import { Logger } from "../utilities/logger";
 
 export class ChunkManager {
   private readonly stores_ = new Map<ChunkSource, ChunkStore>();
-  private readonly pendingStores_ = new Map<ChunkSource, Promise<ChunkStore>>();
   private readonly queue_ = new ChunkQueue();
 
   public get queueStats(): QueueStats {
@@ -27,47 +25,16 @@ export class ChunkManager {
     return chunkMemoryStats();
   }
 
-  public async addView(
+  public addView(
     source: ChunkSource,
     policy: ImageSourcePolicy
-  ): Promise<ChunkStoreView> {
-    const store = await this.getOrCreateStore(source);
-    const view = store.createView(policy);
-    return view;
-  }
-
-  private async getOrCreateStore(source: ChunkSource): Promise<ChunkStore> {
-    const existing = this.stores_.get(source);
-    if (existing) {
-      return existing;
-    }
-
-    const pending = this.pendingStores_.get(source);
-    if (pending) {
-      return pending;
-    }
-
-    const initializeStore = async () => {
-      const loader = await source.open();
-      return new ChunkStore(loader);
-    };
-
-    const newPending = initializeStore();
-    this.pendingStores_.set(source, newPending);
-
-    try {
-      const store = await newPending;
+  ): ChunkStoreView {
+    let store = this.stores_.get(source);
+    if (!store) {
+      store = new ChunkStore(source.getLoader());
       this.stores_.set(source, store);
-      return store;
-    } catch (error) {
-      Logger.error(
-        "ChunkManager",
-        `Failed to open chunk source: ${String(error)}`
-      );
-      throw error;
-    } finally {
-      this.pendingStores_.delete(source);
     }
+    return store.addView(policy);
   }
 
   public update() {

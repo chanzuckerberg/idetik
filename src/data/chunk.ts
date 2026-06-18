@@ -99,7 +99,7 @@ export type SliceCoordinates = {
 };
 
 export type ChunkSource = {
-  open(): Promise<ChunkLoader>;
+  getLoader(): ChunkLoader;
 };
 
 export type ChunkLoader = {

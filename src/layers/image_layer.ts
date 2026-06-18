@@ -73,13 +73,13 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.onPickValue_ = onPickValue;
   }
 
-  public async onAttached(context: IdetikContext) {
+  public onAttached(context: IdetikContext) {
     if (this.chunkStoreView_) {
       throw new Error(
-        "ImageLayer cannot be attached to multiple contexts simultaneously."
+        "ImageLayer cannot be attached to multiple viewports simultaneously."
       );
     }
-    this.chunkStoreView_ = await context.chunkManager.addView(
+    this.chunkStoreView_ = context.chunkManager.addView(
       this.source_,
       this.policy_
     );
@@ -100,7 +100,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  public onDetached(_context: IdetikContext): void {
+  public onDetached(_context: IdetikContext) {
     if (!this.chunkStoreView_) return;
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
