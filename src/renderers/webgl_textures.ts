@@ -47,25 +47,13 @@ export class WebGLTextures {
         `Texture index ${index} must be in [0, ${this.maxTextureUnits_ - 1}]`
       );
     }
-    this.gl_.activeTexture(this.gl_.TEXTURE0 + index);
-
-    const textureType = this.getTextureType(texture);
-    const info = this.getDataFormatInfo(texture.dataFormat, texture.dataType);
-
-    if (!this.textures_.has(texture)) {
-      this.generateTexture(texture, info, textureType);
-    }
 
     const textureId = this.textures_.get(texture);
-    if (!textureId) {
-      throw new Error("Failed to retrieve texture ID");
-    }
-
-    this.gl_.bindTexture(textureType, textureId);
-    if (texture.needsUpdate && texture.data !== null) {
-      this.configureTextureParameters(texture, textureType);
-      this.uploadTextureData(texture, info, textureType);
-      texture.needsUpdate = false;
+    if (textureId && !texture.needsUpdate) {
+      this.gl_.activeTexture(this.gl_.TEXTURE0 + index);
+      this.gl_.bindTexture(this.getTextureType(texture), textureId);
+    } else {
+      this.uploadTexture(texture, index);
     }
 
     this.currentTexture_ = texture;
@@ -123,7 +111,35 @@ export class WebGLTextures {
     }
   }
 
-  public disposeTexture(texture: Texture) {
+  public uploadTexture(texture: Texture, index = 0) {
+    if (this.textures_.has(texture) && !texture.needsUpdate) return;
+
+    if (texture.data === null) {
+      throw new Error("Cannot upload a texture that has no CPU data");
+    }
+
+    const textureType = this.getTextureType(texture);
+    const info = this.getDataFormatInfo(texture.dataFormat, texture.dataType);
+
+    this.gl_.activeTexture(this.gl_.TEXTURE0 + index);
+
+    if (!this.textures_.has(texture)) {
+      this.generateTexture(texture, info, textureType);
+    }
+
+    const textureId = this.textures_.get(texture);
+    if (!textureId) {
+      throw new Error("Failed to retrieve texture ID");
+    }
+
+    this.gl_.bindTexture(textureType, textureId);
+    this.configureTextureParameters(texture, textureType);
+    this.uploadTextureData(texture, info, textureType);
+
+    texture.needsUpdate = false;
+  }
+
+  public dispose(texture: Texture) {
     const id = this.textures_.get(texture);
     if (id) {
       this.gl_.deleteTexture(id);
@@ -142,7 +158,7 @@ export class WebGLTextures {
 
   public disposeAll() {
     for (const texture of Array.from(this.textures_.keys())) {
-      this.disposeTexture(texture);
+      this.dispose(texture);
     }
     this.gpuTextureBytes_ = 0;
     this.textureCount_ = 0;

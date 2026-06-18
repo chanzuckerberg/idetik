@@ -20,32 +20,34 @@ export default class WebGPUTexturePool {
     this.textures_ = [];
   }
 
-  public get(entry: Texture) {
-    const cached = this.textures_.find((t) => t.entry === entry);
-    if (cached) {
-      if (entry.needsUpdate) {
-        this.upload(entry, cached.texture);
-      }
-      return cached.texture;
+  public get(entry: Texture): GPUTexture {
+    let cached = this.textures_.find((t) => t.entry === entry);
+    if (cached && !entry.needsUpdate) return cached.texture;
+
+    if (entry.data === null) {
+      throw new Error("Cannot upload a texture that has no CPU data");
     }
 
-    const texture = this.device_.createTexture({
-      size: textureSize(entry),
-      dimension: entry instanceof Texture3D ? "3d" : "2d",
-      format: textureGPUFormat(entry),
-      usage:
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.COPY_SRC,
-    });
+    if (!cached) {
+      const texture = this.device_.createTexture({
+        size: textureSize(entry),
+        dimension: entry instanceof Texture3D ? "3d" : "2d",
+        format: textureGPUFormat(entry),
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_DST |
+          GPUTextureUsage.COPY_SRC,
+      });
+      this.textures_.push({ entry: entry, texture: texture });
+      cached = this.textures_[this.textures_.length - 1];
+    }
 
-    this.upload(entry, texture);
-    this.textures_.push({ entry: entry, texture: texture });
+    this.upload(entry, cached.texture);
 
     entry.readTexel = (x, y, z) =>
-      this.readTexel(texture, entry.dataType, x, y, z);
+      this.readTexel(cached.texture, entry.dataType, x, y, z);
 
-    return texture;
+    return cached.texture;
   }
 
   private async readTexel(

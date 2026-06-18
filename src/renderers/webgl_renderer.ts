@@ -13,6 +13,7 @@ import { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
 import { Viewport } from "../core/viewport";
 import { Camera } from "../objects/cameras/camera";
+import { Texture } from "../objects/textures/texture";
 
 import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { Frustum } from "../math/frustum";
@@ -166,7 +167,7 @@ export class WebGLRenderer extends Renderer {
   protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
     const object = layer.objects[objectIndex];
     object.popStaleTextures().forEach((texture) => {
-      this.textures_.disposeTexture(texture);
+      this.textures_.dispose(texture);
     });
 
     if (!object.programName) return;
@@ -274,6 +275,14 @@ export class WebGLRenderer extends Renderer {
     } else {
       this.gl_.drawArrays(primitive, 0, geometry.vertexCount);
     }
+  }
+
+  public override uploadTexture(texture: Texture) {
+    this.textures_.uploadTexture(texture);
+  }
+
+  public override disposeTexture(texture: Texture) {
+    this.textures_.dispose(texture);
   }
 
   private glGetPrimitive(type: Primitive) {
