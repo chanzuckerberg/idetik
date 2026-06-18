@@ -66,7 +66,7 @@ export class LabelLayer extends Layer {
     this.outlineSelected_ = outlineSelected;
   }
 
-  public onAttached(context: IdetikContext): void {
+  public onAttached(context: IdetikContext) {
     if (this.chunkStoreView_) {
       throw new Error(
         "LabelLayer cannot be attached to multiple viewports simultaneously."
@@ -86,7 +86,7 @@ export class LabelLayer extends Layer {
     }
   }
 
-  public onDetached(_context: IdetikContext): void {
+  public onDetached(_context: IdetikContext) {
     if (!this.chunkStoreView_) return;
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
