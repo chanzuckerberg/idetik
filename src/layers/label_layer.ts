@@ -66,12 +66,7 @@ export class LabelLayer extends Layer {
     this.outlineSelected_ = outlineSelected;
   }
 
-  public onAttached(context: IdetikContext) {
-    if (this.chunkStoreView_) {
-      throw new Error(
-        "LabelLayer cannot be attached to multiple viewports simultaneously."
-      );
-    }
+  protected attach(context: IdetikContext) {
     this.chunkStoreView_ = context.chunkManager.addView(
       this.source_,
       this.policy_
@@ -86,11 +81,10 @@ export class LabelLayer extends Layer {
     }
   }
 
-  public onDetached(_context: IdetikContext) {
-    if (!this.chunkStoreView_) return;
+  protected detach(_context: IdetikContext) {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
-    this.chunkStoreView_.dispose();
+    this.chunkStoreView_?.dispose();
     this.chunkStoreView_ = undefined;
   }
 

@@ -33,6 +33,7 @@ export abstract class Layer {
 
   private objects_: RenderableObject[] = [];
   private state_: LayerState = "initialized";
+  private attached_ = false;
   private readonly callbacks_: StateChangeCallback[] = [];
 
   private opacity_: number;
@@ -61,9 +62,25 @@ export abstract class Layer {
 
   public onEvent(_: EventContext): void {}
 
-  public onAttached(_context: IdetikContext): void {}
+  public onAttached(context: IdetikContext): void {
+    if (this.attached_) {
+      throw new Error(
+        `${this.type} cannot be attached to multiple viewports simultaneously.`
+      );
+    }
+    this.attach(context);
+    this.attached_ = true;
+  }
 
-  public onDetached(_context: IdetikContext): void {}
+  public onDetached(context: IdetikContext): void {
+    if (!this.attached_) return;
+    this.detach(context);
+    this.attached_ = false;
+  }
+
+  protected attach(_context: IdetikContext): void {}
+
+  protected detach(_context: IdetikContext): void {}
 
   public get objects() {
     return this.objects_;
