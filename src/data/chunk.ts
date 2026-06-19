@@ -99,7 +99,7 @@ export type SliceCoordinates = {
 };
 
 export type ChunkSource = {
-  getLoader(): ChunkLoader;
+  get loader(): ChunkLoader;
 };
 
 export type ChunkLoader = {

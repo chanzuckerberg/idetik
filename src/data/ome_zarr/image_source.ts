@@ -88,7 +88,7 @@ export class OmeZarrImageSource {
     return this.getDimensions().c?.lods[0].size ?? 1;
   }
 
-  public getLoader(): OmeZarrImageLoader {
+  public get loader(): OmeZarrImageLoader {
     return this.loader_;
   }
 

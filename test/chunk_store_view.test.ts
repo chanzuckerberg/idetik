@@ -1,13 +1,12 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { ChunkStore } from "@/data/chunk_store";
-import { ChunkLoader, SourceDimensionMap } from "@/data/chunk";
+import { SourceDimensionMap } from "@/data/chunk";
 import { createNoPrefetchPolicy } from "@/core/image_source_policy";
 import { createTestViewport } from "./helpers";
 
 describe("ChunkStoreView disposal", () => {
   test("disposed view's chunks ready for cancellation", () => {
-    const loader = createMockLoader();
-    const store = new ChunkStore(loader);
+    const store = new ChunkStore(createSimpleDimensions());
     const policy = createNoPrefetchPolicy();
     const view = store.addView(policy);
     const viewport = createTestViewport();
@@ -40,8 +39,7 @@ describe("ChunkStoreView disposal", () => {
   });
 
   test("disposed view's chunks needed by another view", () => {
-    const loader = createMockLoader();
-    const store = new ChunkStore(loader);
+    const store = new ChunkStore(createSimpleDimensions());
     const policy = createNoPrefetchPolicy();
 
     const view1 = store.addView(policy);
@@ -65,13 +63,6 @@ describe("ChunkStoreView disposal", () => {
     }
   });
 });
-
-function createMockLoader(): ChunkLoader {
-  return {
-    getSourceDimensionMap: createSimpleDimensions,
-    loadChunkData: vi.fn(),
-  };
-}
 
 function createSimpleDimensions(): SourceDimensionMap {
   return {
