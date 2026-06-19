@@ -1,4 +1,5 @@
 import { EventContext } from "../core/event_dispatcher";
+import { Logger } from "../utilities/logger";
 import { vec2, vec3 } from "gl-matrix";
 
 export interface PointPickingResult {
@@ -9,7 +10,7 @@ export interface PointPickingResult {
 export function handlePointPickingEvent<T>(
   event: EventContext,
   pointerDownPos: vec2 | null,
-  getValueAtWorld: (world: vec3) => T | null,
+  getValueAtWorld: (world: vec3) => Promise<T | null>,
   onPickValue?: (info: { world: vec3; value: T }) => void,
   dragThreshold: number = 3
 ): vec2 | null {
@@ -31,10 +32,15 @@ export function handlePointPickingEvent<T>(
 
         const world = event.worldPos;
         if (world) {
-          const value = getValueAtWorld(world);
-          if (value !== null) {
-            onPickValue({ world, value });
-          }
+          getValueAtWorld(world)
+            .then((value) => {
+              if (value !== null) {
+                onPickValue({ world, value });
+              }
+            })
+            .catch((error) => {
+              Logger.error("PointPicking", `Failed to read value: ${error}`);
+            });
         }
         return null;
       }

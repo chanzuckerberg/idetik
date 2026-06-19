@@ -9,13 +9,11 @@ import {
   validateChannelPropsCount,
 } from "../core/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
-import { Texture2D } from "../objects/textures/texture_2d";
-import { Logger } from "../utilities/logger";
+import { Texture3D } from "../objects/textures/texture_3d";
 import { Color } from "../math/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
-import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
 
@@ -41,7 +39,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private channelProps_?: ChannelProps[];
   private chunkStoreView_?: ChunkStoreView;
   private pointerDownPos_: vec2 | null = null;
-  private zPrevPointWorld_?: number;
   private debugMode_ = false;
 
   private static readonly STALE_PRESENTATION_MS_ = 1000;
@@ -117,7 +114,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     );
 
     this.updateChunks();
-    this.resliceIfZChanged();
+
+    for (const [chunk, imageRenderable] of this.visibleChunks_) {
+      imageRenderable.zTexCoord = this.zTexCoordForChunk(chunk);
+    }
   }
 
   private updateChunks() {
@@ -167,24 +167,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
-  private resliceIfZChanged() {
-    const zPointWorld = this.sliceCoords_.z;
-    if (zPointWorld === undefined || this.zPrevPointWorld_ === zPointWorld) {
-      return;
-    }
-
-    for (const [chunk, image] of this.visibleChunks_) {
-      if (chunk.state !== "loaded" || !chunk.data) continue;
-      const data = this.slicePlane(chunk, zPointWorld);
-      if (data) {
-        const texture = image.textures[0] as Texture2D;
-        texture.updateWithChunk(chunk, data);
-      }
-    }
-
-    this.zPrevPointWorld_ = zPointWorld;
-  }
-
   public onEvent(event: EventContext) {
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
@@ -223,33 +205,19 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  private slicePlane(chunk: Chunk, zValue: number) {
-    if (!chunk.data) return;
-    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
-    const zIdx = Math.round(zLocal);
-    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
-
-    // Treat values within ~1 voxel (plus tiny floating-point error) as OK.
-    // Anything further away means the requested zValue is outside.
-    if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
-      Logger.error("ImageLayer", "slicePlane zValue outside extent");
-    }
-
-    const sliceSize = chunk.shape.x * chunk.shape.y;
-    const offset = sliceSize * zClamped;
-    return chunk.data.slice(offset, offset + sliceSize);
-  }
-
   private getImageForChunk(chunk: Chunk) {
     const existing = this.visibleChunks_.get(chunk);
     if (existing) return existing;
 
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
-      const texture = pooled.textures[0] as Texture2D;
-      texture.updateWithChunk(chunk, this.getDataForImage(chunk));
-      this.updateImageChunk(pooled, chunk);
+      const texture = pooled.textures[0] as Texture3D;
+      texture.updateWithChunk(chunk);
+
+      pooled.zTexCoord = this.zTexCoordForChunk(chunk);
       pooled.setChannelProps(this.getChannelPropsForChunk(chunk));
+      this.updateImageChunk(pooled, chunk);
+
       return pooled;
     }
 
@@ -265,23 +233,23 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     const image = new ImageRenderable(
       chunk.shape.x,
       chunk.shape.y,
-      Texture2D.createWithChunk(chunk, this.getDataForImage(chunk)),
+      Texture3D.createWithChunk(chunk),
       this.getChannelPropsForChunk(chunk)
     );
+    image.zTexCoord = this.zTexCoordForChunk(chunk);
     this.updateImageChunk(image, chunk);
     return image;
   }
 
-  private getDataForImage(chunk: Chunk) {
-    const data =
-      this.sliceCoords_?.z !== undefined
-        ? this.slicePlane(chunk, this.sliceCoords_.z)
-        : chunk.data;
-    if (!data) {
-      Logger.warn("ImageLayer", "No data for image");
-      return;
-    }
-    return data;
+  private zSliceIndex(chunk: Chunk): number {
+    const zValue = this.sliceCoords_.z;
+    if (zValue === undefined) return 0;
+    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
+    return clamp(Math.round(zLocal), 0, chunk.shape.z - 1);
+  }
+
+  private zTexCoordForChunk(chunk: Chunk): number {
+    return (this.zSliceIndex(chunk) + 0.5) / chunk.shape.z;
   }
 
   private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
@@ -296,33 +264,24 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     image.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
   }
 
-  public getValueAtWorld(world: vec3): number | null {
+  public async getValueAtWorld(world: vec3): Promise<number | null> {
     const currentLOD = this.chunkStoreView_?.currentLOD ?? 0;
 
-    // First, try to find the value in current LOD chunks (highest priority)
-    for (const [chunk, image] of this.visibleChunks_) {
-      if (chunk.lod !== currentLOD) continue;
-      const value = this.getValueFromChunk(chunk, image, world);
-      if (value !== null) return value;
+    for (const preferCurrentLOD of [true, false]) {
+      for (const [chunk, image] of this.visibleChunks_) {
+        if ((chunk.lod === currentLOD) !== preferCurrentLOD) continue;
+        const value = await this.readValueFromChunk(chunk, image, world);
+        if (value !== null) return value;
+      }
     }
-
-    // Fallback to low-res chunks if no current LOD chunk contains the position
-    for (const [chunk, image] of this.visibleChunks_) {
-      if (chunk.lod === currentLOD) continue;
-      const value = this.getValueFromChunk(chunk, image, world);
-      if (value !== null) return value;
-    }
-
     return null;
   }
 
-  private getValueFromChunk(
+  private async readValueFromChunk(
     chunk: Chunk,
     image: ImageRenderable,
     world: vec3
-  ): number | null {
-    if (!chunk.data) return null;
-
+  ): Promise<number | null> {
     const localPos = vec3.transformMat4(
       vec3.create(),
       world,
@@ -332,19 +291,12 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     const x = Math.floor(localPos[0]);
     const y = Math.floor(localPos[1]);
 
-    // Check if this chunk contains the requested position
-    if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-      const data =
-        this.sliceCoords_.z !== undefined
-          ? this.slicePlane(chunk, this.sliceCoords_.z)!
-          : chunk.data;
-      const pixelIndex = y * chunk.shape.x + x;
-
-      // For multi-channel images, take the first channel value
-      return data[pixelIndex];
+    if (x < 0 || x >= chunk.shape.x || y < 0 || y >= chunk.shape.y) {
+      return null;
     }
 
-    return null;
+    const z = this.zSliceIndex(chunk);
+    return (await image.textures[0].readTexel?.(x, y, z)) ?? null;
   }
 
   public get debugMode(): boolean {
@@ -408,7 +360,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 export function poolKeyForImageRenderable(chunk: Chunk) {
   return [
     `lod${chunk.lod}`,
-    `shape${chunk.shape.x}x${chunk.shape.y}`,
+    `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
 }

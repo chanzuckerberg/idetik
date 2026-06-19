@@ -5,13 +5,14 @@ precision highp int;
 
 layout (location = 0) out vec4 fragColor;
 
-uniform highp usampler2D ImageSampler;
+uniform highp usampler3D ImageSampler;
 uniform mediump sampler2D ColorCycleSampler;
 uniform highp usampler2D ColorLookupTableSampler;
 
 uniform float u_opacity;
 uniform float u_outlineSelected; // Note: Using float instead of bool due to framework uniform handling
 uniform float u_selectedValue;
+uniform float ZTexCoord;
 
 in vec2 TexCoords;
 
@@ -24,7 +25,7 @@ vec4 unpackRgba(uint packed) {
 }
 
 bool isEdgePixel(uint centerValue) {
-    vec2 texSize = vec2(textureSize(ImageSampler, 0));
+    vec2 texSize = vec2(textureSize(ImageSampler, 0).xy);
     vec2 texelSize = 1.0 / texSize;
     
     // Check 8-connected neighbors
@@ -40,7 +41,7 @@ bool isEdgePixel(uint centerValue) {
                 continue;
             }
             
-            uint neighborValue = texture(ImageSampler, neighborCoords).r;
+            uint neighborValue = texture(ImageSampler, vec3(neighborCoords, ZTexCoord)).r;
             if (neighborValue != centerValue) {
                 return true;
             }
@@ -50,7 +51,7 @@ bool isEdgePixel(uint centerValue) {
 }
 
 void main() {
-    uint texel = texture(ImageSampler, TexCoords).r;
+    uint texel = texture(ImageSampler, vec3(TexCoords, ZTexCoord)).r;
     
     // Check if this pixel is the selected value
     bool isSelectedValue = u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue;
