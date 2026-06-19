@@ -391,6 +391,14 @@ class WebGPURenderer extends Renderer {
     // in beginRenderPass(). There is no imperative clear command.
   }
 
+  public override uploadTexture(texture: Texture) {
+    this.texturePool_.get(texture);
+  }
+
+  public override disposeTexture(texture: Texture) {
+    this.texturePool_.dispose(texture);
+  }
+
   private setUniformsForObject(
     object: RenderableObject,
     pipeline: WebGPUPipeline,

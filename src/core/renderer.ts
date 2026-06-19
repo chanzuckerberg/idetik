@@ -2,6 +2,7 @@ import { Camera } from "../objects/cameras/camera";
 import { Color, ColorLike } from "../math/color";
 import { Layer } from "./layer";
 import { Viewport } from "./viewport";
+import { Texture } from "../objects/textures/texture";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
@@ -63,6 +64,10 @@ export abstract class Renderer {
   public abstract get gpuTextureBytes(): number;
 
   public abstract get gpuTextureCount(): number;
+
+  public abstract uploadTexture(texture: Texture): void;
+
+  public abstract disposeTexture(texture: Texture): void;
 
   public set backgroundColor(color: ColorLike) {
     this.backgroundColor_ = Color.from(color);
