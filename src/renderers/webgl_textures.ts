@@ -24,6 +24,7 @@ export class WebGLTextures {
   private readonly maxTextureUnits_: number;
   private gpuTextureBytes_ = 0;
   private textureCount_ = 0;
+  private readFramebuffer_: WebGLFramebuffer | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -70,11 +71,64 @@ export class WebGLTextures {
     this.currentTexture_ = texture;
   }
 
+  public readTexel(texture: Texture, x: number, y: number, z: number): number {
+    const gl = this.gl_;
+    const textureId = this.textures_.get(texture);
+    if (!textureId) {
+      throw new Error("readTexel called on a texture that is not resident");
+    }
+
+    this.readFramebuffer_ ??= gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.readFramebuffer_);
+    gl.framebufferTextureLayer(
+      gl.READ_FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      textureId,
+      0,
+      z
+    );
+
+    const { format, type, out } = this.readbackParams(texture.dataType);
+    gl.readPixels(x, y, 1, 1, format, type, out);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+
+    return out[0];
+  }
+
+  private readbackParams(dataType: TextureDataType): {
+    format: number;
+    type: number;
+    out: Int32Array | Uint32Array | Float32Array;
+  } {
+    const gl = this.gl_;
+    switch (dataType) {
+      case "byte":
+      case "short":
+      case "int":
+        return {
+          format: gl.RGBA_INTEGER,
+          type: gl.INT,
+          out: new Int32Array(4),
+        };
+      case "unsigned_byte":
+      case "unsigned_short":
+      case "unsigned_int":
+        return {
+          format: gl.RGBA_INTEGER,
+          type: gl.UNSIGNED_INT,
+          out: new Uint32Array(4),
+        };
+      case "float":
+        return { format: gl.RGBA, type: gl.FLOAT, out: new Float32Array(4) };
+    }
+  }
+
   public disposeTexture(texture: Texture) {
     const id = this.textures_.get(texture);
     if (id) {
       this.gl_.deleteTexture(id);
       this.textures_.delete(texture);
+      texture.readTexel = undefined;
       if (this.currentTexture_ === texture) {
         this.currentTexture_ = null;
       }
@@ -133,6 +187,9 @@ export class WebGLTextures {
     this.textureCount_ += 1;
     this.textures_.set(texture, textureId);
     this.gl_.bindTexture(type, null);
+
+    texture.readTexel = (x, y, z) =>
+      Promise.resolve(this.readTexel(texture, x, y, z));
   }
 
   private configureTextureParameters(texture: Texture, type: number) {

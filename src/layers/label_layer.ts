@@ -9,11 +9,9 @@ import {
   LabelColorMapProps,
 } from "../objects/renderable/label_color_map";
 import { Texture3D } from "../objects/textures/texture_3d";
-import { Logger } from "../utilities/logger";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
-import { almostEqual } from "../utilities/almost_equal";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { poolKeyForImageRenderable } from "./image_layer";
@@ -211,33 +209,24 @@ export class LabelLayer extends Layer {
     return this.lastPresentationTimeCoord_;
   }
 
-  public getValueAtWorld(world: vec3): number | null {
+  public async getValueAtWorld(world: vec3): Promise<number | null> {
     const currentLOD = this.chunkStoreView_?.currentLOD ?? 0;
 
-    // First, try to find the value in current LOD chunks (highest priority)
-    for (const [chunk, label] of this.visibleChunks_) {
-      if (chunk.lod !== currentLOD) continue;
-      const value = this.getValueFromChunk(chunk, label, world);
-      if (value !== null) return value;
+    for (const preferCurrentLOD of [true, false]) {
+      for (const [chunk, label] of this.visibleChunks_) {
+        if ((chunk.lod === currentLOD) !== preferCurrentLOD) continue;
+        const value = await this.readValueFromChunk(chunk, label, world);
+        if (value !== null) return value;
+      }
     }
-
-    // Fallback to low-res chunks if no current LOD chunk contains the position
-    for (const [chunk, label] of this.visibleChunks_) {
-      if (chunk.lod === currentLOD) continue;
-      const value = this.getValueFromChunk(chunk, label, world);
-      if (value !== null) return value;
-    }
-
     return null;
   }
 
-  private getValueFromChunk(
+  private async readValueFromChunk(
     chunk: Chunk,
     label: LabelImageRenderable,
     world: vec3
-  ): number | null {
-    if (!chunk.data) return null;
-
+  ): Promise<number | null> {
     const localPos = vec3.transformMat4(
       vec3.create(),
       world,
@@ -247,31 +236,12 @@ export class LabelLayer extends Layer {
     const x = Math.floor(localPos[0]);
     const y = Math.floor(localPos[1]);
 
-    if (x >= 0 && x < chunk.shape.x && y >= 0 && y < chunk.shape.y) {
-      const data =
-        this.sliceCoords_.z !== undefined
-          ? this.slicePlane(chunk, this.sliceCoords_.z)!
-          : chunk.data;
-      const pixelIndex = y * chunk.shape.x + x;
-      return data[pixelIndex];
+    if (x < 0 || x >= chunk.shape.x || y < 0 || y >= chunk.shape.y) {
+      return null;
     }
 
-    return null;
-  }
-
-  private slicePlane(chunk: Chunk, zValue: number) {
-    if (!chunk.data) return;
-    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
-    const zIdx = Math.round(zLocal);
-    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
-
-    if (!almostEqual(zLocal, zClamped, 1 + 1e-6)) {
-      Logger.error("LabelLayer", "slicePlane zValue outside extent");
-    }
-
-    const sliceSize = chunk.shape.x * chunk.shape.y;
-    const offset = sliceSize * zClamped;
-    return chunk.data.slice(offset, offset + sliceSize);
+    const z = this.zSliceIndex(chunk);
+    return (await label.textures[0].readTexel?.(x, y, z)) ?? null;
   }
 
   private getLabelForChunk(chunk: Chunk) {
@@ -308,17 +278,15 @@ export class LabelLayer extends Layer {
     return label;
   }
 
-  private zTexCoordForChunk(chunk: Chunk): number {
+  private zSliceIndex(chunk: Chunk): number {
     const zValue = this.sliceCoords_.z;
-    if (zValue === undefined) {
-      return 0.5 / chunk.shape.z;
-    }
-
+    if (zValue === undefined) return 0;
     const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
-    const zIdx = Math.round(zLocal);
-    const zClamped = clamp(zIdx, 0, chunk.shape.z - 1);
+    return clamp(Math.round(zLocal), 0, chunk.shape.z - 1);
+  }
 
-    return (zClamped + 0.5) / chunk.shape.z;
+  private zTexCoordForChunk(chunk: Chunk): number {
+    return (this.zSliceIndex(chunk) + 0.5) / chunk.shape.z;
   }
 
   private updateLabelChunk(label: LabelImageRenderable, chunk: Chunk) {

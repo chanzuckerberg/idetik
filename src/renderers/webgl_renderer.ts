@@ -53,6 +53,9 @@ export class WebGLRenderer extends Renderer {
       `WebGL version ${gl.getParameter(gl.VERSION)}`
     );
 
+    // Required to attach R32F textures to a framebuffer for picking readback.
+    gl.getExtension("EXT_color_buffer_float");
+
     this.programs_ = new WebGLShaderPrograms(gl);
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);

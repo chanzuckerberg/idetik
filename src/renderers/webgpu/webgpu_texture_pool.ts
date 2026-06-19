@@ -1,5 +1,6 @@
 import {
   Texture,
+  TextureDataType,
   textureBytesPerChannel,
   textureChannelCount,
 } from "@/objects/textures/texture";
@@ -32,13 +33,50 @@ export default class WebGPUTexturePool {
       size: textureSize(entry),
       dimension: entry instanceof Texture3D ? "3d" : "2d",
       format: textureGPUFormat(entry),
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      usage:
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.COPY_SRC,
     });
 
     this.upload(entry, texture);
     this.textures_.push({ entry: entry, texture: texture });
 
+    entry.readTexel = (x, y, z) =>
+      this.readTexel(texture, entry.dataType, x, y, z);
+
     return texture;
+  }
+
+  private async readTexel(
+    texture: GPUTexture,
+    dataType: TextureDataType,
+    x: number,
+    y: number,
+    z: number
+  ): Promise<number> {
+    const buffer = this.device_.createBuffer({
+      size: 256, // copyTextureToBuffer requires a multiple of 256
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+
+    const encoder = this.device_.createCommandEncoder();
+    encoder.copyTextureToBuffer(
+      { texture, origin: { x, y, z } },
+      { buffer, bytesPerRow: 256 },
+      { width: 1, height: 1, depthOrArrayLayers: 1 }
+    );
+    this.device_.queue.submit([encoder.finish()]);
+
+    await buffer.mapAsync(GPUMapMode.READ);
+    const value = readTexelValue(
+      new DataView(buffer.getMappedRange()),
+      dataType
+    );
+    buffer.unmap();
+    buffer.destroy();
+
+    return value;
   }
 
   private upload(entry: Texture, texture: GPUTexture) {
@@ -62,6 +100,7 @@ export default class WebGPUTexturePool {
 
     this.textures_[index].texture.destroy();
     this.textures_.splice(index, 1);
+    texture.readTexel = undefined;
   }
 
   public disposeAll() {
@@ -70,12 +109,31 @@ export default class WebGPUTexturePool {
   }
 }
 
-function textureSize(texture: Texture): GPUExtent3DStrict {
+function textureSize(texture: Texture) {
   return {
     width: texture.width,
     height: texture.height,
     depthOrArrayLayers: texture instanceof Texture3D ? texture.depth : 1,
   };
+}
+
+function readTexelValue(view: DataView, dataType: TextureDataType): number {
+  switch (dataType) {
+    case "byte":
+      return view.getInt8(0);
+    case "unsigned_byte":
+      return view.getUint8(0);
+    case "short":
+      return view.getInt16(0, true);
+    case "unsigned_short":
+      return view.getUint16(0, true);
+    case "int":
+      return view.getInt32(0, true);
+    case "unsigned_int":
+      return view.getUint32(0, true);
+    case "float":
+      return view.getFloat32(0, true);
+  }
 }
 
 export function textureGPUFormat(texture: Texture): GPUTextureFormat {
