@@ -1,4 +1,6 @@
-import { Layer, LayerOptions, RenderContext } from "../core/layer";
+import { Layer, LayerOptions } from "../core/layer";
+import { Viewport } from "../core/viewport";
+import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import type { IdetikContext } from "../idetik";
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
@@ -105,13 +107,21 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.chunkStoreView_ = undefined;
   }
 
-  public update(context?: RenderContext) {
-    if (!context || !this.chunkStoreView_) return;
+  public update(viewport?: Viewport) {
+    if (!viewport || !this.chunkStoreView_) return;
 
-    this.chunkStoreView_.updateChunksForImage(
-      this.sliceCoords_,
-      context.viewport
-    );
+    const camera = viewport.camera;
+    if (camera.type !== "OrthographicCamera") {
+      throw new Error(
+        "Image rendering currently supports only orthographic cameras. " +
+          "Update the implementation before using a perspective camera."
+      );
+    }
+
+    this.chunkStoreView_.updateChunksForImage(this.sliceCoords_, {
+      worldViewRect: (camera as OrthographicCamera).getWorldViewRect(),
+      bufferWidthPx: viewport.getBufferRect().width,
+    });
 
     this.updateChunks();
 

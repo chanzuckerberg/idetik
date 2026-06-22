@@ -1,5 +1,6 @@
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
-import { Layer, RenderContext } from "../core/layer";
+import { Layer } from "../core/layer";
+import { Viewport } from "../core/viewport";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
@@ -216,26 +217,21 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.volumeToPoolKey_.delete(volume);
   }
 
-  public update(context?: RenderContext) {
-    if (!this.chunkStoreView_) return;
-    if (context === undefined) {
-      throw new Error(
-        "RenderContext is required for the VolumeLayer update as camera information is used to reorder the chunks."
-      );
-    }
+  public update(viewport?: Viewport) {
+    if (!viewport || !this.chunkStoreView_) return;
 
     this.chunkStoreView_.updateChunksForVolume(
       this.sliceCoords_,
-      context.viewport
+      viewport.camera.getViewProjection()
     );
 
-    const isCameraMoving = context.viewport.cameraControls?.isMoving ?? false;
+    const isCameraMoving = viewport.cameraControls?.isMoving ?? false;
     this.interactiveStepSizeScale_ = isCameraMoving
       ? INTERACTIVE_STEP_SIZE_SCALE
       : 1.0;
 
     this.updateChunks();
-    sortFrontToBack(this.objects, context.viewport.camera);
+    sortFrontToBack(this.objects, viewport.camera);
   }
 
   public getUniforms(): Record<string, unknown> {

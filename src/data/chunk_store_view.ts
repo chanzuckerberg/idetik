@@ -1,7 +1,5 @@
 import { Chunk, SliceCoordinates, ChunkViewState, coordToIndex } from "./chunk";
 import type { ChunkStore } from "./chunk_store";
-import { Viewport } from "../core/viewport";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
@@ -90,22 +88,11 @@ export class ChunkStoreView {
 
   public updateChunksForImage(
     sliceCoords: SliceCoordinates,
-    viewport: Viewport
+    view: { worldViewRect: Box2; bufferWidthPx: number }
   ): void {
-    const camera = viewport.camera;
-    if (camera.type !== "OrthographicCamera") {
-      throw new Error(
-        "ChunkStoreView currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
-      );
-    }
-
-    const orthoCamera = camera as OrthographicCamera;
-    const viewBounds2D = orthoCamera.getWorldViewRect();
+    const viewBounds2D = view.worldViewRect;
     const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const canvasElement = viewport.element as HTMLCanvasElement;
-    const bufferWidth = viewport.getBoxRelativeTo(canvasElement).toRect().width;
-    const virtualUnitsPerScreenPixel = virtualWidth / bufferWidth;
+    const virtualUnitsPerScreenPixel = virtualWidth / view.bufferWidthPx;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
     this.setLOD(lodFactor);
@@ -199,17 +186,8 @@ export class ChunkStoreView {
 
   public updateChunksForVolume(
     sliceCoords: SliceCoordinates,
-    viewport: Viewport
+    viewProjection: mat4
   ): void {
-    // Each call allocates a new mat4 and computes projection * view.
-    // This is intentional for simplicity. If this ever shows up in profiles
-    // avoid multiply entirely by caching and comparing view/projection separately.
-    const viewProjection = mat4.multiply(
-      mat4.create(),
-      viewport.camera.projectionMatrix,
-      viewport.camera.viewMatrix
-    );
-
     const changed =
       this.policyChanged_ ||
       this.hasViewProjectionChanged(viewProjection) ||

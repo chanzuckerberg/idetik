@@ -35,10 +35,12 @@ export abstract class Camera extends RenderableObject {
     return vec3.fromValues(m[4], m[5], m[6]);
   }
 
+  public getViewProjection(): mat4 {
+    return mat4.multiply(mat4.create(), this.projectionMatrix, this.viewMatrix);
+  }
+
   get frustum() {
-    return new Frustum(
-      mat4.multiply(mat4.create(), this.projectionMatrix, this.viewMatrix)
-    );
+    return new Frustum(this.getViewProjection());
   }
 
   public abstract setAspectRatio(aspectRatio: number): void;
