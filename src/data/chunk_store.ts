@@ -1,4 +1,4 @@
-import { Chunk, SourceDimensionMap, ChunkLoader } from "./chunk";
+import { Chunk, SourceDimensionMap } from "./chunk";
 import { clearChunkData } from "./chunk_memory";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
@@ -8,15 +8,13 @@ import { ImageSourcePolicy } from "../core/image_source_policy";
 export class ChunkStore {
   // Chunks indexed as chunks_[lod][t][c][z][y][x].
   private readonly chunks_: Chunk[][][][][][];
-  private readonly loader_: ChunkLoader;
   private readonly lowestResLOD_: number;
   private readonly dimensions_: SourceDimensionMap;
   private readonly views_: ChunkStoreView[] = [];
   private hasHadViews_ = false;
 
-  constructor(loader: ChunkLoader) {
-    this.loader_ = loader;
-    this.dimensions_ = this.loader_.getSourceDimensionMap();
+  constructor(dimensions: SourceDimensionMap) {
+    this.dimensions_ = dimensions;
     this.lowestResLOD_ = this.dimensions_.numLods - 1;
 
     this.validateXYScaleRatios();
@@ -120,10 +118,6 @@ export class ChunkStore {
 
   public getLowestResLOD(): number {
     return this.lowestResLOD_;
-  }
-
-  public loadChunkData(chunk: Chunk, signal: AbortSignal) {
-    return this.loader_.loadChunkData(chunk, signal);
   }
 
   public addView(policy: ImageSourcePolicy): ChunkStoreView {
