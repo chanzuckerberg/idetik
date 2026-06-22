@@ -71,8 +71,8 @@ export class Viewport {
   }
 
   public addLayer(layer: Layer): void {
-    this.layers_.push(layer);
     layer.onAttached(this.context_);
+    this.layers_.push(layer);
   }
 
   public removeLayer(layer: Layer): void {
