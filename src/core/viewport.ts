@@ -121,6 +121,15 @@ export class Viewport {
     );
   }
 
+  public getBufferRect(): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    return this.getBoxRelativeTo(this.element as HTMLCanvasElement).toRect();
+  }
+
   public clientToClip(position: vec2, depth: number = 0): vec3 {
     const [x, y] = position;
     const rect = this.element.getBoundingClientRect();

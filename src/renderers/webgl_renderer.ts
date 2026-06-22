@@ -84,7 +84,7 @@ export class WebGLRenderer extends Renderer {
     }
 
     for (const layer of [...opaque, ...transparent]) {
-      layer.update({ viewport });
+      layer.update(viewport);
     }
 
     if (getComputedStyle(viewport.element).visibility === "hidden") return;

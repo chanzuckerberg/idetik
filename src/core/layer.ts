@@ -24,10 +24,6 @@ export interface LayerOptions {
   blendMode?: BlendMode;
 }
 
-export type RenderContext = {
-  viewport: Viewport;
-};
-
 export abstract class Layer {
   public abstract readonly type: string;
 
@@ -58,7 +54,7 @@ export abstract class Layer {
     this.opacity_ = clamp(value, 0.0, 1.0);
   }
 
-  public abstract update(context?: RenderContext): void;
+  public abstract update(viewport?: Viewport): void;
 
   public onEvent(_: EventContext): void {}
 
