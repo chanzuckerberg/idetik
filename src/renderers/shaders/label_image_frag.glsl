@@ -5,16 +5,16 @@ precision highp int;
 
 layout (location = 0) out vec4 fragColor;
 
-uniform highp usampler3D ImageSampler;
-uniform mediump sampler2D ColorCycleSampler;
-uniform highp usampler2D ColorLookupTableSampler;
+uniform highp usampler3D u_imageSampler;
+uniform mediump sampler2D u_colorCycleSampler;
+uniform highp usampler2D u_colorLookupTableSampler;
 
 uniform float u_opacity;
 uniform float u_outlineSelected; // Note: Using float instead of bool due to framework uniform handling
 uniform float u_selectedValue;
-uniform float ZTexCoord;
+uniform float u_zTexCoord;
 
-in vec2 TexCoords;
+in vec2 v_texCoords;
 
 vec4 unpackRgba(uint packed) {
     uint r = (packed >> 24u) & 0xFFu;
@@ -25,23 +25,23 @@ vec4 unpackRgba(uint packed) {
 }
 
 bool isEdgePixel(uint centerValue) {
-    vec2 texSize = vec2(textureSize(ImageSampler, 0).xy);
+    vec2 texSize = vec2(textureSize(u_imageSampler, 0).xy);
     vec2 texelSize = 1.0 / texSize;
-    
+
     // Check 8-connected neighbors
     for (int dx = -1; dx <= 1; dx++) {
         for (int dy = -1; dy <= 1; dy++) {
             if (dx == 0 && dy == 0) continue; // Skip center pixel
-            
-            vec2 neighborCoords = TexCoords + vec2(float(dx), float(dy)) * texelSize;
-            
+
+            vec2 neighborCoords = v_texCoords + vec2(float(dx), float(dy)) * texelSize;
+
             // Skip if out of bounds
-            if (neighborCoords.x < 0.0 || neighborCoords.x > 1.0 || 
+            if (neighborCoords.x < 0.0 || neighborCoords.x > 1.0 ||
                 neighborCoords.y < 0.0 || neighborCoords.y > 1.0) {
                 continue;
             }
-            
-            uint neighborValue = texture(ImageSampler, vec3(neighborCoords, ZTexCoord)).r;
+
+            uint neighborValue = texture(u_imageSampler, vec3(neighborCoords, u_zTexCoord)).r;
             if (neighborValue != centerValue) {
                 return true;
             }
@@ -51,11 +51,11 @@ bool isEdgePixel(uint centerValue) {
 }
 
 void main() {
-    uint texel = texture(ImageSampler, vec3(TexCoords, ZTexCoord)).r;
-    
+    uint texel = texture(u_imageSampler, vec3(v_texCoords, u_zTexCoord)).r;
+
     // Check if this pixel is the selected value
     bool isSelectedValue = u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue;
-    
+
     // Check if we should outline this selected segment
     if (isSelectedValue) {
         if (isEdgePixel(texel)) {
@@ -65,27 +65,27 @@ void main() {
         }
     }
 
-    uint mapLength = uint(textureSize(ColorLookupTableSampler, 0).x);
+    uint mapLength = uint(textureSize(u_colorLookupTableSampler, 0).x);
     for (uint i = 0u; i < mapLength; ++i) {
-        uint key = texelFetch(ColorLookupTableSampler, ivec2(i, 0), 0).r;
+        uint key = texelFetch(u_colorLookupTableSampler, ivec2(i, 0), 0).r;
         if (texel == key) {
-            uint value = texelFetch(ColorLookupTableSampler, ivec2(i, 1), 0).r;
+            uint value = texelFetch(u_colorLookupTableSampler, ivec2(i, 1), 0).r;
             vec4 color = unpackRgba(value);
-            
+
             // If this is the selected segment and outlining is enabled, make it slightly transparent
             float alpha = isSelectedValue ? u_opacity * color.a * 0.9 : u_opacity * color.a;
-            
+
             fragColor = vec4(color.rgb, alpha);
             return;
         }
     }
 
-    uint cycleLength = uint(textureSize(ColorCycleSampler, 0).x);
+    uint cycleLength = uint(textureSize(u_colorCycleSampler, 0).x);
     uint index = uint(texel - 1u) % cycleLength;
-    vec4 color = texelFetch(ColorCycleSampler, ivec2(index, 0), 0);
-    
+    vec4 color = texelFetch(u_colorCycleSampler, ivec2(index, 0), 0);
+
     // If this is the selected segment and outlining is enabled, make it slightly transparent
     float alpha = isSelectedValue ? u_opacity * color.a * 0.9 : u_opacity * color.a;
-    
+
     fragColor = vec4(color.rgb, alpha);
 }

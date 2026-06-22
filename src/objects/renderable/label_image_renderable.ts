@@ -63,12 +63,12 @@ export class LabelImageRenderable extends RenderableObject {
 
   public getUniforms() {
     return {
-      ImageSampler: 0,
-      ColorCycleSampler: 1,
-      ColorLookupTableSampler: 2,
+      u_imageSampler: 0,
+      u_colorCycleSampler: 1,
+      u_colorLookupTableSampler: 2,
       u_outlineSelected: this.outlineSelected_ ? 1.0 : 0.0,
       u_selectedValue: this.selectedValue_ ?? -1.0,
-      ZTexCoord: this.zTexCoord,
+      u_zTexCoord: this.zTexCoord,
     };
   }
 

@@ -6,23 +6,23 @@ precision mediump float;
 layout (location = 0) out vec4 fragColor;
 
 #if defined TEXTURE_DATA_TYPE_INT
-uniform mediump isampler3D ImageSampler;
+uniform mediump isampler3D u_imageSampler;
 #elif defined TEXTURE_DATA_TYPE_UINT
-uniform mediump usampler3D ImageSampler;
+uniform mediump usampler3D u_imageSampler;
 #else
-uniform mediump sampler3D ImageSampler;
+uniform mediump sampler3D u_imageSampler;
 #endif
 
-uniform vec3 Color;
-uniform float ValueOffset;
-uniform float ValueScale;
+uniform vec3 u_color;
+uniform float u_valueOffset;
+uniform float u_valueScale;
 uniform float u_opacity;
-uniform float ZTexCoord;
+uniform float u_zTexCoord;
 
-in vec2 TexCoords;
+in vec2 v_texCoords;
 
 void main() {
-    float texel = float(texture(ImageSampler, vec3(TexCoords, ZTexCoord)).r);
-    float value = (texel + ValueOffset) * ValueScale;
-    fragColor = vec4(value * Color, u_opacity);
+    float texel = float(texture(u_imageSampler, vec3(v_texCoords, u_zTexCoord)).r);
+    float value = (texel + u_valueOffset) * u_valueScale;
+    fragColor = vec4(value * u_color, u_opacity);
 }

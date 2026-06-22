@@ -227,13 +227,13 @@ export class WebGLRenderer extends Renderer {
 
     for (const uniformName of program.uniformNames) {
       switch (uniformName) {
-        case "ModelView":
+        case "u_modelView":
           program.setUniform(uniformName, modelView);
           break;
-        case "Projection":
+        case "u_projection":
           program.setUniform(uniformName, projection);
           break;
-        case "Resolution":
+        case "u_resolution":
           program.setUniform(uniformName, resolution);
           break;
         case "u_opacity":
@@ -243,7 +243,7 @@ export class WebGLRenderer extends Renderer {
               ((objectUniforms.Opacity as number | undefined) ?? 1)
           );
           break;
-        case "CameraPositionModel": {
+        case "u_cameraPositionModel": {
           const inverseModelView = mat4.invert(mat4.create(), modelView)!;
           const cameraPositionView = vec4.fromValues(0, 0, 0, 1);
           const cameraPositionModel = vec4.transformMat4(

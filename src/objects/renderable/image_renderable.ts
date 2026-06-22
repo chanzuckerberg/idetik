@@ -11,12 +11,12 @@ import { vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 
 type UniformValues = {
-  Color: vec3;
-  ImageSampler: number;
+  u_color: vec3;
+  u_imageSampler: number;
   Opacity: number;
-  ValueOffset: number;
-  ValueScale: number;
-  ZTexCoord: number;
+  u_valueOffset: number;
+  u_valueScale: number;
+  u_zTexCoord: number;
 };
 
 export class ImageRenderable extends RenderableObject {
@@ -70,12 +70,12 @@ export class ImageRenderable extends RenderableObject {
       this.channels_[0] ?? validateChannel(texture, {});
 
     return {
-      ImageSampler: 0,
-      Color: color.rgb,
-      ValueOffset: -contrastLimits[0],
-      ValueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
+      u_imageSampler: 0,
+      u_color: color.rgb,
+      u_valueOffset: -contrastLimits[0],
+      u_valueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
       Opacity: opacity,
-      ZTexCoord: this.zTexCoord,
+      u_zTexCoord: this.zTexCoord,
     };
   }
 }

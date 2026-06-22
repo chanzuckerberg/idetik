@@ -2,22 +2,22 @@
 
 precision mediump float;
 
-layout (location = 0) in vec3 inPosition;
-layout (location = 6) in vec4 inColor;
-layout (location = 7) in float inSize;
-layout (location = 8) in float inMarker;
+layout (location = 0) in vec3 a_position;
+layout (location = 6) in vec4 a_color;
+layout (location = 7) in float a_size;
+layout (location = 8) in float a_marker;
 
-uniform mat4 Projection;
-uniform mat4 ModelView;
+uniform mat4 u_projection;
+uniform mat4 u_modelView;
 
-out vec4 color;
-flat out uint marker;
+out vec4 v_color;
+flat out uint v_marker;
 
 
 void main() {
-    gl_Position = Projection * ModelView * vec4(inPosition, 1.0);
-    gl_PointSize = inSize;
-    color = inColor;
-    marker = uint(inMarker);
+    gl_Position = u_projection * u_modelView * vec4(a_position, 1.0);
+    gl_PointSize = a_size;
+    v_color = a_color;
+    v_marker = uint(a_marker);
 }
 

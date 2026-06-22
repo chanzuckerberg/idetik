@@ -1,30 +1,30 @@
 #version 300 es
 
-layout (location = 0) in vec3 inPosition;
-layout (location = 3) in vec3 inPrevPosition;
-layout (location = 4) in vec3 inNextPosition;
-layout (location = 5) in float direction;
+layout (location = 0) in vec3 a_position;
+layout (location = 3) in vec3 a_prevPosition;
+layout (location = 4) in vec3 a_nextPosition;
+layout (location = 5) in float a_direction;
 
-uniform mat4 Projection;
-uniform mat4 ModelView;
-uniform vec2 Resolution;
-uniform float LineWidth;
+uniform mat4 u_projection;
+uniform mat4 u_modelView;
+uniform vec2 u_resolution;
+uniform float u_lineWidth;
 
 // adapted from https://github.com/mattdesl/webgl-lines
 void main() {
-    mat4 projModelView = Projection * ModelView;
+    mat4 projModelView = u_projection * u_modelView;
 
-    vec4 prevPos = projModelView * vec4(inPrevPosition, 1.0);
-    vec4 currPos = projModelView * vec4(inPosition, 1.0);
-    vec4 nextPos = projModelView * vec4(inNextPosition, 1.0);
+    vec4 prevPos = projModelView * vec4(a_prevPosition, 1.0);
+    vec4 currPos = projModelView * vec4(a_position, 1.0);
+    vec4 nextPos = projModelView * vec4(a_nextPosition, 1.0);
 
-    vec2 aspectVec = vec2(Resolution.x / Resolution.y, 1.0);
+    vec2 aspectVec = vec2(u_resolution.x / u_resolution.y, 1.0);
     vec2 prevScreen = (prevPos.xy / prevPos.w) * aspectVec;
     vec2 currScreen = (currPos.xy / currPos.w) * aspectVec;
     vec2 nextScreen = (nextPos.xy / nextPos.w) * aspectVec;
 
-    // direction is + or -; which way to project the vertex away from the path
-    float d = sign(direction);
+    // a_direction is + or -; which way to project the vertex away from the path
+    float d = sign(a_direction);
 
     // `normal` points perpendicular to the path in screen space
     vec2 normal;
@@ -49,9 +49,9 @@ void main() {
         miterLength = 1.0 / max(dot(normal, perpPrev), 0.1);
     }
 
-    // `normal * LineWidth / Resolution` means LineWidth is in pixels
+    // `normal * u_lineWidth / u_resolution` means u_lineWidth is in pixels
     vec4 offset = vec4(
-        (normal * LineWidth / Resolution) * miterLength * d,
+        (normal * u_lineWidth / u_resolution) * miterLength * d,
         0.0,
         0.0
     );
