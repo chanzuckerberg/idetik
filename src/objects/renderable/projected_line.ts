@@ -42,8 +42,8 @@ export class ProjectedLine extends RenderableObject {
 
   public override getUniforms() {
     return {
-      LineColor: this.color.rgb,
-      LineWidth: this.width,
+      u_lineColor: this.color.rgb,
+      u_lineWidth: this.width,
     };
   }
 }

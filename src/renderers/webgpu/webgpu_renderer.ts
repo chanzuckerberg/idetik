@@ -416,11 +416,11 @@ class WebGPURenderer extends Renderer {
     pipeline.uniformsView.set({
       projection: this.currentProjection_,
       modelView: this.currentModelView_,
-      color: uniforms.Color,
-      valueOffset: uniforms.ValueOffset,
-      valueScale: uniforms.ValueScale,
+      color: uniforms.u_color,
+      valueOffset: uniforms.u_valueOffset,
+      valueScale: uniforms.u_valueScale,
       opacity: this.currentLayerOpacity_ * objectOpacity,
-      zTexCoord: uniforms.ZTexCoord,
+      zTexCoord: uniforms.u_zTexCoord,
     });
 
     this.bindings_.setUniforms(this.passEncoder_!, pipeline);

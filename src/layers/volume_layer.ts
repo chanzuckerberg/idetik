@@ -230,10 +230,11 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public getUniforms(): Record<string, unknown> {
     return {
-      DebugShowDegenerateRays: Number(this.debugShowDegenerateRays),
-      RelativeStepSize: this.relativeStepSize * this.interactiveStepSizeScale_,
-      OpacityMultiplier: this.opacityMultiplier,
-      EarlyTerminationAlpha: this.earlyTerminationAlpha,
+      u_debugShowDegenerateRays: Number(this.debugShowDegenerateRays),
+      u_relativeStepSize:
+        this.relativeStepSize * this.interactiveStepSizeScale_,
+      u_opacityMultiplier: this.opacityMultiplier,
+      u_earlyTerminationAlpha: this.earlyTerminationAlpha,
     };
   }
 }

@@ -1,15 +1,15 @@
 #version 300 es
 
-layout (location = 0) in vec3 inPosition;
-layout (location = 1) in vec3 inNormal;
-layout (location = 2) in vec2 inUV;
+layout (location = 0) in vec3 a_position;
+layout (location = 1) in vec3 a_normal;
+layout (location = 2) in vec2 a_uv;
 
-uniform mat4 Projection;
-uniform mat4 ModelView;
+uniform mat4 u_projection;
+uniform mat4 u_modelView;
 
-out vec2 TexCoords;
+out vec2 v_texCoords;
 
 void main() {
-    TexCoords = inUV;
-    gl_Position = Projection * ModelView * vec4(inPosition, 1.0);
+    v_texCoords = a_uv;
+    gl_Position = u_projection * u_modelView * vec4(a_position, 1.0);
 }

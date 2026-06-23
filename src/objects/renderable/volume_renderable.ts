@@ -119,16 +119,16 @@ export class VolumeRenderable extends RenderableObject {
 
     return samplerUniforms.reduce<Record<string, number[] | number>>(
       (uniforms, textureIndex, i) => {
-        uniforms[`Channel${i}Sampler`] = textureIndex;
+        uniforms[`u_channel${i}Sampler`] = textureIndex;
         return uniforms;
       },
       {
-        Visible: loadedAndVisibleTextures,
-        "Color[0]": colors,
-        ValueOffset: valueOffset,
-        ValueScale: valueScale,
-        ChannelOpacity: channelOpacity,
-        VoxelScale: [
+        u_visible: loadedAndVisibleTextures,
+        "u_color[0]": colors,
+        u_valueOffset: valueOffset,
+        u_valueScale: valueScale,
+        u_channelOpacity: channelOpacity,
+        u_voxelScale: [
           this.voxelScale[0],
           this.voxelScale[1],
           this.voxelScale[2],
