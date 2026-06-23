@@ -7,6 +7,20 @@ type LoaderFn = (signal: AbortSignal) => Promise<void>;
 
 type PendingItem = { chunk: Chunk; fn: LoaderFn };
 
+export function comparePriority(a: Chunk, b: Chunk) {
+  const priorityA = a.priority ?? Number.MAX_SAFE_INTEGER;
+  const priorityB = b.priority ?? Number.MAX_SAFE_INTEGER;
+
+  if (priorityA === priorityB) {
+    return (
+      (a.orderKey ?? Number.MAX_SAFE_INTEGER) -
+      (b.orderKey ?? Number.MAX_SAFE_INTEGER)
+    );
+  }
+
+  return priorityA - priorityB;
+}
+
 export class ChunkQueue {
   private readonly maxConcurrent_: number;
   private readonly pending_: PendingItem[] = [];
@@ -61,19 +75,7 @@ export class ChunkQueue {
       return;
     }
 
-    this.pending_.sort((a, b) => {
-      const priorityA = a.chunk.priority ?? Number.MAX_SAFE_INTEGER;
-      const priorityB = b.chunk.priority ?? Number.MAX_SAFE_INTEGER;
-
-      if (priorityA === priorityB) {
-        return (
-          (a.chunk.orderKey ?? Number.MAX_SAFE_INTEGER) -
-          (b.chunk.orderKey ?? Number.MAX_SAFE_INTEGER)
-        );
-      }
-
-      return priorityA - priorityB;
-    });
+    this.pending_.sort((a, b) => comparePriority(a.chunk, b.chunk));
 
     while (
       this.running_.size < this.maxConcurrent_ &&

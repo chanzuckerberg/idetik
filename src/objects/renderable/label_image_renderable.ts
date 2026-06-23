@@ -73,6 +73,8 @@ export class LabelImageRenderable extends RenderableObject {
   }
 
   public setColorMap(colorMap: LabelColorMap) {
+    this.markStaleTexture(this.textures[1]);
+    this.markStaleTexture(this.textures[2]);
     this.setTexture(1, this.makeColorCycleTexture(colorMap.cycle));
     this.setTexture(2, this.makeColorLookupTableTexture(colorMap.lookupTable));
   }
