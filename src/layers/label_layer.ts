@@ -10,7 +10,7 @@ import {
   LabelColorMap,
   LabelColorMapProps,
 } from "../objects/renderable/label_color_map";
-import { Texture3D } from "../objects/textures/texture_3d";
+import { Texture } from "../objects/textures/texture";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
@@ -114,8 +114,13 @@ export class LabelLayer extends Layer {
     if (!this.chunkStoreView_) return;
     if (this.state !== "ready") this.setState("ready");
 
+    const visibleChunksResident = Array.from(this.visibleChunks_.keys()).every(
+      (chunk) => chunk.texture !== undefined
+    );
+
     if (
       this.visibleChunks_.size > 0 &&
+      visibleChunksResident &&
       !this.chunkStoreView_.allVisibleFallbackLODLoaded() &&
       !this.isPresentationStale()
     ) {
@@ -133,8 +138,7 @@ export class LabelLayer extends Layer {
 
     this.clearObjects();
     for (const chunk of orderedByLOD) {
-      if (chunk.state !== "loaded") continue;
-      const label = this.getLabelForChunk(chunk);
+      const label = this.getLabelForChunk(chunk, chunk.texture!);
       this.visibleChunks_.set(chunk, label);
       this.addObject(label);
     }
@@ -248,15 +252,13 @@ export class LabelLayer extends Layer {
     return (await label.textures[0].readTexel?.(x, y, z)) ?? null;
   }
 
-  private getLabelForChunk(chunk: Chunk) {
+  private getLabelForChunk(chunk: Chunk, texture: Texture) {
     const existing = this.visibleChunks_.get(chunk);
     if (existing) return existing;
 
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
-      const texture = pooled.textures[0] as Texture3D;
-      texture.updateWithChunk(chunk);
-
+      pooled.setTexture(0, texture);
       pooled.zTexCoord = this.zTexCoordForChunk(chunk);
       pooled.setColorMap(this.colorMap_);
       pooled.setSelectedValue(this.selectedValue_);
@@ -265,14 +267,14 @@ export class LabelLayer extends Layer {
       return pooled;
     }
 
-    return this.createLabel(chunk);
+    return this.createLabel(chunk, texture);
   }
 
-  private createLabel(chunk: Chunk) {
+  private createLabel(chunk: Chunk, texture: Texture) {
     const label = new LabelImageRenderable({
       width: chunk.shape.x,
       height: chunk.shape.y,
-      imageData: Texture3D.createWithChunk(chunk),
+      imageData: texture,
       colorMap: this.colorMap_,
       outlineSelected: this.outlineSelected_,
       selectedValue: this.selectedValue_,

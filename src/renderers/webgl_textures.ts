@@ -135,6 +135,7 @@ export class WebGLTextures {
     this.gl_.bindTexture(textureType, textureId);
     this.configureTextureParameters(texture, textureType);
     this.uploadTextureData(texture, info, textureType);
+    this.currentTexture_ = null;
 
     texture.needsUpdate = false;
   }

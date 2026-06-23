@@ -1,4 +1,7 @@
-import { TextureUnpackRowAlignment } from "../objects/textures/texture";
+import {
+  type Texture,
+  TextureUnpackRowAlignment,
+} from "../objects/textures/texture";
 import { Logger } from "../utilities/logger";
 
 const chunkDataTypes = [
@@ -34,6 +37,7 @@ export type ChunkViewState = {
 
 export type Chunk = {
   data?: ChunkData;
+  texture?: Texture;
   state: "unloaded" | "queued" | "loading" | "loaded";
   lod: number;
   shape: {

@@ -3,10 +3,8 @@ import {
   Texture,
   bufferToDataType,
 } from "../../objects/textures/texture";
-import { Chunk, ChunkData } from "../../data/chunk";
 
 export class Texture2D extends Texture {
-  private data_: DataTextureTypedArray;
   private readonly width_: number;
   private readonly height_: number;
 
@@ -20,17 +18,8 @@ export class Texture2D extends Texture {
     this.height_ = height;
   }
 
-  public set data(data: DataTextureTypedArray) {
-    this.data_ = data;
-    this.needsUpdate = true;
-  }
-
   public get type() {
     return "Texture2D";
-  }
-
-  public get data() {
-    return this.data_;
   }
 
   public get width() {
@@ -39,39 +28,5 @@ export class Texture2D extends Texture {
 
   public get height() {
     return this.height_;
-  }
-
-  public updateWithChunk(chunk: Chunk, data?: ChunkData) {
-    const source = data ?? chunk.data;
-    if (!source) {
-      throw new Error(
-        "Unable to update texture, chunk data is not initialized."
-      );
-    }
-
-    if (this.data === source) return;
-
-    if (
-      this.width != chunk.shape.x ||
-      this.height != chunk.shape.y ||
-      this.dataType != bufferToDataType(source)
-    ) {
-      throw new Error("Unable to update texture, texture buffer mismatch.");
-    }
-
-    this.data = source;
-  }
-
-  public static createWithChunk(chunk: Chunk, data?: ChunkData) {
-    const source = data ?? chunk.data;
-    if (!source) {
-      throw new Error(
-        "Unable to create texture, chunk data is not initialized."
-      );
-    }
-
-    const texture = new Texture2D(source, chunk.shape.x, chunk.shape.y);
-    texture.unpackAlignment = chunk.rowAlignmentBytes;
-    return texture;
   }
 }
