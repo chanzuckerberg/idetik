@@ -154,6 +154,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private updateChunks() {
     if (!this.chunkStoreView_) return;
+    if (this.state !== "ready") this.setState("ready");
 
     const chunksToRender = this.chunkStoreView_.getChunksToRender();
     const currentTime = this.sliceCoords_.t ?? -1;
@@ -182,7 +183,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
     this.lastLoadedTime_ = currentTime;
     this.lastNumRenderedChannelChunks_ = chunksToRender.length;
-    if (this.state !== "ready") this.setState("ready");
   }
 
   private updateVolumeTransform(volume: VolumeRenderable, chunk: Chunk) {
@@ -206,7 +206,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   private releaseAndRemoveVolume(volume: VolumeRenderable) {
-    volume.clearLoadedChannels();
+    volume.reset();
     this.pool_.release(this.volumeToPoolKey_.get(volume)!, volume);
     this.volumeToPoolKey_.delete(volume);
   }

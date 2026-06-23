@@ -20,11 +20,17 @@ export abstract class RenderableObject extends Node {
   private cullFaceMode_: CullingMode = "none";
 
   public setTexture(index: number, texture: Texture) {
-    const oldTexture = this.textures_[index];
-    if (oldTexture !== undefined) {
-      this.staleTextures_.push(oldTexture);
-    }
     this.textures_[index] = texture;
+  }
+
+  protected clearTextures() {
+    this.textures_.length = 0;
+  }
+
+  protected markStaleTexture(texture: Texture | undefined) {
+    if (texture !== undefined) {
+      this.staleTextures_.push(texture);
+    }
   }
 
   public popStaleTextures() {

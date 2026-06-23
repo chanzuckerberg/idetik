@@ -8,7 +8,6 @@ import {
   validateChannel,
   validateChannels,
 } from "../../core/channel";
-import { Texture3D } from "../textures/texture_3d";
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";
 
@@ -16,8 +15,9 @@ export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
 
   private channels_: Required<Channel>[];
-  private channelToTextureIndex_: Map<number, number> = new Map();
   private loadedChannels_: Set<number> = new Set();
+
+  private readonly channelToTextureIndex_: Map<number, number> = new Map();
 
   constructor() {
     super();
@@ -32,47 +32,48 @@ export class VolumeRenderable extends RenderableObject {
   }
 
   public updateVolumeWithChunk(chunk: Chunk): void {
+    if (!chunk.texture) return;
+
     const channelIndex = chunk.chunkIndex.c;
 
     const textureIndex = this.channelToTextureIndex_.get(channelIndex);
     if (textureIndex !== undefined) {
-      this.updateChannelTexture(textureIndex, chunk);
+      this.updateChannelTexture(textureIndex, chunk.texture);
     } else {
-      this.addChannelTexture(channelIndex, chunk);
+      this.addChannelTexture(channelIndex, chunk.texture);
     }
 
     this.loadedChannels_.add(channelIndex);
   }
 
-  private addChannelTexture(channelIndex: number, chunk: Chunk): void {
-    const texture = Texture3D.createWithChunk(chunk);
+  private addChannelTexture(channelIndex: number, texture: Texture): void {
     const textureIndex = this.textures.length;
 
     this.setTexture(textureIndex, texture);
     this.channelToTextureIndex_.set(channelIndex, textureIndex);
+
     const newProgramName = dataTypeToVolumeShader(texture.dataType);
     if (this.programName && this.programName !== newProgramName) {
       throw new Error(
         `Volume renderable does not support multiple channels with different data types. Existing program: ${this.programName}, new channel data type: ${texture.dataType} and program: ${newProgramName}`
       );
     }
+
     this.programName = newProgramName;
   }
 
-  private updateChannelTexture(textureIndex: number, chunk: Chunk): void {
-    const texture = this.textures[textureIndex];
-
-    if (!(texture instanceof Texture3D)) {
-      const newTexture = Texture3D.createWithChunk(chunk);
-      this.setTexture(textureIndex, newTexture);
-      return;
-    }
-
-    texture.updateWithChunk(chunk);
+  private updateChannelTexture(textureIndex: number, texture: Texture): void {
+    this.setTexture(textureIndex, texture);
   }
 
   public clearLoadedChannels() {
     this.loadedChannels_ = new Set();
+  }
+
+  public reset() {
+    this.clearTextures();
+    this.channelToTextureIndex_.clear();
+    this.clearLoadedChannels();
   }
 
   public override getUniforms(): Record<string, number[] | number> {

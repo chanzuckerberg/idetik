@@ -1,5 +1,4 @@
 import { Chunk, SourceDimensionMap } from "./chunk";
-import { clearChunkData } from "./chunk_memory";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { ChunkStoreView } from "./chunk_store_view";
@@ -218,7 +217,6 @@ export class ChunkStore {
         );
       }
 
-      clearChunkData(chunk);
       chunk.state = "unloaded";
       chunk.orderKey = null;
       Logger.debug(
