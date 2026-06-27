@@ -31,6 +31,7 @@ export type LabelColorMapProps = {
   cycle?: ColorLike[];
 };
 
+/** @group Renderable Objects */
 export class LabelColorMap {
   public readonly lookupTable: ReadonlyMap<number, Color>;
   public readonly cycle: ReadonlyArray<Color>;

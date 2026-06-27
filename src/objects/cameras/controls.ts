@@ -10,6 +10,7 @@ export interface CameraControls {
   onEvent(event: EventContext): void;
 }
 
+/** @group Cameras & Controls */
 export class PanZoomControls implements CameraControls {
   private readonly camera_: OrthographicCamera;
   private dragActive_ = false;

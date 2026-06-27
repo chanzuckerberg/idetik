@@ -14,6 +14,7 @@ type PerspectiveCameraOptions = {
   position?: vec3;
 };
 
+/** @group Cameras & Controls */
 export class PerspectiveCamera extends Camera {
   private fov_: number;
   private aspectRatio_: number;

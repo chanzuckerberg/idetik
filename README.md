@@ -1,6 +1,6 @@
-# Project
+# Idetik
 
-A layer-based library for interactive visualization of large datasets.
+A layer-based library for interactive visualization of large bioimaging data, with first-class support for OME-Zarr.
 
 ## Project Status
 
@@ -31,7 +31,8 @@ If you believe you have found a security issue, please responsibly disclose via 
 
    `npm run examples`
 
-   This will start a server on <http://localhost:5173>.
+   This will start a server on <http://localhost:5173>. The examples under [examples/](examples/)
+   are for local development and testing only; they are not deployed.
 
 4. To run the unit test suite (headless Chrome using playwright), run:
 
@@ -41,7 +42,29 @@ If you believe you have found a security issue, please responsibly disclose via 
    automatically, so you can leave it running while you work. To run the tests once and exit, use
    `npm run test -- --run`.
 
-5. See [package.json](package.json) for other available commands.
+5. To build the library for publishing:
+
+   `npm run build`
+
+   This bundles the library and emits type declarations to `dist/`. Use `npm run compile` to
+   type-check and emit declarations only (no bundle).
+
+6. To build the examples as a static site (e.g. to verify the production build):
+
+   `npm run build:examples`
+
+   Output is written to `examples/dist/`.
+
+7. To work on the documentation site:
+
+   - `npm run docs:dev` — start the VitePress dev server on <http://localhost:5174>
+   - `npm run docs:build` — build the static docs site to `.vitepress/dist/` (also generates the
+     API reference from TypeScript/JSDoc via TypeDoc)
+   - `npm run docs:preview` — build, then locally serve the production docs
+
+   The docs site is deployed to GitHub Pages automatically on push to `main`.
+
+8. See [package.json](package.json) for other available commands.
 
 ## Release
 
@@ -54,11 +77,13 @@ We use [semantic-release](https://github.com/semantic-release/semantic-release) 
 #### How It Works
 
 1. **Use Conventional Commits**: When creating PRs, ensure your PR title follows the [Conventional Commits](https://www.conventionalcommits.org/) format:
-   - `feat: add new feature` → triggers a **minor** version bump (e.g., 7.0.0 → 7.1.0)
-   - `fix: resolve bug` → triggers a **patch** version bump (e.g., 7.0.0 → 7.0.1)
-   - `feat!: breaking change` or `BREAKING CHANGE:` in commit footer → triggers a **major** version bump (e.g., 7.0.0 → 8.0.0)
-   - `refactor:`, `perf:`, `chore:` → triggers a **patch** version bump
+   - `feat: add new feature` → triggers a **minor** version bump (e.g., 0.1.0 → 0.2.0)
+   - `fix: resolve bug` → triggers a **patch** version bump (e.g., 0.1.0 → 0.1.1)
+   - `feat!: breaking change` or `BREAKING CHANGE:` in commit footer → triggers a **minor** version bump while in `0.x` (e.g., 0.1.0 → 0.2.0)
+   - `refactor:`, `perf:`, `chore:`, `revert:` → triggers a **patch** version bump
    - `docs:`, `style:`, `test:`, `ci:`, `build:` → no release
+
+   While the project is in `0.x`, breaking changes bump the **minor** version (see [.releaserc.json](.releaserc.json)); `1.0.0` will be cut deliberately.
 
 2. **PR Title Validation**: Our CI automatically validates PR titles to ensure they follow the conventional commit format.
 
@@ -69,7 +94,7 @@ We use [semantic-release](https://github.com/semantic-release/semantic-release) 
    - Generates/updates `CHANGELOG.md`
    - Publishes to npm as `@idetik/core`
    - Creates a GitHub release with release notes
-   - Tags the release (e.g., `v7.1.0`)
+   - Tags the release (e.g., `v0.2.0`)
 
 4. **No Manual Intervention Required**: The entire process is automatic once merged to `main`.
 

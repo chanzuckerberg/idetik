@@ -96,6 +96,7 @@ type SourceDimensionLod = {
   translation: number;
 };
 
+/** @group Layer Configuration */
 export type SliceCoordinates = {
   z?: number;
   c?: number[];

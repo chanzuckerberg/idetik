@@ -8,34 +8,49 @@ npm install @idetik/core
 
 ## Basic Usage
 
+Render a volume from a remote OME-Zarr source:
+
 ```typescript
 import {
   Idetik,
-  OrthographicCamera,
-  PanZoomControls,
-  ChunkedImageLayer,
+  PerspectiveCamera,
+  OrbitControls,
+  VolumeLayer,
   OmeZarrImageSource,
-  createExplorationPolicy
+  createExplorationPolicy,
 } from '@idetik/core'
 
-const source = OmeZarrImageSource.fromHttp({
-  url: 'https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/'
+const source = await OmeZarrImageSource.fromHttp({
+  url: 'https://public.czbiohub.org/royerlab/zebrahub/imaging/multi-view/ZMNS001.ome.zarr/',
 })
 
-const camera = new OrthographicCamera(100, 900, 100, 900)
-const layer = new ChunkedImageLayer({
+const camera = new PerspectiveCamera()
+
+const layer = new VolumeLayer({
   source,
-  sliceCoords: { t: 0, c: 0, z: 0 },
-  policy: createExplorationPolicy(),
-  channelProps: [{ contrastLimits: [0, 150], visible: true }],
+  sliceCoords: { t: 0, z: undefined, c: undefined }, // show all channels
+  // The volume layer renders a single LOD, so pin one in the policy.
+  policy: createExplorationPolicy({ lod: { min: 2, max: 2 } }),
+  channelProps: [
+    { visible: true, color: '#00ffff', contrastLimits: [300, 1500] }, // h2afva
+    { visible: true, color: '#ff00ff', contrastLimits: [75, 500] }, // mezzo
+  ],
 })
+
+// Frame the camera using the source's physical dimensions: aim at the
+// volume center and back off to ~120% of its largest extent.
+const dims = source.getDimensions()
+const span = (d: typeof dims.x) => d.lods[0].size * d.lods[0].scale
+const center = (d: typeof dims.x) => d.lods[0].translation + span(d) / 2
+const target: [number, number, number] = [center(dims.x), center(dims.y), center(dims.z!)]
+const radius = 1.2 * Math.max(span(dims.x), span(dims.y), span(dims.z!))
 
 const idetik = new Idetik({
-  canvas: document.querySelector('canvas'),
+  canvas: document.querySelector<HTMLCanvasElement>('canvas')!,
   viewports: [{
     camera,
     layers: [layer],
-    cameraControls: new PanZoomControls(camera),
+    cameraControls: new OrbitControls(camera, { radius, target }),
   }],
 })
 

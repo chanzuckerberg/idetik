@@ -1,0 +1,30 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "plugin": ["typedoc-plugin-markdown", "typedoc-vitepress-theme"],
+  "entryPoints": ["src/index.ts"],
+  "tsconfig": "tsconfig.json",
+  "out": "docs/api",
+  "docsRoot": "docs",
+  "readme": "none",
+  "githubPages": false,
+  "navigation": {
+    "includeGroups": true
+  },
+  "groupOrder": [
+    "Runtime",
+    "Data Loading",
+    "Layers",
+    "Layer Configuration",
+    "Renderable Objects",
+    "Cameras & Controls",
+    "*"
+  ],
+  "hidePageHeader": true,
+  "useCodeBlocks": true,
+  "expandObjects": true,
+  "parametersFormat": "table",
+  "sidebar": {
+    "autoConfiguration": true,
+    "pretty": true
+  }
+}
