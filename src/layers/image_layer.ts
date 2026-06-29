@@ -11,13 +11,13 @@ import {
   validateChannelPropsCount,
 } from "../core/channel";
 import { ImageRenderable } from "../objects/renderable/image_renderable";
-import { Texture3D } from "../objects/textures/texture_3d";
 import { Color } from "../math/color";
 import { EventContext } from "../core/event_dispatcher";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
+import { Texture } from "../objects/textures/texture";
 
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
@@ -128,8 +128,13 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     if (!this.chunkStoreView_) return;
     if (this.state !== "ready") this.setState("ready");
 
+    const visibleChunksResident = Array.from(this.visibleChunks_.keys()).every(
+      (chunk) => chunk.texture !== undefined
+    );
+
     if (
       this.visibleChunks_.size > 0 &&
+      visibleChunksResident &&
       !this.chunkStoreView_.allVisibleFallbackLODLoaded() &&
       !this.isPresentationStale()
     ) {
@@ -147,8 +152,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
     this.clearObjects();
     for (const chunk of orderedByLOD) {
-      if (chunk.state !== "loaded") continue;
-      const image = this.getImageForChunk(chunk);
+      const image = this.getImageForChunk(chunk, chunk.texture!);
       this.visibleChunks_.set(chunk, image);
       this.addObject(image);
     }
@@ -209,23 +213,20 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
-  private getImageForChunk(chunk: Chunk) {
+  private getImageForChunk(chunk: Chunk, texture: Texture) {
     const existing = this.visibleChunks_.get(chunk);
     if (existing) return existing;
 
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
-      const texture = pooled.textures[0] as Texture3D;
-      texture.updateWithChunk(chunk);
-
+      pooled.setTexture(0, texture);
       pooled.zTexCoord = this.zTexCoordForChunk(chunk);
       pooled.setChannelProps(this.getChannelPropsForChunk(chunk));
       this.updateImageChunk(pooled, chunk);
-
       return pooled;
     }
 
-    return this.createImage(chunk);
+    return this.createImage(chunk, texture);
   }
 
   private getChannelPropsForChunk(chunk: Chunk): ChannelProps[] {
@@ -233,11 +234,11 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     return [this.channelProps_[chunk.chunkIndex.c] ?? {}];
   }
 
-  private createImage(chunk: Chunk) {
+  private createImage(chunk: Chunk, texture: Texture) {
     const image = new ImageRenderable(
       chunk.shape.x,
       chunk.shape.y,
-      Texture3D.createWithChunk(chunk),
+      texture,
       this.getChannelPropsForChunk(chunk)
     );
     image.zTexCoord = this.zTexCoordForChunk(chunk);

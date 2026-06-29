@@ -113,7 +113,10 @@ export class Idetik {
     this.canvas = params.canvas;
 
     this.renderer_ = renderer ?? new WebGLRenderer(this.canvas);
-    this.chunkManager_ = new ChunkManager();
+    this.chunkManager_ = new ChunkManager(
+      (texture) => this.renderer_.uploadTexture(texture),
+      (texture) => this.renderer_.disposeTexture(texture)
+    );
     this.context_ = {
       chunkManager: this.chunkManager_,
     };

@@ -75,7 +75,8 @@ export class ChunkStoreView {
     const lowResChunks: Chunk[] = [];
 
     for (const [chunk, state] of this.chunkViewStates_) {
-      if (!state.visible || chunk.state !== "loaded") continue;
+      if (!state.visible || chunk.state !== "loaded" || !chunk.texture)
+        continue;
       if (chunk.lod === currentLOD) {
         currentLODChunks.push(chunk);
       } else if (chunk.lod === fallbackLOD && currentLOD !== fallbackLOD) {
@@ -113,7 +114,7 @@ export class ChunkStoreView {
         "ChunkStoreView",
         "updateChunkViewStates called with no chunks initialized"
       );
-      this.chunkViewStates_.clear();
+      this.chunkViewStates_.forEach(resetChunkViewState);
       return;
     }
 
@@ -202,7 +203,7 @@ export class ChunkStoreView {
         "ChunkStoreView",
         "updateChunksForVolume called with no chunks initialized"
       );
-      this.chunkViewStates_.clear();
+      this.chunkViewStates_.forEach(resetChunkViewState);
       return;
     }
 

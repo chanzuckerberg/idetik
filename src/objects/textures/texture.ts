@@ -117,10 +117,23 @@ export abstract class Texture extends Node {
   // renderer when the texture is uploaded (and cleared on disposal).
   public readTexel?: (x: number, y: number, z: number) => Promise<number>;
 
+  protected data_: DataTextureTypedArray | null = null;
+
+  public get data(): DataTextureTypedArray | null {
+    return this.data_;
+  }
+
+  public set data(data: DataTextureTypedArray) {
+    this.data_ = data;
+    this.needsUpdate = true;
+  }
+
+  public releaseCpuData(): void {
+    this.data_ = null;
+  }
+
   public abstract get width(): number;
   public abstract get height(): number;
-  public abstract get data(): TexImageSource | ArrayBufferView | null;
-  public abstract set data(data: DataTextureTypedArray);
 
   public get type() {
     return "Texture";

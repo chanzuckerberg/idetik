@@ -26,6 +26,7 @@ export function clearChunkData(chunk: Chunk): void {
     cpuChunkCount -= 1;
   }
   chunk.data = undefined;
+  chunk.texture?.releaseCpuData();
 }
 
 export function chunkMemoryStats() {
