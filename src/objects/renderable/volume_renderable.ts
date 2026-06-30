@@ -11,6 +11,7 @@ import {
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";
 
+/** @group Renderable Objects */
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
 

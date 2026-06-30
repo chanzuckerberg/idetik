@@ -19,6 +19,7 @@ import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { Texture } from "../objects/textures/texture";
 
+/** @inline */
 export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
@@ -27,6 +28,20 @@ export type ImageLayerProps = LayerOptions & {
   onPickValue?: (info: PointPickingResult) => void;
 };
 
+/**
+ * A layer that renders a 2D slice of a chunked, multi-channel image source.
+ *
+ * `ImageLayer` streams chunks from a `ChunkSource` (e.g.
+ * {@link OmeZarrImageSource}) according to the supplied `ImageSourcePolicy`,
+ * which decides which resolution levels and chunks to load for the current
+ * view. Per-channel appearance (contrast limits,
+ * color, visibility) is controlled via {@link ChannelProps}, and the visible
+ * slice is selected with {@link SliceCoordinates}.
+ *
+ * @see {@link VolumeLayer} for 3D volume rendering of the same data.
+ *
+ * @group Layers
+ */
 export class ImageLayer extends Layer implements ChannelsEnabled {
   public readonly type = "ImageLayer";
 

@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import typedocSidebar from '../docs/api/typedoc-sidebar.json' with { type: 'json' }
 
 export default defineConfig({
   title: 'Idetik',
@@ -13,16 +14,23 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
+      { text: 'API', link: '/api/' },
     ],
 
-    sidebar: [
-      {
-        text: 'Guide',
-        items: [
-          { text: 'Getting Started', link: '/guide/getting-started' },
-        ],
-      },
-    ],
+    sidebar: {
+      '/guide/': [
+        {
+          text: 'Guide',
+          items: [
+            { text: 'Getting Started', link: '/guide/getting-started' },
+          ],
+        },
+      ],
+      '/api/': [
+        { text: 'API Reference', link: '/api/' },
+        ...typedocSidebar,
+      ],
+    },
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/chanzuckerberg/idetik' },

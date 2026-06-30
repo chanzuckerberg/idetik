@@ -30,7 +30,11 @@ type FileSystemOmeZarrImageSourceProps = {
   path?: `/${string}`;
 };
 
-/** Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory. */
+/**
+ * Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory.
+ *
+ * @group Data Loading
+ */
 export class OmeZarrImageSource {
   readonly location: Location<Readable>;
   readonly version?: OmeZarrVersion;

@@ -5,6 +5,7 @@ import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
 import { Viewport } from "./viewport";
 
+/** @group Layers */
 export type LayerState = "initialized" | "loading" | "ready";
 export type BlendMode =
   | "none"
@@ -24,6 +25,22 @@ export interface LayerOptions {
   blendMode?: BlendMode;
 }
 
+/**
+ * Abstract base class for everything that can be added to a viewport.
+ *
+ * A `Layer` owns a set of renderable objects and contributes them to the scene
+ * each frame. Subclasses (e.g. {@link ImageLayer}, {@link VolumeLayer},
+ * {@link LabelLayer}) implement {@link Layer.update} to build or refresh those
+ * objects for the current view, and may override the `attach`/`detach` hooks to
+ * acquire and release resources when the layer joins or leaves a viewport.
+ *
+ * Layers carry shared presentation state — {@link Layer.opacity} and blend mode —
+ * and expose a lifecycle {@link LayerState} (`initialized` → `loading` → `ready`)
+ * that observers can subscribe to. A layer instance may be attached to only one
+ * viewport at a time.
+ *
+ * @group Layers
+ */
 export abstract class Layer {
   public abstract readonly type: string;
 

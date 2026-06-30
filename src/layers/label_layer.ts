@@ -27,6 +27,7 @@ export type LabelLayerProps = LayerOptions & {
   outlineSelected?: boolean;
 };
 
+/** @group Layers */
 export class LabelLayer extends Layer {
   public readonly type = "LabelLayer";
 

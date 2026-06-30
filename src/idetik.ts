@@ -12,10 +12,12 @@ import {
 } from "./core/viewport";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 
+/** @group Runtime */
 export type Overlay = {
   update(idetik: Idetik): void;
 };
 
+/** @inline */
 type IdetikParams = {
   canvas: HTMLCanvasElement;
   viewports?: ViewportConfig[];
@@ -29,6 +31,7 @@ export type IdetikContext = {
 
 // JS heap usage from the non-standard performance.memory API.
 // Chromium only, undefined where the API is unavailable.
+/** @group Runtime */
 export type MemoryStats = {
   cpuChunkBytes: number;
   cpuChunkCount: number;
@@ -38,6 +41,18 @@ export type MemoryStats = {
   jsHeapLimitBytes?: number;
 };
 
+/**
+ * The top-level entry point for an Idetik visualization.
+ *
+ * An `Idetik` instance owns the renderer, the shared chunk manager, and one or
+ * more viewports. Each viewport pairs a camera, its controls, and a stack of
+ * layers and draws into a region of the canvas. Call {@link Idetik.start} to
+ * begin the render loop and {@link Idetik.stop} to halt it.
+ *
+ * @see {@link Layer} for the data layers rendered within a viewport.
+ *
+ * @group Runtime
+ */
 export class Idetik {
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
