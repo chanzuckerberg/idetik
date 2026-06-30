@@ -1,10 +1,11 @@
 import { Logger } from "../utilities/logger";
-import type {
-  Texture,
-  TextureFilter,
-  TextureWrapMode,
-  TextureDataType,
-  TextureDataFormat,
+import {
+  textureStorageBytes,
+  type Texture,
+  type TextureFilter,
+  type TextureWrapMode,
+  type TextureDataType,
+  type TextureDataFormat,
 } from "../objects/textures/texture";
 
 import { Texture2D } from "../objects/textures/texture_2d";
@@ -150,8 +151,7 @@ export class WebGLTextures {
         this.currentTexture_ = null;
       }
 
-      const info = this.getDataFormatInfo(texture.dataFormat, texture.dataType);
-      const bytes = this.computeStorageBytes(texture, info);
+      const bytes = textureStorageBytes(texture);
       this.gpuTextureBytes_ = Math.max(0, this.gpuTextureBytes_ - bytes);
       this.textureCount_ = Math.max(0, this.textureCount_ - 1);
     }
@@ -200,7 +200,7 @@ export class WebGLTextures {
       throw new Error(`Unknown texture type ${texture.type}`);
     }
 
-    this.gpuTextureBytes_ += this.computeStorageBytes(texture, info);
+    this.gpuTextureBytes_ += textureStorageBytes(texture);
     this.textureCount_ += 1;
     this.textures_.set(texture, textureId);
     this.gl_.bindTexture(type, null);
@@ -374,50 +374,6 @@ export class WebGLTextures {
       }
     }
     throw new Error(`Unsupported format/type: ${format}/${type}`);
-  }
-
-  private computeStorageBytes(
-    texture: Texture,
-    info: TextureFormatInfo
-  ): number {
-    const bytes = this.bytesPerTexel(info);
-    const levels = Math.max(1, texture.mipmapLevels);
-    const depth = this.isTextureStorage3D(texture)
-      ? Math.max(1, texture.depth)
-      : 1;
-
-    let width = Math.max(1, texture.width);
-    let height = Math.max(1, texture.height);
-    let total = 0;
-    for (let level = 0; level < levels; level++) {
-      total += width * height * depth * bytes;
-      width = Math.max(1, width >> 1);
-      height = Math.max(1, height >> 1);
-    }
-
-    return total;
-  }
-
-  private bytesPerTexel(info: TextureFormatInfo): number {
-    const gl = this.gl_;
-    if (info.format === gl.RGB && info.type === gl.UNSIGNED_BYTE) return 3;
-    if (info.format === gl.RGBA && info.type === gl.UNSIGNED_BYTE) return 4;
-    if (info.format === gl.RED_INTEGER) {
-      switch (info.type) {
-        case gl.BYTE:
-        case gl.UNSIGNED_BYTE:
-          return 1;
-        case gl.SHORT:
-        case gl.UNSIGNED_SHORT:
-          return 2;
-        case gl.INT:
-        case gl.UNSIGNED_INT:
-          return 4;
-      }
-    }
-    if (info.format === gl.RED && info.type === gl.FLOAT) return 4;
-
-    throw new Error("bytesPerTexel: unsupported format/type");
   }
 
   private isTextureStorage3D(

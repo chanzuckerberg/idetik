@@ -25,16 +25,22 @@ export class OmeZarrImageLoader {
   >;
   private readonly arrayParams_: ReadonlyArray<ZarrArrayParams>;
   private readonly dimensions_: SourceDimensionMap;
+  private readonly bytesPerElement_: number;
 
   constructor(props: OmeZarrImageLoaderProps) {
     this.metadata_ = props.metadata;
     this.arrays_ = props.arrays;
     this.arrayParams_ = props.arrayParams;
     this.dimensions_ = inferSourceDimensionMap(this.metadata_, this.arrays_);
+    this.bytesPerElement_ = bytesPerElementForDtype(this.arrays_[0].dtype);
   }
 
   public getSourceDimensionMap(): SourceDimensionMap {
     return this.dimensions_;
+  }
+
+  public getBytesPerElement(): number {
+    return this.bytesPerElement_;
   }
 
   public async loadChunkData(chunk: Chunk, signal: AbortSignal) {
@@ -99,6 +105,14 @@ export class OmeZarrImageLoader {
     chunk.rowAlignmentBytes = rowAlignment;
     setChunkData(chunk, data);
   }
+}
+
+function bytesPerElementForDtype(dtype: zarr.DataType): number {
+  const bits = Number(/\d+/.exec(String(dtype))?.[0]);
+  if (!Number.isFinite(bits) || bits <= 0) {
+    throw new Error(`Cannot determine byte size for zarr dtype "${dtype}"`);
+  }
+  return bits / 8;
 }
 
 function inferSourceDimensionMap(
