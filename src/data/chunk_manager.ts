@@ -20,13 +20,20 @@ export class ChunkManager {
 
   private readonly uploadTexture_?: (texture: Texture) => void;
   private readonly disposeTexture_?: (texture: Texture) => void;
+  private readonly memoryLimitBytes_: number;
 
   constructor(
     uploadTexture?: (texture: Texture) => void,
-    disposeTexture?: (texture: Texture) => void
+    disposeTexture?: (texture: Texture) => void,
+    memoryLimitBytes: number = Infinity
   ) {
     this.uploadTexture_ = uploadTexture;
     this.disposeTexture_ = disposeTexture;
+    this.memoryLimitBytes_ = memoryLimitBytes;
+  }
+
+  public get memoryLimitBytes(): number {
+    return this.memoryLimitBytes_;
   }
 
   public get queueStats(): QueueStats {

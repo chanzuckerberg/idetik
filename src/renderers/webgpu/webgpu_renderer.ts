@@ -451,13 +451,12 @@ class WebGPURenderer extends Renderer {
     );
   }
 
-  // The experimental WebGPU texture pool does not track byte usage yet.
   public get gpuTextureBytes() {
-    return 0;
+    return this.texturePool_.gpuTextureBytes;
   }
 
   public get gpuTextureCount() {
-    return 0;
+    return this.texturePool_.textureCount;
   }
 }
 
