@@ -16,11 +16,14 @@ export type Overlay = {
   update(idetik: Idetik): void;
 };
 
+const DEFAULT_MEMORY_LIMIT_MB = 2048;
+
 type IdetikParams = {
   canvas: HTMLCanvasElement;
   viewports?: ViewportConfig[];
   overlays?: Overlay[];
   showStats?: boolean;
+  memoryLimitMB?: number;
 };
 
 export type IdetikContext = {
@@ -113,9 +116,12 @@ export class Idetik {
     this.canvas = params.canvas;
 
     this.renderer_ = renderer ?? new WebGLRenderer(this.canvas);
+    const memoryLimitMB = params.memoryLimitMB ?? DEFAULT_MEMORY_LIMIT_MB;
+    const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
     this.chunkManager_ = new ChunkManager(
       (texture) => this.renderer_.uploadTexture(texture),
-      (texture) => this.renderer_.disposeTexture(texture)
+      (texture) => this.renderer_.disposeTexture(texture),
+      memoryLimitBytes
     );
     this.context_ = {
       chunkManager: this.chunkManager_,
