@@ -121,6 +121,7 @@ export class Idetik {
     this.chunkManager_ = new ChunkManager(
       (texture) => this.renderer_.uploadTexture(texture),
       (texture) => this.renderer_.disposeTexture(texture),
+      () => this.renderer_.gpuTextureBytes,
       memoryLimitBytes
     );
     this.context_ = {
