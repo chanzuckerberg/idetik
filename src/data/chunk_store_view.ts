@@ -264,7 +264,7 @@ export class ChunkStoreView {
     for (const [chunk, state] of this.chunkViewStates_) {
       if (!state.visible || chunk.lod !== fallbackLOD) continue;
       foundAny = true;
-      if (chunk.state !== "loaded") return false;
+      if (chunk.texture === undefined) return false;
     }
     return foundAny;
   }

@@ -204,25 +204,6 @@ export class ChunkStore {
       chunk.priority === null && chunk.state === "queued";
     if (shouldCancelQueuedChunk) {
       chunk.state = "unloaded";
-      return;
-    }
-
-    const shouldDisposeChunk =
-      chunk.state === "loaded" && chunk.priority === null;
-    if (shouldDisposeChunk) {
-      if (chunk.visible || chunk.prefetch) {
-        throw new Error(
-          `Chunk state inconsistency detected: priority is null but visible=${chunk.visible} or prefetch=${chunk.prefetch} ` +
-            `for chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
-        );
-      }
-
-      chunk.state = "unloaded";
-      chunk.orderKey = null;
-      Logger.debug(
-        "ChunkStore",
-        `Disposing chunk ${JSON.stringify(chunk.chunkIndex)} in LOD ${chunk.lod}`
-      );
     }
   }
 

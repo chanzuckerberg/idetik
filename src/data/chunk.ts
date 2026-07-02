@@ -38,6 +38,7 @@ export type ChunkViewState = {
 export type Chunk = {
   data?: ChunkData;
   texture?: Texture;
+  releasedAt?: DOMHighResTimeStamp;
   state: "unloaded" | "queued" | "loading" | "loaded";
   lod: number;
   shape: {
