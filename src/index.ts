@@ -34,8 +34,15 @@ export {
   createPlaybackPolicy,
 } from "./core/image_source_policy";
 
+import type { Image } from "./data/ome_zarr/0.4/image";
+
 export type { ChannelProps } from "./core/channel";
-export type { Image as OmeZarrImage } from "./data/ome_zarr/0.4/image";
+/**
+ * Parsed OME-Zarr (OME-NGFF 0.4) image metadata.
+ *
+ * @group Data Loading
+ */
+export type OmeZarrImage = Image;
 export type { LayerState } from "./core/layer";
 export type { MemoryStats, Overlay } from "./idetik";
 export type { SliceCoordinates } from "./data/chunk";

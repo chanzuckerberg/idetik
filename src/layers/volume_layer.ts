@@ -23,6 +23,7 @@ export type VolumeLayerProps = {
 
 const INTERACTIVE_STEP_SIZE_SCALE = 2.0;
 
+/** @group Layers */
 export class VolumeLayer extends Layer implements ChannelsEnabled {
   public readonly type = "VolumeLayer";
 

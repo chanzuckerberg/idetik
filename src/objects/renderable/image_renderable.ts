@@ -19,6 +19,7 @@ type UniformValues = {
   u_zTexCoord: number;
 };
 
+/** @group Renderable Objects */
 export class ImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
 

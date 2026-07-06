@@ -8,6 +8,7 @@ type LineParameters = {
   width: number;
 };
 
+/** @group Renderable Objects */
 export class ProjectedLine extends RenderableObject {
   private color_: Color;
   private width_: number;

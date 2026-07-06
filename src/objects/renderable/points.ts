@@ -21,6 +21,7 @@ type PointProperties = {
   marker: Marker;
 };
 
+/** @group Renderable Objects */
 export class Points extends RenderableObject {
   constructor(points: PointProperties[]) {
     super();

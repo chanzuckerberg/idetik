@@ -1,7 +1,9 @@
 import { vec3, vec4 } from "gl-matrix";
 
+/** @group Layer Configuration */
 export type ColorLike = Color | vec3 | vec4 | string;
 
+/** @group Layer Configuration */
 export class Color {
   public static readonly RED: Color = new Color(1.0, 0.0, 0.0);
   public static readonly GREEN: Color = new Color(0.0, 1.0, 0.0);

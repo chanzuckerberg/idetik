@@ -41,6 +41,7 @@ export type ImageSourcePolicy = Readonly<{
   };
 }>;
 
+/** @group Layer Configuration */
 export function createImageSourcePolicy(
   config: ImageSourcePolicyConfig
 ): ImageSourcePolicy {
@@ -81,6 +82,7 @@ export function createImageSourcePolicy(
   return Object.freeze(resolved);
 }
 
+/** @group Layer Configuration */
 export function createExplorationPolicy(
   overrides: Partial<ImageSourcePolicyConfig> = {}
 ): ImageSourcePolicy {
@@ -98,6 +100,7 @@ export function createExplorationPolicy(
   return createImageSourcePolicy(mergeConfig(base, overrides));
 }
 
+/** @group Layer Configuration */
 export function createPlaybackPolicy(
   overrides: Partial<ImageSourcePolicyConfig> = {}
 ): ImageSourcePolicy {
@@ -115,6 +118,7 @@ export function createPlaybackPolicy(
   return createImageSourcePolicy(mergeConfig(base, overrides));
 }
 
+/** @group Layer Configuration */
 export function createNoPrefetchPolicy(
   overrides: Partial<ImageSourcePolicyConfig> = {}
 ): ImageSourcePolicy {

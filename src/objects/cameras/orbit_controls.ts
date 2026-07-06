@@ -24,6 +24,7 @@ type OrbitParams = {
   dampingFactor?: number;
 };
 
+/** @group Cameras & Controls */
 export class OrbitControls implements CameraControls {
   private readonly camera_: PerspectiveCamera;
 

@@ -34,6 +34,7 @@ function validateImageData(imageData: Texture) {
   return imageData;
 }
 
+/** @group Renderable Objects */
 export class LabelImageRenderable extends RenderableObject {
   private outlineSelected_: boolean;
   private selectedValue_: number | null;

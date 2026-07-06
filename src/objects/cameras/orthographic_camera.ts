@@ -6,6 +6,19 @@ const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 const DEFAULT_WIDTH = 128;
 const DEFAULT_HEIGHT = 128 / DEFAULT_ASPECT_RATIO;
 
+/**
+ * A camera using an orthographic (parallel) projection.
+ *
+ * Orthographic projection has no perspective foreshortening, so object size is
+ * independent of distance from the camera. This is the camera to use for 2D
+ * image viewing, where it pairs naturally with {@link PanZoomControls}. The
+ * initial frame is given in world coordinates; zoom and pan are applied as
+ * scale and translation on top of that frame.
+ *
+ * @see {@link PerspectiveCamera} for 3D scenes with perspective projection.
+ *
+ * @group Cameras & Controls
+ */
 export class OrthographicCamera extends Camera {
   // width_ and height_ should always be defined by constructor (see setFrame)
   private width_: number = DEFAULT_WIDTH;
@@ -13,6 +26,16 @@ export class OrthographicCamera extends Camera {
   private viewportAspectRatio_: number = DEFAULT_ASPECT_RATIO;
   private viewportSize_: [number, number] = [DEFAULT_WIDTH, DEFAULT_HEIGHT];
 
+  /**
+   * Creates an orthographic camera framing the given world-space rectangle.
+   *
+   * @param left - Left edge of the view frame, in world units.
+   * @param right - Right edge of the view frame, in world units.
+   * @param top - Top edge of the view frame, in world units.
+   * @param bottom - Bottom edge of the view frame, in world units.
+   * @param near - Near clipping plane distance. Defaults to `0.0`.
+   * @param far - Far clipping plane distance. Defaults to `100.0`.
+   */
   constructor(
     left: number,
     right: number,

@@ -12,6 +12,7 @@ export type Channel = {
   opacity: number;
 };
 
+/** @group Layer Configuration */
 export type ChannelProps = {
   visible?: boolean;
   color?: ColorLike;
