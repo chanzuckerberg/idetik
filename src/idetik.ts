@@ -26,6 +26,8 @@ type IdetikParams = {
   overlays?: Overlay[];
   showStats?: boolean;
   memoryLimitMB?: number;
+  maxConcurrentRequests?: number;
+  maxGpuUploadsPerUpdate?: number;
 };
 
 export type IdetikContext = {
@@ -137,7 +139,9 @@ export class Idetik {
       (texture) => this.renderer_.uploadTexture(texture),
       (texture) => this.renderer_.disposeTexture(texture),
       () => this.renderer_.gpuTextureBytes,
-      memoryLimitBytes
+      memoryLimitBytes,
+      params.maxConcurrentRequests,
+      params.maxGpuUploadsPerUpdate
     );
     this.context_ = {
       chunkManager: this.chunkManager_,

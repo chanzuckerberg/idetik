@@ -1,8 +1,6 @@
 import { Chunk } from "./chunk";
 import { Logger } from "../utilities/logger";
 
-const MAX_CONCURRENT = 8;
-
 type LoaderFn = (signal: AbortSignal) => Promise<void>;
 
 type PendingItem = { chunk: Chunk; fn: LoaderFn };
@@ -29,7 +27,7 @@ export class ChunkQueue {
     { controller: AbortController; promise: Promise<void> }
   >();
 
-  constructor(maxConcurrent = MAX_CONCURRENT) {
+  constructor(maxConcurrent: number) {
     this.maxConcurrent_ = Math.max(1, maxConcurrent);
   }
 
