@@ -84,16 +84,19 @@ export function textureStorageBytes(texture: Texture): number {
     textureChannelCount(texture) * textureBytesPerChannel(texture);
 
   const levels = Math.max(1, texture.mipmapLevels);
-  const depth = Math.max(1, texture.depth);
 
   let width = Math.max(1, texture.width);
   let height = Math.max(1, texture.height);
+  let depth = Math.max(1, texture.depth);
   let total = 0;
 
   for (let i = 0; i < levels; ++i) {
     total += bytesPerTexel * depth * width * height;
     width = Math.max(1, width >> 1);
     height = Math.max(1, height >> 1);
+    if (texture.type === "Texture3D") {
+      depth = Math.max(1, depth >> 1);
+    }
   }
 
   return total;

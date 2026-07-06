@@ -107,12 +107,25 @@ export class OmeZarrImageLoader {
   }
 }
 
+const BYTES_PER_ELEMENT: Partial<Record<zarr.DataType, number>> = {
+  int8: 1,
+  uint8: 1,
+  int16: 2,
+  uint16: 2,
+  int32: 4,
+  uint32: 4,
+  float32: 4,
+};
+
 function bytesPerElementForDtype(dtype: zarr.DataType): number {
-  const bits = Number(/\d+/.exec(String(dtype))?.[0]);
-  if (!Number.isFinite(bits) || bits <= 0) {
-    throw new Error(`Cannot determine byte size for zarr dtype "${dtype}"`);
+  const bytes = BYTES_PER_ELEMENT[dtype];
+  if (bytes === undefined) {
+    throw new Error(
+      `Unsupported zarr dtype "${dtype}". ` +
+        `Supported dtypes: ${Object.keys(BYTES_PER_ELEMENT).join(", ")}`
+    );
   }
-  return bits / 8;
+  return bytes;
 }
 
 function inferSourceDimensionMap(
