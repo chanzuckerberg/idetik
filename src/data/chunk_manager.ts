@@ -20,13 +20,23 @@ export class ChunkManager {
 
   private readonly uploadTexture_?: (texture: Texture) => void;
   private readonly disposeTexture_?: (texture: Texture) => void;
+  private readonly getGpuResidentBytes_: () => number;
+  private readonly memoryLimitBytes_: number;
 
   constructor(
     uploadTexture?: (texture: Texture) => void,
-    disposeTexture?: (texture: Texture) => void
+    disposeTexture?: (texture: Texture) => void,
+    getGpuResidentBytes: () => number = () => 0,
+    memoryLimitBytes: number = Infinity
   ) {
     this.uploadTexture_ = uploadTexture;
     this.disposeTexture_ = disposeTexture;
+    this.getGpuResidentBytes_ = getGpuResidentBytes;
+    this.memoryLimitBytes_ = memoryLimitBytes;
+  }
+
+  public get memoryLimitBytes(): number {
+    return this.memoryLimitBytes_;
   }
 
   public get queueStats(): QueueStats {
@@ -53,6 +63,8 @@ export class ChunkManager {
   }
 
   public update() {
+    const candidates: { source: ChunkSource; chunk: Chunk }[] = [];
+
     for (const { source, store } of this.stores_) {
       const updatedChunks = store.updateAndCollectChunkChanges();
 
@@ -62,15 +74,14 @@ export class ChunkManager {
           this.disposeChunkTexture(chunk);
           clearChunkData(chunk);
         } else if (chunk.state === "queued") {
-          this.queue_.enqueue(chunk, (signal) =>
-            source.loader.loadChunkData(chunk, signal)
-          );
+          candidates.push({ source, chunk });
         }
       }
 
       this.uploadLoadedChunks(updatedChunks);
     }
 
+    this.enqueueWithinBudget(candidates);
     this.queue_.flush();
 
     for (let i = this.stores_.length - 1; i >= 0; i--) {
@@ -78,6 +89,31 @@ export class ChunkManager {
         this.stores_.splice(i, 1);
       }
     }
+  }
+
+  private enqueueWithinBudget(
+    candidates: { source: ChunkSource; chunk: Chunk }[]
+  ) {
+    if (candidates.length === 0) return;
+
+    candidates.sort((a, b) => comparePriority(a.chunk, b.chunk));
+
+    let committedBytes = this.getGpuResidentBytes_();
+
+    for (const { source, chunk } of candidates) {
+      const bytes = this.chunkBytes(source, chunk);
+      if (committedBytes + bytes > this.memoryLimitBytes_) continue;
+
+      committedBytes += bytes;
+      this.queue_.enqueue(chunk, (signal) =>
+        source.loader.loadChunkData(chunk, signal)
+      );
+    }
+  }
+
+  private chunkBytes(source: ChunkSource, chunk: Chunk): number {
+    const bytesPerElement = source.loader.getBytesPerElement();
+    return chunk.shape.x * chunk.shape.y * chunk.shape.z * bytesPerElement;
   }
 
   private uploadLoadedChunks(chunks: Set<Chunk>) {

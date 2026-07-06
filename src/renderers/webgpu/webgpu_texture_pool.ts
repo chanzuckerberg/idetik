@@ -3,6 +3,7 @@ import {
   TextureDataType,
   textureBytesPerChannel,
   textureChannelCount,
+  textureStorageBytes,
 } from "@/objects/textures/texture";
 import { Texture3D } from "@/objects/textures/texture_3d";
 
@@ -14,6 +15,9 @@ type WebGPUTexture = {
 export default class WebGPUTexturePool {
   private readonly device_: GPUDevice;
   private readonly textures_: WebGPUTexture[];
+
+  private gpuTextureBytes_ = 0;
+  private textureCount_ = 0;
 
   constructor(device: GPUDevice) {
     this.device_ = device;
@@ -38,8 +42,14 @@ export default class WebGPUTexturePool {
           GPUTextureUsage.COPY_DST |
           GPUTextureUsage.COPY_SRC,
       });
-      this.textures_.push({ entry: entry, texture: texture });
-      cached = this.textures_[this.textures_.length - 1];
+
+      const created = { entry: entry, texture: texture };
+
+      cached = created;
+
+      this.textures_.push(created);
+      this.textureCount_ += 1;
+      this.gpuTextureBytes_ += textureStorageBytes(entry);
     }
 
     this.upload(entry, cached.texture);
@@ -48,6 +58,14 @@ export default class WebGPUTexturePool {
       this.readTexel(cached.texture, entry.dataType, x, y, z);
 
     return cached.texture;
+  }
+
+  public get gpuTextureBytes() {
+    return this.gpuTextureBytes_;
+  }
+
+  public get textureCount() {
+    return this.textureCount_;
   }
 
   private async readTexel(
@@ -103,11 +121,17 @@ export default class WebGPUTexturePool {
     this.textures_[index].texture.destroy();
     this.textures_.splice(index, 1);
     texture.readTexel = undefined;
+
+    const bytes = textureStorageBytes(texture);
+    this.gpuTextureBytes_ = Math.max(0, this.gpuTextureBytes_ - bytes);
+    this.textureCount_ = Math.max(0, this.textureCount_ - 1);
   }
 
   public disposeAll() {
     for (const t of this.textures_) t.texture.destroy();
     this.textures_.length = 0;
+    this.textureCount_ = 0;
+    this.gpuTextureBytes_ = 0;
   }
 }
 

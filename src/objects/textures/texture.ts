@@ -79,6 +79,29 @@ export function textureBytesPerChannel(texture: Texture) {
   }
 }
 
+export function textureStorageBytes(texture: Texture): number {
+  const bytesPerTexel =
+    textureChannelCount(texture) * textureBytesPerChannel(texture);
+
+  const levels = Math.max(1, texture.mipmapLevels);
+
+  let width = Math.max(1, texture.width);
+  let height = Math.max(1, texture.height);
+  let depth = Math.max(1, texture.depth);
+  let total = 0;
+
+  for (let i = 0; i < levels; ++i) {
+    total += bytesPerTexel * depth * width * height;
+    width = Math.max(1, width >> 1);
+    height = Math.max(1, height >> 1);
+    if (texture.type === "Texture3D") {
+      depth = Math.max(1, depth >> 1);
+    }
+  }
+
+  return total;
+}
+
 export function textureDefaultValueRange(texture: Texture): [number, number] {
   if (texture.dataFormat === "rgb" || texture.dataFormat === "rgba") {
     return [0, 1];
@@ -134,6 +157,10 @@ export abstract class Texture extends Node {
 
   public abstract get width(): number;
   public abstract get height(): number;
+
+  public get depth(): number {
+    return 1;
+  }
 
   public get type() {
     return "Texture";

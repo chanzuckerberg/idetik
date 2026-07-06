@@ -110,6 +110,8 @@ export type ChunkSource = {
 export type ChunkLoader = {
   getSourceDimensionMap(): SourceDimensionMap;
 
+  getBytesPerElement(): number;
+
   loadChunkData(chunk: Chunk, signal: AbortSignal): Promise<void>;
 };
 
