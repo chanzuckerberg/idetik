@@ -17,7 +17,7 @@ async function expectCounts(
 
 describe("ChunkQueue", () => {
   test("successful load sets state to loaded", async () => {
-    const queue = new ChunkQueue();
+    const queue = new ChunkQueue(8);
     const ctl = makeControllableLoader();
     const chunk = makeChunk({ state: "queued", priority: 0 });
 
@@ -51,7 +51,7 @@ describe("ChunkQueue", () => {
   });
 
   test("respects priority ordering when starting", async () => {
-    const queue = new ChunkQueue();
+    const queue = new ChunkQueue(8);
 
     const started: number[] = [];
     const ctl0 = makeControllableLoader(() => started.push(0));
@@ -101,7 +101,7 @@ describe("ChunkQueue", () => {
   });
 
   test("tie-breaks by orderKey within equal priority", async () => {
-    const queue = new ChunkQueue();
+    const queue = new ChunkQueue(8);
 
     const started: number[] = [];
     const ctl2 = makeControllableLoader(() => started.push(2));
@@ -132,7 +132,7 @@ describe("ChunkQueue", () => {
   });
 
   test("does not process the same chunk twice", async () => {
-    const queue = new ChunkQueue();
+    const queue = new ChunkQueue(8);
     const chunk = makeChunk({ state: "queued", priority: 0 });
 
     const ctl = makeControllableLoader();
@@ -168,7 +168,7 @@ describe("ChunkQueue", () => {
   });
 
   test("cancel running request aborts and resets", async () => {
-    const queue = new ChunkQueue();
+    const queue = new ChunkQueue(8);
     const ctl = makeControllableLoader();
     const chunk = makeChunk({ state: "queued" });
 

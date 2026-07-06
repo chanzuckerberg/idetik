@@ -12,27 +12,33 @@ export type QueueStats = {
   running: number;
 };
 
-const MAX_UPLOADS_PER_STORE_PER_UPDATE = 4;
+const DEFAULT_MAX_CONCURRENT_REQUESTS = 8;
+const DEFAULT_MAX_GPU_UPLOADS_PER_UPDATE = 4;
 
 export class ChunkManager {
   private readonly stores_: { source: ChunkSource; store: ChunkStore }[] = [];
-  private readonly queue_ = new ChunkQueue();
+  private readonly queue_: ChunkQueue;
 
   private readonly uploadTexture_?: (texture: Texture) => void;
   private readonly disposeTexture_?: (texture: Texture) => void;
   private readonly getGpuResidentBytes_: () => number;
   private readonly memoryLimitBytes_: number;
+  private readonly maxGpuUploadsPerUpdate_: number;
 
   constructor(
     uploadTexture?: (texture: Texture) => void,
     disposeTexture?: (texture: Texture) => void,
     getGpuResidentBytes: () => number = () => 0,
-    memoryLimitBytes: number = Infinity
+    memoryLimitBytes: number = Infinity,
+    maxConcurrentRequests: number = DEFAULT_MAX_CONCURRENT_REQUESTS,
+    maxGpuUploadsPerUpdate: number = DEFAULT_MAX_GPU_UPLOADS_PER_UPDATE
   ) {
     this.uploadTexture_ = uploadTexture;
     this.disposeTexture_ = disposeTexture;
     this.getGpuResidentBytes_ = getGpuResidentBytes;
     this.memoryLimitBytes_ = memoryLimitBytes;
+    this.maxGpuUploadsPerUpdate_ = Math.max(1, maxGpuUploadsPerUpdate);
+    this.queue_ = new ChunkQueue(maxConcurrentRequests);
   }
 
   public get memoryLimitBytes(): number {
@@ -131,7 +137,7 @@ export class ChunkManager {
 
     pending.sort(comparePriority);
 
-    const limit = Math.min(pending.length, MAX_UPLOADS_PER_STORE_PER_UPDATE);
+    const limit = Math.min(pending.length, this.maxGpuUploadsPerUpdate_);
 
     for (let i = 0; i < limit; i++) {
       const chunk = pending[i];
