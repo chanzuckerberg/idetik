@@ -4,7 +4,7 @@ import { chunkMemoryStats, clearChunkData } from "./chunk_memory";
 import { ChunkStore } from "./chunk_store";
 import { ChunkStoreView } from "./chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
-import { Texture } from "../objects/textures/texture";
+import { Texture, textureStorageBytes } from "../objects/textures/texture";
 import { Texture3D } from "../objects/textures/texture_3d";
 
 export type QueueStats = {
@@ -24,6 +24,8 @@ export class ChunkManager {
   private readonly getGpuResidentBytes_: () => number;
   private readonly memoryLimitBytes_: number;
   private readonly maxGpuUploadsPerUpdate_: number;
+
+  private readonly resident_ = new Set<Chunk>();
 
   constructor(
     uploadTexture?: (texture: Texture) => void,
@@ -76,11 +78,12 @@ export class ChunkManager {
 
       for (const chunk of updatedChunks) {
         if (chunk.priority === null) {
-          this.queue_.cancel(chunk);
-          this.disposeChunkTexture(chunk);
-          clearChunkData(chunk);
-        } else if (chunk.state === "queued") {
-          candidates.push({ source, chunk });
+          this.releaseChunk(chunk);
+        } else {
+          chunk.releasedAt = undefined;
+          if (chunk.state === "queued") {
+            candidates.push({ source, chunk });
+          }
         }
       }
 
@@ -97,6 +100,18 @@ export class ChunkManager {
     }
   }
 
+  private releaseChunk(chunk: Chunk) {
+    this.queue_.cancel(chunk);
+
+    if (chunk.texture !== undefined) {
+      chunk.releasedAt ??= performance.now();
+      return;
+    }
+
+    clearChunkData(chunk);
+    if (chunk.state === "loaded") chunk.state = "unloaded";
+  }
+
   private enqueueWithinBudget(
     candidates: { source: ChunkSource; chunk: Chunk }[]
   ) {
@@ -105,9 +120,25 @@ export class ChunkManager {
     candidates.sort((a, b) => comparePriority(a.chunk, b.chunk));
 
     let committedBytes = this.getGpuResidentBytes_();
+    let victims: Chunk[] | null = null;
 
     for (const { source, chunk } of candidates) {
       const bytes = this.chunkBytes(source, chunk);
+
+      // A chunk that can never fit must not trigger eviction. It would drain
+      // the entire cache and still be skipped.
+      if (bytes > this.memoryLimitBytes_) continue;
+
+      if (committedBytes + bytes > this.memoryLimitBytes_) {
+        victims ??= this.evictionCandidates();
+        committedBytes = this.evictWorseChunks(
+          committedBytes,
+          bytes,
+          chunk,
+          victims
+        );
+      }
+
       if (committedBytes + bytes > this.memoryLimitBytes_) continue;
 
       committedBytes += bytes;
@@ -115,6 +146,44 @@ export class ChunkManager {
         source.loader.loadChunkData(chunk, signal)
       );
     }
+  }
+
+  private evictionCandidates(): Chunk[] {
+    const victims: Chunk[] = [];
+
+    for (const chunk of this.resident_) {
+      if (chunk.visible) continue;
+      victims.push(chunk);
+    }
+
+    return victims.sort((a, b) => {
+      const byRankDescending = -comparePriority(a, b);
+      if (byRankDescending !== 0) return byRankDescending;
+      return (a.releasedAt ?? 0) - (b.releasedAt ?? 0);
+    });
+  }
+
+  private evictWorseChunks(
+    committedBytes: number,
+    pendingBytes: number,
+    candidate: Chunk,
+    victims: Chunk[]
+  ): number {
+    while (
+      committedBytes + pendingBytes > this.memoryLimitBytes_ &&
+      victims.length > 0 &&
+      comparePriority(victims[0], candidate) > 0
+    ) {
+      const victim = victims.shift()!;
+      if (victim.texture === undefined) continue;
+
+      committedBytes -= textureStorageBytes(victim.texture);
+      this.disposeChunkTexture(victim);
+      victim.state = "unloaded";
+      victim.releasedAt = undefined;
+    }
+
+    return committedBytes;
   }
 
   private chunkBytes(source: ChunkSource, chunk: Chunk): number {
@@ -144,6 +213,7 @@ export class ChunkManager {
       const texture = Texture3D.createWithChunk(chunk);
       this.uploadTexture_(texture);
       chunk.texture = texture;
+      this.resident_.add(chunk);
       clearChunkData(chunk);
     }
   }
@@ -154,5 +224,6 @@ export class ChunkManager {
     if (chunk.texture === undefined) return;
     this.disposeTexture_(chunk.texture);
     chunk.texture = undefined;
+    this.resident_.delete(chunk);
   }
 }
