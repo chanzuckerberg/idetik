@@ -341,15 +341,13 @@ export class ChunkStoreView {
     viewBoundsCenter2D: ReadonlyVec2
   ): void {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
-    const tEnd = Math.min(
-      numTimePoints - 1,
-      currentTimeIndex + this.policy_.prefetch.t
-    );
+    const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
     const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
     const channels = this.channelsOfInterest(sliceCoords);
 
-    for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
+    for (let i = 1; i <= windowSize; ++i) {
+      const t = (currentTimeIndex + i) % numTimePoints;
       this.iterateChunksInBox(
         t,
         fallbackLOD,
@@ -365,7 +363,7 @@ export class ChunkStoreView {
             0,
             1 - Number.EPSILON
           );
-          const orderKey = t - currentTimeIndex + normalizedDistance;
+          const orderKey = i + normalizedDistance;
 
           this.chunkViewStates_.set(chunk, {
             visible: false,
@@ -383,17 +381,15 @@ export class ChunkStoreView {
     sliceCoords: SliceCoordinates
   ) {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
-    const tEnd = Math.min(
-      numTimePoints - 1,
-      currentTimeIndex + this.policy_.prefetch.t
-    );
+    const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
     const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
     const channels = this.channelsOfInterest(sliceCoords);
 
-    for (let t = currentTimeIndex + 1; t <= tEnd; ++t) {
+    for (let i = 1; i <= windowSize; ++i) {
+      const t = (currentTimeIndex + i) % numTimePoints;
       this.iterateAllChunksAtLod(t, fallbackLOD, channels, (chunk) => {
-        const orderKey = t - currentTimeIndex; // nearer future timepoints first
+        const orderKey = i; // nearer along the playback loop first
         this.chunkViewStates_.set(chunk, {
           visible: false,
           prefetch: true,
