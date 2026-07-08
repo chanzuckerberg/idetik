@@ -153,7 +153,7 @@ export class Idetik {
       this.context_
     );
 
-    this.overlays = params.overlays ?? [];
+    this.overlays = [...(params.overlays ?? [])];
 
     if (params.showStats) this.stats_ = createStats();
 
@@ -259,6 +259,25 @@ export class Idetik {
     this.viewports_.splice(index, 1);
     Logger.info("Idetik", `Removed viewport "${viewport.id}"`);
     return true;
+  }
+
+  public addOverlay(overlay: Overlay): void {
+    this.overlays.push(overlay);
+  }
+
+  public removeOverlay(overlay: Overlay): boolean {
+    const index = this.overlays.indexOf(overlay);
+    if (index === -1) {
+      Logger.warn("Idetik", "Overlay not found, nothing to remove");
+      return false;
+    }
+
+    this.overlays.splice(index, 1);
+    return true;
+  }
+
+  public setMemoryLimitMB(memoryLimitMB: number): void {
+    this.chunkManager_.memoryLimitBytes = memoryLimitMB * 1024 * 1024;
   }
 
   public start() {

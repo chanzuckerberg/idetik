@@ -22,7 +22,7 @@ export class ChunkManager {
   private readonly uploadTexture_?: (texture: Texture) => void;
   private readonly disposeTexture_?: (texture: Texture) => void;
   private readonly getGpuResidentBytes_: () => number;
-  private readonly memoryLimitBytes_: number;
+  private memoryLimitBytes_: number;
   private readonly maxGpuUploadsPerUpdate_: number;
 
   private readonly resident_ = new Set<Chunk>();
@@ -45,6 +45,10 @@ export class ChunkManager {
 
   public get memoryLimitBytes(): number {
     return this.memoryLimitBytes_;
+  }
+
+  public set memoryLimitBytes(value: number) {
+    this.memoryLimitBytes_ = value;
   }
 
   public get queueStats(): QueueStats {
