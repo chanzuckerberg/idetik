@@ -106,6 +106,26 @@ const xLod = dimensions.x.lods[0];
 const yLod = dimensions.y.lods[0];
 const zLod = dimensions.z?.lods[0];
 const tLod = dimensions.t?.lods[0];
+const maxTemporalPrefetch = Math.min(Math.max((tLod?.size ?? 1) - 1, 0), 25);
+const temporalPrefetchState = {
+  backward: 0,
+  forward: Math.min(20, maxTemporalPrefetch),
+};
+let playbackRateHz = 0;
+
+function createCurrentImageSourcePolicy() {
+  const temporalPrefetch = [
+    temporalPrefetchState.backward,
+    temporalPrefetchState.forward,
+  ] as const;
+  return playbackRateHz > 0
+    ? createPlaybackPolicy({
+        prefetch: { x: 0, y: 0, z: 0, t: temporalPrefetch },
+      })
+    : createExplorationPolicy({
+        prefetch: { x: 1, y: 1, z: 1, t: temporalPrefetch },
+      });
+}
 
 const sliceCoords: SliceCoordinates = {
   c: [config.channel],
@@ -135,9 +155,13 @@ const channelProps: ChannelProps[] = Array.from(
 const imageLayer = new ImageLayer({
   source,
   sliceCoords,
-  policy: createExplorationPolicy(),
+  policy: createCurrentImageSourcePolicy(),
   channelProps,
 });
+
+function updateImageSourcePolicy() {
+  imageLayer.imageSourcePolicy = createCurrentImageSourcePolicy();
+}
 
 const camera = new OrthographicCamera(
   xLod.translation,
@@ -244,11 +268,21 @@ if (tLod && tLod.size > 1) {
     stepValue: tLod.scale,
     playback: {
       onRateChange: (rateHz: number) => {
-        imageLayer.imageSourcePolicy =
-          rateHz > 0 ? createPlaybackPolicy() : createExplorationPolicy();
+        playbackRateHz = rateHz;
+        updateImageSourcePolicy();
       },
     },
   });
+
+  const temporalPrefetchFolder = gui.addFolder("Temporal Prefetch");
+  temporalPrefetchFolder
+    .add(temporalPrefetchState, "backward", 0, maxTemporalPrefetch, 1)
+    .name("Backward timepoints")
+    .onChange(updateImageSourcePolicy);
+  temporalPrefetchFolder
+    .add(temporalPrefetchState, "forward", 0, maxTemporalPrefetch, 1)
+    .name("Forward timepoints")
+    .onChange(updateImageSourcePolicy);
 }
 
 const channelFolder = gui.addFolder("Channel");
@@ -293,8 +327,84 @@ debugFolder
   .add(debugState, "showWireframes")
   .name("Show tile wireframes")
   .onChange((show: boolean) => (imageLayer.debugMode = show));
+if (tLod && tLod.size > 1) {
+  debugFolder
+    .add({ logTemporalChunkStates }, "logTemporalChunkStates")
+    .name("Log temporal chunk states");
+}
 
 void idetik;
+
+type TemporalChunkStateSummary = {
+  timeIndex: number;
+  direction: "backward" | "current" | "forward" | "equidistant";
+  distance: number;
+  chunks: number;
+  visible: number;
+  prefetch: number;
+  queued: number;
+  loading: number;
+  decoded: number;
+  residentTexture: number;
+  pendingRelease: number;
+};
+
+function logTemporalChunkStates() {
+  const view = imageLayer.chunkStoreView;
+  if (!view || !tLod || sliceCoords.t === undefined) {
+    console.info("No temporal chunk states available.");
+    return;
+  }
+
+  const currentTimeIndex = Math.round(
+    (sliceCoords.t - tLod.translation) / tLod.scale
+  );
+  const summariesByTimeIndex = new Map<number, TemporalChunkStateSummary>();
+
+  for (const [chunk, state] of view.chunkViewStates) {
+    const timeIndex = chunk.chunkIndex.t;
+    const forwardOffset =
+      (timeIndex - currentTimeIndex + tLod.size) % tLod.size;
+    const backwardOffset =
+      (currentTimeIndex - timeIndex + tLod.size) % tLod.size;
+    const summary = summariesByTimeIndex.get(timeIndex) ?? {
+      timeIndex,
+      direction:
+        forwardOffset === 0
+          ? "current"
+          : backwardOffset < forwardOffset
+            ? "backward"
+            : forwardOffset < backwardOffset
+              ? "forward"
+              : "equidistant",
+      distance: Math.min(forwardOffset, backwardOffset),
+      chunks: 0,
+      visible: 0,
+      prefetch: 0,
+      queued: 0,
+      loading: 0,
+      decoded: 0,
+      residentTexture: 0,
+      pendingRelease: 0,
+    };
+
+    ++summary.chunks;
+    summary.visible += Number(state.visible);
+    summary.prefetch += Number(state.prefetch);
+    summary.queued += Number(chunk.state === "queued");
+    summary.loading += Number(chunk.state === "loading");
+    summary.decoded += Number(chunk.data !== undefined);
+    summary.residentTexture += Number(chunk.texture !== undefined);
+    summary.pendingRelease += Number(
+      chunk.texture !== undefined && chunk.releasedAt !== undefined
+    );
+    summariesByTimeIndex.set(timeIndex, summary);
+  }
+
+  console.table(
+    [...summariesByTimeIndex.values()].sort((a, b) => a.timeIndex - b.timeIndex)
+  );
+}
 
 function formatDatasetInfo(
   cfg: DatasetConfig,

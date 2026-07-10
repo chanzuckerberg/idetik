@@ -1,5 +1,6 @@
-import { expect, test } from "vitest";
+import { expect, expectTypeOf, test } from "vitest";
 import {
+  type ImageSourcePolicy,
   PriorityCategory,
   createImageSourcePolicy,
   createExplorationPolicy,
@@ -23,6 +24,7 @@ test("createImageSourcePolicy fills defaults for optional fields", () => {
 
   expect(p.profile).toBe("custom");
   expect(p.prefetch).toEqual({ x: 1, y: 2, z: 0, t: 0 });
+  expectTypeOf(p.prefetch.t).toEqualTypeOf<number>();
   expect(p.lod).toEqual({ min: 0, max: Number.MAX_SAFE_INTEGER, bias: 0.5 });
   expect(Object.keys(p.priorityMap)).toHaveLength(5);
   expect(Object.isFrozen(p.priorityMap)).toBe(true);
@@ -73,6 +75,41 @@ test("createPlaybackPolicy sets playback defaults", () => {
   });
 });
 
+test("infers scalar and tuple temporal prefetch readback types", () => {
+  type TemporalTuple = readonly [number, number];
+  const tupleOverrides = {
+    prefetch: { x: 0, y: 0, z: 0, t: [2, 1] as TemporalTuple },
+  };
+  const createPolicyWithOptionalTuple = (overrides: {
+    prefetch?: typeof tupleOverrides.prefetch;
+  }) => createPlaybackPolicy(overrides);
+
+  expectTypeOf(createPlaybackPolicy().prefetch.t).toEqualTypeOf<number>();
+  expectTypeOf(
+    createPlaybackPolicy(tupleOverrides).prefetch.t
+  ).toEqualTypeOf<TemporalTuple>();
+  expectTypeOf(
+    createPolicyWithOptionalTuple
+  ).returns.toEqualTypeOf<ImageSourcePolicy>();
+
+  // @ts-expect-error Explicit non-undefined overrides require an argument.
+  createPlaybackPolicy<typeof tupleOverrides>();
+});
+
+test("copies and freezes temporal prefetch tuples", () => {
+  const temporalPrefetch: [number, number] = [2, 1];
+  const p = createImageSourcePolicy({
+    prefetch: { x: 0, y: 0, t: temporalPrefetch },
+    priorityOrder: [...VALID_PRIORITY_ORDER] as const,
+  });
+
+  temporalPrefetch[0] = 10;
+
+  expectTypeOf(p.prefetch.t).toEqualTypeOf<readonly [number, number]>();
+  expect(p.prefetch.t).toEqual([2, 1]);
+  expect(Object.isFrozen(p.prefetch.t)).toBe(true);
+});
+
 test("throws on negative prefetch values", () => {
   expect(() =>
     createImageSourcePolicy({
@@ -80,6 +117,38 @@ test("throws on negative prefetch values", () => {
       priorityOrder: VALID_PRIORITY_ORDER,
     })
   ).toThrow("prefetch.x must be a non-negative number");
+});
+
+test("throws on negative temporal tuple values", () => {
+  expect(() =>
+    createImageSourcePolicy({
+      prefetch: { x: 0, y: 0, t: [-1, 0] },
+      priorityOrder: VALID_PRIORITY_ORDER,
+    })
+  ).toThrow("prefetch.t[0] must be a non-negative number");
+
+  expect(() =>
+    createImageSourcePolicy({
+      prefetch: { x: 0, y: 0, t: [0, -1] },
+      priorityOrder: VALID_PRIORITY_ORDER,
+    })
+  ).toThrow("prefetch.t[1] must be a non-negative number");
+});
+
+test("throws on NaN temporal tuple values", () => {
+  expect(() =>
+    createImageSourcePolicy({
+      prefetch: { x: 0, y: 0, t: [NaN, 0] },
+      priorityOrder: VALID_PRIORITY_ORDER,
+    })
+  ).toThrow("prefetch.t[0] must be a non-negative number");
+
+  expect(() =>
+    createImageSourcePolicy({
+      prefetch: { x: 0, y: 0, t: [0, NaN] },
+      priorityOrder: VALID_PRIORITY_ORDER,
+    })
+  ).toThrow("prefetch.t[1] must be a non-negative number");
 });
 
 test("throws when lod.min > lod.max", () => {

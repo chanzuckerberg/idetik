@@ -340,63 +340,100 @@ export class ChunkStoreView {
     viewBounds3D: Box3,
     viewBoundsCenter2D: ReadonlyVec2
   ): void {
-    const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
-    const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
     const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
     const channels = this.channelsOfInterest(sliceCoords);
 
-    for (let i = 1; i <= windowSize; ++i) {
-      const t = (currentTimeIndex + i) % numTimePoints;
-      this.iterateChunksInBox(
-        t,
-        fallbackLOD,
-        channels,
-        viewBounds3D,
-        (chunk) => {
-          const squareDistance = this.squareDistance2D(
-            chunk,
-            viewBoundsCenter2D
-          );
-          const normalizedDistance = clamp(
-            squareDistance / this.sourceMaxSquareDistance2D_,
-            0,
-            1 - Number.EPSILON
-          );
-          const orderKey = i + normalizedDistance;
+    this.forEachPrefetchTimeIndex(
+      currentTimeIndex,
+      (timeIndex, temporalDistance) => {
+        this.iterateChunksInBox(
+          timeIndex,
+          fallbackLOD,
+          channels,
+          viewBounds3D,
+          (chunk) => {
+            const squareDistance = this.squareDistance2D(
+              chunk,
+              viewBoundsCenter2D
+            );
+            const normalizedDistance = clamp(
+              squareDistance / this.sourceMaxSquareDistance2D_,
+              0,
+              1 - Number.EPSILON
+            );
+            const orderKey = temporalDistance + normalizedDistance;
 
-          this.chunkViewStates_.set(chunk, {
-            visible: false,
-            prefetch: true,
-            priority,
-            orderKey,
-          });
-        }
-      );
-    }
+            this.chunkViewStates_.set(chunk, {
+              visible: false,
+              prefetch: true,
+              priority,
+              orderKey,
+            });
+          }
+        );
+      }
+    );
   }
 
   private markTimeChunksForPrefetchVolume(
     currentTimeIndex: number,
     sliceCoords: SliceCoordinates
-  ) {
-    const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
-    const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
+  ): void {
     const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
     const channels = this.channelsOfInterest(sliceCoords);
 
-    for (let i = 1; i <= windowSize; ++i) {
-      const t = (currentTimeIndex + i) % numTimePoints;
-      this.iterateAllChunksAtLod(t, fallbackLOD, channels, (chunk) => {
-        const orderKey = i; // nearer along the playback loop first
-        this.chunkViewStates_.set(chunk, {
-          visible: false,
-          prefetch: true,
-          priority,
-          orderKey,
-        });
-      });
+    this.forEachPrefetchTimeIndex(
+      currentTimeIndex,
+      (timeIndex, temporalDistance) => {
+        this.iterateAllChunksAtLod(
+          timeIndex,
+          fallbackLOD,
+          channels,
+          (chunk) => {
+            this.chunkViewStates_.set(chunk, {
+              visible: false,
+              prefetch: true,
+              priority,
+              orderKey: temporalDistance,
+            });
+          }
+        );
+      }
+    );
+  }
+
+  private forEachPrefetchTimeIndex(
+    currentTimeIndex: number,
+    callback: (timeIndex: number, temporalDistance: number) => void
+  ): void {
+    const timePointCount = this.store_.dimensions.t?.lods[0].size ?? 1;
+    const temporalPrefetch = this.policy_.prefetch.t;
+    const isScalar = typeof temporalPrefetch === "number";
+    const backward = isScalar ? 0 : temporalPrefetch[0];
+    const forward = isScalar ? temporalPrefetch : temporalPrefetch[1];
+
+    const maxWindow = timePointCount - 1;
+    const backwardWindow = Math.min(Math.floor(backward), maxWindow);
+    const forwardWindow = Math.min(Math.floor(forward), maxWindow);
+
+    for (let distance = 1; distance <= forwardWindow; ++distance) {
+      const backwardDistance = timePointCount - distance;
+      const nearestDistance =
+        backwardDistance <= backwardWindow
+          ? Math.min(distance, backwardDistance)
+          : distance;
+      const timeIndex = (currentTimeIndex + distance) % timePointCount;
+      callback(timeIndex, nearestDistance);
+    }
+
+    for (let distance = 1; distance <= backwardWindow; ++distance) {
+      const forwardDistance = timePointCount - distance;
+      if (forwardDistance <= forwardWindow) continue;
+      const timeIndex =
+        (currentTimeIndex - distance + timePointCount) % timePointCount;
+      callback(timeIndex, distance);
     }
   }
 
