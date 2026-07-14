@@ -2,7 +2,7 @@ import { Layer, LayerOptions } from "../core/layer";
 import { Viewport } from "../core/viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import type { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
+import { Chunk, ChunkSource, SliceAxes, SliceCoordinates } from "../data/chunk";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
@@ -33,6 +33,7 @@ export class LabelLayer extends Layer {
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
+  private readonly axes_: SliceAxes = { u: "x", v: "y", w: "z" };
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly outlineSelected_: boolean;
   private readonly visibleChunks_: Map<Chunk, LabelImageRenderable> = new Map();
@@ -107,7 +108,7 @@ export class LabelLayer extends Layer {
     this.updateChunks();
 
     for (const [chunk, labelRenderable] of this.visibleChunks_) {
-      labelRenderable.zTexCoord = this.zTexCoordForChunk(chunk);
+      labelRenderable.sliceTexCoord = this.sliceTexCoordForChunk(chunk);
     }
   }
 
@@ -242,15 +243,26 @@ export class LabelLayer extends Layer {
       label.transform.inverse
     );
 
-    const x = Math.floor(localPos[0]);
-    const y = Math.floor(localPos[1]);
+    const { u, v, w } = this.axes_;
+    const uIdx = Math.floor(localPos[0]);
+    const vIdx = Math.floor(localPos[1]);
 
-    if (x < 0 || x >= chunk.shape.x || y < 0 || y >= chunk.shape.y) {
+    if (
+      uIdx < 0 ||
+      uIdx >= chunk.shape[u] ||
+      vIdx < 0 ||
+      vIdx >= chunk.shape[v]
+    ) {
       return null;
     }
 
-    const z = this.zSliceIndex(chunk);
-    return (await label.textures[0].readTexel?.(x, y, z)) ?? null;
+    const texel = { x: 0, y: 0, z: 0 };
+    texel[u] = uIdx;
+    texel[v] = vIdx;
+    texel[w] = this.sliceIndexForChunk(chunk);
+    return (
+      (await label.textures[0].readTexel?.(texel.x, texel.y, texel.z)) ?? null
+    );
   }
 
   private getLabelForChunk(chunk: Chunk, texture: Texture) {
@@ -260,7 +272,7 @@ export class LabelLayer extends Layer {
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
       pooled.setTexture(0, texture);
-      pooled.zTexCoord = this.zTexCoordForChunk(chunk);
+      pooled.sliceTexCoord = this.sliceTexCoordForChunk(chunk);
       pooled.setColorMap(this.colorMap_);
       pooled.setSelectedValue(this.selectedValue_);
       this.updateLabelChunk(pooled, chunk);
@@ -273,32 +285,37 @@ export class LabelLayer extends Layer {
 
   private createLabel(chunk: Chunk, texture: Texture) {
     const label = new LabelImageRenderable({
-      width: chunk.shape.x,
-      height: chunk.shape.y,
+      width: chunk.shape[this.axes_.u],
+      height: chunk.shape[this.axes_.v],
       imageData: texture,
       colorMap: this.colorMap_,
       outlineSelected: this.outlineSelected_,
       selectedValue: this.selectedValue_,
     });
-    label.zTexCoord = this.zTexCoordForChunk(chunk);
+    label.sliceTexCoord = this.sliceTexCoordForChunk(chunk);
     this.updateLabelChunk(label, chunk);
     return label;
   }
 
-  private zSliceIndex(chunk: Chunk): number {
-    const zValue = this.sliceCoords_.z;
-    if (zValue === undefined) return 0;
-    const zLocal = (zValue - chunk.offset.z) / chunk.scale.z;
-    return clamp(Math.round(zLocal), 0, chunk.shape.z - 1);
+  private sliceIndexForChunk(chunk: Chunk): number {
+    const w = this.axes_.w;
+    const sliceValue = this.sliceCoords_[w];
+    if (sliceValue === undefined) {
+      return 0;
+    }
+
+    const local = (sliceValue - chunk.offset[w]) / chunk.scale[w];
+    return clamp(Math.round(local), 0, chunk.shape[w] - 1);
   }
 
-  private zTexCoordForChunk(chunk: Chunk): number {
-    return (this.zSliceIndex(chunk) + 0.5) / chunk.shape.z;
+  private sliceTexCoordForChunk(chunk: Chunk): number {
+    return (this.sliceIndexForChunk(chunk) + 0.5) / chunk.shape[this.axes_.w];
   }
 
   private updateLabelChunk(label: LabelImageRenderable, chunk: Chunk) {
-    label.transform.setScale([chunk.scale.x, chunk.scale.y, 1]);
-    label.transform.setTranslation([chunk.offset.x, chunk.offset.y, 0]);
+    const { u, v } = this.axes_;
+    label.transform.setScale([chunk.scale[u], chunk.scale[v], 1]);
+    label.transform.setTranslation([chunk.offset[u], chunk.offset[v], 0]);
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {

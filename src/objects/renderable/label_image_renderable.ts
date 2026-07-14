@@ -41,7 +41,7 @@ export class LabelImageRenderable extends RenderableObject {
 
   // The layer overwrites this per chunk with a texel-centered slice coordinate.
   // 0.5 (the texture's center) is a safe placeholder until it does.
-  public zTexCoord = 0.5;
+  public sliceTexCoord = 0.5;
 
   constructor(props: LabelImageRenderableProps) {
     super();
@@ -69,7 +69,8 @@ export class LabelImageRenderable extends RenderableObject {
       u_colorLookupTableSampler: 2,
       u_outlineSelected: this.outlineSelected_ ? 1.0 : 0.0,
       u_selectedValue: this.selectedValue_ ?? -1.0,
-      u_zTexCoord: this.zTexCoord,
+      // TODO(shlomnissan): the shader still samples the texture's z-axis
+      u_zTexCoord: this.sliceTexCoord,
     };
   }
 

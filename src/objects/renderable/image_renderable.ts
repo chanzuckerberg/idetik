@@ -25,7 +25,7 @@ export class ImageRenderable extends RenderableObject {
 
   // The layer overwrites this per chunk with a texel-centered slice coordinate.
   // 0.5 (the texture's center) is a safe placeholder until it does.
-  public zTexCoord = 0.5;
+  public sliceTexCoord = 0.5;
 
   constructor(
     width: number,
@@ -76,7 +76,8 @@ export class ImageRenderable extends RenderableObject {
       u_valueOffset: -contrastLimits[0],
       u_valueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
       Opacity: opacity,
-      u_zTexCoord: this.zTexCoord,
+      // TODO(shlomnissan): the shader still samples the texture's z-axis
+      u_zTexCoord: this.sliceTexCoord,
     };
   }
 }
