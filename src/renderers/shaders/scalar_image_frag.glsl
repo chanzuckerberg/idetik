@@ -1,7 +1,7 @@
 #version 300 es
 #pragma inject_defines
 
-precision mediump float;
+precision highp float;
 
 layout (location = 0) out vec4 fragColor;
 
@@ -17,12 +17,13 @@ uniform vec3 u_color;
 uniform float u_valueOffset;
 uniform float u_valueScale;
 uniform float u_opacity;
-uniform float u_zTexCoord;
+uniform mat4 u_worldToTexCoord;
 
-in vec2 v_texCoords;
+in vec3 v_positionWorld;
 
 void main() {
-    float texel = float(texture(u_imageSampler, vec3(v_texCoords, u_zTexCoord)).r);
+    vec3 texCoords = (u_worldToTexCoord * vec4(v_positionWorld, 1.0)).xyz;
+    float texel = float(texture(u_imageSampler, texCoords).r);
     float value = (texel + u_valueOffset) * u_valueScale;
     fragColor = vec4(value * u_color, u_opacity);
 }

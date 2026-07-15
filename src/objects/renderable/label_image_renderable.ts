@@ -1,5 +1,6 @@
 import { RenderableObject } from "../../core/renderable_object";
 import { PlaneGeometry } from "../../objects/geometry/plane_geometry";
+import { mat4 } from "gl-matrix";
 import { Texture, TextureDataType } from "../../objects/textures/texture";
 import { Color } from "../../math/color";
 import { Texture2D } from "../textures/texture_2d";
@@ -48,12 +49,11 @@ export class LabelImageRenderable extends RenderableObject {
   private outlineSelected_: boolean;
   private selectedValue_: number | null;
 
-  // The layer overwrites this per chunk with a texel-centered slice coordinate.
-  // 0.5 (the texture's center) is a safe placeholder until it does.
-  public sliceTexCoord = 0.5;
+  public worldToTexCoord: mat4 = mat4.create();
 
   constructor(props: LabelImageRenderableProps) {
     super();
+    this.depthTest = false;
     this.geometry = new PlaneGeometry(props.width, props.height, 1, 1);
     this.setTexture(0, validateImageData(props.imageData));
     const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
@@ -78,8 +78,7 @@ export class LabelImageRenderable extends RenderableObject {
       u_colorLookupTableSampler: 2,
       u_outlineSelected: this.outlineSelected_ ? 1.0 : 0.0,
       u_selectedValue: this.selectedValue_ ?? -1.0,
-      // TODO(shlomnissan): the shader still samples the texture's z-axis
-      u_zTexCoord: this.sliceTexCoord,
+      u_worldToTexCoord: this.worldToTexCoord,
     };
   }
 

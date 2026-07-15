@@ -5,6 +5,8 @@ import { Box2 } from "../../math/box2";
 const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 const DEFAULT_WIDTH = 128;
 const DEFAULT_HEIGHT = 128 / DEFAULT_ASPECT_RATIO;
+const DEFAULT_NEAR = -1e6;
+const DEFAULT_FAR = 1e6;
 
 /**
  * A camera using an orthographic (parallel) projection.
@@ -33,16 +35,16 @@ export class OrthographicCamera extends Camera {
    * @param right - Right edge of the view frame, in world units.
    * @param top - Top edge of the view frame, in world units.
    * @param bottom - Bottom edge of the view frame, in world units.
-   * @param near - Near clipping plane distance. Defaults to `0.0`.
-   * @param far - Far clipping plane distance. Defaults to `100.0`.
+   * @param near - Near clipping plane distance. Defaults to `-1e6`.
+   * @param far - Far clipping plane distance. Defaults to `1e6`.
    */
   constructor(
     left: number,
     right: number,
     top: number,
     bottom: number,
-    near = 0.0,
-    far = 100.0
+    near = DEFAULT_NEAR,
+    far = DEFAULT_FAR
   ) {
     super();
     this.near_ = near;

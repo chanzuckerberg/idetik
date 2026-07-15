@@ -2,7 +2,13 @@ import { Layer, LayerOptions } from "../core/layer";
 import { Viewport } from "../core/viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import type { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource, SliceAxes, SliceCoordinates } from "../data/chunk";
+import {
+  Chunk,
+  ChunkSource,
+  SliceAxes,
+  SliceCoordinates,
+  worldToTexCoordForChunk,
+} from "../data/chunk";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
@@ -108,7 +114,7 @@ export class LabelLayer extends Layer {
     this.updateChunks();
 
     for (const [chunk, labelRenderable] of this.visibleChunks_) {
-      labelRenderable.sliceTexCoord = this.sliceTexCoordForChunk(chunk);
+      this.updateSlicePosition(labelRenderable, chunk);
     }
   }
 
@@ -272,7 +278,6 @@ export class LabelLayer extends Layer {
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
       pooled.setTexture(0, texture);
-      pooled.sliceTexCoord = this.sliceTexCoordForChunk(chunk);
       pooled.setColorMap(this.colorMap_);
       pooled.setSelectedValue(this.selectedValue_);
       this.updateLabelChunk(pooled, chunk);
@@ -292,9 +297,17 @@ export class LabelLayer extends Layer {
       outlineSelected: this.outlineSelected_,
       selectedValue: this.selectedValue_,
     });
-    label.sliceTexCoord = this.sliceTexCoordForChunk(chunk);
     this.updateLabelChunk(label, chunk);
     return label;
+  }
+
+  private updateSlicePosition(label: LabelImageRenderable, chunk: Chunk) {
+    const { u, v, w } = this.axes_;
+    label.transform.setTranslation([
+      chunk.offset[u],
+      chunk.offset[v],
+      chunk.offset[w] + this.sliceIndexForChunk(chunk) * chunk.scale[w],
+    ]);
   }
 
   private sliceIndexForChunk(chunk: Chunk): number {
@@ -308,14 +321,11 @@ export class LabelLayer extends Layer {
     return clamp(Math.round(local), 0, chunk.shape[w] - 1);
   }
 
-  private sliceTexCoordForChunk(chunk: Chunk): number {
-    return (this.sliceIndexForChunk(chunk) + 0.5) / chunk.shape[this.axes_.w];
-  }
-
   private updateLabelChunk(label: LabelImageRenderable, chunk: Chunk) {
     const { u, v } = this.axes_;
     label.transform.setScale([chunk.scale[u], chunk.scale[v], 1]);
-    label.transform.setTranslation([chunk.offset[u], chunk.offset[v], 0]);
+    this.updateSlicePosition(label, chunk);
+    label.worldToTexCoord = worldToTexCoordForChunk(chunk, this.axes_);
   }
 
   private releaseAndRemoveChunks(chunks: Iterable<Chunk>): void {
