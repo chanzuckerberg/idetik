@@ -99,9 +99,25 @@ type SourceDimensionLod = {
 
 /** @group Layer Configuration */
 export type SliceCoordinates = {
+  x?: number;
+  y?: number;
   z?: number;
   c?: number[];
   t?: number;
+};
+
+export type SpatialAxis = "x" | "y" | "z";
+
+export type SliceAxes = {
+  u: SpatialAxis;
+  v: SpatialAxis;
+  w: SpatialAxis;
+};
+
+export const AxisComponent: Record<SpatialAxis, 0 | 1 | 2> = {
+  x: 0,
+  y: 1,
+  z: 2,
 };
 
 export type ChunkSource = {

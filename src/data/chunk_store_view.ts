@@ -1,4 +1,12 @@
-import { Chunk, SliceCoordinates, ChunkViewState, coordToIndex } from "./chunk";
+import {
+  AxisComponent,
+  Chunk,
+  ChunkViewState,
+  coordToIndex,
+  SliceAxes,
+  SliceCoordinates,
+  SpatialAxis,
+} from "./chunk";
 import type { ChunkStore } from "./chunk_store";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
@@ -20,13 +28,15 @@ export class ChunkStoreView {
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
   private currentLOD_: number = 0;
+  private readonly axes_: SliceAxes = { u: "x", v: "y", w: "z" };
+  private readonly scale0_: number;
   private lastViewBounds2D_: Box2 | null = null;
   private lastViewProjection_: mat4 | null = null;
-  private lastZBounds_?: [number, number];
+  private lastSliceBounds_?: [number, number];
   private lastTCoord_?: number;
   private lastCCoords_?: number[];
 
-  private sourceMaxSquareDistance2D_: number;
+  private readonly sourceMaxSquareDistance2D_: number;
   private readonly chunkViewStates_: Map<Chunk, ChunkViewState> = new Map();
 
   private isDisposed_ = false;
@@ -42,10 +52,20 @@ export class ChunkStoreView {
     );
 
     const dimensions = this.store_.dimensions;
-    const xLod0 = dimensions.x.lods[0];
-    const yLod0 = dimensions.y.lods[0];
+    const uDim = dimensions[this.axes_.u];
+    const vDim = dimensions[this.axes_.v];
+    if (uDim === undefined || vDim === undefined) {
+      throw new Error(
+        `Source is missing dimensions for slice plane axes ` +
+          `"${this.axes_.u}" and "${this.axes_.v}"`
+      );
+    }
+
+    const uLod0 = uDim.lods[0];
+    const vLod0 = vDim.lods[0];
+    this.scale0_ = uLod0.scale;
     this.sourceMaxSquareDistance2D_ = vec2.squaredLength(
-      vec2.fromValues(xLod0.size * xLod0.scale, yLod0.size * yLod0.scale)
+      vec2.fromValues(uLod0.size * uLod0.scale, vLod0.size * vLod0.scale)
     );
   }
 
@@ -98,11 +118,11 @@ export class ChunkStoreView {
 
     this.setLOD(lodFactor);
 
-    const zBounds = this.getZBounds(sliceCoords);
+    const sliceBounds = this.getSliceAxisBounds(sliceCoords);
     const changed =
       this.policyChanged_ ||
       this.viewBounds2DChanged(viewBounds2D) ||
-      this.zBoundsChanged(zBounds) ||
+      this.sliceBoundsChanged(sliceBounds) ||
       this.lastTCoord_ !== sliceCoords.t ||
       this.cCoordsChanged(sliceCoords.c);
 
@@ -121,11 +141,7 @@ export class ChunkStoreView {
     const viewBoundsCenter2D = vec2.create();
     vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
 
-    const [zMin, zMax] = this.getZBounds(sliceCoords);
-    const viewBounds3D = new Box3(
-      vec3.fromValues(viewBounds2D.min[0], viewBounds2D.min[1], zMin),
-      vec3.fromValues(viewBounds2D.max[0], viewBounds2D.max[1], zMax)
-    );
+    const viewBounds3D = this.makeViewBounds3D(viewBounds2D, sliceBounds);
 
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
@@ -180,7 +196,7 @@ export class ChunkStoreView {
 
     this.policyChanged_ = false;
     this.lastViewBounds2D_ = viewBounds2D.clone();
-    this.lastZBounds_ = zBounds;
+    this.lastSliceBounds_ = sliceBounds;
     this.lastTCoord_ = sliceCoords.t;
     this.lastCCoords_ = sliceCoords.c ? [...sliceCoords.c] : undefined;
   }
@@ -307,14 +323,11 @@ export class ChunkStoreView {
   }
 
   private setLOD(lodFactor: number): void {
-    // `scale0` is the x pixel size (world units) at LOD 0.
     // With 2x downsampling per LOD, selection happens in log2 space.
-    const dimensions = this.store_.dimensions;
-    const scale0 = dimensions.x.lods[0].scale;
     const bias = this.policy_.lod.bias;
 
     // How many LOD 0 pixels per screen pixel, normalized by source scale and bias.
-    const sourceAdjusted = bias - Math.log2(scale0) - lodFactor;
+    const sourceAdjusted = bias - Math.log2(this.scale0_) - lodFactor;
     const desiredLOD = Math.floor(sourceAdjusted);
 
     const lowestResLOD = this.store_.getLowestResLOD();
@@ -524,35 +537,51 @@ export class ChunkStoreView {
     return coordToIndex(tDim.lods[0], sliceCoords.t);
   }
 
-  private getZBounds(sliceCoords: SliceCoordinates): [number, number] {
-    const zDim = this.store_.dimensions.z;
-    if (zDim === undefined) return [0, 1];
+  private getSliceAxisBounds(sliceCoords: SliceCoordinates): [number, number] {
+    const wDim = this.store_.dimensions[this.axes_.w];
+    if (wDim === undefined) return [0, 1];
 
-    // If z is undefined, return bounds that encompass all z slices (for volume rendering)
-    if (sliceCoords.z === undefined) {
-      const zLod = zDim.lods[this.currentLOD_];
-      return [zLod.translation, zLod.translation + zLod.size * zLod.scale];
+    const wLod = wDim.lods[this.currentLOD_];
+
+    // If slice coordinate is undefined, return bounds that encompass the whole axis (for volume rendering)
+    const sliceValue = sliceCoords[this.axes_.w];
+    if (sliceValue === undefined) {
+      return [wLod.translation, wLod.translation + wLod.size * wLod.scale];
     }
 
-    const zLod = zDim.lods[this.currentLOD_];
-    const zShape = zLod.size;
-    const zScale = zLod.scale;
-    const zTran = zLod.translation;
-    const zPoint = Math.floor((sliceCoords.z - zTran) / zScale);
-    const chunkDepth = zLod.chunkSize;
+    const wShape = wLod.size;
+    const wScale = wLod.scale;
+    const wTran = wLod.translation;
+    const wPoint = Math.floor((sliceValue - wTran) / wScale);
+    const chunkDepth = wLod.chunkSize;
 
-    const zChunk = Math.max(
+    const wChunk = Math.max(
       0,
       Math.min(
-        Math.floor(zPoint / chunkDepth),
-        Math.ceil(zShape / chunkDepth) - 1
+        Math.floor(wPoint / chunkDepth),
+        Math.ceil(wShape / chunkDepth) - 1
       )
     );
 
     return [
-      zTran + zChunk * chunkDepth * zScale,
-      zTran + (zChunk + 1) * chunkDepth * zScale,
+      wTran + wChunk * chunkDepth * wScale,
+      wTran + (wChunk + 1) * chunkDepth * wScale,
     ];
+  }
+
+  private makeViewBounds3D(
+    viewBounds2D: Box2,
+    sliceBounds: [number, number]
+  ): Box3 {
+    const min = vec3.create();
+    const max = vec3.create();
+    min[AxisComponent[this.axes_.u]] = viewBounds2D.min[0];
+    max[AxisComponent[this.axes_.u]] = viewBounds2D.max[0];
+    min[AxisComponent[this.axes_.v]] = viewBounds2D.min[1];
+    max[AxisComponent[this.axes_.v]] = viewBounds2D.max[1];
+    min[AxisComponent[this.axes_.w]] = sliceBounds[0];
+    max[AxisComponent[this.axes_.w]] = sliceBounds[1];
+    return new Box3(min, max);
   }
 
   private viewBounds2DChanged(newBounds: Box2): boolean {
@@ -570,8 +599,10 @@ export class ChunkStoreView {
     );
   }
 
-  private zBoundsChanged(newBounds: [number, number]): boolean {
-    return !this.lastZBounds_ || !vec2.equals(this.lastZBounds_, newBounds);
+  private sliceBoundsChanged(newBounds: [number, number]): boolean {
+    return (
+      !this.lastSliceBounds_ || !vec2.equals(this.lastSliceBounds_, newBounds)
+    );
   }
 
   private cCoordsChanged(newC?: number[]): boolean {
@@ -610,13 +641,15 @@ export class ChunkStoreView {
   }
 
   private squareDistance2D(chunk: Chunk, center: ReadonlyVec2): number {
-    const chunkCenter = {
-      x: chunk.offset.x + 0.5 * chunk.shape.x * chunk.scale.x,
-      y: chunk.offset.y + 0.5 * chunk.shape.y * chunk.scale.y,
-    };
-    const dx = chunkCenter.x - center[0];
-    const dy = chunkCenter.y - center[1];
-    return dx * dx + dy * dy;
+    function axisCenter(axis: SpatialAxis) {
+      return chunk.offset[axis] + 0.5 * chunk.shape[axis] * chunk.scale[axis];
+    }
+
+    const { u, v } = this.axes_;
+    const du = axisCenter(u) - center[0];
+    const dv = axisCenter(v) - center[1];
+
+    return du * du + dv * dv;
   }
 }
 
