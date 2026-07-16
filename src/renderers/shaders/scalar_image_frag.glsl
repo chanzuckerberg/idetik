@@ -17,13 +17,11 @@ uniform vec3 u_color;
 uniform float u_valueOffset;
 uniform float u_valueScale;
 uniform float u_opacity;
-uniform mat4 u_worldToTexCoord;
 
-in vec3 v_positionWorld;
+in vec3 v_texCoords;
 
 void main() {
-    vec3 texCoords = (u_worldToTexCoord * vec4(v_positionWorld, 1.0)).xyz;
-    float texel = float(texture(u_imageSampler, texCoords).r);
+    float texel = float(texture(u_imageSampler, v_texCoords).r);
     float value = (texel + u_valueOffset) * u_valueScale;
     fragColor = vec4(value * u_color, u_opacity);
 }

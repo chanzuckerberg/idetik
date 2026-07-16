@@ -22,7 +22,7 @@ uniform float u_selectedValue;
 uniform mat4 u_worldToTexCoord;
 uniform mat4 u_model;
 
-in vec3 v_positionWorld;
+in vec3 v_texCoords;
 
 vec4 unpackRgba(uint packed) {
     uint r = (packed >> 24u) & 0xFFu;
@@ -61,15 +61,14 @@ bool isEdgePixel(DATA_TYPE centerValue, vec3 texCoords) {
 }
 
 void main() {
-    vec3 texCoords = (u_worldToTexCoord * vec4(v_positionWorld, 1.0)).xyz;
-    DATA_TYPE texel = texture(u_imageSampler, texCoords).r;
+    DATA_TYPE texel = texture(u_imageSampler, v_texCoords).r;
 
     // Check if this pixel is the selected value
     bool isSelectedValue = u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue;
 
     // Check if we should outline this selected segment
     if (isSelectedValue) {
-        if (isEdgePixel(texel, texCoords)) {
+        if (isEdgePixel(texel, v_texCoords)) {
             // Draw outline in bright white with layer opacity
             fragColor = vec4(1.0, 1.0, 1.0, u_opacity);
             return;
