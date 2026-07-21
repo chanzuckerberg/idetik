@@ -3,7 +3,7 @@ import {
   TextureUnpackRowAlignment,
 } from "../objects/textures/texture";
 import { Logger } from "../utilities/logger";
-import { mat4 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 
 const chunkDataTypes = [
   Int8Array,
@@ -146,13 +146,14 @@ export function coordToChunkIndex(
 }
 
 export function worldToTexCoordForChunk(chunk: Chunk, axes: SliceAxes): mat4 {
-  const m = mat4.create();
+  const scale = vec3.create();
+  const translation = vec3.create();
   for (const axis of ["x", "y", "z"] as const) {
-    const scale = 1 / (chunk.scale[axis] * chunk.shape[axis]);
     const centerShift = axis === axes.w ? 0.5 * chunk.scale[axis] : 0;
     const component = AxisComponent[axis];
-    m[component * 4 + component] = scale;
-    m[12 + component] = (centerShift - chunk.offset[axis]) * scale;
+    scale[component] = 1 / (chunk.scale[axis] * chunk.shape[axis]);
+    translation[component] = centerShift - chunk.offset[axis];
   }
-  return m;
+  const m = mat4.fromScaling(mat4.create(), scale);
+  return mat4.translate(m, m, translation);
 }
