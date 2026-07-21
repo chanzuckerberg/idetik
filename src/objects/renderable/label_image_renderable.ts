@@ -3,6 +3,7 @@ import { PlaneGeometry } from "../../objects/geometry/plane_geometry";
 import { Texture, TextureDataType } from "../../objects/textures/texture";
 import { Color } from "../../math/color";
 import { Texture2D } from "../textures/texture_2d";
+import { Shader } from "../../renderers/shaders";
 import { LabelColorMap } from "./label_color_map";
 
 type LabelImageRenderableProps = {
@@ -14,7 +15,8 @@ type LabelImageRenderableProps = {
   selectedValue?: number | null;
 };
 
-const supportedDataTypes = new Set<TextureDataType>([
+const signedDataTypes = new Set<TextureDataType>(["byte", "short", "int"]);
+const unsignedDataTypes = new Set<TextureDataType>([
   "unsigned_byte",
   "unsigned_short",
   "unsigned_int",
@@ -26,12 +28,19 @@ function validateImageData(imageData: Texture) {
       `Image data format must be scalar, instead found: ${imageData.dataFormat}`
     );
   }
-  if (!supportedDataTypes.has(imageData.dataType)) {
+  if (
+    !signedDataTypes.has(imageData.dataType) &&
+    !unsignedDataTypes.has(imageData.dataType)
+  ) {
     throw new Error(
-      `Image data type must be unsigned, instead found: ${imageData.dataType}`
+      `Image data type must be an integer, instead found: ${imageData.dataType}`
     );
   }
   return imageData;
+}
+
+function labelTextureToShader(texture: Texture): Shader {
+  return signedDataTypes.has(texture.dataType) ? "intLabelImage" : "labelImage";
 }
 
 /** @group Renderable Objects */
@@ -55,7 +64,7 @@ export class LabelImageRenderable extends RenderableObject {
     this.setTexture(2, colorLookupTableTexture);
     this.outlineSelected_ = props.outlineSelected ?? false;
     this.selectedValue_ = props.selectedValue ?? null;
-    this.programName = "labelImage";
+    this.programName = labelTextureToShader(props.imageData);
   }
 
   public get type() {

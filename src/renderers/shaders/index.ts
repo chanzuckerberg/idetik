@@ -13,6 +13,7 @@ import labelImage from "./label_image_frag.glsl";
 export type Shader =
   | "floatScalarImage"
   | "floatVolume"
+  | "intLabelImage"
   | "intScalarImage"
   | "intVolume"
   | "labelImage"
@@ -59,6 +60,11 @@ export const shaderCode: Record<Shader, ShaderCode> = {
   labelImage: {
     vertex: meshVertexShader,
     fragment: labelImage,
+  },
+  intLabelImage: {
+    vertex: meshVertexShader,
+    fragment: labelImage,
+    fragmentDefines: new Map([["TEXTURE_DATA_TYPE_INT", "1"]]),
   },
   floatVolume: {
     vertex: volumeVertexShader,

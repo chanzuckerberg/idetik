@@ -1,11 +1,18 @@
 #version 300 es
+#pragma inject_defines
 
 precision mediump float;
 precision highp int;
 
 layout (location = 0) out vec4 fragColor;
 
+#if defined TEXTURE_DATA_TYPE_INT
+uniform highp isampler3D u_imageSampler;
+#define DATA_TYPE int
+#else
 uniform highp usampler3D u_imageSampler;
+#define DATA_TYPE uint
+#endif
 uniform mediump sampler2D u_colorCycleSampler;
 uniform highp usampler2D u_colorLookupTableSampler;
 
@@ -24,7 +31,7 @@ vec4 unpackRgba(uint packed) {
     return vec4(float(r), float(g), float(b), float(a)) / 255.0;
 }
 
-bool isEdgePixel(uint centerValue) {
+bool isEdgePixel(DATA_TYPE centerValue) {
     vec2 texSize = vec2(textureSize(u_imageSampler, 0).xy);
     vec2 texelSize = 1.0 / texSize;
 
@@ -41,7 +48,7 @@ bool isEdgePixel(uint centerValue) {
                 continue;
             }
 
-            uint neighborValue = texture(u_imageSampler, vec3(neighborCoords, u_zTexCoord)).r;
+            DATA_TYPE neighborValue = texture(u_imageSampler, vec3(neighborCoords, u_zTexCoord)).r;
             if (neighborValue != centerValue) {
                 return true;
             }
@@ -51,7 +58,7 @@ bool isEdgePixel(uint centerValue) {
 }
 
 void main() {
-    uint texel = texture(u_imageSampler, vec3(v_texCoords, u_zTexCoord)).r;
+    DATA_TYPE texel = texture(u_imageSampler, vec3(v_texCoords, u_zTexCoord)).r;
 
     // Check if this pixel is the selected value
     bool isSelectedValue = u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue;
@@ -68,7 +75,8 @@ void main() {
     uint mapLength = uint(textureSize(u_colorLookupTableSampler, 0).x);
     for (uint i = 0u; i < mapLength; ++i) {
         uint key = texelFetch(u_colorLookupTableSampler, ivec2(i, 0), 0).r;
-        if (texel == key) {
+        // int(key) round-trips negative labels via two's complement.
+        if (texel == DATA_TYPE(key)) {
             uint value = texelFetch(u_colorLookupTableSampler, ivec2(i, 1), 0).r;
             vec4 color = unpackRgba(value);
 
@@ -81,7 +89,7 @@ void main() {
     }
 
     uint cycleLength = uint(textureSize(u_colorCycleSampler, 0).x);
-    uint index = uint(texel - 1u) % cycleLength;
+    uint index = uint(texel - DATA_TYPE(1)) % cycleLength;
     vec4 color = texelFetch(u_colorCycleSampler, ivec2(index, 0), 0);
 
     // If this is the selected segment and outlining is enabled, make it slightly transparent
