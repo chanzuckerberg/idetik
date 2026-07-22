@@ -40,10 +40,10 @@ const sliceCoords = {
   z: zMidPoint,
 };
 
-// Labels have unitary C and Z dimensions.
 const labelsSliceCoords = {
   t: tMin * tScale,
   c: [0],
+  z: zMidPoint,
 };
 
 const imageLayer = new ImageLayer({

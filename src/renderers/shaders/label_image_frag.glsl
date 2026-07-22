@@ -1,7 +1,7 @@
 #version 300 es
 #pragma inject_defines
 
-precision mediump float;
+precision highp float;
 precision highp int;
 
 layout (location = 0) out vec4 fragColor;
@@ -19,9 +19,8 @@ uniform highp usampler2D u_colorLookupTableSampler;
 uniform float u_opacity;
 uniform float u_outlineSelected; // Note: Using float instead of bool due to framework uniform handling
 uniform float u_selectedValue;
-uniform float u_zTexCoord;
 
-in vec2 v_texCoords;
+in vec3 v_texCoords;
 
 vec4 unpackRgba(uint packed) {
     uint r = (packed >> 24u) & 0xFFu;
@@ -31,16 +30,14 @@ vec4 unpackRgba(uint packed) {
     return vec4(float(r), float(g), float(b), float(a)) / 255.0;
 }
 
-bool isEdgePixel(DATA_TYPE centerValue) {
-    vec2 texSize = vec2(textureSize(u_imageSampler, 0).xy);
-    vec2 texelSize = 1.0 / texSize;
-
+bool isEdgePixel(DATA_TYPE centerValue, vec3 texCoords, vec3 stepX, vec3 stepY) {
     // Check 8-connected neighbors
     for (int dx = -1; dx <= 1; dx++) {
         for (int dy = -1; dy <= 1; dy++) {
             if (dx == 0 && dy == 0) continue; // Skip center pixel
 
-            vec2 neighborCoords = v_texCoords + vec2(float(dx), float(dy)) * texelSize;
+            vec3 neighborCoords =
+                texCoords + float(dx) * stepX + float(dy) * stepY;
 
             // Skip if out of bounds
             if (neighborCoords.x < 0.0 || neighborCoords.x > 1.0 ||
@@ -48,7 +45,7 @@ bool isEdgePixel(DATA_TYPE centerValue) {
                 continue;
             }
 
-            DATA_TYPE neighborValue = texture(u_imageSampler, vec3(neighborCoords, u_zTexCoord)).r;
+            DATA_TYPE neighborValue = textureLod(u_imageSampler, neighborCoords, 0.0).r;
             if (neighborValue != centerValue) {
                 return true;
             }
@@ -58,14 +55,17 @@ bool isEdgePixel(DATA_TYPE centerValue) {
 }
 
 void main() {
-    DATA_TYPE texel = texture(u_imageSampler, vec3(v_texCoords, u_zTexCoord)).r;
+    DATA_TYPE texel = texture(u_imageSampler, v_texCoords).r;
+
+    vec3 stepX = dFdx(v_texCoords);
+    vec3 stepY = dFdy(v_texCoords);
 
     // Check if this pixel is the selected value
     bool isSelectedValue = u_outlineSelected > 0.5 && u_selectedValue >= 0.0 && float(texel) == u_selectedValue;
 
     // Check if we should outline this selected segment
     if (isSelectedValue) {
-        if (isEdgePixel(texel)) {
+        if (isEdgePixel(texel, v_texCoords, stepX, stepY)) {
             // Draw outline in bright white with layer opacity
             fragColor = vec4(1.0, 1.0, 1.0, u_opacity);
             return;
