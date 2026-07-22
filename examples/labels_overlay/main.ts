@@ -42,20 +42,18 @@ const labelsSliceCoords = {
   z: zMidPoint,
 };
 
-const channelCount = imageSource.getChannelCount();
 const imageLayer = new ImageLayer({
   source: imageSource,
   sliceCoords,
   policy: createExplorationPolicy(),
-  channelProps: Array.from({ length: channelCount }, (_, idx) =>
-    idx === 1
-      ? {
-          visible: true,
-          color: Color.WHITE,
-          contrastLimits: [0, 1024],
-        }
-      : { visible: false }
-  ),
+  channelProps: [
+    { visible: false },
+    {
+      visible: true,
+      color: Color.WHITE,
+      contrastLimits: [0, 1024],
+    },
+  ]
 });
 
 const pickInfoEl = document.querySelector<HTMLDivElement>("#pick-info")!;
