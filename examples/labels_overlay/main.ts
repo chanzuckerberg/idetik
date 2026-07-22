@@ -36,7 +36,6 @@ const sliceCoords = {
   z: zTranslation + zMidIndex * zScale,
 };
 
-// Labels have a unitary C dimension.
 const labelsSliceCoords = {
   c: [0],
   z: zTranslation + zMidIndex * zScale,

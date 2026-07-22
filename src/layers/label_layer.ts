@@ -146,9 +146,6 @@ export class LabelLayer extends Layer {
     }
   }
 
-  // Multiscale labels overlap across LODs, so the stencil is needed to keep the
-  // finest tile per pixel and mask coarser fallbacks (the label shader is
-  // discard-free, so every fragment marks the stencil across the full tile).
   public hasMultipleLODs(): boolean {
     if (!this.chunkStoreView_) return false;
     return this.chunkStoreView_.lodCount > 1;
