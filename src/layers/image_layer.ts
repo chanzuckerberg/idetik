@@ -2,7 +2,13 @@ import { Layer, LayerOptions } from "../core/layer";
 import { Viewport } from "../core/viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import type { IdetikContext } from "../idetik";
-import { Chunk, ChunkSource, SliceAxes, SliceCoordinates } from "../data/chunk";
+import {
+  Chunk,
+  ChunkSource,
+  SliceAxes,
+  SliceCoordinates,
+  worldToTexCoordForChunk,
+} from "../data/chunk";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import {
@@ -136,7 +142,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.updateChunks();
 
     for (const [chunk, imageRenderable] of this.visibleChunks_) {
-      imageRenderable.sliceTexCoord = this.sliceTexCoordForChunk(chunk);
+      this.updateSlicePosition(imageRenderable, chunk);
     }
   }
 
@@ -236,7 +242,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
     if (pooled) {
       pooled.setTexture(0, texture);
-      pooled.sliceTexCoord = this.sliceTexCoordForChunk(chunk);
       pooled.setChannelProps(this.getChannelPropsForChunk(chunk));
       this.updateImageChunk(pooled, chunk);
       return pooled;
@@ -257,24 +262,29 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       texture,
       this.getChannelPropsForChunk(chunk)
     );
-    image.sliceTexCoord = this.sliceTexCoordForChunk(chunk);
     this.updateImageChunk(image, chunk);
     return image;
+  }
+
+  private updateSlicePosition(image: ImageRenderable, chunk: Chunk) {
+    const { u, v, w } = this.axes_;
+    image.transform.setTranslation([
+      chunk.offset[u],
+      chunk.offset[v],
+      this.sliceCoords_[w] ?? chunk.offset[w],
+    ]);
   }
 
   private sliceIndexForChunk(chunk: Chunk): number {
     const w = this.axes_.w;
     const sliceValue = this.sliceCoords_[w];
+
     if (sliceValue === undefined) {
       return 0;
     }
 
     const local = (sliceValue - chunk.offset[w]) / chunk.scale[w];
     return clamp(Math.round(local), 0, chunk.shape[w] - 1);
-  }
-
-  private sliceTexCoordForChunk(chunk: Chunk): number {
-    return (this.sliceIndexForChunk(chunk) + 0.5) / chunk.shape[this.axes_.w];
   }
 
   private updateImageChunk(image: ImageRenderable, chunk: Chunk) {
@@ -287,7 +297,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
     const { u, v } = this.axes_;
     image.transform.setScale([chunk.scale[u], chunk.scale[v], 1]);
-    image.transform.setTranslation([chunk.offset[u], chunk.offset[v], 0]);
+    this.updateSlicePosition(image, chunk);
+    image.worldToTexCoord = worldToTexCoordForChunk(chunk, this.axes_);
   }
 
   public async getValueAtWorld(world: vec3): Promise<number | null> {

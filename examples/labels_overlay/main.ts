@@ -26,6 +26,7 @@ const zTranslation = zLod.translation;
 const zScale = zLod.scale;
 const zSize = zLod.size;
 const zMidIndex = Math.floor((zSize - 1) / 2);
+const zMidPoint = zTranslation + zMidIndex * zScale;
 const xLod = dimensions.x!.lods[lod];
 const xStopPoint = xLod.size * xLod.scale;
 const yLod = dimensions.y!.lods[lod];
@@ -33,12 +34,12 @@ const yStopPoint = yLod.size * yLod.scale;
 
 const sliceCoords = {
   c: [1],
-  z: zTranslation + zMidIndex * zScale,
+  z: zMidPoint,
 };
 
 const labelsSliceCoords = {
   c: [0],
-  z: zTranslation + zMidIndex * zScale,
+  z: zMidPoint,
 };
 
 const channelCount = imageSource.getChannelCount();

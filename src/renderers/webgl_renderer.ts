@@ -230,6 +230,9 @@ export class WebGLRenderer extends Renderer {
         case "u_modelView":
           program.setUniform(uniformName, modelView);
           break;
+        case "u_model":
+          program.setUniform(uniformName, object.transform.matrix);
+          break;
         case "u_projection":
           program.setUniform(uniformName, projection);
           break;

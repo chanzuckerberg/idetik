@@ -7,7 +7,7 @@ import {
   validateChannel,
   validateChannels,
 } from "../../core/channel";
-import { vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 
 type UniformValues = {
@@ -16,16 +16,14 @@ type UniformValues = {
   Opacity: number;
   u_valueOffset: number;
   u_valueScale: number;
-  u_zTexCoord: number;
+  u_worldToTexCoord: mat4;
 };
 
 /** @group Renderable Objects */
 export class ImageRenderable extends RenderableObject {
   private channels_: Required<Channel>[];
 
-  // The layer overwrites this per chunk with a texel-centered slice coordinate.
-  // 0.5 (the texture's center) is a safe placeholder until it does.
-  public sliceTexCoord = 0.5;
+  public worldToTexCoord: mat4 = mat4.create();
 
   constructor(
     width: number,
@@ -76,8 +74,7 @@ export class ImageRenderable extends RenderableObject {
       u_valueOffset: -contrastLimits[0],
       u_valueScale: 1 / (contrastLimits[1] - contrastLimits[0]),
       Opacity: opacity,
-      // TODO(shlomnissan): the shader still samples the texture's z-axis
-      u_zTexCoord: this.sliceTexCoord,
+      u_worldToTexCoord: this.worldToTexCoord,
     };
   }
 }
