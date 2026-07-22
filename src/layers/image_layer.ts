@@ -271,7 +271,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     image.transform.setTranslation([
       chunk.offset[u],
       chunk.offset[v],
-      chunk.offset[w] + this.sliceIndexForChunk(chunk) * chunk.scale[w],
+      this.sliceCoords_[w] ?? chunk.offset[w],
     ]);
   }
 

@@ -53,7 +53,6 @@ export class LabelImageRenderable extends RenderableObject {
 
   constructor(props: LabelImageRenderableProps) {
     super();
-    this.depthTest = false;
     this.geometry = new PlaneGeometry(props.width, props.height, 1, 1);
     this.setTexture(0, validateImageData(props.imageData));
     const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
