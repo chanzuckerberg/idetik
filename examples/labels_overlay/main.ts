@@ -12,7 +12,8 @@ import {
 // A 3D (z-stack) OME-Zarr image with a matching label segmentation overlaid on
 // top. The image and labels share the same XY/Z geometry, so a single z-slice
 // slider drives both layers.
-const imageUrl = "https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.4/idr0062A/6001240.zarr";
+const imageUrl =
+  "https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.4/idr0062A/6001240.zarr";
 const labelsUrl = `${imageUrl}/labels/0`;
 
 const imageSource = await OmeZarrImageSource.fromHttp({ url: imageUrl });
@@ -53,7 +54,7 @@ const imageLayer = new ImageLayer({
       color: Color.WHITE,
       contrastLimits: [0, 1024],
     },
-  ]
+  ],
 });
 
 const pickInfoEl = document.querySelector<HTMLDivElement>("#pick-info")!;
