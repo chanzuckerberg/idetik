@@ -152,6 +152,11 @@ export class LabelLayer extends Layer {
     }
   }
 
+  public hasMultipleLODs(): boolean {
+    if (!this.chunkStoreView_) return false;
+    return this.chunkStoreView_.lodCount > 1;
+  }
+
   private isPresentationStale(): boolean {
     if (this.lastPresentationTimeStamp_ === undefined) return false;
     return (

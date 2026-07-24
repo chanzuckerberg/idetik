@@ -9,13 +9,12 @@ import {
   createExplorationPolicy,
 } from "@";
 
-// These roughly correspond in terms of content and the number of time-points.
-// But the image is smaller in XY than the labels, and has a Z-stack, so it
-// is unclear which Z-slice the labels correspond to (if any particular one)
-const baseUrl = "https://public.czbiohub.org/organelle_box/datasets/A549";
-const fovName = "B/3/000000";
-const imageUrl = `${baseUrl}/2024_11_07_A549_SEC61_DENV_cropped.zarr/${fovName}`;
-const labelsUrl = `${baseUrl}/2024_11_07_A549_SEC61_DENV_tracking.zarr/${fovName}`;
+// A 3D (z-stack) OME-Zarr image with a matching label segmentation overlaid on
+// top. The image and labels share the same XY/Z geometry, so a single z-slice
+// slider drives both layers.
+const imageUrl =
+  "https://uk1s3.embassy.ebi.ac.uk/idr/zarr/v0.4/idr0062A/6001240.zarr";
+const labelsUrl = `${imageUrl}/labels/0`;
 
 const imageSource = await OmeZarrImageSource.fromHttp({ url: imageUrl });
 const labelsSource = await OmeZarrImageSource.fromHttp({ url: labelsUrl });
@@ -23,25 +22,23 @@ const labelsSource = await OmeZarrImageSource.fromHttp({ url: labelsUrl });
 const lod = 0;
 const dimensions = imageSource.getDimensions();
 
-const tLod = dimensions.t!.lods[lod];
-const tMin = 0;
-const tMax = tLod.size;
-const tScale = tLod.scale;
 const zLod = dimensions.z!.lods[lod];
-const zMidPoint = 0.5 * zLod.size * zLod.scale;
+const zTranslation = zLod.translation;
+const zScale = zLod.scale;
+const zSize = zLod.size;
+const zMidIndex = Math.floor((zSize - 1) / 2);
+const zMidPoint = zTranslation + zMidIndex * zScale;
 const xLod = dimensions.x!.lods[lod];
 const xStopPoint = xLod.size * xLod.scale;
 const yLod = dimensions.y!.lods[lod];
 const yStopPoint = yLod.size * yLod.scale;
 
 const sliceCoords = {
-  t: tMin * tScale,
-  c: [0],
+  c: [1],
   z: zMidPoint,
 };
 
 const labelsSliceCoords = {
-  t: tMin * tScale,
   c: [0],
   z: zMidPoint,
 };
@@ -51,13 +48,12 @@ const imageLayer = new ImageLayer({
   sliceCoords,
   policy: createExplorationPolicy(),
   channelProps: [
+    { visible: false },
     {
       visible: true,
       color: Color.WHITE,
-      contrastLimits: [20, 200],
+      contrastLimits: [0, 1024],
     },
-    { visible: false },
-    { visible: false },
   ],
 });
 
@@ -69,7 +65,7 @@ function createLabelsLayer() {
     source: labelsSource,
     sliceCoords: labelsSliceCoords,
     policy: createExplorationPolicy(),
-    opacity: 0.25,
+    opacity: 0.55,
     blendMode: "normal",
     outlineSelected: outlineMode,
     onPickValue: (info) => {
@@ -90,24 +86,25 @@ function createLabelsLayer() {
 
 let labelsLayer = createLabelsLayer();
 
-const tSlider = document.querySelector<HTMLInputElement>("#t-slider")!;
-const tIndexEl = document.querySelector<HTMLSpanElement>("#t-index")!;
-const tTotalEl = document.querySelector<HTMLSpanElement>("#t-total")!;
+const zSlider = document.querySelector<HTMLInputElement>("#z-slider")!;
+const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
+const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total")!;
 const outlineToggleEl =
   document.querySelector<HTMLButtonElement>("#outline-toggle")!;
 
 // Initialize slider
-tSlider.min = `${tMin}`;
-tSlider.max = `${tMax - 1}`;
-tSlider.value = "0";
-tTotalEl.textContent = `${tMax - tMin - 1}`;
+zSlider.min = "0";
+zSlider.max = `${zSize - 1}`;
+zSlider.value = `${zMidIndex}`;
+zIndexEl.textContent = `${zMidIndex}`;
+zTotalEl.textContent = `${zSize - 1}`;
 
 let debounce: ReturnType<typeof setTimeout>;
-tSlider.addEventListener("input", (event) => {
+zSlider.addEventListener("input", (event) => {
   clearTimeout(debounce);
   const value = (event.target as HTMLInputElement).valueAsNumber;
   debounce = setTimeout(() => {
-    setTimeIndex(value);
+    setZIndex(value);
   }, 20);
 });
 
@@ -133,10 +130,11 @@ outlineToggleEl.addEventListener("click", () => {
   viewport.addLayer(labelsLayer);
 });
 
-function setTimeIndex(index: number) {
-  sliceCoords.t = index * tScale;
-  labelsSliceCoords.t = index * tScale;
-  tIndexEl.textContent = `${index}`;
+function setZIndex(index: number) {
+  const z = zTranslation + index * zScale;
+  sliceCoords.z = z;
+  labelsSliceCoords.z = z;
+  zIndexEl.textContent = `${index}`;
 }
 
 document
