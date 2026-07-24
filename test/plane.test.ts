@@ -54,3 +54,25 @@ test("plane with inverted normal flips distance sign", () => {
   expect(planePositiveY.signedDistanceToPoint(point)).toBe(3);
   expect(planeNegativeY.signedDistanceToPoint(point)).toBe(-3);
 });
+
+test("fromPointAndNormal constructs a plane containing the point", () => {
+  const plane = Plane.fromPointAndNormal(
+    vec3.fromValues(10, 20, 300),
+    vec3.fromValues(0, 0, 1)
+  );
+
+  expect(plane.signedDistanceToPoint(vec3.fromValues(10, 20, 300))).toBe(0);
+  expect(plane.signedDistanceToPoint(vec3.fromValues(-5, 7, 300))).toBe(0);
+});
+
+test("fromPointAndNormal handles non-axis-aligned normals", () => {
+  const normal = vec3.normalize(vec3.create(), vec3.fromValues(1, 1, 1));
+  const point = vec3.fromValues(2, 2, 2);
+  const plane = Plane.fromPointAndNormal(point, normal);
+
+  expect(plane.signedDistanceToPoint(point)).toBeCloseTo(0);
+
+  const above = vec3.scaleAndAdd(vec3.create(), point, normal, 1);
+
+  expect(plane.signedDistanceToPoint(above)).toBeCloseTo(1);
+});

@@ -6,6 +6,7 @@ import { vec2, vec3 } from "gl-matrix";
 import { generateID } from "../utilities/id_generator";
 import { Logger } from "../utilities/logger";
 import { EventContext, EventDispatcher } from "./event_dispatcher";
+import { Ray } from "../math/ray";
 import { IdetikContext } from "../idetik";
 
 export interface ViewportConfig {
@@ -53,6 +54,10 @@ export class Viewport {
         const client = vec2.fromValues(clientX, clientY);
         event.clipPos = this.clientToClip(client, 0);
         event.worldPos = this.camera.clipToWorld(event.clipPos);
+
+        const near = this.camera.clipToWorld(this.clientToClip(client, -1));
+        const far = this.camera.clipToWorld(this.clientToClip(client, 1));
+        event.worldRay = new Ray(near, vec3.subtract(vec3.create(), far, near));
       }
       for (const layer of this.layers_) {
         layer.onEvent(event);

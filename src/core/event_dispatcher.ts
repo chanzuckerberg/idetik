@@ -1,5 +1,6 @@
 import { vec3 } from "gl-matrix";
 import { Logger } from "../utilities/logger";
+import { Ray } from "../math/ray";
 
 const eventTypes = [
   "pointerdown",
@@ -19,6 +20,7 @@ export class EventContext {
   public readonly type: EventType;
   public readonly event?: Event;
   public worldPos?: vec3;
+  public worldRay?: Ray;
   public clipPos?: vec3;
 
   constructor(type: EventType, event?: Event) {

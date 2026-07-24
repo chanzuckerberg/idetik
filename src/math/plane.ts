@@ -9,6 +9,10 @@ export class Plane {
     this.signedDistance = distance;
   }
 
+  public static fromPointAndNormal(point: vec3, normal: vec3): Plane {
+    return new Plane(normal, -vec3.dot(normal, point));
+  }
+
   public set(normal: vec3, distance: number) {
     this.normal = vec3.clone(normal);
     this.signedDistance = distance;
