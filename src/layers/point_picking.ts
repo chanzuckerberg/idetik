@@ -1,4 +1,5 @@
 import { EventContext } from "../core/event_dispatcher";
+import { Ray } from "../math/ray";
 import { Logger } from "../utilities/logger";
 import { vec2, vec3 } from "gl-matrix";
 
@@ -10,7 +11,7 @@ export interface PointPickingResult {
 export function handlePointPickingEvent<T>(
   event: EventContext,
   pointerDownPos: vec2 | null,
-  getValueAtWorld: (world: vec3) => Promise<T | null>,
+  pickAtRay: (ray: Ray) => Promise<{ world: vec3; value: T } | null>,
   onPickValue?: (info: { world: vec3; value: T }) => void,
   dragThreshold: number = 3
 ): vec2 | null {
@@ -30,12 +31,12 @@ export function handlePointPickingEvent<T>(
       if (dist < dragThreshold) {
         if (!onPickValue) return null;
 
-        const world = event.worldPos;
-        if (world) {
-          getValueAtWorld(world)
-            .then((value) => {
-              if (value !== null) {
-                onPickValue({ world, value });
+        const ray = event.worldRay;
+        if (ray) {
+          pickAtRay(ray)
+            .then((info) => {
+              if (info !== null) {
+                onPickValue(info);
               }
             })
             .catch((error) => {

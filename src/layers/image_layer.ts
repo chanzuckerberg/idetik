@@ -19,6 +19,8 @@ import {
 import { ImageRenderable } from "../objects/renderable/image_renderable";
 import { Color } from "../math/color";
 import { EventContext } from "../core/event_dispatcher";
+import { Plane } from "../math/plane";
+import { Ray } from "../math/ray";
 import { vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { clamp } from "../utilities/clamp";
@@ -201,9 +203,30 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
       this.pointerDownPos_,
-      (world) => this.getValueAtWorld(world),
+      (ray) => this.pickAtRay(ray),
       this.onPickValue_
     );
+  }
+
+  private async pickAtRay(ray: Ray): Promise<PointPickingResult | null> {
+    const firstChunk = this.visibleChunks_.values().next();
+    if (firstChunk.done) return null;
+
+    const transform = firstChunk.value.transform;
+    const planeNormal = vec3.transformQuat(
+      vec3.create(),
+      vec3.fromValues(0, 0, 1),
+      transform.rotation
+    );
+
+    const plane = Plane.fromPointAndNormal(transform.translation, planeNormal);
+    const world = ray.intersectWithPlane(plane);
+    if (!world) return null;
+
+    const value = await this.getValueAtWorld(world);
+    if (value === null) return null;
+
+    return { world, value };
   }
 
   // exposed for use in chunk info overlay
