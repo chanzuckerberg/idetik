@@ -4,6 +4,7 @@ import {
 } from "../objects/textures/texture";
 import { Logger } from "../utilities/logger";
 import { mat4, vec3 } from "gl-matrix";
+import { AxisComponent, SliceAxes } from "../math/axes";
 
 const chunkDataTypes = [
   Int8Array,
@@ -105,20 +106,6 @@ export type SliceCoordinates = {
   z?: number;
   c?: number[];
   t?: number;
-};
-
-export type SpatialAxis = "x" | "y" | "z";
-
-export type SliceAxes = {
-  u: SpatialAxis;
-  v: SpatialAxis;
-  w: SpatialAxis;
-};
-
-export const AxisComponent: Record<SpatialAxis, 0 | 1 | 2> = {
-  x: 0,
-  y: 1,
-  z: 2,
 };
 
 export type ChunkSource = {

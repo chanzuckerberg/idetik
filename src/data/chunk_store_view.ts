@@ -1,12 +1,5 @@
-import {
-  AxisComponent,
-  Chunk,
-  ChunkViewState,
-  coordToIndex,
-  SliceAxes,
-  SliceCoordinates,
-  SpatialAxis,
-} from "./chunk";
+import { Chunk, ChunkViewState, coordToIndex, SliceCoordinates } from "./chunk";
+import { AxisComponent, SliceAxes, SpatialAxis } from "../math/axes";
 import type { ChunkStore } from "./chunk_store";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
