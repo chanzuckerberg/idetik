@@ -143,7 +143,10 @@ const imageLayer = new ImageLayer({
   channelProps: [{ color: Color.WHITE, contrastLimits: [-0.00001, 0.00001] }],
 });
 
-const camera = new OrthographicCamera(0, xExtent, 0, yExtent, -10000, 10000);
+const camera = new OrthographicCamera(0, xExtent, 0, yExtent, {
+  near: -10000,
+  far: 10000,
+});
 const app = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [

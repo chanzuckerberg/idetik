@@ -5,10 +5,10 @@ import type { IdetikContext } from "../idetik";
 import {
   Chunk,
   ChunkSource,
-  SliceAxes,
   SliceCoordinates,
   worldToTexCoordForChunk,
 } from "../data/chunk";
+import { SliceAxes } from "../math/axes";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
