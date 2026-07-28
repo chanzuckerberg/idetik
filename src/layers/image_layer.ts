@@ -8,7 +8,13 @@ import {
   SliceCoordinates,
   worldToTexCoordForChunk,
 } from "../data/chunk";
-import { SliceAxes } from "../math/axes";
+import {
+  AxisComponent,
+  SliceAxes,
+  SliceOrientation,
+  orientationRotation,
+  sliceAxesFor,
+} from "../math/axes";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import {
@@ -21,7 +27,7 @@ import { Color } from "../math/color";
 import { EventContext } from "../core/event_dispatcher";
 import { Plane } from "../math/plane";
 import { Ray } from "../math/ray";
-import { vec2, vec3 } from "gl-matrix";
+import { quat, vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
@@ -32,6 +38,7 @@ export type ImageLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
+  orientation?: SliceOrientation;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
 };
@@ -55,7 +62,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
-  private readonly axes_: SliceAxes = { u: "x", v: "y", w: "z" };
+  private readonly axes_: SliceAxes;
+  private readonly planeRotation_: quat;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
   private readonly pool_ = new RenderablePool<ImageRenderable>();
@@ -82,6 +90,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     source,
     sliceCoords,
     policy,
+    orientation,
     channelProps,
     onPickValue,
     ...layerOptions
@@ -91,6 +100,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.source_ = source;
     this.policy_ = policy;
     this.sliceCoords_ = sliceCoords;
+    this.axes_ = sliceAxesFor(orientation ?? "XY");
+    this.planeRotation_ = orientationRotation(this.axes_);
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
     this.onPickValue_ = onPickValue;
@@ -99,7 +110,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   protected attach(context: IdetikContext) {
     this.chunkStoreView_ = context.chunkManager.addView(
       this.source_,
-      this.policy_
+      this.policy_,
+      this.axes_
     );
 
     const channelCount = this.chunkStoreView_.channelCount;
@@ -129,15 +141,17 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     if (!viewport || !this.chunkStoreView_) return;
 
     const camera = viewport.camera;
-    if (camera.type !== "OrthographicCamera") {
-      throw new Error(
-        "Image rendering currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
-      );
-    }
+
+    // non-orthographic viewports have no world-space view rect, so we load the
+    // whole slice plane and pick LOD as if it spanned the viewport. stopgap
+    // until view-dependent LOD selection and culling work under perspective.
+    const worldViewRect =
+      camera.type === "OrthographicCamera"
+        ? (camera as OrthographicCamera).getWorldViewRect()
+        : this.chunkStoreView_.getWholePlaneRect();
 
     this.chunkStoreView_.updateChunksForImage(this.sliceCoords_, {
-      worldViewRect: (camera as OrthographicCamera).getWorldViewRect(),
+      worldViewRect,
       bufferWidthPx: viewport.getBufferRect().width,
     });
 
@@ -262,7 +276,9 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     const existing = this.visibleChunks_.get(chunk);
     if (existing) return existing;
 
-    const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
+    const pooled = this.pool_.acquire(
+      poolKeyForImageRenderable(chunk, this.axes_)
+    );
     if (pooled) {
       pooled.setTexture(0, texture);
       pooled.setChannelProps(this.getChannelPropsForChunk(chunk));
@@ -291,11 +307,11 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
   private updateSlicePosition(image: ImageRenderable, chunk: Chunk) {
     const { u, v, w } = this.axes_;
-    image.transform.setTranslation([
-      chunk.offset[u],
-      chunk.offset[v],
-      this.sliceCoords_[w] ?? chunk.offset[w],
-    ]);
+    const translation = vec3.create();
+    translation[AxisComponent[u]] = chunk.offset[u];
+    translation[AxisComponent[v]] = chunk.offset[v];
+    translation[AxisComponent[w]] = this.sliceCoords_[w] ?? chunk.offset[w];
+    image.transform.setTranslation(translation);
   }
 
   private sliceIndexForChunk(chunk: Chunk): number {
@@ -320,6 +336,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
     const { u, v } = this.axes_;
     image.transform.setScale([chunk.scale[u], chunk.scale[v], 1]);
+    image.transform.setRotation(this.planeRotation_);
     this.updateSlicePosition(image, chunk);
     image.worldToTexCoord = worldToTexCoordForChunk(chunk, this.axes_);
   }
@@ -421,15 +438,16 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     for (const chunk of chunks) {
       const image = this.visibleChunks_.get(chunk);
       if (image) {
-        this.pool_.release(poolKeyForImageRenderable(chunk), image);
+        this.pool_.release(poolKeyForImageRenderable(chunk, this.axes_), image);
         this.visibleChunks_.delete(chunk);
       }
     }
   }
 }
 
-export function poolKeyForImageRenderable(chunk: Chunk) {
+export function poolKeyForImageRenderable(chunk: Chunk, axes: SliceAxes) {
   return [
+    `plane${axes.u}${axes.v}`,
     `lod${chunk.lod}`,
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `align${chunk.rowAlignmentBytes}`,

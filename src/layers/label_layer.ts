@@ -8,7 +8,13 @@ import {
   SliceCoordinates,
   worldToTexCoordForChunk,
 } from "../data/chunk";
-import { SliceAxes } from "../math/axes";
+import {
+  AxisComponent,
+  SliceAxes,
+  SliceOrientation,
+  orientationRotation,
+  sliceAxesFor,
+} from "../math/axes";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
@@ -20,7 +26,7 @@ import { Texture } from "../objects/textures/texture";
 import { EventContext } from "../core/event_dispatcher";
 import { Plane } from "../math/plane";
 import { Ray } from "../math/ray";
-import { vec2, vec3 } from "gl-matrix";
+import { quat, vec2, vec3 } from "gl-matrix";
 import { handlePointPickingEvent, PointPickingResult } from "./point_picking";
 import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
@@ -30,6 +36,7 @@ export type LabelLayerProps = LayerOptions & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;
+  orientation?: SliceOrientation;
   colorMap?: LabelColorMapProps;
   onPickValue?: (info: PointPickingResult) => void;
   outlineSelected?: boolean;
@@ -41,7 +48,8 @@ export class LabelLayer extends Layer {
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
-  private readonly axes_: SliceAxes = { u: "x", v: "y", w: "z" };
+  private readonly axes_: SliceAxes;
+  private readonly planeRotation_: quat;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly outlineSelected_: boolean;
   private readonly visibleChunks_: Map<Chunk, LabelImageRenderable> = new Map();
@@ -60,6 +68,7 @@ export class LabelLayer extends Layer {
     source,
     sliceCoords,
     policy,
+    orientation,
     colorMap = {},
     onPickValue,
     outlineSelected = false,
@@ -70,6 +79,8 @@ export class LabelLayer extends Layer {
     this.source_ = source;
     this.policy_ = policy;
     this.sliceCoords_ = sliceCoords;
+    this.axes_ = sliceAxesFor(orientation ?? "XY");
+    this.planeRotation_ = orientationRotation(this.axes_);
     this.colorMap_ = new LabelColorMap(colorMap);
     this.onPickValue_ = onPickValue;
     this.outlineSelected_ = outlineSelected;
@@ -78,7 +89,8 @@ export class LabelLayer extends Layer {
   protected attach(context: IdetikContext) {
     this.chunkStoreView_ = context.chunkManager.addView(
       this.source_,
-      this.policy_
+      this.policy_,
+      this.axes_
     );
 
     if (this.chunkStoreView_.channelCount > 1) {
@@ -101,15 +113,17 @@ export class LabelLayer extends Layer {
     if (!viewport || !this.chunkStoreView_) return;
 
     const camera = viewport.camera;
-    if (camera.type !== "OrthographicCamera") {
-      throw new Error(
-        "Label rendering currently supports only orthographic cameras. " +
-          "Update the implementation before using a perspective camera."
-      );
-    }
+
+    // non-orthographic viewports have no world-space view rect, so we load the
+    // whole slice plane and pick LOD as if it spanned the viewport. stopgap
+    // until view-dependent LOD selection and culling work under perspective.
+    const worldViewRect =
+      camera.type === "OrthographicCamera"
+        ? (camera as OrthographicCamera).getWorldViewRect()
+        : this.chunkStoreView_.getWholePlaneRect();
 
     this.chunkStoreView_.updateChunksForImage(this.sliceCoords_, {
-      worldViewRect: (camera as OrthographicCamera).getWorldViewRect(),
+      worldViewRect,
       bufferWidthPx: viewport.getBufferRect().width,
     });
 
@@ -303,7 +317,9 @@ export class LabelLayer extends Layer {
     const existing = this.visibleChunks_.get(chunk);
     if (existing) return existing;
 
-    const pooled = this.pool_.acquire(poolKeyForImageRenderable(chunk));
+    const pooled = this.pool_.acquire(
+      poolKeyForImageRenderable(chunk, this.axes_)
+    );
     if (pooled) {
       pooled.setTexture(0, texture);
       pooled.setColorMap(this.colorMap_);
@@ -331,11 +347,11 @@ export class LabelLayer extends Layer {
 
   private updateSlicePosition(label: LabelImageRenderable, chunk: Chunk) {
     const { u, v, w } = this.axes_;
-    label.transform.setTranslation([
-      chunk.offset[u],
-      chunk.offset[v],
-      this.sliceCoords_[w] ?? chunk.offset[w],
-    ]);
+    const translation = vec3.create();
+    translation[AxisComponent[u]] = chunk.offset[u];
+    translation[AxisComponent[v]] = chunk.offset[v];
+    translation[AxisComponent[w]] = this.sliceCoords_[w] ?? chunk.offset[w];
+    label.transform.setTranslation(translation);
   }
 
   private sliceIndexForChunk(chunk: Chunk): number {
@@ -352,6 +368,7 @@ export class LabelLayer extends Layer {
   private updateLabelChunk(label: LabelImageRenderable, chunk: Chunk) {
     const { u, v } = this.axes_;
     label.transform.setScale([chunk.scale[u], chunk.scale[v], 1]);
+    label.transform.setRotation(this.planeRotation_);
     this.updateSlicePosition(label, chunk);
     label.worldToTexCoord = worldToTexCoordForChunk(chunk, this.axes_);
   }
@@ -360,7 +377,7 @@ export class LabelLayer extends Layer {
     for (const chunk of chunks) {
       const label = this.visibleChunks_.get(chunk);
       if (label) {
-        this.pool_.release(poolKeyForImageRenderable(chunk), label);
+        this.pool_.release(poolKeyForImageRenderable(chunk, this.axes_), label);
         this.visibleChunks_.delete(chunk);
       }
     }
