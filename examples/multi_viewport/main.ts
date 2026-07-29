@@ -6,6 +6,7 @@ import {
   OrthographicCamera,
   PanZoomControls,
   PerspectiveCamera,
+  SliceOrientation,
   VolumeLayer,
   createPlaybackPolicy,
 } from "@";
@@ -53,48 +54,85 @@ const volumeLayer = new VolumeLayer({
   channelProps: [{ contrastLimits: [0, 200] }],
 });
 
-const camera2D = new OrthographicCamera(left, right, top, bottom);
 const sliceCoords = {
   get t() {
     return sharedTime.t;
   },
+  x: (left + right) / 2,
+  y: (top + bottom) / 2,
   z: 300,
   c: [0],
 };
-const imageLayer = new ImageLayer({
-  source,
-  sliceCoords: sliceCoords,
-  policy: createPlaybackPolicy(),
-  channelProps: [{ contrastLimits: [0, 200] }],
-});
+
+function createSliceLayer(orientation: SliceOrientation) {
+  return new ImageLayer({
+    source,
+    sliceCoords,
+    policy: createPlaybackPolicy(),
+    channelProps: [{ contrastLimits: [0, 200] }],
+    orientation,
+  });
+}
+
+function createSliceViewport(
+  id: string,
+  orientation: SliceOrientation,
+  [uMin, uMax]: readonly [number, number],
+  [vMin, vMax]: readonly [number, number]
+) {
+  const uPad = 0.2 * (uMax - uMin);
+  const vPad = 0.2 * (vMax - vMin);
+  const camera = new OrthographicCamera(
+    uMin - uPad,
+    uMax + uPad,
+    vMin - vPad,
+    vMax + vPad,
+    { orientation }
+  );
+
+  return {
+    id,
+    element: document.querySelector<HTMLDivElement>(`#viewport-${id}`)!,
+    camera,
+    cameraControls: new PanZoomControls(camera),
+    layers: [createSliceLayer(orientation)],
+  };
+}
+
+const xRange = [left, right] as const;
+const yRange = [top, bottom] as const;
+const zRange = [zMin, zMax] as const;
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
+  backgroundColor: "#333333",
   viewports: [
+    createSliceViewport("slice-xy", "XY", xRange, yRange),
     {
-      id: "volume",
-      element: document.querySelector<HTMLDivElement>("#viewport-left")!,
+      id: "3d",
+      element: document.querySelector<HTMLDivElement>("#viewport-3d")!,
       camera: camera3D,
       cameraControls: new OrbitControls(camera3D, {
-        radius: 750,
+        radius: 1100,
+        yaw: 0.4,
+        pitch: 0.1,
         target: volumeCenter,
       }),
-      layers: [volumeLayer],
+      layers: [
+        volumeLayer,
+        createSliceLayer("XY"),
+        createSliceLayer("XZ"),
+        createSliceLayer("YZ"),
+      ],
     },
-    {
-      id: "slice",
-      element: document.querySelector<HTMLDivElement>("#viewport-right")!,
-      camera: camera2D,
-      cameraControls: new PanZoomControls(camera2D),
-      layers: [imageLayer],
-    },
+    createSliceViewport("slice-xz", "XZ", xRange, zRange),
+    createSliceViewport("slice-yz", "YZ", yRange, zRange),
   ],
-  showStats: true,
+  showStats: false,
 }).start();
 
 const gui = new GUI({ width: 300 });
 
-// Shared time slider for all viewports with playback controls
 addDimensionSlider({
   gui: gui,
   sliceCoords: sharedTime,
@@ -108,12 +146,29 @@ addDimensionSlider({
   },
 });
 
-const zRange = { min: zMin, max: zMax };
+addDimensionSlider({
+  gui: gui,
+  sliceCoords: sliceCoords,
+  dimensionName: "x",
+  minValue: left,
+  maxValue: right,
+  stepValue: 1,
+});
+
+addDimensionSlider({
+  gui: gui,
+  sliceCoords: sliceCoords,
+  dimensionName: "y",
+  minValue: top,
+  maxValue: bottom,
+  stepValue: 1,
+});
+
 addDimensionSlider({
   gui: gui,
   sliceCoords: sliceCoords,
   dimensionName: "z",
-  minValue: zRange.min,
-  maxValue: zRange.max,
+  minValue: zMin,
+  maxValue: zMax,
   stepValue: z.scale,
 });

@@ -46,6 +46,7 @@ export type OmeZarrImage = Image;
 export type { LayerState } from "./core/layer";
 export type { MemoryStats, Overlay } from "./idetik";
 export type { SliceCoordinates } from "./data/chunk";
+export type { SliceOrientation } from "./math/axes";
 
 export { Color } from "./math/color";
 export type { ColorLike } from "./math/color";

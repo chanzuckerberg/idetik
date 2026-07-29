@@ -1,4 +1,5 @@
 import { Chunk, ChunkSource } from "./chunk";
+import { SliceAxes } from "../math/axes";
 import { ChunkQueue, comparePriority } from "./chunk_queue";
 import { chunkMemoryStats, clearChunkData } from "./chunk_memory";
 import { ChunkStore } from "./chunk_store";
@@ -64,14 +65,15 @@ export class ChunkManager {
 
   public addView(
     source: ChunkSource,
-    policy: ImageSourcePolicy
+    policy: ImageSourcePolicy,
+    axes?: SliceAxes
   ): ChunkStoreView {
     let store = this.stores_.find((s) => s.source === source)?.store;
     if (!store) {
       store = new ChunkStore(source.loader.getSourceDimensionMap());
       this.stores_.push({ source, store });
     }
-    return store.addView(policy);
+    return store.addView(policy, axes);
   }
 
   public update() {

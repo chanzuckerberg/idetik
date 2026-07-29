@@ -4,7 +4,7 @@ import { Controller, GUI } from "lil-gui";
 type DimensionSliderProps = {
   gui: GUI;
   sliceCoords: SliceCoordinates;
-  dimensionName: "z" | "t";
+  dimensionName: "x" | "y" | "z" | "t";
   minValue: number;
   maxValue: number;
   stepValue: number;

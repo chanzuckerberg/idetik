@@ -1,4 +1,5 @@
 import { Chunk, SourceDimensionMap } from "./chunk";
+import { SliceAxes } from "../math/axes";
 import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { ChunkStoreView } from "./chunk_store_view";
@@ -119,8 +120,8 @@ export class ChunkStore {
     return this.lowestResLOD_;
   }
 
-  public addView(policy: ImageSourcePolicy): ChunkStoreView {
-    const view = new ChunkStoreView(this, policy);
+  public addView(policy: ImageSourcePolicy, axes?: SliceAxes): ChunkStoreView {
+    const view = new ChunkStoreView(this, policy, axes);
     this.views_.push(view);
     this.hasHadViews_ = true;
     return view;

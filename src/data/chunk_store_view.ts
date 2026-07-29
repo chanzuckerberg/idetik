@@ -21,7 +21,7 @@ export class ChunkStoreView {
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
   private currentLOD_: number = 0;
-  private readonly axes_: SliceAxes = { u: "x", v: "y", w: "z" };
+  private readonly axes_: SliceAxes;
   private readonly scale0_: number;
   private lastViewBounds2D_: Box2 | null = null;
   private lastViewProjection_: mat4 | null = null;
@@ -34,9 +34,14 @@ export class ChunkStoreView {
 
   private isDisposed_ = false;
 
-  constructor(store: ChunkStore, policy: ImageSourcePolicy) {
+  constructor(
+    store: ChunkStore,
+    policy: ImageSourcePolicy,
+    axes: SliceAxes = { u: "x", v: "y", w: "z" }
+  ) {
     this.store_ = store;
     this.policy_ = policy;
+    this.axes_ = axes;
 
     Logger.info(
       "ChunkStoreView",
@@ -78,6 +83,20 @@ export class ChunkStoreView {
     return this.store_.channelCount;
   }
 
+  public getWholePlaneRect(): Box2 {
+    const dimensions = this.store_.dimensions;
+    const uLod0 = dimensions[this.axes_.u]!.lods[0];
+    const vLod0 = dimensions[this.axes_.v]!.lods[0];
+
+    return new Box2(
+      vec2.fromValues(uLod0.translation, vLod0.translation),
+      vec2.fromValues(
+        uLod0.translation + uLod0.size * uLod0.scale,
+        vLod0.translation + vLod0.size * vLod0.scale
+      )
+    );
+  }
+
   public getChunksToRender(): Chunk[] {
     // Iterates `chunkViewStates_` (only chunks touched by the most recent
     // updateChunks*ForRegion) instead of every chunk at the time index, so the
@@ -109,11 +128,12 @@ export class ChunkStoreView {
     const virtualUnitsPerScreenPixel = virtualWidth / view.bufferWidthPx;
     const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
 
-    this.setLOD(lodFactor);
+    const lodChanged = this.setLOD(lodFactor);
 
     const sliceBounds = this.getSliceAxisBounds(sliceCoords);
     const changed =
       this.policyChanged_ ||
+      lodChanged ||
       this.viewBounds2DChanged(viewBounds2D) ||
       this.sliceBoundsChanged(sliceBounds) ||
       this.lastTCoord_ !== sliceCoords.t ||
@@ -315,7 +335,7 @@ export class ChunkStoreView {
     }
   }
 
-  private setLOD(lodFactor: number): void {
+  private setLOD(lodFactor: number): boolean {
     // With 2x downsampling per LOD, selection happens in log2 space.
     const bias = this.policy_.lod.bias;
 
@@ -335,9 +355,9 @@ export class ChunkStoreView {
     );
 
     const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
-    if (target !== this.currentLOD_) {
-      this.currentLOD_ = target;
-    }
+    if (target === this.currentLOD_) return false;
+    this.currentLOD_ = target;
+    return true;
   }
 
   private markTimeChunksForPrefetchImage(
@@ -606,30 +626,25 @@ export class ChunkStoreView {
   }
 
   private getPaddedBounds(bounds: Box3): Box3 {
+    const { u, v, w } = this.axes_;
     const dimensions = this.store_.dimensions;
-    const xLod = dimensions.x.lods[this.currentLOD_];
-    const yLod = dimensions.y.lods[this.currentLOD_];
-    const zLod = dimensions.z?.lods[this.currentLOD_];
+    const uLod = dimensions[u]!.lods[this.currentLOD_];
+    const vLod = dimensions[v]!.lods[this.currentLOD_];
+    const wLod = dimensions[w]?.lods[this.currentLOD_];
 
-    const padX = xLod.chunkSize * xLod.scale * this.policy_.prefetch.x;
-    const padY = yLod.chunkSize * yLod.scale * this.policy_.prefetch.y;
-
-    let padZ = 0;
-    if (zLod) {
-      padZ = zLod.chunkSize * zLod.scale * this.policy_.prefetch.z;
+    const pad = vec3.create();
+    pad[AxisComponent[u]] =
+      uLod.chunkSize * uLod.scale * this.policy_.prefetch.x;
+    pad[AxisComponent[v]] =
+      vLod.chunkSize * vLod.scale * this.policy_.prefetch.y;
+    if (wLod) {
+      pad[AxisComponent[w]] =
+        wLod.chunkSize * wLod.scale * this.policy_.prefetch.z;
     }
 
     return new Box3(
-      vec3.fromValues(
-        bounds.min[0] - padX,
-        bounds.min[1] - padY,
-        bounds.min[2] - padZ
-      ),
-      vec3.fromValues(
-        bounds.max[0] + padX,
-        bounds.max[1] + padY,
-        bounds.max[2] + padZ
-      )
+      vec3.subtract(vec3.create(), bounds.min, pad),
+      vec3.add(vec3.create(), bounds.max, pad)
     );
   }
 
