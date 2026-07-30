@@ -40,8 +40,9 @@ export class OrthographicCamera extends Camera {
   private height_: number = DEFAULT_HEIGHT;
   private viewportAspectRatio_: number = DEFAULT_ASPECT_RATIO;
   private viewportSize_: [number, number] = [DEFAULT_WIDTH, DEFAULT_HEIGHT];
-  private readonly axes_: SliceAxes;
-  private readonly rotation_: quat;
+  private axes_: SliceAxes;
+  private rotation_: quat;
+  private orientation_: SliceOrientation;
 
   /**
    * Creates an orthographic camera framing the given world-space rectangle.
@@ -63,7 +64,8 @@ export class OrthographicCamera extends Camera {
     super();
     this.near_ = options.near ?? DEFAULT_NEAR;
     this.far_ = options.far ?? DEFAULT_FAR;
-    this.axes_ = sliceAxesFor(options.orientation ?? "XY");
+    this.orientation_ = options.orientation ?? "XY";
+    this.axes_ = sliceAxesFor(this.orientation_);
     this.rotation_ = orientationRotation(this.axes_);
     this.setFrame(left, right, bottom, top);
     this.updateProjectionMatrix();
@@ -92,6 +94,35 @@ export class OrthographicCamera extends Camera {
 
   public get type(): CameraType {
     return "OrthographicCamera";
+  }
+
+  public get orientation(): SliceOrientation {
+    return this.orientation_;
+  }
+
+  /**
+   * Changes the slice orientation the camera faces. The current frame and
+   * zoom carry over numerically to the new plane axes. Call {@link setFrame}
+   * to reframe the view for the new plane.
+   */
+  public setOrientation(orientation: SliceOrientation) {
+    if (orientation === this.orientation_) {
+      return;
+    }
+
+    const u = this.transform.translation[AxisComponent[this.axes_.u]];
+    const v = this.transform.translation[AxisComponent[this.axes_.v]];
+
+    this.orientation_ = orientation;
+    this.axes_ = sliceAxesFor(orientation);
+    this.rotation_ = orientationRotation(this.axes_);
+
+    const translation = vec3.create();
+    translation[AxisComponent[this.axes_.u]] = u;
+    translation[AxisComponent[this.axes_.v]] = v;
+
+    this.transform.setTranslation(translation);
+    this.transform.setRotation(this.rotation_);
   }
 
   public zoom(factor: number) {
