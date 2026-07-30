@@ -62,8 +62,9 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
-  private readonly axes_: SliceAxes;
-  private readonly planeRotation_: quat;
+  private axes_: SliceAxes;
+  private planeRotation_: quat;
+  private orientation_: SliceOrientation;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
   private readonly pool_ = new RenderablePool<ImageRenderable>();
@@ -72,6 +73,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private policy_: ImageSourcePolicy;
   private channelProps_?: ChannelProps[];
   private chunkStoreView_?: ChunkStoreView;
+  private context_?: IdetikContext;
   private pointerDownPos_: vec2 | null = null;
   private debugMode_ = false;
 
@@ -100,7 +102,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.source_ = source;
     this.policy_ = policy;
     this.sliceCoords_ = sliceCoords;
-    this.axes_ = sliceAxesFor(orientation ?? "XY");
+    this.orientation_ = orientation ?? "XY";
+    this.axes_ = sliceAxesFor(this.orientation_);
     this.planeRotation_ = orientationRotation(this.axes_);
     this.channelProps_ = channelProps;
     this.initialChannelProps_ = channelProps;
@@ -108,6 +111,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   protected attach(context: IdetikContext) {
+    this.context_ = context;
     this.chunkStoreView_ = context.chunkManager.addView(
       this.source_,
       this.policy_,
@@ -135,6 +139,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.clearObjects();
     this.chunkStoreView_?.dispose();
     this.chunkStoreView_ = undefined;
+    this.context_ = undefined;
   }
 
   public update(viewport?: Viewport) {
@@ -160,6 +165,39 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     for (const [chunk, imageRenderable] of this.visibleChunks_) {
       this.updateSlicePosition(imageRenderable, chunk);
     }
+  }
+
+  public get orientation(): SliceOrientation {
+    return this.orientation_;
+  }
+
+  /**
+   * Changes the slice orientation at runtime. Visible renderables are rebuilt
+   * for the new plane, chunks already resident in the shared cache are reused.
+   */
+  public setOrientation(orientation: SliceOrientation) {
+    if (orientation === this.orientation_) {
+      return;
+    }
+
+    this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.clearObjects();
+    this.chunkStoreView_?.dispose();
+    this.lastPresentationTimeStamp_ = undefined;
+    this.lastPresentationTimeCoord_ = undefined;
+    this.orientation_ = orientation;
+    this.axes_ = sliceAxesFor(orientation);
+    this.planeRotation_ = orientationRotation(this.axes_);
+
+    if (!this.context_) {
+      return;
+    }
+
+    this.chunkStoreView_ = this.context_.chunkManager.addView(
+      this.source_,
+      this.policy_,
+      this.axes_
+    );
   }
 
   private updateChunks() {
