@@ -1,6 +1,124 @@
 :root {
-  --vp-c-brand-1: rgb(110, 79, 249);
-  --vp-c-brand-2: rgb(130, 103, 250);
-  --vp-c-brand-3: rgb(155, 133, 251);
-  --vp-c-brand-soft: rgba(110, 79, 249, 0.14);
+  --vp-font-family-base: 'Inter', ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  --brand-rgb: 110 79 249;
+
+  --vp-c-brand-1: rgb(var(--brand-rgb));
+  --vp-c-brand-2: #8267fa;
+  --vp-c-brand-3: #9b85fb;
+  --vp-c-brand-soft: rgb(var(--brand-rgb) / 0.14);
+
+  --vp-c-text-1: #111114;
+  --vp-c-text-2: #4b4b55;
+  --vp-c-gutter: #ededef;
+
+  --vp-button-brand-bg: var(--vp-c-brand-1);
+  --vp-button-brand-hover-bg: #5c3ee9;
+  --vp-button-brand-active-bg: #4e32d2;
+
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-hover-bg: transparent;
+  --vp-button-alt-active-bg: transparent;
+  --vp-button-alt-text: var(--vp-c-text-1);
+  --vp-button-alt-hover-text: var(--vp-c-text-1);
+  --vp-button-alt-active-text: var(--vp-c-text-1);
+  --vp-button-alt-border: #dcdce3;
+  --vp-button-alt-hover-border: #b7b7c2;
+  --vp-button-alt-active-border: #9a9aa6;
+}
+
+.VPButton.VPButton.medium,
+.VPButton.VPButton.big {
+  border-radius: 4px;
+}
+
+.VPNavBar .divider .divider-line {
+  background-color: var(--vp-c-gutter);
+}
+
+.VPNavBar .VPNavBarTitle .logo {
+  margin-right: 1px;
+}
+
+.VPNavBar .VPNavBarTitle .title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.VPHero .heading .text {
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+@media (min-width: 960px) {
+  .VPHero .heading .text {
+    max-width: 680px;
+  }
+}
+
+.VPHero .main .tagline {
+  padding-top: 24px;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.VPHome {
+  overflow-x: clip;
+}
+
+.VPHome .VPFeatures .container {
+  position: relative;
+}
+
+.VPHome .VPFeatures .container::before {
+  content: '';
+  position: absolute;
+  inset: -96px -80px;
+  pointer-events: none;
+  filter: blur(48px);
+  background:
+    radial-gradient(620px 340px at 6% 2%, rgb(var(--brand-rgb) / 0.09), transparent 68%),
+    radial-gradient(700px 420px at 98% 34%, rgb(84 132 250 / 0.13), transparent 70%),
+    radial-gradient(560px 320px at 46% 112%, rgb(168 120 252 / 0.11), transparent 70%);
+}
+
+.VPHome .VPFeatures .items {
+  position: relative;
+  z-index: 1;
+}
+
+.VPHome .VPFeatures .VPFeature {
+  border-radius: 12px;
+  border: 1px solid rgb(17 17 20 / 0.07);
+  background-color: rgb(255 255 255 / 0.55);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  backdrop-filter: blur(28px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+}
+
+.VPHome .VPFeatures .VPFeature .details {
+  font-weight: 400;
+}
+
+.VPHome .VPFeatures .VPFeature .icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  border: 1px solid rgb(var(--brand-rgb) / 0.22);
+  background-color: rgb(var(--brand-rgb) / 0.07);
+  color: var(--vp-c-brand-1);
+}
+
+.VPHome .VPFeatures .VPFeature .icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.VPFooter .container .message,
+.VPFooter .container .copyright {
+  color: #6e6e78;
 }

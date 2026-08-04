@@ -6,15 +6,24 @@ export default defineConfig({
   description: 'A library for creating interactive viewers for large bioimaging data',
 
   srcDir: 'docs',
+  appearance: false,
+
+  head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' }]],
 
   vite: {
     server: { port: 5174 },
   },
 
   themeConfig: {
+    logo: '/icon.svg',
+
+    search: {
+      provider: 'local',
+    },
+
     nav: [
-      { text: 'Guide', link: '/guide/getting-started' },
-      { text: 'API', link: '/api/' },
+      { text: 'Manual', link: '/guide/getting-started' },
+      { text: 'API Reference', link: '/api/' },
     ],
 
     sidebar: {
@@ -35,5 +44,9 @@ export default defineConfig({
     socialLinks: [
       { icon: 'github', link: 'https://github.com/chanzuckerberg/idetik' },
     ],
+
+    footer: {
+      message: 'Released under the MIT License',
+    },
   },
 })
