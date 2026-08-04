@@ -15,7 +15,7 @@ hero:
 features:
   - title: Composable by design
     icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>'
-    details: Idetik gives you the parts, not the viewer. Define one or more viewports, each with its own camera, controls, and stack of image, volume, and label layers.
+    details: Idetik is not a viewer but a toolkit for building viewers. Define viewports with your own cameras, controls, and image, volume, or segmentation layers.
   - title: OME-Zarr native
     icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>'
     details: Base support for N-dimensional, multi-scale, multi-channel OME-Zarr. Point Idetik at a local or remote store with no conversion step. Version 0.4/0.5 supported.
