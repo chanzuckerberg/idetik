@@ -15,6 +15,8 @@ export class WebGLState {
 
   private enabledCapabilities_ = new Map<GLenum, boolean>();
   private depthMaskEnabled_: boolean | null = null;
+  private colorMaskEnabled_: boolean | null = null;
+  private depthFunc_: GLenum | null = null;
   private blendSrcFactor_: GLenum | null = null;
   private blendDstFactor_: GLenum | null = null;
   private currentBlendingMode_: BlendingMode | null = null;
@@ -75,6 +77,29 @@ export class WebGLState {
     if (this.depthMaskEnabled_ !== flag) {
       this.gl_.depthMask(flag);
       this.depthMaskEnabled_ = flag;
+    }
+  }
+
+  public setColorMask(enabled: boolean) {
+    if (this.colorMaskEnabled_ !== enabled) {
+      this.gl_.colorMask(enabled, enabled, enabled, enabled);
+      this.colorMaskEnabled_ = enabled;
+    }
+  }
+
+  public setPolygonOffset(offset: { factor: number; units: number } | null) {
+    if (offset === null) {
+      this.disable(this.gl_.POLYGON_OFFSET_FILL);
+      return;
+    }
+    this.enable(this.gl_.POLYGON_OFFSET_FILL);
+    this.gl_.polygonOffset(offset.factor, offset.units);
+  }
+
+  public setDepthFunc(func: GLenum) {
+    if (this.depthFunc_ !== func) {
+      this.gl_.depthFunc(func);
+      this.depthFunc_ = func;
     }
   }
 
