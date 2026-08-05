@@ -101,7 +101,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     onPickValue,
     ...layerOptions
   }: ImageLayerProps) {
-    super({ blendMode: "additive", ...layerOptions });
+    super({ blendMode: "additive", occludes: true, ...layerOptions });
     this.setState("initialized");
     this.source_ = source;
     this.policy_ = policy ?? createExplorationPolicy();

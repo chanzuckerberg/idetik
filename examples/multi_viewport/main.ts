@@ -1,4 +1,6 @@
 import {
+  ChannelProps,
+  Color,
   Idetik,
   ImageLayer,
   OmeZarrImageSource,
@@ -16,52 +18,45 @@ import { vec3 } from "gl-matrix";
 import GUI from "lil-gui";
 
 const url =
-  "https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/";
-const left = 150;
-const right = 950;
-const top = 100;
-const bottom = 900;
+  "https://public.czbiohub.org/royerlab/zebrahub/imaging/multi-view/ZMNS001.ome.zarr/";
 
-// values copied from source
-const z = { translate: 0.0, scale: 1.24, shape: 448 };
-const zMin = z.translate;
-const zMax = z.translate + z.scale * z.shape - z.scale;
+// shared source between viewports/layers
+const source = await OmeZarrImageSource.fromHttp({ url });
 
-const volumeCenter = vec3.fromValues(
-  (right + left) / 2,
-  (top + bottom) / 2,
+const lod = 0;
+const dims = source.getDimensions();
+const axisRange = (axis: "x" | "y" | "z"): readonly [number, number] => {
+  const d = dims[axis]!.lods[lod];
+  return [d.translation, d.translation + d.size * d.scale] as const;
+};
+const [xMin, xMax] = axisRange("x");
+const [yMin, yMax] = axisRange("y");
+const [zMin, zMax] = axisRange("z");
+const step = (axis: "x" | "y" | "z") => dims[axis]!.lods[lod].scale;
+
+const timeCount = dims.t?.lods[lod].size ?? 1;
+const center = vec3.fromValues(
+  (xMin + xMax) / 2,
+  (yMin + yMax) / 2,
   (zMin + zMax) / 2
 );
 
-// shared source between viewports
-const source = await OmeZarrImageSource.fromHttp({ url });
+// shared timepoint across all viewports
+const sharedTime = { t: Math.floor((timeCount - 1) / 2) };
 
-// Shared timepoint across all viewports
-const sharedTime = { t: 400 };
-
-// Volume layer - no z coordinate to render entire volume
-const volumeCoords = {
-  get t() {
-    return sharedTime.t;
-  },
-  c: [0],
-};
-const camera3D = new PerspectiveCamera();
-const volumeLayer = new VolumeLayer({
-  source,
-  sliceCoords: volumeCoords,
-  policy: createPlaybackPolicy({ lod: { min: 2, max: 2 } }),
-  channelProps: [{ contrastLimits: [0, 200] }],
-});
+const channelProps: ChannelProps[] = [
+  { color: Color.CYAN, contrastLimits: [0, 1200] },
+  { color: Color.MAGENTA, contrastLimits: [0, 400] },
+];
 
 const sliceCoords = {
   get t() {
     return sharedTime.t;
   },
-  x: (left + right) / 2,
-  y: (top + bottom) / 2,
-  z: 300,
-  c: [0],
+  x: center[0],
+  y: center[1],
+  z: center[2],
+  c: [0, 1],
 };
 
 function createSliceLayer(orientation: SliceOrientation) {
@@ -69,7 +64,7 @@ function createSliceLayer(orientation: SliceOrientation) {
     source,
     sliceCoords,
     policy: createPlaybackPolicy(),
-    channelProps: [{ contrastLimits: [0, 200] }],
+    channelProps,
     orientation,
   });
 }
@@ -99,9 +94,26 @@ function createSliceViewport(
   };
 }
 
-const xRange = [left, right] as const;
-const yRange = [top, bottom] as const;
+// Volume layer - no z coordinate to render entire volume
+const volumeLod = Math.min(2, dims.x!.lods.length - 1);
+const volumeLayer = new VolumeLayer({
+  source,
+  sliceCoords: {
+    get t() {
+      return sharedTime.t;
+    },
+    c: [0, 1],
+  },
+  policy: createPlaybackPolicy({ lod: { min: volumeLod, max: volumeLod } }),
+  channelProps,
+});
+volumeLayer.opacityMultiplier = 0.01;
+
+const xRange = [xMin, xMax] as const;
+const yRange = [yMin, yMax] as const;
 const zRange = [zMin, zMax] as const;
+
+const camera3D = new PerspectiveCamera();
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
@@ -112,16 +124,16 @@ new Idetik({
       element: document.querySelector<HTMLDivElement>("#viewport-3d")!,
       camera: camera3D,
       cameraControls: new OrbitControls(camera3D, {
-        radius: 1100,
+        radius: Math.hypot(xMax - xMin, yMax - yMin, zMax - zMin),
         yaw: 0.4,
         pitch: 0.1,
-        target: volumeCenter,
+        target: center,
       }),
       layers: [
-        volumeLayer,
         createSliceLayer("XY"),
         createSliceLayer("XZ"),
         createSliceLayer("YZ"),
+        volumeLayer,
       ],
     },
     createSliceViewport("slice-xz", "XZ", xRange, zRange),
@@ -133,11 +145,11 @@ new Idetik({
 const gui = new GUI({ width: 300 });
 
 addDimensionSlider({
-  gui: gui,
+  gui,
   sliceCoords: sharedTime,
   dimensionName: "t",
   minValue: 0,
-  maxValue: 790,
+  maxValue: timeCount - 1,
   stepValue: 1,
   playback: {
     maxRateHz: 30,
@@ -146,28 +158,28 @@ addDimensionSlider({
 });
 
 addDimensionSlider({
-  gui: gui,
-  sliceCoords: sliceCoords,
+  gui,
+  sliceCoords,
   dimensionName: "x",
-  minValue: left,
-  maxValue: right,
-  stepValue: 1,
+  minValue: xMin,
+  maxValue: xMax,
+  stepValue: step("x"),
 });
 
 addDimensionSlider({
-  gui: gui,
-  sliceCoords: sliceCoords,
+  gui,
+  sliceCoords,
   dimensionName: "y",
-  minValue: top,
-  maxValue: bottom,
-  stepValue: 1,
+  minValue: yMin,
+  maxValue: yMax,
+  stepValue: step("y"),
 });
 
 addDimensionSlider({
-  gui: gui,
-  sliceCoords: sliceCoords,
+  gui,
+  sliceCoords,
   dimensionName: "z",
   minValue: zMin,
   maxValue: zMax,
-  stepValue: z.scale,
+  stepValue: step("z"),
 });
