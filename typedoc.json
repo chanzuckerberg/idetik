@@ -5,7 +5,8 @@
   "tsconfig": "tsconfig.json",
   "out": "docs/api",
   "docsRoot": "docs",
-  "readme": "none",
+  "readme": ".vitepress/api-index.md",
+  "mergeReadme": true,
   "githubPages": false,
   "navigation": {
     "includeGroups": true
