@@ -105,7 +105,6 @@ const zRange = [zMin, zMax] as const;
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
-  backgroundColor: "#333333",
   viewports: [
     createSliceViewport("slice-xy", "XY", xRange, yRange),
     {

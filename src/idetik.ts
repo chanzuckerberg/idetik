@@ -1,6 +1,5 @@
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { createWebGPURenderer } from "./renderers/webgpu/webgpu_renderer";
-import { ColorLike } from "./math/color";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./data/chunk_manager";
 import { Renderer } from "./core/renderer";
@@ -29,7 +28,6 @@ type IdetikParams = {
   memoryLimitMB?: number;
   maxConcurrentRequests?: number;
   maxGpuUploadsPerUpdate?: number;
-  backgroundColor?: ColorLike;
 };
 
 export type IdetikContext = {
@@ -135,9 +133,6 @@ export class Idetik {
     this.canvas = params.canvas;
 
     this.renderer_ = renderer ?? new WebGLRenderer(this.canvas);
-    if (params.backgroundColor !== undefined) {
-      this.renderer_.backgroundColor = params.backgroundColor;
-    }
     const memoryLimitMB = params.memoryLimitMB ?? DEFAULT_MEMORY_LIMIT_MB;
     const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
     this.chunkManager_ = new ChunkManager(
