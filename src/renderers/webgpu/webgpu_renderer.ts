@@ -366,12 +366,7 @@ class WebGPURenderer extends Renderer {
           resolveTarget: this.context_.getCurrentTexture().createView(),
           loadOp,
           storeOp: "store",
-          clearValue: {
-            r: this.backgroundColor.r,
-            g: this.backgroundColor.g,
-            b: this.backgroundColor.b,
-            a: this.backgroundColor.a,
-          },
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
         },
       ],
       depthStencilAttachment: {

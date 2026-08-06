@@ -1,5 +1,4 @@
 import { Camera } from "../objects/cameras/camera";
-import { Color, ColorLike } from "../math/color";
 import { Layer } from "./layer";
 import { Viewport } from "./viewport";
 import { Texture } from "../objects/textures/texture";
@@ -8,7 +7,6 @@ export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
   private width_ = 0;
   private height_ = 0;
-  private backgroundColor_: Color = new Color(0, 0, 0, 0);
 
   protected renderedObjects_ = 0;
   protected abstract resize(width: number, height: number): void;
@@ -53,10 +51,6 @@ export abstract class Renderer {
     return this.height_;
   }
 
-  public get backgroundColor(): Color {
-    return this.backgroundColor_;
-  }
-
   public get renderedObjects() {
     return this.renderedObjects_;
   }
@@ -68,8 +62,4 @@ export abstract class Renderer {
   public abstract uploadTexture(texture: Texture): void;
 
   public abstract disposeTexture(texture: Texture): void;
-
-  public set backgroundColor(color: ColorLike) {
-    this.backgroundColor_ = Color.from(color);
-  }
 }
