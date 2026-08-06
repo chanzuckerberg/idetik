@@ -43,8 +43,7 @@ const policy = createNoPrefetchPolicy();
 
 const camera = new OrthographicCamera(0, xSize * xScale, 0, ySize * yScale);
 
-const idetik = await Idetik.create({
-  renderer: "webgpu-experimental",
+const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [
     {
