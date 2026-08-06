@@ -33,3 +33,16 @@ export function sortFrontToBack(
 
   return objects;
 }
+
+/**
+ * Sorts objects back-to-front (farthest first), in place. Use with "over"
+ * (src-over-dst) compositing so nearer objects are drawn on top by paint order.
+ */
+export function sortBackToFront(
+  objects: RenderableObject[],
+  camera: Camera
+): RenderableObject[] {
+  sortFrontToBack(objects, camera);
+  objects.reverse();
+  return objects;
+}

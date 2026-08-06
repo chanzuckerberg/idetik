@@ -46,6 +46,19 @@ uniform vec4 u_valueScale;
 uniform vec4 u_channelOpacity;
 uniform vec3 u_color[4];
 
+// Scene-depth ray termination: when present, u_sceneDepth holds the nearest
+// opaque (occluder) window depth per pixel, so the ray stops at any slice/
+// surface in front of or cutting through the volume. We reconstruct the
+// occluder's position in the box's model space and clamp the ray in *distance*
+// (t) rather than comparing window depth, which is far too nonlinear near the
+// camera to compare reliably.
+uniform bool u_hasSceneDepth;
+uniform sampler2D u_sceneDepth;
+uniform vec2 u_sceneDepthResolution; // canvas size, for the depth-texture fetch
+uniform vec2 u_viewportOrigin; // viewport origin in window pixels, for NDC
+uniform vec2 u_resolution; // viewport size in pixels, for NDC
+uniform mat4 u_mvpInverse; // inverse(projection * modelView): clip -> box space
+
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
     vec3 t0 = (boxMin - rayOrigin) * reciprocalRayDir;
@@ -95,6 +108,21 @@ void main() {
     if (u_debugShowDegenerateRays && (tExit == tEnter)) {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
+    }
+
+    // Terminate the ray at the nearest opaque surface (e.g. a slice cutting the
+    // volume). Reconstruct that surface's point in box space and clamp tExit.
+    if (u_hasSceneDepth) {
+        float sceneWindow = texture(u_sceneDepth, gl_FragCoord.xy / u_sceneDepthResolution).r;
+        if (sceneWindow < 1.0) {
+            vec2 uvVp = (gl_FragCoord.xy - u_viewportOrigin) / u_resolution;
+            vec3 ndc = vec3(uvVp * 2.0 - 1.0, sceneWindow * 2.0 - 1.0);
+            vec4 mp = u_mvpInverse * vec4(ndc, 1.0);
+            vec3 occModel = mp.xyz / mp.w;
+            float tScene = dot(occModel - u_cameraPositionModel, RayDirModel);
+            if (tScene < tEnter) discard; // occluder fully in front of the box
+            tExit = min(tExit, tScene);
+        }
     }
 
     vec3 entryPoint = u_cameraPositionModel + RayDirModel * tEnter;
