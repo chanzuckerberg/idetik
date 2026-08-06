@@ -1,5 +1,19 @@
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vitepress'
 import typedocSidebar from '../docs/api/typedoc-sidebar.json' with { type: 'json' }
+
+function getLatestVersion() {
+  try {
+    const tag = execSync("git tag --list 'v*' --sort=-v:refname", { encoding: 'utf-8' })
+      .split('\n')[0]
+      .trim()
+    if (tag) return tag.replace(/^v/, '')
+  } catch {
+    // fall through to package.json
+  }
+  return JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8')).version
+}
 
 export default defineConfig({
   title: 'Idetik',
@@ -12,6 +26,9 @@ export default defineConfig({
 
   vite: {
     server: { port: 5174 },
+    define: {
+      __IDETIK_VERSION__: JSON.stringify(getLatestVersion()),
+    },
   },
 
   themeConfig: {
@@ -35,10 +52,7 @@ export default defineConfig({
           ],
         },
       ],
-      '/api/': [
-        { text: 'API Reference', link: '/api/' },
-        ...typedocSidebar,
-      ],
+      '/api/': typedocSidebar,
     },
 
     socialLinks: [
