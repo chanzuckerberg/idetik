@@ -161,8 +161,7 @@ const scaleBar = new ScaleBar({
   unit: dimensions.x.unit ?? "",
 });
 
-const idetik = await Idetik.create({
-  renderer: "webgpu-experimental",
+const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     {
