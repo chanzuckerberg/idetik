@@ -52,6 +52,14 @@ export class EventDispatcher {
     this.listeners_.push(listener);
   }
 
+  public removeEventListener(listener: Listener) {
+    const index = this.listeners_.indexOf(listener);
+    if (index === -1) {
+      throw new Error(`Listener to remove could not be found: ${listener}`);
+    }
+    this.listeners_.splice(index, 1);
+  }
+
   public connect() {
     if (this.isConnected_) {
       Logger.warn(

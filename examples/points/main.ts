@@ -3,7 +3,7 @@ import {
   ColorLike,
   Layer,
   PanZoomControls,
-  Points,
+  PointsRenderable,
   OrthographicCamera,
   OmeZarrImageSource,
   LayerState,
@@ -101,7 +101,7 @@ class Particles extends Layer {
         marker: this.marker_,
       };
     });
-    const pointsRenderable = new Points(scaledPoints);
+    const pointsRenderable = new PointsRenderable(scaledPoints);
     this.objects.length = 0;
     this.addObject(pointsRenderable);
   }

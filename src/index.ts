@@ -16,10 +16,12 @@ export { VolumeLayer } from "./layers/volume_layer";
 export { LabelLayer } from "./layers/label_layer";
 
 export { ImageRenderable } from "./objects/renderable/image_renderable";
-export { LabelColorMap } from "./objects/renderable/label_color_map";
-export { LabelImageRenderable } from "./objects/renderable/label_image_renderable";
-export { Points } from "./objects/renderable/points";
-export { ProjectedLine } from "./objects/renderable/projected_line";
+export {
+  LabelColorMap,
+  LabelImageRenderable,
+} from "./objects/renderable/label_image_renderable";
+export { PointsRenderable } from "./objects/renderable/points_renderable";
+export { ProjectedLineRenderable } from "./objects/renderable/projected_line_renderable";
 export { VolumeRenderable } from "./objects/renderable/volume_renderable";
 
 export { OrbitControls } from "./objects/cameras/orbit_controls";

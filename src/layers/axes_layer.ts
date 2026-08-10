@@ -1,6 +1,6 @@
 import { Layer } from "../core/layer";
 import { ProjectedLineGeometry } from "../objects/geometry/projected_line_geometry";
-import { ProjectedLine } from "../objects/renderable/projected_line";
+import { ProjectedLineRenderable } from "../objects/renderable/projected_line_renderable";
 
 /** @group Layers */
 export class AxesLayer extends Layer {
@@ -43,7 +43,7 @@ function makeAxis(params: {
 }) {
   const { end, width, color } = params;
   const geometry = new ProjectedLineGeometry([[0, 0, 0], end]);
-  return new ProjectedLine({
+  return new ProjectedLineRenderable({
     geometry: geometry,
     color: color,
     width: width,

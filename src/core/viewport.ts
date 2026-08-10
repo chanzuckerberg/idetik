@@ -9,7 +9,7 @@ import { EventContext, EventDispatcher } from "./event_dispatcher";
 import { Ray } from "../math/ray";
 import { IdetikContext } from "../idetik";
 
-export interface ViewportConfig {
+export interface ViewportProps {
   id?: string;
   element?: HTMLElement;
   camera: Camera;
@@ -17,7 +17,7 @@ export interface ViewportConfig {
   cameraControls?: CameraControls;
 }
 
-interface ViewportProps extends ViewportConfig {
+interface ResolvedViewportProps extends ViewportProps {
   id: string;
   element: HTMLElement;
   context: IdetikContext;
@@ -37,7 +37,7 @@ export class Viewport {
 
   private layers_: Layer[] = [];
 
-  constructor(props: ViewportProps) {
+  constructor(props: ResolvedViewportProps) {
     this.id = props.id;
     this.element = props.element;
     this.camera = props.camera;
@@ -203,18 +203,18 @@ export function validateNewViewport(
   }
 }
 
-function validateViewportProps(viewportProps: ViewportProps[]): void {
+function validateViewportProps(viewportProps: ResolvedViewportProps[]): void {
   for (let i = 0; i < viewportProps.length; i++) {
     validateNewViewport(viewportProps[i], viewportProps.slice(0, i));
   }
 }
 
-export function parseViewportConfigs(
-  viewportConfigs: ViewportConfig[],
+export function parseViewportProps(
+  props: ViewportProps[],
   canvas: HTMLCanvasElement,
   context: IdetikContext
 ): Viewport[] {
-  const viewportProps: ViewportProps[] = viewportConfigs.map((config) => {
+  const viewportProps: ResolvedViewportProps[] = props.map((config) => {
     const element = config.element ?? canvas;
     return {
       ...config,

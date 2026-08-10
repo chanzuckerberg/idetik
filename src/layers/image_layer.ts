@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerProps } from "../core/layer";
 import { Viewport } from "../core/viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import type { IdetikContext } from "../idetik";
@@ -34,7 +34,7 @@ import { RenderablePool } from "../utilities/renderable_pool";
 import { Texture } from "../objects/textures/texture";
 
 /** @inline */
-export type ImageLayerProps = LayerOptions & {
+export type ImageLayerProps = LayerProps & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;

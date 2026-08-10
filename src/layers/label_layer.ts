@@ -1,4 +1,4 @@
-import { Layer, LayerOptions } from "../core/layer";
+import { Layer, LayerProps } from "../core/layer";
 import { Viewport } from "../core/viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import type { IdetikContext } from "../idetik";
@@ -17,11 +17,11 @@ import {
 } from "../math/axes";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
-import { LabelImageRenderable } from "../objects/renderable/label_image_renderable";
 import {
   LabelColorMap,
   LabelColorMapProps,
-} from "../objects/renderable/label_color_map";
+  LabelImageRenderable,
+} from "../objects/renderable/label_image_renderable";
 import { Texture } from "../objects/textures/texture";
 import { EventContext } from "../core/event_dispatcher";
 import { Plane } from "../math/plane";
@@ -32,7 +32,7 @@ import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { poolKeyForImageRenderable } from "./image_layer";
 
-export type LabelLayerProps = LayerOptions & {
+export type LabelLayerProps = LayerProps & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
   policy: ImageSourcePolicy;

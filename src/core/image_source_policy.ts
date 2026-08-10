@@ -8,7 +8,7 @@ const ALL_CATEGORIES = [
 
 export type PriorityCategory = (typeof ALL_CATEGORIES)[number];
 
-export type ImageSourcePolicyConfig = {
+export type ImageSourcePolicyProps = {
   profile?: string;
   prefetch: {
     x: number;
@@ -43,9 +43,9 @@ export type ImageSourcePolicy = Readonly<{
 
 /** @group Layer Configuration */
 export function createImageSourcePolicy(
-  config: ImageSourcePolicyConfig
+  config: ImageSourcePolicyProps
 ): ImageSourcePolicy {
-  validatePolicyConfig(config);
+  validatePolicyProps(config);
 
   const prefetch = {
     x: config.prefetch.x,
@@ -84,9 +84,9 @@ export function createImageSourcePolicy(
 
 /** @group Layer Configuration */
 export function createExplorationPolicy(
-  overrides: Partial<ImageSourcePolicyConfig> = {}
+  overrides: Partial<ImageSourcePolicyProps> = {}
 ): ImageSourcePolicy {
-  const base: ImageSourcePolicyConfig = {
+  const base: ImageSourcePolicyProps = {
     profile: "exploration",
     prefetch: { x: 1, y: 1, z: 1, t: 0 },
     priorityOrder: [
@@ -97,14 +97,14 @@ export function createExplorationPolicy(
       "fallbackBackground",
     ],
   };
-  return createImageSourcePolicy(mergeConfig(base, overrides));
+  return createImageSourcePolicy(mergeProps(base, overrides));
 }
 
 /** @group Layer Configuration */
 export function createPlaybackPolicy(
-  overrides: Partial<ImageSourcePolicyConfig> = {}
+  overrides: Partial<ImageSourcePolicyProps> = {}
 ): ImageSourcePolicy {
-  const base: ImageSourcePolicyConfig = {
+  const base: ImageSourcePolicyProps = {
     profile: "playback",
     prefetch: { x: 0, y: 0, z: 0, t: 20 },
     priorityOrder: [
@@ -115,14 +115,14 @@ export function createPlaybackPolicy(
       "prefetchSpace",
     ],
   };
-  return createImageSourcePolicy(mergeConfig(base, overrides));
+  return createImageSourcePolicy(mergeProps(base, overrides));
 }
 
 /** @group Layer Configuration */
 export function createNoPrefetchPolicy(
-  overrides: Partial<ImageSourcePolicyConfig> = {}
+  overrides: Partial<ImageSourcePolicyProps> = {}
 ): ImageSourcePolicy {
-  const base: ImageSourcePolicyConfig = {
+  const base: ImageSourcePolicyProps = {
     profile: "no-prefetch",
     prefetch: { x: 0, y: 0, z: 0, t: 0 },
     priorityOrder: [
@@ -133,10 +133,10 @@ export function createNoPrefetchPolicy(
       "prefetchTime",
     ],
   };
-  return createImageSourcePolicy(mergeConfig(base, overrides));
+  return createImageSourcePolicy(mergeProps(base, overrides));
 }
 
-function validatePolicyConfig(config: ImageSourcePolicyConfig) {
+function validatePolicyProps(config: ImageSourcePolicyProps) {
   for (const [k, v] of Object.entries(config.prefetch)) {
     if (v === undefined) continue; // z/t may be omitted
     if (v < 0) {
@@ -158,10 +158,10 @@ function validatePolicyConfig(config: ImageSourcePolicyConfig) {
   }
 }
 
-function mergeConfig(
-  base: ImageSourcePolicyConfig,
-  overrides: Partial<ImageSourcePolicyConfig> = {}
-): ImageSourcePolicyConfig {
+function mergeProps(
+  base: ImageSourcePolicyProps,
+  overrides: Partial<ImageSourcePolicyProps> = {}
+): ImageSourcePolicyProps {
   return {
     profile: overrides.profile ?? base.profile,
     prefetch: { ...base.prefetch, ...(overrides.prefetch ?? {}) },

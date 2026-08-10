@@ -16,7 +16,7 @@ const ZOOM_SPEED = 0.0009;
 const DEFAULT_DAMPING_FACTOR = 0.5;
 const DAMPING_FPS = 60; // Base FPS to normalize damping
 
-type OrbitParams = {
+type OrbitControlsProps = {
   radius?: number;
   yaw?: number;
   pitch?: number;
@@ -38,7 +38,7 @@ export class OrbitControls implements CameraControls {
 
   private currMouseButton_ = MOUSE_BUTTON_NONE;
 
-  constructor(camera: PerspectiveCamera, params?: OrbitParams) {
+  constructor(camera: PerspectiveCamera, params?: OrbitControlsProps) {
     this.camera_ = camera;
 
     this.currPos_ = new Spherical(
