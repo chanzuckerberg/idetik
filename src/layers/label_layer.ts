@@ -202,7 +202,7 @@ export class LabelLayer extends Layer {
     // one coverage group; labels are single-channel but may be multi-scale
     for (const chunk of orderedByLOD) {
       const label = this.getLabelForChunk(chunk, chunk.texture!);
-      label.coverageId = 0;
+      label.coverageGroup = 0;
       this.visibleChunks_.set(chunk, label);
       this.addObject(label);
     }

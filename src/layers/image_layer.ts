@@ -76,7 +76,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private context_?: IdetikContext;
   private pointerDownPos_: vec2 | null = null;
   private debugMode_ = false;
-  private objectsDirty_ = false;
 
   private static readonly STALE_PRESENTATION_MS_ = 1000;
   private lastPresentationTimeStamp_?: DOMHighResTimeStamp;
@@ -203,12 +202,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       this.visibleChunks_.size > 0 &&
       visibleChunksResident &&
       !this.chunkStoreView_.allVisibleFallbackLODLoaded() &&
-      !this.isPresentationStale() &&
-      !this.objectsDirty_
+      !this.isPresentationStale()
     ) {
       return;
     }
-    this.objectsDirty_ = false;
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
@@ -222,21 +219,19 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.clearObjects();
 
     // `getChunksToRender` yields finest-first but not channel-contiguous, so
-    // collect visible chunks and stable-sort by channel: the renderer needs each
-    // channel to be contiguous to stencil properly; stable sort preserves finest-first
-    // within each channel
-    const visible: ImageRenderable[] = [];
+    // collect the chunks and stable-sort by channel: each channel is a coverage
+    // group and has to be contiguous; stable sort preserves finest-first within
+    // each channel
+    const images: ImageRenderable[] = [];
     for (const chunk of orderedByLOD) {
       const image = this.getImageForChunk(chunk, chunk.texture!);
       this.visibleChunks_.set(chunk, image);
-
-      if (!this.isChannelVisible(chunk.chunkIndex.c)) continue;
-
-      image.coverageId = chunk.chunkIndex.c;
-      visible.push(image);
+      image.coverageGroup = chunk.chunkIndex.c;
+      image.visible = !!this.channelProps_?.[chunk.chunkIndex.c]?.visible;
+      images.push(image);
     }
-    visible.sort((a, b) => a.coverageId! - b.coverageId!);
-    for (const image of visible) {
+    images.sort((a, b) => a.coverageGroup! - b.coverageGroup!);
+    for (const image of images) {
       this.addObject(image);
     }
   }
@@ -332,10 +327,6 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private getChannelPropsForChunk(chunk: Chunk): ChannelProps[] {
     if (!this.channelProps_) return [{}];
     return [this.channelProps_[chunk.chunkIndex.c] ?? {}];
-  }
-
-  private isChannelVisible(channel: number): boolean {
-    return this.channelProps_?.[channel]?.visible !== false;
   }
 
   private createImage(chunk: Chunk, texture: Texture) {
@@ -451,28 +442,14 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public setChannelProps(channelProps: ChannelProps[]) {
-    if (this.channelVisibilityDiffers(channelProps)) {
-      // TODO: add a `visible` attribute on RenderableObject instead
-      // of forcing a rebuild of objects to draw on certain changes
-      this.objectsDirty_ = true;
-    }
     this.channelProps_ = channelProps;
     this.visibleChunks_.forEach((image, chunk) => {
       image.setChannelProps(this.getChannelPropsForChunk(chunk));
+      image.visible = !!this.channelProps_?.[chunk.chunkIndex.c]?.visible;
     });
     this.channelChangeCallbacks_.forEach((callback) => {
       callback();
     });
-  }
-
-  private channelVisibilityDiffers(next: ChannelProps[]): boolean {
-    const count = Math.max(this.channelProps_?.length ?? 0, next.length);
-    for (let c = 0; c < count; c++) {
-      const wasVisible = this.channelProps_?.[c]?.visible !== false;
-      const isVisible = next[c]?.visible !== false;
-      if (wasVisible !== isVisible) return true;
-    }
-    return false;
   }
 
   public resetChannelProps(): void {
