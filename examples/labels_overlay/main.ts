@@ -95,8 +95,6 @@ const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
 const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total")!;
 const outlineToggleEl =
   document.querySelector<HTMLButtonElement>("#outline-toggle")!;
-const labelsToggleEl =
-  document.querySelector<HTMLButtonElement>("#labels-toggle")!;
 
 // Initialize slider
 zSlider.min = "0";
@@ -128,24 +126,12 @@ const idetik = new Idetik({
 
 const viewport = idetik.viewports[0];
 
-let labelsVisible = true;
-
 outlineToggleEl.addEventListener("click", () => {
   outlineMode = !outlineMode;
   outlineToggleEl.textContent = outlineMode ? "Outline" : "Fill";
-  if (labelsVisible) viewport.removeLayer(labelsLayer);
+  viewport.removeLayer(labelsLayer);
   labelsLayer = createLabelsLayer();
-  if (labelsVisible) viewport.addLayer(labelsLayer);
-});
-
-labelsToggleEl.addEventListener("click", () => {
-  labelsVisible = !labelsVisible;
-  labelsToggleEl.textContent = labelsVisible ? "Hide" : "Show";
-  if (labelsVisible) {
-    viewport.addLayer(labelsLayer);
-  } else {
-    viewport.removeLayer(labelsLayer);
-  }
+  viewport.addLayer(labelsLayer);
 });
 
 function setZIndex(index: number) {
