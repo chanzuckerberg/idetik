@@ -1,5 +1,6 @@
 import { Chunk, ChunkSource, SliceCoordinates } from "../data/chunk";
 import { Layer } from "../core/layer";
+import { Camera } from "../objects/cameras/camera";
 import { Viewport } from "../core/viewport";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
@@ -148,6 +149,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     for (const volume of this.currentVolumes_.values()) {
       this.releaseAndRemoveVolume(volume);
     }
+    this.currentVolumes_.clear();
     this.clearObjects();
     this.chunkStoreView_?.dispose();
     this.chunkStoreView_ = undefined;
@@ -174,12 +176,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       }
     }
 
-    this.clearObjects();
     for (const [key, chunks] of groupedChunks) {
       const volume = this.getOrCreateVolume(key, chunks);
       volume.wireframeEnabled = this.debugShowWireframes;
       this.currentVolumes_.set(key, volume);
-      this.addObject(volume);
     }
 
     this.lastLoadedTime_ = currentTime;
@@ -226,7 +226,17 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
       : 1.0;
 
     this.updateChunks();
-    sortFrontToBack(this.objects, viewport.camera);
+    this.rebuildObjects(viewport.camera);
+  }
+
+  private rebuildObjects(camera: Camera) {
+    const volumes = Array.from(this.currentVolumes_.values());
+    sortFrontToBack(volumes, camera);
+
+    this.clearObjects();
+    for (const volume of volumes) {
+      this.addObject(volume);
+    }
   }
 
   public getUniforms(): Record<string, unknown> {

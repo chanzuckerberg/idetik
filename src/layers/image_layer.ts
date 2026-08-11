@@ -67,6 +67,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private orientation_: SliceOrientation;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
+  private orderedChunks_: Chunk[] = [];
   private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
@@ -126,6 +127,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
 
   protected detach(_context: IdetikContext) {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.orderedChunks_ = [];
     this.clearObjects();
     this.chunkStoreView_?.dispose();
     this.chunkStoreView_ = undefined;
@@ -171,6 +173,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
 
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.orderedChunks_ = [];
     this.clearObjects();
     this.chunkStoreView_?.dispose();
     this.lastPresentationTimeStamp_ = undefined;
@@ -216,25 +219,23 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     );
     this.releaseAndRemoveChunks(nonVisibleChunks);
 
-    this.clearObjects();
-
-    // `getChunksToRender` yields finest-first but not channel-contiguous, so
-    // collect the chunks and stable-sort by channel: each channel is a coverage
-    // group and has to be contiguous; stable sort preserves finest-first within
-    // each channel
-    const images: ImageRenderable[] = [];
     for (const chunk of orderedByLOD) {
-      const image = this.getImageForChunk(chunk, chunk.texture!);
-      this.visibleChunks_.set(chunk, image);
-      image.coverageGroup = chunk.chunkIndex.c;
-      // unspecified `visible` means visible, matching `validateChannel`
-      image.visible =
-        this.channelProps_?.[chunk.chunkIndex.c]?.visible !== false;
-      images.push(image);
+      this.visibleChunks_.set(
+        chunk,
+        this.getImageForChunk(chunk, chunk.texture!)
+      );
     }
-    images.sort((a, b) => a.coverageGroup! - b.coverageGroup!);
-    for (const image of images) {
-      this.addObject(image);
+    this.orderedChunks_ = orderedByLOD;
+    this.rebuildRenderGroups();
+  }
+
+  private rebuildRenderGroups() {
+    this.clearObjects();
+    for (const chunk of this.orderedChunks_) {
+      const image = this.visibleChunks_.get(chunk);
+      const channel = chunk.chunkIndex.c;
+      if (image === undefined || this.channelProps_?.[channel]?.visible === false) continue;
+      this.addObject(image, channel);
     }
   }
 
@@ -447,10 +448,8 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.channelProps_ = channelProps;
     this.visibleChunks_.forEach((image, chunk) => {
       image.setChannelProps(this.getChannelPropsForChunk(chunk));
-      // unspecified `visible` means visible, matching `validateChannel`
-      image.visible =
-        this.channelProps_?.[chunk.chunkIndex.c]?.visible !== false;
     });
+    this.rebuildRenderGroups();
     this.channelChangeCallbacks_.forEach((callback) => {
       callback();
     });

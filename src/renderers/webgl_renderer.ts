@@ -35,6 +35,7 @@ export class WebGLRenderer extends Renderer {
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
   private renderedObjectsPerFrame_ = 0;
+  private stencilRef_ = 0;
   private currentViewportSize_: [number, number] = [0, 0];
 
   constructor(canvas: HTMLCanvasElement) {
@@ -76,6 +77,7 @@ export class WebGLRenderer extends Renderer {
   public render(viewport: Viewport) {
     this.renderedObjects_ = 0;
     this.renderedObjectsPerFrame_ = 0;
+    this.stencilRef_ = 0;
 
     const opaque: Layer[] = [];
     const transparent: Layer[] = [];
@@ -142,62 +144,31 @@ export class WebGLRenderer extends Renderer {
     this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
   }
 
-  // check that the layer has set `coverageGroup` properly:
-  // * groups must fit in the stencil buffer [0, 255)
-  // * objects in the same group must be contiguous in the object list
-  private hasValidCoverage(layer: Layer): boolean {
-    const seen = new Set<number>();
-    let previous: number | null = null;
+  private setCoverageStencil(coverageGroup: number | null) {
+    this.state_.setStencilTest(coverageGroup !== null);
+    if (coverageGroup === null) return;
 
-    for (const object of layer.objects) {
-      const group = object.coverageGroup;
-      if (!object.visible || group === null) continue;
-
-      if (!Number.isInteger(group) || group < 0 || group >= 255) {
-        Logger.warn(
-          "WebGLRenderer",
-          `${layer.type} coverage group ${group} must be an integer in ` +
-            `[0, 255) to fit the stencil buffer; coverage dedup may be incorrect`
-        );
-      }
-      if (group !== previous && seen.has(group)) {
-        Logger.warn(
-          "WebGLRenderer",
-          `${layer.type} objects in coverage group ${group} are not ` +
-            `contiguous; coverage dedup may be incorrect`
-        );
-      }
-
-      seen.add(group);
-      previous = group;
+    this.stencilRef_ += 1;
+    if (this.stencilRef_ > 0xff) {
+      Logger.warn(
+        "WebGLRenderer",
+        "Exceeded 255 stencil coverage groups in one frame; dedup may be incorrect"
+      );
     }
-
-    return seen.size > 0;
+    this.state_.setStencilFunc(this.gl_.NOTEQUAL, this.stencilRef_, 0xff);
   }
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.blendMode);
 
-    if (this.hasValidCoverage(layer)) {
-      this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
-    }
+    for (const [coverageGroup, members] of layer.renderGroups) {
+      this.setCoverageStencil(coverageGroup);
 
-    let coverageGroup: number | null | undefined = undefined;
-    for (const object of layer.objects) {
-      if (!object.visible) continue;
-
-      if (object.coverageGroup !== coverageGroup) {
-        coverageGroup = object.coverageGroup;
-        this.state_.setStencilTest(coverageGroup !== null);
-        if (coverageGroup !== null) {
-          // 0 is the cleared stencil value, so group refs start at 1
-          this.gl_.stencilFunc(this.gl_.NOTEQUAL, coverageGroup + 1, 0xff);
+      for (const object of members) {
+        if (frustum.intersectsWithBox3(object.boundingBox)) {
+          this.renderObject(layer, object, camera);
+          this.renderedObjectsPerFrame_ += 1;
         }
-      }
-
-      if (frustum.intersectsWithBox3(object.boundingBox)) {
-        this.renderObject(layer, object, camera);
-        this.renderedObjectsPerFrame_ += 1;
       }
     }
   }

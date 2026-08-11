@@ -8,17 +8,9 @@ import { Color } from "../math/color";
 import { CullingMode } from "../renderers/webgl_state";
 
 export abstract class RenderableObject extends Node {
-  public visible = true;
   public wireframeEnabled = false;
   public wireframeColor = Color.WHITE;
   public depthTest = true;
-  // objects sharing a non-null coverageGroup are overlapping representations of the
-  // same region (e.g. LODs of one channel), and the renderer draws each pixel only
-  // once per group; `null` draws normally with no coverage dedup. Groups are
-  // layer-local non-negative integers, and objects in the same group must be
-  // contiguous in the layer's object list. A renderer warns when a layer breaks
-  // either rule, or exceeds however many groups it can track.
-  public coverageGroup: number | null = null;
   private readonly textures_: Texture[] = [];
   private staleTextures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();
