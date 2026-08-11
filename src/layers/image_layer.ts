@@ -227,7 +227,9 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       const image = this.getImageForChunk(chunk, chunk.texture!);
       this.visibleChunks_.set(chunk, image);
       image.coverageGroup = chunk.chunkIndex.c;
-      image.visible = !!this.channelProps_?.[chunk.chunkIndex.c]?.visible;
+      // unspecified `visible` means visible, matching `validateChannel`
+      image.visible =
+        this.channelProps_?.[chunk.chunkIndex.c]?.visible !== false;
       images.push(image);
     }
     images.sort((a, b) => a.coverageGroup! - b.coverageGroup!);
@@ -445,7 +447,9 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.channelProps_ = channelProps;
     this.visibleChunks_.forEach((image, chunk) => {
       image.setChannelProps(this.getChannelPropsForChunk(chunk));
-      image.visible = !!this.channelProps_?.[chunk.chunkIndex.c]?.visible;
+      // unspecified `visible` means visible, matching `validateChannel`
+      image.visible =
+        this.channelProps_?.[chunk.chunkIndex.c]?.visible !== false;
     });
     this.channelChangeCallbacks_.forEach((callback) => {
       callback();
