@@ -153,7 +153,7 @@ gui
   .name("Level of Detail (LOD)")
   .onChange(
     (lod: number) =>
-      (volumeLayer.sourcePolicy = createExplorationPolicy({
+      (volumeLayer.imageSourcePolicy = createExplorationPolicy({
         lod: { min: lod, max: lod },
       }))
   );

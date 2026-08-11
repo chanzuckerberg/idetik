@@ -14,7 +14,7 @@ const MARKER_INDEX: Record<Marker, number> = {
 };
 
 // TODO: add a border (or "secondary") color to improve contrast against background
-type PointProperties = {
+type PointProps = {
   position: vec3;
   color: ColorLike;
   size: number;
@@ -22,8 +22,8 @@ type PointProperties = {
 };
 
 /** @group Renderable Objects */
-export class Points extends RenderableObject {
-  constructor(points: PointProperties[]) {
+export class PointsRenderable extends RenderableObject {
+  constructor(points: PointProps[]) {
     super();
     this.programName = "points";
 
@@ -69,13 +69,13 @@ export class Points extends RenderableObject {
   }
 
   public get type() {
-    return "Points";
+    return "PointsRenderable";
   }
 }
 
 let markerAtlas: Texture2DArray | undefined;
 
-// The marker atlas is a fixed set of sprites shared by all Points instances.
+// The marker atlas is a fixed set of sprites shared by all PointsRenderable instances.
 // Each marker in `Marker` maps to a slice in the atlas (see `MARKER_INDEX`).
 function getMarkerAtlas(): Texture2DArray {
   if (!markerAtlas) {

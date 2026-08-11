@@ -34,7 +34,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   private readonly pool_ = new RenderablePool<VolumeRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: Array<() => void> = [];
-  private sourcePolicy_: ImageSourcePolicy;
+  private policy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
   private channelProps_?: ChannelProps[];
 
@@ -61,9 +61,9 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.debugShowWireframes_ = value;
   }
 
-  public set sourcePolicy(newPolicy: ImageSourcePolicy) {
-    if (this.sourcePolicy_ !== newPolicy) {
-      this.sourcePolicy_ = newPolicy;
+  public set imageSourcePolicy(newPolicy: ImageSourcePolicy) {
+    if (this.policy_ !== newPolicy) {
+      this.policy_ = newPolicy;
       if (this.chunkStoreView_) {
         this.chunkStoreView_.setImageSourcePolicy(
           newPolicy,
@@ -99,7 +99,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   public removeChannelChangeCallback(callback: () => void): void {
     const index = this.channelChangeCallbacks_.indexOf(callback);
-    if (index === undefined) {
+    if (index === -1) {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.channelChangeCallbacks_.splice(index, 1);
@@ -109,7 +109,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     super({ blendMode: "premultiplied" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
-    this.sourcePolicy_ = policy;
+    this.policy_ = policy;
     this.initialChannelProps_ = channelProps;
     this.channelProps_ = channelProps;
     this.setState("initialized");
@@ -135,7 +135,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   protected attach(context: IdetikContext) {
     this.chunkStoreView_ = context.chunkManager.addView(
       this.source_,
-      this.sourcePolicy_
+      this.policy_
     );
 
     validateChannelPropsCount(

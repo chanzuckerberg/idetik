@@ -15,7 +15,7 @@ const DEFAULT_HEIGHT = 128 / DEFAULT_ASPECT_RATIO;
 const DEFAULT_NEAR = -1e6;
 const DEFAULT_FAR = 1e6;
 
-type OrthographicCameraOptions = {
+type OrthographicCameraProps = {
   near?: number;
   far?: number;
   orientation?: SliceOrientation;
@@ -59,7 +59,7 @@ export class OrthographicCamera extends Camera {
     right: number,
     top: number,
     bottom: number,
-    options: OrthographicCameraOptions = {}
+    options: OrthographicCameraProps = {}
   ) {
     super();
     this.near_ = options.near ?? DEFAULT_NEAR;

@@ -53,6 +53,20 @@ test("Remove state change callback", () => {
   expect(callback).toHaveBeenCalledTimes(0);
 });
 
+test("Removing an unregistered callback throws and keeps registered ones", () => {
+  const layer = new TestLayer();
+  const registered = vi.fn();
+  const unregistered = vi.fn();
+  layer.addStateChangeCallback(registered);
+
+  expect(() => layer.removeStateChangeCallback(unregistered)).toThrow(
+    "Callback to remove could not be found"
+  );
+
+  layer.setStateReady();
+  expect(registered).toHaveBeenCalledWith("ready", "initialized");
+});
+
 test("Attaching to a second viewport while attached throws", () => {
   const layer = new TestLayer();
   layer.onAttached(context);

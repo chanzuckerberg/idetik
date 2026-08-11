@@ -4,10 +4,10 @@ import { ChunkManager } from "./data/chunk_manager";
 import { Renderer } from "./core/renderer";
 import { createStats, type Stats } from "./utilities/stats";
 import {
-  parseViewportConfigs,
+  parseViewportProps,
   validateNewViewport,
   Viewport,
-  ViewportConfig,
+  ViewportProps,
 } from "./core/viewport";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 
@@ -19,9 +19,9 @@ export type Overlay = {
 };
 
 /** @inline */
-type IdetikParams = {
+type IdetikProps = {
   canvas: HTMLCanvasElement;
-  viewports?: ViewportConfig[];
+  viewports?: ViewportProps[];
   overlays?: Overlay[];
   showStats?: boolean;
   memoryLimitMB?: number;
@@ -118,7 +118,7 @@ export class Idetik {
    *
    * @throws {Error} If viewports have duplicate IDs or shared elements
    */
-  constructor(params: IdetikParams, renderer?: Renderer) {
+  constructor(params: IdetikProps, renderer?: Renderer) {
     this.canvas = params.canvas;
 
     this.renderer_ = renderer ?? new WebGLRenderer(this.canvas);
@@ -136,7 +136,7 @@ export class Idetik {
       chunkManager: this.chunkManager_,
     };
 
-    this.viewports_ = parseViewportConfigs(
+    this.viewports_ = parseViewportProps(
       params.viewports ?? [],
       this.canvas,
       this.context_
@@ -206,12 +206,8 @@ export class Idetik {
     return this.viewports_.find((v) => v.id === id);
   }
 
-  public addViewport(config: ViewportConfig): Viewport {
-    const [viewport] = parseViewportConfigs(
-      [config],
-      this.canvas,
-      this.context_
-    );
+  public addViewport(props: ViewportProps): Viewport {
+    const [viewport] = parseViewportProps([props], this.canvas, this.context_);
 
     validateNewViewport(viewport, this.viewports_);
     this.viewports_.push(viewport);

@@ -20,7 +20,7 @@ type StateChangeCallback = (
   prevState?: LayerState
 ) => void;
 
-export interface LayerOptions {
+export interface LayerProps {
   opacity?: number;
   blendMode?: BlendMode;
 }
@@ -52,7 +52,7 @@ export abstract class Layer {
   private opacity_: number;
   public blendMode: BlendMode;
 
-  constructor({ opacity = 1.0, blendMode = "none" }: LayerOptions = {}) {
+  constructor({ opacity = 1.0, blendMode = "none" }: LayerProps = {}) {
     this.opacity_ = clamp(opacity, 0.0, 1.0);
     this.blendMode = blendMode;
   }
@@ -109,7 +109,7 @@ export abstract class Layer {
 
   public removeStateChangeCallback(callback: StateChangeCallback) {
     const index = this.callbacks_.indexOf(callback);
-    if (index === undefined) {
+    if (index === -1) {
       throw new Error(`Callback to remove could not be found: ${callback}`);
     }
     this.callbacks_.splice(index, 1);

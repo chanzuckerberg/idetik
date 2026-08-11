@@ -2,18 +2,18 @@ import { RenderableObject } from "../../core/renderable_object";
 import { ProjectedLineGeometry } from "../../objects/geometry/projected_line_geometry";
 import { Color, ColorLike } from "../../math/color";
 
-type LineParameters = {
+type ProjectedLineRenderableProps = {
   geometry: ProjectedLineGeometry;
   color: ColorLike;
   width: number;
 };
 
 /** @group Renderable Objects */
-export class ProjectedLine extends RenderableObject {
+export class ProjectedLineRenderable extends RenderableObject {
   private color_: Color;
   private width_: number;
 
-  constructor({ geometry, color, width }: LineParameters) {
+  constructor({ geometry, color, width }: ProjectedLineRenderableProps) {
     super();
     this.geometry = geometry;
     this.color_ = Color.from(color);
@@ -22,7 +22,7 @@ export class ProjectedLine extends RenderableObject {
   }
 
   public get type() {
-    return "ProjectedLine";
+    return "ProjectedLineRenderable";
   }
 
   public get color(): Color {

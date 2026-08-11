@@ -1,10 +1,6 @@
 import { expect, test } from "vitest";
 
-import {
-  Viewport,
-  ViewportConfig,
-  parseViewportConfigs,
-} from "@/core/viewport";
+import { Viewport, ViewportProps, parseViewportProps } from "@/core/viewport";
 import {
   createTestElement,
   createTestCamera,
@@ -54,7 +50,7 @@ test("Viewport constructor requires an ID", () => {
   expect(viewport.id).toBe("generated-id");
 });
 
-test("parseViewportConfigs creates viewports with validation", () => {
+test("parseViewportProps creates viewports with validation", () => {
   const canvas = document.createElement("canvas");
   const element1 = createTestElement("viewport1");
   const element2 = createTestElement("viewport2");
@@ -62,12 +58,12 @@ test("parseViewportConfigs creates viewports with validation", () => {
   const camera2 = createTestCamera();
   const context = createTestContext();
 
-  const configs: ViewportConfig[] = [
+  const configs: ViewportProps[] = [
     { id: "viewport1", element: element1, camera: camera1 },
     { id: "viewport2", element: element2, camera: camera2 },
   ];
 
-  const viewports = parseViewportConfigs(configs, canvas, context);
+  const viewports = parseViewportProps(configs, canvas, context);
 
   expect(viewports).toHaveLength(2);
   expect(viewports[0].id).toBe("viewport1");
@@ -76,7 +72,7 @@ test("parseViewportConfigs creates viewports with validation", () => {
   expect(viewports[1].element).toBe(element2);
 });
 
-test("parseViewportConfigs throws on duplicate IDs", () => {
+test("parseViewportProps throws on duplicate IDs", () => {
   const canvas = document.createElement("canvas");
   const element1 = createTestElement("viewport1");
   const element2 = createTestElement("viewport2");
@@ -84,34 +80,34 @@ test("parseViewportConfigs throws on duplicate IDs", () => {
   const camera2 = createTestCamera();
   const context = createTestContext();
 
-  const configs: ViewportConfig[] = [
+  const configs: ViewportProps[] = [
     { id: "duplicate", element: element1, camera: camera1 },
     { id: "duplicate", element: element2, camera: camera2 },
   ];
 
-  expect(() => parseViewportConfigs(configs, canvas, context)).toThrow(
+  expect(() => parseViewportProps(configs, canvas, context)).toThrow(
     'Duplicate viewport ID "duplicate"'
   );
 });
 
-test("parseViewportConfigs throws on shared elements", () => {
+test("parseViewportProps throws on shared elements", () => {
   const canvas = document.createElement("canvas");
   const sharedElement = createTestElement("shared");
   const camera1 = createTestCamera();
   const camera2 = createTestCamera();
   const context = createTestContext();
 
-  const configs: ViewportConfig[] = [
+  const configs: ViewportProps[] = [
     { id: "viewport1", element: sharedElement, camera: camera1 },
     { id: "viewport2", element: sharedElement, camera: camera2 },
   ];
 
-  expect(() => parseViewportConfigs(configs, canvas, context)).toThrow(
+  expect(() => parseViewportProps(configs, canvas, context)).toThrow(
     "Multiple viewports cannot share the same HTML element"
   );
 });
 
-test("parseViewportConfigs allows viewports without explicit IDs", () => {
+test("parseViewportProps allows viewports without explicit IDs", () => {
   const canvas = document.createElement("canvas");
   const element1 = createTestElement("element1");
   const element2 = createTestElement("element2");
@@ -119,12 +115,12 @@ test("parseViewportConfigs allows viewports without explicit IDs", () => {
   const camera2 = createTestCamera();
   const context = createTestContext();
 
-  const configs: ViewportConfig[] = [
+  const configs: ViewportProps[] = [
     { element: element1, camera: camera1 },
     { element: element2, camera: camera2 },
   ];
 
-  const viewports = parseViewportConfigs(configs, canvas, context);
+  const viewports = parseViewportProps(configs, canvas, context);
 
   expect(viewports).toHaveLength(2);
   expect(viewports[0].id).toBe("element1");
