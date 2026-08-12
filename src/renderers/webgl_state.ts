@@ -26,6 +26,10 @@ export class WebGLState {
   private stencilFunc_: GLenum | null = null;
   private stencilRef_: number | null = null;
   private stencilFuncMask_: number | null = null;
+  private stencilWriteMask_: number | null = null;
+  private stencilFail_: GLenum | null = null;
+  private stencilZFail_: GLenum | null = null;
+  private stencilZPass_: GLenum | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -202,6 +206,26 @@ export class WebGLState {
       this.enable(this.gl_.STENCIL_TEST);
     } else {
       this.disable(this.gl_.STENCIL_TEST);
+    }
+  }
+
+  public setStencilMask(mask: number) {
+    if (this.stencilWriteMask_ !== mask) {
+      this.gl_.stencilMask(mask);
+      this.stencilWriteMask_ = mask;
+    }
+  }
+
+  public setStencilOp(fail: GLenum, zfail: GLenum, zpass: GLenum) {
+    if (
+      this.stencilFail_ !== fail ||
+      this.stencilZFail_ !== zfail ||
+      this.stencilZPass_ !== zpass
+    ) {
+      this.gl_.stencilOp(fail, zfail, zpass);
+      this.stencilFail_ = fail;
+      this.stencilZFail_ = zfail;
+      this.stencilZPass_ = zpass;
     }
   }
 

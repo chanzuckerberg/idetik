@@ -177,8 +177,8 @@ export class WebGLRenderer extends Renderer {
 
   private initStencil() {
     this.gl_.clearStencil(0);
-    this.gl_.stencilMask(0xff);
-    this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
+    this.state_.setStencilMask(0xff);
+    this.state_.setStencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
   }
 
   private setCoverageStencil(coverageGroup: number | null) {
