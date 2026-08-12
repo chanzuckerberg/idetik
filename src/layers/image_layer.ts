@@ -337,12 +337,12 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private createImage(chunk: Chunk, texture: Texture) {
-    const image = new ImageRenderable(
-      chunk.shape[this.axes_.u],
-      chunk.shape[this.axes_.v],
+    const image = new ImageRenderable({
+      width: chunk.shape[this.axes_.u],
+      height: chunk.shape[this.axes_.v],
       texture,
-      this.getChannelPropsForChunk(chunk)
-    );
+      channelProps: this.getChannelPropsForChunk(chunk),
+    });
     this.updateImageChunk(image, chunk);
     return image;
   }

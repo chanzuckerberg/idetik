@@ -4,7 +4,12 @@ import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 
 test("Runtime initializes with canvas element", () => {
   const canvas = document.createElement("canvas");
-  const camera = new OrthographicCamera(0, 128, 0, 128);
+  const camera = new OrthographicCamera({
+    left: 0,
+    right: 128,
+    top: 0,
+    bottom: 128,
+  });
 
   const idetik = new Idetik({ canvas, viewports: [{ camera }] });
 
@@ -16,7 +21,12 @@ test("Runtime initializes with canvas element", () => {
 
 test("Runtime start/stop controls the animation loop", () => {
   const canvas = document.createElement("canvas");
-  const camera = new OrthographicCamera(0, 128, 0, 128);
+  const camera = new OrthographicCamera({
+    left: 0,
+    right: 128,
+    top: 0,
+    bottom: 128,
+  });
   const idetik = new Idetik({ canvas, viewports: [{ camera }] });
 
   const rafSpy = vi.spyOn(window, "requestAnimationFrame");
@@ -31,7 +41,12 @@ test("Runtime start/stop controls the animation loop", () => {
 test("Width and height properties return (scaled) canvas shape", () => {
   const devicePixelRatio = window.devicePixelRatio;
   const canvas = document.createElement("canvas");
-  const camera = new OrthographicCamera(0, 128, 0, 128);
+  const camera = new OrthographicCamera({
+    left: 0,
+    right: 128,
+    top: 0,
+    bottom: 128,
+  });
   const idetik = new Idetik({ canvas, viewports: [{ camera }] });
 
   expect(idetik.width).toBe(canvas.clientWidth * devicePixelRatio);

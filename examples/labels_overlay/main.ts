@@ -112,7 +112,12 @@ zSlider.addEventListener("input", (event) => {
   }, 20);
 });
 
-const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
+const camera = new OrthographicCamera({
+  left: 0,
+  right: xStopPoint,
+  top: 0,
+  bottom: yStopPoint,
+});
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [

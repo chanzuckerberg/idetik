@@ -143,7 +143,11 @@ const imageLayer = new ImageLayer({
   channelProps: [{ color: Color.WHITE, contrastLimits: [-0.00001, 0.00001] }],
 });
 
-const camera = new OrthographicCamera(0, xExtent, 0, yExtent, {
+const camera = new OrthographicCamera({
+  left: 0,
+  right: xExtent,
+  top: 0,
+  bottom: yExtent,
   near: -10000,
   far: 10000,
 });

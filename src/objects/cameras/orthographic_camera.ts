@@ -15,7 +15,14 @@ const DEFAULT_HEIGHT = 128 / DEFAULT_ASPECT_RATIO;
 const DEFAULT_NEAR = -1e6;
 const DEFAULT_FAR = 1e6;
 
-type OrthographicCameraProps = {
+type OrthographicCameraFrame = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+};
+
+type OrthographicCameraProps = OrthographicCameraFrame & {
   near?: number;
   far?: number;
   orientation?: SliceOrientation;
@@ -47,27 +54,18 @@ export class OrthographicCamera extends Camera {
   /**
    * Creates an orthographic camera framing the given world-space rectangle.
    *
-   * @param left - Left edge of the view frame, in world units.
-   * @param right - Right edge of the view frame, in world units.
-   * @param top - Top edge of the view frame, in world units.
-   * @param bottom - Bottom edge of the view frame, in world units.
-   * @param options - Near/far clipping plane distances (default `-1e6` and
-   *   `1e6`) and the slice orientation the camera faces (default `"XY"`).
+   * @param props - The view frame edges in world units, near/far clipping
+   *   plane distances (default `-1e6` and `1e6`), and the slice orientation
+   *   the camera faces (default `"XY"`).
    */
-  constructor(
-    left: number,
-    right: number,
-    top: number,
-    bottom: number,
-    options: OrthographicCameraProps = {}
-  ) {
+  constructor(props: OrthographicCameraProps) {
     super();
-    this.near_ = options.near ?? DEFAULT_NEAR;
-    this.far_ = options.far ?? DEFAULT_FAR;
-    this.orientation_ = options.orientation ?? "XY";
+    this.near_ = props.near ?? DEFAULT_NEAR;
+    this.far_ = props.far ?? DEFAULT_FAR;
+    this.orientation_ = props.orientation ?? "XY";
     this.axes_ = sliceAxesFor(this.orientation_);
     this.rotation_ = orientationRotation(this.axes_);
-    this.setFrame(left, right, bottom, top);
+    this.setFrame(props);
     this.updateProjectionMatrix();
   }
 
@@ -80,7 +78,7 @@ export class OrthographicCamera extends Camera {
     this.updateProjectionMatrix();
   }
 
-  public setFrame(left: number, right: number, bottom: number, top: number) {
+  public setFrame({ left, right, top, bottom }: OrthographicCameraFrame) {
     this.width_ = Math.abs(right - left);
     this.height_ = Math.abs(top - bottom);
     this.updateProjectionMatrix();

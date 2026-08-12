@@ -27,6 +27,7 @@ type IdetikProps = {
   memoryLimitMB?: number;
   maxConcurrentRequests?: number;
   maxGpuUploadsPerUpdate?: number;
+  renderer?: Renderer;
 };
 
 export type IdetikContext = {
@@ -83,10 +84,11 @@ export class Idetik {
    *   The `id` property is optional but useful for referencing specific viewports later.
    * @param params.overlays - Optional array of overlay objects that update each frame (e.g., for HUD elements)
    * @param params.showStats - Optional flag to display performance statistics
+   * @param params.renderer - Optional renderer instance; defaults to a WebGL renderer bound to the canvas
    *
    * @example
    * // Single viewport (element defaults to canvas)
-   * const camera = new OrthographicCamera(0, 1024, 0, 1024);
+   * const camera = new OrthographicCamera({ left: 0, right: 1024, top: 0, bottom: 1024 });
    * const idetik = new Idetik({
    *   canvas: document.querySelector('canvas')!,
    *   viewports: [{
@@ -118,10 +120,10 @@ export class Idetik {
    *
    * @throws {Error} If viewports have duplicate IDs or shared elements
    */
-  constructor(params: IdetikProps, renderer?: Renderer) {
+  constructor(params: IdetikProps) {
     this.canvas = params.canvas;
 
-    this.renderer_ = renderer ?? new WebGLRenderer(this.canvas);
+    this.renderer_ = params.renderer ?? new WebGLRenderer(this.canvas);
     const memoryLimitMB = params.memoryLimitMB ?? DEFAULT_MEMORY_LIMIT_MB;
     const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
     this.chunkManager_ = new ChunkManager(
