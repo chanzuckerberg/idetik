@@ -76,6 +76,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private context_?: IdetikContext;
   private pointerDownPos_: vec2 | null = null;
   private debugMode_ = false;
+  private objectsDirty_ = false;
 
   private static readonly STALE_PRESENTATION_MS_ = 1000;
   private lastPresentationTimeStamp_?: DOMHighResTimeStamp;
@@ -97,7 +98,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     onPickValue,
     ...layerOptions
   }: ImageLayerProps) {
-    super(layerOptions);
+    super({ blendMode: "additive", ...layerOptions });
     this.setState("initialized");
     this.source_ = source;
     this.policy_ = policy;
@@ -118,20 +119,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       this.axes_
     );
 
-    const channelCount = this.chunkStoreView_.channelCount;
-    validateChannelPropsCount(this.channelProps_, channelCount);
-
-    if (
-      channelCount > 1 &&
-      this.sliceCoords_.c !== undefined &&
-      this.sliceCoords_.c.length > 1
-    ) {
-      throw new Error(
-        `ImageLayer requires exactly one channel in sliceCoords.c ` +
-          `for multi-channel sources (found ${channelCount} channels). ` +
-          `Use one layer per channel.`
-      );
-    }
+    validateChannelPropsCount(
+      this.channelProps_,
+      this.chunkStoreView_.channelCount
+    );
   }
 
   protected detach(_context: IdetikContext) {
@@ -212,10 +203,12 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       this.visibleChunks_.size > 0 &&
       visibleChunksResident &&
       !this.chunkStoreView_.allVisibleFallbackLODLoaded() &&
-      !this.isPresentationStale()
+      !this.isPresentationStale() &&
+      !this.objectsDirty_
     ) {
       return;
     }
+    this.objectsDirty_ = false;
     this.lastPresentationTimeStamp_ = performance.now();
     this.lastPresentationTimeCoord_ = this.sliceCoords_.t;
 
@@ -227,16 +220,25 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.releaseAndRemoveChunks(nonVisibleChunks);
 
     this.clearObjects();
+
+    // `getChunksToRender` yields finest-first but not channel-contiguous, so
+    // collect visible chunks and stable-sort by channel: the renderer needs each
+    // channel to be contiguous to stencil properly; stable sort preserves finest-first
+    // within each channel
+    const visible: ImageRenderable[] = [];
     for (const chunk of orderedByLOD) {
       const image = this.getImageForChunk(chunk, chunk.texture!);
       this.visibleChunks_.set(chunk, image);
+
+      if (!this.isChannelVisible(chunk.chunkIndex.c)) continue;
+
+      image.coverageId = chunk.chunkIndex.c;
+      visible.push(image);
+    }
+    visible.sort((a, b) => a.coverageId! - b.coverageId!);
+    for (const image of visible) {
       this.addObject(image);
     }
-  }
-
-  public hasMultipleLODs(): boolean {
-    if (!this.chunkStoreView_) return false;
-    return this.chunkStoreView_.lodCount > 1;
   }
 
   public get lastPresentationTimeCoord(): number | undefined {
@@ -330,6 +332,10 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private getChannelPropsForChunk(chunk: Chunk): ChannelProps[] {
     if (!this.channelProps_) return [{}];
     return [this.channelProps_[chunk.chunkIndex.c] ?? {}];
+  }
+
+  private isChannelVisible(channel: number): boolean {
+    return this.channelProps_?.[channel]?.visible !== false;
   }
 
   private createImage(chunk: Chunk, texture: Texture) {
@@ -445,6 +451,11 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   public setChannelProps(channelProps: ChannelProps[]) {
+    if (this.channelVisibilityDiffers(channelProps)) {
+      // TODO: add a `visible` attribute on RenderableObject instead
+      // of forcing a rebuild of objects to draw on certain changes
+      this.objectsDirty_ = true;
+    }
     this.channelProps_ = channelProps;
     this.visibleChunks_.forEach((image, chunk) => {
       image.setChannelProps(this.getChannelPropsForChunk(chunk));
@@ -452,6 +463,16 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.channelChangeCallbacks_.forEach((callback) => {
       callback();
     });
+  }
+
+  private channelVisibilityDiffers(next: ChannelProps[]): boolean {
+    const count = Math.max(this.channelProps_?.length ?? 0, next.length);
+    for (let c = 0; c < count; c++) {
+      const wasVisible = this.channelProps_?.[c]?.visible !== false;
+      const isVisible = next[c]?.visible !== false;
+      if (wasVisible !== isVisible) return true;
+    }
+    return false;
   }
 
   public resetChannelProps(): void {

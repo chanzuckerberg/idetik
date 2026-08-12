@@ -88,21 +88,14 @@ const onImageChange = async () => {
     },
   ];
 
-  const layer1 = new ImageLayer({
+  const layer = new ImageLayer({
     source,
-    sliceCoords: { t: 0, z: initZ, c: [1] },
-    channelProps,
-    policy,
-  });
-  const layer2 = new ImageLayer({
-    source,
-    sliceCoords: { t: 0, z: initZ, c: [2] },
+    sliceCoords: { t: 0, z: initZ, c: [1, 2] },
     channelProps,
     policy,
     blendMode: "additive",
   });
-  viewport.addLayer(layer1);
-  viewport.addLayer(layer2);
+  viewport.addLayer(layer);
 };
 
 const onWellChange = async () => {

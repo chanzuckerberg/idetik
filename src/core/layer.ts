@@ -115,10 +115,6 @@ export abstract class Layer {
     this.callbacks_.splice(index, 1);
   }
 
-  public hasMultipleLODs(): boolean {
-    return false;
-  }
-
   protected setState(newState: LayerState) {
     const prevState = this.state_;
     this.state_ = newState;
@@ -127,13 +123,6 @@ export abstract class Layer {
 
   protected addObject(object: RenderableObject) {
     this.objects_.push(object);
-  }
-
-  protected removeObject(object: RenderableObject) {
-    const index = this.objects_.indexOf(object);
-    if (index !== -1) {
-      this.objects_.splice(index, 1);
-    }
   }
 
   protected clearObjects() {

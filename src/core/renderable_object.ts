@@ -11,6 +11,12 @@ export abstract class RenderableObject extends Node {
   public wireframeEnabled = false;
   public wireframeColor = Color.WHITE;
   public depthTest = true;
+  // Objects sharing a non-null coverageId are overlapping representations of
+  // the same region (e.g. LODs of one channel):
+  //   * the renderer stencils them so each pixel is only drawn once per coverage group
+  //   * `null` means the object is drawn normally with no coverage dedup
+  //   * Objects with the same id must be contiguous in a layer's object list
+  public coverageId: number | null = null;
   private readonly textures_: Texture[] = [];
   private staleTextures_: Texture[] = [];
   private readonly transform_ = new TrsTransform();

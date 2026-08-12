@@ -34,7 +34,7 @@ const yLod = dimensions.y!.lods[lod];
 const yStopPoint = yLod.size * yLod.scale;
 
 const sliceCoords = {
-  c: [1],
+  c: [0, 1],
   z: zMidPoint,
 };
 
@@ -48,10 +48,14 @@ const imageLayer = new ImageLayer({
   sliceCoords,
   policy: createExplorationPolicy(),
   channelProps: [
-    { visible: false },
     {
       visible: true,
-      color: Color.WHITE,
+      color: Color.GREEN,
+      contrastLimits: [0, 1024],
+    },
+    {
+      visible: true,
+      color: Color.MAGENTA,
       contrastLimits: [0, 1024],
     },
   ],
@@ -65,7 +69,7 @@ function createLabelsLayer() {
     source: labelsSource,
     sliceCoords: labelsSliceCoords,
     policy: createExplorationPolicy(),
-    opacity: 0.55,
+    opacity: 0.75,
     blendMode: "normal",
     outlineSelected: outlineMode,
     onPickValue: (info) => {
@@ -91,6 +95,8 @@ const zIndexEl = document.querySelector<HTMLSpanElement>("#z-index")!;
 const zTotalEl = document.querySelector<HTMLSpanElement>("#z-total")!;
 const outlineToggleEl =
   document.querySelector<HTMLButtonElement>("#outline-toggle")!;
+const labelsToggleEl =
+  document.querySelector<HTMLButtonElement>("#labels-toggle")!;
 
 // Initialize slider
 zSlider.min = "0";
@@ -122,12 +128,24 @@ const idetik = new Idetik({
 
 const viewport = idetik.viewports[0];
 
+let labelsVisible = true;
+
 outlineToggleEl.addEventListener("click", () => {
   outlineMode = !outlineMode;
   outlineToggleEl.textContent = outlineMode ? "Outline" : "Fill";
-  viewport.removeLayer(labelsLayer);
+  if (labelsVisible) viewport.removeLayer(labelsLayer);
   labelsLayer = createLabelsLayer();
-  viewport.addLayer(labelsLayer);
+  if (labelsVisible) viewport.addLayer(labelsLayer);
+});
+
+labelsToggleEl.addEventListener("click", () => {
+  labelsVisible = !labelsVisible;
+  labelsToggleEl.textContent = labelsVisible ? "Hide" : "Show";
+  if (labelsVisible) {
+    viewport.addLayer(labelsLayer);
+  } else {
+    viewport.removeLayer(labelsLayer);
+  }
 });
 
 function setZIndex(index: number) {

@@ -35,6 +35,7 @@ export class WebGLRenderer extends Renderer {
   private readonly textures_: WebGLTextures;
   private readonly state_: WebGLState;
   private renderedObjectsPerFrame_ = 0;
+  private stencilRef_ = 0;
   private currentViewportSize_: [number, number] = [0, 0];
 
   constructor(canvas: HTMLCanvasElement) {
@@ -76,6 +77,7 @@ export class WebGLRenderer extends Renderer {
   public render(viewport: Viewport) {
     this.renderedObjects_ = 0;
     this.renderedObjectsPerFrame_ = 0;
+    this.stencilRef_ = 0;
 
     const opaque: Layer[] = [];
     const transparent: Layer[] = [];
@@ -137,43 +139,58 @@ export class WebGLRenderer extends Renderer {
   }
 
   private initStencil() {
-    // We use the stencil buffer to mark pixels objects have been drawn,
-    // which is used to avoid overdrawing high resolution tiles with lower
-    // resolution ones.
-    const clearValue = 0;
-    this.gl_.clearStencil(clearValue);
+    this.gl_.clearStencil(0);
     this.gl_.stencilMask(0xff);
-    this.gl_.stencilFunc(this.gl_.EQUAL, clearValue, 0xff);
-    this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.INCR);
+    this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
+  }
+
+  private nextStencilRef(): number {
+    this.stencilRef_ += 1;
+    if (this.stencilRef_ > 0xff) {
+      Logger.warn(
+        "WebGLRenderer",
+        "Exceeded 255 stencil coverage groups in one frame; dedup may be incorrect"
+      );
+    }
+    return this.stencilRef_;
   }
 
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
-    if (layer.objects.length === 0) return;
     this.state_.setBlendingMode(layer.blendMode);
-    const shouldUseStencil = layer.hasMultipleLODs();
-    this.state_.setStencilTest(shouldUseStencil);
-    if (shouldUseStencil) {
-      this.gl_.clear(this.gl_.STENCIL_BUFFER_BIT);
-    }
 
-    layer.objects.forEach((object, i) => {
+    // objects sharing a coverageId are contiguous; each run bumps the stencil ref
+    let coverageId: number | null | undefined = undefined;
+    for (const object of layer.objects) {
+      if (object.coverageId !== coverageId) {
+        coverageId = object.coverageId;
+        this.state_.setStencilTest(coverageId !== null);
+        if (coverageId !== null) {
+          this.gl_.stencilFunc(this.gl_.NOTEQUAL, this.nextStencilRef(), 0xff);
+        }
+      }
+
       if (frustum.intersectsWithBox3(object.boundingBox)) {
-        this.renderObject(layer, i, camera);
+        this.renderObject(layer, object, camera);
         this.renderedObjectsPerFrame_ += 1;
       }
-    });
+    }
   }
 
-  protected renderObject(layer: Layer, objectIndex: number, camera: Camera) {
-    const object = layer.objects[objectIndex];
+  protected renderObject(
+    layer: Layer,
+    object: RenderableObject,
+    camera: Camera
+  ) {
     object.popStaleTextures().forEach((texture) => {
       this.textures_.dispose(texture);
     });
 
     if (!object.programName) return;
     this.state_.setCullFaceMode(object.cullFaceMode);
+    // Depth *testing* is per-object; depth *writing* follows the per-pass policy
+    // set in `render()`: opaque writes, transparent/blended does not.
+    // Writing depth for blended objects would reject same-depth layers/channels.
     this.state_.setDepthTesting(object.depthTest);
-    this.state_.setDepthMask(object.depthTest);
     this.bindings_.bindGeometry(object.geometry);
     object.textures.forEach((texture, index) => {
       this.textures_.bindTexture(texture, index);
@@ -313,7 +330,11 @@ export class WebGLRenderer extends Renderer {
 
   protected clear() {
     this.gl_.clearColor(0, 0, 0, 0);
-    this.gl_.clear(this.gl_.COLOR_BUFFER_BIT | this.gl_.DEPTH_BUFFER_BIT);
+    this.gl_.clear(
+      this.gl_.COLOR_BUFFER_BIT |
+        this.gl_.DEPTH_BUFFER_BIT |
+        this.gl_.STENCIL_BUFFER_BIT
+    );
     this.state_.setDepthTesting(true);
     this.gl_.depthFunc(this.gl_.LEQUAL);
   }

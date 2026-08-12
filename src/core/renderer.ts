@@ -1,5 +1,6 @@
 import { Camera } from "../objects/cameras/camera";
 import { Layer } from "./layer";
+import { RenderableObject } from "./renderable_object";
 import { Viewport } from "./viewport";
 import { Texture } from "../objects/textures/texture";
 
@@ -12,7 +13,7 @@ export abstract class Renderer {
   protected abstract resize(width: number, height: number): void;
   protected abstract renderObject(
     layer: Layer,
-    objectIndex: number,
+    object: RenderableObject,
     camera: Camera
   ): void;
   protected abstract clear(): void;

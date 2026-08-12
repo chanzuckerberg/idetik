@@ -199,16 +199,13 @@ export class LabelLayer extends Layer {
     this.releaseAndRemoveChunks(nonVisibleChunks);
 
     this.clearObjects();
+    // one coverage group; labels are single-channel but may be multi-scale
     for (const chunk of orderedByLOD) {
       const label = this.getLabelForChunk(chunk, chunk.texture!);
+      label.coverageId = 0;
       this.visibleChunks_.set(chunk, label);
       this.addObject(label);
     }
-  }
-
-  public hasMultipleLODs(): boolean {
-    if (!this.chunkStoreView_) return false;
-    return this.chunkStoreView_.lodCount > 1;
   }
 
   private isPresentationStale(): boolean {
