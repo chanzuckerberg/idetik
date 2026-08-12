@@ -102,7 +102,7 @@ class Particles extends Layer {
       };
     });
     const pointsRenderable = new PointsRenderable(scaledPoints);
-    this.objects.length = 0;
+    this.clearObjects();
     this.addObject(pointsRenderable);
   }
 }

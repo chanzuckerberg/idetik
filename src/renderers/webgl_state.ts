@@ -21,6 +21,9 @@ export class WebGLState {
   private currentViewport_: Box2 | null = null;
   private currentScissor_: Box2 | null = null;
   private currentCullingMode_: CullingMode | null = null;
+  private stencilFunc_: GLenum | null = null;
+  private stencilRef_: number | null = null;
+  private stencilFuncMask_: number | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -174,6 +177,19 @@ export class WebGLState {
       this.enable(this.gl_.STENCIL_TEST);
     } else {
       this.disable(this.gl_.STENCIL_TEST);
+    }
+  }
+
+  public setStencilFunc(func: GLenum, ref: number, mask: number) {
+    if (
+      this.stencilFunc_ !== func ||
+      this.stencilRef_ !== ref ||
+      this.stencilFuncMask_ !== mask
+    ) {
+      this.gl_.stencilFunc(func, ref, mask);
+      this.stencilFunc_ = func;
+      this.stencilRef_ = ref;
+      this.stencilFuncMask_ = mask;
     }
   }
 }

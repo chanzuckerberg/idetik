@@ -67,6 +67,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   private orientation_: SliceOrientation;
   private readonly onPickValue_?: (info: PointPickingResult) => void;
   private readonly visibleChunks_: Map<Chunk, ImageRenderable> = new Map();
+  private orderedChunks_: Chunk[] = [];
   private readonly pool_ = new RenderablePool<ImageRenderable>();
   private readonly initialChannelProps_?: ChannelProps[];
   private readonly channelChangeCallbacks_: (() => void)[] = [];
@@ -97,7 +98,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     onPickValue,
     ...layerOptions
   }: ImageLayerProps) {
-    super(layerOptions);
+    super({ blendMode: "additive", ...layerOptions });
     this.setState("initialized");
     this.source_ = source;
     this.policy_ = policy;
@@ -118,24 +119,15 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
       this.axes_
     );
 
-    const channelCount = this.chunkStoreView_.channelCount;
-    validateChannelPropsCount(this.channelProps_, channelCount);
-
-    if (
-      channelCount > 1 &&
-      this.sliceCoords_.c !== undefined &&
-      this.sliceCoords_.c.length > 1
-    ) {
-      throw new Error(
-        `ImageLayer requires exactly one channel in sliceCoords.c ` +
-          `for multi-channel sources (found ${channelCount} channels). ` +
-          `Use one layer per channel.`
-      );
-    }
+    validateChannelPropsCount(
+      this.channelProps_,
+      this.chunkStoreView_.channelCount
+    );
   }
 
   protected detach(_context: IdetikContext) {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.orderedChunks_ = [];
     this.clearObjects();
     this.chunkStoreView_?.dispose();
     this.chunkStoreView_ = undefined;
@@ -181,6 +173,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
 
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
+    this.orderedChunks_ = [];
     this.clearObjects();
     this.chunkStoreView_?.dispose();
     this.lastPresentationTimeStamp_ = undefined;
@@ -226,17 +219,28 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     );
     this.releaseAndRemoveChunks(nonVisibleChunks);
 
-    this.clearObjects();
     for (const chunk of orderedByLOD) {
-      const image = this.getImageForChunk(chunk, chunk.texture!);
-      this.visibleChunks_.set(chunk, image);
-      this.addObject(image);
+      this.visibleChunks_.set(
+        chunk,
+        this.getImageForChunk(chunk, chunk.texture!)
+      );
     }
+    this.orderedChunks_ = orderedByLOD;
+    this.rebuildRenderGroups();
   }
 
-  public hasMultipleLODs(): boolean {
-    if (!this.chunkStoreView_) return false;
-    return this.chunkStoreView_.lodCount > 1;
+  private rebuildRenderGroups() {
+    this.clearObjects();
+    for (const chunk of this.orderedChunks_) {
+      const image = this.visibleChunks_.get(chunk);
+      const channel = chunk.chunkIndex.c;
+      if (
+        image === undefined ||
+        this.channelProps_?.[channel]?.visible === false
+      )
+        continue;
+      this.addObject(image, channel);
+    }
   }
 
   public get lastPresentationTimeCoord(): number | undefined {
@@ -449,6 +453,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.visibleChunks_.forEach((image, chunk) => {
       image.setChannelProps(this.getChannelPropsForChunk(chunk));
     });
+    this.rebuildRenderGroups();
     this.channelChangeCallbacks_.forEach((callback) => {
       callback();
     });

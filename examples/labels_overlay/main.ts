@@ -34,7 +34,7 @@ const yLod = dimensions.y!.lods[lod];
 const yStopPoint = yLod.size * yLod.scale;
 
 const sliceCoords = {
-  c: [1],
+  c: [0, 1],
   z: zMidPoint,
 };
 
@@ -48,10 +48,14 @@ const imageLayer = new ImageLayer({
   sliceCoords,
   policy: createExplorationPolicy(),
   channelProps: [
-    { visible: false },
     {
       visible: true,
-      color: Color.WHITE,
+      color: Color.GREEN,
+      contrastLimits: [0, 1024],
+    },
+    {
+      visible: true,
+      color: Color.MAGENTA,
       contrastLimits: [0, 1024],
     },
   ],
@@ -65,7 +69,7 @@ function createLabelsLayer() {
     source: labelsSource,
     sliceCoords: labelsSliceCoords,
     policy: createExplorationPolicy(),
-    opacity: 0.55,
+    opacity: 0.75,
     blendMode: "normal",
     outlineSelected: outlineMode,
     onPickValue: (info) => {
