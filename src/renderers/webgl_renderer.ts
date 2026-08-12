@@ -221,9 +221,6 @@ export class WebGLRenderer extends Renderer {
 
     if (!object.programName) return;
     this.state_.setCullFaceMode(object.cullFaceMode);
-    // Depth *testing* is per-object; depth *writing* follows the per-pass policy
-    // set in `render()`: opaque writes, transparent/blended does not.
-    // Writing depth for blended objects would reject same-depth layers/channels.
     this.state_.setDepthTesting(object.depthTest);
     this.bindings_.bindGeometry(object.geometry);
     object.textures.forEach((texture, index) => {
@@ -363,7 +360,6 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected clear() {
-    // glClear honours the masks, so make sure colour/depth are writable.
     this.state_.setColorMask(true);
     this.state_.setDepthMask(true);
     this.gl_.clearColor(0, 0, 0, 0);
