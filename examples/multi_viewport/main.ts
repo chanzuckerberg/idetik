@@ -9,7 +9,6 @@ import {
   PanZoomControls,
   PerspectiveCamera,
   SliceOrientation,
-  VolumeLayer,
   createPlaybackPolicy,
 } from "@";
 import { addDimensionSlider } from "../lil_gui_utils";
@@ -94,21 +93,6 @@ function createSliceViewport(
   };
 }
 
-// Volume layer - no z coordinate to render entire volume
-const volumeLod = Math.min(2, dims.x!.lods.length - 1);
-const volumeLayer = new VolumeLayer({
-  source,
-  sliceCoords: {
-    get t() {
-      return sharedTime.t;
-    },
-    c: [0, 1],
-  },
-  policy: createPlaybackPolicy({ lod: { min: volumeLod, max: volumeLod } }),
-  channelProps,
-});
-volumeLayer.opacityMultiplier = 0.01;
-
 const xRange = [xMin, xMax] as const;
 const yRange = [yMin, yMax] as const;
 const zRange = [zMin, zMax] as const;
@@ -133,7 +117,6 @@ new Idetik({
         createSliceLayer("XY"),
         createSliceLayer("XZ"),
         createSliceLayer("YZ"),
-        volumeLayer,
       ],
     },
     createSliceViewport("slice-xz", "XZ", xRange, zRange),
