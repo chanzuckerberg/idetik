@@ -115,63 +115,45 @@ export class WebGLRenderer extends Renderer {
 
     const frustum = viewport.camera.frustum;
 
-    const opaqueLayers: Layer[] = [];
+    const occludingLayers: Layer[] = [];
     const transparentLayers: Layer[] = [];
     for (const layer of viewport.layers) {
-      (layer.occludes ? opaqueLayers : transparentLayers).push(layer);
+      if (layer.state !== "ready") continue;
+      (layer.occludes ? occludingLayers : transparentLayers).push(layer);
     }
 
-    const readyOccluders = opaqueLayers.filter((l) => l.state === "ready");
-
-    // Pass 1 — coverage: write only depth for every opaque layer, so the depth
-    // buffer ends up holding the nearest occluding surface at each pixel. No
-    // colour is written
-    //
-    // polygon offset nudges objects slightly away to prevent z-fighting when
+    // polygon offset nudges objects slightly *away* to prevent z-fighting when
     // rendering color in the next passes with depth LEQUAL
-    this.state_.setColorMask(false);
-    this.state_.setDepthMask(true);
-    this.state_.setDepthTesting(true);
-    this.state_.setDepthFunc(this.gl_.LESS);
-    this.state_.setStencilTest(false);
     this.state_.setPolygonOffset({ factor: 1, units: 1 });
-    for (const layer of readyOccluders) {
-      this.renderCoverage(layer, viewport.camera, frustum);
-    }
+    this.renderDepthOnly(occludingLayers, viewport.camera, frustum);
     this.state_.setPolygonOffset(null);
-    this.state_.setColorMask(true);
 
-    // Pass 2 — color opaque layers
     this.state_.setDepthMask(false);
     this.state_.setDepthFunc(this.gl_.LEQUAL);
-    for (const layer of readyOccluders) {
-      this.renderLayer(layer, viewport.camera, frustum);
-    }
+    this.renderLayers(occludingLayers, viewport.camera, frustum);
 
-    // Pass 3 — transparent layers: blended on top, depth-tested against opaque
-    // layers so they're hidden by opaque layers, but never occlude
-    //
-    // polygon offset nudges objects slightly closer so overlays (e.g. labels)
-    // do not z-fight with coplanar layers
+    // polygon offset nudges objects slightly *towards* so overlays (e.g. labels)
+    // do not z-fight with coplanar occluders
     this.state_.setPolygonOffset({ factor: -1, units: -1 });
-    for (const layer of transparentLayers) {
-      if (layer.state === "ready") {
-        this.renderLayer(layer, viewport.camera, frustum);
-      }
-    }
+    this.renderLayers(transparentLayers, viewport.camera, frustum);
     this.state_.setPolygonOffset(null);
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
   // TODO: this runs the full shader (incl. texture samples) just to
-  // discard it. Replace with depth-only program variants that share each
-  // colour program's vertex shader but use an empty fragment shader
-  private renderCoverage(layer: Layer, camera: Camera, frustum: Frustum) {
-    // depth only, so coverage grouping doesn't matter here — every object the
-    // layer offers contributes its depth, and hidden ones aren't offered
-    for (const members of layer.coverageGroups.values()) {
-      for (const object of members) {
+  // discard it. Replace with depth-only variants that share each
+  // program's vertex shader but use a cheap fragment shader
+  private renderDepthOnly(layers: Layer[], camera: Camera, frustum: Frustum) {
+    this.state_.setColorMask(false);
+    this.state_.setDepthMask(true);
+    this.state_.setDepthTesting(true);
+    this.state_.setDepthFunc(this.gl_.LESS);
+    this.state_.setStencilTest(false);
+
+    for (const layer of layers) {
+      const objects = [...layer.coverageGroups.values()].flat();
+      for (const object of objects) {
         if (!object.programName) continue;
         if (!frustum.intersectsWithBox3(object.boundingBox)) continue;
         this.state_.setCullFaceMode(object.cullFaceMode);
@@ -182,6 +164,14 @@ export class WebGLRenderer extends Renderer {
         const program = this.programs_.use(object.programName);
         this.drawGeometry(object.geometry, object, layer, program, camera);
       }
+    }
+
+    this.state_.setColorMask(true);
+  }
+
+  private renderLayers(layers: Layer[], camera: Camera, frustum: Frustum) {
+    for (const layer of layers) {
+      this.renderLayer(layer, camera, frustum);
     }
   }
 
