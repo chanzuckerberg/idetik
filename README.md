@@ -80,11 +80,11 @@ If you run into problems, please [open an issue on GitHub](https://github.com/ch
 - Expected vs. actual behavior
 - Your environment (OS, browser, version)
 
-If you believe you have found a security issue, we would appreciate notification. Please email security@chanzuckerberg.com.
+If you believe you have found a security issue, we would appreciate notification. Please email security@biohub.org.
 
 ## Code of Conduct
 
-This project adheres to the Contributor Covenant [code of conduct](https://www.contributor-covenant.org/version/3/0/code_of_conduct/). By participating you are expected to uphold this code. Please report unacceptable behavior to opensource@chanzuckerberg.com.
+This project adheres to the Contributor Covenant [code of conduct](https://www.contributor-covenant.org/version/3/0/code_of_conduct/). By participating you are expected to uphold this code. Please report unacceptable behavior to opensource@biohub.org.
 
 ## License
 
