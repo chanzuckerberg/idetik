@@ -234,7 +234,11 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     for (const chunk of this.orderedChunks_) {
       const image = this.visibleChunks_.get(chunk);
       const channel = chunk.chunkIndex.c;
-      if (image === undefined || this.channelProps_?.[channel]?.visible === false) continue;
+      if (
+        image === undefined ||
+        this.channelProps_?.[channel]?.visible === false
+      )
+        continue;
       this.addObject(image, channel);
     }
   }

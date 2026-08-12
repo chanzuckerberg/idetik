@@ -161,7 +161,7 @@ export class WebGLRenderer extends Renderer {
   private renderLayer(layer: Layer, camera: Camera, frustum: Frustum) {
     this.state_.setBlendingMode(layer.blendMode);
 
-    for (const [coverageGroup, members] of layer.renderGroups) {
+    for (const [coverageGroup, members] of layer.coverageGroups) {
       this.setCoverageStencil(coverageGroup);
 
       for (const object of members) {

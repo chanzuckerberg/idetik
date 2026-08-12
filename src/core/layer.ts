@@ -44,7 +44,10 @@ export interface LayerProps {
 export abstract class Layer {
   public abstract readonly type: string;
 
-  private readonly renderGroups_ = new Map<number | null, RenderableObject[]>();
+  private readonly coverageGroups_ = new Map<
+    number | null,
+    RenderableObject[]
+  >();
   private state_: LayerState = "initialized";
   private attached_ = false;
   private readonly callbacks_: StateChangeCallback[] = [];
@@ -95,11 +98,11 @@ export abstract class Layer {
 
   protected detach(_context: IdetikContext): void {}
 
-  public get renderGroups(): ReadonlyMap<
+  public get coverageGroups(): ReadonlyMap<
     number | null,
     readonly RenderableObject[]
   > {
-    return this.renderGroups_;
+    return this.coverageGroups_;
   }
 
   public get state() {
@@ -128,16 +131,16 @@ export abstract class Layer {
     object: RenderableObject,
     coverageGroup: number | null = null
   ) {
-    const members = this.renderGroups_.get(coverageGroup);
+    const members = this.coverageGroups_.get(coverageGroup);
     if (members) {
       members.push(object);
     } else {
-      this.renderGroups_.set(coverageGroup, [object]);
+      this.coverageGroups_.set(coverageGroup, [object]);
     }
   }
 
   protected clearObjects() {
-    this.renderGroups_.clear();
+    this.coverageGroups_.clear();
   }
 
   /**
