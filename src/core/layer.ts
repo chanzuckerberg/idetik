@@ -23,14 +23,6 @@ type StateChangeCallback = (
 export interface LayerProps {
   opacity?: number;
   blendMode?: BlendMode;
-  /**
-   * Whether this layer occludes layers behind it. Occluders write depth in a
-   * pre-pass so that (a) they hide one another correctly in 3D and (b) overlays
-   * drawn afterwards are hidden where a nearer occluder covers them. Layers with
-   * `blendMode: "none"` are always occluders; set this for a layer that blends
-   * internally (e.g. an additive multi-channel image) but should still read as a
-   * solid, opaque plane to other layers.
-   */
   occludes?: boolean;
 }
 
@@ -68,13 +60,11 @@ export abstract class Layer {
   constructor({
     opacity = 1.0,
     blendMode = "none",
-    occludes = false,
+    occludes,
   }: LayerProps = {}) {
     this.opacity_ = clamp(opacity, 0.0, 1.0);
     this.blendMode = blendMode;
-    // A "none" (opaque) layer inherently occludes; an internally-blended layer
-    // opts in explicitly.
-    this.occludes = occludes || blendMode === "none";
+    this.occludes = occludes ?? blendMode === "none";
   }
 
   public get opacity() {
