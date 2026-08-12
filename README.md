@@ -1,149 +1,93 @@
-# Idetik
+<h1 align="center">Idetik</h1>
 
-A layer-based library for interactive visualization of large bioimaging data, with first-class support for OME-Zarr.
+<p align="center">Build interactive viewers for massive bioimaging data in the browser</p>
+
+<div align="center">
+
+![ci-badge](https://github.com/chanzuckerberg/idetik/actions/workflows/lint-test-build.yml/badge.svg)
+[![npm-badge](https://img.shields.io/npm/v/%40idetik%2Fcore.svg)](https://www.npmjs.com/package/@idetik/core)
+[![docs-badge](https://img.shields.io/badge/docs-online-blue.svg)](https://chanzuckerberg.github.io/idetik/)
+
+</div>
+
+## Overview
+
+Idetik is a high-performance library for exploring multi-dimensional OME-Zarr datasets right in the browser. It is not a viewer but a framework for building viewers. Define viewports with your own cameras, controls, and layers, and point them at any local or remote store with no conversion step. Chunks are streamed based on what the camera needs at the current zoom and nothing more, with preconfigured policies for smooth temporal playback. When the built-in pieces aren't enough, subclass layers to render your own data, add custom input handlers, or plug in your own data loader.
+
+#### Documentation
+
+- Guide: https://chanzuckerberg.github.io/idetik/guide/getting-started
+- API reference: https://chanzuckerberg.github.io/idetik/api/
+
+## Installation
+
+Idetik is published to npm as [@idetik/core](https://www.npmjs.com/package/@idetik/core):
+
+```bash
+npm install @idetik/core
+```
+
+## Minimal Example
+
+This example displays a single slice from [Zebrahub](https://zebrahub.sf.czbiohub.org/), a terabyte-scale light-sheet time-lapse of a developing zebrafish, hosted as OME-Zarr on a public server. Idetik fetches only the chunks the view needs so you can pan and zoom through the full-resolution image without downloading the dataset.
+
+```typescript
+import {
+  Idetik,
+  ImageLayer,
+  OmeZarrImageSource,
+  OrthographicCamera,
+  PanZoomControls,
+} from '@idetik/core'
+
+const url = 'https://public.czbiohub.org/royerlab/zebrahub/imaging/single-objective/ZSNS001.ome.zarr/';
+const source = await OmeZarrImageSource.fromHttp({url});
+
+const layer = new ImageLayer({
+  source,
+  sliceCoords: { t: 400, z: 278, c: [0] }, // one slice: mid time-lapse, mid-stack
+  channelProps: [{ visible: true, contrastLimits: [0, 60] }],
+});
+
+// frame the camera to the image's physical extent.
+const { x, y } = source.getDimensions()
+const camera = new OrthographicCamera({
+  left: 0, right: x.lods[0].size * x.lods[0].scale,
+  top: 0, bottom: y.lods[0].size * y.lods[0].scale
+});
+
+const idetik = new Idetik({
+  canvas: document.querySelector('canvas')!,
+  viewports: [{
+    camera,
+    layers: [layer],
+    cameraControls: new PanZoomControls(camera)
+  }],
+});
+
+idetik.start();
+```
 
 ## Project Status
 
-This project is under active development and not yet stable. We welcome bug reports and new ideas, but are not prepared to review or accept major contributions at this time.
+This project is under active development. We welcome bug reports and new ideas but are not prepared to review or accept major contributions at this time.
 
-## Reporting Security Issues
+## Getting Help
 
-If you believe you have found a security issue, please responsibly disclose via the process in our [Security Policy](SECURITY.md).
+If you run into problems, please [open an issue on GitHub](https://github.com/chanzuckerberg/idetik/issues). If possible include:
 
-## Getting started (development)
+- A clear description of the problem and steps to reproduce
+- Expected vs. actual behavior
+- Your environment (OS, browser, version)
 
-1. Install the development version of node.
-
-   If you use `nvm` to manage node versions, you can run:
-
-   `nvm use`
-
-   Otherwise, manually install the version of node specified in `.nvmrc`.
-
-2. Install the dependencies required by this project (from within this directory):
-
-   `npm install`
-
-   Re-run this command any time the dependencies listed in [package.json](package.json) change, such
-   as after checking out a different revision or pulling changes.
-
-3. To run a local server for development purposes (from the repo root):
-
-   `npm run examples`
-
-   This will start a server on <http://localhost:5173>. The examples under [examples/](examples/)
-   are for local development and testing only; they are not deployed.
-
-4. To run the unit test suite (headless Chrome using playwright), run:
-
-   `npm test` or `npm run test-with-coverage` to generate a coverage report.
-
-   By default, the test runner will watch for changes to the source files and re-run the tests
-   automatically, so you can leave it running while you work. To run the tests once and exit, use
-   `npm run test -- --run`.
-
-5. To build the library for publishing:
-
-   `npm run build`
-
-   This bundles the library and emits type declarations to `dist/`. Use `npm run compile` to
-   type-check and emit declarations only (no bundle).
-
-6. To build the examples as a static site (e.g. to verify the production build):
-
-   `npm run build:examples`
-
-   Output is written to `examples/dist/`.
-
-7. To work on the documentation site:
-
-   - `npm run docs:dev` — start the VitePress dev server on <http://localhost:5174>
-   - `npm run docs:build` — build the static docs site to `.vitepress/dist/` (also generates the
-     API reference from TypeScript/JSDoc via TypeDoc)
-   - `npm run docs:preview` — build, then locally serve the production docs
-
-   The docs site is deployed to GitHub Pages automatically on push to `main`.
-
-8. See [package.json](package.json) for other available commands.
-
-## Release
-
-We maintain the [@idetik/core](https://www.npmjs.com/package/@idetik/core?activeTab=readme) package on npm.
-
-### Automatic Release Process (Recommended)
-
-We use [semantic-release](https://github.com/semantic-release/semantic-release) to automatically handle versioning, changelog generation, npm publishing, and GitHub releases.
-
-#### How It Works
-
-1. **Use Conventional Commits**: When creating PRs, ensure your PR title follows the [Conventional Commits](https://www.conventionalcommits.org/) format:
-   - `feat: add new feature` → triggers a **minor** version bump (e.g., 0.1.0 → 0.2.0)
-   - `fix: resolve bug` → triggers a **patch** version bump (e.g., 0.1.0 → 0.1.1)
-   - `feat!: breaking change` or `BREAKING CHANGE:` in commit footer → triggers a **minor** version bump while in `0.x` (e.g., 0.1.0 → 0.2.0)
-   - `refactor:`, `perf:`, `chore:`, `revert:` → triggers a **patch** version bump
-   - `docs:`, `style:`, `test:`, `ci:`, `build:` → no release
-
-   While the project is in `0.x`, breaking changes bump the **minor** version (see [.releaserc.json](.releaserc.json)); `1.0.0` will be cut deliberately.
-
-2. **PR Title Validation**: Our CI automatically validates PR titles to ensure they follow the conventional commit format.
-
-3. **Merge to Main**: When your PR is merged to `main`, the release workflow automatically:
-   - Analyzes commits since the last release
-   - Determines the version bump
-   - Updates the version in `package.json`
-   - Generates/updates `CHANGELOG.md`
-   - Publishes to npm as `@idetik/core`
-   - Creates a GitHub release with release notes
-   - Tags the release (e.g., `v0.2.0`)
-
-4. **No Manual Intervention Required**: The entire process is automatic once merged to `main`.
-
-#### Pre-requirements
-
-- For GH Actions:
-    - Set up "trusted publishing" for the repo/package pair on npm (uses OIDC to authenticate when publishing)
-    - Use `actions/create-github-app-token` to generate a GH token so `semantic-release` can comment
-      on the PR after release
-- For manual releases:
-    - Set `NPM_TOKEN` env var with an npm token with publish access to `@idetik` scope
-    - You must be a member of the [idetik developer team](https://www.npmjs.com/settings/idetik/teams/team/developers/users) on NPM
-
-### Manual Release Process (Fallback)
-
-If you need to manually release (e.g., if the automated process fails), follow these steps:
-
-1. **Bump the version**:
-   ```shell
-   git switch -c your-name/prerelease-X-Y-Z
-   npm version [major|minor|patch]  # Choose appropriate bump
-   npm install  # Updates package-lock.json
-   npm run build
-   ```
-
-2. **Create and merge PR**:
-   - Create a PR with your changes
-   - Get it approved and merge to `main`
-
-3. **Publish to npm**:
-   ```shell
-   git checkout main
-   git pull
-   npm login
-   npm run pub
-   ```
-
-4. **Tag the release**:
-   ```shell
-   git tag vX.Y.Z  # Use the version number from package.json
-   git push origin --tags
-   ```
-
-5. **Create GitHub release**:
-   - Go to the [Releases page](https://github.com/chanzuckerberg/idetik/releases)
-   - Click "Create a new release"
-   - Select the tag you just created
-   - Add release notes describing the changes
+If you believe you have found a security issue, we would appreciate notification. Please email security@biohub.org.
 
 ## Code of Conduct
 
-This project adheres to the Contributor Covenant [code of conduct](https://www.contributor-covenant.org/version/3/0/code_of_conduct/). By participating, you are expected to uphold this code. Please report unacceptable behavior to opensource@chanzuckerberg.com.
+This project adheres to the Contributor Covenant [code of conduct](https://www.contributor-covenant.org/version/3/0/code_of_conduct/). By participating you are expected to uphold this code. Please report unacceptable behavior to opensource@biohub.org.
+
+## License
+
+Licensed under the [MIT License](LICENSE).
+
+Copyright (c) 2026-present Chan Zuckerberg Biohub, Inc.
