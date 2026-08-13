@@ -86,7 +86,7 @@ export class Idetik {
    *
    * @example
    * // Single viewport (element defaults to canvas)
-   * const camera = new OrthographicCamera(0, 1024, 0, 1024);
+   * const camera = new OrthographicCamera({ left: 0, right: 1024, top: 0, bottom: 1024 });
    * const idetik = new Idetik({
    *   canvas: document.querySelector('canvas')!,
    *   viewports: [{
@@ -118,10 +118,10 @@ export class Idetik {
    *
    * @throws {Error} If viewports have duplicate IDs or shared elements
    */
-  constructor(params: IdetikProps, renderer?: Renderer) {
+  constructor(params: IdetikProps) {
     this.canvas = params.canvas;
 
-    this.renderer_ = renderer ?? new WebGLRenderer(this.canvas);
+    this.renderer_ = new WebGLRenderer(this.canvas);
     const memoryLimitMB = params.memoryLimitMB ?? DEFAULT_MEMORY_LIMIT_MB;
     const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
     this.chunkManager_ = new ChunkManager(

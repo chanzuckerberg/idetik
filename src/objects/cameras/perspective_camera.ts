@@ -19,14 +19,14 @@ export class PerspectiveCamera extends Camera {
   private fov_: number;
   private aspectRatio_: number;
 
-  constructor(options: PerspectiveCameraProps = {}) {
+  constructor(props: PerspectiveCameraProps = {}) {
     const {
       fov = DEFAULT_FOV,
       aspectRatio = DEFAULT_ASPECT_RATIO,
       near = 0.1,
       far = 10000,
       position = vec3.fromValues(0, 0, 0),
-    } = options;
+    } = props;
 
     if (fov < MIN_FOV || fov > MAX_FOV) {
       throw new Error(

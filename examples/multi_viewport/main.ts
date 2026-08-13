@@ -82,13 +82,13 @@ function createSliceViewport(
 ) {
   const uPad = 0.2 * (uMax - uMin);
   const vPad = 0.2 * (vMax - vMin);
-  const camera = new OrthographicCamera(
-    uMin - uPad,
-    uMax + uPad,
-    vMin - vPad,
-    vMax + vPad,
-    { orientation }
-  );
+  const camera = new OrthographicCamera({
+    left: uMin - uPad,
+    right: uMax + uPad,
+    top: vMin - vPad,
+    bottom: vMax + vPad,
+    orientation,
+  });
 
   return {
     id,

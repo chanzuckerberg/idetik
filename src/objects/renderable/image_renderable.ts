@@ -10,6 +10,13 @@ import {
 import { mat4, vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 
+type ImageRenderableProps = {
+  width: number;
+  height: number;
+  texture: Texture;
+  channelProps?: ChannelProps[];
+};
+
 type UniformValues = {
   u_color: vec3;
   u_imageSampler: number;
@@ -25,16 +32,16 @@ export class ImageRenderable extends RenderableObject {
 
   public worldToTexCoord: mat4 = mat4.create();
 
-  constructor(
-    width: number,
-    height: number,
-    texture: Texture,
-    channels: ChannelProps[] = []
-  ) {
+  constructor({
+    width,
+    height,
+    texture,
+    channelProps = [],
+  }: ImageRenderableProps) {
     super();
     this.geometry = new PlaneGeometry(width, height, 1, 1);
     this.setTexture(0, texture);
-    this.channels_ = validateChannels(texture, channels);
+    this.channels_ = validateChannels(texture, channelProps);
     this.programName = textureToShader(texture);
   }
 

@@ -135,16 +135,15 @@ const channelProps: ChannelProps[] = Array.from(
 const imageLayer = new ImageLayer({
   source,
   sliceCoords,
-  policy: createExplorationPolicy(),
   channelProps,
 });
 
-const camera = new OrthographicCamera(
-  xLod.translation,
-  xLod.translation + xLod.scale * xLod.size,
-  yLod.translation,
-  yLod.translation + yLod.scale * yLod.size
-);
+const camera = new OrthographicCamera({
+  left: xLod.translation,
+  right: xLod.translation + xLod.scale * xLod.size,
+  top: yLod.translation,
+  bottom: yLod.translation + yLod.scale * yLod.size,
+});
 
 const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
 if (!tLod) timePointDiv.style.display = "none";

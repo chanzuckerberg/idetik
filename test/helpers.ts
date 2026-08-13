@@ -93,7 +93,7 @@ export function createTestElement(id: string = "test-element"): HTMLElement {
 }
 
 export function createTestCamera(): OrthographicCamera {
-  return new OrthographicCamera(-1, 1, -1, 1);
+  return new OrthographicCamera({ left: -1, right: 1, top: -1, bottom: 1 });
 }
 
 export function createTestContext(): IdetikContext {

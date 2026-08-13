@@ -16,7 +16,10 @@ import {
   sliceAxesFor,
 } from "../math/axes";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
-import { ImageSourcePolicy } from "../core/image_source_policy";
+import {
+  createExplorationPolicy,
+  ImageSourcePolicy,
+} from "../core/image_source_policy";
 import {
   LabelColorMap,
   LabelColorMapProps,
@@ -35,7 +38,7 @@ import { poolKeyForImageRenderable } from "./image_layer";
 export type LabelLayerProps = LayerProps & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
-  policy: ImageSourcePolicy;
+  policy?: ImageSourcePolicy;
   orientation?: SliceOrientation;
   colorMap?: LabelColorMapProps;
   onPickValue?: (info: PointPickingResult) => void;
@@ -79,7 +82,7 @@ export class LabelLayer extends Layer {
     super(layerOptions);
     this.setState("initialized");
     this.source_ = source;
-    this.policy_ = policy;
+    this.policy_ = policy ?? createExplorationPolicy();
     this.sliceCoords_ = sliceCoords;
     this.orientation_ = orientation ?? "XY";
     this.axes_ = sliceAxesFor(this.orientation_);

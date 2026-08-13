@@ -11,6 +11,10 @@ import {
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";
 
+type VolumeRenderableProps = {
+  channelProps?: ChannelProps[];
+};
+
 /** @group Renderable Objects */
 export class VolumeRenderable extends RenderableObject {
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
@@ -20,12 +24,13 @@ export class VolumeRenderable extends RenderableObject {
 
   private readonly channelToTextureIndex_: Map<number, number> = new Map();
 
-  constructor() {
+  constructor({ channelProps = [] }: VolumeRenderableProps = {}) {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
     this.cullFaceMode = "front";
     this.depthTest = false;
     this.channels_ = [];
+    this.setChannelProps(channelProps);
   }
 
   public get type() {

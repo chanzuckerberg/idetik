@@ -6,7 +6,6 @@ import {
   OrthographicCamera,
   Color,
   PanZoomControls,
-  createExplorationPolicy,
 } from "@";
 
 // A 3D (z-stack) OME-Zarr image with a matching label segmentation overlaid on
@@ -46,7 +45,6 @@ const labelsSliceCoords = {
 const imageLayer = new ImageLayer({
   source: imageSource,
   sliceCoords,
-  policy: createExplorationPolicy(),
   channelProps: [
     {
       visible: true,
@@ -68,8 +66,7 @@ function createLabelsLayer() {
   return new LabelLayer({
     source: labelsSource,
     sliceCoords: labelsSliceCoords,
-    policy: createExplorationPolicy(),
-    opacity: 0.75,
+    opacity: 0.55,
     blendMode: "normal",
     outlineSelected: outlineMode,
     onPickValue: (info) => {
@@ -112,7 +109,12 @@ zSlider.addEventListener("input", (event) => {
   }, 20);
 });
 
-const camera = new OrthographicCamera(0, xStopPoint, 0, yStopPoint);
+const camera = new OrthographicCamera({
+  left: 0,
+  right: xStopPoint,
+  top: 0,
+  bottom: yStopPoint,
+});
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("canvas")!,
   viewports: [

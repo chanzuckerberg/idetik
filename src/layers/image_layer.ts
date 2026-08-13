@@ -16,7 +16,10 @@ import {
   sliceAxesFor,
 } from "../math/axes";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
-import { ImageSourcePolicy } from "../core/image_source_policy";
+import {
+  createExplorationPolicy,
+  ImageSourcePolicy,
+} from "../core/image_source_policy";
 import {
   ChannelProps,
   ChannelsEnabled,
@@ -37,7 +40,7 @@ import { Texture } from "../objects/textures/texture";
 export type ImageLayerProps = LayerProps & {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
-  policy: ImageSourcePolicy;
+  policy?: ImageSourcePolicy;
   orientation?: SliceOrientation;
   channelProps?: ChannelProps[];
   onPickValue?: (info: PointPickingResult) => void;
@@ -101,7 +104,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     super({ blendMode: "additive", ...layerOptions });
     this.setState("initialized");
     this.source_ = source;
-    this.policy_ = policy;
+    this.policy_ = policy ?? createExplorationPolicy();
     this.sliceCoords_ = sliceCoords;
     this.orientation_ = orientation ?? "XY";
     this.axes_ = sliceAxesFor(this.orientation_);
@@ -337,12 +340,12 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   private createImage(chunk: Chunk, texture: Texture) {
-    const image = new ImageRenderable(
-      chunk.shape[this.axes_.u],
-      chunk.shape[this.axes_.v],
+    const image = new ImageRenderable({
+      width: chunk.shape[this.axes_.u],
+      height: chunk.shape[this.axes_.v],
       texture,
-      this.getChannelPropsForChunk(chunk)
-    );
+      channelProps: this.getChannelPropsForChunk(chunk),
+    });
     this.updateImageChunk(image, chunk);
     return image;
   }
