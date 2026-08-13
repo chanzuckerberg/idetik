@@ -1,10 +1,12 @@
-import { RenderableObject } from "../../core/renderable_object";
+import { Node } from "../../core/node";
 import { Frustum } from "../../math/frustum";
+import { TrsTransform } from "../../math/transforms";
 import { mat4, vec3, vec4 } from "gl-matrix";
 
 export type CameraType = "OrthographicCamera" | "PerspectiveCamera";
 
-export abstract class Camera extends RenderableObject {
+export abstract class Camera extends Node {
+  private readonly transform_ = new TrsTransform();
   protected projectionMatrix_ = mat4.create();
   protected near_ = 0;
   protected far_ = 0;
@@ -19,6 +21,10 @@ export abstract class Camera extends RenderableObject {
 
   get projectionMatrix() {
     return this.projectionMatrix_;
+  }
+
+  public get transform() {
+    return this.transform_;
   }
 
   get viewMatrix() {
