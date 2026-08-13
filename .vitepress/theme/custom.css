@@ -122,3 +122,7 @@
 .VPFooter .container .copyright {
   color: #6e6e78;
 }
+
+.VPNavBar .github-stars {
+  margin-left: 20px;
+}
