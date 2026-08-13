@@ -27,7 +27,6 @@ type IdetikProps = {
   memoryLimitMB?: number;
   maxConcurrentRequests?: number;
   maxGpuUploadsPerUpdate?: number;
-  renderer?: Renderer;
 };
 
 export type IdetikContext = {
@@ -84,7 +83,6 @@ export class Idetik {
    *   The `id` property is optional but useful for referencing specific viewports later.
    * @param params.overlays - Optional array of overlay objects that update each frame (e.g., for HUD elements)
    * @param params.showStats - Optional flag to display performance statistics
-   * @param params.renderer - Optional renderer instance; defaults to a WebGL renderer bound to the canvas
    *
    * @example
    * // Single viewport (element defaults to canvas)
@@ -123,7 +121,7 @@ export class Idetik {
   constructor(params: IdetikProps) {
     this.canvas = params.canvas;
 
-    this.renderer_ = params.renderer ?? new WebGLRenderer(this.canvas);
+    this.renderer_ = new WebGLRenderer(this.canvas);
     const memoryLimitMB = params.memoryLimitMB ?? DEFAULT_MEMORY_LIMIT_MB;
     const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
     this.chunkManager_ = new ChunkManager(
