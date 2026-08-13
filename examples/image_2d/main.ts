@@ -135,7 +135,6 @@ const channelProps: ChannelProps[] = Array.from(
 const imageLayer = new ImageLayer({
   source,
   sliceCoords,
-  policy: createExplorationPolicy(),
   channelProps,
 });
 

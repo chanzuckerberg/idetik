@@ -5,7 +5,10 @@ import { Viewport } from "../core/viewport";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
 import { IdetikContext } from "../idetik";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
-import { ImageSourcePolicy } from "../core/image_source_policy";
+import {
+  createExplorationPolicy,
+  ImageSourcePolicy,
+} from "../core/image_source_policy";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
 import { sortFrontToBack } from "../math/sort_by_distance";
@@ -18,7 +21,7 @@ import {
 export type VolumeLayerProps = {
   source: ChunkSource;
   sliceCoords: SliceCoordinates;
-  policy: ImageSourcePolicy;
+  policy?: ImageSourcePolicy;
   channelProps?: ChannelProps[];
 };
 
@@ -110,7 +113,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     super({ blendMode: "premultiplied" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
-    this.policy_ = policy;
+    this.policy_ = policy ?? createExplorationPolicy();
     this.initialChannelProps_ = channelProps;
     this.channelProps_ = channelProps;
     this.setState("initialized");

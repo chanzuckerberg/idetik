@@ -32,7 +32,12 @@ export class ImageRenderable extends RenderableObject {
 
   public worldToTexCoord: mat4 = mat4.create();
 
-  constructor({ width, height, texture, channelProps = [] }: ImageRenderableProps) {
+  constructor({
+    width,
+    height,
+    texture,
+    channelProps = [],
+  }: ImageRenderableProps) {
     super();
     this.geometry = new PlaneGeometry(width, height, 1, 1);
     this.setTexture(0, texture);
