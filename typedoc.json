@@ -1,6 +1,11 @@
 {
   "$schema": "https://typedoc.org/schema.json",
-  "plugin": ["typedoc-plugin-markdown", "typedoc-vitepress-theme"],
+  "plugin": [
+    "typedoc-plugin-markdown",
+    "typedoc-vitepress-theme",
+    "./.vitepress/typedoc/index.mjs"
+  ],
+  "theme": "idetik",
   "entryPoints": ["src/index.ts"],
   "tsconfig": "tsconfig.json",
   "out": "docs/api",
@@ -12,15 +17,24 @@
     "includeGroups": true
   },
   "groupOrder": [
-    "Runtime",
-    "Data Loading",
-    "Layers",
-    "Layer Configuration",
-    "Renderable Objects",
-    "Cameras & Controls",
+    "Constructors",
+    "Type Aliases",
+    "Properties",
+    "Accessors",
+    "Methods",
     "*"
   ],
+  "sort": ["source-order"],
+  "router": "idetik",
+  "typeAliasPropertiesFormat": "table",
+  "pageTitleTemplates": {
+    "member": "{name}"
+  },
   "hidePageHeader": true,
+  "hideBreadcrumbs": true,
+  "tableColumnSettings": {
+    "hideSources": true
+  },
   "useCodeBlocks": true,
   "expandObjects": true,
   "parametersFormat": "table",
