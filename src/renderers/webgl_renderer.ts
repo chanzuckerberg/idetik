@@ -28,10 +28,6 @@ import { Frustum } from "../math/frustum";
 // This is a mirror transform, which also flips triangle winding.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
-// Texture unit reserved for the scene depth texture sampled by depth-reading
-// layers (e.g. the volume). High enough not to collide with object textures.
-const SCENE_DEPTH_UNIT = 7;
-
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext;
   private readonly programs_: WebGLShaderPrograms;
@@ -43,9 +39,6 @@ export class WebGLRenderer extends Renderer {
   private currentViewportSize_: [number, number] = [0, 0];
   private currentViewportOrigin_: [number, number] = [0, 0];
 
-  // Lazily-created single-sample depth texture holding the occluders' depth,
-  // sampled by depth-reading layers. Kept separate from the (MSAA) main
-  // framebuffer so antialiasing is preserved.
   private sceneDepthFbo_: WebGLFramebuffer | null = null;
   private sceneDepthTex_: WebGLTexture | null = null;
   private sceneDepthSize_: [number, number] = [0, 0];
@@ -228,7 +221,6 @@ export class WebGLRenderer extends Renderer {
       tex,
       0
     );
-    // Depth-only FBO: no colour draw/read buffers.
     gl.drawBuffers([gl.NONE]);
     gl.readBuffer(gl.NONE);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -237,10 +229,6 @@ export class WebGLRenderer extends Renderer {
     this.sceneDepthSize_ = [w, h];
   }
 
-  // Render the occluders' depth into the single-sample scene depth texture for
-  // the current viewport region. Viewport/scissor still match the main pass and
-  // the texture is canvas-sized, so occluder depth lands exactly where a reader
-  // samples it via gl_FragCoord. Leaves the default framebuffer bound.
   private renderSceneDepth(
     occluders: Layer[],
     camera: Camera,
@@ -250,8 +238,6 @@ export class WebGLRenderer extends Renderer {
     const gl = this.gl_;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneDepthFbo_);
 
-    // no polygon offset here: that exists to keep the color passes from
-    // z-fighting their own coverage, and would only bias what readers sample
     this.state_.setDepthMask(true);
     this.state_.setDepthFunc(gl.LESS);
     gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -384,7 +370,7 @@ export class WebGLRenderer extends Renderer {
           );
           break;
         case "u_sceneDepth":
-          program.setUniform(uniformName, SCENE_DEPTH_UNIT);
+          program.setUniform(uniformName, this.textures_.reservedUnit);
           break;
         case "u_sceneDepthResolution":
           program.setUniform(uniformName, [this.width, this.height]);

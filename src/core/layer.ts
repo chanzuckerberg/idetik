@@ -13,7 +13,7 @@ export type BlendMode =
   | "additive"
   | "subtractive"
   | "multiply"
-  | "premultiplied";
+  | "premultipliedOver";
 
 type StateChangeCallback = (
   newState: LayerState,
@@ -24,13 +24,6 @@ export interface LayerProps {
   opacity?: number;
   blendMode?: BlendMode;
   occludes?: boolean;
-  /**
-   * Whether this layer needs the scene's occluder depth as an input (e.g. a
-   * volume that terminates its rays at the nearest opaque surface). When set,
-   * the renderer produces a depth texture of the occluders and hands it to the
-   * layer; how (detach + sample on WebGL, read-only depth attachment on WebGPU)
-   * is the renderer's concern.
-   */
   readsSceneDepth?: boolean;
 }
 
@@ -77,8 +70,14 @@ export abstract class Layer {
     this.blendMode = blendMode;
     // infer from `blendMode` unless explicitly set, but only at construction
     // re-assigning `blendMode` does not update this value
-    this.occludes = occludes ?? blendMode === "none";
+    this.occludes = occludes ?? (blendMode === "none" && !readsSceneDepth);
     this.readsSceneDepth = readsSceneDepth;
+
+    if (this.occludes && this.readsSceneDepth) {
+      throw new Error(
+        `${this.constructor.name} cannot both occlude and read scene depth.`
+      );
+    }
   }
 
   public get opacity() {

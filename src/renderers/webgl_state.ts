@@ -6,7 +6,7 @@ export type BlendingMode =
   | "additive"
   | "multiply"
   | "subtractive"
-  | "premultiplied";
+  | "premultipliedOver";
 
 export type CullingMode = "none" | "front" | "back" | "both";
 
@@ -134,10 +134,7 @@ export class WebGLState {
         case "subtractive":
           this.setBlendFunc(this.gl_.ZERO, this.gl_.ONE_MINUS_SRC_COLOR);
           break;
-        case "premultiplied":
-          // Premultiplied "over" (src-over-dst). Paired with back-to-front draw
-          // order for volume chunks, and composites correctly over opaque
-          // layers (doesn't depend on dst alpha).
+        case "premultipliedOver":
           this.setBlendFunc(this.gl_.ONE, this.gl_.ONE_MINUS_SRC_ALPHA);
           break;
         case "normal":
