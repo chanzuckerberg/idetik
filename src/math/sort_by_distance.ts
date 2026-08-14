@@ -35,8 +35,16 @@ export function sortFrontToBack(
 }
 
 /**
- * Sorts objects back-to-front (farthest first), in place. Use with "over"
- * (src-over-dst) compositing so nearer objects are drawn on top by paint order.
+ * Sorts objects back-to-front based on their distance from a camera
+ *
+ * Uses the camera position compared to the center of each object's
+ * bounding box to determine distance.
+ *
+ * Use with "over" (src-over-dst) compositing, so nearer objects are
+ * drawn on top by draw order.
+ * @param objects - Array of renderable objects to sort.
+ * @param camera - The camera to calculate distances from
+ * @returns Input objects sorted-in-place from farthest to closest
  */
 export function sortBackToFront(
   objects: RenderableObject[],

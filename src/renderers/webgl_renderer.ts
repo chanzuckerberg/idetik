@@ -28,10 +28,6 @@ import { Frustum } from "../math/frustum";
 // This is a mirror transform, which also flips triangle winding.
 const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
-// Texture unit reserved for the scene depth texture sampled by depth-reading
-// layers (e.g. the volume). High enough not to collide with object textures.
-const SCENE_DEPTH_UNIT = 7;
-
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext;
   private readonly programs_: WebGLShaderPrograms;
@@ -43,9 +39,6 @@ export class WebGLRenderer extends Renderer {
   private currentViewportSize_: [number, number] = [0, 0];
   private currentViewportOrigin_: [number, number] = [0, 0];
 
-  // Lazily-created single-sample depth texture holding the occluders' depth,
-  // sampled by depth-reading layers. Kept separate from the (MSAA) main
-  // framebuffer so antialiasing is preserved.
   private sceneDepthFbo_: WebGLFramebuffer | null = null;
   private sceneDepthTex_: WebGLTexture | null = null;
   private sceneDepthSize_: [number, number] = [0, 0];
@@ -142,24 +135,15 @@ export class WebGLRenderer extends Renderer {
     this.renderDepthOnly(occludingLayers, viewport.camera, frustum);
     this.state_.setPolygonOffset(null);
 
-    this.state_.setDepthMask(false);
-    this.state_.setDepthFunc(this.gl_.LEQUAL);
     this.renderLayers(occludingLayers, viewport.camera, frustum);
 
-    // A depth-reading layer (e.g. a volume terminating its rays at opaque
-    // surfaces) needs the occluders' depth as a texture, which is only paid for
-    // when such a layer is present.
     this.sceneDepthBound_ = false;
     if (transparentLayers.some((l) => l.readsSceneDepth)) {
-      this.renderSceneDepth(occludingLayers, viewport.camera, frustum);
-      this.gl_.activeTexture(this.gl_.TEXTURE0 + SCENE_DEPTH_UNIT);
+      this.renderSceneDepthToTexture(occludingLayers, viewport.camera, frustum);
+      this.gl_.activeTexture(this.gl_.TEXTURE0 + this.textures_.reservedUnit);
       this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.sceneDepthTex_);
       this.sceneDepthBound_ = true;
     }
-
-    // restate the depth policy, which the scene depth pass writes over
-    this.state_.setDepthMask(false);
-    this.state_.setDepthFunc(this.gl_.LEQUAL);
 
     // polygon offset nudges objects slightly *towards* so overlays (e.g. labels)
     // do not z-fight with coplanar occluders
@@ -199,6 +183,10 @@ export class WebGLRenderer extends Renderer {
   }
 
   private renderLayers(layers: Layer[], camera: Camera, frustum: Frustum) {
+    this.state_.setDepthTesting(true);
+    this.state_.setDepthMask(false);
+    this.state_.setDepthFunc(this.gl_.LEQUAL);
+
     for (const layer of layers) {
       this.renderLayer(layer, camera, frustum);
     }
@@ -245,7 +233,6 @@ export class WebGLRenderer extends Renderer {
       tex,
       0
     );
-    // Depth-only FBO: no colour draw/read buffers.
     gl.drawBuffers([gl.NONE]);
     gl.readBuffer(gl.NONE);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -254,11 +241,7 @@ export class WebGLRenderer extends Renderer {
     this.sceneDepthSize_ = [w, h];
   }
 
-  // Render the occluders' depth into the single-sample scene depth texture for
-  // the current viewport region. Viewport/scissor still match the main pass and
-  // the texture is canvas-sized, so occluder depth lands exactly where a reader
-  // samples it via gl_FragCoord. Leaves the default framebuffer bound.
-  private renderSceneDepth(
+  private renderSceneDepthToTexture(
     occluders: Layer[],
     camera: Camera,
     frustum: Frustum
@@ -267,8 +250,6 @@ export class WebGLRenderer extends Renderer {
     const gl = this.gl_;
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneDepthFbo_);
 
-    // no polygon offset here: that exists to keep the color passes from
-    // z-fighting their own coverage, and would only bias what readers sample
     this.state_.setDepthMask(true);
     gl.clear(gl.DEPTH_BUFFER_BIT);
     this.renderDepthOnly(occluders, camera, frustum);
@@ -395,7 +376,7 @@ export class WebGLRenderer extends Renderer {
           );
           break;
         case "u_sceneDepth":
-          program.setUniform(uniformName, SCENE_DEPTH_UNIT);
+          program.setUniform(uniformName, this.textures_.reservedUnit);
           break;
         case "u_sceneDepthResolution":
           program.setUniform(uniformName, [this.width, this.height]);
