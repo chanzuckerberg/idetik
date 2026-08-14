@@ -2,6 +2,10 @@
   --vp-font-family-base: 'Inter', ui-sans-serif, system-ui, sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
+  --vp-code-color: var(--vp-c-text-1);
+  --vp-code-link-color: var(--vp-c-text-1);
+  --vp-code-link-hover-color: var(--vp-c-text-1);
+
   --brand-rgb: 110 79 249;
 
   --vp-c-brand-1: rgb(var(--brand-rgb));
@@ -63,6 +67,50 @@
   font-size: 18px;
   font-weight: 400;
   line-height: 1.6;
+}
+
+.vp-doc blockquote {
+  margin: 28px 0;
+}
+
+.vp-doc table {
+  display: table;
+  width: 100%;
+  max-width: 100%;
+}
+
+.api .vp-doc table :is(th, td):first-child {
+  white-space: nowrap;
+  width: 1%;
+  max-width: 40%;
+}
+
+.api .vp-doc table :is(th, td):last-child {
+  width: 55%;
+  overflow-wrap: anywhere;
+}
+
+.vp-doc a {
+  font-weight: 400;
+  color: var(--vp-c-text-1);
+}
+
+.vp-doc a:hover {
+  color: var(--vp-c-text-1);
+}
+
+.api .vp-doc h3 {
+  font-family: var(--vp-font-family-mono);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--vp-c-brand-1);
+}
+
+.api .vp-doc h3 .return-type,
+.api .vp-doc h3 .return-type a {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--vp-c-text-3);
 }
 
 .VPHome {
