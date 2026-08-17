@@ -16,10 +16,7 @@ export { VolumeLayer } from "./layers/volume_layer";
 export { LabelLayer } from "./layers/label_layer";
 
 export { ImageRenderable } from "./objects/renderable/image_renderable";
-export {
-  LabelColorMap,
-  LabelImageRenderable,
-} from "./objects/renderable/label_image_renderable";
+export { LabelImageRenderable } from "./objects/renderable/label_image_renderable";
 export { PointsRenderable } from "./objects/renderable/points_renderable";
 export { ProjectedLineRenderable } from "./objects/renderable/projected_line_renderable";
 export { VolumeRenderable } from "./objects/renderable/volume_renderable";
