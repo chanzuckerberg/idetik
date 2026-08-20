@@ -12,6 +12,8 @@ import { Texture2D } from "../objects/textures/texture_2d";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { Texture3D } from "../objects/textures/texture_3d";
 
+const WEBGL2_MIN_TEXTURE_IMAGE_UNITS = 16;
+
 type TextureFormatInfo = {
   internalFormat: number;
   format: number;
@@ -29,7 +31,9 @@ export class WebGLTextures {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
-    this.maxTextureUnits_ = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    this.maxTextureUnits_ =
+      gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) ??
+      WEBGL2_MIN_TEXTURE_IMAGE_UNITS;
   }
 
   public get gpuTextureBytes() {
@@ -40,12 +44,17 @@ export class WebGLTextures {
     return this.textureCount_;
   }
 
+  public get reservedUnit() {
+    return this.maxTextureUnits_ - 1;
+  }
+
   public bindTexture(texture: Texture, index: number) {
     if (this.alreadyActive(texture)) return;
 
-    if (index < 0 || index >= this.maxTextureUnits_) {
+    if (index < 0 || index >= this.reservedUnit) {
       throw new Error(
-        `Texture index ${index} must be in [0, ${this.maxTextureUnits_ - 1}]`
+        `Texture index ${index} must be in [0, ${this.reservedUnit - 1}]; ` +
+          `unit ${this.reservedUnit} is reserved`
       );
     }
 

@@ -13,7 +13,7 @@ export type BlendMode =
   | "additive"
   | "subtractive"
   | "multiply"
-  | "premultiplied";
+  | "premultipliedOver";
 
 type StateChangeCallback = (
   newState: LayerState,
@@ -24,6 +24,7 @@ export interface LayerProps {
   opacity?: number;
   blendMode?: BlendMode;
   occludes?: boolean;
+  readsSceneDepth?: boolean;
 }
 
 /**
@@ -56,15 +57,24 @@ export abstract class Layer {
   private opacity_: number;
   public blendMode: BlendMode;
   public occludes: boolean;
+  public readsSceneDepth: boolean;
 
   constructor({
     opacity = 1.0,
     blendMode = "none",
     occludes,
+    readsSceneDepth = false,
   }: LayerProps = {}) {
     this.opacity_ = clamp(opacity, 0.0, 1.0);
     this.blendMode = blendMode;
-    this.occludes = occludes ?? blendMode === "none";
+    this.occludes = occludes ?? (blendMode === "none" && !readsSceneDepth);
+    this.readsSceneDepth = readsSceneDepth;
+
+    if (this.occludes && this.readsSceneDepth) {
+      throw new Error(
+        `${this.constructor.name} cannot both occlude and read scene depth.`
+      );
+    }
   }
 
   public get opacity() {

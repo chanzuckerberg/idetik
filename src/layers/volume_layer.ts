@@ -11,7 +11,7 @@ import {
 } from "../core/image_source_policy";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
-import { sortFrontToBack } from "../math/sort_by_distance";
+import { sortBackToFront } from "../math/sort_by_distance";
 import {
   ChannelProps,
   ChannelsEnabled,
@@ -110,7 +110,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {
-    super({ blendMode: "premultiplied" });
+    super({ blendMode: "premultipliedOver", readsSceneDepth: true });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.policy_ = policy ?? createExplorationPolicy();
@@ -234,7 +234,10 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private rebuildObjects(camera: Camera) {
     const volumes = Array.from(this.currentVolumes_.values());
-    sortFrontToBack(volumes, camera);
+    // Back-to-front so chunks composite correctly with premultiplied "over"
+    // (which, unlike front-to-back "under", also composites over opaque layers
+    // like slices instead of being erased by their alpha).
+    sortBackToFront(volumes, camera);
 
     this.clearObjects();
     for (const volume of volumes) {

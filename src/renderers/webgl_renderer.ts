@@ -37,6 +37,12 @@ export class WebGLRenderer extends Renderer {
   private renderedObjectsPerFrame_ = 0;
   private stencilRef_ = 0;
   private currentViewportSize_: [number, number] = [0, 0];
+  private currentViewportOrigin_: [number, number] = [0, 0];
+
+  private sceneDepthFbo_: WebGLFramebuffer | null = null;
+  private sceneDepthTex_: WebGLTexture | null = null;
+  private sceneDepthSize_: [number, number] = [0, 0];
+  private sceneDepthBound_ = false;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -112,6 +118,7 @@ export class WebGLRenderer extends Renderer {
 
     const viewportRect = viewportBox.toRect();
     this.currentViewportSize_ = [viewportRect.width, viewportRect.height];
+    this.currentViewportOrigin_ = [viewportRect.x, viewportRect.y];
 
     const frustum = viewport.camera.frustum;
 
@@ -128,9 +135,15 @@ export class WebGLRenderer extends Renderer {
     this.renderDepthOnly(occludingLayers, viewport.camera, frustum);
     this.state_.setPolygonOffset(null);
 
-    this.state_.setDepthMask(false);
-    this.state_.setDepthFunc(this.gl_.LEQUAL);
     this.renderLayers(occludingLayers, viewport.camera, frustum);
+
+    this.sceneDepthBound_ = false;
+    if (transparentLayers.some((l) => l.readsSceneDepth)) {
+      this.renderSceneDepthToTexture(occludingLayers, viewport.camera, frustum);
+      this.gl_.activeTexture(this.gl_.TEXTURE0 + this.textures_.reservedUnit);
+      this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.sceneDepthTex_);
+      this.sceneDepthBound_ = true;
+    }
 
     // polygon offset nudges objects slightly *towards* so overlays (e.g. labels)
     // do not z-fight with coplanar occluders
@@ -170,9 +183,78 @@ export class WebGLRenderer extends Renderer {
   }
 
   private renderLayers(layers: Layer[], camera: Camera, frustum: Frustum) {
+    this.state_.setDepthTesting(true);
+    this.state_.setDepthMask(false);
+    this.state_.setDepthFunc(this.gl_.LEQUAL);
+
     for (const layer of layers) {
       this.renderLayer(layer, camera, frustum);
     }
+  }
+
+  private ensureSceneDepthTarget() {
+    const gl = this.gl_;
+    const w = this.width;
+    const h = this.height;
+    if (
+      this.sceneDepthTex_ &&
+      this.sceneDepthSize_[0] === w &&
+      this.sceneDepthSize_[1] === h
+    ) {
+      return;
+    }
+
+    if (this.sceneDepthTex_) gl.deleteTexture(this.sceneDepthTex_);
+    if (!this.sceneDepthFbo_) this.sceneDepthFbo_ = gl.createFramebuffer();
+
+    const tex = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.DEPTH_COMPONENT24,
+      w,
+      h,
+      0,
+      gl.DEPTH_COMPONENT,
+      gl.UNSIGNED_INT,
+      null
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneDepthFbo_);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.DEPTH_ATTACHMENT,
+      gl.TEXTURE_2D,
+      tex,
+      0
+    );
+    gl.drawBuffers([gl.NONE]);
+    gl.readBuffer(gl.NONE);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    this.sceneDepthTex_ = tex;
+    this.sceneDepthSize_ = [w, h];
+  }
+
+  private renderSceneDepthToTexture(
+    occluders: Layer[],
+    camera: Camera,
+    frustum: Frustum
+  ) {
+    this.ensureSceneDepthTarget();
+    const gl = this.gl_;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneDepthFbo_);
+
+    this.state_.setDepthMask(true);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    this.renderDepthOnly(occluders, camera, frustum);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   private initStencil() {
@@ -287,6 +369,27 @@ export class WebGLRenderer extends Renderer {
         case "u_resolution":
           program.setUniform(uniformName, resolution);
           break;
+        case "u_hasSceneDepth":
+          program.setUniform(
+            uniformName,
+            Number(layer.readsSceneDepth && this.sceneDepthBound_)
+          );
+          break;
+        case "u_sceneDepth":
+          program.setUniform(uniformName, this.textures_.reservedUnit);
+          break;
+        case "u_sceneDepthResolution":
+          program.setUniform(uniformName, [this.width, this.height]);
+          break;
+        case "u_viewportOrigin":
+          program.setUniform(uniformName, this.currentViewportOrigin_);
+          break;
+        case "u_mvpInverse": {
+          const mvp = mat4.multiply(mat4.create(), projection, modelView);
+          const mvpInverse = mat4.invert(mat4.create(), mvp)!;
+          program.setUniform(uniformName, mvpInverse);
+          break;
+        }
         case "u_opacity":
           program.setUniform(
             uniformName,

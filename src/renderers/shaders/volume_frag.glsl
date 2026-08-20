@@ -46,6 +46,14 @@ uniform vec4 u_valueScale;
 uniform vec4 u_channelOpacity;
 uniform vec3 u_color[4];
 
+// Optionally terminate rays at some predetermined scene depth
+uniform bool u_hasSceneDepth;
+uniform sampler2D u_sceneDepth;
+uniform vec2 u_sceneDepthResolution;
+uniform vec2 u_viewportOrigin;
+uniform vec2 u_resolution;
+uniform mat4 u_mvpInverse;
+
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
     vec3 t0 = (boxMin - rayOrigin) * reciprocalRayDir;
@@ -95,6 +103,19 @@ void main() {
     if (u_debugShowDegenerateRays && (tExit == tEnter)) {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
+    }
+
+    if (u_hasSceneDepth) {
+        float sceneWindow = texture(u_sceneDepth, gl_FragCoord.xy / u_sceneDepthResolution).r;
+        if (sceneWindow < 1.0) {
+            vec2 uvVp = (gl_FragCoord.xy - u_viewportOrigin) / u_resolution;
+            vec3 ndc = vec3(uvVp * 2.0 - 1.0, sceneWindow * 2.0 - 1.0);
+            vec4 mp = u_mvpInverse * vec4(ndc, 1.0);
+            vec3 occModel = mp.xyz / mp.w;
+            float tScene = dot(occModel - u_cameraPositionModel, RayDirModel);
+            if (tScene < tEnter) discard;
+            tExit = min(tExit, tScene);
+        }
     }
 
     vec3 entryPoint = u_cameraPositionModel + RayDirModel * tEnter;
