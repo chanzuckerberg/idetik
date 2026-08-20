@@ -97,10 +97,11 @@ const xRange = [xMin, xMax] as const;
 const yRange = [yMin, yMax] as const;
 const zRange = [zMin, zMax] as const;
 
-const camera3D = new PerspectiveCamera();
+const camera3D = new PerspectiveCamera({ near: 1.0 });
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
+  memoryLimitMB: 4096,
   viewports: [
     createSliceViewport("slice-xy", "XY", xRange, yRange),
     {
