@@ -15,6 +15,8 @@ export class WebGLState {
 
   private enabledCapabilities_ = new Map<GLenum, boolean>();
   private depthMaskEnabled_: boolean | null = null;
+  private colorMaskEnabled_: boolean | null = null;
+  private depthFunc_: GLenum | null = null;
   private blendSrcFactor_: GLenum | null = null;
   private blendDstFactor_: GLenum | null = null;
   private currentBlendingMode_: BlendingMode | null = null;
@@ -24,6 +26,10 @@ export class WebGLState {
   private stencilFunc_: GLenum | null = null;
   private stencilRef_: number | null = null;
   private stencilFuncMask_: number | null = null;
+  private stencilWriteMask_: number | null = null;
+  private stencilFail_: GLenum | null = null;
+  private stencilZFail_: GLenum | null = null;
+  private stencilZPass_: GLenum | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -75,6 +81,29 @@ export class WebGLState {
     if (this.depthMaskEnabled_ !== flag) {
       this.gl_.depthMask(flag);
       this.depthMaskEnabled_ = flag;
+    }
+  }
+
+  public setColorMask(enabled: boolean) {
+    if (this.colorMaskEnabled_ !== enabled) {
+      this.gl_.colorMask(enabled, enabled, enabled, enabled);
+      this.colorMaskEnabled_ = enabled;
+    }
+  }
+
+  public setPolygonOffset(offset: { factor: number; units: number } | null) {
+    if (offset === null) {
+      this.disable(this.gl_.POLYGON_OFFSET_FILL);
+      return;
+    }
+    this.enable(this.gl_.POLYGON_OFFSET_FILL);
+    this.gl_.polygonOffset(offset.factor, offset.units);
+  }
+
+  public setDepthFunc(func: GLenum) {
+    if (this.depthFunc_ !== func) {
+      this.gl_.depthFunc(func);
+      this.depthFunc_ = func;
     }
   }
 
@@ -177,6 +206,26 @@ export class WebGLState {
       this.enable(this.gl_.STENCIL_TEST);
     } else {
       this.disable(this.gl_.STENCIL_TEST);
+    }
+  }
+
+  public setStencilMask(mask: number) {
+    if (this.stencilWriteMask_ !== mask) {
+      this.gl_.stencilMask(mask);
+      this.stencilWriteMask_ = mask;
+    }
+  }
+
+  public setStencilOp(fail: GLenum, zfail: GLenum, zpass: GLenum) {
+    if (
+      this.stencilFail_ !== fail ||
+      this.stencilZFail_ !== zfail ||
+      this.stencilZPass_ !== zpass
+    ) {
+      this.gl_.stencilOp(fail, zfail, zpass);
+      this.stencilFail_ = fail;
+      this.stencilZFail_ = zfail;
+      this.stencilZPass_ = zpass;
     }
   }
 

@@ -79,13 +79,7 @@ export class WebGLRenderer extends Renderer {
     this.renderedObjectsPerFrame_ = 0;
     this.stencilRef_ = 0;
 
-    const opaque: Layer[] = [];
-    const transparent: Layer[] = [];
     for (const layer of viewport.layers) {
-      (layer.blendMode === "none" ? opaque : transparent).push(layer);
-    }
-
-    for (const layer of [...opaque, ...transparent]) {
       layer.update(viewport);
     }
 
@@ -121,27 +115,70 @@ export class WebGLRenderer extends Renderer {
 
     const frustum = viewport.camera.frustum;
 
-    this.state_.setDepthMask(true);
-    for (const layer of opaque) {
-      if (layer.state === "ready") {
-        this.renderLayer(layer, viewport.camera, frustum);
-      }
+    const occludingLayers: Layer[] = [];
+    const transparentLayers: Layer[] = [];
+    for (const layer of viewport.layers) {
+      if (layer.state !== "ready") continue;
+      (layer.occludes ? occludingLayers : transparentLayers).push(layer);
     }
 
+    // polygon offset nudges objects slightly *away* to prevent z-fighting when
+    // rendering color in the next passes with depth LEQUAL
+    this.state_.setPolygonOffset({ factor: 1, units: 1 });
+    this.renderDepthOnly(occludingLayers, viewport.camera, frustum);
+    this.state_.setPolygonOffset(null);
+
     this.state_.setDepthMask(false);
-    for (const layer of transparent) {
-      if (layer.state === "ready") {
-        this.renderLayer(layer, viewport.camera, frustum);
-      }
-    }
+    this.state_.setDepthFunc(this.gl_.LEQUAL);
+    this.renderLayers(occludingLayers, viewport.camera, frustum);
+
+    // polygon offset nudges objects slightly *towards* so overlays (e.g. labels)
+    // do not z-fight with coplanar occluders
+    this.state_.setPolygonOffset({ factor: -1, units: -1 });
+    this.renderLayers(transparentLayers, viewport.camera, frustum);
+    this.state_.setPolygonOffset(null);
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
+  // TODO: this runs the full shader (incl. texture samples) just to
+  // discard it. Replace with depth-only variants that share each
+  // program's vertex shader but use a cheap fragment shader
+  private renderDepthOnly(layers: Layer[], camera: Camera, frustum: Frustum) {
+    this.state_.setColorMask(false);
+    this.state_.setDepthMask(true);
+    this.state_.setDepthTesting(true);
+    this.state_.setDepthFunc(this.gl_.LESS);
+    this.state_.setStencilTest(false);
+
+    for (const layer of layers) {
+      const objects = [...layer.coverageGroups.values()].flat();
+      for (const object of objects) {
+        if (!object.programName) continue;
+        if (!frustum.intersectsWithBox3(object.boundingBox)) continue;
+        this.state_.setCullFaceMode(object.cullFaceMode);
+        this.bindings_.bindGeometry(object.geometry);
+        object.textures.forEach((texture, index) => {
+          this.textures_.bindTexture(texture, index);
+        });
+        const program = this.programs_.use(object.programName);
+        this.drawGeometry(object.geometry, object, layer, program, camera);
+      }
+    }
+
+    this.state_.setColorMask(true);
+  }
+
+  private renderLayers(layers: Layer[], camera: Camera, frustum: Frustum) {
+    for (const layer of layers) {
+      this.renderLayer(layer, camera, frustum);
+    }
+  }
+
   private initStencil() {
     this.gl_.clearStencil(0);
-    this.gl_.stencilMask(0xff);
-    this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
+    this.state_.setStencilMask(0xff);
+    this.state_.setStencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
   }
 
   private setCoverageStencil(coverageGroup: number | null) {
@@ -184,9 +221,6 @@ export class WebGLRenderer extends Renderer {
 
     if (!object.programName) return;
     this.state_.setCullFaceMode(object.cullFaceMode);
-    // Depth *testing* is per-object; depth *writing* follows the per-pass policy
-    // set in `render()`: opaque writes, transparent/blended does not.
-    // Writing depth for blended objects would reject same-depth layers/channels.
     this.state_.setDepthTesting(object.depthTest);
     this.bindings_.bindGeometry(object.geometry);
     object.textures.forEach((texture, index) => {
@@ -326,6 +360,8 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected clear() {
+    this.state_.setColorMask(true);
+    this.state_.setDepthMask(true);
     this.gl_.clearColor(0, 0, 0, 0);
     this.gl_.clear(
       this.gl_.COLOR_BUFFER_BIT |
@@ -333,6 +369,6 @@ export class WebGLRenderer extends Renderer {
         this.gl_.STENCIL_BUFFER_BIT
     );
     this.state_.setDepthTesting(true);
-    this.gl_.depthFunc(this.gl_.LEQUAL);
+    this.state_.setDepthFunc(this.gl_.LEQUAL);
   }
 }
