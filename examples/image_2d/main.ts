@@ -3,8 +3,10 @@ import {
   Idetik,
   ImageLayer,
   OmeZarrImageSource,
+  OrbitControls,
   OrthographicCamera,
   PanZoomControls,
+  PerspectiveCamera,
   SliceCoordinates,
   createExplorationPolicy,
   createPlaybackPolicy,
@@ -12,6 +14,7 @@ import {
 import { ScaleBar } from "./scale_bar";
 import { addDimensionSlider } from "../lil_gui_utils";
 import GUI from "lil-gui";
+import { vec3 } from "gl-matrix";
 
 // A 2D OME-Zarr image viewer with a dataset selector. Pre-populated with
 // public datasets covering both Zarr v2 (OME-Zarr 0.4) and Zarr v3 (OME-Zarr
@@ -138,12 +141,51 @@ const imageLayer = new ImageLayer({
   channelProps,
 });
 
-const camera = new OrthographicCamera({
-  left: xLod.translation,
-  right: xLod.translation + xLod.scale * xLod.size,
-  top: yLod.translation,
-  bottom: yLod.translation + yLod.scale * yLod.size,
-});
+const xMin = xLod.translation;
+const xMax = xLod.translation + xLod.scale * xLod.size;
+const yMin = yLod.translation;
+const yMax = yLod.translation + yLod.scale * yLod.size;
+
+const FOV_DEGREES = 60;
+const orbitRadius =
+  (yMax - yMin) / 2 / Math.tan((FOV_DEGREES * Math.PI) / 180 / 2);
+const orbitTarget = vec3.fromValues(
+  (xMin + xMax) / 2,
+  (yMin + yMax) / 2,
+  sliceCoords.z ?? 0
+);
+
+type Projection = "orthographic" | "perspective";
+
+const layers = [imageLayer];
+
+function makeViewportProps(projection: Projection) {
+  if (projection === "orthographic") {
+    const camera = new OrthographicCamera({
+      left: xMin,
+      right: xMax,
+      top: yMin,
+      bottom: yMax,
+    });
+    return { camera, cameraControls: new PanZoomControls(camera), layers };
+  }
+
+  const camera = new PerspectiveCamera({
+    fov: FOV_DEGREES,
+    near: orbitRadius / 100,
+    far: orbitRadius * 10,
+  });
+  return {
+    camera,
+    cameraControls: new OrbitControls(camera, {
+      radius: orbitRadius,
+      yaw: 0,
+      pitch: 0,
+      target: orbitTarget,
+    }),
+    layers,
+  };
+}
 
 const timePointDiv = document.querySelector<HTMLDivElement>("#time-point")!;
 if (!tLod) timePointDiv.style.display = "none";
@@ -155,6 +197,7 @@ const timePointOverlay = {
 };
 
 const scaleBar = new ScaleBar({
+  boxDiv: document.querySelector<HTMLDivElement>("#scale-bar-box")!,
   textDiv: document.querySelector<HTMLDivElement>("#scale-bar-text")!,
   lineDiv: document.querySelector<HTMLDivElement>("#scale-bar-line")!,
   unit: dimensions.x.unit ?? "",
@@ -162,13 +205,7 @@ const scaleBar = new ScaleBar({
 
 const idetik = new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
-  viewports: [
-    {
-      camera,
-      cameraControls: new PanZoomControls(camera),
-      layers: [imageLayer],
-    },
-  ],
+  viewports: [makeViewportProps("orthographic")],
   overlays: [timePointOverlay, scaleBar],
   showStats: true,
 });
@@ -286,6 +323,18 @@ function updateChannel() {
 }
 
 const debugFolder = gui.addFolder("Debug");
+
+const projectionState = { projection: "orthographic" as Projection };
+debugFolder
+  .add(projectionState, "projection", ["orthographic", "perspective"])
+  .name("Projection")
+  .onChange((projection: Projection) => {
+    const current = idetik.viewports[0];
+    current.removeAllLayers();
+    idetik.removeViewport(current);
+    idetik.addViewport(makeViewportProps(projection));
+  });
+
 const debugState = { showWireframes: imageLayer.debugMode };
 debugFolder
   .add(debugState, "showWireframes")
