@@ -197,9 +197,17 @@ export class WebGLRenderer extends Renderer {
     this.drawGeometry(object.geometry, object, layer, program, camera);
 
     if (object.wireframeEnabled) {
+      const stencilTestEnabled = this.state_.stencilTestEnabled;
+      const blendingMode = this.state_.blendingMode;
+      this.state_.setStencilTest(false);
+      this.state_.setBlendingMode("none");
+
       this.bindings_.bindGeometry(object.wireframeGeometry);
       const wireframeProgram = this.programs_.use("wireframe");
-      wireframeProgram.setUniform("u_color", object.wireframeColor.rgb);
+      wireframeProgram.setUniform(
+        "u_wireframeColor",
+        object.wireframeColor.rgb
+      );
       this.drawGeometry(
         object.wireframeGeometry,
         object,
@@ -207,6 +215,9 @@ export class WebGLRenderer extends Renderer {
         wireframeProgram,
         camera
       );
+
+      if (blendingMode !== null) this.state_.setBlendingMode(blendingMode);
+      this.state_.setStencilTest(stencilTestEnabled);
     }
   }
 

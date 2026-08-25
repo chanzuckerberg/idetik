@@ -78,6 +78,14 @@ export class WebGLState {
     }
   }
 
+  public get stencilTestEnabled(): boolean {
+    return this.enabledCapabilities_.get(this.gl_.STENCIL_TEST) ?? false;
+  }
+
+  public get blendingMode(): BlendingMode | null {
+    return this.currentBlendingMode_;
+  }
+
   public setBlendingMode(mode: BlendingMode) {
     if (this.currentBlendingMode_ === mode) return;
 
