@@ -21,8 +21,9 @@ import {
   ImageSourcePolicy,
 } from "../core/image_source_policy";
 import {
-  LabelColorMap,
   LabelColorMapProps,
+  LabelColorMap,
+  validateColorMap,
   LabelImageRenderable,
 } from "../objects/renderable/label_image_renderable";
 import { Texture } from "../objects/textures/texture";
@@ -87,7 +88,7 @@ export class LabelLayer extends Layer {
     this.orientation_ = orientation ?? "XY";
     this.axes_ = sliceAxesFor(this.orientation_);
     this.planeRotation_ = orientationRotation(this.axes_);
-    this.colorMap_ = new LabelColorMap(colorMap);
+    this.colorMap_ = validateColorMap(colorMap);
     this.onPickValue_ = onPickValue;
     this.outlineSelected_ = outlineSelected;
   }
@@ -258,7 +259,7 @@ export class LabelLayer extends Layer {
   }
 
   public setColorMap(colorMap: LabelColorMapProps) {
-    this.colorMap_ = new LabelColorMap(colorMap);
+    this.colorMap_ = validateColorMap(colorMap);
     this.visibleChunks_.forEach((label) => {
       label.setColorMap(this.colorMap_);
     });

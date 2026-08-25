@@ -34,24 +34,28 @@ function validateCycle(cycle?: ReadonlyArray<ColorLike>): ReadonlyArray<Color> {
 
 export type LabelColorMapProps = {
   lookupTable?: ReadonlyMap<number, ColorLike>;
-  cycle?: ColorLike[];
+  cycle?: ReadonlyArray<ColorLike>;
 };
 
-export class LabelColorMap {
-  public readonly lookupTable: ReadonlyMap<number, Color>;
-  public readonly cycle: ReadonlyArray<Color>;
+export type LabelColorMap = {
+  readonly lookupTable: ReadonlyMap<number, Color>;
+  readonly cycle: ReadonlyArray<Color>;
+};
 
-  constructor(props: LabelColorMapProps = {}) {
-    this.lookupTable = validateLookupTable(props.lookupTable);
-    this.cycle = validateCycle(props.cycle);
-  }
+export function validateColorMap(
+  props: LabelColorMapProps = {}
+): LabelColorMap {
+  return {
+    lookupTable: validateLookupTable(props.lookupTable),
+    cycle: validateCycle(props.cycle),
+  };
 }
 
 type LabelImageRenderableProps = {
   width: number;
   height: number;
   imageData: Texture;
-  colorMap: LabelColorMap;
+  colorMap: LabelColorMapProps;
   outlineSelected?: boolean;
   selectedValue?: number | null;
 };
@@ -95,12 +99,9 @@ export class LabelImageRenderable extends RenderableObject {
     super();
     this.geometry = new PlaneGeometry(props.width, props.height, 1, 1);
     this.setTexture(0, validateImageData(props.imageData));
-    const colorCycleTexture = this.makeColorCycleTexture(props.colorMap.cycle);
-    this.setTexture(1, colorCycleTexture);
-    const colorLookupTableTexture = this.makeColorLookupTableTexture(
-      props.colorMap.lookupTable
-    );
-    this.setTexture(2, colorLookupTableTexture);
+    const colorMap = validateColorMap(props.colorMap);
+    this.setTexture(1, this.makeColorCycleTexture(colorMap.cycle));
+    this.setTexture(2, this.makeColorLookupTableTexture(colorMap.lookupTable));
     this.outlineSelected_ = props.outlineSelected ?? false;
     this.selectedValue_ = props.selectedValue ?? null;
     this.programName = labelTextureToShader(props.imageData);
@@ -121,11 +122,12 @@ export class LabelImageRenderable extends RenderableObject {
     };
   }
 
-  public setColorMap(colorMap: LabelColorMap) {
+  public setColorMap(colorMap: LabelColorMapProps) {
+    const validated = validateColorMap(colorMap);
     this.markStaleTexture(this.textures[1]);
     this.markStaleTexture(this.textures[2]);
-    this.setTexture(1, this.makeColorCycleTexture(colorMap.cycle));
-    this.setTexture(2, this.makeColorLookupTableTexture(colorMap.lookupTable));
+    this.setTexture(1, this.makeColorCycleTexture(validated.cycle));
+    this.setTexture(2, this.makeColorLookupTableTexture(validated.lookupTable));
   }
 
   public setSelectedValue(value: number | null) {
