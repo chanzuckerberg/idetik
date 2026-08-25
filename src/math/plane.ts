@@ -1,5 +1,8 @@
 import { vec3 } from "gl-matrix";
 
+// Below this rate a direction is treated as parallel to the plane
+const MIN_APPROACH_RATE = 1e-12;
+
 export class Plane {
   public normal: vec3;
   public signedDistance: number;
@@ -22,6 +25,18 @@ export class Plane {
     // Algebraic convention ax + by + cz + d = 0
     // Negative values mean the point lies opposite the plane's normal
     return vec3.dot(this.normal, point) + this.signedDistance;
+  }
+
+  public intersectionParameter(
+    origin: vec3,
+    displacement: vec3
+  ): number | null {
+    // return (`t`) is a fraction of `displacement` and is not bounded, so
+    // `0 <= t <= 1` with non-normalized `displacement` means the segment crosses
+    // the plane
+    const approachRate = vec3.dot(displacement, this.normal);
+    if (Math.abs(approachRate) < MIN_APPROACH_RATE) return null;
+    return -this.signedDistanceToPoint(origin) / approachRate;
   }
 
   public normalize() {

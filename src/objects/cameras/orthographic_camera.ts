@@ -1,6 +1,5 @@
 import { Camera, CameraType } from "./camera";
-import { quat, vec2, vec3, vec4, mat4 } from "gl-matrix";
-import { Box2 } from "../../math/box2";
+import { quat, vec3, mat4 } from "gl-matrix";
 import {
   AxisComponent,
   SliceAxes,
@@ -129,22 +128,6 @@ export class OrthographicCamera extends Camera {
     }
     const inverseFactor = 1.0 / factor;
     this.transform.addScale([inverseFactor, inverseFactor, 1.0]);
-  }
-
-  public getWorldViewRect(): Box2 {
-    let topLeft = vec4.fromValues(-1.0, -1.0, 0.0, 1.0);
-    let bottomRight = vec4.fromValues(1.0, 1.0, 0.0, 1.0);
-
-    const inv = mat4.invert(mat4.create(), this.getViewProjection())!;
-    topLeft = vec4.transformMat4(vec4.create(), topLeft, inv);
-    bottomRight = vec4.transformMat4(vec4.create(), bottomRight, inv);
-
-    const u = AxisComponent[this.axes_.u];
-    const v = AxisComponent[this.axes_.v];
-    return new Box2(
-      vec2.fromValues(topLeft[u], topLeft[v]),
-      vec2.fromValues(bottomRight[u], bottomRight[v])
-    );
   }
 
   protected updateProjectionMatrix() {

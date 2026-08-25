@@ -1,6 +1,5 @@
 import { Layer, LayerProps } from "../core/layer";
 import { Viewport } from "../core/viewport";
-import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import type { IdetikContext } from "../idetik";
 import {
   Chunk,
@@ -140,20 +139,11 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   public update(viewport?: Viewport) {
     if (!viewport || !this.chunkStoreView_) return;
 
-    const camera = viewport.camera;
-
-    // non-orthographic viewports have no world-space view rect, so we load the
-    // whole slice plane and pick LOD as if it spanned the viewport. stopgap
-    // until view-dependent LOD selection and culling work under perspective.
-    const worldViewRect =
-      camera.type === "OrthographicCamera"
-        ? (camera as OrthographicCamera).getWorldViewRect()
-        : this.chunkStoreView_.getWholePlaneRect();
-
-    this.chunkStoreView_.updateChunksForImage(this.sliceCoords_, {
-      worldViewRect,
-      bufferWidthPx: viewport.getBufferRect().width,
-    });
+    this.chunkStoreView_.updateChunksForImage(
+      this.sliceCoords_,
+      viewport.camera.getViewProjection(),
+      viewport.getBufferRect()
+    );
 
     this.updateChunks();
 

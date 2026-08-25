@@ -6,6 +6,7 @@ import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { Logger } from "../utilities/logger";
+import { planeView } from "../math/visible_plane";
 import { clamp } from "../utilities/clamp";
 
 /*
@@ -83,7 +84,7 @@ export class ChunkStoreView {
     return this.store_.channelCount;
   }
 
-  public getWholePlaneRect(): Box2 {
+  public getImageExtent(): Box2 {
     const dimensions = this.store_.dimensions;
     const uLod0 = dimensions[this.axes_.u]!.lods[0];
     const vLod0 = dimensions[this.axes_.v]!.lods[0];
@@ -121,14 +122,20 @@ export class ChunkStoreView {
 
   public updateChunksForImage(
     sliceCoords: SliceCoordinates,
-    view: { worldViewRect: Box2; bufferWidthPx: number }
+    viewProjection: mat4,
+    bufferSizePx: { width: number; height: number }
   ): void {
-    const viewBounds2D = view.worldViewRect;
-    const virtualWidth = Math.abs(viewBounds2D.max[0] - viewBounds2D.min[0]);
-    const virtualUnitsPerScreenPixel = virtualWidth / view.bufferWidthPx;
-    const lodFactor = Math.log2(1 / virtualUnitsPerScreenPixel);
+    const view = planeView(
+      viewProjection,
+      this.axes_,
+      this.slicePlaneValue(sliceCoords),
+      this.getImageExtent(),
+      bufferSizePx
+    );
 
-    const lodChanged = this.setLOD(lodFactor);
+    const lodChanged = this.setLOD(-Math.log2(view.unitsPerScreenPixel));
+
+    const viewBounds2D = view.worldViewRect;
 
     const sliceBounds = this.getSliceAxisBounds(sliceCoords);
     const changed =
@@ -548,6 +555,17 @@ export class ChunkStoreView {
     const tDim = this.store_.dimensions.t;
     if (sliceCoords.t === undefined || tDim === undefined) return 0;
     return coordToIndex(tDim.lods[0], sliceCoords.t);
+  }
+
+  public slicePlaneValue(sliceCoords: SliceCoordinates): number | undefined {
+    const explicit = sliceCoords[this.axes_.w];
+    if (explicit !== undefined) return explicit;
+
+    const wDim = this.store_.dimensions[this.axes_.w];
+    if (wDim === undefined) return 0;
+
+    const wLod = wDim.lods[0];
+    return wLod.size === 1 ? wLod.translation : undefined;
   }
 
   private getSliceAxisBounds(sliceCoords: SliceCoordinates): [number, number] {
