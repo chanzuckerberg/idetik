@@ -37,14 +37,14 @@ export type LabelColorMapProps = {
   cycle?: ReadonlyArray<ColorLike>;
 };
 
-export type ValidatedLabelColorMap = {
-  lookupTable: ReadonlyMap<number, Color>;
-  cycle: ReadonlyArray<Color>;
+export type LabelColorMap = {
+  readonly lookupTable: ReadonlyMap<number, Color>;
+  readonly cycle: ReadonlyArray<Color>;
 };
 
 export function validateColorMap(
   props: LabelColorMapProps = {}
-): ValidatedLabelColorMap {
+): LabelColorMap {
   return {
     lookupTable: validateLookupTable(props.lookupTable),
     cycle: validateCycle(props.cycle),

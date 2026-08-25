@@ -22,7 +22,7 @@ import {
 } from "../core/image_source_policy";
 import {
   LabelColorMapProps,
-  ValidatedLabelColorMap,
+  LabelColorMap,
   validateColorMap,
   LabelImageRenderable,
 } from "../objects/renderable/label_image_renderable";
@@ -59,7 +59,7 @@ export class LabelLayer extends Layer {
   private readonly outlineSelected_: boolean;
   private readonly visibleChunks_: Map<Chunk, LabelImageRenderable> = new Map();
   private readonly pool_ = new RenderablePool<LabelImageRenderable>();
-  private colorMap_: ValidatedLabelColorMap;
+  private colorMap_: LabelColorMap;
   private selectedValue_: number | null = null;
   private policy_: ImageSourcePolicy;
   private chunkStoreView_?: ChunkStoreView;
@@ -254,7 +254,7 @@ export class LabelLayer extends Layer {
     return { world, value };
   }
 
-  public get colorMap(): ValidatedLabelColorMap {
+  public get colorMap(): LabelColorMap {
     return this.colorMap_;
   }
 
