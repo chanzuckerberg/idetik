@@ -26,8 +26,7 @@ export class WebGLState {
   private stencilFunc_: GLenum | null = null;
   private stencilRef_: number | null = null;
   private stencilFuncMask_: number | null = null;
-  private polygonOffsetFactor_: number | null = null;
-  private polygonOffsetUnits_: number | null = null;
+  private polygonOffsetSet_ = false;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -99,19 +98,15 @@ export class WebGLState {
     }
   }
 
-  public setPolygonOffset(offset: { factor: number; units: number } | null) {
-    if (offset === null) {
+  public setPolygonOffset(enabled: boolean) {
+    if (!enabled) {
       this.disable(this.gl_.POLYGON_OFFSET_FILL);
       return;
     }
     this.enable(this.gl_.POLYGON_OFFSET_FILL);
-    if (
-      this.polygonOffsetFactor_ !== offset.factor ||
-      this.polygonOffsetUnits_ !== offset.units
-    ) {
-      this.gl_.polygonOffset(offset.factor, offset.units);
-      this.polygonOffsetFactor_ = offset.factor;
-      this.polygonOffsetUnits_ = offset.units;
+    if (!this.polygonOffsetSet_) {
+      this.gl_.polygonOffset(1, 1);
+      this.polygonOffsetSet_ = true;
     }
   }
 

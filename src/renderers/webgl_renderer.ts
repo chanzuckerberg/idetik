@@ -138,7 +138,7 @@ export class WebGLRenderer extends Renderer {
     this.state_.setDepthFunc(this.gl_.LESS);
     // nudge the depth away from the camera, so that the color passes
     // at the same depth are not rejected
-    this.state_.setPolygonOffset({ factor: 1, units: 1 });
+    this.state_.setPolygonOffset(true);
 
     for (const layer of layers) {
       for (const members of layer.coverageGroups.values()) {
@@ -361,7 +361,7 @@ export class WebGLRenderer extends Renderer {
     this.state_.setDepthMask(true);
     this.state_.setDepthTesting(true);
     this.state_.setDepthFunc(this.gl_.LEQUAL);
-    this.state_.setPolygonOffset(null);
+    this.state_.setPolygonOffset(false);
     this.state_.setStencilTest(false);
     this.state_.setBlendingMode("none");
   }
