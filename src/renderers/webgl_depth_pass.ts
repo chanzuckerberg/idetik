@@ -1,70 +1,62 @@
+import { WebGLState } from "./webgl_state";
 import { WebGLTextures } from "./webgl_textures";
 
-// DEPTH_COMPONENT24 is stored in a 32-bit texel.
-const DEPTH24_BYTES_PER_TEXEL = 4;
-
-/**
- * Off-screen depth-only render target.
- *
- * Owns the framebuffer and the depth texture that layers reading the scene's
- * depth (e.g. {@link VolumeLayer}, which terminates its rays at the nearest
- * opaque surface) sample from. The target is created on first {@link bind} and
- * recreated when the surface is resized.
- *
- * The depth texture lives on a texture unit reserved for the lifetime of the
- * pass, so it stays bound across the draw calls that sample it.
- */
 export class WebGLDepthPass {
+  public readonly textureUnit: number;
+
   private readonly gl_: WebGL2RenderingContext;
-  private readonly textureUnit_: number;
+  private readonly state_: WebGLState;
+  private readonly textures_: WebGLTextures;
 
   private framebuffer_: WebGLFramebuffer | null = null;
   private texture_: WebGLTexture | null = null;
   private width_ = 0;
   private height_ = 0;
 
-  constructor(gl: WebGL2RenderingContext, textures: WebGLTextures) {
+  constructor(
+    gl: WebGL2RenderingContext,
+    state: WebGLState,
+    textures: WebGLTextures
+  ) {
     this.gl_ = gl;
-    this.textureUnit_ = textures.reservePersistentUnit();
+    this.state_ = state;
+    this.textures_ = textures;
+    this.textureUnit = textures.reservePersistentUnit();
   }
 
-  /** The unit {@link bindTexture} binds the depth texture to. */
-  public get textureUnit() {
-    return this.textureUnit_;
+  public renderPrePass(draw: () => void) {
+    this.state_.setColorMask(false);
+    this.state_.setDepthFunc(this.gl_.LESS);
+    // nudge the depth away from the camera, so that the color passes
+    // at the same depth are not rejected
+    this.state_.setPolygonOffset(true);
+    draw();
   }
 
-  public get textureCount() {
-    return this.texture_ ? 1 : 0;
+  public renderToTexture(width: number, height: number, draw: () => void) {
+    this.bindFBO(width, height);
+    this.state_.setDepthMask(true);
+    this.state_.setDepthFunc(this.gl_.LESS);
+    this.gl_.clear(this.gl_.DEPTH_BUFFER_BIT);
+    draw();
+    this.unbindFBO();
   }
 
-  public get gpuTextureBytes() {
-    if (!this.texture_) return 0;
-    return this.width_ * this.height_ * DEPTH24_BYTES_PER_TEXEL;
-  }
-
-  /**
-   * Binds the depth target for writing, creating or resizing it as needed.
-   * Callers are responsible for clearing and for the depth state they draw
-   * with.
-   */
-  public bind(width: number, height: number) {
+  private bindFBO(width: number, height: number) {
     this.ensureTarget(width, height);
     this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, this.framebuffer_);
   }
 
-  /** Restores the default framebuffer. */
-  public unbind() {
+  private unbindFBO() {
     this.gl_.bindFramebuffer(this.gl_.FRAMEBUFFER, null);
   }
 
-  /** Binds the depth texture to this pass's reserved unit for sampling. */
   public bindTexture() {
-    this.gl_.activeTexture(this.gl_.TEXTURE0 + this.textureUnit_);
-    this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.texture_);
+    this.textures_.bindTarget(this.texture_, this.textureUnit);
   }
 
   public destroy() {
-    if (this.texture_) this.gl_.deleteTexture(this.texture_);
+    if (this.texture_) this.textures_.disposeTarget(this.texture_);
     if (this.framebuffer_) this.gl_.deleteFramebuffer(this.framebuffer_);
     this.texture_ = null;
     this.framebuffer_ = null;
@@ -78,27 +70,14 @@ export class WebGLDepthPass {
     }
 
     const gl = this.gl_;
-    if (this.texture_) gl.deleteTexture(this.texture_);
+    if (this.texture_) this.textures_.disposeTarget(this.texture_);
     this.framebuffer_ ??= gl.createFramebuffer();
 
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.DEPTH_COMPONENT24,
+    const texture = this.textures_.createDepthTarget(
       width,
       height,
-      0,
-      gl.DEPTH_COMPONENT,
-      gl.UNSIGNED_INT,
-      null
+      this.textureUnit
     );
-    // sampled as exact window depth, so no filtering and no wrapping
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer_);
     gl.framebufferTexture2D(
@@ -108,7 +87,7 @@ export class WebGLDepthPass {
       texture,
       0
     );
-    // depth-only: no colour draw or read buffers
+
     gl.drawBuffers([gl.NONE]);
     gl.readBuffer(gl.NONE);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);

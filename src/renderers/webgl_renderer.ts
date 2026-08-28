@@ -31,15 +31,16 @@ const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext;
-  private readonly programs_: WebGLShaderPrograms;
   private readonly bindings_: WebGLBuffers;
-  private readonly textures_: WebGLTextures;
+  private readonly depthPass_: WebGLDepthPass;
+  private readonly programs_: WebGLShaderPrograms;
   private readonly state_: WebGLState;
+  private readonly textures_: WebGLTextures;
+
   private renderedObjectsPerFrame_ = 0;
   private stencilRef_ = 0;
   private currentViewportSize_: [number, number] = [0, 0];
-  private readonly depthPass_: WebGLDepthPass;
-  private sceneDepthBound_ = false;
+  private currentViewportHasSceneDepth_ = false;
 
   constructor(canvas: HTMLCanvasElement) {
     super(canvas);
@@ -65,16 +66,16 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
     this.state_ = new WebGLState(gl);
-    this.depthPass_ = new WebGLDepthPass(gl, this.textures_);
+    this.depthPass_ = new WebGLDepthPass(gl, this.state_, this.textures_);
     this.resize(this.canvas.width, this.canvas.height);
   }
 
   public get gpuTextureBytes() {
-    return this.textures_.gpuTextureBytes + this.depthPass_.gpuTextureBytes;
+    return this.textures_.gpuTextureBytes;
   }
 
   public get gpuTextureCount() {
-    return this.textures_.textureCount + this.depthPass_.textureCount;
+    return this.textures_.textureCount;
   }
 
   public render(viewport: Viewport) {
@@ -125,23 +126,22 @@ export class WebGLRenderer extends Renderer {
       if (layer.state !== "ready") continue;
       (layer.occludes ? occludingLayers : nonOccludingLayers).push(layer);
     }
-    this.renderDepthPass(occludingLayers, viewport.camera, frustum);
+    const drawOccluders = () =>
+      this.drawDepthOnly(occludingLayers, viewport.camera, frustum);
+
+    this.depthPass_.renderPrePass(drawOccluders);
     this.resetState();
 
-    this.state_.setDepthMask(false);
-    // A depth-reading layer (e.g. a volume terminating its rays at opaque
-    // surfaces) needs the occluders' depth as a texture, which is only paid
-    // for when such a layer is present.
-    this.sceneDepthBound_ = false;
-    if (
+    const needsSceneDepth =
       occludingLayers.length > 0 &&
-      nonOccludingLayers.some((l) => l.readsSceneDepth)
-    ) {
-      this.renderSceneDepth(occludingLayers, viewport.camera, frustum);
+      nonOccludingLayers.some((l) => l.readsSceneDepth);
+
+    if (needsSceneDepth) {
+      this.depthPass_.renderToTexture(this.width, this.height, drawOccluders);
       this.depthPass_.bindTexture();
-      this.sceneDepthBound_ = true;
       this.resetState();
     }
+    this.currentViewportHasSceneDepth_ = needsSceneDepth;
 
     this.state_.setDepthMask(false);
     for (const layer of [...occludingLayers, ...nonOccludingLayers]) {
@@ -150,15 +150,6 @@ export class WebGLRenderer extends Renderer {
     this.resetState();
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
-  }
-
-  private renderDepthPass(layers: Layer[], camera: Camera, frustum: Frustum) {
-    this.state_.setColorMask(false);
-    this.state_.setDepthFunc(this.gl_.LESS);
-    // nudge the depth away from the camera, so that the color passes
-    // at the same depth are not rejected
-    this.state_.setPolygonOffset(true);
-    this.drawDepthOnly(layers, camera, frustum);
   }
 
   private drawDepthOnly(layers: Layer[], camera: Camera, frustum: Frustum) {
@@ -177,27 +168,6 @@ export class WebGLRenderer extends Renderer {
         }
       }
     }
-  }
-
-  // Render the occluders' depth into the single-sample depth target for the
-  // current viewport region. Viewport/scissor still match the main pass and the
-  // target is canvas-sized, so occluder depth lands exactly where a reader
-  // samples it via gl_FragCoord.
-  private renderSceneDepth(
-    occluders: Layer[],
-    camera: Camera,
-    frustum: Frustum
-  ) {
-    this.depthPass_.bind(this.width, this.height);
-
-    // no polygon offset here: that exists to keep the color passes from
-    // z-fighting their own coverage, and would only bias what readers sample
-    this.state_.setDepthMask(true);
-    this.state_.setDepthFunc(this.gl_.LESS);
-    this.gl_.clear(this.gl_.DEPTH_BUFFER_BIT);
-    this.drawDepthOnly(occluders, camera, frustum);
-
-    this.depthPass_.unbind();
   }
 
   private setCoverageStencil(coverageGroup: number | null) {
@@ -320,7 +290,7 @@ export class WebGLRenderer extends Renderer {
         case "u_hasSceneDepth":
           program.setUniform(
             uniformName,
-            Number(layer.readsSceneDepth && this.sceneDepthBound_)
+            Number(layer.readsSceneDepth && this.currentViewportHasSceneDepth_)
           );
           break;
         case "u_sceneDepth":
