@@ -25,6 +25,7 @@ export class WebGLTextures {
   private readonly textures_: Map<Texture, WebGLTexture> = new Map();
   private currentTexture_: Texture | null = null;
   private readonly maxTextureUnits_: number;
+  private nextPersistentUnit_: number;
   private gpuTextureBytes_ = 0;
   private textureCount_ = 0;
   private readFramebuffer_: WebGLFramebuffer | null = null;
@@ -34,6 +35,7 @@ export class WebGLTextures {
     this.maxTextureUnits_ =
       gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) ??
       WEBGL2_MIN_TEXTURE_IMAGE_UNITS;
+    this.nextPersistentUnit_ = this.maxTextureUnits_ - 1;
   }
 
   public get gpuTextureBytes() {
@@ -44,17 +46,28 @@ export class WebGLTextures {
     return this.textureCount_;
   }
 
-  public get reservedUnit() {
-    return this.maxTextureUnits_ - 1;
+  /**
+   * Hands out a texture unit, from the back of the range, for a binding that
+   * must survive across draw calls — a render target sampled by a later pass,
+   * say. Per-object textures are bound from the front, so the two never
+   * collide. The caller owns the unit and does its own binding.
+   */
+  public reservePersistentUnit(): number {
+    if (this.nextPersistentUnit_ < 0) {
+      throw new Error(
+        `No texture units left to reserve (${this.maxTextureUnits_} total)`
+      );
+    }
+    return this.nextPersistentUnit_--;
   }
 
   public bindTexture(texture: Texture, index: number) {
     if (this.alreadyActive(texture)) return;
 
-    if (index < 0 || index >= this.reservedUnit) {
+    if (index < 0 || index > this.nextPersistentUnit_) {
       throw new Error(
-        `Texture index ${index} must be in [0, ${this.reservedUnit - 1}]; ` +
-          `unit ${this.reservedUnit} is reserved`
+        `Texture index ${index} must be in [0, ${this.nextPersistentUnit_}]; ` +
+          `units above that are reserved`
       );
     }
 

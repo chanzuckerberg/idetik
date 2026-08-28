@@ -8,6 +8,7 @@ import { WebGLTextures } from "./webgl_textures";
 
 import { Layer } from "../core/layer";
 import { WebGLState } from "./webgl_state";
+import { WebGLDepthPass } from "./webgl_depth_pass";
 import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
@@ -37,11 +38,7 @@ export class WebGLRenderer extends Renderer {
   private renderedObjectsPerFrame_ = 0;
   private stencilRef_ = 0;
   private currentViewportSize_: [number, number] = [0, 0];
-  private currentViewportOrigin_: [number, number] = [0, 0];
-
-  private sceneDepthFbo_: WebGLFramebuffer | null = null;
-  private sceneDepthTex_: WebGLTexture | null = null;
-  private sceneDepthSize_: [number, number] = [0, 0];
+  private readonly depthPass_: WebGLDepthPass;
   private sceneDepthBound_ = false;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -68,15 +65,16 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
     this.state_ = new WebGLState(gl);
+    this.depthPass_ = new WebGLDepthPass(gl, this.textures_);
     this.resize(this.canvas.width, this.canvas.height);
   }
 
   public get gpuTextureBytes() {
-    return this.textures_.gpuTextureBytes;
+    return this.textures_.gpuTextureBytes + this.depthPass_.gpuTextureBytes;
   }
 
   public get gpuTextureCount() {
-    return this.textures_.textureCount;
+    return this.textures_.textureCount + this.depthPass_.textureCount;
   }
 
   public render(viewport: Viewport) {
@@ -118,7 +116,6 @@ export class WebGLRenderer extends Renderer {
 
     const viewportRect = viewportBox.toRect();
     this.currentViewportSize_ = [viewportRect.width, viewportRect.height];
-    this.currentViewportOrigin_ = [viewportRect.x, viewportRect.y];
 
     const frustum = viewport.camera.frustum;
 
@@ -136,10 +133,12 @@ export class WebGLRenderer extends Renderer {
     // surfaces) needs the occluders' depth as a texture, which is only paid
     // for when such a layer is present.
     this.sceneDepthBound_ = false;
-    if (nonOccludingLayers.some((l) => l.readsSceneDepth)) {
+    if (
+      occludingLayers.length > 0 &&
+      nonOccludingLayers.some((l) => l.readsSceneDepth)
+    ) {
       this.renderSceneDepth(occludingLayers, viewport.camera, frustum);
-      this.gl_.activeTexture(this.gl_.TEXTURE0 + this.textures_.reservedUnit);
-      this.gl_.bindTexture(this.gl_.TEXTURE_2D, this.sceneDepthTex_);
+      this.depthPass_.bindTexture();
       this.sceneDepthBound_ = true;
       this.resetState();
     }
@@ -180,70 +179,25 @@ export class WebGLRenderer extends Renderer {
     }
   }
 
-  private ensureSceneDepthTarget() {
-    const gl = this.gl_;
-    const w = this.width;
-    const h = this.height;
-    if (
-      this.sceneDepthTex_ &&
-      this.sceneDepthSize_[0] === w &&
-      this.sceneDepthSize_[1] === h
-    ) {
-      return;
-    }
-
-    if (this.sceneDepthTex_) gl.deleteTexture(this.sceneDepthTex_);
-    if (!this.sceneDepthFbo_) this.sceneDepthFbo_ = gl.createFramebuffer();
-
-    const tex = gl.createTexture()!;
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.DEPTH_COMPONENT24,
-      w,
-      h,
-      0,
-      gl.DEPTH_COMPONENT,
-      gl.UNSIGNED_INT,
-      null
-    );
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneDepthFbo_);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.DEPTH_ATTACHMENT,
-      gl.TEXTURE_2D,
-      tex,
-      0
-    );
-    gl.drawBuffers([gl.NONE]);
-    gl.readBuffer(gl.NONE);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    this.sceneDepthTex_ = tex;
-    this.sceneDepthSize_ = [w, h];
-  }
-
+  // Render the occluders' depth into the single-sample depth target for the
+  // current viewport region. Viewport/scissor still match the main pass and the
+  // target is canvas-sized, so occluder depth lands exactly where a reader
+  // samples it via gl_FragCoord.
   private renderSceneDepth(
     occluders: Layer[],
     camera: Camera,
     frustum: Frustum
   ) {
-    this.ensureSceneDepthTarget();
-    const gl = this.gl_;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.sceneDepthFbo_);
+    this.depthPass_.bind(this.width, this.height);
 
+    // no polygon offset here: that exists to keep the color passes from
+    // z-fighting their own coverage, and would only bias what readers sample
     this.state_.setDepthMask(true);
-    this.state_.setDepthFunc(gl.LESS);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
+    this.state_.setDepthFunc(this.gl_.LESS);
+    this.gl_.clear(this.gl_.DEPTH_BUFFER_BIT);
     this.drawDepthOnly(occluders, camera, frustum);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.depthPass_.unbind();
   }
 
   private setCoverageStencil(coverageGroup: number | null) {
@@ -370,13 +324,7 @@ export class WebGLRenderer extends Renderer {
           );
           break;
         case "u_sceneDepth":
-          program.setUniform(uniformName, this.textures_.reservedUnit);
-          break;
-        case "u_sceneDepthResolution":
-          program.setUniform(uniformName, [this.width, this.height]);
-          break;
-        case "u_viewportOrigin":
-          program.setUniform(uniformName, this.currentViewportOrigin_);
+          program.setUniform(uniformName, this.depthPass_.textureUnit);
           break;
         case "u_mvpInverse": {
           const mvp = mat4.multiply(mat4.create(), projection, modelView);
