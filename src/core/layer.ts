@@ -24,7 +24,6 @@ export interface LayerProps {
   opacity?: number;
   blendMode?: BlendMode;
   occludes?: boolean;
-  readsSceneDepth?: boolean;
 }
 
 /**
@@ -58,26 +57,29 @@ export abstract class Layer {
 
   public blendMode: BlendMode;
   public occludes: boolean;
-  public readsSceneDepth: boolean;
+
+  /**
+   * Whether the layer's shader needs the depth of the scene's occluders as an
+   * input, e.g. a volume that terminates its rays at the nearest opaque
+   * surface. Subclasses override this; the renderer only pays for the depth
+   * texture when some layer in the viewport asks for it.
+   */
+  protected readsSceneDepth_ = false;
 
   constructor({
     opacity = 1.0,
     blendMode = "none",
     occludes,
-    readsSceneDepth = false,
   }: LayerProps = {}) {
     this.opacity_ = clamp(opacity, 0.0, 1.0);
     this.blendMode = blendMode;
     // infer from `blendMode` unless explicitly set, but only at construction
     // re-assigning `blendMode` does not update this value
-    this.occludes = occludes ?? (blendMode === "none" && !readsSceneDepth);
-    this.readsSceneDepth = readsSceneDepth;
+    this.occludes = occludes ?? blendMode === "none";
+  }
 
-    if (this.occludes && this.readsSceneDepth) {
-      throw new Error(
-        `${this.constructor.name} cannot both occlude and read scene depth.`
-      );
-    }
+  public get readsSceneDepth() {
+    return this.readsSceneDepth_;
   }
 
   public get opacity() {
@@ -103,6 +105,11 @@ export abstract class Layer {
       throw new Error(
         `${this.type} cannot be attached to multiple viewports simultaneously.`
       );
+    }
+    // an occluder is drawn into the depth a reader samples, so a layer that
+    // did both would be occluding itself
+    if (this.occludes && this.readsSceneDepth_) {
+      throw new Error(`${this.type} cannot both occlude and read scene depth.`);
     }
     this.attach(context);
     this.attached_ = true;

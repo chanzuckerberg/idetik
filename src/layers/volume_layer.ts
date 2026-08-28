@@ -11,7 +11,6 @@ import {
 } from "../core/image_source_policy";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
-import { sortBackToFront } from "../math/sort_by_distance";
 import {
   ChannelProps,
   ChannelsEnabled,
@@ -30,6 +29,9 @@ const INTERACTIVE_STEP_SIZE_SCALE = 2.0;
 /** @group Layers */
 export class VolumeLayer extends Layer implements ChannelsEnabled {
   public readonly type = "VolumeLayer";
+
+  // rays are terminated at the nearest opaque surface
+  protected override readsSceneDepth_ = true;
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
@@ -110,7 +112,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {
-    super({ blendMode: "premultipliedOver", readsSceneDepth: true });
+    super({ blendMode: "premultipliedOver" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.policy_ = policy ?? createExplorationPolicy();
@@ -281,4 +283,29 @@ export function poolKeyForChunk(chunk: Chunk) {
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
+}
+
+/**
+ * Sorts volumes in-place from farthest to closest, by the distance from the
+ * camera to the center of each bounding box.
+ *
+ * Draw order is the compositing order for premultiplied "over", so the nearest
+ * volume must be drawn last to end up on top.
+ */
+function sortBackToFront(objects: VolumeRenderable[], camera: Camera) {
+  const cameraPosition = camera.position;
+  const centerA = vec3.create();
+  const centerB = vec3.create();
+
+  objects.sort((a, b) => {
+    vec3.add(centerA, a.boundingBox.max, a.boundingBox.min);
+    vec3.scale(centerA, centerA, 0.5);
+    vec3.add(centerB, b.boundingBox.max, b.boundingBox.min);
+    vec3.scale(centerB, centerB, 0.5);
+
+    return (
+      vec3.squaredDistance(cameraPosition, centerB) -
+      vec3.squaredDistance(cameraPosition, centerA)
+    );
+  });
 }
