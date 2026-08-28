@@ -92,7 +92,6 @@ function createSliceViewport(
   };
 }
 
-// Volume layer - no z coordinate to render entire volume
 const volumeLod = Math.min(2, dims.x!.lods.length - 1);
 const volumeLayer = new VolumeLayer({
   source,
