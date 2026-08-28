@@ -236,9 +236,6 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private rebuildObjects(camera: Camera) {
     const volumes = Array.from(this.currentVolumes_.values());
-    // Back-to-front so chunks composite correctly with premultiplied "over"
-    // (which, unlike front-to-back "under", also composites over opaque layers
-    // like slices instead of being erased by their alpha).
     sortBackToFront(volumes, camera);
 
     this.clearObjects();
@@ -285,27 +282,17 @@ export function poolKeyForChunk(chunk: Chunk) {
   ].join(":");
 }
 
-/**
- * Sorts volumes in-place from farthest to closest, by the distance from the
- * camera to the center of each bounding box.
- *
- * Draw order is the compositing order for premultiplied "over", so the nearest
- * volume must be drawn last to end up on top.
- */
 function sortBackToFront(objects: VolumeRenderable[], camera: Camera) {
   const cameraPosition = camera.position;
-  const centerA = vec3.create();
-  const centerB = vec3.create();
+  const center = vec3.create();
+  const depths = new Map<VolumeRenderable, number>();
 
-  objects.sort((a, b) => {
-    vec3.add(centerA, a.boundingBox.max, a.boundingBox.min);
-    vec3.scale(centerA, centerA, 0.5);
-    vec3.add(centerB, b.boundingBox.max, b.boundingBox.min);
-    vec3.scale(centerB, centerB, 0.5);
+  for (const object of objects) {
+    const { min, max } = object.boundingBox;
+    vec3.add(center, max, min);
+    vec3.scale(center, center, 0.5);
+    depths.set(object, vec3.squaredDistance(cameraPosition, center));
+  }
 
-    return (
-      vec3.squaredDistance(cameraPosition, centerB) -
-      vec3.squaredDistance(cameraPosition, centerA)
-    );
-  });
+  objects.sort((a, b) => depths.get(b)! - depths.get(a)!);
 }

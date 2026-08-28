@@ -58,12 +58,6 @@ export abstract class Layer {
   public blendMode: BlendMode;
   public occludes: boolean;
 
-  /**
-   * Whether the layer's shader needs the depth of the scene's occluders as an
-   * input, e.g. a volume that terminates its rays at the nearest opaque
-   * surface. Subclasses override this; the renderer only pays for the depth
-   * texture when some layer in the viewport asks for it.
-   */
   protected readsSceneDepth_ = false;
 
   constructor({
@@ -106,8 +100,6 @@ export abstract class Layer {
         `${this.type} cannot be attached to multiple viewports simultaneously.`
       );
     }
-    // an occluder is drawn into the depth a reader samples, so a layer that
-    // did both would be occluding itself
     if (this.occludes && this.readsSceneDepth_) {
       throw new Error(`${this.type} cannot both occlude and read scene depth.`);
     }

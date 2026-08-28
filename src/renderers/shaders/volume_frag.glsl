@@ -52,9 +52,7 @@ uniform bool u_hasSceneDepth;
 uniform sampler2D u_sceneDepth;
 uniform mat4 u_mvpInverse;
 
-// How far along the ray the surface recorded at `windowDepth` sits, for this
-// fragment's texel of the scene depth target. Unprojects the fragment's
-// screen-space position at that depth back into model space.
+// How far along the ray the occluding surface is (precomputed scene depth)
 float distanceAlongRayAtWindowDepth(float windowDepth, vec3 rayOrigin, vec3 rayDir) {
     vec3 ndc = vec3(v_clipPosition.xy / v_clipPosition.w, windowDepth * 2.0 - 1.0);
     vec4 positionModel = u_mvpInverse * vec4(ndc, 1.0);
@@ -113,11 +111,9 @@ void main() {
     }
 
     if (u_hasSceneDepth) {
-        // the target is canvas-sized and single-sampled, so the fragment's
-        // window coordinate indexes it directly
-        float sceneWindow = texelFetch(u_sceneDepth, ivec2(gl_FragCoord.xy), 0).r;
-        if (sceneWindow < 1.0) {
-            float tScene = distanceAlongRayAtWindowDepth(sceneWindow, u_cameraPositionModel, RayDirModel);
+        float sceneWindowDepth = texelFetch(u_sceneDepth, ivec2(gl_FragCoord.xy), 0).r;
+        if (sceneWindowDepth < 1.0) {
+            float tScene = distanceAlongRayAtWindowDepth(sceneWindowDepth, u_cameraPositionModel, RayDirModel);
             if (tScene < tEnter) discard;
             tExit = min(tExit, tScene);
         }
