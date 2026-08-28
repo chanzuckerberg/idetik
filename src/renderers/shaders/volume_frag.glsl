@@ -28,6 +28,7 @@ uniform sampler3D u_channel3Sampler;
 uniform highp vec3 u_cameraPositionModel;
 uniform vec3 u_voxelScale;
 in highp vec3 v_positionModel;
+in highp vec4 v_clipPosition;
 
 // The bounding box in model space is normalized to -0.5 to 0.5
 vec3 boundingboxMin = vec3(-0.50);
@@ -49,10 +50,16 @@ uniform vec3 u_color[4];
 // Optionally terminate rays at some predetermined scene depth
 uniform bool u_hasSceneDepth;
 uniform sampler2D u_sceneDepth;
-uniform vec2 u_sceneDepthResolution;
-uniform vec2 u_viewportOrigin;
-uniform vec2 u_resolution;
 uniform mat4 u_mvpInverse;
+
+// How far along the ray the surface recorded at `windowDepth` sits, for this
+// fragment's texel of the scene depth target. Unprojects the fragment's
+// screen-space position at that depth back into model space.
+float distanceAlongRayAtWindowDepth(float windowDepth, vec3 rayOrigin, vec3 rayDir) {
+    vec3 ndc = vec3(v_clipPosition.xy / v_clipPosition.w, windowDepth * 2.0 - 1.0);
+    vec4 positionModel = u_mvpInverse * vec4(ndc, 1.0);
+    return dot(positionModel.xyz / positionModel.w - rayOrigin, rayDir);
+}
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -106,13 +113,11 @@ void main() {
     }
 
     if (u_hasSceneDepth) {
-        float sceneWindow = texture(u_sceneDepth, gl_FragCoord.xy / u_sceneDepthResolution).r;
+        // the target is canvas-sized and single-sampled, so the fragment's
+        // window coordinate indexes it directly
+        float sceneWindow = texelFetch(u_sceneDepth, ivec2(gl_FragCoord.xy), 0).r;
         if (sceneWindow < 1.0) {
-            vec2 uvVp = (gl_FragCoord.xy - u_viewportOrigin) / u_resolution;
-            vec3 ndc = vec3(uvVp * 2.0 - 1.0, sceneWindow * 2.0 - 1.0);
-            vec4 mp = u_mvpInverse * vec4(ndc, 1.0);
-            vec3 occModel = mp.xyz / mp.w;
-            float tScene = dot(occModel - u_cameraPositionModel, RayDirModel);
+            float tScene = distanceAlongRayAtWindowDepth(sceneWindow, u_cameraPositionModel, RayDirModel);
             if (tScene < tEnter) discard;
             tExit = min(tExit, tScene);
         }
