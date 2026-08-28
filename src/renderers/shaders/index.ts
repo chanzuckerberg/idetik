@@ -9,6 +9,8 @@ import wireframeFragmentShader from "./wireframe_frag.glsl";
 import volumeVertexShader from "./volume_vert.glsl";
 import volumeFragmentShader from "./volume_frag.glsl";
 import labelImage from "./label_image_frag.glsl";
+import depthFragmentShader from "./depth_frag.glsl";
+import pointsDepthFragmentShader from "./points_depth_frag.glsl";
 
 export type Shader =
   | "floatScalarImage"
@@ -28,7 +30,10 @@ type ShaderCode = {
   vertexDefines?: ReadonlyMap<string, string>;
   fragment: string;
   fragmentDefines?: ReadonlyMap<string, string>;
+  depthOnlyFragment?: string;
 };
+
+export const defaultDepthFragment = depthFragmentShader;
 
 export const shaderCode: Record<Shader, ShaderCode> = {
   projectedLine: {
@@ -38,6 +43,7 @@ export const shaderCode: Record<Shader, ShaderCode> = {
   points: {
     vertex: pointsVertexShader,
     fragment: pointsFragmentShader,
+    depthOnlyFragment: pointsDepthFragmentShader,
   },
   wireframe: {
     vertex: wireframeVertexShader,

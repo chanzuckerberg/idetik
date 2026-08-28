@@ -54,6 +54,7 @@ export abstract class Layer {
   private readonly callbacks_: StateChangeCallback[] = [];
 
   private opacity_: number;
+
   public blendMode: BlendMode;
   public occludes: boolean;
 
@@ -64,6 +65,8 @@ export abstract class Layer {
   }: LayerProps = {}) {
     this.opacity_ = clamp(opacity, 0.0, 1.0);
     this.blendMode = blendMode;
+    // infer from `blendMode` unless explicitly set, but only at construction
+    // re-assigning `blendMode` does not update this value
     this.occludes = occludes ?? blendMode === "none";
   }
 

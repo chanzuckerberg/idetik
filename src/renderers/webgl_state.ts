@@ -26,10 +26,8 @@ export class WebGLState {
   private stencilFunc_: GLenum | null = null;
   private stencilRef_: number | null = null;
   private stencilFuncMask_: number | null = null;
-  private stencilWriteMask_: number | null = null;
-  private stencilFail_: GLenum | null = null;
-  private stencilZFail_: GLenum | null = null;
-  private stencilZPass_: GLenum | null = null;
+  private polygonOffsetFactor_: number | null = null;
+  private polygonOffsetUnits_: number | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -37,6 +35,8 @@ export class WebGLState {
     // and flips winding order. As such, we need to treat clockwise
     // triangles as front-facing.
     this.gl_.frontFace(this.gl_.CW);
+    this.gl_.stencilMask(0xff);
+    this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
   }
 
   private enable(cap: GLenum) {
@@ -105,7 +105,14 @@ export class WebGLState {
       return;
     }
     this.enable(this.gl_.POLYGON_OFFSET_FILL);
-    this.gl_.polygonOffset(offset.factor, offset.units);
+    if (
+      this.polygonOffsetFactor_ !== offset.factor ||
+      this.polygonOffsetUnits_ !== offset.units
+    ) {
+      this.gl_.polygonOffset(offset.factor, offset.units);
+      this.polygonOffsetFactor_ = offset.factor;
+      this.polygonOffsetUnits_ = offset.units;
+    }
   }
 
   public setDepthFunc(func: GLenum) {
@@ -214,26 +221,6 @@ export class WebGLState {
       this.enable(this.gl_.STENCIL_TEST);
     } else {
       this.disable(this.gl_.STENCIL_TEST);
-    }
-  }
-
-  public setStencilMask(mask: number) {
-    if (this.stencilWriteMask_ !== mask) {
-      this.gl_.stencilMask(mask);
-      this.stencilWriteMask_ = mask;
-    }
-  }
-
-  public setStencilOp(fail: GLenum, zfail: GLenum, zpass: GLenum) {
-    if (
-      this.stencilFail_ !== fail ||
-      this.stencilZFail_ !== zfail ||
-      this.stencilZPass_ !== zpass
-    ) {
-      this.gl_.stencilOp(fail, zfail, zpass);
-      this.stencilFail_ = fail;
-      this.stencilZFail_ = zfail;
-      this.stencilZPass_ = zpass;
     }
   }
 

@@ -62,7 +62,6 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
     this.state_ = new WebGLState(gl);
-    this.initStencil();
     this.resize(this.canvas.width, this.canvas.height);
   }
 
@@ -108,6 +107,7 @@ export class WebGLRenderer extends Renderer {
     }
 
     this.state_.setViewport(viewportBox);
+    this.resetState();
     this.clear();
 
     const viewportRect = viewportBox.toRect();
@@ -116,69 +116,45 @@ export class WebGLRenderer extends Renderer {
     const frustum = viewport.camera.frustum;
 
     const occludingLayers: Layer[] = [];
-    const transparentLayers: Layer[] = [];
+    const nonOccludingLayers: Layer[] = [];
     for (const layer of viewport.layers) {
       if (layer.state !== "ready") continue;
-      (layer.occludes ? occludingLayers : transparentLayers).push(layer);
+      (layer.occludes ? occludingLayers : nonOccludingLayers).push(layer);
     }
-
-    // polygon offset nudges objects slightly *away* to prevent z-fighting when
-    // rendering color in the next passes with depth LEQUAL
-    this.state_.setPolygonOffset({ factor: 1, units: 1 });
-    this.renderDepthOnly(occludingLayers, viewport.camera, frustum);
-    this.state_.setPolygonOffset(null);
+    this.renderDepthPass(occludingLayers, viewport.camera, frustum);
+    this.resetState();
 
     this.state_.setDepthMask(false);
-    this.state_.setDepthFunc(this.gl_.LEQUAL);
-    this.renderLayers(occludingLayers, viewport.camera, frustum);
-
-    // polygon offset nudges objects slightly *towards* so overlays (e.g. labels)
-    // do not z-fight with coplanar occluders
-    this.state_.setPolygonOffset({ factor: -1, units: -1 });
-    this.renderLayers(transparentLayers, viewport.camera, frustum);
-    this.state_.setPolygonOffset(null);
+    for (const layer of [...occludingLayers, ...nonOccludingLayers]) {
+      this.renderLayer(layer, viewport.camera, frustum);
+    }
+    this.resetState();
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
-  // TODO: this runs the full shader (incl. texture samples) just to
-  // discard it. Replace with depth-only variants that share each
-  // program's vertex shader but use a cheap fragment shader
-  private renderDepthOnly(layers: Layer[], camera: Camera, frustum: Frustum) {
+  private renderDepthPass(layers: Layer[], camera: Camera, frustum: Frustum) {
     this.state_.setColorMask(false);
-    this.state_.setDepthMask(true);
-    this.state_.setDepthTesting(true);
     this.state_.setDepthFunc(this.gl_.LESS);
-    this.state_.setStencilTest(false);
+    // nudge the depth away from the camera, so that the color passes
+    // at the same depth are not rejected
+    this.state_.setPolygonOffset({ factor: 1, units: 1 });
 
     for (const layer of layers) {
-      const objects = [...layer.coverageGroups.values()].flat();
-      for (const object of objects) {
-        if (!object.programName) continue;
-        if (!frustum.intersectsWithBox3(object.boundingBox)) continue;
-        this.state_.setCullFaceMode(object.cullFaceMode);
-        this.bindings_.bindGeometry(object.geometry);
-        object.textures.forEach((texture, index) => {
-          this.textures_.bindTexture(texture, index);
-        });
-        const program = this.programs_.use(object.programName);
-        this.drawGeometry(object.geometry, object, layer, program, camera);
+      for (const members of layer.coverageGroups.values()) {
+        for (const object of members) {
+          if (!object.programName || !object.depthTest) continue;
+          if (!frustum.intersectsWithBox3(object.boundingBox)) continue;
+          this.state_.setCullFaceMode(object.cullFaceMode);
+          this.bindings_.bindGeometry(object.geometry);
+          object.textures.forEach((texture, index) => {
+            this.textures_.bindTexture(texture, index);
+          });
+          const program = this.programs_.useDepthOnly(object.programName);
+          this.drawGeometry(object.geometry, object, layer, program, camera);
+        }
       }
     }
-
-    this.state_.setColorMask(true);
-  }
-
-  private renderLayers(layers: Layer[], camera: Camera, frustum: Frustum) {
-    for (const layer of layers) {
-      this.renderLayer(layer, camera, frustum);
-    }
-  }
-
-  private initStencil() {
-    this.gl_.clearStencil(0);
-    this.state_.setStencilMask(0xff);
-    this.state_.setStencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
   }
 
   private setCoverageStencil(coverageGroup: number | null) {
@@ -371,15 +347,22 @@ export class WebGLRenderer extends Renderer {
   }
 
   protected clear() {
-    this.state_.setColorMask(true);
-    this.state_.setDepthMask(true);
     this.gl_.clearColor(0, 0, 0, 0);
+    this.gl_.clearStencil(0);
     this.gl_.clear(
       this.gl_.COLOR_BUFFER_BIT |
         this.gl_.DEPTH_BUFFER_BIT |
         this.gl_.STENCIL_BUFFER_BIT
     );
+  }
+
+  private resetState() {
+    this.state_.setColorMask(true);
+    this.state_.setDepthMask(true);
     this.state_.setDepthTesting(true);
     this.state_.setDepthFunc(this.gl_.LEQUAL);
+    this.state_.setPolygonOffset(null);
+    this.state_.setStencilTest(false);
+    this.state_.setBlendingMode("none");
   }
 }

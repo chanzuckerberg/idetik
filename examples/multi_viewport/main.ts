@@ -19,29 +19,27 @@ import GUI from "lil-gui";
 const url =
   "https://public.czbiohub.org/royerlab/zebrahub/imaging/multi-view/ZMNS001.ome.zarr/";
 
-// shared source between viewports/layers
 const source = await OmeZarrImageSource.fromHttp({ url });
 
-const lod = 0;
+const baseLod = 0;
 const dims = source.getDimensions();
 const axisRange = (axis: "x" | "y" | "z"): readonly [number, number] => {
-  const d = dims[axis]!.lods[lod];
+  const d = dims[axis]!.lods[baseLod];
   return [d.translation, d.translation + d.size * d.scale] as const;
 };
 const [xMin, xMax] = axisRange("x");
 const [yMin, yMax] = axisRange("y");
 const [zMin, zMax] = axisRange("z");
-const step = (axis: "x" | "y" | "z") => dims[axis]!.lods[lod].scale;
+const step = (axis: "x" | "y" | "z") => dims[axis]!.lods[baseLod].scale;
 
-const timeCount = dims.t?.lods[lod].size ?? 1;
+const timeCount = dims.t?.lods[baseLod].size ?? 1;
 const center = vec3.fromValues(
   (xMin + xMax) / 2,
   (yMin + yMax) / 2,
   (zMin + zMax) / 2
 );
 
-// shared timepoint across all viewports
-const sharedTime = { t: Math.floor((timeCount - 1) / 2) };
+const currentTime = { t: Math.floor((timeCount - 1) / 2) };
 
 const channelProps: ChannelProps[] = [
   { color: Color.CYAN, contrastLimits: [0, 1200] },
@@ -50,7 +48,7 @@ const channelProps: ChannelProps[] = [
 
 const sliceCoords = {
   get t() {
-    return sharedTime.t;
+    return currentTime.t;
   },
   x: center[0],
   y: center[1],
@@ -101,7 +99,6 @@ const camera3D = new PerspectiveCamera({ near: 1.0 });
 
 new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
-  memoryLimitMB: 4096,
   viewports: [
     createSliceViewport("slice-xy", "XY", xRange, yRange),
     {
@@ -130,7 +127,7 @@ const gui = new GUI({ width: 300 });
 
 addDimensionSlider({
   gui,
-  sliceCoords: sharedTime,
+  sliceCoords: currentTime,
   dimensionName: "t",
   minValue: 0,
   maxValue: timeCount - 1,
