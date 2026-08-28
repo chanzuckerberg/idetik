@@ -43,6 +43,7 @@ export class ImageRenderable extends RenderableObject {
     this.setTexture(0, texture);
     this.channels_ = validateChannels(texture, channelProps);
     this.programName = textureToShader(texture);
+    this.depthProgramName = "meshDepth";
   }
 
   public get type() {

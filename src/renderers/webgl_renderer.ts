@@ -62,7 +62,6 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
     this.state_ = new WebGLState(gl);
-    this.initStencil();
     this.resize(this.canvas.width, this.canvas.height);
   }
 
@@ -79,13 +78,7 @@ export class WebGLRenderer extends Renderer {
     this.renderedObjectsPerFrame_ = 0;
     this.stencilRef_ = 0;
 
-    const opaque: Layer[] = [];
-    const transparent: Layer[] = [];
     for (const layer of viewport.layers) {
-      (layer.blendMode === "none" ? opaque : transparent).push(layer);
-    }
-
-    for (const layer of [...opaque, ...transparent]) {
       layer.update(viewport);
     }
 
@@ -114,6 +107,7 @@ export class WebGLRenderer extends Renderer {
     }
 
     this.state_.setViewport(viewportBox);
+    this.resetState();
     this.clear();
 
     const viewportRect = viewportBox.toRect();
@@ -121,27 +115,46 @@ export class WebGLRenderer extends Renderer {
 
     const frustum = viewport.camera.frustum;
 
-    this.state_.setDepthMask(true);
-    for (const layer of opaque) {
-      if (layer.state === "ready") {
-        this.renderLayer(layer, viewport.camera, frustum);
-      }
+    const occludingLayers: Layer[] = [];
+    const nonOccludingLayers: Layer[] = [];
+    for (const layer of viewport.layers) {
+      if (layer.state !== "ready") continue;
+      (layer.occludes ? occludingLayers : nonOccludingLayers).push(layer);
     }
+    this.renderDepthPass(occludingLayers, viewport.camera, frustum);
+    this.resetState();
 
     this.state_.setDepthMask(false);
-    for (const layer of transparent) {
-      if (layer.state === "ready") {
-        this.renderLayer(layer, viewport.camera, frustum);
-      }
+    for (const layer of [...occludingLayers, ...nonOccludingLayers]) {
+      this.renderLayer(layer, viewport.camera, frustum);
     }
+    this.resetState();
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
-  private initStencil() {
-    this.gl_.clearStencil(0);
-    this.gl_.stencilMask(0xff);
-    this.gl_.stencilOp(this.gl_.KEEP, this.gl_.KEEP, this.gl_.REPLACE);
+  private renderDepthPass(layers: Layer[], camera: Camera, frustum: Frustum) {
+    this.state_.setColorMask(false);
+    this.state_.setDepthFunc(this.gl_.LESS);
+    // nudge the depth away from the camera, so that the color passes
+    // at the same depth are not rejected
+    this.state_.setPolygonOffset(true);
+
+    for (const layer of layers) {
+      for (const members of layer.coverageGroups.values()) {
+        for (const object of members) {
+          if (!object.depthProgramName || !object.depthTest) continue;
+          if (!frustum.intersectsWithBox3(object.boundingBox)) continue;
+          this.state_.setCullFaceMode(object.cullFaceMode);
+          this.bindings_.bindGeometry(object.geometry);
+          object.textures.forEach((texture, index) => {
+            this.textures_.bindTexture(texture, index);
+          });
+          const program = this.programs_.use(object.depthProgramName);
+          this.drawGeometry(object.geometry, object, layer, program, camera);
+        }
+      }
+    }
   }
 
   private setCoverageStencil(coverageGroup: number | null) {
@@ -184,9 +197,6 @@ export class WebGLRenderer extends Renderer {
 
     if (!object.programName) return;
     this.state_.setCullFaceMode(object.cullFaceMode);
-    // Depth *testing* is per-object; depth *writing* follows the per-pass policy
-    // set in `render()`: opaque writes, transparent/blended does not.
-    // Writing depth for blended objects would reject same-depth layers/channels.
     this.state_.setDepthTesting(object.depthTest);
     this.bindings_.bindGeometry(object.geometry);
     object.textures.forEach((texture, index) => {
@@ -338,12 +348,21 @@ export class WebGLRenderer extends Renderer {
 
   protected clear() {
     this.gl_.clearColor(0, 0, 0, 0);
+    this.gl_.clearStencil(0);
     this.gl_.clear(
       this.gl_.COLOR_BUFFER_BIT |
         this.gl_.DEPTH_BUFFER_BIT |
         this.gl_.STENCIL_BUFFER_BIT
     );
+  }
+
+  private resetState() {
+    this.state_.setColorMask(true);
+    this.state_.setDepthMask(true);
     this.state_.setDepthTesting(true);
-    this.gl_.depthFunc(this.gl_.LEQUAL);
+    this.state_.setDepthFunc(this.gl_.LEQUAL);
+    this.state_.setPolygonOffset(false);
+    this.state_.setStencilTest(false);
+    this.state_.setBlendingMode("none");
   }
 }

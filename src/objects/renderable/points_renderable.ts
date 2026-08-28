@@ -26,6 +26,7 @@ export class PointsRenderable extends RenderableObject {
   constructor(points: PointProps[]) {
     super();
     this.programName = "points";
+    this.depthProgramName = "pointsDepth";
 
     const vertexData = points.flatMap((point) => {
       const color = Color.from(point.color);

@@ -19,6 +19,7 @@ export class ProjectedLineRenderable extends RenderableObject {
     this.color_ = Color.from(color);
     this.width_ = width;
     this.programName = "projectedLine";
+    this.depthProgramName = "projectedLineDepth";
   }
 
   public get type() {

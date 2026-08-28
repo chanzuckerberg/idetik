@@ -23,6 +23,7 @@ type StateChangeCallback = (
 export interface LayerProps {
   opacity?: number;
   blendMode?: BlendMode;
+  occludes?: boolean;
 }
 
 /**
@@ -53,11 +54,20 @@ export abstract class Layer {
   private readonly callbacks_: StateChangeCallback[] = [];
 
   private opacity_: number;
-  public blendMode: BlendMode;
 
-  constructor({ opacity = 1.0, blendMode = "none" }: LayerProps = {}) {
+  public blendMode: BlendMode;
+  public occludes: boolean;
+
+  constructor({
+    opacity = 1.0,
+    blendMode = "none",
+    occludes,
+  }: LayerProps = {}) {
     this.opacity_ = clamp(opacity, 0.0, 1.0);
     this.blendMode = blendMode;
+    // infer from `blendMode` unless explicitly set, but only at construction
+    // re-assigning `blendMode` does not update this value
+    this.occludes = occludes ?? blendMode === "none";
   }
 
   public get opacity() {
