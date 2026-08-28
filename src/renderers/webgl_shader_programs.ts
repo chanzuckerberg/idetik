@@ -1,4 +1,4 @@
-import { defaultDepthFragment, Shader, shaderCode } from "./shaders";
+import { Shader, shaderCode } from "./shaders";
 import { WebGLShaderProgram } from "./webgl_shader_program";
 
 const pragmaInjectDefines = "#pragma inject_defines";
@@ -6,7 +6,6 @@ const pragmaInjectDefines = "#pragma inject_defines";
 export class WebGLShaderPrograms {
   private gl_: WebGL2RenderingContext;
   private programs_: Map<Shader, WebGLShaderProgram> = new Map();
-  private depthPrograms_: Map<Shader, WebGLShaderProgram> = new Map();
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
@@ -16,45 +15,27 @@ export class WebGLShaderPrograms {
     let program = this.programs_.get(shader);
     if (program === undefined) {
       const code = shaderCode[shader];
-      program = this.createProgram(
-        replaceSourceDefines(code.vertex, code.vertexDefines),
-        replaceSourceDefines(code.fragment, code.fragmentDefines)
+      const vertexShaderSource = replaceSourceDefines(
+        code.vertex,
+        code.vertexDefines
       );
+      const fragmentShaderSource = replaceSourceDefines(
+        code.fragment,
+        code.fragmentDefines
+      );
+      program = new WebGLShaderProgram(
+        this.gl_,
+        vertexShaderSource,
+        fragmentShaderSource
+      );
+      program.use();
+      const error = this.gl_.getError();
+      if (error !== this.gl_.NO_ERROR) {
+        throw new Error(`Error using WebGL program: ${error}`);
+      }
       this.programs_.set(shader, program);
     } else {
       program.use();
-    }
-    return program;
-  }
-
-  public useDepthOnly(shader: Shader): WebGLShaderProgram {
-    let program = this.depthPrograms_.get(shader);
-    if (program === undefined) {
-      const code = shaderCode[shader];
-      program = this.createProgram(
-        replaceSourceDefines(code.vertex, code.vertexDefines),
-        code.depthOnlyFragment ?? defaultDepthFragment
-      );
-      this.depthPrograms_.set(shader, program);
-    } else {
-      program.use();
-    }
-    return program;
-  }
-
-  private createProgram(
-    vertexShaderSource: string,
-    fragmentShaderSource: string
-  ) {
-    const program = new WebGLShaderProgram(
-      this.gl_,
-      vertexShaderSource,
-      fragmentShaderSource
-    );
-    program.use();
-    const error = this.gl_.getError();
-    if (error !== this.gl_.NO_ERROR) {
-      throw new Error(`Error using WebGL program: ${error}`);
     }
     return program;
   }

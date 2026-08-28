@@ -17,6 +17,7 @@ export abstract class RenderableObject extends Node {
   private geometry_ = new Geometry();
   private wireframeGeometry_: WireframeGeometry | null = null;
   private programName_: Shader | null = null;
+  private depthProgramName_: Shader | null = null;
   private cullFaceMode_: CullingMode = "none";
 
   public setTexture(index: number, texture: Texture) {
@@ -65,6 +66,10 @@ export abstract class RenderableObject extends Node {
     return this.programName_;
   }
 
+  public get depthProgramName(): Shader | null {
+    return this.depthProgramName_;
+  }
+
   public get boundingBox() {
     const box = this.geometry_.boundingBox.clone();
     box.applyTransform(this.transform_.matrix);
@@ -73,6 +78,10 @@ export abstract class RenderableObject extends Node {
 
   protected set programName(programName: Shader) {
     this.programName_ = programName;
+  }
+
+  protected set depthProgramName(programName: Shader) {
+    this.depthProgramName_ = programName;
   }
 
   public get cullFaceMode() {

@@ -105,6 +105,7 @@ export class LabelImageRenderable extends RenderableObject {
     this.outlineSelected_ = props.outlineSelected ?? false;
     this.selectedValue_ = props.selectedValue ?? null;
     this.programName = labelTextureToShader(props.imageData);
+    this.depthProgramName = "meshDepth";
   }
 
   public get type() {

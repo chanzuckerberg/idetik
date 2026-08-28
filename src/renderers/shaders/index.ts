@@ -23,17 +23,17 @@ export type Shader =
   | "projectedLine"
   | "uintScalarImage"
   | "uintVolume"
-  | "wireframe";
+  | "wireframe"
+  | "meshDepth"
+  | "pointsDepth"
+  | "projectedLineDepth";
 
 type ShaderCode = {
   vertex: string;
   vertexDefines?: ReadonlyMap<string, string>;
   fragment: string;
   fragmentDefines?: ReadonlyMap<string, string>;
-  depthOnlyFragment?: string;
 };
-
-export const defaultDepthFragment = depthFragmentShader;
 
 export const shaderCode: Record<Shader, ShaderCode> = {
   projectedLine: {
@@ -43,7 +43,6 @@ export const shaderCode: Record<Shader, ShaderCode> = {
   points: {
     vertex: pointsVertexShader,
     fragment: pointsFragmentShader,
-    depthOnlyFragment: pointsDepthFragmentShader,
   },
   wireframe: {
     vertex: wireframeVertexShader,
@@ -85,5 +84,17 @@ export const shaderCode: Record<Shader, ShaderCode> = {
     vertex: volumeVertexShader,
     fragment: volumeFragmentShader,
     fragmentDefines: new Map([["TEXTURE_DATA_TYPE_UINT", "1"]]),
+  },
+  meshDepth: {
+    vertex: meshVertexShader,
+    fragment: depthFragmentShader,
+  },
+  pointsDepth: {
+    vertex: pointsVertexShader,
+    fragment: pointsDepthFragmentShader,
+  },
+  projectedLineDepth: {
+    vertex: projectedLineVertexShader,
+    fragment: depthFragmentShader,
   },
 };

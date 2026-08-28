@@ -143,14 +143,14 @@ export class WebGLRenderer extends Renderer {
     for (const layer of layers) {
       for (const members of layer.coverageGroups.values()) {
         for (const object of members) {
-          if (!object.programName || !object.depthTest) continue;
+          if (!object.depthProgramName || !object.depthTest) continue;
           if (!frustum.intersectsWithBox3(object.boundingBox)) continue;
           this.state_.setCullFaceMode(object.cullFaceMode);
           this.bindings_.bindGeometry(object.geometry);
           object.textures.forEach((texture, index) => {
             this.textures_.bindTexture(texture, index);
           });
-          const program = this.programs_.useDepthOnly(object.programName);
+          const program = this.programs_.use(object.depthProgramName);
           this.drawGeometry(object.geometry, object, layer, program, camera);
         }
       }
