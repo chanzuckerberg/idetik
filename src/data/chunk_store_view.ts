@@ -6,7 +6,7 @@ import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { Logger } from "../utilities/logger";
-import { planeView } from "../math/visible_plane";
+import { planeView, PlaneFootprint } from "../math/visible_plane";
 import { clamp } from "../utilities/clamp";
 
 /*
@@ -16,6 +16,9 @@ setImageSourcePolicy; all other callers will be rejected. Acts like a "friend"
 access key, preventing accidental external mutation.
 */
 export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
+
+// Ceiling on how far foreshortening may drive LOD finer. See `setLOD`.
+const MAX_LOD_ANISOTROPY = 1;
 
 export class ChunkStoreView {
   private readonly store_: ChunkStore;
@@ -133,7 +136,7 @@ export class ChunkStoreView {
       bufferSizePx
     );
 
-    const lodChanged = this.setLOD(-Math.log2(view.unitsPerScreenPixel));
+    const lodChanged = this.setLOD(view.footprint);
 
     const viewBounds2D = view.worldViewRect;
 
@@ -342,7 +345,18 @@ export class ChunkStoreView {
     }
   }
 
-  private setLOD(lodFactor: number): boolean {
+  private setLOD(footprint: PlaneFootprint): boolean {
+    // A foreshortened plane wants finer data along its unforeshortened axis
+    // than across it. At the default ratio of 1 we follow the coarser axis, as
+    // mip selection does: chasing the finer one costs a texel per doubling for
+    // detail only one axis can show, and chunk textures have no mip chain to
+    // filter the surplus away, so it aliases as well as costing memory.
+    const unitsPerScreenPixel = Math.max(
+      footprint.minUnitsPerScreenPixel,
+      footprint.maxUnitsPerScreenPixel / MAX_LOD_ANISOTROPY
+    );
+    const lodFactor = -Math.log2(unitsPerScreenPixel);
+
     // With 2x downsampling per LOD, selection happens in log2 space.
     const bias = this.policy_.lod.bias;
 
