@@ -16,19 +16,12 @@ const ZOOM_SPEED = 0.0009;
 const DEFAULT_DAMPING_FACTOR = 0.5;
 const DAMPING_FPS = 60; // Base FPS to normalize damping
 
-export type OrbitControlsProps = {
+type OrbitControlsProps = {
   radius?: number;
   yaw?: number;
   pitch?: number;
   target?: vec3;
   dampingFactor?: number;
-};
-
-export type OrbitControlsJSON = {
-  radius: number;
-  yaw: number;
-  pitch: number;
-  target: [number, number, number];
 };
 
 /** @group Cameras & Controls */
@@ -65,16 +58,6 @@ export class OrbitControls implements CameraControls {
     );
 
     this.updateCamera();
-  }
-
-  /** Returns the orbit parameters as JSON-safe data. */
-  public toJSON(): OrbitControlsJSON {
-    return {
-      radius: this.currPos_.radius,
-      yaw: this.currPos_.phi,
-      pitch: this.currPos_.theta,
-      target: [...this.currCenter_] as [number, number, number],
-    };
   }
 
   public get isMoving(): boolean {
