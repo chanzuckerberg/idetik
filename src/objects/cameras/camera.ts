@@ -2,6 +2,34 @@ import { Node } from "../../core/node";
 import { Frustum } from "../../math/frustum";
 import { TrsTransform } from "../../math/transforms";
 import { mat4, vec3, vec4 } from "gl-matrix";
+import type { SliceOrientation } from "../../math/axes";
+
+type Vec3JSON = [number, number, number];
+type QuaternionJSON = [number, number, number, number];
+
+export type CameraTransformJSON = {
+  translation: Vec3JSON;
+  rotation: QuaternionJSON;
+  scale: Vec3JSON;
+};
+
+export type CameraJSON =
+  | {
+      type: "PerspectiveCamera";
+      fov: number;
+      near: number;
+      far: number;
+      transform: CameraTransformJSON;
+    }
+  | {
+      type: "OrthographicCamera";
+      width: number;
+      height: number;
+      near: number;
+      far: number;
+      orientation: SliceOrientation;
+      transform: CameraTransformJSON;
+    };
 
 export type CameraType = "OrthographicCamera" | "PerspectiveCamera";
 
@@ -14,6 +42,7 @@ export abstract class Camera extends Node {
   protected abstract updateProjectionMatrix(): void;
 
   public abstract get type(): CameraType;
+  public abstract toJSON(): CameraJSON;
 
   public update() {
     this.updateProjectionMatrix();
@@ -58,6 +87,20 @@ export abstract class Camera extends Node {
 
   public get position() {
     return this.transform.translation;
+  }
+
+  protected transformToJSON(): CameraTransformJSON {
+    return {
+      translation: [...this.transform.translation] as Vec3JSON,
+      rotation: [...this.transform.rotation] as QuaternionJSON,
+      scale: [...this.transform.scale] as Vec3JSON,
+    };
+  }
+
+  protected applyTransformJSON(transform: CameraTransformJSON): void {
+    this.transform.setTranslation(transform.translation);
+    this.transform.setRotation(transform.rotation);
+    this.transform.setScale(transform.scale);
   }
 
   public clipToWorld(position: vec3): vec3 {
