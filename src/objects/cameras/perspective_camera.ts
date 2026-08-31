@@ -1,4 +1,4 @@
-import { Camera, CameraType, type CameraJSON } from "./camera";
+import { Camera, CameraType } from "./camera";
 import { glMatrix, mat4, vec3 } from "gl-matrix";
 
 const DEFAULT_FOV = 60; // degrees
@@ -6,11 +6,7 @@ const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 const MIN_FOV = 0.1; // degrees
 const MAX_FOV = 180 - MIN_FOV; // degrees
 
-/**
- * Initialization properties for constructing a perspective camera.
- */
-export type PerspectiveCameraProps = {
-  /** Vertical field of view in degrees. Defaults to `60`. */
+type PerspectiveCameraProps = {
   fov?: number;
   /** Aspect ratio (width / height). Defaults to `1.77`. */
   aspectRatio?: number;
@@ -109,41 +105,7 @@ export class PerspectiveCamera extends Camera {
     return this.fov_;
   }
 
-  /**
-   * Zooms the view by the given factor relative to the current zoom level.
-   * Factors greater than `1` zoom in and factors between `0` and `1` zoom
-   * out.
-   *
-   * Zooming narrows or widens the field of view rather than moving the
-   * camera, and the result is clamped to valid angles.
-   *
-   * @param factor - The magnification factor to apply.
-   */
-  /** Returns the camera projection and transform as JSON-safe data. */
-  public toJSON(): Extract<CameraJSON, { type: "PerspectiveCamera" }> {
-    return {
-      type: "PerspectiveCamera",
-      fov: this.fov_,
-      near: this.near_,
-      far: this.far_,
-      transform: this.transformToJSON(),
-    };
-  }
 
-  /**
-   * Restores a camera from {@link toJSON}.
-   *
-   * Restore the camera before constructing {@link OrbitControls}. Its
-   * constructor replaces the camera transform using its radius, angles, and
-   * target.
-   */
-  public static fromJSON(
-    json: Extract<CameraJSON, { type: "PerspectiveCamera" }>
-  ): PerspectiveCamera {
-    const camera = new PerspectiveCamera(json);
-    camera.applyTransformJSON(json.transform);
-    return camera;
-  }
   public zoom(factor: number) {
     if (factor <= 0) {
       throw new Error(`Invalid zoom factor: ${factor}`);

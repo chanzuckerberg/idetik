@@ -2,34 +2,6 @@ import { Node } from "../../core/node";
 import { Frustum } from "../../math/frustum";
 import { TrsTransform } from "../../math/transforms";
 import { mat4, vec3, vec4 } from "gl-matrix";
-import type { SliceOrientation } from "../../math/axes";
-
-type Vec3JSON = [number, number, number];
-type QuaternionJSON = [number, number, number, number];
-
-export type CameraTransformJSON = {
-  translation: Vec3JSON;
-  rotation: QuaternionJSON;
-  scale: Vec3JSON;
-};
-
-export type CameraJSON =
-  | {
-      type: "PerspectiveCamera";
-      fov: number;
-      near: number;
-      far: number;
-      transform: CameraTransformJSON;
-    }
-  | {
-      type: "OrthographicCamera";
-      width: number;
-      height: number;
-      near: number;
-      far: number;
-      orientation: SliceOrientation;
-      transform: CameraTransformJSON;
-    };
 
 /** Identifies a concrete camera implementation. */
 export type CameraType = "OrthographicCamera" | "PerspectiveCamera";
@@ -59,7 +31,6 @@ export abstract class Camera extends Node {
 
   /** Identifies the camera type. */
   public abstract get type(): CameraType;
-  public abstract toJSON(): CameraJSON;
 
   /** Recomputes the camera's projection matrix. */
   public update() {
@@ -139,12 +110,7 @@ export abstract class Camera extends Node {
     return this.transform.translation;
   }
 
-  /**
-   * Transforms a position from clip space to world space.
-   *
-   * @param position - The clip-space position to transform.
-   * @returns The corresponding world-space position.
-   */
+
   public clipToWorld(position: vec3): vec3 {
     const clipPos = vec4.fromValues(position[0], position[1], position[2], 1);
     const projectionInverse = mat4.invert(
