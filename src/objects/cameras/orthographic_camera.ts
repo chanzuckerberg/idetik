@@ -1,4 +1,4 @@
-import { Camera, CameraType } from "./camera";
+import { Camera, CameraType, type CameraJSON } from "./camera";
 import { quat, vec2, vec3, vec4, mat4 } from "gl-matrix";
 import { Box2 } from "../../math/box2";
 import {
@@ -158,6 +158,36 @@ export class OrthographicCamera extends Camera {
   /** The slice orientation the camera faces. */
   public get orientation(): SliceOrientation {
     return this.orientation_;
+  }
+
+  /** Returns the camera projection and transform as JSON-safe data. */
+  public toJSON(): Extract<CameraJSON, { type: "OrthographicCamera" }> {
+    return {
+      type: "OrthographicCamera",
+      width: this.width_,
+      height: this.height_,
+      near: this.near_,
+      far: this.far_,
+      orientation: this.orientation_,
+      transform: this.transformToJSON(),
+    };
+  }
+
+  /** Restores a camera from {@link toJSON}. */
+  public static fromJSON(
+    json: Extract<CameraJSON, { type: "OrthographicCamera" }>
+  ): OrthographicCamera {
+    const camera = new OrthographicCamera({
+      left: -json.width / 2,
+      right: json.width / 2,
+      top: -json.height / 2,
+      bottom: json.height / 2,
+      near: json.near,
+      far: json.far,
+      orientation: json.orientation,
+    });
+    camera.applyTransformJSON(json.transform);
+    return camera;
   }
 
   /**
