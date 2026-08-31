@@ -1,9 +1,11 @@
 import { ReflectionKind } from "typedoc";
 import { MarkdownTheme, MarkdownThemeContext } from "typedoc-plugin-markdown";
 import {
+  foldedAliasDescriptionAndCode,
   foldedAliasDescriptionAndProperties,
   isFoldedAlias,
 } from "./companion-types.mjs";
+import { twoColumnParametersTable } from "./member-tables.mjs";
 
 export class IdetikTheme extends MarkdownTheme {
   getRenderContext(page) {
@@ -25,6 +27,11 @@ class IdetikThemeContext extends MarkdownThemeContext {
         isFoldedAlias(model)
           ? foldedAliasDescriptionAndProperties(this, model, opts)
           : base.memberWithGroups(model, opts),
+      declaration: (model, opts) =>
+        isFoldedAlias(model)
+          ? foldedAliasDescriptionAndCode(this, model, opts)
+          : base.declaration(model, opts),
+      parametersTable: (model) => twoColumnParametersTable(this, model),
       members: (model, opts) =>
         membersWithoutHorizontalRules(this, model, opts),
       constructor: (model, opts) =>
@@ -96,13 +103,16 @@ function memberWithDecoratedHeading(context, model, opts) {
 function decoratedHeadingWithPinnedAnchor(context, model) {
   const signature = model.signatures?.[0] ?? model.getSignature;
   const parts = [context.partials.memberTitle(model)];
+
   const returnType = returnTypeForHeading(context, signature);
   if (returnType) {
     parts.push(`<span class="return-type">${returnType}</span>`);
   }
+
   if (model.overwrites || signature?.overwrites) {
     parts.push(`<Badge type="info" text="overrides" />`);
   }
+
   const anchor = context.router.hasUrl(model)
     ? context.router.getAnchor(model)
     : undefined;
@@ -133,6 +143,7 @@ function signatureWithDescriptionFirst(context, model, opts) {
   const comment = opts.multipleSignatures
     ? model.comment
     : model.comment || model.parent?.comment;
+
   const description =
     comment &&
     context.partials.comment(comment, {
@@ -140,12 +151,15 @@ function signatureWithDescriptionFirst(context, model, opts) {
       showTags: false,
       showSummary: true,
     });
+
   const codeBlock =
     !opts.hideTitle &&
     context.partials.signatureTitle(model, { accessor: opts.accessor });
+
   const hasTypeParameters =
     model.typeParameters?.length &&
     model.kind !== ReflectionKind.ConstructorSignature;
+
   const remainingTags =
     comment &&
     context.partials.comment(comment, {
@@ -153,6 +167,7 @@ function signatureWithDescriptionFirst(context, model, opts) {
       showTags: true,
       showSummary: false,
     });
+
   return [
     description,
     codeBlock,
