@@ -1,4 +1,4 @@
-import { Camera, CameraType } from "./camera";
+import { Camera, CameraType, type CameraJSON } from "./camera";
 import { glMatrix, mat4, vec3 } from "gl-matrix";
 
 const DEFAULT_FOV = 60; // degrees
@@ -6,7 +6,7 @@ const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 const MIN_FOV = 0.1; // degrees
 const MAX_FOV = 180 - MIN_FOV; // degrees
 
-type PerspectiveCameraProps = {
+export type PerspectiveCameraProps = {
   fov?: number;
   aspectRatio?: number;
   near?: number;
@@ -55,6 +55,32 @@ export class PerspectiveCamera extends Camera {
 
   public get fov() {
     return this.fov_;
+  }
+
+  /** Returns the camera projection and transform as JSON-safe data. */
+  public toJSON(): Extract<CameraJSON, { type: "PerspectiveCamera" }> {
+    return {
+      type: "PerspectiveCamera",
+      fov: this.fov_,
+      near: this.near_,
+      far: this.far_,
+      transform: this.transformToJSON(),
+    };
+  }
+
+  /**
+   * Restores a camera from {@link toJSON}.
+   *
+   * Restore the camera before constructing {@link OrbitControls}. Its
+   * constructor replaces the camera transform using its radius, angles, and
+   * target.
+   */
+  public static fromJSON(
+    json: Extract<CameraJSON, { type: "PerspectiveCamera" }>
+  ): PerspectiveCamera {
+    const camera = new PerspectiveCamera(json);
+    camera.applyTransformJSON(json.transform);
+    return camera;
   }
 
   public zoom(factor: number) {

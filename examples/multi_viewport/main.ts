@@ -10,6 +10,7 @@ import {
   PerspectiveCamera,
   SliceOrientation,
   createPlaybackPolicy,
+  Viewport,
 } from "@";
 import { addDimensionSlider } from "../lil_gui_utils";
 import { vec3 } from "gl-matrix";
@@ -82,13 +83,13 @@ function createSliceViewport(
     orientation,
   });
 
-  return {
+  return new Viewport({
     id,
     element: document.querySelector<HTMLDivElement>(`#viewport-${id}`)!,
     camera,
     cameraControls: new PanZoomControls(camera),
     layers: [createSliceLayer(orientation)],
-  };
+  });
 }
 
 const xRange = [xMin, xMax] as const;
@@ -101,7 +102,7 @@ new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     createSliceViewport("slice-xy", "XY", xRange, yRange),
-    {
+    new Viewport({
       id: "3d",
       element: document.querySelector<HTMLDivElement>("#viewport-3d")!,
       camera: camera3D,
@@ -116,7 +117,7 @@ new Idetik({
         createSliceLayer("XZ"),
         createSliceLayer("YZ"),
       ],
-    },
+    }),
     createSliceViewport("slice-xz", "XZ", xRange, zRange),
     createSliceViewport("slice-yz", "YZ", yRange, zRange),
   ],

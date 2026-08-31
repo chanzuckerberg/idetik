@@ -1,4 +1,5 @@
 export { Idetik } from "./idetik";
+export { Viewport, type ViewportProps } from "./core/viewport";
 
 export { OmeZarrImageSource } from "./data/ome_zarr/image_source";
 
@@ -21,10 +22,14 @@ export { PointsRenderable } from "./objects/renderable/points_renderable";
 export { ProjectedLineRenderable } from "./objects/renderable/projected_line_renderable";
 export { VolumeRenderable } from "./objects/renderable/volume_renderable";
 
-export { OrbitControls } from "./objects/cameras/orbit_controls";
+export {
+  OrbitControls,
+  type OrbitControlsJSON,
+} from "./objects/cameras/orbit_controls";
 export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 export { PanZoomControls } from "./objects/cameras/controls";
 export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
+export type { CameraJSON } from "./objects/cameras/camera";
 
 export {
   createExplorationPolicy,
