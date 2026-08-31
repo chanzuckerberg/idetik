@@ -57,6 +57,14 @@ export type OrbitControlsProps = {
  *
  * @group Controls
  */
+export type OrbitControlsJSON = {
+  radius: number;
+  yaw: number;
+  pitch: number;
+  target: [number, number, number];
+};
+
+/** @group Cameras & Controls */
 export class OrbitControls implements CameraControls {
   private readonly camera_: PerspectiveCamera;
 
@@ -119,6 +127,15 @@ export class OrbitControls implements CameraControls {
   }
 
   /** Whether any orbit, pan, or zoom velocity remains. */
+  /** Returns the orbit parameters as JSON-safe data. */
+  public toJSON(): OrbitControlsJSON {
+    return {
+      radius: this.currPos_.radius,
+      yaw: this.currPos_.phi,
+      pitch: this.currPos_.theta,
+      target: [...this.currCenter_] as [number, number, number],
+    };
+  }
   public get isMoving(): boolean {
     return (
       this.orbitVelocity_.phi !== 0 ||

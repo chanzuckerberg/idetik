@@ -52,6 +52,10 @@ export { Camera } from "./objects/cameras/camera";
 export type { CameraType } from "./objects/cameras/camera";
 export { OrbitControls } from "./objects/cameras/orbit_controls";
 export type { OrbitControlsProps } from "./objects/cameras/orbit_controls";
+export {
+  OrbitControls,
+  type OrbitControlsJSON,
+} from "./objects/cameras/orbit_controls";
 export { OrthographicCamera } from "./objects/cameras/orthographic_camera";
 export type {
   OrthographicCameraFrame,

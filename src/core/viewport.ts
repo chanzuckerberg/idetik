@@ -15,9 +15,7 @@ import { IdetikContext } from "../idetik";
 export type ViewportProps = {
   /** Unique id. Defaults to the element id or a generated id. */
   id?: string;
-  /** Host element. Defaults to the Idetik canvas. */
-  element?: HTMLElement;
-  /** The camera the viewport renders with. */
+  element: HTMLElement;
   camera: Camera;
   /** Layers to render in order. */
   layers?: Layer[];
@@ -25,36 +23,7 @@ export type ViewportProps = {
   cameraControls?: CameraControls;
 };
 
-interface ResolvedViewportProps extends ViewportProps {
-  id: string;
-  element: HTMLElement;
-  context: IdetikContext;
-}
 
-/**
- * A region of the canvas that renders a stack of layers through a camera.
- *
- * Every viewport draws into the shared canvas through the area of its host
- * element. The element defaults to the canvas itself and must be unique
- * across viewports.
- *
- * Viewports also route input. Pointer and wheel events on the host element
- * are enriched with clip and world coordinates and a picking ray, sent to
- * each layer in order and passed to the camera controls unless a layer stops
- * propagation.
- *
- * ```ts
- * const idetik = new Idetik({
- *   canvas,
- *   viewports: [{ id: 'main', camera, layers: [imageLayer] }],
- * });
- *
- * const viewport = idetik.getViewport('main')!;
- * viewport.addLayer(labelLayer);
- * ```
- *
- * @group Core
- */
 export class Viewport {
   /** The viewport's unique identifier. */
   public readonly id: string;
@@ -67,19 +36,14 @@ export class Viewport {
   /** Input controls driving the camera. */
   public cameraControls?: CameraControls;
 
-  // Carried only to relay to `layer.onAttached` / `layer.onDetached`.
-  // To be removed when the chunk-infrastructure refactor folds chunk management
-  // into the source and the attach lifecycle goes away.
-  private readonly context_: IdetikContext;
+  private context_?: IdetikContext;
 
   private layers_: Layer[] = [];
 
-  /** @hidden */
-  constructor(props: ResolvedViewportProps) {
-    this.id = props.id;
+  constructor(props: ViewportProps) {
+    this.id = props.id || props.element.id || generateID("viewport");
     this.element = props.element;
     this.camera = props.camera;
-    this.context_ = props.context;
     this.cameraControls = props.cameraControls;
     this.updateAspectRatio();
     this.events = new EventDispatcher(this.element);
@@ -104,9 +68,7 @@ export class Viewport {
       this.cameraControls?.onEvent(event);
     });
 
-    for (const layer of props.layers ?? []) {
-      this.addLayer(layer);
-    }
+    this.layers_ = [...(props.layers ?? [])];
   }
 
   /**
@@ -123,7 +85,7 @@ export class Viewport {
    * @param layer - The layer to add.
    */
   public addLayer(layer: Layer): void {
-    layer.onAttached(this.context_);
+    if (this.context_) layer.onAttached(this.context_);
     this.layers_.push(layer);
   }
 
@@ -138,15 +100,44 @@ export class Viewport {
       throw new Error(`Layer to remove not found: ${layer}`);
     }
     this.layers_.splice(index, 1);
-    layer.onDetached(this.context_);
+    if (this.context_) layer.onDetached(this.context_);
   }
 
   /** Removes all layers from the viewport. */
   public removeAllLayers(): void {
+    if (this.context_) {
+      for (const layer of this.layers_) {
+        layer.onDetached(this.context_);
+      }
+    }
+    this.layers_ = [];
+  }
+
+  public attachToIdetik(context: IdetikContext): void {
+    if (this.context_) {
+      throw new Error(`Viewport "${this.id}" is already attached`);
+    }
+    const attached: Layer[] = [];
+    try {
+      for (const layer of this.layers_) {
+        layer.onAttached(context);
+        attached.push(layer);
+      }
+      this.context_ = context;
+    } catch (error) {
+      for (const layer of attached.reverse()) {
+        layer.onDetached(context);
+      }
+      throw error;
+    }
+  }
+
+  public detachFromIdetik(): void {
+    if (!this.context_) return;
     for (const layer of this.layers_) {
       layer.onDetached(this.context_);
     }
-    this.layers_ = [];
+    this.context_ = undefined;
   }
 
   /**
@@ -283,26 +274,8 @@ export function validateNewViewport(
   }
 }
 
-function validateViewportProps(viewportProps: ResolvedViewportProps[]): void {
-  for (let i = 0; i < viewportProps.length; i++) {
-    validateNewViewport(viewportProps[i], viewportProps.slice(0, i));
+export function validateViewports(viewports: Viewport[]): void {
+  for (let i = 0; i < viewports.length; i++) {
+    validateNewViewport(viewports[i], viewports.slice(0, i));
   }
-}
-
-export function parseViewportProps(
-  props: ViewportProps[],
-  canvas: HTMLCanvasElement,
-  context: IdetikContext
-): Viewport[] {
-  const viewportProps: ResolvedViewportProps[] = props.map((config) => {
-    const element = config.element ?? canvas;
-    return {
-      ...config,
-      element,
-      id: config.id ?? element.id ?? generateID("viewport"),
-      context,
-    };
-  });
-  validateViewportProps(viewportProps);
-  return viewportProps.map((props) => new Viewport(props));
 }

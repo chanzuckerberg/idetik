@@ -4,10 +4,9 @@ import { ChunkManager } from "./data/chunk_manager";
 import { Renderer } from "./core/renderer";
 import { createStats, type Stats } from "./utilities/stats";
 import {
-  parseViewportProps,
   validateNewViewport,
+  validateViewports,
   Viewport,
-  ViewportProps,
 } from "./core/viewport";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 
@@ -40,9 +39,7 @@ export type Overlay = {
 export type IdetikProps = {
   /** The canvas element to render into. */
   canvas: HTMLCanvasElement;
-  /** Viewport definitions to create at startup. */
-  viewports?: ViewportProps[];
-  /** Overlays to run each frame. */
+  viewports?: Viewport[];
   overlays?: Overlay[];
   /** Shows an FPS meter. Defaults to `false`. */
   showStats?: boolean;
@@ -135,7 +132,31 @@ export class Idetik {
   /**
    * Creates an Idetik runtime for the given canvas.
    *
-   * @param params - Initialization properties.
+   * @param params - Configuration parameters for the Idetik instance
+   * @param params.canvas - HTMLCanvasElement to render to
+   * @param params.viewports - Optional array of viewport configurations.
+   *   Each viewport renders with its own camera, layers, and controls.
+   *   Elements and IDs must be unique across viewports.
+   * @param params.overlays - Optional array of overlay objects that update each frame (e.g., for HUD elements)
+   * @param params.showStats - Optional flag to display performance statistics
+   *
+   * @example
+   * const canvas = document.querySelector('canvas')!;
+   * const camera = new OrthographicCamera({
+   *   left: 0,
+   *   right: 1024,
+   *   top: 0,
+   *   bottom: 1024
+   * });
+   * const viewport = new Viewport({
+   *   element: canvas,
+   *   camera,
+   *   layers: [imageLayer],
+   *   cameraControls: new PanZoomControls(camera)
+   * });
+   * const idetik = new Idetik({ canvas, viewports: [viewport] });
+   *
+   * @throws {Error} If viewports have duplicate IDs or shared elements
    */
   constructor(params: IdetikProps) {
     this.canvas = params.canvas;
@@ -155,11 +176,20 @@ export class Idetik {
       chunkManager: this.chunkManager_,
     };
 
-    this.viewports_ = parseViewportProps(
-      params.viewports ?? [],
-      this.canvas,
-      this.context_
-    );
+    this.viewports_ = [...(params.viewports ?? [])];
+    validateViewports(this.viewports_);
+    const attached: Viewport[] = [];
+    try {
+      for (const viewport of this.viewports_) {
+        viewport.attachToIdetik(this.context_);
+        attached.push(viewport);
+      }
+    } catch (error) {
+      for (const viewport of attached.reverse()) {
+        viewport.detachFromIdetik();
+      }
+      throw error;
+    }
 
     this.overlays = [...(params.overlays ?? [])];
 
@@ -228,27 +258,9 @@ export class Idetik {
     return this.lastAnimationId_ !== undefined;
   }
 
-  /**
-   * Finds a viewport by its id.
-   *
-   * @param id - The id given in the viewport's definition.
-   * @returns The matching viewport or `undefined` if none matches.
-   */
-  public getViewport(id: string): Viewport | undefined {
-    return this.viewports_.find((v) => v.id === id);
-  }
-
-  /**
-   * Adds a viewport at runtime.
-   *
-   * @param props - The viewport definition. The `element` defaults to the
-   *   canvas and must be unique across viewports.
-   * @returns The created viewport.
-   */
-  public addViewport(props: ViewportProps): Viewport {
-    const [viewport] = parseViewportProps([props], this.canvas, this.context_);
-
+  public addViewport(viewport: Viewport): Viewport {
     validateNewViewport(viewport, this.viewports_);
+    viewport.attachToIdetik(this.context_);
     this.viewports_.push(viewport);
 
     if (this.running) {
@@ -287,6 +299,7 @@ export class Idetik {
     }
 
     this.viewports_.splice(index, 1);
+    viewport.detachFromIdetik();
     Logger.info("Idetik", `Removed viewport "${viewport.id}"`);
     return true;
   }

@@ -1,128 +1,105 @@
 import { expect, test } from "vitest";
 
-import { Viewport, ViewportProps, parseViewportProps } from "@/core/viewport";
+import { Viewport, validateViewports } from "@/core/viewport";
 import {
-  createTestElement,
   createTestCamera,
   createTestContext,
+  createTestElement,
+  TrackingLayer,
 } from "./helpers";
 
-test("Viewport constructor uses provided ID", () => {
-  const element = createTestElement("test-element");
-  const camera = createTestCamera();
-  const context = createTestContext();
+function createViewport(id: string, element = createTestElement(id)): Viewport {
+  return new Viewport({ id, element, camera: createTestCamera() });
+}
 
-  const viewport = new Viewport({
-    id: "custom-viewport",
-    element,
-    camera,
-    context,
-  });
+test("Viewport constructor uses the provided ID", () => {
+  const viewport = createViewport("custom-viewport");
   expect(viewport.id).toBe("custom-viewport");
 });
 
-test("Viewport constructor falls back to element ID", () => {
+test("Viewport constructor falls back to the element ID", () => {
   const element = createTestElement("element-id");
-  const camera = createTestCamera();
-  const context = createTestContext();
-
-  const viewport = new Viewport({
-    id: "element-id",
-    element,
-    camera,
-    context,
-  });
+  const viewport = new Viewport({ element, camera: createTestCamera() });
   expect(viewport.id).toBe("element-id");
 });
 
-test("Viewport constructor requires an ID", () => {
+test("Viewport constructor generates an ID when none is provided", () => {
   const element = createTestElement("");
-  element.id = ""; // Ensure no ID
-  const camera = createTestCamera();
-  const context = createTestContext();
-
-  const viewport = new Viewport({
-    id: "generated-id",
-    element,
-    camera,
-    context,
-  });
-  expect(viewport.id).toBe("generated-id");
+  const viewport = new Viewport({ element, camera: createTestCamera() });
+  expect(viewport.id).not.toBe("");
 });
 
-test("parseViewportProps creates viewports with validation", () => {
-  const canvas = document.createElement("canvas");
-  const element1 = createTestElement("viewport1");
-  const element2 = createTestElement("viewport2");
-  const camera1 = createTestCamera();
-  const camera2 = createTestCamera();
-  const context = createTestContext();
-
-  const configs: ViewportProps[] = [
-    { id: "viewport1", element: element1, camera: camera1 },
-    { id: "viewport2", element: element2, camera: camera2 },
+test("validateViewports rejects duplicate IDs", () => {
+  const viewports = [
+    createViewport("duplicate"),
+    createViewport("duplicate", createTestElement("second")),
   ];
 
-  const viewports = parseViewportProps(configs, canvas, context);
-
-  expect(viewports).toHaveLength(2);
-  expect(viewports[0].id).toBe("viewport1");
-  expect(viewports[1].id).toBe("viewport2");
-  expect(viewports[0].element).toBe(element1);
-  expect(viewports[1].element).toBe(element2);
-});
-
-test("parseViewportProps throws on duplicate IDs", () => {
-  const canvas = document.createElement("canvas");
-  const element1 = createTestElement("viewport1");
-  const element2 = createTestElement("viewport2");
-  const camera1 = createTestCamera();
-  const camera2 = createTestCamera();
-  const context = createTestContext();
-
-  const configs: ViewportProps[] = [
-    { id: "duplicate", element: element1, camera: camera1 },
-    { id: "duplicate", element: element2, camera: camera2 },
-  ];
-
-  expect(() => parseViewportProps(configs, canvas, context)).toThrow(
+  expect(() => validateViewports(viewports)).toThrow(
     'Duplicate viewport ID "duplicate"'
   );
 });
 
-test("parseViewportProps throws on shared elements", () => {
-  const canvas = document.createElement("canvas");
-  const sharedElement = createTestElement("shared");
-  const camera1 = createTestCamera();
-  const camera2 = createTestCamera();
-  const context = createTestContext();
-
-  const configs: ViewportProps[] = [
-    { id: "viewport1", element: sharedElement, camera: camera1 },
-    { id: "viewport2", element: sharedElement, camera: camera2 },
+test("validateViewports rejects shared elements", () => {
+  const element = createTestElement("shared");
+  const viewports = [
+    createViewport("viewport1", element),
+    createViewport("viewport2", element),
   ];
 
-  expect(() => parseViewportProps(configs, canvas, context)).toThrow(
+  expect(() => validateViewports(viewports)).toThrow(
     "Multiple viewports cannot share the same HTML element"
   );
 });
 
-test("parseViewportProps allows viewports without explicit IDs", () => {
-  const canvas = document.createElement("canvas");
-  const element1 = createTestElement("element1");
-  const element2 = createTestElement("element2");
-  const camera1 = createTestCamera();
-  const camera2 = createTestCamera();
+test("Viewport attaches and detaches layers with Idetik", () => {
+  const initial = new TrackingLayer();
+  const beforeAttach = new TrackingLayer();
+  const afterAttach = new TrackingLayer();
+  const viewport = new Viewport({
+    element: createTestElement(),
+    camera: createTestCamera(),
+    layers: [initial],
+  });
+
+  viewport.addLayer(beforeAttach);
+  expect(initial.attachCount).toBe(0);
+  expect(beforeAttach.attachCount).toBe(0);
+
+  viewport.attachToIdetik(createTestContext());
+  expect(initial.attachCount).toBe(1);
+  expect(beforeAttach.attachCount).toBe(1);
+
+  viewport.addLayer(afterAttach);
+  expect(afterAttach.attachCount).toBe(1);
+
+  viewport.removeAllLayers();
+  expect(initial.detachCount).toBe(1);
+  expect(beforeAttach.detachCount).toBe(1);
+  expect(afterAttach.detachCount).toBe(1);
+});
+
+test("Viewport rolls back a failed attachment", () => {
+  const attached = new TrackingLayer();
+  const failing = new TrackingLayer();
+  failing.throwOnAttach = true;
+  const viewport = new Viewport({
+    element: createTestElement(),
+    camera: createTestCamera(),
+    layers: [attached, failing],
+  });
   const context = createTestContext();
 
-  const configs: ViewportProps[] = [
-    { element: element1, camera: camera1 },
-    { element: element2, camera: camera2 },
-  ];
+  expect(() => viewport.attachToIdetik(context)).toThrow("attach failed");
+  expect(attached.attachCount).toBe(1);
+  expect(attached.detachCount).toBe(1);
 
-  const viewports = parseViewportProps(configs, canvas, context);
-
-  expect(viewports).toHaveLength(2);
-  expect(viewports[0].id).toBe("element1");
-  expect(viewports[1].id).toBe("element2");
+  failing.throwOnAttach = false;
+  expect(() => viewport.attachToIdetik(context)).not.toThrow();
+  expect(() => viewport.attachToIdetik(context)).toThrow(
+    `Viewport "${viewport.id}" is already attached`
+  );
+  viewport.detachFromIdetik();
+  expect(attached.detachCount).toBe(2);
+  expect(failing.detachCount).toBe(1);
 });
