@@ -58,7 +58,7 @@ export abstract class Layer {
   public blendMode: BlendMode;
   public occludes: boolean;
 
-  protected readsSceneDepth_ = false;
+  protected requiresSceneDepth_ = false;
 
   constructor({
     opacity = 1.0,
@@ -72,8 +72,8 @@ export abstract class Layer {
     this.occludes = occludes ?? blendMode === "none";
   }
 
-  public get readsSceneDepth() {
-    return this.readsSceneDepth_;
+  public get requiresSceneDepth() {
+    return this.requiresSceneDepth_;
   }
 
   public get opacity() {
@@ -100,7 +100,7 @@ export abstract class Layer {
         `${this.type} cannot be attached to multiple viewports simultaneously.`
       );
     }
-    if (this.occludes && this.readsSceneDepth_) {
+    if (this.occludes && this.requiresSceneDepth_) {
       throw new Error(`${this.type} cannot both occlude and read scene depth.`);
     }
     this.attach(context);

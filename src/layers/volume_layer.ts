@@ -30,8 +30,7 @@ const INTERACTIVE_STEP_SIZE_SCALE = 2.0;
 export class VolumeLayer extends Layer implements ChannelsEnabled {
   public readonly type = "VolumeLayer";
 
-  // rays are terminated at the nearest opaque surface
-  protected override readsSceneDepth_ = true;
+  protected override requiresSceneDepth_ = true;
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
@@ -284,13 +283,12 @@ export function poolKeyForChunk(chunk: Chunk) {
 
 function sortBackToFront(objects: VolumeRenderable[], camera: Camera) {
   const cameraPosition = camera.position;
-  const center = vec3.create();
   const depths = new Map<VolumeRenderable, number>();
 
   for (const object of objects) {
-    const { min, max } = object.boundingBox;
-    vec3.add(center, max, min);
-    vec3.scale(center, center, 0.5);
+    // the geometry is a box centered on the origin, so scale leaves it centered
+    // and the transform's translation is the center of the volume
+    const center = object.transform.translation;
     depths.set(object, vec3.squaredDistance(cameraPosition, center));
   }
 

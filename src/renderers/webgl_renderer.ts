@@ -8,7 +8,7 @@ import { WebGLTextures } from "./webgl_textures";
 
 import { Layer } from "../core/layer";
 import { WebGLState } from "./webgl_state";
-import { WebGLDepthPass } from "./webgl_depth_pass";
+import { WebGLDepthTarget } from "./webgl_depth_target";
 import { RenderableObject } from "../core/renderable_object";
 import { Geometry, Primitive } from "../core/geometry";
 import { Box2 } from "../math/box2";
@@ -32,7 +32,7 @@ const axisDirection = mat4.fromScaling(mat4.create(), [1, -1, 1]);
 export class WebGLRenderer extends Renderer {
   private readonly gl_: WebGL2RenderingContext;
   private readonly bindings_: WebGLBuffers;
-  private readonly depthPass_: WebGLDepthPass;
+  private readonly depthTarget_: WebGLDepthTarget;
   private readonly programs_: WebGLShaderPrograms;
   private readonly state_: WebGLState;
   private readonly textures_: WebGLTextures;
@@ -66,7 +66,10 @@ export class WebGLRenderer extends Renderer {
     this.bindings_ = new WebGLBuffers(gl);
     this.textures_ = new WebGLTextures(gl);
     this.state_ = new WebGLState(gl);
-    this.depthPass_ = new WebGLDepthPass(gl, this.state_, this.textures_);
+    this.depthTarget_ = new WebGLDepthTarget(
+      gl,
+      this.textures_.reservePersistentUnit()
+    );
     this.resize(this.canvas.width, this.canvas.height);
   }
 
@@ -126,22 +129,16 @@ export class WebGLRenderer extends Renderer {
       if (layer.state !== "ready") continue;
       (layer.occludes ? occludingLayers : nonOccludingLayers).push(layer);
     }
-    const drawOccluders = () =>
-      this.drawDepthOnly(occludingLayers, viewport.camera, frustum);
 
-    this.depthPass_.renderPrePass(drawOccluders);
-    this.resetState();
-
-    const needsSceneDepth =
+    this.currentViewportHasSceneDepth_ =
       occludingLayers.length > 0 &&
-      nonOccludingLayers.some((l) => l.readsSceneDepth);
+      nonOccludingLayers.some((l) => l.requiresSceneDepth);
 
-    if (needsSceneDepth) {
-      this.depthPass_.renderToTexture(this.width, this.height, drawOccluders);
-      this.depthPass_.bindTexture();
-      this.resetState();
+    this.renderDepthPrePass(occludingLayers, viewport.camera, frustum);
+
+    if (this.currentViewportHasSceneDepth_) {
+      this.renderDepthTarget(occludingLayers, viewport.camera, frustum);
     }
-    this.currentViewportHasSceneDepth_ = needsSceneDepth;
 
     this.state_.setDepthMask(false);
     for (const layer of [...occludingLayers, ...nonOccludingLayers]) {
@@ -150,6 +147,34 @@ export class WebGLRenderer extends Renderer {
     this.resetState();
 
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
+  }
+
+  private renderDepthPrePass(
+    layers: Layer[],
+    camera: Camera,
+    frustum: Frustum
+  ) {
+    this.state_.setColorMask(false);
+    this.state_.setDepthFunc(this.gl_.LESS);
+    // nudge the depth away from the camera, so that the color passes
+    // at the same depth are not rejected
+    this.state_.setPolygonOffset(true);
+
+    this.drawDepthOnly(layers, camera, frustum);
+
+    this.resetState();
+  }
+
+  private renderDepthTarget(layers: Layer[], camera: Camera, frustum: Frustum) {
+    this.depthTarget_.bind(this.width, this.height);
+    this.state_.setDepthMask(true);
+    this.state_.setDepthFunc(this.gl_.LESS);
+    this.gl_.clear(this.gl_.DEPTH_BUFFER_BIT);
+
+    this.drawDepthOnly(layers, camera, frustum);
+
+    this.depthTarget_.unbind();
+    this.resetState();
   }
 
   private drawDepthOnly(layers: Layer[], camera: Camera, frustum: Frustum) {
@@ -290,11 +315,13 @@ export class WebGLRenderer extends Renderer {
         case "u_hasSceneDepth":
           program.setUniform(
             uniformName,
-            Number(layer.readsSceneDepth && this.currentViewportHasSceneDepth_)
+            Number(
+              layer.requiresSceneDepth && this.currentViewportHasSceneDepth_
+            )
           );
           break;
         case "u_sceneDepth":
-          program.setUniform(uniformName, this.depthPass_.textureUnit);
+          program.setUniform(uniformName, this.depthTarget_.textureUnit);
           break;
         case "u_mvpInverse": {
           const mvp = mat4.multiply(mat4.create(), projection, modelView);

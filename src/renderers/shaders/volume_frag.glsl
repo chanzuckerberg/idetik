@@ -52,7 +52,6 @@ uniform bool u_hasSceneDepth;
 uniform sampler2D u_sceneDepth;
 uniform mat4 u_mvpInverse;
 
-// How far along the ray the occluding surface is (precomputed scene depth)
 float distanceAlongRayAtWindowDepth(float windowDepth, vec3 rayOrigin, vec3 rayDir) {
     vec3 ndc = vec3(v_clipPosition.xy / v_clipPosition.w, windowDepth * 2.0 - 1.0);
     vec4 positionModel = u_mvpInverse * vec4(ndc, 1.0);

@@ -12,10 +12,6 @@ import { Texture2D } from "../objects/textures/texture_2d";
 import { Texture2DArray } from "../objects/textures/texture_2d_array";
 import { Texture3D } from "../objects/textures/texture_3d";
 
-const WEBGL2_MIN_TEXTURE_IMAGE_UNITS = 16;
-
-const DEPTH24_BYTES_PER_TEXEL = 4;
-
 type TextureFormatInfo = {
   internalFormat: number;
   format: number;
@@ -25,7 +21,6 @@ type TextureFormatInfo = {
 export class WebGLTextures {
   private readonly gl_: WebGL2RenderingContext;
   private readonly textures_: Map<Texture, WebGLTexture> = new Map();
-  private readonly targets_: Map<WebGLTexture, number> = new Map();
   private currentTexture_: Texture | null = null;
   private readonly maxTextureUnits_: number;
   private nextPersistentUnit_: number;
@@ -35,9 +30,7 @@ export class WebGLTextures {
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
-    this.maxTextureUnits_ =
-      gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS) ??
-      WEBGL2_MIN_TEXTURE_IMAGE_UNITS;
+    this.maxTextureUnits_ = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
     this.nextPersistentUnit_ = this.maxTextureUnits_ - 1;
   }
 
@@ -56,56 +49,6 @@ export class WebGLTextures {
       );
     }
     return this.nextPersistentUnit_--;
-  }
-
-  public createDepthTarget(
-    width: number,
-    height: number,
-    unit: number
-  ): WebGLTexture {
-    const gl = this.gl_;
-    const texture = gl.createTexture();
-    if (!texture) throw new Error("Failed to create depth target");
-
-    this.bindTarget(texture, unit);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.DEPTH_COMPONENT24,
-      width,
-      height,
-      0,
-      gl.DEPTH_COMPONENT,
-      gl.UNSIGNED_INT,
-      null
-    );
-    // sampled as exact window depth, so no filtering and no wrapping
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    const bytes = width * height * DEPTH24_BYTES_PER_TEXEL;
-    this.targets_.set(texture, bytes);
-    this.gpuTextureBytes_ += bytes;
-    this.textureCount_ += 1;
-
-    return texture;
-  }
-
-  public bindTarget(texture: WebGLTexture | null, unit: number) {
-    this.gl_.activeTexture(this.gl_.TEXTURE0 + unit);
-    this.gl_.bindTexture(this.gl_.TEXTURE_2D, texture);
-  }
-
-  public disposeTarget(texture: WebGLTexture) {
-    const bytes = this.targets_.get(texture);
-    if (bytes === undefined) return;
-
-    this.gl_.deleteTexture(texture);
-    this.targets_.delete(texture);
-    this.gpuTextureBytes_ = Math.max(0, this.gpuTextureBytes_ - bytes);
-    this.textureCount_ = Math.max(0, this.textureCount_ - 1);
   }
 
   public bindTexture(texture: Texture, index: number) {
@@ -230,11 +173,8 @@ export class WebGLTextures {
     for (const texture of Array.from(this.textures_.keys())) {
       this.dispose(texture);
     }
-    // render targets are owned by their creator and outlive this call
-    let targetBytes = 0;
-    for (const bytes of this.targets_.values()) targetBytes += bytes;
-    this.gpuTextureBytes_ = targetBytes;
-    this.textureCount_ = this.targets_.size;
+    this.gpuTextureBytes_ = 0;
+    this.textureCount_ = 0;
   }
 
   private alreadyActive(texture: Texture) {
