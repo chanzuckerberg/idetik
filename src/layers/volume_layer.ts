@@ -286,8 +286,6 @@ function sortBackToFront(objects: VolumeRenderable[], camera: Camera) {
   const depths = new Map<VolumeRenderable, number>();
 
   for (const object of objects) {
-    // the geometry is a box centered on the origin, so scale leaves it centered
-    // and the transform's translation is the center of the volume
     const center = object.transform.translation;
     depths.set(object, vec3.squaredDistance(cameraPosition, center));
   }

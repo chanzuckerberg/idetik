@@ -43,6 +43,9 @@ export class WebGLDepthTarget {
     const gl = this.gl_;
     if (this.texture_) gl.deleteTexture(this.texture_);
     this.framebuffer_ ??= gl.createFramebuffer();
+    if (!this.framebuffer_) {
+      throw new Error("Failed to create scene depth framebuffer");
+    }
 
     const texture = this.createDepthTexture(width, height);
 
@@ -81,7 +84,6 @@ export class WebGLDepthTarget {
       gl.UNSIGNED_INT,
       null
     );
-    // sampled as exact window depth, so no filtering and no wrapping
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);

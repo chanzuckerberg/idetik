@@ -49,7 +49,7 @@ uniform vec3 u_color[4];
 
 // Optionally terminate rays at some predetermined scene depth
 uniform bool u_hasSceneDepth;
-uniform sampler2D u_sceneDepth;
+uniform highp sampler2D u_sceneDepth;
 uniform mat4 u_mvpInverse;
 
 float distanceAlongRayAtWindowDepth(float windowDepth, vec3 rayOrigin, vec3 rayDir) {
