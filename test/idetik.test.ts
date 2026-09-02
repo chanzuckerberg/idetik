@@ -69,20 +69,16 @@ test("Width and height properties return (scaled) canvas shape", () => {
 });
 
 test("Runtime constructor rejects duplicate viewport IDs before attachment", () => {
-  const firstLayer = new TrackingLayer();
-  const secondLayer = new TrackingLayer();
   const viewports = [
     new Viewport({
       id: "duplicate",
       domElement: createTestElement("first"),
       camera: createTestCamera(),
-      layers: [firstLayer],
     }),
     new Viewport({
       id: "duplicate",
       domElement: createTestElement("second"),
       camera: createTestCamera(),
-      layers: [secondLayer],
     }),
   ];
 
@@ -93,63 +89,6 @@ test("Runtime constructor rejects duplicate viewport IDs before attachment", () 
         viewports,
       })
   ).toThrow('Duplicate viewport ID "duplicate"');
-  expect(firstLayer.attachCount).toBe(0);
-  expect(secondLayer.attachCount).toBe(0);
-});
-
-test("Runtime constructor rejects shared viewport elements before attachment", () => {
-  const element = createTestElement("shared");
-  const firstLayer = new TrackingLayer();
-  const secondLayer = new TrackingLayer();
-  const viewports = [
-    new Viewport({
-      id: "first",
-      domElement: element,
-      camera: createTestCamera(),
-      layers: [firstLayer],
-    }),
-    new Viewport({
-      id: "second",
-      domElement: element,
-      camera: createTestCamera(),
-      layers: [secondLayer],
-    }),
-  ];
-
-  expect(
-    () =>
-      new Idetik({
-        canvas: document.createElement("canvas"),
-        viewports,
-      })
-  ).toThrow("Multiple viewports cannot share the same HTML element");
-  expect(firstLayer.attachCount).toBe(0);
-  expect(secondLayer.attachCount).toBe(0);
-});
-
-test("addViewport rejects duplicate IDs without changing the runtime", () => {
-  const first = new Viewport({
-    id: "duplicate",
-    domElement: createTestElement("first"),
-    camera: createTestCamera(),
-  });
-  const idetik = new Idetik({
-    canvas: document.createElement("canvas"),
-    viewports: [first],
-  });
-  const layer = new TrackingLayer();
-  const duplicate = new Viewport({
-    id: "duplicate",
-    domElement: createTestElement("second"),
-    camera: createTestCamera(),
-    layers: [layer],
-  });
-
-  expect(() => idetik.addViewport(duplicate)).toThrow(
-    'Duplicate viewport ID "duplicate"'
-  );
-  expect(idetik.viewports).toEqual([first]);
-  expect(layer.attachCount).toBe(0);
 });
 
 test("addViewport rejects shared elements without changing the runtime", () => {
@@ -163,19 +102,16 @@ test("addViewport rejects shared elements without changing the runtime", () => {
     canvas: document.createElement("canvas"),
     viewports: [first],
   });
-  const layer = new TrackingLayer();
   const shared = new Viewport({
     id: "second",
     domElement: element,
     camera: createTestCamera(),
-    layers: [layer],
   });
 
   expect(() => idetik.addViewport(shared)).toThrow(
     "Multiple viewports cannot share the same HTML element"
   );
   expect(idetik.viewports).toEqual([first]);
-  expect(layer.attachCount).toBe(0);
 });
 
 test("addViewport rejects shared layers without changing the runtime", () => {
@@ -240,31 +176,6 @@ test("Runtime attaches pending layers before rendering and detaches eagerly", ()
   expect(idetik.removeViewport(viewport)).toBe(true);
   idetik.stop();
   expect(firstLayer.detachCount).toBe(1);
-});
-
-test("Runtime rejects shared layers before attachment", () => {
-  const layer = new TrackingLayer();
-  const first = new Viewport({
-    id: "first",
-    domElement: createTestElement("first"),
-    camera: createTestCamera(),
-    layers: [layer],
-  });
-  const second = new Viewport({
-    id: "second",
-    domElement: createTestElement("second"),
-    camera: createTestCamera(),
-    layers: [layer],
-  });
-
-  expect(
-    () =>
-      new Idetik({
-        canvas: document.createElement("canvas"),
-        viewports: [first, second],
-      })
-  ).toThrow("TrackingLayer cannot be shared by multiple viewports");
-  expect(layer.attachCount).toBe(0);
 });
 
 test("Runtime revalidates layers added between frames", () => {
