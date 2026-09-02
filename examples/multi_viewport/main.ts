@@ -86,7 +86,7 @@ function createSliceViewport(
 
   return new Viewport({
     id,
-    element: document.querySelector<HTMLDivElement>(`#viewport-${id}`)!,
+    domElement: document.querySelector<HTMLDivElement>(`#viewport-${id}`)!,
     camera,
     cameraControls: new PanZoomControls(camera),
     layers: [createSliceLayer(orientation)],
@@ -119,7 +119,7 @@ new Idetik({
     createSliceViewport("slice-xy", "XY", xRange, yRange),
     new Viewport({
       id: "3d",
-      element: document.querySelector<HTMLDivElement>("#viewport-3d")!,
+      domElement: document.querySelector<HTMLDivElement>("#viewport-3d")!,
       camera: camera3D,
       cameraControls: new OrbitControls(camera3D, {
         radius: Math.hypot(xMax - xMin, yMax - yMin, zMax - zMin),

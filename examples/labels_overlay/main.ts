@@ -118,7 +118,7 @@ const camera = new OrthographicCamera({
 });
 const canvas = document.querySelector<HTMLCanvasElement>("canvas")!;
 const viewport = new Viewport({
-  element: canvas,
+  domElement: canvas,
   camera,
   cameraControls: new PanZoomControls(camera),
   layers: [imageLayer, labelsLayer],

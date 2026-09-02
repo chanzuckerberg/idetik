@@ -7,7 +7,6 @@ import { generateID } from "../utilities/id_generator";
 import { Logger } from "../utilities/logger";
 import { EventContext, EventDispatcher } from "./event_dispatcher";
 import { Ray } from "../math/ray";
-import { IdetikContext } from "../idetik";
 
 /**
  * Initialization properties for constructing a viewport.
@@ -15,7 +14,7 @@ import { IdetikContext } from "../idetik";
 export type ViewportProps = {
   /** Unique id. Defaults to the element id or a generated id. */
   id?: string;
-  element: HTMLElement;
+  domElement: HTMLElement;
   camera: Camera;
   /** Layers to render in order. */
   layers?: Layer[];
@@ -27,26 +26,22 @@ export type ViewportProps = {
 export class Viewport {
   /** The viewport's unique identifier. */
   public readonly id: string;
-  /** The host element defining the viewport's area. */
-  public readonly element: HTMLElement;
-  /** The camera the viewport renders with. */
+  public readonly domElement: HTMLElement;
   public readonly camera: Camera;
   /** The pointer and wheel event dispatcher for the host element. */
   public readonly events: EventDispatcher;
   /** Input controls driving the camera. */
   public cameraControls?: CameraControls;
 
-  private context_?: IdetikContext;
-
   private layers_: Layer[] = [];
 
   constructor(props: ViewportProps) {
-    this.id = props.id || props.element.id || generateID("viewport");
-    this.element = props.element;
+    this.id = props.id || props.domElement.id || generateID("viewport");
+    this.domElement = props.domElement;
     this.camera = props.camera;
     this.cameraControls = props.cameraControls;
     this.updateAspectRatio();
-    this.events = new EventDispatcher(this.element);
+    this.events = new EventDispatcher(this.domElement);
     this.events.addEventListener((event: EventContext) => {
       if (
         event.event instanceof PointerEvent ||
@@ -85,7 +80,6 @@ export class Viewport {
    * @param layer - The layer to add.
    */
   public addLayer(layer: Layer): void {
-    if (this.context_) layer.onAttached(this.context_);
     this.layers_.push(layer);
   }
 
@@ -100,15 +94,13 @@ export class Viewport {
       throw new Error(`Layer to remove not found: ${layer}`);
     }
     this.layers_.splice(index, 1);
-    if (this.context_) layer.onDetached(this.context_);
+    layer.onDetached(this);
   }
 
   /** Removes all layers from the viewport. */
   public removeAllLayers(): void {
-    if (this.context_) {
-      for (const layer of this.layers_) {
-        layer.onDetached(this.context_);
-      }
+    for (const layer of this.layers_) {
+      layer.onDetached(this);
     }
     this.layers_ = [];
   }
@@ -148,29 +140,25 @@ export class Viewport {
     this.updateAspectRatio();
   }
 
-  /**
-   * Computes the viewport's box relative to the given canvas in device pixels.
-   *
-   * @param canvas - The canvas to compute the box against.
-   * @returns The viewport's box in the canvas's coordinate space.
-   */
-  public getBoxRelativeTo(canvas: HTMLCanvasElement): Box2 {
+  public getBoxRelativeTo(relativeElement: HTMLElement): Box2 {
     const viewportRect = this.getBox().toRect();
-    const canvasRect = canvas.getBoundingClientRect();
+    const relativeRect = relativeElement.getBoundingClientRect();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
-    // convert canvas rect to device pixels
-    // viewport rect is already in device pixels
-    const canvasX = canvasRect.left * devicePixelRatio;
-    const canvasY = canvasRect.top * devicePixelRatio;
-    const canvasHeight = canvasRect.height * devicePixelRatio;
+    // Convert the relative element's rect to device pixels.
+    // The viewport rect is already in device pixels.
+    const relativeElementX = relativeRect.left * devicePixelRatio;
+    const relativeElementY = relativeRect.top * devicePixelRatio;
+    const relativeElementHeight = relativeRect.height * devicePixelRatio;
 
-    const relativeX = viewportRect.x - canvasX;
-    const relativeY = viewportRect.y - canvasY;
+    const relativeX = viewportRect.x - relativeElementX;
+    const relativeY = viewportRect.y - relativeElementY;
 
     // Note: WebGL Y coordinate is flipped, so we adjust the Y position
     const x = Math.floor(relativeX);
-    const y = Math.floor(canvasHeight - relativeY - viewportRect.height);
+    const y = Math.floor(
+      relativeElementHeight - relativeY - viewportRect.height
+    );
     const width = Math.floor(viewportRect.width);
     const height = Math.floor(viewportRect.height);
 
@@ -189,7 +177,7 @@ export class Viewport {
     width: number;
     height: number;
   } {
-    return this.getBoxRelativeTo(this.element as HTMLCanvasElement).toRect();
+    return this.getBoxRelativeTo(this.domElement).toRect();
   }
 
   /**
@@ -201,7 +189,7 @@ export class Viewport {
    */
   public clientToClip(position: vec2, depth: number = 0): vec3 {
     const [x, y] = position;
-    const rect = this.element.getBoundingClientRect();
+    const rect = this.domElement.getBoundingClientRect();
     return vec3.fromValues(
       (2 * (x - rect.x)) / rect.width - 1,
       (2 * (y - rect.y)) / rect.height - 1,
@@ -222,7 +210,7 @@ export class Viewport {
   }
 
   private getBox(): Box2 {
-    const viewportRect = this.element.getBoundingClientRect();
+    const viewportRect = this.domElement.getBoundingClientRect();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
     const x = viewportRect.left * devicePixelRatio;
@@ -247,35 +235,5 @@ export class Viewport {
     }
     const aspectRatio = width / height;
     this.camera.setAspectRatio(aspectRatio);
-  }
-}
-
-export function validateNewViewport(
-  viewport: { id: string; element: HTMLElement },
-  existingViewports: { id: string; element: HTMLElement }[]
-): void {
-  for (const existing of existingViewports) {
-    if (existing.id === viewport.id) {
-      throw new Error(
-        `Duplicate viewport ID "${viewport.id}". Each viewport must have a unique ID.`
-      );
-    }
-    if (existing.element === viewport.element) {
-      const elementDescription =
-        viewport.element.tagName.toLowerCase() +
-        (viewport.element.id
-          ? `#${viewport.element.id}`
-          : "[element has no id]");
-      throw new Error(
-        "Multiple viewports cannot share the same HTML element: " +
-          `viewports "${existing.id}" and "${viewport.id}" both use ${elementDescription}`
-      );
-    }
-  }
-}
-
-export function validateViewports(viewports: Viewport[]): void {
-  for (let i = 0; i < viewports.length; i++) {
-    validateNewViewport(viewports[i], viewports.slice(0, i));
   }
 }

@@ -53,18 +53,19 @@ const volumeLayer = new VolumeLayer({
 });
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas")!;
-const viewport = new Viewport({
-  element: canvas,
-  camera,
-  cameraControls: new OrbitControls(camera, {
-    radius: 100,
-    target: vec3.fromValues(40, 40, 10), // Volume center,
-  }),
-  layers: [volumeLayer],
-});
 const idetik = new Idetik({
   canvas,
-  viewports: [viewport],
+  viewports: [
+    new Viewport({
+      domElement: canvas,
+      camera,
+      cameraControls: new OrbitControls(camera, {
+        radius: 100,
+        target: vec3.fromValues(40, 40, 10), // Volume center,
+      }),
+      layers: [volumeLayer],
+    }),
+  ],
   showStats: true,
 });
 
