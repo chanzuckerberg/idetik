@@ -1,6 +1,7 @@
 import { expect, test, vi } from "vitest";
 
 import { Layer } from "@/core/layer";
+import { Viewport } from "@/core/viewport";
 import { IdetikContext } from "@/idetik";
 
 class TestLayer extends Layer {
@@ -27,6 +28,8 @@ class TestLayer extends Layer {
 }
 
 const context = {} as IdetikContext;
+const viewport = {} as Viewport;
+const otherViewport = {} as Viewport;
 
 test("Default layer state is 'initialized'", () => {
   const layer = new TestLayer();
@@ -69,9 +72,9 @@ test("Removing an unregistered callback throws and keeps registered ones", () =>
 
 test("Attaching to a second viewport while attached throws", () => {
   const layer = new TestLayer();
-  layer.onAttached(context);
+  layer.onAttached(context, viewport);
 
-  expect(() => layer.onAttached(context)).toThrow(
+  expect(() => layer.onAttached(context, otherViewport)).toThrow(
     "TestLayer cannot be attached to multiple viewports simultaneously."
   );
   expect(layer.attachCount).toBe(1);
@@ -79,26 +82,36 @@ test("Attaching to a second viewport while attached throws", () => {
 
 test("onDetached is a no-op when not attached", () => {
   const layer = new TestLayer();
-  layer.onDetached(context);
+  layer.onDetached(viewport);
 
   expect(layer.detachCount).toBe(0);
 });
 
+test("onDetached ignores a viewport that does not own the attachment", () => {
+  const layer = new TestLayer();
+  layer.onAttached(context, viewport);
+
+  layer.onDetached(otherViewport);
+
+  expect(layer.detachCount).toBe(0);
+  expect(layer.attached).toBe(true);
+});
+
 test("Re-attaching after detach is allowed", () => {
   const layer = new TestLayer();
-  layer.onAttached(context);
-  layer.onDetached(context);
+  layer.onAttached(context, viewport);
+  layer.onDetached(viewport);
 
-  expect(() => layer.onAttached(context)).not.toThrow();
+  expect(() => layer.onAttached(context, viewport)).not.toThrow();
   expect(layer.attachCount).toBe(2);
 });
 
 test("A failed attach does not mark the layer as attached", () => {
   const layer = new TestLayer();
   layer.throwOnAttach = true;
-  expect(() => layer.onAttached(context)).toThrow("attach failed");
+  expect(() => layer.onAttached(context, viewport)).toThrow("attach failed");
 
   // onDetached must be a no-op — the layer was never fully attached.
-  layer.onDetached(context);
+  layer.onDetached(viewport);
   expect(layer.detachCount).toBe(0);
 });
