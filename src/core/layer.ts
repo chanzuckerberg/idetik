@@ -1,9 +1,9 @@
-import { IdetikContext } from "../idetik";
+import type { IdetikContext } from "../idetik";
 import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
-import { Viewport } from "./viewport";
+import type { Viewport } from "./viewport";
 
 /**
  * The loading lifecycle state of a layer.
@@ -103,7 +103,8 @@ export abstract class Layer {
     RenderableObject[]
   >();
   private state_: LayerState = "initialized";
-  private attached_ = false;
+  private attachment_: { context: IdetikContext; viewport: Viewport } | null =
+    null;
   private readonly callbacks_: StateChangeCallback[] = [];
   private opacity_: number;
 
@@ -165,15 +166,19 @@ export abstract class Layer {
    */
   public onEvent(_event: EventContext): void {}
 
-  /**
-   * Lifecycle hook that is called automatically when a layer is
-   * is attached to a viewport. A layer can only be attached to one viewport
-   * at a time.
-   *
-   * @param context - The shared runtime context.
-   */
-  public onAttached(context: IdetikContext): void {
-    if (this.attached_) {
+  public get attached(): boolean {
+    return this.attachment_ !== null;
+  }
+
+  public isAttachedTo(context: IdetikContext, viewport: Viewport): boolean {
+    return (
+      this.attachment_?.context === context &&
+      this.attachment_.viewport === viewport
+    );
+  }
+
+  public onAttached(context: IdetikContext, viewport: Viewport): void {
+    if (this.attachment_) {
       throw new Error(
         `${this.type} cannot be attached to multiple viewports simultaneously.`
       );
@@ -182,19 +187,13 @@ export abstract class Layer {
       throw new Error(`${this.type} cannot both occlude and read scene depth.`);
     }
     this.attach(context);
-    this.attached_ = true;
+    this.attachment_ = { context, viewport };
   }
 
-  /**
-   * Lifecycle hook that is called automatically when a layer is detached
-   * from a viewport.
-   *
-   * @param context - The shared runtime context.
-   */
-  public onDetached(context: IdetikContext): void {
-    if (!this.attached_) return;
-    this.detach(context);
-    this.attached_ = false;
+  public onDetached(viewport: Viewport): void {
+    if (!this.attachment_ || this.attachment_.viewport !== viewport) return;
+    this.detach(this.attachment_.context);
+    this.attachment_ = null;
   }
 
   /** @hidden */
