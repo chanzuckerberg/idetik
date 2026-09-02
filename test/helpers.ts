@@ -122,7 +122,7 @@ export class TrackingLayer extends Layer {
 export function createTestViewport(id: string = "test-viewport"): Viewport {
   return new Viewport({
     id,
-    element: createTestElement(id),
+    domElement: createTestElement(id),
     camera: createTestCamera(),
   });
 }
