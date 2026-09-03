@@ -1,4 +1,5 @@
 export { Idetik } from "./idetik";
+export { Viewport, type ViewportProps } from "./core/viewport";
 
 export { OmeZarrImageSource } from "./data/ome_zarr/image_source";
 

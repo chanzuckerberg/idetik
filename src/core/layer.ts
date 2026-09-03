@@ -1,9 +1,9 @@
-import { IdetikContext } from "../idetik";
+import type { IdetikContext } from "../idetik";
 import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
-import { Viewport } from "./viewport";
+import type { Viewport } from "./viewport";
 
 /** @group Layers */
 export type LayerState = "initialized" | "loading" | "ready";
@@ -50,7 +50,8 @@ export abstract class Layer {
     RenderableObject[]
   >();
   private state_: LayerState = "initialized";
-  private attached_ = false;
+  private attachment_: { context: IdetikContext; viewport: Viewport } | null =
+    null;
   private readonly callbacks_: StateChangeCallback[] = [];
 
   private opacity_: number;
@@ -94,8 +95,19 @@ export abstract class Layer {
 
   public onEvent(_: EventContext): void {}
 
-  public onAttached(context: IdetikContext): void {
-    if (this.attached_) {
+  public get attached(): boolean {
+    return this.attachment_ !== null;
+  }
+
+  public isAttachedTo(context: IdetikContext, viewport: Viewport): boolean {
+    return (
+      this.attachment_?.context === context &&
+      this.attachment_.viewport === viewport
+    );
+  }
+
+  public onAttached(context: IdetikContext, viewport: Viewport): void {
+    if (this.attachment_) {
       throw new Error(
         `${this.type} cannot be attached to multiple viewports simultaneously.`
       );
@@ -104,13 +116,13 @@ export abstract class Layer {
       throw new Error(`${this.type} cannot both occlude and read scene depth.`);
     }
     this.attach(context);
-    this.attached_ = true;
+    this.attachment_ = { context, viewport };
   }
 
-  public onDetached(context: IdetikContext): void {
-    if (!this.attached_) return;
-    this.detach(context);
-    this.attached_ = false;
+  public onDetached(viewport: Viewport): void {
+    if (!this.attachment_ || this.attachment_.viewport !== viewport) return;
+    this.detach(this.attachment_.context);
+    this.attachment_ = null;
   }
 
   protected attach(_context: IdetikContext): void {}
