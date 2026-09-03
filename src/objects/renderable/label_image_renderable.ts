@@ -32,13 +32,28 @@ function validateCycle(cycle?: ReadonlyArray<ColorLike>): ReadonlyArray<Color> {
   return cycle.map(Color.from);
 }
 
+/**
+ * Color assignments for label values.
+ *
+ * Values present in `lookupTable` use its color. Any other value takes a
+ * color from `cycle` by index. Value `0` renders transparent unless the
+ * lookup table assigns it a color.
+ */
 export type LabelColorMapProps = {
+  /** Exact colors for specific label values. */
   lookupTable?: ReadonlyMap<number, ColorLike>;
+  /** Colors cycled by value. Defaults to 6 built-ins. */
   cycle?: ReadonlyArray<ColorLike>;
 };
 
+/**
+ * A validated color map with every entry resolved to a {@link Color}.
+ * Returned by {@link LabelLayer.colorMap}.
+ */
 export type LabelColorMap = {
+  /** Exact colors for specific label values. */
   readonly lookupTable: ReadonlyMap<number, Color>;
+  /** Colors cycled by value. */
   readonly cycle: ReadonlyArray<Color>;
 };
 
@@ -51,12 +66,21 @@ export function validateColorMap(
   };
 }
 
-type LabelImageRenderableProps = {
+/**
+ * Initialization properties for constructing a label image renderable.
+ */
+export type LabelImageRenderableProps = {
+  /** Width of the label image in texels. */
   width: number;
+  /** Height of the label image in texels. */
   height: number;
+  /** Scalar integer texture of label values. */
   imageData: Texture;
+  /** Colors to apply to label values. */
   colorMap: LabelColorMapProps;
+  /** Outlines the selected value. Defaults to `false`. */
   outlineSelected?: boolean;
+  /** The selected label value. Defaults to `null`. */
   selectedValue?: number | null;
 };
 
@@ -88,13 +112,34 @@ function labelTextureToShader(texture: Texture): Shader {
   return signedDataTypes.has(texture.dataType) ? "intLabelImage" : "labelImage";
 }
 
-/** @group Renderable Objects */
+/**
+ * A textured plane that draws one 2D slice of integer label data.
+ *
+ * Each label value is colored through a {@link LabelColorMap}. Values in
+ * the lookup table use its color, other values take a color from the
+ * cycle, and value `0` renders transparent unless the lookup table covers
+ * it. The image texture must hold scalar integer data. {@link LabelLayer}
+ * constructs and pools one instance per visible chunk, so most
+ * applications configure labels through the layer instead.
+ *
+ * @group Renderables
+ */
 export class LabelImageRenderable extends RenderableObject {
+  /**
+   * A matrix mapping world space to the texture's normalized coordinate
+   * space. Layers derive it from the chunk's offset, scale, and shape.
+   */
+  public worldToTexCoord: mat4 = mat4.create();
+
   private outlineSelected_: boolean;
   private selectedValue_: number | null;
 
-  public worldToTexCoord: mat4 = mat4.create();
-
+  /**
+   * Creates a label renderable drawing the given label texture. The
+   * texture's data type selects the matching label shader.
+   *
+   * @param props - Initialization properties.
+   */
   constructor(props: LabelImageRenderableProps) {
     super();
     this.geometry = new PlaneGeometry(props.width, props.height, 1, 1);
@@ -108,10 +153,15 @@ export class LabelImageRenderable extends RenderableObject {
     this.depthProgramName = "meshDepth";
   }
 
+  /** Identifies the renderable type as `LabelImageRenderable`. */
   public get type() {
     return "LabelImageRenderable";
   }
 
+  /**
+   * Returns the sampler, color map, and selection uniforms for the label
+   * image shaders.
+   */
   public getUniforms() {
     return {
       u_imageSampler: 0,
@@ -123,6 +173,12 @@ export class LabelImageRenderable extends RenderableObject {
     };
   }
 
+  /**
+   * Replaces the label color map. The previous color map textures are
+   * marked stale for GPU disposal.
+   *
+   * @param colorMap - The new color map.
+   */
   public setColorMap(colorMap: LabelColorMapProps) {
     const validated = validateColorMap(colorMap);
     this.markStaleTexture(this.textures[1]);
@@ -131,6 +187,13 @@ export class LabelImageRenderable extends RenderableObject {
     this.setTexture(2, this.makeColorLookupTableTexture(validated.lookupTable));
   }
 
+  /**
+   * Sets the label value drawn as selected or `null` to clear the
+   * selection. The selected region is outlined when the renderable was
+   * constructed with `outlineSelected`.
+   *
+   * @param value - The label value to select.
+   */
   public setSelectedValue(value: number | null) {
     this.selectedValue_ = value;
   }

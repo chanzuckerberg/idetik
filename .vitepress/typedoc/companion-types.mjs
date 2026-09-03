@@ -1,4 +1,5 @@
 import { ReflectionKind } from "typedoc";
+import { foldedPropertiesTable } from "./member-tables.mjs";
 import { MemberRouter } from "typedoc-plugin-markdown";
 
 export function collectDeclarationFiles(project) {
@@ -9,6 +10,26 @@ export function collectDeclarationFiles(project) {
   }
   return files;
 }
+
+const ADOPTED_ALIASES = {
+  Overlay: "Idetik",
+  MemoryStats: "Idetik",
+  QueueStats: "Idetik",
+  ChannelProps: "Layer",
+  SliceCoordinates: "Layer",
+  SliceOrientation: "Layer",
+  BlendMode: "Layer",
+  StateChangeCallback: "Layer",
+  PointPickingResult: "Layer",
+  LabelColorMapProps: "LabelLayer",
+  LabelColorMap: "LabelLayer",
+  PointProps: "PointsRenderable",
+  HttpOmeZarrImageSourceProps: "OmeZarrImageSource",
+  FileSystemOmeZarrImageSourceProps: "OmeZarrImageSource",
+  SourceDimensionMap: "OmeZarrImageSource",
+  SourceDimension: "OmeZarrImageSource",
+  SourceDimensionLod: "OmeZarrImageSource",
+};
 
 export function foldCompanionAliasesIntoOwnerClasses(
   project,
@@ -27,8 +48,11 @@ export function foldCompanionAliasesIntoOwnerClasses(
       (c) => c.kind === ReflectionKind.TypeAlias
     );
     for (const alias of aliases) {
-      const owner = companionOwnerOf(alias, classes, declarationFiles);
+      const owner =
+        companionOwnerOf(alias, classes, declarationFiles) ??
+        classes.find((cls) => cls.name === ADOPTED_ALIASES[alias.name]);
       if (!owner) continue;
+
       dropModuleGroupTag(alias);
       moveChildReflection(alias, container, owner);
     }
@@ -65,6 +89,7 @@ function moveChildReflection(child, from, to) {
   from.childrenIncludingDocuments = from.childrenIncludingDocuments?.filter(
     (c) => c !== child
   );
+
   child.parent = to;
   to.children = [...(to.children ?? []), child];
   to.childrenIncludingDocuments = [
@@ -106,8 +131,10 @@ export function foldedAliasDescriptionAndProperties(context, model, opts) {
   const properties = (model.children ?? []).filter((child) =>
     child.isDeclaration()
   );
+
   if (properties.length) {
-    blocks.push(context.partials.propertiesTable(properties));
+    blocks.push(foldedPropertiesTable(context, properties));
   }
+
   return blocks.join("\n\n");
 }

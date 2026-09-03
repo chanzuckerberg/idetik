@@ -9,13 +9,21 @@ import { EventContext, EventDispatcher } from "./event_dispatcher";
 import { Ray } from "../math/ray";
 import { IdetikContext } from "../idetik";
 
-export interface ViewportProps {
+/**
+ * Initialization properties for constructing a viewport.
+ */
+export type ViewportProps = {
+  /** Unique id. Defaults to the element id or a generated id. */
   id?: string;
+  /** Host element. Defaults to the Idetik canvas. */
   element?: HTMLElement;
+  /** The camera the viewport renders with. */
   camera: Camera;
+  /** Layers to render in order. */
   layers?: Layer[];
+  /** Input controls driving the camera. */
   cameraControls?: CameraControls;
-}
+};
 
 interface ResolvedViewportProps extends ViewportProps {
   id: string;
@@ -23,11 +31,40 @@ interface ResolvedViewportProps extends ViewportProps {
   context: IdetikContext;
 }
 
+/**
+ * A region of the canvas that renders a stack of layers through a camera.
+ *
+ * Every viewport draws into the shared canvas through the area of its host
+ * element. The element defaults to the canvas itself and must be unique
+ * across viewports.
+ *
+ * Viewports also route input. Pointer and wheel events on the host element
+ * are enriched with clip and world coordinates and a picking ray, sent to
+ * each layer in order and passed to the camera controls unless a layer stops
+ * propagation.
+ *
+ * ```ts
+ * const idetik = new Idetik({
+ *   canvas,
+ *   viewports: [{ id: 'main', camera, layers: [imageLayer] }],
+ * });
+ *
+ * const viewport = idetik.getViewport('main')!;
+ * viewport.addLayer(labelLayer);
+ * ```
+ *
+ * @group Core
+ */
 export class Viewport {
+  /** The viewport's unique identifier. */
   public readonly id: string;
+  /** The host element defining the viewport's area. */
   public readonly element: HTMLElement;
+  /** The camera the viewport renders with. */
   public readonly camera: Camera;
+  /** The pointer and wheel event dispatcher for the host element. */
   public readonly events: EventDispatcher;
+  /** Input controls driving the camera. */
   public cameraControls?: CameraControls;
 
   // Carried only to relay to `layer.onAttached` / `layer.onDetached`.
@@ -37,6 +74,7 @@ export class Viewport {
 
   private layers_: Layer[] = [];
 
+  /** @hidden */
   constructor(props: ResolvedViewportProps) {
     this.id = props.id;
     this.element = props.element;
@@ -71,15 +109,29 @@ export class Viewport {
     }
   }
 
+  /**
+   * The layers rendered by this viewport in order. Layers with `occludes`
+   * set draw before non-occluding layers regardless of stack order.
+   */
   public get layers(): readonly Layer[] {
     return this.layers_;
   }
 
+  /**
+   * Adds a layer to the top of the stack.
+   *
+   * @param layer - The layer to add.
+   */
   public addLayer(layer: Layer): void {
     layer.onAttached(this.context_);
     this.layers_.push(layer);
   }
 
+  /**
+   * Removes a previously added layer.
+   *
+   * @param layer - The layer to remove.
+   */
   public removeLayer(layer: Layer): void {
     const index = this.layers_.indexOf(layer);
     if (index === -1) {
@@ -89,6 +141,7 @@ export class Viewport {
     layer.onDetached(this.context_);
   }
 
+  /** Removes all layers from the viewport. */
   public removeAllLayers(): void {
     for (const layer of this.layers_) {
       layer.onDetached(this.context_);
@@ -96,10 +149,20 @@ export class Viewport {
     this.layers_ = [];
   }
 
+  /**
+   * Syncs the camera's aspect ratio to the host element's size. Called
+   * automatically when the host element resizes.
+   */
   public updateSize(): void {
     this.updateAspectRatio();
   }
 
+  /**
+   * Computes the viewport's box relative to the given canvas in device pixels.
+   *
+   * @param canvas - The canvas to compute the box against.
+   * @returns The viewport's box in the canvas's coordinate space.
+   */
   public getBoxRelativeTo(canvas: HTMLCanvasElement): Box2 {
     const viewportRect = this.getBox().toRect();
     const canvasRect = canvas.getBoundingClientRect();
@@ -126,6 +189,9 @@ export class Viewport {
     );
   }
 
+  /**
+   * The viewport's rectangle in the drawing buffer in device pixels.
+   */
   public getBufferRect(): {
     x: number;
     y: number;
@@ -135,6 +201,13 @@ export class Viewport {
     return this.getBoxRelativeTo(this.element as HTMLCanvasElement).toRect();
   }
 
+  /**
+   * Converts a client-space position to clip space. The `y` axis points
+   * down, matching the renderer's mirrored projection.
+   *
+   * @param position - The client-space position to convert.
+   * @param depth - The clip-space z value.
+   */
   public clientToClip(position: vec2, depth: number = 0): vec3 {
     const [x, y] = position;
     const rect = this.element.getBoundingClientRect();
@@ -145,6 +218,13 @@ export class Viewport {
     );
   }
 
+  /**
+   * Converts a client-space position such as a pointer location to world
+   * space.
+   *
+   * @param position - The client-space position to convert.
+   * @param depth - The clip-space z value.
+   */
   public clientToWorld(position: vec2, depth: number = 0): vec3 {
     const clipPos = this.clientToClip(position, depth);
     return this.camera.clipToWorld(clipPos);

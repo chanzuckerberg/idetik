@@ -19,24 +19,56 @@ type OmeZarrImageSourceProps = {
   loader: OmeZarrImageLoader;
 };
 
-type HttpOmeZarrImageSourceProps = {
+/**
+ * Input to {@link OmeZarrImageSource.fromHttp}.
+ */
+export type HttpOmeZarrImageSourceProps = {
+  /** URL of the OME-Zarr root group. */
   url: string;
+  /** OME-Zarr version. Detected from metadata when omitted. */
   version?: OmeZarrVersion;
 };
 
-type FileSystemOmeZarrImageSourceProps = {
+/**
+ * Input to {@link OmeZarrImageSource.fromFileSystem}.
+ */
+export type FileSystemOmeZarrImageSourceProps = {
+  /** Directory handle with read permission. */
   directory: FileSystemDirectoryHandle;
+  /** OME-Zarr version. Detected from metadata when omitted. */
   version?: OmeZarrVersion;
+  /** Image path within the directory. Defaults to the root. */
   path?: `/${string}`;
 };
 
 /**
- * Opens an OME-Zarr multiscale image Zarr group from either a URL or local directory.
+ * A multiscale image opened from an OME-Zarr store.
+ *
+ * Instances are created with {@link fromHttp} or {@link fromFileSystem}
+ * rather than the constructor. Both factories read the store's metadata up
+ * front so the returned source already knows its axes, resolution levels,
+ * and channel count. OME-Zarr versions `0.4` and `0.5` are supported and
+ * the version is detected from metadata when not given.
+ *
+ * A source is handed to a layer which streams chunks from it on demand.
+ *
+ * ```ts
+ * const source = await OmeZarrImageSource.fromHttp({
+ *   url: "https://example.com/image.ome.zarr",
+ * });
+ *
+ * const layer = new ImageLayer({
+ *   source,
+ *   sliceCoords: { t: 0, z: 0, c: [0] },
+ * });
+ * ```
  *
  * @group Data Loading
  */
 export class OmeZarrImageSource {
+  /** The zarr store location the image was opened from. */
   readonly location: Location<Readable>;
+  /** The OME-Zarr version passed at creation if any. */
   readonly version?: OmeZarrVersion;
 
   private readonly loader_: OmeZarrImageLoader;
@@ -84,23 +116,34 @@ export class OmeZarrImageSource {
     return new OmeZarrImageLoader({ metadata, arrays, arrayParams });
   }
 
+  /**
+   * Returns per-axis dimension metadata for the image.
+   *
+   * Each axis entry lists one record per level of detail with its size,
+   * chunk size, scale, and translation. Use these to convert between
+   * array indices and world coordinates, pick slice coordinates, and
+   * frame cameras around the image extent.
+   */
   public getDimensions(): SourceDimensionMap {
     return this.loader_.getSourceDimensionMap();
   }
 
+  /**
+   * Returns the number of channels in the image.
+   */
   public getChannelCount(): number {
     return this.getDimensions().c?.lods[0].size ?? 1;
   }
 
+  /** The chunk loader that streams this image's data. */
   public get loader(): OmeZarrImageLoader {
     return this.loader_;
   }
 
   /**
-   * Creates and opens an OmeZarrImageSource from an HTTP(S) URL.
+   * Opens an OME-Zarr image over HTTP(S).
    *
-   * @param props.url URL of the Zarr root
-   * @param props.version OME-Zarr version
+   * @param props - The store url and optional version.
    */
   public static async fromHttp(
     props: HttpOmeZarrImageSourceProps
@@ -111,13 +154,14 @@ export class OmeZarrImageSource {
   }
 
   /**
-   * Creates and opens an OmeZarrImageSource from a local filesystem directory.
+   * Opens an OME-Zarr image from a local directory.
    *
-   * @param directory return value of `window.showDirectoryPicker()` which gives the browser
-   *    permission to access a directory (only works in Chrome/Edge)
-   * @param version OME-Zarr version
-   * @param path path to image, beginning with "/". This argument allows the application to only
-   *    ask the user once for permission to the root directory
+   * Uses the File System Access API so it only works in Chromium-based
+   * browsers. Pass the handle returned by `window.showDirectoryPicker()`.
+   * The optional path lets an application ask once for root permission
+   * and open many images.
+   *
+   * @param props - The directory handle, optional version, and path.
    */
   public static async fromFileSystem(
     props: FileSystemOmeZarrImageSourceProps

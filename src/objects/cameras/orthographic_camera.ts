@@ -15,31 +15,72 @@ const DEFAULT_HEIGHT = 128 / DEFAULT_ASPECT_RATIO;
 const DEFAULT_NEAR = -1e6;
 const DEFAULT_FAR = 1e6;
 
-type OrthographicCameraFrame = {
+/**
+ * A world-space rectangle for the camera to frame.
+ */
+export type OrthographicCameraFrame = {
+  /** Left edge of the view frame in world units. */
   left: number;
+  /** Right edge of the view frame in world units. */
   right: number;
+  /** Top edge of the view frame in world units. */
   top: number;
+  /** Bottom edge of the view frame in world units. */
   bottom: number;
 };
 
-type OrthographicCameraProps = OrthographicCameraFrame & {
+/**
+ * Initialization properties for constructing an orthographic camera.
+ */
+export type OrthographicCameraProps = {
+  /** Left edge of the view frame in world units. */
+  left: number;
+  /** Right edge of the view frame in world units. */
+  right: number;
+  /** Top edge of the view frame in world units. */
+  top: number;
+  /** Bottom edge of the view frame in world units. */
+  bottom: number;
+  /** Near clipping plane distance. Defaults to `-1e6`. */
   near?: number;
+  /** Far clipping plane distance. Defaults to `1e6`. */
   far?: number;
+  /** Slice orientation. Defaults to `"XY"`. */
   orientation?: SliceOrientation;
 };
 
 /**
  * A camera using an orthographic (parallel) projection.
  *
- * Orthographic projection has no perspective foreshortening, so object size is
- * independent of distance from the camera. This is the camera to use for 2D
- * image viewing, where it pairs naturally with {@link PanZoomControls}. The
- * initial frame is given in world coordinates; zoom and pan are applied as
- * scale and translation on top of that frame.
+ * Orthographic projection has no perspective foreshortening: objects render at
+ * the same size regardless of their distance from the camera, which makes this
+ * the camera to use for 2D image viewing. It pairs naturally with
+ * {@link PanZoomControls}.
  *
- * @see {@link PerspectiveCamera} for 3D scenes with perspective projection.
+ * The constructor frames a world-space rectangle, typically the physical
+ * extent of the image being viewed. Zoom and pan are then applied as scale and
+ * translation on top of that frame, and {@link setFrame} resets them. When the
+ * viewport's aspect ratio differs from the frame's, the frame is padded rather
+ * than stretched, so image pixels always stay square.
  *
- * @group Cameras & Controls
+ * ```ts
+ * const camera = new OrthographicCamera({
+ *  left: 0,
+ *  right: 1024,
+ *  top: 0,
+ *  bottom: 1024
+ * });
+ *
+ * const idetik = new Idetik({
+ *   canvas: document.querySelector('canvas')!,
+ *   viewports: [{
+ *     camera,
+ *     layers: [imageLayer],
+ *     cameraControls: new PanZoomControls(camera),
+ *   }],
+ * });
+ * ```
+ * @group Cameras
  */
 export class OrthographicCamera extends Camera {
   // width_ and height_ should always be defined by constructor (see setFrame)
@@ -54,9 +95,7 @@ export class OrthographicCamera extends Camera {
   /**
    * Creates an orthographic camera framing the given world-space rectangle.
    *
-   * @param props - The view frame edges in world units, near/far clipping
-   *   plane distances (default `-1e6` and `1e6`), and the slice orientation
-   *   the camera faces (default `"XY"`).
+   * @param props - Initialization properties.
    */
   constructor(props: OrthographicCameraProps) {
     super();
@@ -69,15 +108,36 @@ export class OrthographicCamera extends Camera {
     this.updateProjectionMatrix();
   }
 
+  /**
+   * The world-space size of the rendered view as `[width, height]`.
+   *
+   * This is the camera frame padded to match the viewport's aspect ratio, so
+   * it reflects what is actually visible rather than the frame that was set.
+   */
   public get viewportSize() {
     return this.viewportSize_;
   }
 
+  /**
+   * Sets the aspect ratio (width / height) of the viewport the camera renders
+   * into. Called automatically by the owning viewport when it resizes.
+   *
+   * @param aspectRatio - The viewport's width divided by its height.
+   */
   public setAspectRatio(aspectRatio: number) {
     this.viewportAspectRatio_ = aspectRatio;
     this.updateProjectionMatrix();
   }
 
+  /**
+   * Reframes the camera to the given world-space rectangle, resetting any
+   * accumulated zoom and pan.
+   *
+   * The frame may be padded horizontally or vertically at render time to
+   * match the viewport's aspect ratio (see {@link viewportSize}).
+   *
+   * @param frame - The view frame edges in world units.
+   */
   public setFrame({ left, right, top, bottom }: OrthographicCameraFrame) {
     this.width_ = Math.abs(right - left);
     this.height_ = Math.abs(top - bottom);
@@ -90,10 +150,12 @@ export class OrthographicCamera extends Camera {
     this.transform.setRotation(this.rotation_);
   }
 
+  /** Identifies the camera type as `OrthographicCamera`. */
   public get type(): CameraType {
     return "OrthographicCamera";
   }
 
+  /** The slice orientation the camera faces. */
   public get orientation(): SliceOrientation {
     return this.orientation_;
   }
@@ -102,6 +164,8 @@ export class OrthographicCamera extends Camera {
    * Changes the slice orientation the camera faces. The current frame and
    * zoom carry over numerically to the new plane axes. Call {@link setFrame}
    * to reframe the view for the new plane.
+   *
+   * @param orientation - The slice plane for the camera to face.
    */
   public setOrientation(orientation: SliceOrientation) {
     if (orientation === this.orientation_) {
@@ -123,6 +187,13 @@ export class OrthographicCamera extends Camera {
     this.transform.setRotation(this.rotation_);
   }
 
+  /**
+   * Zooms the view by the given factor relative to the current zoom level.
+   * Factors greater than `1` zoom in and factors between `0` and `1` zoom
+   * out.
+   *
+   * @param factor - The magnification factor to apply.
+   */
   public zoom(factor: number) {
     if (factor <= 0) {
       throw new Error(`Invalid zoom factor: ${factor}`);
@@ -131,6 +202,12 @@ export class OrthographicCamera extends Camera {
     this.transform.addScale([inverseFactor, inverseFactor, 1.0]);
   }
 
+  /**
+   * Computes the world-space rectangle currently visible in the viewport,
+   * accounting for zoom, pan, and aspect-ratio padding.
+   *
+   * @returns The visible rectangle on the camera's slice plane.
+   */
   public getWorldViewRect(): Box2 {
     let topLeft = vec4.fromValues(-1.0, -1.0, 0.0, 1.0);
     let bottomRight = vec4.fromValues(1.0, 1.0, 0.0, 1.0);
@@ -147,6 +224,7 @@ export class OrthographicCamera extends Camera {
     );
   }
 
+  /** @hidden */
   protected updateProjectionMatrix() {
     // The following code ensures that the orthographic projection matrix
     // is updated so that the aspect ratio of renderable objects is respected

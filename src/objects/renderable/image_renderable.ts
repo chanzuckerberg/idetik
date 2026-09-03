@@ -10,10 +10,17 @@ import {
 import { mat4, vec3 } from "gl-matrix";
 import { Shader } from "../../renderers/shaders";
 
-type ImageRenderableProps = {
+/**
+ * Initialization properties for constructing an image renderable.
+ */
+export type ImageRenderableProps = {
+  /** Width of the image in texels. */
   width: number;
+  /** Height of the image in texels. */
   height: number;
+  /** The scalar image texture to draw. */
   texture: Texture;
+  /** Channel appearance settings. Defaults to `[]`. */
   channelProps?: ChannelProps[];
 };
 
@@ -26,12 +33,31 @@ type UniformValues = {
   u_worldToTexCoord: mat4;
 };
 
-/** @group Renderable Objects */
+/**
+ * A textured plane that draws one 2D slice of scalar image data.
+ *
+ * Image renderable maps a scalar texture through a single channel's
+ * color, contrast limits, and opacity. {@link ImageLayer} constructs and
+ * pools one instance per visible chunk, so most applications never create
+ * these directly.
+ *
+ * @group Renderables
+ */
 export class ImageRenderable extends RenderableObject {
-  private channels_: Required<Channel>[];
-
+  /**
+   * A matrix mapping world space to the texture's normalized coordinate
+   * space. Layers derive it from the chunk's offset, scale, and shape.
+   */
   public worldToTexCoord: mat4 = mat4.create();
 
+  private channels_: Required<Channel>[];
+
+  /**
+   * Creates an image renderable drawing the given texture. The texture's
+   * data type selects the matching scalar image shader.
+   *
+   * @param props - Initialization properties.
+   */
   constructor({
     width,
     height,
@@ -46,14 +72,29 @@ export class ImageRenderable extends RenderableObject {
     this.depthProgramName = "meshDepth";
   }
 
+  /** Identifies the renderable type as `ImageRenderable`. */
   public get type() {
     return "ImageRenderable";
   }
 
+  /**
+   * Replaces the channel appearance settings and revalidates them
+   * against the current texture. Only the first entry affects rendering.
+   *
+   * @param channels - The new channel settings.
+   */
   public setChannelProps(channels: ChannelProps[]) {
     this.channels_ = validateChannels(this.textures[0], channels);
   }
 
+  /**
+   * Updates one property of the channel at the given index and
+   * revalidates the channel against the current texture.
+   *
+   * @param channelIndex - The channel to update.
+   * @param property - The property name to set.
+   * @param value - The new value.
+   */
   public setChannelProperty<K extends keyof ChannelProps>(
     channelIndex: number,
     property: K,
@@ -67,6 +108,10 @@ export class ImageRenderable extends RenderableObject {
     this.channels_[channelIndex] = newChannel;
   }
 
+  /**
+   * Returns the sampler, contrast, color, opacity, and world-to-texture
+   * uniforms for the scalar image shaders.
+   */
   public override getUniforms(): UniformValues {
     const texture = this.textures[0];
     if (!texture) {

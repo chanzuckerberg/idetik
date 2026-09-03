@@ -2,9 +2,24 @@ import { Plane } from "./plane";
 import { Box3 } from "./box3";
 import { mat4, vec3 } from "gl-matrix";
 
+/**
+ * Camera view frustum defined by six world-space planes.
+ *
+ * Frustum represents the visible region of a camera as six bounding
+ * planes. It is used for culling tests and visibility checks against
+ * bounding boxes. The planes are extracted from a view-projection matrix
+ * and normalized so distances are in world units.
+ *
+ * @group Math
+ */
 export class Frustum {
   private readonly planes_: [Plane, Plane, Plane, Plane, Plane, Plane];
 
+  /**
+   * Creates a frustum from a view-projection matrix.
+   *
+   * @param m - The combined view-projection matrix.
+   */
   constructor(m: mat4) {
     this.planes_ = [
       new Plane(vec3.create(), 0),
@@ -19,6 +34,11 @@ export class Frustum {
 
   // Uses the fast plane-extraction algorithm described in
   // Gribb & Hartmann (1997): https://tinyurl.com/5x5htcwm
+  /**
+   * Re-extracts the six planes from a view-projection matrix.
+   *
+   * @param m - The combined view-projection matrix.
+   */
   public setWithViewProjection(m: mat4) {
     const n = vec3.create();
 
@@ -61,6 +81,14 @@ export class Frustum {
     for (const p of this.planes_) p.normalize();
   }
 
+  /**
+   * Tests whether a box is at least partly inside the frustum. The test
+   * is conservative. A box outside the frustum but near a corner can be
+   * reported as intersecting, which only costs a draw of an offscreen
+   * object.
+   *
+   * @param box - The world-space box to test.
+   */
   public intersectsWithBox3(box: Box3) {
     const v = vec3.create();
     for (const plane of this.planes_) {
