@@ -134,10 +134,10 @@ export class WebGLRenderer extends Renderer {
       occludingLayers.length > 0 &&
       nonOccludingLayers.some((l) => l.requiresSceneDepth);
 
-    this.renderDepthPrePass(occludingLayers, viewport.camera, frustum);
+    this.primeDepthBuffer(occludingLayers, viewport.camera, frustum);
 
     if (this.currentViewportHasSceneDepth_) {
-      this.renderDepthTarget(occludingLayers, viewport.camera, frustum);
+      this.renderDepthTexture(occludingLayers, viewport.camera, frustum);
     }
 
     this.state_.setDepthMask(false);
@@ -149,11 +149,7 @@ export class WebGLRenderer extends Renderer {
     this.renderedObjects_ = this.renderedObjectsPerFrame_;
   }
 
-  private renderDepthPrePass(
-    layers: Layer[],
-    camera: Camera,
-    frustum: Frustum
-  ) {
+  private primeDepthBuffer(layers: Layer[], camera: Camera, frustum: Frustum) {
     this.state_.setColorMask(false);
     this.state_.setDepthFunc(this.gl_.LESS);
     // nudge the depth away from the camera, so that the color passes
@@ -165,7 +161,11 @@ export class WebGLRenderer extends Renderer {
     this.resetState();
   }
 
-  private renderDepthTarget(layers: Layer[], camera: Camera, frustum: Frustum) {
+  private renderDepthTexture(
+    layers: Layer[],
+    camera: Camera,
+    frustum: Frustum
+  ) {
     this.depthTarget_.bind(this.width, this.height);
     this.state_.setDepthMask(true);
     this.state_.setDepthFunc(this.gl_.LESS);
