@@ -11,7 +11,6 @@ import {
 } from "../core/image_source_policy";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { vec3 } from "gl-matrix";
-import { sortFrontToBack } from "../math/sort_by_distance";
 import {
   ChannelProps,
   ChannelsEnabled,
@@ -30,6 +29,8 @@ const INTERACTIVE_STEP_SIZE_SCALE = 2.0;
 /** @group Layers */
 export class VolumeLayer extends Layer implements ChannelsEnabled {
   public readonly type = "VolumeLayer";
+
+  protected override requiresSceneDepth_ = true;
 
   private readonly source_: ChunkSource;
   private readonly sliceCoords_: SliceCoordinates;
@@ -110,7 +111,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
   }
 
   constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {
-    super({ blendMode: "premultiplied" });
+    super({ blendMode: "premultipliedOver" });
     this.source_ = source;
     this.sliceCoords_ = sliceCoords;
     this.policy_ = policy ?? createExplorationPolicy();
@@ -234,7 +235,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   private rebuildObjects(camera: Camera) {
     const volumes = Array.from(this.currentVolumes_.values());
-    sortFrontToBack(volumes, camera);
+    sortBackToFront(volumes, camera);
 
     this.clearObjects();
     for (const volume of volumes) {
@@ -278,4 +279,16 @@ export function poolKeyForChunk(chunk: Chunk) {
     `shape${chunk.shape.x}x${chunk.shape.y}x${chunk.shape.z}`,
     `align${chunk.rowAlignmentBytes}`,
   ].join(":");
+}
+
+function sortBackToFront(objects: VolumeRenderable[], camera: Camera) {
+  const cameraPosition = camera.position;
+  const depths = new Map<VolumeRenderable, number>();
+
+  for (const object of objects) {
+    const center = object.transform.translation;
+    depths.set(object, vec3.squaredDistance(cameraPosition, center));
+  }
+
+  objects.sort((a, b) => depths.get(b)! - depths.get(a)!);
 }
