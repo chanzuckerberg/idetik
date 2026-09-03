@@ -13,7 +13,7 @@ export type BlendMode =
   | "additive"
   | "subtractive"
   | "multiply"
-  | "premultiplied";
+  | "premultipliedOver";
 
 type StateChangeCallback = (
   newState: LayerState,
@@ -58,6 +58,8 @@ export abstract class Layer {
   public blendMode: BlendMode;
   public occludes: boolean;
 
+  protected requiresSceneDepth_ = false;
+
   constructor({
     opacity = 1.0,
     blendMode = "none",
@@ -68,6 +70,10 @@ export abstract class Layer {
     // infer from `blendMode` unless explicitly set, but only at construction
     // re-assigning `blendMode` does not update this value
     this.occludes = occludes ?? blendMode === "none";
+  }
+
+  public get requiresSceneDepth() {
+    return this.requiresSceneDepth_;
   }
 
   public get opacity() {
@@ -93,6 +99,9 @@ export abstract class Layer {
       throw new Error(
         `${this.type} cannot be attached to multiple viewports simultaneously.`
       );
+    }
+    if (this.occludes && this.requiresSceneDepth_) {
+      throw new Error(`${this.type} cannot both occlude and read scene depth.`);
     }
     this.attach(context);
     this.attached_ = true;

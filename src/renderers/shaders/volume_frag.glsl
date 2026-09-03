@@ -28,6 +28,7 @@ uniform sampler3D u_channel3Sampler;
 uniform highp vec3 u_cameraPositionModel;
 uniform vec3 u_voxelScale;
 in highp vec3 v_positionModel;
+in highp vec4 v_clipPosition;
 
 // The bounding box in model space is normalized to -0.5 to 0.5
 vec3 boundingboxMin = vec3(-0.50);
@@ -45,6 +46,17 @@ uniform vec4 u_valueOffset;
 uniform vec4 u_valueScale;
 uniform vec4 u_channelOpacity;
 uniform vec3 u_color[4];
+
+// Optionally terminate rays at some predetermined scene depth
+uniform bool u_hasSceneDepth;
+uniform highp sampler2D u_sceneDepth;
+uniform mat4 u_mvpInverse;
+
+float distanceAlongRayAtWindowDepth(float windowDepth, vec3 rayOrigin, vec3 rayDir) {
+    vec3 ndc = vec3(v_clipPosition.xy / v_clipPosition.w, windowDepth * 2.0 - 1.0);
+    vec4 positionModel = u_mvpInverse * vec4(ndc, 1.0);
+    return dot(positionModel.xyz / positionModel.w - rayOrigin, rayDir);
+}
 
 vec2 findBoxIntersectionsAlongRay(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
     vec3 reciprocalRayDir = 1.0 / rayDir;
@@ -95,6 +107,15 @@ void main() {
     if (u_debugShowDegenerateRays && (tExit == tEnter)) {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
         return;
+    }
+
+    if (u_hasSceneDepth) {
+        float sceneWindowDepth = texelFetch(u_sceneDepth, ivec2(gl_FragCoord.xy), 0).r;
+        if (sceneWindowDepth < 1.0) {
+            float tScene = distanceAlongRayAtWindowDepth(sceneWindowDepth, u_cameraPositionModel, RayDirModel);
+            if (tScene < tEnter) discard;
+            tExit = min(tExit, tScene);
+        }
     }
 
     vec3 entryPoint = u_cameraPositionModel + RayDirModel * tEnter;

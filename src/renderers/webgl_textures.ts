@@ -23,6 +23,7 @@ export class WebGLTextures {
   private readonly textures_: Map<Texture, WebGLTexture> = new Map();
   private currentTexture_: Texture | null = null;
   private readonly maxTextureUnits_: number;
+  private nextPersistentUnit_: number;
   private gpuTextureBytes_ = 0;
   private textureCount_ = 0;
   private readFramebuffer_: WebGLFramebuffer | null = null;
@@ -30,6 +31,7 @@ export class WebGLTextures {
   constructor(gl: WebGL2RenderingContext) {
     this.gl_ = gl;
     this.maxTextureUnits_ = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
+    this.nextPersistentUnit_ = this.maxTextureUnits_ - 1;
   }
 
   public get gpuTextureBytes() {
@@ -40,12 +42,22 @@ export class WebGLTextures {
     return this.textureCount_;
   }
 
+  public reservePersistentUnit(): number {
+    if (this.nextPersistentUnit_ < 0) {
+      throw new Error(
+        `No texture units left to reserve (${this.maxTextureUnits_} total)`
+      );
+    }
+    return this.nextPersistentUnit_--;
+  }
+
   public bindTexture(texture: Texture, index: number) {
     if (this.alreadyActive(texture)) return;
 
-    if (index < 0 || index >= this.maxTextureUnits_) {
+    if (index < 0 || index > this.nextPersistentUnit_) {
       throw new Error(
-        `Texture index ${index} must be in [0, ${this.maxTextureUnits_ - 1}]`
+        `Texture index ${index} must be in [0, ${this.nextPersistentUnit_}]; ` +
+          `units above that are reserved`
       );
     }
 
