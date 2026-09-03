@@ -16,7 +16,11 @@ const ZOOM_SPEED = 0.0009;
 const DEFAULT_DAMPING_FACTOR = 0.5;
 const DAMPING_FPS = 60; // Base FPS to normalize damping
 
-type OrbitControlsProps = {
+/**
+ * Initialization properties for constructing orbit controls.
+ */
+export type OrbitControlsProps = {
+  /** Distance from the target in world units. Defaults to `1`. */
   radius?: number;
   /** Initial azimuth angle in radians. Defaults to `0`. */
   yaw?: number;
@@ -28,8 +32,31 @@ type OrbitControlsProps = {
   dampingFactor?: number;
 };
 
-
-/** @group Cameras & Controls */
+/**
+ * Camera controls for orbiting a perspective camera around a target.
+ *
+ * Dragging with the left mouse button orbits, dragging with `Shift` held
+ * or with the middle button pans the target, and the scroll wheel zooms by
+ * changing the orbit radius. Input adds velocity that damping decays over time.
+ *
+ * ```ts
+ * const camera = new PerspectiveCamera({ near: 1.0 });
+ *
+ * const idetik = new Idetik({
+ *   canvas,
+ *   viewports: [{
+ *     camera,
+ *     layers: [volumeLayer],
+ *     cameraControls: new OrbitControls(camera, {
+ *       radius: 100,
+ *       target: [40, 40, 10],
+ *     }),
+ *   }],
+ * });
+ * ```
+ *
+ * @group Controls
+ */
 export class OrbitControls implements CameraControls {
   private readonly camera_: PerspectiveCamera;
 
@@ -71,7 +98,27 @@ export class OrbitControls implements CameraControls {
     this.updateCamera();
   }
 
+  /** The current distance from the target in world units. */
+  public get radius(): number {
+    return this.currPos_.radius;
+  }
 
+  /** The current azimuth angle in radians. */
+  public get yaw(): number {
+    return this.currPos_.phi;
+  }
+
+  /** The current elevation angle in radians. */
+  public get pitch(): number {
+    return this.currPos_.theta;
+  }
+
+  /** A copy of the point the camera orbits. */
+  public get target(): vec3 {
+    return vec3.clone(this.currCenter_);
+  }
+
+  /** Whether any orbit, pan, or zoom velocity remains. */
   public get isMoving(): boolean {
     return (
       this.orbitVelocity_.phi !== 0 ||

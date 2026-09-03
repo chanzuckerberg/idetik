@@ -105,12 +105,10 @@ export class TrackingLayer extends Layer {
   public readonly type = "TrackingLayer";
   public attachCount = 0;
   public detachCount = 0;
-  public throwOnAttach = false;
 
   public update() {}
 
   protected attach() {
-    if (this.throwOnAttach) throw new Error("attach failed");
     this.attachCount++;
   }
 

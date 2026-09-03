@@ -6,7 +6,11 @@ const DEFAULT_ASPECT_RATIO = 1.77; // 16:9
 const MIN_FOV = 0.1; // degrees
 const MAX_FOV = 180 - MIN_FOV; // degrees
 
-type PerspectiveCameraProps = {
+/**
+ * Initialization properties for constructing a perspective camera.
+ */
+export type PerspectiveCameraProps = {
+  /** Vertical field of view in degrees. Defaults to `60`. */
   fov?: number;
   /** Aspect ratio (width / height). Defaults to `1.77`. */
   aspectRatio?: number;
@@ -105,7 +109,16 @@ export class PerspectiveCamera extends Camera {
     return this.fov_;
   }
 
-
+  /**
+   * Zooms the view by the given factor relative to the current zoom level.
+   * Factors greater than `1` zoom in and factors between `0` and `1` zoom
+   * out.
+   *
+   * Zooming narrows or widens the field of view rather than moving the
+   * camera, and the result is clamped to valid angles.
+   *
+   * @param factor - The magnification factor to apply.
+   */
   public zoom(factor: number) {
     if (factor <= 0) {
       throw new Error(`Invalid zoom factor: ${factor}`);

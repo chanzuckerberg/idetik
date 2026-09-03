@@ -166,10 +166,12 @@ export abstract class Layer {
    */
   public onEvent(_event: EventContext): void {}
 
+  /** Whether the layer is attached to a viewport. */
   public get attached(): boolean {
     return this.attachment_ !== null;
   }
 
+  /** Returns whether this layer has the given runtime and viewport attachment. */
   public isAttachedTo(context: IdetikContext, viewport: Viewport): boolean {
     return (
       this.attachment_?.context === context &&
@@ -177,6 +179,12 @@ export abstract class Layer {
     );
   }
 
+  /**
+   * Attaches the layer to a viewport.
+   *
+   * @param context - The shared runtime context.
+   * @param viewport - The owning viewport.
+   */
   public onAttached(context: IdetikContext, viewport: Viewport): void {
     if (this.attachment_) {
       throw new Error(
@@ -190,6 +198,11 @@ export abstract class Layer {
     this.attachment_ = { context, viewport };
   }
 
+  /**
+   * Detaches the layer from a viewport if it owns the current attachment.
+   *
+   * @param viewport - The viewport being detached.
+   */
   public onDetached(viewport: Viewport): void {
     if (!this.attachment_ || this.attachment_.viewport !== viewport) return;
     this.detach(this.attachment_.context);

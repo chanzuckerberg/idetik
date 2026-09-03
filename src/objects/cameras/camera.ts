@@ -110,7 +110,12 @@ export abstract class Camera extends Node {
     return this.transform.translation;
   }
 
-
+  /**
+   * Transforms a position from clip space to world space.
+   *
+   * @param position - The clip-space position to transform.
+   * @returns The corresponding world-space position.
+   */
   public clipToWorld(position: vec3): vec3 {
     const clipPos = vec4.fromValues(position[0], position[1], position[2], 1);
     const projectionInverse = mat4.invert(

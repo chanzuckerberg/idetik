@@ -7,6 +7,7 @@ import { generateID } from "../utilities/id_generator";
 import { Logger } from "../utilities/logger";
 import { EventContext, EventDispatcher } from "./event_dispatcher";
 import { Ray } from "../math/ray";
+import { IdetikContext } from "../idetik";
 
 /**
  * Initialization properties for constructing a viewport.
@@ -14,7 +15,9 @@ import { Ray } from "../math/ray";
 export type ViewportProps = {
   /** Unique id. Defaults to the element id or a generated id. */
   id?: string;
+  /** Host element defining the viewport's area. */
   domElement: HTMLElement;
+  /** The camera the viewport renders with. */
   camera: Camera;
   /** Layers to render in order. */
   layers?: Layer[];
@@ -22,16 +25,39 @@ export type ViewportProps = {
   cameraControls?: CameraControls;
 };
 
-
+/**
+ * A region of the canvas that renders a stack of layers through a camera.
+ *
+ * Every viewport draws into the shared canvas through the area of its host
+ * element. Viewports also route pointer and wheel input through their layers
+ * and camera controls.
+ *
+ * ```ts
+ * const viewport = new Viewport({
+ *   domElement: canvas,
+ *   camera,
+ *   layers: [imageLayer],
+ * });
+ * const idetik = new Idetik({ canvas, viewports: [viewport] });
+ *
+ * viewport.addLayer(labelLayer);
+ * ```
+ *
+ * @group Core
+ */
 export class Viewport {
   /** The viewport's unique identifier. */
   public readonly id: string;
+  /** The host element defining the viewport's area. */
   public readonly domElement: HTMLElement;
+  /** The camera the viewport renders with. */
   public readonly camera: Camera;
   /** The pointer and wheel event dispatcher for the host element. */
   public readonly events: EventDispatcher;
   /** Input controls driving the camera. */
   public cameraControls?: CameraControls;
+
+  private context_?: IdetikContext;
 
   private layers_: Layer[] = [];
 
@@ -80,6 +106,7 @@ export class Viewport {
    * @param layer - The layer to add.
    */
   public addLayer(layer: Layer): void {
+    if (this.context_) layer.onAttached(this.context_, this);
     this.layers_.push(layer);
   }
 
@@ -112,13 +139,13 @@ export class Viewport {
     const attached: Layer[] = [];
     try {
       for (const layer of this.layers_) {
-        layer.onAttached(context);
+        layer.onAttached(context, this);
         attached.push(layer);
       }
       this.context_ = context;
     } catch (error) {
       for (const layer of attached.reverse()) {
-        layer.onDetached(context);
+        layer.onDetached(this);
       }
       throw error;
     }
@@ -127,7 +154,7 @@ export class Viewport {
   public detachFromIdetik(): void {
     if (!this.context_) return;
     for (const layer of this.layers_) {
-      layer.onDetached(this.context_);
+      layer.onDetached(this);
     }
     this.context_ = undefined;
   }
@@ -140,25 +167,29 @@ export class Viewport {
     this.updateAspectRatio();
   }
 
-  public getBoxRelativeTo(relativeElement: HTMLElement): Box2 {
+  /**
+   * Computes the viewport's box relative to the given canvas in device pixels.
+   *
+   * @param canvas - The canvas to compute the box against.
+   * @returns The viewport's box in the canvas's coordinate space.
+   */
+  public getBoxRelativeTo(canvas: HTMLCanvasElement): Box2 {
     const viewportRect = this.getBox().toRect();
-    const relativeRect = relativeElement.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
     const devicePixelRatio = window.devicePixelRatio || 1;
 
-    // Convert the relative element's rect to device pixels.
-    // The viewport rect is already in device pixels.
-    const relativeElementX = relativeRect.left * devicePixelRatio;
-    const relativeElementY = relativeRect.top * devicePixelRatio;
-    const relativeElementHeight = relativeRect.height * devicePixelRatio;
+    // convert canvas rect to device pixels
+    // viewport rect is already in device pixels
+    const canvasX = canvasRect.left * devicePixelRatio;
+    const canvasY = canvasRect.top * devicePixelRatio;
+    const canvasHeight = canvasRect.height * devicePixelRatio;
 
-    const relativeX = viewportRect.x - relativeElementX;
-    const relativeY = viewportRect.y - relativeElementY;
+    const relativeX = viewportRect.x - canvasX;
+    const relativeY = viewportRect.y - canvasY;
 
     // Note: WebGL Y coordinate is flipped, so we adjust the Y position
     const x = Math.floor(relativeX);
-    const y = Math.floor(
-      relativeElementHeight - relativeY - viewportRect.height
-    );
+    const y = Math.floor(canvasHeight - relativeY - viewportRect.height);
     const width = Math.floor(viewportRect.width);
     const height = Math.floor(viewportRect.height);
 
@@ -177,7 +208,7 @@ export class Viewport {
     width: number;
     height: number;
   } {
-    return this.getBoxRelativeTo(this.domElement).toRect();
+    return this.getBoxRelativeTo(this.domElement as HTMLCanvasElement).toRect();
   }
 
   /**
@@ -235,5 +266,35 @@ export class Viewport {
     }
     const aspectRatio = width / height;
     this.camera.setAspectRatio(aspectRatio);
+  }
+}
+
+export function validateNewViewport(
+  viewport: { id: string; domElement: HTMLElement },
+  existingViewports: { id: string; domElement: HTMLElement }[]
+): void {
+  for (const existing of existingViewports) {
+    if (existing.id === viewport.id) {
+      throw new Error(
+        `Duplicate viewport ID "${viewport.id}". Each viewport must have a unique ID.`
+      );
+    }
+    if (existing.domElement === viewport.domElement) {
+      const elementDescription =
+        viewport.domElement.tagName.toLowerCase() +
+        (viewport.domElement.id
+          ? `#${viewport.domElement.id}`
+          : "[element has no id]");
+      throw new Error(
+        "Multiple viewports cannot share the same HTML element: " +
+          `viewports "${existing.id}" and "${viewport.id}" both use ${elementDescription}`
+      );
+    }
+  }
+}
+
+export function validateViewports(viewports: Viewport[]): void {
+  for (let i = 0; i < viewports.length; i++) {
+    validateNewViewport(viewports[i], viewports.slice(0, i));
   }
 }

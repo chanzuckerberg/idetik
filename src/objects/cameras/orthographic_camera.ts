@@ -15,7 +15,11 @@ const DEFAULT_HEIGHT = 128 / DEFAULT_ASPECT_RATIO;
 const DEFAULT_NEAR = -1e6;
 const DEFAULT_FAR = 1e6;
 
-type OrthographicCameraFrame = {
+/**
+ * A world-space rectangle for the camera to frame.
+ */
+export type OrthographicCameraFrame = {
+  /** Left edge of the view frame in world units. */
   left: number;
   /** Right edge of the view frame in world units. */
   right: number;
@@ -25,7 +29,19 @@ type OrthographicCameraFrame = {
   bottom: number;
 };
 
-type OrthographicCameraProps = OrthographicCameraFrame & {
+/**
+ * Initialization properties for constructing an orthographic camera.
+ */
+export type OrthographicCameraProps = {
+  /** Left edge of the view frame in world units. */
+  left: number;
+  /** Right edge of the view frame in world units. */
+  right: number;
+  /** Top edge of the view frame in world units. */
+  top: number;
+  /** Bottom edge of the view frame in world units. */
+  bottom: number;
+  /** Near clipping plane distance. Defaults to `-1e6`. */
   near?: number;
   /** Far clipping plane distance. Defaults to `1e6`. */
   far?: number;
