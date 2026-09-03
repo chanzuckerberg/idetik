@@ -16,7 +16,7 @@ const ZOOM_SPEED = 0.0009;
 const DEFAULT_DAMPING_FACTOR = 0.5;
 const DAMPING_FPS = 60; // Base FPS to normalize damping
 
-type OrbitControlsProps = {
+export type OrbitControlsProps = {
   radius?: number;
   yaw?: number;
   pitch?: number;
@@ -58,6 +58,22 @@ export class OrbitControls implements CameraControls {
     );
 
     this.updateCamera();
+  }
+
+  public get radius(): number {
+    return this.currPos_.radius;
+  }
+
+  public get yaw(): number {
+    return this.currPos_.phi;
+  }
+
+  public get pitch(): number {
+    return this.currPos_.theta;
+  }
+
+  public get target(): vec3 {
+    return vec3.clone(this.currCenter_);
   }
 
   public get isMoving(): boolean {
