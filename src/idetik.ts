@@ -4,7 +4,6 @@ import { ChunkManager } from "./data/chunk_manager";
 import { Renderer } from "./core/renderer";
 import { createStats, type Stats } from "./utilities/stats";
 import { Viewport } from "./core/viewport";
-import { Layer } from "./core/layer";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 
 const DEFAULT_MEMORY_LIMIT_MB = 2048;
@@ -74,12 +73,6 @@ function validateViewport(
       );
     }
     existingLayers.add(layer);
-  }
-}
-
-function validateViewports(viewports: readonly Viewport[]): void {
-  for (let i = 0; i < viewports.length; i++) {
-    validateViewport(viewports[i], viewports.slice(0, i));
   }
 }
 
@@ -157,7 +150,9 @@ export class Idetik {
     };
 
     this.viewports_ = [...(params.viewports ?? [])];
-    validateViewports(this.viewports_);
+    for (let i = 0; i < this.viewports_.length; i++) {
+      validateViewport(this.viewports_[i], this.viewports_.slice(0, i));
+    }
 
     this.overlays = [...(params.overlays ?? [])];
 
@@ -170,7 +165,6 @@ export class Idetik {
       }
     }
     this.sizeObserver_ = new PixelSizeObserver(sizeDependents, () => {
-      validateViewports(this.viewports_);
       this.renderer_.updateSize();
       this.renderer_.beginFrame();
       for (const viewport of this.viewports_) {
@@ -301,28 +295,16 @@ export class Idetik {
   }
 
   private renderViewport(viewport: Viewport): void {
-    const layersToAttach: Layer[] = [];
     for (const layer of viewport.layers) {
-      if (layer.attached) {
-        if (!layer.isAttachedTo(this.context_, viewport)) {
-          throw new Error(
-            `${layer.type} is already attached to another viewport or Idetik runtime.`
-          );
-        }
-      } else {
-        layersToAttach.push(layer);
+      if (layer.attached && !layer.isAttachedTo(this.context_, viewport)) {
+        throw new Error(
+          `${layer.type} is already attached to another viewport or Idetik runtime.`
+        );
       }
     }
 
-    const attachedLayers: Layer[] = [];
-    try {
-      for (const layer of layersToAttach) {
-        layer.onAttached(this.context_, viewport);
-        attachedLayers.push(layer);
-      }
-    } catch (error) {
-      for (const layer of attachedLayers.reverse()) layer.onDetached(viewport);
-      throw error;
+    for (const layer of viewport.layers) {
+      if (!layer.attached) layer.onAttached(this.context_, viewport);
     }
 
     this.renderer_.render(viewport);
@@ -335,7 +317,6 @@ export class Idetik {
     const dt = Math.min(timestamp - this.lastTimestamp_, 100) / 1000;
 
     this.lastTimestamp_ = timestamp;
-    validateViewports(this.viewports_);
 
     this.renderer_.beginFrame();
     for (const viewport of this.viewports_) {
