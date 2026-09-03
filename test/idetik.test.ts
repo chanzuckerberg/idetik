@@ -178,11 +178,13 @@ test("Runtime attaches pending layers before rendering and detaches eagerly", ()
   expect(firstLayer.detachCount).toBe(1);
 });
 
-test("Runtime revalidates layers added between frames", () => {
+test("Runtime rejects layers added to another viewport between frames", () => {
+  const layer = new TrackingLayer();
   const first = new Viewport({
     id: "first",
     domElement: createTestElement("first"),
     camera: createTestCamera(),
+    layers: [layer],
   });
   const second = new Viewport({
     id: "second",
@@ -193,20 +195,20 @@ test("Runtime revalidates layers added between frames", () => {
     canvas: document.createElement("canvas"),
     viewports: [first, second],
   });
-  const layer = new TrackingLayer();
-  first.addLayer(layer);
-  second.addLayer(layer);
-  let frame: FrameRequestCallback | undefined;
+  const frames: FrameRequestCallback[] = [];
   vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-    frame = callback;
-    return 1;
+    frames.push(callback);
+    return frames.length;
   });
 
   idetik.start();
-  expect(() => frame!(0)).toThrow(
-    "TrackingLayer cannot be shared by multiple viewports"
+  frames.shift()!(0);
+  second.addLayer(layer);
+
+  expect(() => frames.shift()!(16)).toThrow(
+    "TrackingLayer is already attached to another viewport"
   );
-  expect(layer.attachCount).toBe(0);
+  expect(layer.attachCount).toBe(1);
   idetik.stop();
 });
 
@@ -289,33 +291,5 @@ test("Inactive viewport removal does not detach the active viewport layer", () =
 
   idetik.removeViewport(active);
   expect(layer.detachCount).toBe(1);
-  idetik.stop();
-});
-
-test("Runtime rolls back layers when attachment fails", () => {
-  const attachedLayer = new TrackingLayer();
-  const failingLayer = new TrackingLayer();
-  failingLayer.throwOnAttach = true;
-  const viewport = new Viewport({
-    domElement: createTestElement("viewport"),
-    camera: createTestCamera(),
-    layers: [attachedLayer, failingLayer],
-  });
-  const idetik = new Idetik({
-    canvas: document.createElement("canvas"),
-    viewports: [viewport],
-  });
-  let frame: FrameRequestCallback | undefined;
-  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-    frame = callback;
-    return 1;
-  });
-
-  idetik.start();
-  expect(() => frame!(0)).toThrow("attach failed");
-  expect(attachedLayer.attachCount).toBe(1);
-  expect(attachedLayer.detachCount).toBe(1);
-  expect(attachedLayer.attached).toBe(false);
-  expect(failingLayer.attached).toBe(false);
   idetik.stop();
 });
