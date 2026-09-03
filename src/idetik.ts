@@ -13,19 +13,44 @@ import { PixelSizeObserver } from "./utilities/pixel_size_observer";
 
 const DEFAULT_MEMORY_LIMIT_MB = 2048;
 
-/** @group Runtime */
+/**
+ * An object updated once per frame after all viewports have rendered.
+ *
+ * Overlays drive HUD elements that live outside the canvas such as scale
+ * bars, time indicators, or memory readouts.
+ *
+ * ```ts
+ * const chunkReadout: Overlay = {
+ *   update(idetik) {
+ *     div.textContent = `${idetik.memoryStats.cpuChunkCount} chunks`;
+ *   },
+ * };
+ *
+ * idetik.addOverlay(chunkReadout);
+ * ```
+ */
 export type Overlay = {
-  update(idetik: Idetik): void;
+  /** Called once per rendered frame. */
+  update: (idetik: Idetik) => void;
 };
 
-/** @inline */
-type IdetikProps = {
+/**
+ * Initialization properties for constructing an Idetik instance.
+ */
+export type IdetikProps = {
+  /** The canvas element to render into. */
   canvas: HTMLCanvasElement;
+  /** Viewport definitions to create at startup. */
   viewports?: ViewportProps[];
+  /** Overlays to run each frame. */
   overlays?: Overlay[];
+  /** Shows an FPS meter. Defaults to `false`. */
   showStats?: boolean;
+  /** Memory budget for chunk data. Defaults to `2048`. */
   memoryLimitMB?: number;
+  /** Max in-flight chunk requests. Defaults to `8`. */
   maxConcurrentRequests?: number;
+  /** Max GPU texture uploads per frame. Defaults to `4`. */
   maxGpuUploadsPerUpdate?: number;
 };
 
@@ -33,90 +58,84 @@ export type IdetikContext = {
   chunkManager: ChunkManager;
 };
 
-// JS heap usage from the non-standard performance.memory API.
-// Chromium only, undefined where the API is unavailable.
-/** @group Runtime */
+/**
+ * A snapshot of the runtime's memory usage.
+ */
 export type MemoryStats = {
+  /** Bytes of chunk data held in CPU memory. */
   cpuChunkBytes: number;
+  /** Number of chunks held in CPU memory. */
   cpuChunkCount: number;
+  /** Bytes of texture data resident on the GPU. */
   gpuTextureBytes: number;
+  /** Number of textures resident on the GPU. */
   gpuTextureCount: number;
+  /** Used JS heap in bytes. */
   jsHeapUsedBytes?: number;
+  /** JS heap size limit in bytes. */
   jsHeapLimitBytes?: number;
 };
 
 /**
- * The top-level entry point for an Idetik visualization.
+ * The entry point of an Idetik application.
  *
- * An `Idetik` instance owns the renderer, the shared chunk manager, and one or
- * more viewports. Each viewport pairs a camera, its controls, and a stack of
- * layers and draws into a region of the canvas. Call {@link Idetik.start} to
- * begin the render loop and {@link Idetik.stop} to halt it.
+ * An Idetik instance owns the renderer and the chunk manager and drives the
+ * render loop for the viewports it is given. Each viewport pairs a camera
+ * and its controls with a stack of layers and draws into a region of the
+ * shared canvas. Layers in all viewports stream chunks through the same
+ * manager under a single memory budget.
+ *
+ * ```ts
+ * const source = await OmeZarrImageSource.fromHttp({ url });
+ *
+ * const layer = new ImageLayer({
+ *   source,
+ *   sliceCoords: { t: 0, z: 0, c: [0] },
+ * });
+ *
+ * const camera = new OrthographicCamera({
+ *   left: 0,
+ *   right: 1024,
+ *   top: 0,
+ *   bottom: 1024,
+ * });
+ *
+ * const idetik = new Idetik({
+ *   canvas: document.querySelector('canvas')!,
+ *   viewports: [{
+ *     camera,
+ *     layers: [layer],
+ *     cameraControls: new PanZoomControls(camera),
+ *   }],
+ * });
+ *
+ * idetik.start();
+ * ```
  *
  * @see {@link Layer} for the data layers rendered within a viewport.
  *
- * @group Runtime
+ * @group Core
  */
 export class Idetik {
+  /** The canvas element the renderer draws into. */
+  public readonly canvas: HTMLCanvasElement;
+  /** The registered overlays that update once per frame in order. */
+  public readonly overlays: Overlay[];
+
   private readonly chunkManager_: ChunkManager;
   private readonly context_: IdetikContext;
   private readonly renderer_: Renderer;
   private readonly viewports_: Viewport[];
-  public readonly canvas: HTMLCanvasElement;
-  public readonly overlays: Overlay[];
   private readonly stats_?: Stats;
   private readonly sizeObserver_: PixelSizeObserver;
-  private lastAnimationId_?: number;
 
-  // this value will be set after start
+  private lastAnimationId_?: number;
   private lastTimestamp_: DOMHighResTimeStamp = 0;
 
   /**
-   * Creates a new Idetik visualization runtime instance.
+   * Creates an Idetik runtime for the given canvas.
    *
-   * @param params - Configuration parameters for the Idetik instance
-   * @param params.canvas - HTMLCanvasElement to render to
-   * @param params.viewports - Optional array of viewport configurations.
-   *   Each viewport renders with its own camera, layers, and controls.
-   *   The `element` property is optional and defaults to the canvas if not provided.
-   *   Elements must be unique across viewports.
-   *   The `id` property is optional but useful for referencing specific viewports later.
-   * @param params.overlays - Optional array of overlay objects that update each frame (e.g., for HUD elements)
-   * @param params.showStats - Optional flag to display performance statistics
-   *
-   * @example
-   * // Single viewport (element defaults to canvas)
-   * const camera = new OrthographicCamera({ left: 0, right: 1024, top: 0, bottom: 1024 });
-   * const idetik = new Idetik({
-   *   canvas: document.querySelector('canvas')!,
-   *   viewports: [{
-   *     camera: camera,
-   *     layers: [imageLayer],
-   *     cameraControls: new PanZoomControls(camera)
-   *   }]
-   * });
-   *
-   * @example
-   * // Multiple viewports - one defaults to canvas, others use separate elements
-   * const idetik = new Idetik({
-   *   canvas: document.querySelector('canvas')!,
-   *   viewports: [
-   *     {
-   *       id: 'main',
-   *       // element omitted - defaults to canvas
-   *       camera: camera1,
-   *       layers: [layer1]
-   *     },
-   *     {
-   *       id: 'minimap',
-   *       element: document.querySelector('#minimap')!,
-   *       camera: camera2,
-   *       layers: [layer2]
-   *     }
-   *   ]
-   * });
-   *
-   * @throws {Error} If viewports have duplicate IDs or shared elements
+   * @param params - Initialization properties.
    */
   constructor(params: IdetikProps) {
     this.canvas = params.canvas;
@@ -162,10 +181,12 @@ export class Idetik {
     });
   }
 
+  /** Counts of queued and in-flight chunk requests. */
   public get chunkQueueStats() {
     return this.chunkManager_.queueStats;
   }
 
+  /** A snapshot of current CPU/GPU/JS heap memory usage. */
   public get memoryStats(): MemoryStats {
     const perf = (
       performance as Performance & {
@@ -182,30 +203,48 @@ export class Idetik {
     };
   }
 
+  /** The number of objects drawn in the last rendered frame. */
   public get renderedObjects() {
     return this.renderer_.renderedObjects;
   }
 
+  /** The width of the rendering surface in pixels. */
   public get width() {
     return this.renderer_.width;
   }
 
+  /** The height of the rendering surface in pixels. */
   public get height() {
     return this.renderer_.height;
   }
 
+  /** The viewports in render order. */
   public get viewports(): readonly Viewport[] {
     return this.viewports_;
   }
 
+  /** Whether the render loop is running. */
   public get running(): boolean {
     return this.lastAnimationId_ !== undefined;
   }
 
+  /**
+   * Finds a viewport by its id.
+   *
+   * @param id - The id given in the viewport's definition.
+   * @returns The matching viewport or `undefined` if none matches.
+   */
   public getViewport(id: string): Viewport | undefined {
     return this.viewports_.find((v) => v.id === id);
   }
 
+  /**
+   * Adds a viewport at runtime.
+   *
+   * @param props - The viewport definition. The `element` defaults to the
+   *   canvas and must be unique across viewports.
+   * @returns The created viewport.
+   */
   public addViewport(props: ViewportProps): Viewport {
     const [viewport] = parseViewportProps([props], this.canvas, this.context_);
 
@@ -223,6 +262,12 @@ export class Idetik {
     return viewport;
   }
 
+  /**
+   * Removes a previously added viewport.
+   *
+   * @param viewport - The viewport to remove.
+   * @returns `true` if the viewport was found and removed.
+   */
   public removeViewport(viewport: Viewport): boolean {
     const index = this.viewports_.indexOf(viewport);
 
@@ -246,10 +291,21 @@ export class Idetik {
     return true;
   }
 
+  /**
+   * Registers an overlay that updates once per frame.
+   *
+   * @param overlay - The overlay to add.
+   */
   public addOverlay(overlay: Overlay): void {
     this.overlays.push(overlay);
   }
 
+  /**
+   * Removes a previously added overlay.
+   *
+   * @param overlay - The overlay to remove.
+   * @returns `true` if the overlay was found and removed.
+   */
   public removeOverlay(overlay: Overlay): boolean {
     const index = this.overlays.indexOf(overlay);
     if (index === -1) {
@@ -261,10 +317,20 @@ export class Idetik {
     return true;
   }
 
+  /**
+   * Sets the memory budget for chunk data at runtime.
+   *
+   * @param memoryLimitMB - The new budget in megabytes.
+   */
   public setMemoryLimitMB(memoryLimitMB: number): void {
     this.chunkManager_.memoryLimitBytes = memoryLimitMB * 1024 * 1024;
   }
 
+  /**
+   * Starts the render loop and connects input handlers.
+   *
+   * @returns The instance, for chaining.
+   */
   public start() {
     Logger.info("Idetik", "Idetik runtime starting");
     if (!this.running) {
@@ -309,6 +375,9 @@ export class Idetik {
     );
   }
 
+  /**
+   * Stops the render loop and disconnects input handlers.
+   */
   public stop() {
     Logger.info("Idetik", "Idetik runtime stopping");
     if (!this.running) {

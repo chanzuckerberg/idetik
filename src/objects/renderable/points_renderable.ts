@@ -14,15 +14,59 @@ const MARKER_INDEX: Record<Marker, number> = {
 };
 
 // TODO: add a border (or "secondary") color to improve contrast against background
-type PointProps = {
+/**
+ * Initialization properties for a point in {@link PointsRenderable}.
+ */
+export type PointProps = {
+  /** World-space position of the point. */
   position: vec3;
+  /** Fill color of the marker. */
   color: ColorLike;
+  /** Marker size in pixels. */
   size: number;
+  /** Marker shape. */
   marker: Marker;
 };
 
-/** @group Renderable Objects */
+/**
+ * A set of point markers drawn as screen-space sprites.
+ *
+ * Each point has a world-space position, a color, a size in pixels, and a
+ * marker shape. All instances share a single marker sprite atlas. The
+ * point set is fixed at construction, so build a new instance to change
+ * it. Construct these directly inside a custom {@link Layer}.
+ *
+ * ```ts
+ * class Particles extends Layer {
+ *   public readonly type = "Particles";
+ *
+ *   constructor(positions: vec3[]) {
+ *     super();
+ *     this.addObject(
+ *       new PointsRenderable(
+ *         positions.map((position) => ({
+ *           position,
+ *           color: Color.RED,
+ *           size: 20,
+ *           marker: "circle" as const,
+ *         }))
+ *       )
+ *     );
+ *     this.setState("ready");
+ *   }
+ *
+ *   public update() {}
+ * }
+ * ```
+ *
+ * @group Renderables
+ */
 export class PointsRenderable extends RenderableObject {
+  /**
+   * Creates a renderable drawing one marker per entry.
+   *
+   * @param points - The points to draw.
+   */
   constructor(points: PointProps[]) {
     super();
     this.programName = "points";
@@ -69,6 +113,7 @@ export class PointsRenderable extends RenderableObject {
     this.setTexture(0, getMarkerAtlas());
   }
 
+  /** Identifies the renderable type as `PointsRenderable`. */
   public get type() {
     return "PointsRenderable";
   }
