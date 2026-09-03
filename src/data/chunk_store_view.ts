@@ -6,7 +6,7 @@ import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { Logger } from "../utilities/logger";
-import { planeView, PlaneFootprint } from "../math/visible_plane";
+import { PlaneFootprint, PlaneViewSampler } from "../math/plane_view_sampler";
 import { clamp } from "../utilities/clamp";
 
 /*
@@ -18,7 +18,7 @@ access key, preventing accidental external mutation.
 export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
 
 // Ceiling on how far foreshortening may drive LOD finer. See `setLOD`.
-const MAX_LOD_ANISOTROPY = 1;
+export const MAX_LOD_ANISOTROPY = 2.5;
 
 export class ChunkStoreView {
   private readonly store_: ChunkStore;
@@ -26,6 +26,7 @@ export class ChunkStoreView {
   private policyChanged_ = false;
   private currentLOD_: number = 0;
   private readonly axes_: SliceAxes;
+  private readonly planeSampler_ = new PlaneViewSampler();
   private readonly scale0_: number;
   private lastViewBounds2D_: Box2 | null = null;
   private lastViewProjection_: mat4 | null = null;
@@ -128,7 +129,7 @@ export class ChunkStoreView {
     viewProjection: mat4,
     bufferSizePx: { width: number; height: number }
   ): void {
-    const view = planeView(
+    const view = this.planeSampler_.view(
       viewProjection,
       this.axes_,
       this.slicePlaneValue(sliceCoords),
@@ -347,10 +348,10 @@ export class ChunkStoreView {
 
   private setLOD(footprint: PlaneFootprint): boolean {
     // A foreshortened plane wants finer data along its unforeshortened axis
-    // than across it. At the default ratio of 1 we follow the coarser axis, as
-    // mip selection does: chasing the finer one costs a texel per doubling for
-    // detail only one axis can show, and chunk textures have no mip chain to
-    // filter the surplus away, so it aliases as well as costing memory.
+    // than across it. Following the coarser axis outright, as mip selection
+    // does, blurs an oblique plane by 1/cos(tilt); chasing the finer one costs
+    // a texel per doubling for detail only one axis can show, and chunk
+    // textures have no mip chain to filter the surplus away.
     const unitsPerScreenPixel = Math.max(
       footprint.minUnitsPerScreenPixel,
       footprint.maxUnitsPerScreenPixel / MAX_LOD_ANISOTROPY

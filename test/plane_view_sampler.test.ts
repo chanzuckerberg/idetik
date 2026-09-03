@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { mat4, vec2, vec3 } from "gl-matrix";
-import { planeView } from "@/math/visible_plane";
+import { PlaneViewSampler } from "@/math/plane_view_sampler";
 import { Box2 } from "@/math/box2";
 import { sliceAxesFor } from "@/math/axes";
+import { MAX_LOD_ANISOTROPY } from "@/data/chunk_store_view";
 
 const XY = sliceAxesFor("XY");
+const sampler = new PlaneViewSampler();
+const planeView = sampler.view.bind(sampler);
 const FOV = Math.PI / 3;
 const BUFFER = { width: 800, height: 800 };
 
@@ -80,36 +83,60 @@ describe("planeView", () => {
       minUnitsPerScreenPixel: number;
       maxUnitsPerScreenPixel: number;
     },
-    maxAnisotropy = 1
+    maxAnisotropy = MAX_LOD_ANISOTROPY
   ) =>
     Math.max(
       footprint.minUnitsPerScreenPixel,
       footprint.maxUnitsPerScreenPixel / maxAnisotropy
     );
 
-  it("coarsens smoothly all the way from face-on to edge-on", () => {
-    const levels: number[] = [];
+  it("holds face-on detail within the anisotropy budget, then coarsens", () => {
+    const samples = [];
     for (let deg = 0; deg <= 85; deg += 5) {
       const tilt = (deg * Math.PI) / 180;
-      levels.push(
-        Math.log2(sampledAt(view(perspective(100, 1, tilt)).footprint))
-      );
+      const { footprint } = view(perspective(100, 1, tilt));
+      samples.push({
+        level: Math.log2(sampledAt(footprint)),
+        anisotropy:
+          footprint.maxUnitsPerScreenPixel / footprint.minUnitsPerScreenPixel,
+      });
     }
 
-    // Monotone from the very first degrees
-    for (let i = 1; i < levels.length; ++i) {
-      expect(levels[i]).toBeGreaterThan(levels[i - 1]);
+    const levels = samples.map((s) => s.level);
+    const faceOn = levels[0];
+    const withinBudget = samples.filter(
+      (s) => s.anisotropy <= MAX_LOD_ANISOTROPY
+    );
+    const beyondBudget = samples.filter(
+      (s) => s.anisotropy > MAX_LOD_ANISOTROPY
+    );
+
+    // The sweep has to straddle the clamp for either half to mean anything
+    expect(withinBudget.length).toBeGreaterThan(1);
+    expect(beyondBudget.length).toBeGreaterThan(1);
+
+    // Inside the budget the unforeshortened axis sets the level, so tilting
+    // holds face-on detail rather than trading it away, and cannot run away
+    // into loading finer data than face-on needed either.
+    for (const { level } of withinBudget) {
+      expect(level).toBeLessThanOrEqual(faceOn);
+      expect(level).toBeGreaterThan(faceOn - 0.25);
+    }
+
+    // Past it the coarser axis takes over and 1/cos drives the level up
+    for (let i = 1; i < beyondBudget.length; ++i) {
+      expect(beyondBudget[i].level).toBeGreaterThan(beyondBudget[i - 1].level);
     }
 
     // Through the angles worth working at, no 5 degree step covers half a
     // level, so tilting cannot skip an LOD. Past that the plane is nearly
     // edge-on and 1/cos runs away on its own.
     for (let i = 1; i <= 60 / 5; ++i) {
-      expect(levels[i] - levels[i - 1]).toBeLessThan(0.5);
+      expect(Math.abs(levels[i] - levels[i - 1])).toBeLessThan(0.5);
     }
 
-    // Edge-on gives up several levels relative to face-on
-    expect(levels[levels.length - 1] - levels[0]).toBeGreaterThan(3);
+    // Edge-on still gives up several levels relative to face-on
+    expect(levels[levels.length - 1] - faceOn).toBeGreaterThan(2);
   });
 
   it("coarsens monotonically as the camera pulls back", () => {
@@ -199,6 +226,47 @@ describe("planeView", () => {
       expect(rates[i]).toBeGreaterThan(rates[i - 1] * 0.99);
     }
     expect(rates[rates.length - 1]).toBeGreaterThan(rates[0] * 2);
+  });
+
+  it("keeps a finite rate however the horizon falls across the viewport", () => {
+    // The horizon's height in the viewport depends on both tilt and field of
+    // view, and rays above it contribute nothing. A wide field of view at high
+    // tilt brings it almost to the centre, which is as far as it can go while
+    // the plane is still visible, and the median has to hold up there. Beyond
+    // this range the plane is edge-on to within rounding and the coarsest
+    // level is the honest answer, which the next case covers.
+    for (const fov of [Math.PI / 3, Math.PI / 2, (5 * Math.PI) / 6]) {
+      let previous = -Infinity;
+      for (const deg of [60, 70, 80, 85, 89]) {
+        const tilt = (deg * Math.PI) / 180;
+        const projection = mat4.multiply(
+          mat4.create(),
+          mat4.perspective(mat4.create(), fov, 1, 0.1, 1e5),
+          lookAt(100, tilt)
+        );
+        const rate = sampledAt(
+          planeView(projection, XY, 0, extent(1e6), BUFFER).footprint
+        );
+
+        expect(Number.isFinite(rate)).toBe(true);
+        expect(rate).toBeGreaterThan(previous);
+        previous = rate;
+      }
+    }
+  });
+
+  it("gives up on a plane that is edge-on to within rounding", () => {
+    const projection = mat4.multiply(
+      mat4.create(),
+      mat4.perspective(mat4.create(), FOV, 1, 0.1, 1e5),
+      lookAt(100, (89.99 * Math.PI) / 180)
+    );
+
+    // Not the horizon clipping samples -- the surviving ones are squeezed so
+    // hard that the narrow side of the footprint underflows to nothing.
+    expect(
+      sampledAt(planeView(projection, XY, 0, extent(1e6), BUFFER).footprint)
+    ).toBe(Infinity);
   });
 
   it("has no sampling rate when there is no slice plane to sample", () => {
