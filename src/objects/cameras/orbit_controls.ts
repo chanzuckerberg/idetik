@@ -24,13 +24,6 @@ export type OrbitControlsProps = {
   dampingFactor?: number;
 };
 
-export type OrbitControlsJSON = {
-  radius: number;
-  yaw: number;
-  pitch: number;
-  target: [number, number, number];
-};
-
 /** @group Cameras & Controls */
 export class OrbitControls implements CameraControls {
   private readonly camera_: PerspectiveCamera;
@@ -67,14 +60,20 @@ export class OrbitControls implements CameraControls {
     this.updateCamera();
   }
 
-  /** Returns the orbit parameters as JSON-safe data. */
-  public toJSON(): OrbitControlsJSON {
-    return {
-      radius: this.currPos_.radius,
-      yaw: this.currPos_.phi,
-      pitch: this.currPos_.theta,
-      target: [...this.currCenter_] as [number, number, number],
-    };
+  public get radius(): number {
+    return this.currPos_.radius;
+  }
+
+  public get yaw(): number {
+    return this.currPos_.phi;
+  }
+
+  public get pitch(): number {
+    return this.currPos_.theta;
+  }
+
+  public get target(): vec3 {
+    return vec3.clone(this.currCenter_);
   }
 
   public get isMoving(): boolean {
