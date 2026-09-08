@@ -6,7 +6,7 @@ import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { Logger } from "../utilities/logger";
-import { PlaneFootprint, PlaneViewSampler } from "../math/plane_view_sampler";
+import { PlaneViewSampler, RayFootprint } from "../math/plane_view_sampler";
 import { clamp } from "../utilities/clamp";
 
 /*
@@ -17,8 +17,9 @@ access key, preventing accidental external mutation.
 */
 export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
 
-// Ceiling on how far foreshortening may drive LOD finer. See `setLOD`.
-export const MAX_LOD_ANISOTROPY = 2.5;
+const MAX_ANISOTROPY = 2;
+const MAX_TEXEL_OVERDRAW = 8;
+const CHUNKS_PER_VIEW_WARNING = 4096;
 
 export class ChunkStoreView {
   private readonly store_: ChunkStore;
@@ -129,7 +130,7 @@ export class ChunkStoreView {
     viewProjection: mat4,
     bufferSizePx: { width: number; height: number }
   ): void {
-    const view = this.planeSampler_.view(
+    const { worldViewRect, rays } = this.planeSampler_.view(
       viewProjection,
       this.axes_,
       this.slicePlaneValue(sliceCoords),
@@ -137,9 +138,8 @@ export class ChunkStoreView {
       bufferSizePx
     );
 
-    const lodChanged = this.setLOD(view.footprint);
-
-    const viewBounds2D = view.worldViewRect;
+    const viewBounds2D = worldViewRect;
+    const lodChanged = this.setLOD(rays, viewBounds2D, bufferSizePx);
 
     const sliceBounds = this.getSliceAxisBounds(sliceCoords);
     const changed =
@@ -346,40 +346,104 @@ export class ChunkStoreView {
     }
   }
 
-  private setLOD(footprint: PlaneFootprint): boolean {
-    // A foreshortened plane wants finer data along its unforeshortened axis
-    // than across it. Following the coarser axis outright, as mip selection
-    // does, blurs an oblique plane by 1/cos(tilt); chasing the finer one costs
-    // a texel per doubling for detail only one axis can show, and chunk
-    // textures have no mip chain to filter the surplus away.
-    const unitsPerScreenPixel = Math.max(
-      footprint.minUnitsPerScreenPixel,
-      footprint.maxUnitsPerScreenPixel / MAX_LOD_ANISOTROPY
+  private setLOD(
+    rays: readonly RayFootprint[],
+    worldViewRect: Box2,
+    bufferSizePx: { width: number; height: number }
+  ): boolean {
+    const [finest, coarsest] = this.availableLODs();
+    const resolvable = clamp(
+      this.wantedLOD(rays, finest, coarsest),
+      finest,
+      coarsest
     );
-    const lodFactor = -Math.log2(unitsPerScreenPixel);
-
-    // With 2x downsampling per LOD, selection happens in log2 space.
-    const bias = this.policy_.lod.bias;
-
-    // How many LOD 0 pixels per screen pixel, normalized by source scale and bias.
-    const sourceAdjusted = bias - Math.log2(this.scale0_) - lodFactor;
-    const desiredLOD = Math.floor(sourceAdjusted);
-
-    const lowestResLOD = this.store_.getLowestResLOD();
-    // Intersect dataset bounds with policy bounds.
-    const minPolicyLOD = Math.max(
-      0,
-      Math.min(lowestResLOD, this.policy_.lod.min)
-    );
-    const maxPolicyLOD = Math.max(
-      minPolicyLOD,
-      Math.min(lowestResLOD, this.policy_.lod.max)
+    const texelBudget =
+      bufferSizePx.width * bufferSizePx.height * MAX_TEXEL_OVERDRAW;
+    const target = this.closestAffordableLOD(
+      resolvable,
+      coarsest,
+      worldViewRect,
+      texelBudget
     );
 
-    const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
     if (target === this.currentLOD_) return false;
     this.currentLOD_ = target;
+
+    const chunks = this.chunkCountFor(worldViewRect, target);
+    if (chunks > CHUNKS_PER_VIEW_WARNING) {
+      Logger.warn(
+        "ChunkStoreView",
+        `LOD ${target} needs ${chunks} chunks for one view; ` +
+          `${this.store_.dimensions[this.axes_.u]!.lods[target].chunkSize}px ` +
+          `chunks may be too small for this source`
+      );
+    }
+
     return true;
+  }
+
+  private wantedLOD(
+    rays: readonly RayFootprint[],
+    finest: number,
+    coarsest: number
+  ): number {
+    const wanted = rays.map((ray) => {
+      const unitsPerPixel = Math.max(ray.narrow, ray.wide / MAX_ANISOTROPY);
+      const level = this.lodFor(unitsPerPixel);
+      return Number.isFinite(level) ? clamp(level, finest, coarsest) : coarsest;
+    });
+    wanted.sort((a, b) => a - b);
+
+    const rows = Math.sqrt(wanted.length);
+    const coarseMedianIndex = wanted.length - (wanted.length - rows) / 2;
+    return wanted[coarseMedianIndex];
+  }
+
+  private closestAffordableLOD(
+    lod: number,
+    coarsest: number,
+    rect: Box2,
+    texelBudget: number
+  ): number {
+    const dimensions = this.store_.dimensions;
+
+    while (lod < coarsest) {
+      const texelsPerChunkSlice =
+        dimensions[this.axes_.u]!.lods[lod].chunkSize *
+        dimensions[this.axes_.v]!.lods[lod].chunkSize;
+
+      if (this.chunkCountFor(rect, lod) * texelsPerChunkSlice <= texelBudget)
+        break;
+      ++lod;
+    }
+
+    return lod;
+  }
+
+  private availableLODs(): [number, number] {
+    const lowestResLOD = this.store_.getLowestResLOD();
+    const min = Math.max(0, Math.min(lowestResLOD, this.policy_.lod.min));
+    const max = Math.max(min, Math.min(lowestResLOD, this.policy_.lod.max));
+    return [min, max];
+  }
+
+  private lodFor(unitsPerPixel: number): number {
+    return Math.floor(
+      this.policy_.lod.bias - Math.log2(this.scale0_) + Math.log2(unitsPerPixel)
+    );
+  }
+
+  private chunkCountFor(rect: Box2, lod: number): number {
+    const dimensions = this.store_.dimensions;
+    const uLod = dimensions[this.axes_.u]!.lods[lod];
+    const vLod = dimensions[this.axes_.v]!.lods[lod];
+    const across = Math.ceil(
+      (rect.max[0] - rect.min[0]) / (uLod.chunkSize * uLod.scale)
+    );
+    const down = Math.ceil(
+      (rect.max[1] - rect.min[1]) / (vLod.chunkSize * vLod.scale)
+    );
+    return Math.max(0, across) * Math.max(0, down);
   }
 
   private markTimeChunksForPrefetchImage(

@@ -10,68 +10,55 @@ const MIN_CLIP_W = 1e-9;
 // matrix, so roughly seven digits survive and anything under ~1e-7 is noise.
 // Compared squared to keep a square root out of the per-ray path.
 const MIN_APPROACH_COSINE_SQUARED = 1e-6 * 1e-6;
+
 const SAMPLE_NDC = [-2 / 3, 0, 2 / 3];
 const CORNER_NDC_X = [-1, 1, -1, 1];
 const CORNER_NDC_Y = [-1, -1, 1, 1];
 
+const RAY_COUNT = 9;
+
 /**
- * Plane-space units covered by one screen pixel along the plane's most and
- * least magnified directions. The two differ wherever the plane is
- * foreshortened, and their ratio is the anisotropy of the view at that point.
+ * Plane units one screen pixel covers at a ray, along the ray's least and most
+ * magnified directions. Both are Infinity where the ray met no plane.
  */
-export type PlaneFootprint = {
-  readonly minUnitsPerScreenPixel: number;
-  readonly maxUnitsPerScreenPixel: number;
-};
-
-const COARSEST_FOOTPRINT: PlaneFootprint = {
-  minUnitsPerScreenPixel: Infinity,
-  maxUnitsPerScreenPixel: Infinity,
-};
-
 export type PlaneView = {
   readonly worldViewRect: Box2;
-  readonly footprint: PlaneFootprint;
+  /** One entry per ray, valid only until the next `view` call. */
+  readonly rays: readonly RayFootprint[];
 };
 
-/**
- * Samples where the slice plane lands on screen and how densely.
- *
- * Holds the working buffers rather than reallocating them: a view casts
- * thirteen rays per update, and allocating through each one cost more than the
- * arithmetic did. One sampler per view keeps that state owned and bounded.
- */
+export type RayFootprint = {
+  readonly narrow: number;
+  readonly wide: number;
+};
+
 export class PlaneViewSampler {
   private readonly inverse_ = mat4.create();
-  private readonly ndc_ = new Float32Array(3);
-  private readonly clip_ = new Float32Array(4);
-  private readonly near_ = new Float32Array(3);
-  private readonly far_ = new Float32Array(3);
-  private readonly toFar_ = new Float32Array(3);
-  private readonly hitPoint_ = new Float32Array(2);
-  private readonly cornerUV_ = new Float32Array(8);
-  private readonly footprintMin_ = new Float64Array(9);
-  private readonly footprintMax_ = new Float64Array(9);
-  private readonly order_ = new Uint8Array(9);
+  private readonly near_ = new Float64Array(3);
+  private readonly far_ = new Float64Array(3);
+  private readonly toFar_ = new Float64Array(3);
+  private readonly hitPoint_ = new Float64Array(2);
+  private readonly cornerUV_ = new Float64Array(8);
+  private readonly rays_ = Array.from({ length: RAY_COUNT }, () => ({
+    narrow: Infinity,
+    wide: Infinity,
+  }));
   private readonly clipRows_ = new Float64Array(9);
   private readonly boxMin_ = vec2.create();
   private readonly boxMax_ = vec2.create();
 
-  // in-plane and slice axis components, set per call
   private u_ = 0;
   private v_ = 1;
   private w_ = 2;
   private sliceValue_ = 0;
 
-  // which side of the plane `intersect` found the frustum's ends on
   private nearInFront_ = false;
   private farInFront_ = false;
 
   /**
-   * The rect never under-covers the data; it bounds a trapezoid in
-   * perspective, and corners beyond the far plane still count since they only
-   * clip the view. Returns an empty rect when nothing is visible, and the
-   * image extent when the corners cannot be resolved.
+   * Fills the per-ray footprints and returns the plane's visible rect, which
+   * never under-covers the data: it bounds a trapezoid in perspective, and
+   * corners past the far plane still count since they only clip the view.
    */
   public view(
     viewProjection: mat4,
@@ -80,12 +67,15 @@ export class PlaneViewSampler {
     imageExtent: Box2,
     bufferSizePx: { width: number; height: number }
   ): PlaneView {
-    if (sliceValue === undefined) {
-      return { worldViewRect: imageExtent, footprint: COARSEST_FOOTPRINT };
+    for (const ray of this.rays_) {
+      ray.narrow = Infinity;
+      ray.wide = Infinity;
     }
-    if (!mat4.invert(this.inverse_, viewProjection)) {
-      return { worldViewRect: imageExtent, footprint: COARSEST_FOOTPRINT };
-    }
+
+    if (sliceValue === undefined)
+      return { worldViewRect: imageExtent, rays: this.rays_ };
+    if (!mat4.invert(this.inverse_, viewProjection))
+      return { worldViewRect: imageExtent, rays: this.rays_ };
 
     this.u_ = AxisComponent[axes.u];
     this.v_ = AxisComponent[axes.v];
@@ -106,29 +96,16 @@ export class PlaneViewSampler {
     }
 
     if (!anyInFront || !anyBehind) {
-      return { worldViewRect: new Box2(), footprint: COARSEST_FOOTPRINT };
+      return { worldViewRect: new Box2(), rays: this.rays_ };
     }
 
     this.setClipRows(viewProjection);
 
-    if (!allCornersHit) {
-      return {
-        worldViewRect: imageExtent,
-        footprint: imageExtent.isEmpty()
-          ? COARSEST_FOOTPRINT
-          : this.medianFootprint(imageExtent, bufferSizePx),
-      };
-    }
-
-    const worldViewRect = this.cornerBounds(imageExtent);
-    if (worldViewRect.isEmpty()) {
-      return { worldViewRect, footprint: COARSEST_FOOTPRINT };
-    }
-
-    return {
-      worldViewRect,
-      footprint: this.medianFootprint(worldViewRect, bufferSizePx),
-    };
+    const worldViewRect = allCornersHit
+      ? this.cornerBounds(imageExtent)
+      : imageExtent;
+    if (!worldViewRect.isEmpty()) this.measureFootprints(bufferSizePx);
+    return { worldViewRect, rays: this.rays_ };
   }
 
   /**
@@ -171,28 +148,21 @@ export class PlaneViewSampler {
   }
 
   private unproject(
-    out: Float32Array,
+    out: Float64Array,
     ndcX: number,
     ndcY: number,
     ndcZ: number
   ): void {
     const m = this.inverse_;
-    this.ndc_[0] = ndcX;
-    this.ndc_[1] = ndcY;
-    this.ndc_[2] = ndcZ;
-    const x = this.ndc_[0];
-    const y = this.ndc_[1];
-    const z = this.ndc_[2];
+    const x = m[0] * ndcX + m[4] * ndcY + m[8] * ndcZ + m[12];
+    const y = m[1] * ndcX + m[5] * ndcY + m[9] * ndcZ + m[13];
+    const z = m[2] * ndcX + m[6] * ndcY + m[10] * ndcZ + m[14];
+    const w = m[3] * ndcX + m[7] * ndcY + m[11] * ndcZ + m[15];
 
-    this.clip_[0] = m[0] * x + m[4] * y + m[8] * z + m[12];
-    this.clip_[1] = m[1] * x + m[5] * y + m[9] * z + m[13];
-    this.clip_[2] = m[2] * x + m[6] * y + m[10] * z + m[14];
-    this.clip_[3] = m[3] * x + m[7] * y + m[11] * z + m[15];
-
-    const inverseW = 1 / this.clip_[3];
-    out[0] = this.clip_[0] * inverseW;
-    out[1] = this.clip_[1] * inverseW;
-    out[2] = this.clip_[2] * inverseW;
+    const inverseW = 1 / w;
+    out[0] = x * inverseW;
+    out[1] = y * inverseW;
+    out[2] = z * inverseW;
   }
 
   /**
@@ -242,48 +212,25 @@ export class PlaneViewSampler {
     return new Box2(this.boxMin_, this.boxMax_);
   }
 
-  /**
-   * Sampled on a grid in screen space rather than at one point in plane space.
-   * The plane's world-space midpoint is dragged around by its most distant
-   * corner, which recedes without bound as the plane tips towards edge-on; an
-   * even spread across the viewport instead tracks what most of the screen
-   * actually shows, and moves smoothly as the camera turns.
-   *
-   * Keep the grid odd and including 0: rows above the horizon contribute no
-   * sample, and the median only survives that while under half the grid
-   * misses. Whenever the plane is visible at all its horizon sits strictly
-   * above ndcY 0, so a centre row that always hits caps the misses at one row
-   * in three. An even split would forfeit that and let the horizon alone force
-   * the coarsest level while most of the screen still showed usable data.
-   */
-  private medianFootprint(
-    rect: Box2,
-    bufferSizePx: { width: number; height: number }
-  ): PlaneFootprint {
+  private measureFootprints(bufferSizePx: {
+    width: number;
+    height: number;
+  }): void {
     const halfWidth = bufferSizePx.width / 2;
     const halfHeight = bufferSizePx.height / 2;
-    const minU = rect.min[0];
-    const minV = rect.min[1];
-    const maxU = rect.max[0];
-    const maxV = rect.max[1];
 
     let slot = 0;
     for (const ndcY of SAMPLE_NDC) {
       for (const ndcX of SAMPLE_NDC) {
         if (!this.intersect(ndcX, ndcY)) {
-          // a ray past the horizon is a vote for the coarsest data rather
-          // than a sample to discard
-          this.footprintMin_[slot] = Infinity;
-          this.footprintMax_[slot] = Infinity;
+          // a ray past the horizon is a vote for the coarsest LOD
+          this.rays_[slot].narrow = Infinity;
+          this.rays_[slot].wide = Infinity;
         } else {
-          // samples off the data would report a footprint for chunks we are
-          // not going to load
-          const u = this.hitPoint_[0];
-          const v = this.hitPoint_[1];
           this.setFootprint(
             slot,
-            u < minU ? minU : u > maxU ? maxU : u,
-            v < minV ? minV : v > maxV ? maxV : v,
+            this.hitPoint_[0],
+            this.hitPoint_[1],
             halfWidth,
             halfHeight
           );
@@ -291,8 +238,6 @@ export class PlaneViewSampler {
         ++slot;
       }
     }
-
-    return this.selectMedian();
   }
 
   /**
@@ -312,8 +257,8 @@ export class PlaneViewSampler {
     const y = h[3] * u + h[4] * v + h[5];
     const w = h[6] * u + h[7] * v + h[8];
     if (!(w > MIN_CLIP_W) || !Number.isFinite(x) || !Number.isFinite(y)) {
-      this.footprintMin_[slot] = Infinity;
-      this.footprintMax_[slot] = Infinity;
+      this.rays_[slot].narrow = Infinity;
+      this.rays_[slot].wide = Infinity;
       return;
     }
 
@@ -332,30 +277,7 @@ export class PlaneViewSampler {
     const major = Math.sqrt(Math.max(0, mean + spread));
     const minor = Math.sqrt(Math.max(0, mean - spread));
 
-    this.footprintMin_[slot] = major > 0 ? 1 / major : Infinity;
-    this.footprintMax_[slot] = minor > 0 ? 1 / minor : Infinity;
-  }
-
-  /** Median by the finer axis, ranking indices so the pair stays together. */
-  private selectMedian(): PlaneFootprint {
-    const order = this.order_;
-    const mins = this.footprintMin_;
-    for (let i = 0; i < 9; ++i) order[i] = i;
-    for (let i = 1; i < 9; ++i) {
-      const index = order[i];
-      const key = mins[index];
-      let j = i - 1;
-      while (j >= 0 && mins[order[j]] > key) {
-        order[j + 1] = order[j];
-        --j;
-      }
-      order[j + 1] = index;
-    }
-
-    const median = order[4];
-    return {
-      minUnitsPerScreenPixel: mins[median],
-      maxUnitsPerScreenPixel: this.footprintMax_[median],
-    };
+    this.rays_[slot].narrow = major > 0 ? 1 / major : Infinity;
+    this.rays_[slot].wide = minor > 0 ? 1 / minor : Infinity;
   }
 }
