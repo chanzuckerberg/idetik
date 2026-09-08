@@ -1,4 +1,4 @@
-import { Layer, LayerProps } from "../core/layer";
+import { BlendMode, Layer } from "../core/layer";
 import { Viewport } from "../core/viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import type { IdetikContext } from "../idetik";
@@ -36,18 +36,62 @@ import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { poolKeyForImageRenderable } from "./image_layer";
 
-export type LabelLayerProps = LayerProps & {
+/**
+ * Initialization properties for constructing a label layer.
+ */
+export type LabelLayerProps = {
+  /** The single-channel label source to stream from. */
   source: ChunkSource;
+  /** The slice to display in world units. */
   sliceCoords: SliceCoordinates;
+  /** Streaming policy. Defaults to the exploration policy. */
   policy?: ImageSourcePolicy;
+  /** Slice plane orientation. Defaults to `"XY"`. */
   orientation?: SliceOrientation;
+  /** Colors for label values. Defaults to a built-in cycle. */
   colorMap?: LabelColorMapProps;
+  /** Called with the picked label when the layer is clicked. */
   onPickValue?: (info: PointPickingResult) => void;
+  /** Outlines the picked label. Defaults to `false`. */
   outlineSelected?: boolean;
+  /** Layer opacity in `[0, 1]`. Defaults to `1`. */
+  opacity?: number;
+  /** How the layer blends. Defaults to `"none"`. */
+  blendMode?: BlendMode;
+  /** Hides content behind. Inferred from `blendMode`. */
+  occludes?: boolean;
 };
 
-/** @group Layers */
+/**
+ * A layer that renders a 2D slice of a single-channel label image.
+ *
+ * Label layer displays segmentation data where each pixel holds an
+ * integer label. Labels are colored by cycling through the color map's
+ * `cycle` with exact-value overrides in its `lookupTable`. Chunks stream
+ * through the same policy machinery as {@link ImageLayer} and the source
+ * must be single channel.
+ *
+ * Clicking the layer picks the label under the pointer. With
+ * `outlineSelected` the picked label is outlined, and `onPickValue`
+ * receives the world position and label value for custom handling such as
+ * highlighting through {@link setColorMap}.
+ *
+ * ```ts
+ * const labels = new LabelLayer({
+ *   source: labelSource,
+ *   sliceCoords: { z: 12, c: [0] },
+ *   opacity: 0.55,
+ *   blendMode: "normal",
+ *   onPickValue: ({ value }) => console.log(`label ${value}`),
+ * });
+ *
+ * viewport.addLayer(labels);
+ * ```
+ *
+ * @group Layers
+ */
 export class LabelLayer extends Layer {
+  /** Identifies the layer type as `LabelLayer`. */
   public readonly type = "LabelLayer";
 
   private readonly source_: ChunkSource;
@@ -70,6 +114,11 @@ export class LabelLayer extends Layer {
   private lastPresentationTimeStamp_?: DOMHighResTimeStamp;
   private lastPresentationTimeCoord_?: number;
 
+  /**
+   * Creates a label layer for the given source and slice.
+   *
+   * @param props - Initialization properties.
+   */
   constructor({
     source,
     sliceCoords,
@@ -93,6 +142,7 @@ export class LabelLayer extends Layer {
     this.outlineSelected_ = outlineSelected;
   }
 
+  /** @hidden */
   protected attach(context: IdetikContext) {
     this.context_ = context;
     this.chunkStoreView_ = context.chunkManager.addView(
@@ -110,6 +160,7 @@ export class LabelLayer extends Layer {
     }
   }
 
+  /** @hidden */
   protected detach(_context: IdetikContext) {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.clearObjects();
@@ -118,6 +169,12 @@ export class LabelLayer extends Layer {
     this.context_ = undefined;
   }
 
+  /**
+   * Streams chunks for the current view and refreshes the visible slice.
+   * Called automatically once per frame.
+   *
+   * @param viewport - The viewport being rendered.
+   */
   public update(viewport?: Viewport) {
     if (!viewport || !this.chunkStoreView_) return;
 
@@ -143,13 +200,17 @@ export class LabelLayer extends Layer {
     }
   }
 
+  /** The slice plane the layer displays. */
   public get orientation(): SliceOrientation {
     return this.orientation_;
   }
 
   /**
-   * Changes the slice orientation at runtime. Visible renderables are rebuilt
-   * for the new plane, chunks already resident in the shared cache are reused.
+   * Changes the slice orientation at runtime. Visible renderables are
+   * rebuilt for the new plane and chunks already resident in the shared
+   * cache are reused.
+   *
+   * @param orientation - The new slice plane.
    */
   public setOrientation(orientation: SliceOrientation) {
     if (orientation === this.orientation_) {
@@ -219,6 +280,12 @@ export class LabelLayer extends Layer {
     );
   }
 
+  /**
+   * Handles click picking and selection outlining. Called automatically
+   * for each pointer event on the owning viewport.
+   *
+   * @param event - The event with clip and world coordinates attached.
+   */
   public onEvent(event: EventContext) {
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
@@ -254,10 +321,17 @@ export class LabelLayer extends Layer {
     return { world, value };
   }
 
+  /** The validated color map currently in effect. */
   public get colorMap(): LabelColorMap {
     return this.colorMap_;
   }
 
+  /**
+   * Replaces the color map and recolors all visible chunks.
+   *
+   * @param colorMap - Colors for label values. Omitted fields fall back
+   *   to defaults.
+   */
   public setColorMap(colorMap: LabelColorMapProps) {
     this.colorMap_ = validateColorMap(colorMap);
     this.visibleChunks_.forEach((label) => {
@@ -265,6 +339,12 @@ export class LabelLayer extends Layer {
     });
   }
 
+  /**
+   * Sets the label value drawn as selected or `null` to clear the
+   * selection.
+   *
+   * @param value - The label value to select.
+   */
   public setSelectedValue(value: number | null) {
     this.selectedValue_ = value;
     this.visibleChunks_.forEach((label) => {
@@ -272,18 +352,29 @@ export class LabelLayer extends Layer {
     });
   }
 
+  /**
+   * The slice coordinates the layer displays. This is the object passed
+   * at construction and may be mutated to move through the data.
+   */
   public get sliceCoords(): SliceCoordinates {
     return this.sliceCoords_;
   }
 
+  /** The chunked label source the layer streams from. */
   public get source(): ChunkSource {
     return this.source_;
   }
 
+  /**
+   * The streaming policy in effect. Assign a new policy to reschedule
+   * loading at runtime, for example when switching between exploration
+   * and playback.
+   */
   public get imageSourcePolicy(): Readonly<ImageSourcePolicy> {
     return this.policy_;
   }
 
+  /** @param newPolicy - The policy to apply. */
   public set imageSourcePolicy(newPolicy: ImageSourcePolicy) {
     if (this.policy_ !== newPolicy) {
       this.policy_ = newPolicy;
@@ -297,14 +388,24 @@ export class LabelLayer extends Layer {
   }
 
   // exposed for use in chunk info overlay
+  /** The layer's chunk store view for diagnostic overlays. */
   public get chunkStoreView(): ChunkStoreView | undefined {
     return this.chunkStoreView_;
   }
 
+  /** The `t` coordinate of the most recently presented slice. */
   public get lastPresentationTimeCoord(): number | undefined {
     return this.lastPresentationTimeCoord_;
   }
 
+  /**
+   * Reads the label value at a world position from the resident chunks.
+   * Prefers the current level of detail and falls back to other resident
+   * levels.
+   *
+   * @param world - The world-space position to sample.
+   * @returns The label value or `null` if no resident chunk covers it.
+   */
   public async getValueAtWorld(world: vec3): Promise<number | null> {
     const currentLOD = this.chunkStoreView_?.currentLOD ?? 0;
 

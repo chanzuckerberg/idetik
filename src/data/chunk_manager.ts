@@ -8,8 +8,13 @@ import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture, textureStorageBytes } from "../objects/textures/texture";
 import { Texture3D } from "../objects/textures/texture_3d";
 
+/**
+ * A snapshot of the chunk request queue.
+ */
 export type QueueStats = {
+  /** Number of requests waiting to start. */
   pending: number;
+  /** Number of requests currently in flight. */
   running: number;
 };
 

@@ -17,6 +17,13 @@
     "includeGroups": true
   },
   "groupOrder": [
+    "Core",
+    "Cameras",
+    "Controls",
+    "Data Loading",
+    "Layers",
+    "Math",
+    "Renderables",
     "Constructors",
     "Type Aliases",
     "Properties",

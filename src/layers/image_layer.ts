@@ -1,4 +1,4 @@
-import { Layer, LayerProps } from "../core/layer";
+import { BlendMode, Layer } from "../core/layer";
 import { Viewport } from "../core/viewport";
 import { OrthographicCamera } from "../objects/cameras/orthographic_camera";
 import type { IdetikContext } from "../idetik";
@@ -36,31 +36,62 @@ import { clamp } from "../utilities/clamp";
 import { RenderablePool } from "../utilities/renderable_pool";
 import { Texture } from "../objects/textures/texture";
 
-/** @inline */
-export type ImageLayerProps = LayerProps & {
+/**
+ * Initialization properties for constructing an image layer.
+ */
+export type ImageLayerProps = {
+  /** The chunked image source to stream from. */
   source: ChunkSource;
+  /** The slice to display in world units. */
   sliceCoords: SliceCoordinates;
+  /** Streaming policy. Defaults to the exploration policy. */
   policy?: ImageSourcePolicy;
+  /** Slice plane orientation. Defaults to `"XY"`. */
   orientation?: SliceOrientation;
+  /** Per-channel appearance. Length must match the source. */
   channelProps?: ChannelProps[];
+  /** Called with the picked value when the layer is clicked. */
   onPickValue?: (info: PointPickingResult) => void;
+  /** Layer opacity in `[0, 1]`. Defaults to `1`. */
+  opacity?: number;
+  /** How the layer blends. Defaults to `"additive"`. */
+  blendMode?: BlendMode;
+  /** Hides content behind. Defaults to `true`. */
+  occludes?: boolean;
 };
 
 /**
- * A layer that renders a 2D slice of a chunked, multi-channel image source.
+ * A layer that renders a 2D slice of a chunked multi-channel image source.
  *
- * `ImageLayer` streams chunks from a `ChunkSource` (e.g.
- * {@link OmeZarrImageSource}) according to the supplied `ImageSourcePolicy`,
- * which decides which resolution levels and chunks to load for the current
- * view. Per-channel appearance (contrast limits,
- * color, visibility) is controlled via {@link ChannelProps}, and the visible
- * slice is selected with {@link SliceCoordinates}.
+ * Image layer streams chunks from a source such as
+ * {@link OmeZarrImageSource} according to its streaming policy, which
+ * decides which resolution levels and chunks to load for the current view.
+ * Per-channel appearance is controlled with {@link ChannelProps} and the
+ * visible slice is selected with {@link SliceCoordinates}. The layer holds
+ * `sliceCoords` by reference, so mutating the object it was constructed
+ * with moves through the data.
+ *
+ * ```ts
+ * const source = await OmeZarrImageSource.fromHttp({ url });
+ *
+ * const layer = new ImageLayer({
+ *   source,
+ *   sliceCoords: { t: 0, z: 0, c: [0, 1] },
+ *   channelProps: [
+ *     { color: Color.GREEN, contrastLimits: [0, 1024] },
+ *     { color: Color.MAGENTA, contrastLimits: [0, 1024] },
+ *   ],
+ * });
+ *
+ * viewport.addLayer(layer);
+ * ```
  *
  * @see {@link VolumeLayer} for 3D volume rendering of the same data.
  *
  * @group Layers
  */
 export class ImageLayer extends Layer implements ChannelsEnabled {
+  /** Identifies the layer type as `ImageLayer`. */
   public readonly type = "ImageLayer";
 
   private readonly source_: ChunkSource;
@@ -92,6 +123,11 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     new Color(0.6, 0.5, 0.3),
   ];
 
+  /**
+   * Creates an image layer for the given source and slice.
+   *
+   * @param props - Initialization properties.
+   */
   constructor({
     source,
     sliceCoords,
@@ -114,6 +150,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.onPickValue_ = onPickValue;
   }
 
+  /** @hidden */
   protected attach(context: IdetikContext) {
     this.context_ = context;
     this.chunkStoreView_ = context.chunkManager.addView(
@@ -128,6 +165,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
+  /** @hidden */
   protected detach(_context: IdetikContext) {
     this.releaseAndRemoveChunks(this.visibleChunks_.keys());
     this.orderedChunks_ = [];
@@ -137,6 +175,11 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     this.context_ = undefined;
   }
 
+  /**
+   * Streams chunks for the current view and refreshes the visible slice.
+   *
+   * @param viewport - The viewport being rendered.
+   */
   public update(viewport?: Viewport) {
     if (!viewport || !this.chunkStoreView_) return;
 
@@ -162,13 +205,17 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
+  /** The slice plane the layer displays. */
   public get orientation(): SliceOrientation {
     return this.orientation_;
   }
 
   /**
-   * Changes the slice orientation at runtime. Visible renderables are rebuilt
-   * for the new plane, chunks already resident in the shared cache are reused.
+   * Changes the slice orientation at runtime. Visible renderables are
+   * rebuilt for the new plane and chunks already resident in the shared
+   * cache are reused.
+   *
+   * @param orientation - The new slice plane.
    */
   public setOrientation(orientation: SliceOrientation) {
     if (orientation === this.orientation_) {
@@ -246,6 +293,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     }
   }
 
+  /** The `t` coordinate of the most recently presented slice. */
   public get lastPresentationTimeCoord(): number | undefined {
     return this.lastPresentationTimeCoord_;
   }
@@ -258,6 +306,12 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
+  /**
+   * Handles click picking for `onPickValue`. Called automatically for
+   * each pointer event.
+   *
+   * @param event - The event with clip and world coordinates attached.
+   */
   public onEvent(event: EventContext) {
     this.pointerDownPos_ = handlePointPickingEvent(
       event,
@@ -289,22 +343,34 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
   }
 
   // exposed for use in chunk info overlay
+  /** The layer's chunk store view for diagnostic overlays. */
   public get chunkStoreView(): ChunkStoreView | undefined {
     return this.chunkStoreView_;
   }
 
+  /**
+   * The slice coordinates the layer displays. This is the object passed
+   * at construction and may be mutated to move through the data.
+   */
   public get sliceCoords(): SliceCoordinates {
     return this.sliceCoords_;
   }
 
+  /** The chunked image source the layer streams from. */
   public get source(): ChunkSource {
     return this.source_;
   }
 
+  /**
+   * The streaming policy in effect. Assign a new policy to reschedule
+   * loading at runtime, for example when switching between exploration
+   * and playback.
+   */
   public get imageSourcePolicy(): Readonly<ImageSourcePolicy> {
     return this.policy_;
   }
 
+  /** @param newPolicy - The policy to apply. */
   public set imageSourcePolicy(newPolicy: ImageSourcePolicy) {
     if (this.policy_ !== newPolicy) {
       this.policy_ = newPolicy;
@@ -386,6 +452,14 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     image.worldToTexCoord = worldToTexCoordForChunk(chunk, this.axes_);
   }
 
+  /**
+   * Reads the data value at a world position from the resident chunks.
+   * Prefers the current level of detail and falls back to other resident
+   * levels.
+   *
+   * @param world - The world-space position to sample.
+   * @returns The sampled value or `null` if no resident chunk covers it.
+   */
   public async getValueAtWorld(world: vec3): Promise<number | null> {
     const currentLOD = this.chunkStoreView_?.currentLOD ?? 0;
 
@@ -432,10 +506,12 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     );
   }
 
+  /** Whether chunk wireframes are drawn colored by level of detail. */
   public get debugMode(): boolean {
     return this.debugMode_;
   }
 
+  /** @param debug - Whether to draw chunk wireframes. */
   public set debugMode(debug: boolean) {
     this.debugMode_ = debug;
     this.visibleChunks_.forEach((image, chunk) => {
@@ -447,10 +523,17 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     });
   }
 
+  /** The current per-channel appearance settings. */
   public get channelProps(): ChannelProps[] | undefined {
     return this.channelProps_;
   }
 
+  /**
+   * Applies new per-channel appearance settings to all visible chunks
+   * and notifies channel change callbacks.
+   *
+   * @param channelProps - One entry per source channel.
+   */
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     this.visibleChunks_.forEach((image, chunk) => {
@@ -462,16 +545,27 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     });
   }
 
+  /** Restores the channel settings passed at construction. */
   public resetChannelProps(): void {
     if (this.initialChannelProps_ !== undefined) {
       this.setChannelProps(this.initialChannelProps_);
     }
   }
 
+  /**
+   * Registers a callback invoked after every channel settings change.
+   *
+   * @param callback - The callback to add.
+   */
   public addChannelChangeCallback(callback: () => void): void {
     this.channelChangeCallbacks_.push(callback);
   }
 
+  /**
+   * Removes a previously registered channel change callback.
+   *
+   * @param callback - The callback to remove.
+   */
   public removeChannelChangeCallback(callback: () => void): void {
     const index = this.channelChangeCallbacks_.indexOf(callback);
     if (index === -1) {

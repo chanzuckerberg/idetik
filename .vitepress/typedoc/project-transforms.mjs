@@ -23,6 +23,18 @@ function inheritsWithoutOverriding(reflection) {
   );
 }
 
+export function removeImplicitConstructors(project, declarationFiles) {
+  for (const reflection of Object.values(project.reflections)) {
+    if (reflection.kind !== ReflectionKind.Constructor) continue;
+    const declared =
+      declarationFiles.has(reflection) ||
+      (reflection.signatures ?? []).some((signature) =>
+        declarationFiles.has(signature)
+      );
+    if (!declared) project.removeReflection(reflection);
+  }
+}
+
 export function stripSourcesToSuppressDefinedIn(project) {
   for (const reflection of Object.values(project.reflections)) {
     if ("sources" in reflection) reflection.sources = undefined;

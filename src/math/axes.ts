@@ -14,6 +14,9 @@ export const AxisComponent: Record<SpatialAxis, 0 | 1 | 2> = {
   z: 2,
 };
 
+/**
+ * The plane a 2D slice lies on, named by its in-plane axes.
+ */
 export type SliceOrientation = "XY" | "XZ" | "YZ";
 
 export function sliceAxesFor(orientation: SliceOrientation): SliceAxes {

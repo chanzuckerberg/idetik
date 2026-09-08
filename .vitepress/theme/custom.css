@@ -73,6 +73,10 @@
   margin: 28px 0;
 }
 
+.vp-doc div[class*='language-'] code {
+  font-size: 13px;
+}
+
 .vp-doc table {
   display: table;
   width: 100%;
@@ -83,6 +87,17 @@
   white-space: nowrap;
   width: 1%;
   max-width: 40%;
+}
+
+.api .vp-doc table td:first-child {
+  font-family: var(--vp-font-family-mono);
+  font-size: var(--vp-code-font-size);
+}
+
+.api .vp-doc table td:first-child code {
+  background: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .api .vp-doc table :is(th, td):last-child {

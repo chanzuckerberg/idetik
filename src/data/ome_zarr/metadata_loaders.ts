@@ -53,7 +53,7 @@ function removeProperty<O, P extends keyof O>(obj: O, prop: P): Omit<O, P> {
   return objCopy;
 }
 
-/** @group Data Loading */
+/** @hidden */
 export async function loadOmeZarrPlate(
   url: string,
   version?: Version
@@ -129,7 +129,7 @@ function parseWell(attrs: Record<string, unknown>): AdaptedOme<Well["ome"]> {
   }
 }
 
-/** @group Data Loading */
+/** @hidden */
 export async function loadOmeZarrWell(
   url: string,
   path: string,
@@ -152,7 +152,7 @@ export async function loadOmeZarrWell(
 export type OmeroMetadata = NonNullable<Image["ome"]["omero"]>;
 export type OmeroChannel = OmeroMetadata["channels"][number];
 
-/** @group Data Loading */
+/** @hidden */
 export async function loadOmeroChannels(
   source: OmeZarrImageSource
 ): Promise<OmeroChannel[]> {
@@ -162,7 +162,7 @@ export async function loadOmeroChannels(
   return image.omero?.channels ?? [];
 }
 
-/** @group Data Loading */
+/** @hidden */
 export async function loadOmeroDefaults(
   source: OmeZarrImageSource
 ): Promise<OmeroMetadata["rdefs"]> {

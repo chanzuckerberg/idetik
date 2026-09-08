@@ -11,6 +11,7 @@ import {
   FoldedAliasRouter,
 } from "./companion-types.mjs";
 import {
+  removeImplicitConstructors,
   removeInheritedMembers,
   renameGroupsToDisplayTitles,
   stripSourcesToSuppressDefinedIn,
@@ -33,6 +34,7 @@ export function load(app) {
   app.converter.on(Converter.EVENT_RESOLVE_BEGIN, ({ project }) => {
     removeInheritedMembers(project);
     const declarationFiles = collectDeclarationFiles(project);
+    removeImplicitConstructors(project, declarationFiles);
     stripSourcesToSuppressDefinedIn(project);
     foldCompanionAliasesIntoOwnerClasses(project, declarationFiles);
   });

@@ -3,10 +3,15 @@ import { Ray } from "../math/ray";
 import { Logger } from "../utilities/logger";
 import { vec2, vec3 } from "gl-matrix";
 
-export interface PointPickingResult {
+/**
+ * The result of picking a value from a layer with a click.
+ */
+export type PointPickingResult = {
+  /** The picked position in world units. */
   world: vec3;
+  /** The data value sampled at the position. */
   value: number;
-}
+};
 
 export function handlePointPickingEvent<T>(
   event: EventContext,

@@ -11,12 +11,33 @@ import {
 import { vec3 } from "gl-matrix";
 import type { Chunk } from "../../data/chunk";
 
-type VolumeRenderableProps = {
+/**
+ * Initialization properties for constructing a volume renderable.
+ */
+export type VolumeRenderableProps = {
+  /** Channel appearance settings. Defaults to `[]`. */
   channelProps?: ChannelProps[];
 };
 
-/** @group Renderable Objects */
+/**
+ * A ray-marched box that draws multi-channel volumetric data.
+ *
+ * The renderable draws a unit box and ray marches through 3D chunk
+ * textures in the fragment shader. Up to 4 channels blend in a single
+ * pass and all loaded channels must share one texture data type. Front
+ * faces are culled and depth testing is off by default.
+ * {@link VolumeLayer} constructs and pools one instance per spatial chunk
+ * group, streams chunk textures in with {@link updateVolumeWithChunk},
+ * and sizes the box through the transform.
+ *
+ * @group Renderables
+ */
 export class VolumeRenderable extends RenderableObject {
+  /**
+   * World size of a voxel along each axis. Layers set it from the chunk
+   * scale so ray march steps account for anisotropic voxels. Defaults to
+   * `[1, 1, 1]`.
+   */
   public voxelScale: vec3 = vec3.fromValues(1, 1, 1);
 
   private channels_: Required<Channel>[];
@@ -24,6 +45,11 @@ export class VolumeRenderable extends RenderableObject {
 
   private readonly channelToTextureIndex_: Map<number, number> = new Map();
 
+  /**
+   * Creates an empty volume renderable.
+   *
+   * @param props - Initialization properties.
+   */
   constructor({ channelProps = [] }: VolumeRenderableProps = {}) {
     super();
     this.geometry = new BoxGeometry(1, 1, 1, 1, 1, 1);
@@ -33,10 +59,19 @@ export class VolumeRenderable extends RenderableObject {
     this.setChannelProps(channelProps);
   }
 
+  /** Identifies the renderable type as `VolumeRenderable`. */
   public get type() {
     return "VolumeRenderable";
   }
 
+  /**
+   * Loads or refreshes the texture for the chunk's channel. The channel
+   * index comes from the chunk and the texture's data type selects the
+   * volume shader, so every channel must share one data type. Chunks
+   * without a texture are ignored.
+   *
+   * @param chunk - The chunk holding the channel texture.
+   */
   public updateVolumeWithChunk(chunk: Chunk): void {
     if (!chunk.texture) return;
 
@@ -72,16 +107,29 @@ export class VolumeRenderable extends RenderableObject {
     this.setTexture(textureIndex, texture);
   }
 
+  /**
+   * Marks all channels as not loaded so they stop rendering until the
+   * next chunk update. The textures themselves are kept.
+   */
   public clearLoadedChannels() {
     this.loadedChannels_ = new Set();
   }
 
+  /**
+   * Clears all textures and channel state so the renderable can be
+   * pooled and reused for another chunk.
+   */
   public reset() {
     this.clearTextures();
     this.channelToTextureIndex_.clear();
     this.clearLoadedChannels();
   }
 
+  /**
+   * Returns per-channel sampler, color, contrast, opacity, and
+   * visibility uniforms for up to 4 loaded channels plus the voxel
+   * scale.
+   */
   public override getUniforms(): Record<string, number[] | number> {
     const loadedAndVisibleTextures = [0, 0, 0, 0];
     // prettier-ignore
@@ -161,6 +209,11 @@ export class VolumeRenderable extends RenderableObject {
       : null;
   }
 
+  /**
+   * Replaces the appearance settings for all channels.
+   *
+   * @param channels - The new channel settings.
+   */
   public setChannelProps(channels: ChannelProps[]) {
     this.channels_ = validateChannels(
       this.getAvailableChannelTexture(),
@@ -168,6 +221,14 @@ export class VolumeRenderable extends RenderableObject {
     );
   }
 
+  /**
+   * Updates one property of the channel at the given index and
+   * revalidates it against the channel's texture when available.
+   *
+   * @param channelIndex - The channel to update.
+   * @param property - The property name to set.
+   * @param value - The new value.
+   */
   public setChannelProperty<K extends keyof ChannelProps>(
     channelIndex: number,
     property: K,

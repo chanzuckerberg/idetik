@@ -71,40 +71,70 @@ export type Chunk = {
 
 // Maps Idetik spatial dimensions (x, y, z) and non-spatial dimensions (c, t)
 // dimensions to a chunk source's dimensions.
+/**
+ * Per-axis dimension metadata for a multiscale image source.
+ *
+ * Maps the spatial axes `x`, `y`, `z` and the non-spatial axes `c` and
+ * `t` onto the source's stored dimensions.
+ */
 export type SourceDimensionMap = {
+  /** The `x` spatial dimension. */
   x: SourceDimension;
+  /** The `y` spatial dimension. */
   y: SourceDimension;
+  /** The `z` spatial dimension if present. */
   z?: SourceDimension;
+  /** The channel dimension if present. */
   c?: SourceDimension;
+  /** The time dimension if present. */
   t?: SourceDimension;
+  /** Number of levels of detail in the pyramid. */
   numLods: number;
 };
 
-// A dimension in a chunk source with multiple levels of detail (LODs).
+/**
+ * One dimension of a multiscale image source.
+ */
 export type SourceDimension = {
+  /** Axis name from the source metadata. */
   name: string;
+  /** Position of the axis in the stored arrays. */
   index: number;
+  /** Physical unit if declared in the metadata. */
   unit?: string;
+  /** Per-LOD metadata ordered finest first. */
   lods: SourceDimensionLod[];
 };
 
-// Metadata for a source dimension at a specific level of detail (LOD)
-// of a multi-resolution image pyramid.
-// For example, combines zarr array metadata (size, chunkSize) with
-// OME-zarr coordinate transform (scale, translation).
-type SourceDimensionLod = {
+/**
+ * Metadata for one dimension at one level of detail.
+ *
+ * Combines array metadata with the OME-Zarr coordinate transform.
+ */
+export type SourceDimensionLod = {
+  /** Extent of the dimension in array elements. */
   size: number;
+  /** Chunk extent along the dimension in elements. */
   chunkSize: number;
+  /** World units per array element. */
   scale: number;
+  /** World coordinate of the first element. */
   translation: number;
 };
 
-/** @group Layer Configuration */
+/**
+ * World-space coordinates selecting the data to display.
+ */
 export type SliceCoordinates = {
+  /** Position on the `x` axis in world units. */
   x?: number;
+  /** Position on the `y` axis in world units. */
   y?: number;
+  /** Position on the `z` axis in world units. */
   z?: number;
+  /** Channel indices to load. Defaults to all channels. */
   c?: number[];
+  /** The time point to display. */
   t?: number;
 };
 

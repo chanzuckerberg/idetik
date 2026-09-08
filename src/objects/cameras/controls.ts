@@ -4,26 +4,110 @@ import { EventContext } from "../../core/event_dispatcher";
 
 const LEFT_MOUSE_BUTTON = 0;
 
+/**
+ * The contract between a viewport and its camera controls.
+ *
+ * Implement this interface to drive a camera with custom input logic and
+ * assign it to a viewport through its `cameraControls` property. The
+ * viewport passes pointer and wheel events to `onEvent` unless a layer
+ * stops propagation.
+ *
+ * ```ts
+ * class ClickToZoomControls implements CameraControls {
+ *   constructor(private camera: OrthographicCamera) {}
+ *
+ *   get isMoving() {
+ *     return false;
+ *   }
+ *
+ *   onUpdate(dt: number) {}
+ *
+ *   onEvent(event: EventContext) {
+ *     if (event.type === "pointerdown") this.camera.zoom(2);
+ *   }
+ * }
+ *
+ * viewport.cameraControls = new ClickToZoomControls(camera);
+ * ```
+ *
+ * @group Controls
+ */
 export interface CameraControls {
+  /**
+   * Whether the camera is in motion from user interaction. Layers may
+   * read this to reduce rendering quality while the view changes.
+   */
   readonly isMoving: boolean;
+
+  /**
+   * Advances time-based motion such as damping. Called automatically by
+   * the render loop.
+   *
+   * @param dt - Time since the last frame in seconds.
+   */
   onUpdate(dt: number): void;
+
+  /**
+   * Handles a pointer or wheel event. Called automatically by the owning
+   * viewport unless a layer stops propagation.
+   *
+   * @param event - The event with clip and world coordinates attached.
+   */
   onEvent(event: EventContext): void;
 }
 
-/** @group Cameras & Controls */
+/**
+ * Camera controls for 2D pan and zoom with an orthographic camera.
+ *
+ * Dragging with the left mouse button pans the view and the scroll wheel
+ * zooms around the cursor, keeping the point under the pointer fixed.
+ * Movement applies immediately with no inertia or damping.
+ *
+ * ```ts
+ * const camera = new OrthographicCamera({
+ *   left: 0,
+ *   right: 1024,
+ *   top: 0,
+ *   bottom: 1024,
+ * });
+ *
+ * const idetik = new Idetik({
+ *   canvas,
+ *   viewports: [{
+ *     camera,
+ *     layers: [imageLayer],
+ *     cameraControls: new PanZoomControls(camera),
+ *   }],
+ * });
+ * ```
+ *
+ * @group Controls
+ */
 export class PanZoomControls implements CameraControls {
   private readonly camera_: OrthographicCamera;
   private dragActive_ = false;
   private dragStart_: vec3 = vec3.create();
 
+  /**
+   * Creates pan and zoom controls for the given camera.
+   *
+   * @param camera - The orthographic camera to control.
+   */
   constructor(camera: OrthographicCamera) {
     this.camera_ = camera;
   }
 
+  /** Whether a pan drag is in progress. */
   public get isMoving(): boolean {
     return this.dragActive_;
   }
 
+  /**
+   * Handles a pointer or wheel event. Called automatically by the owning
+   * viewport unless a layer stops propagation.
+   *
+   * @param event - The event with clip and world coordinates attached.
+   */
   public onEvent(event: EventContext): void {
     switch (event.type) {
       case "wheel":
@@ -42,6 +126,11 @@ export class PanZoomControls implements CameraControls {
     }
   }
 
+  /**
+   * Does nothing. Pan and zoom apply immediately with no inertia.
+   *
+   * @param _delta - Time since the last frame in seconds. Unused.
+   */
   public onUpdate(_delta: number) {}
 
   private onWheel(event: EventContext) {

@@ -12,11 +12,17 @@ export type Channel = {
   opacity: number;
 };
 
-/** @group Layer Configuration */
+/**
+ * Appearance settings for a single image channel.
+ */
 export type ChannelProps = {
+  /** Whether the channel is drawn. Defaults to `true`. */
   visible?: boolean;
+  /** The channel's tint color. Defaults to white. */
   color?: ColorLike;
+  /** Intensity range shown. Defaults to the data range. */
   contrastLimits?: [number, number];
+  /** Channel opacity in `[0, 1]`. Defaults to `1`. */
   opacity?: number;
 };
 

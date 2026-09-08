@@ -4,6 +4,7 @@ import {
   foldedAliasDescriptionAndProperties,
   isFoldedAlias,
 } from "./companion-types.mjs";
+import { twoColumnParametersTable } from "./member-tables.mjs";
 
 export class IdetikTheme extends MarkdownTheme {
   getRenderContext(page) {
@@ -24,7 +25,17 @@ class IdetikThemeContext extends MarkdownThemeContext {
       memberWithGroups: (model, opts) =>
         isFoldedAlias(model)
           ? foldedAliasDescriptionAndProperties(this, model, opts)
-          : base.memberWithGroups(model, opts),
+          : withInterfaceRelationNotes(
+              this,
+              model,
+              opts,
+              base.memberWithGroups(model, opts)
+            ),
+      declaration: (model, opts) =>
+        declarationWithDescriptionFirst(this, model, opts),
+      parametersTable: (model) => twoColumnParametersTable(this, model),
+      signatureParameters: (model) =>
+        singleLineSignatureParameters(this, model),
       members: (model, opts) =>
         membersWithoutHorizontalRules(this, model, opts),
       constructor: (model, opts) =>
@@ -74,6 +85,68 @@ function extendsNoteOrExtendedByList(context, model, opts) {
   return blocks.join("\n\n");
 }
 
+function withInterfaceRelationNotes(context, model, opts, markdown) {
+  const hashes = "#".repeat(opts.headingLevel);
+
+  const implementsSection = new RegExp(
+    `${hashes} Implements\n\n(- .+(?:\n- .+)*)`
+  );
+  let out = markdown.replace(implementsSection, (_, items) => {
+    if (model.extendedTypes?.length) return "";
+    const names = items
+      .split("\n")
+      .map((item) => item.replace("- ", "").replaceAll("`", ""));
+    return `> Implements ${names.join(" and ")}.`;
+  });
+  out = out.replace(/\n{3,}/g, "\n\n");
+
+  if (model.kind === ReflectionKind.Interface && model.implementedBy?.length) {
+    const list = model.implementedBy
+      .map(
+        (type) =>
+          `- ${context.helpers.getHierarchyType(type, { isTarget: false })}`
+      )
+      .join("\n");
+    const section = `${hashes} Implemented by\n\n${list}`;
+    const firstHeading = out.indexOf(`\n${hashes} `);
+    out =
+      firstHeading === -1
+        ? `${out}\n\n${section}`
+        : `${out.slice(0, firstHeading)}\n\n${section}\n${out.slice(firstHeading)}`;
+  }
+
+  return out;
+}
+
+function declarationWithDescriptionFirst(context, model, opts) {
+  const blocks = [];
+  if (model.comment) {
+    blocks.push(
+      context.partials.comment(model.comment, {
+        headingLevel: opts.headingLevel,
+      })
+    );
+  }
+  blocks.push(context.partials.declarationTitle(model));
+  return blocks.join("\n\n");
+}
+
+function singleLineSignatureParameters(context, model) {
+  const expandTypes = context.options.getValue("expandParameters");
+  const parameters = model
+    .map((parameter) => {
+      const rest = parameter.flags?.isRest ? "..." : "";
+      const optional =
+        parameter.flags.isOptional || parameter.defaultValue ? "?" : "";
+      const name = `${rest}\`${parameter.name}${optional}\``;
+      return expandTypes
+        ? `${name}: ${context.partials.someType(parameter.type)}`
+        : name;
+    })
+    .join(", ");
+  return `(${parameters})`;
+}
+
 function memberWithDecoratedHeading(context, model, opts) {
   const blocks = [];
   if (
@@ -96,13 +169,16 @@ function memberWithDecoratedHeading(context, model, opts) {
 function decoratedHeadingWithPinnedAnchor(context, model) {
   const signature = model.signatures?.[0] ?? model.getSignature;
   const parts = [context.partials.memberTitle(model)];
+
   const returnType = returnTypeForHeading(context, signature);
   if (returnType) {
     parts.push(`<span class="return-type">${returnType}</span>`);
   }
+
   if (model.overwrites || signature?.overwrites) {
     parts.push(`<Badge type="info" text="overrides" />`);
   }
+
   const anchor = context.router.hasUrl(model)
     ? context.router.getAnchor(model)
     : undefined;
@@ -133,6 +209,7 @@ function signatureWithDescriptionFirst(context, model, opts) {
   const comment = opts.multipleSignatures
     ? model.comment
     : model.comment || model.parent?.comment;
+
   const description =
     comment &&
     context.partials.comment(comment, {
@@ -140,12 +217,15 @@ function signatureWithDescriptionFirst(context, model, opts) {
       showTags: false,
       showSummary: true,
     });
+
   const codeBlock =
     !opts.hideTitle &&
     context.partials.signatureTitle(model, { accessor: opts.accessor });
+
   const hasTypeParameters =
     model.typeParameters?.length &&
     model.kind !== ReflectionKind.ConstructorSignature;
+
   const remainingTags =
     comment &&
     context.partials.comment(comment, {
@@ -153,6 +233,7 @@ function signatureWithDescriptionFirst(context, model, opts) {
       showTags: true,
       showSummary: false,
     });
+
   return [
     description,
     codeBlock,
@@ -169,12 +250,15 @@ function signatureWithDescriptionFirst(context, model, opts) {
 
 function accessorWithDescriptionFirst(context, model, opts) {
   const blocks = [];
+  let documentedBySignature = false;
+
   for (const [signature, accessor] of [
     [model.getSignature, "get"],
     [model.setSignature, "set"],
   ]) {
     if (!signature) continue;
     if (signature.comment) {
+      documentedBySignature = true;
       blocks.push(
         context.partials.comment(signature.comment, {
           headingLevel: opts.headingLevel + 1,
@@ -186,13 +270,15 @@ function accessorWithDescriptionFirst(context, model, opts) {
       blocks.push(context.partials.parametersTable(signature.parameters));
     }
   }
-  if (model.comment) {
+
+  if (model.comment && !documentedBySignature) {
     blocks.push(
       context.partials.comment(model.comment, {
         headingLevel: opts.headingLevel,
       })
     );
   }
+
   return blocks.filter(Boolean).join("\n\n");
 }
 

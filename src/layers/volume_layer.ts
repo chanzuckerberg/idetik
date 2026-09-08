@@ -17,19 +17,69 @@ import {
   validateChannelPropsCount,
 } from "../core/channel";
 
+/**
+ * Initialization properties for constructing a volume layer.
+ */
 export type VolumeLayerProps = {
+  /** The chunked image source to stream from. */
   source: ChunkSource;
+  /** Selects `t` and `c`. Spatial axes are ignored. */
   sliceCoords: SliceCoordinates;
+  /** Streaming policy. Defaults to the exploration policy. */
   policy?: ImageSourcePolicy;
+  /** Per-channel appearance. Length must match the source. */
   channelProps?: ChannelProps[];
 };
 
 const INTERACTIVE_STEP_SIZE_SCALE = 2.0;
 
-/** @group Layers */
+/**
+ * A layer that renders a chunked multi-channel image source as a 3D
+ * volume.
+ *
+ * Volume layer ray marches the loaded chunks with premultiplied blending
+ * and composites all visible channels in a single pass. The volume renders
+ * at a single level of detail taken from the policy's `lod.min`, so pin
+ * one with the policy when constructing the layer. While the camera moves
+ * the ray march step size is doubled to keep interaction responsive.
+ *
+ * ```ts
+ * const source = await OmeZarrImageSource.fromHttp({ url });
+ *
+ * const layer = new VolumeLayer({
+ *   source,
+ *   sliceCoords: { t: 0, c: undefined },
+ *   policy: createExplorationPolicy({ lod: { min: 2, max: 2 } }),
+ *   channelProps: [
+ *     { color: "#00ffff", contrastLimits: [300, 1500] },
+ *     { color: "#ff00ff", contrastLimits: [75, 500] },
+ *   ],
+ * });
+ *
+ * viewport.addLayer(layer);
+ * ```
+ *
+ * @see {@link ImageLayer} for 2D slicing of the same data.
+ *
+ * @group Layers
+ */
 export class VolumeLayer extends Layer implements ChannelsEnabled {
+  /** Identifies the layer type as `VolumeLayer`. */
   public readonly type = "VolumeLayer";
 
+  /** Highlights rays of zero length for debugging. Defaults to `false`. */
+  public debugShowDegenerateRays = false;
+
+  /** Ray march step size relative to voxel size. Defaults to `1`. */
+  public relativeStepSize = 1.0;
+
+  /** Scales sample opacity during compositing. Defaults to `1`. */
+  public opacityMultiplier = 1.0;
+
+  /** Alpha where a ray stops early. Defaults to `0.99`. */
+  public earlyTerminationAlpha = 0.99;
+
+  /** Volume ray marching reads scene depth to composite with occluding layers. */
   protected override requiresSceneDepth_ = true;
 
   private readonly source_: ChunkSource;
@@ -49,15 +99,13 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
 
   // TODO: Make a debug config object to manage debug options
   private debugShowWireframes_ = false;
-  public debugShowDegenerateRays = false;
-  public relativeStepSize = 1.0;
-  public opacityMultiplier = 1.0;
-  public earlyTerminationAlpha = 0.99;
 
+  /** Whether chunk bounding wireframes are drawn for debugging. */
   public get debugShowWireframes() {
     return this.debugShowWireframes_;
   }
 
+  /** @param value - Whether to draw chunk wireframes. */
   public set debugShowWireframes(value: boolean) {
     if (this.debugShowWireframes_ === value) return;
     for (const volume of this.currentVolumes_.values()) {
@@ -66,6 +114,12 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.debugShowWireframes_ = value;
   }
 
+  /**
+   * Sets the streaming policy at runtime and reschedules loading. The
+   * volume renders the level of detail given by the policy's `lod.min`.
+   *
+   * @param newPolicy - The policy to apply.
+   */
   public set imageSourcePolicy(newPolicy: ImageSourcePolicy) {
     if (this.policy_ !== newPolicy) {
       this.policy_ = newPolicy;
@@ -78,6 +132,12 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     }
   }
 
+  /**
+   * Applies new per-channel appearance settings to all visible volumes
+   * and notifies channel change callbacks.
+   *
+   * @param channelProps - One entry per source channel.
+   */
   public setChannelProps(channelProps: ChannelProps[]) {
     this.channelProps_ = channelProps;
     for (const volume of this.currentVolumes_.values()) {
@@ -88,20 +148,32 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     });
   }
 
+  /** The current per-channel appearance settings. */
   public get channelProps(): ChannelProps[] | undefined {
     return this.channelProps_;
   }
 
+  /** Restores the channel settings passed at construction. */
   public resetChannelProps(): void {
     if (this.initialChannelProps_ !== undefined) {
       this.setChannelProps(this.initialChannelProps_);
     }
   }
 
+  /**
+   * Registers a callback invoked after every channel settings change.
+   *
+   * @param callback - The callback to add.
+   */
   public addChannelChangeCallback(callback: () => void): void {
     this.channelChangeCallbacks_.push(callback);
   }
 
+  /**
+   * Removes a previously registered channel change callback.
+   *
+   * @param callback - The callback to remove.
+   */
   public removeChannelChangeCallback(callback: () => void): void {
     const index = this.channelChangeCallbacks_.indexOf(callback);
     if (index === -1) {
@@ -110,6 +182,11 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.channelChangeCallbacks_.splice(index, 1);
   }
 
+  /**
+   * Creates a volume layer for the given source.
+   *
+   * @param props - Initialization properties.
+   */
   constructor({ source, sliceCoords, policy, channelProps }: VolumeLayerProps) {
     super({ blendMode: "premultipliedOver" });
     this.source_ = source;
@@ -137,6 +214,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     return volume;
   }
 
+  /** @hidden */
   protected attach(context: IdetikContext) {
     this.chunkStoreView_ = context.chunkManager.addView(
       this.source_,
@@ -149,6 +227,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     );
   }
 
+  /** @hidden */
   protected detach(_context: IdetikContext) {
     for (const volume of this.currentVolumes_.values()) {
       this.releaseAndRemoveVolume(volume);
@@ -216,6 +295,12 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     this.volumeToPoolKey_.delete(volume);
   }
 
+  /**
+   * Streams chunks for the current view and rebuilds the volume set
+   * sorted front to back. Called automatically once per frame.
+   *
+   * @param viewport - The viewport being rendered.
+   */
   public update(viewport?: Viewport) {
     if (!viewport || !this.chunkStoreView_) return;
 
@@ -243,6 +328,7 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     }
   }
 
+  /** Returns the ray marching uniforms for this layer. */
   public getUniforms(): Record<string, unknown> {
     return {
       u_debugShowDegenerateRays: Number(this.debugShowDegenerateRays),
