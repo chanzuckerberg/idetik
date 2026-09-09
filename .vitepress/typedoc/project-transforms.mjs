@@ -45,8 +45,9 @@ export function stripSourcesToSuppressDefinedIn(project) {
 }
 
 export function renameGroupsToDisplayTitles(project) {
+  const kinds = ReflectionKind.Class | ReflectionKind.Namespace;
   for (const reflection of Object.values(project.reflections)) {
-    if (reflection.kind !== ReflectionKind.Class) continue;
+    if (!reflection.kindOf(kinds)) continue;
     for (const group of reflection.groups ?? []) {
       group.title = DISPLAY_TITLE_BY_TYPEDOC_GROUP[group.title] ?? group.title;
     }
