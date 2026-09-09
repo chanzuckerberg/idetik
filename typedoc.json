@@ -26,6 +26,7 @@
     "Renderables",
     "Constructors",
     "Type Aliases",
+    "Functions",
     "Properties",
     "Accessors",
     "Methods",
@@ -33,6 +34,7 @@
   ],
   "sort": ["source-order"],
   "router": "idetik",
+  "membersWithOwnFile": ["Enum", "Variable", "Class", "Interface", "TypeAlias"],
   "typeAliasPropertiesFormat": "table",
   "pageTitleTemplates": {
     "member": "{name}"

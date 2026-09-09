@@ -1,13 +1,24 @@
+/**
+ * A category of chunk request ordered by a loading policy.
+ */
+export type PriorityCategory =
+  | "fallbackVisible"
+  | "prefetchTime"
+  | "visibleCurrent"
+  | "fallbackBackground"
+  | "prefetchSpace";
+
 const ALL_CATEGORIES = [
   "fallbackVisible",
   "prefetchTime",
   "visibleCurrent",
   "fallbackBackground",
   "prefetchSpace",
-] as const;
+] as const satisfies readonly PriorityCategory[];
 
-export type PriorityCategory = (typeof ALL_CATEGORIES)[number];
-
+/**
+ * @hidden
+ */
 export type ImageSourcePolicyProps = {
   profile?: string;
   prefetch: {
@@ -24,24 +35,126 @@ export type ImageSourcePolicyProps = {
   };
 };
 
+/**
+ * A resolved and frozen loading policy consumed by layers.
+ *
+ * Create instances with {@link createExplorationPolicy},
+ * {@link createPlaybackPolicy}, {@link createNoPrefetchPolicy}, or
+ * {@link createImageSourcePolicy} rather than by hand.
+ */
 export type ImageSourcePolicy = Readonly<{
+  /** Names the policy in logs and stats. */
   profile: string;
+  /** How far to prefetch beyond the visible region per axis. */
   prefetch: {
+    /** Chunks to prefetch along x. */
     x: number;
+    /** Chunks to prefetch along y. */
     y: number;
+    /** Chunks to prefetch along z. */
     z: number;
+    /** Timepoints to prefetch ahead. */
     t: number;
   };
+  /** Request categories from highest to lowest priority. */
   priorityOrder: readonly PriorityCategory[];
+  /** Priority index per category derived from `priorityOrder`. */
   priorityMap: Readonly<Record<PriorityCategory, number>>;
+  /** Bounds and bias for level of detail selection. */
   lod: {
+    /** Finest level allowed to load. */
     min: number;
+    /** Coarsest level allowed to load. */
     max: number;
+    /** Shifts level selection coarser as it grows. */
     bias: number;
   };
 }>;
 
-/** @hidden */
+/**
+ * Creates a loading policy tuned for interactively browsing a scene.
+ *
+ * Prefetches one chunk beyond the view along each spatial axis and
+ * fills the visible region before prefetching. This is the default
+ * policy for layers constructed without one.
+ *
+ * @param overrides - Properties merged over.
+ */
+export function createExplorationPolicy(
+  overrides: Partial<ImageSourcePolicyProps> = {}
+): ImageSourcePolicy {
+  const base: ImageSourcePolicyProps = {
+    profile: "exploration",
+    prefetch: { x: 1, y: 1, z: 1, t: 0 },
+    priorityOrder: [
+      "fallbackVisible",
+      "visibleCurrent",
+      "prefetchSpace",
+      "prefetchTime",
+      "fallbackBackground",
+    ],
+  };
+  return createImageSourcePolicy(mergeProps(base, overrides));
+}
+
+/**
+ * Creates a loading policy tuned for playing through timepoints.
+ *
+ * Prefetches twenty timepoints ahead and prioritizes time prefetch over
+ * refining the current view, keeping playback smooth at the cost of
+ * sharpness while frames advance.
+ *
+ * @param overrides - Properties merged over.
+ */
+export function createPlaybackPolicy(
+  overrides: Partial<ImageSourcePolicyProps> = {}
+): ImageSourcePolicy {
+  const base: ImageSourcePolicyProps = {
+    profile: "playback",
+    prefetch: { x: 0, y: 0, z: 0, t: 20 },
+    priorityOrder: [
+      "fallbackVisible",
+      "prefetchTime",
+      "visibleCurrent",
+      "fallbackBackground",
+      "prefetchSpace",
+    ],
+  };
+  return createImageSourcePolicy(mergeProps(base, overrides));
+}
+
+/**
+ * Creates a loading policy that loads only visible chunks.
+ *
+ * No spatial or temporal prefetching happens, which minimizes memory
+ * use and network traffic for static scenes.
+ *
+ * @param overrides - Properties merged over.
+ */
+export function createNoPrefetchPolicy(
+  overrides: Partial<ImageSourcePolicyProps> = {}
+): ImageSourcePolicy {
+  const base: ImageSourcePolicyProps = {
+    profile: "no-prefetch",
+    prefetch: { x: 0, y: 0, z: 0, t: 0 },
+    priorityOrder: [
+      "fallbackVisible",
+      "visibleCurrent",
+      "fallbackBackground",
+      "prefetchSpace",
+      "prefetchTime",
+    ],
+  };
+  return createImageSourcePolicy(mergeProps(base, overrides));
+}
+
+/**
+ * Creates a loading policy from explicit properties, validating and
+ * freezing them. Prefer the profile factories for common cases and use
+ * this to build a policy from scratch.
+ *
+ * @param config - Initialization properties.
+ */
 export function createImageSourcePolicy(
   config: ImageSourcePolicyProps
 ): ImageSourcePolicy {
@@ -80,60 +193,6 @@ export function createImageSourcePolicy(
   };
 
   return Object.freeze(resolved);
-}
-
-/** @hidden */
-export function createExplorationPolicy(
-  overrides: Partial<ImageSourcePolicyProps> = {}
-): ImageSourcePolicy {
-  const base: ImageSourcePolicyProps = {
-    profile: "exploration",
-    prefetch: { x: 1, y: 1, z: 1, t: 0 },
-    priorityOrder: [
-      "fallbackVisible",
-      "visibleCurrent",
-      "prefetchSpace",
-      "prefetchTime",
-      "fallbackBackground",
-    ],
-  };
-  return createImageSourcePolicy(mergeProps(base, overrides));
-}
-
-/** @hidden */
-export function createPlaybackPolicy(
-  overrides: Partial<ImageSourcePolicyProps> = {}
-): ImageSourcePolicy {
-  const base: ImageSourcePolicyProps = {
-    profile: "playback",
-    prefetch: { x: 0, y: 0, z: 0, t: 20 },
-    priorityOrder: [
-      "fallbackVisible",
-      "prefetchTime",
-      "visibleCurrent",
-      "fallbackBackground",
-      "prefetchSpace",
-    ],
-  };
-  return createImageSourcePolicy(mergeProps(base, overrides));
-}
-
-/** @hidden */
-export function createNoPrefetchPolicy(
-  overrides: Partial<ImageSourcePolicyProps> = {}
-): ImageSourcePolicy {
-  const base: ImageSourcePolicyProps = {
-    profile: "no-prefetch",
-    prefetch: { x: 0, y: 0, z: 0, t: 0 },
-    priorityOrder: [
-      "fallbackVisible",
-      "visibleCurrent",
-      "fallbackBackground",
-      "prefetchSpace",
-      "prefetchTime",
-    ],
-  };
-  return createImageSourcePolicy(mergeProps(base, overrides));
 }
 
 function validatePolicyProps(config: ImageSourcePolicyProps) {

@@ -69,6 +69,12 @@ export {
   createPlaybackPolicy,
 } from "./core/image_source_policy";
 
+export type {
+  ImageSourcePolicy,
+  ImageSourcePolicyProps,
+  PriorityCategory,
+} from "./core/image_source_policy";
+
 export type { ChannelProps } from "./core/channel";
 export type { LayerState } from "./core/layer";
 export type { IdetikProps, MemoryStats, Overlay } from "./idetik";

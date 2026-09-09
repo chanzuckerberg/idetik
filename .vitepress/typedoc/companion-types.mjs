@@ -29,7 +29,11 @@ const ADOPTED_ALIASES = {
   SourceDimensionMap: "OmeZarrImageSource",
   SourceDimension: "OmeZarrImageSource",
   SourceDimensionLod: "OmeZarrImageSource",
+  ImageSourcePolicy: "LoadingPolicies",
+  PriorityCategory: "LoadingPolicies",
 };
+
+const OWNER_KINDS = ReflectionKind.Class | ReflectionKind.Namespace;
 
 export function foldCompanionAliasesIntoOwnerClasses(
   project,
@@ -43,14 +47,14 @@ export function foldCompanionAliasesIntoOwnerClasses(
   ];
   for (const container of containers) {
     const children = container.children ?? [];
-    const classes = children.filter((c) => c.kind === ReflectionKind.Class);
+    const owners = children.filter((c) => c.kindOf(OWNER_KINDS));
     const aliases = children.filter(
       (c) => c.kind === ReflectionKind.TypeAlias
     );
     for (const alias of aliases) {
       const owner =
-        companionOwnerOf(alias, classes, declarationFiles) ??
-        classes.find((cls) => cls.name === ADOPTED_ALIASES[alias.name]);
+        companionOwnerOf(alias, owners, declarationFiles) ??
+        owners.find((cls) => cls.name === ADOPTED_ALIASES[alias.name]);
       if (!owner) continue;
 
       dropModuleGroupTag(alias);
@@ -84,7 +88,7 @@ function dropModuleGroupTag(alias) {
   );
 }
 
-function moveChildReflection(child, from, to) {
+export function moveChildReflection(child, from, to) {
   from.children = from.children.filter((c) => c !== child);
   from.childrenIncludingDocuments = from.childrenIncludingDocuments?.filter(
     (c) => c !== child
@@ -101,11 +105,21 @@ function moveChildReflection(child, from, to) {
 export function isFoldedAlias(reflection) {
   return (
     reflection.kind === ReflectionKind.TypeAlias &&
-    reflection.parent?.kind === ReflectionKind.Class
+    Boolean(reflection.parent?.kindOf(OWNER_KINDS))
   );
 }
 
 export class FoldedAliasRouter extends MemberRouter {
+  getIdealBaseName(reflection) {
+    if (
+      reflection.kind === ReflectionKind.Namespace &&
+      reflection.parent?.isProject()
+    ) {
+      return `${this.directories.get(reflection.kind)}/${this.getReflectionAlias(reflection)}`;
+    }
+    return super.getIdealBaseName(reflection);
+  }
+
   buildChildPages(reflection, outPages) {
     if (isFoldedAlias(reflection)) {
       this.buildAnchors(reflection, reflection.parent);
