@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-const version = __IDETIK_VERSION__
+const version = __IDETIK_VERSION__;
 </script>
 
 <style scoped>
@@ -24,7 +24,7 @@ const version = __IDETIK_VERSION__
 }
 
 .api-version-badge::before {
-  content: '';
+  content: "";
   width: 6px;
   height: 6px;
   border-radius: 50%;
