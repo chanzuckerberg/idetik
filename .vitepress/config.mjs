@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitepress'
 import typedocSidebar from '../docs/api/typedoc-sidebar.json' with { type: 'json' }
 
@@ -68,6 +69,31 @@ export default defineConfig({
     define: {
       __IDETIK_VERSION__: JSON.stringify(getLatestVersion()),
     },
+    // Live viewers in the guide import the library from source so the docs
+    // always match the branch they are built from. Shaders are imported as
+    // plain strings; the library's own build uses vite-plugin-glsl, which
+    // does not work under VitePress's dev server. Worker settings mirror
+    // vite.config.js.
+    plugins: [
+      {
+        name: 'glsl-as-string',
+        transform: (code, id) =>
+          id.endsWith('.glsl')
+            ? { code: `export default ${JSON.stringify(code)}`, map: null }
+            : undefined,
+      },
+    ],
+    resolve: {
+      alias: {
+        '@idetik/core': fileURLToPath(new URL('../src/index.ts', import.meta.url)),
+      },
+    },
+    worker: {
+      format: 'es',
+      rollupOptions: {
+        output: { format: 'es', inlineDynamicImports: true },
+      },
+    },
   },
 
   themeConfig: {
@@ -88,14 +114,14 @@ export default defineConfig({
     },
 
     nav: [
-      { text: 'Manual', link: '/guide/getting-started' },
+      { text: 'User Guide', link: '/guide/getting-started' },
       { text: 'API Reference', link: '/api/' },
     ],
 
     sidebar: {
       '/guide/': [
         {
-          text: 'Guide',
+          text: 'User Guide',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
           ],

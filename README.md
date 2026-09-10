@@ -16,7 +16,7 @@ Idetik is a high-performance library for exploring multi-dimensional OME-Zarr da
 
 #### Documentation
 
-- Guide: https://chanzuckerberg.github.io/idetik/guide/getting-started
+- User guide: https://chanzuckerberg.github.io/idetik/guide/getting-started
 - API reference: https://chanzuckerberg.github.io/idetik/api/
 
 ## Installation
