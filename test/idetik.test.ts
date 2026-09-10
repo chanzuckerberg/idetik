@@ -1,6 +1,7 @@
 import { expect, test, vi } from "vitest";
 import { Idetik } from "@/idetik";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
+import { PerspectiveCamera } from "@/objects/cameras/perspective_camera";
 import { Viewport } from "@/core/viewport";
 import { createTestCamera, createTestElement, TrackingLayer } from "./helpers";
 
@@ -112,6 +113,27 @@ test("addViewport rejects shared elements without changing the runtime", () => {
     "Multiple viewports cannot share the same HTML element"
   );
   expect(idetik.viewports).toEqual([first]);
+});
+
+test("Reattaching a viewport refreshes its camera after resizing while inactive", () => {
+  const canvas = document.createElement("canvas");
+  canvas.style.width = "200px";
+  canvas.style.height = "200px";
+  document.body.append(canvas);
+  try {
+    const camera = new PerspectiveCamera();
+    const viewport = new Viewport({ domElement: canvas, camera });
+    const idetik = new Idetik({ canvas, viewports: [viewport] });
+    idetik.removeViewport(viewport);
+
+    canvas.style.width = "400px";
+    idetik.addViewport(viewport);
+
+    const projection = camera.projectionMatrix;
+    expect(projection[5] / projection[0]).toBeCloseTo(2);
+  } finally {
+    canvas.remove();
+  }
 });
 
 test("addViewport rejects shared layers without changing the runtime", () => {

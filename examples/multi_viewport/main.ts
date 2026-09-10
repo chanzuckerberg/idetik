@@ -117,6 +117,8 @@ new Idetik({
   canvas: document.querySelector<HTMLCanvasElement>("#canvas")!,
   viewports: [
     createSliceViewport("slice-xy", "XY", xRange, yRange),
+    createSliceViewport("slice-xz", "XZ", xRange, zRange),
+    createSliceViewport("slice-yz", "YZ", yRange, zRange),
     new Viewport({
       id: "3d",
       domElement: document.querySelector<HTMLDivElement>("#viewport-3d")!,
@@ -134,8 +136,6 @@ new Idetik({
         volumeLayer,
       ],
     }),
-    createSliceViewport("slice-xz", "XZ", xRange, zRange),
-    createSliceViewport("slice-yz", "YZ", yRange, zRange),
   ],
   showStats: false,
 }).start();
