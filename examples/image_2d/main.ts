@@ -172,7 +172,7 @@ const perspectiveCamera = new PerspectiveCamera({
   near: orbitRadius / 100,
   far: orbitRadius * 10,
 });
-const viewports: Record<Projection, Viewport> = {
+const viewports = {
   orthographic: new Viewport({
     domElement: canvas,
     camera: orthographicCamera,

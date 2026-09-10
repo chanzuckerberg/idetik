@@ -300,6 +300,7 @@ export class Idetik {
    */
   public addViewport(viewport: Viewport): Viewport {
     validateViewport(viewport, this.viewports_);
+    viewport.updateSize();
     this.viewports_.push(viewport);
 
     if (this.running) {
