@@ -2,6 +2,7 @@ import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
 import VersionBadge from './VersionBadge.vue'
 import GitHubStars from './GitHubStars.vue'
+import GettingStartedViewer from './GettingStartedViewer.vue'
 import './custom.css'
 
 export default {
@@ -13,5 +14,6 @@ export default {
   },
   enhanceApp({ app }) {
     app.component('VersionBadge', VersionBadge)
+    app.component('GettingStartedViewer', GettingStartedViewer)
   },
 }
