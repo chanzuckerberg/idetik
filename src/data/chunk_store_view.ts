@@ -351,11 +351,7 @@ export class ChunkStoreView {
     bufferSizePx: { width: number; height: number }
   ): boolean {
     const [finest, coarsest] = this.availableLODs();
-    const resolvable = clamp(
-      this.wantedLOD(footprints, finest, coarsest),
-      finest,
-      coarsest
-    );
+    const resolvable = this.wantedLOD(footprints, finest, coarsest);
     const texelBudget =
       bufferSizePx.width * bufferSizePx.height * MAX_TEXEL_OVERDRAW;
     const target = this.closestAffordableLOD(
@@ -393,7 +389,8 @@ export class ChunkStoreView {
       return level === Infinity ? coarsest + 1 : clamp(level, finest, coarsest);
     });
 
-    return Math.round(wanted.reduce((a, b) => a + b) / wanted.length);
+    const mean = wanted.reduce((a, b) => a + b) / wanted.length;
+    return clamp(Math.round(mean), finest, coarsest);
   }
 
   private closestAffordableLOD(
