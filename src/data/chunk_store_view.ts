@@ -6,7 +6,7 @@ import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
 import { Box3 } from "../math/box3";
 import { Logger } from "../utilities/logger";
-import { PlaneViewSampler, RayFootprint } from "../math/plane_view_sampler";
+import { PlaneViewSampler } from "../math/plane_view_sampler";
 import { clamp } from "../utilities/clamp";
 
 /*
@@ -17,7 +17,6 @@ access key, preventing accidental external mutation.
 */
 export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
 
-const MAX_ANISOTROPY = 2;
 const MAX_TEXEL_OVERDRAW = 8;
 const CHUNKS_PER_VIEW_WARNING = 4096;
 
@@ -130,7 +129,7 @@ export class ChunkStoreView {
     viewProjection: mat4,
     bufferSizePx: { width: number; height: number }
   ): void {
-    const { worldViewRect, rays } = this.planeSampler_.view(
+    const { worldViewRect, footprints } = this.planeSampler_.view(
       viewProjection,
       this.axes_,
       this.slicePlaneValue(sliceCoords),
@@ -139,7 +138,7 @@ export class ChunkStoreView {
     );
 
     const viewBounds2D = worldViewRect;
-    const lodChanged = this.setLOD(rays, viewBounds2D, bufferSizePx);
+    const lodChanged = this.setLOD(footprints, viewBounds2D, bufferSizePx);
 
     const sliceBounds = this.getSliceAxisBounds(sliceCoords);
     const changed =
@@ -347,13 +346,13 @@ export class ChunkStoreView {
   }
 
   private setLOD(
-    rays: readonly RayFootprint[],
+    footprints: readonly number[],
     worldViewRect: Box2,
     bufferSizePx: { width: number; height: number }
   ): boolean {
     const [finest, coarsest] = this.availableLODs();
     const resolvable = clamp(
-      this.wantedLOD(rays, finest, coarsest),
+      this.wantedLOD(footprints, finest, coarsest),
       finest,
       coarsest
     );
@@ -383,20 +382,18 @@ export class ChunkStoreView {
   }
 
   private wantedLOD(
-    rays: readonly RayFootprint[],
+    footprints: readonly number[],
     finest: number,
     coarsest: number
   ): number {
-    const wanted = rays.map((ray) => {
-      const unitsPerPixel = Math.max(ray.narrow, ray.wide / MAX_ANISOTROPY);
-      const level = this.lodFor(unitsPerPixel);
-      return Number.isFinite(level) ? clamp(level, finest, coarsest) : coarsest;
-    });
-    wanted.sort((a, b) => a - b);
+    const shift = this.policy_.lod.bias - Math.log2(this.scale0_);
 
-    const rows = Math.sqrt(wanted.length);
-    const coarseMedianIndex = wanted.length - (wanted.length - rows) / 2;
-    return wanted[coarseMedianIndex];
+    const wanted = footprints.map((unitsPerPixel) => {
+      const level = Math.floor(shift + Math.log2(unitsPerPixel));
+      return level === Infinity ? coarsest + 1 : clamp(level, finest, coarsest);
+    });
+
+    return Math.round(wanted.reduce((a, b) => a + b) / wanted.length);
   }
 
   private closestAffordableLOD(
@@ -425,12 +422,6 @@ export class ChunkStoreView {
     const min = Math.max(0, Math.min(lowestResLOD, this.policy_.lod.min));
     const max = Math.max(min, Math.min(lowestResLOD, this.policy_.lod.max));
     return [min, max];
-  }
-
-  private lodFor(unitsPerPixel: number): number {
-    return Math.floor(
-      this.policy_.lod.bias - Math.log2(this.scale0_) + Math.log2(unitsPerPixel)
-    );
   }
 
   private chunkCountFor(rect: Box2, lod: number): number {

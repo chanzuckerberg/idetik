@@ -119,32 +119,28 @@ describe("LOD selection", () => {
   const BUFFER = { width: 1200, height: 1200 };
   const CENTRE = 4096;
   const IMAGE = { levels: 6, size: 8192, chunkSize: 256 };
+  const SLICE = { z: 0, c: [0], t: 0 };
 
   /** Looking at the middle of the slice from `distance`, tilted off its normal. */
   function camera(distance: number, tiltDeg: number): mat4 {
     const tilt = (tiltDeg * Math.PI) / 180;
+    const eye = vec3.fromValues(
+      CENTRE,
+      CENTRE - distance * Math.sin(tilt),
+      distance * Math.cos(tilt)
+    );
+    const up = vec3.fromValues(0, Math.cos(tilt), Math.sin(tilt));
+    const target = vec3.fromValues(CENTRE, CENTRE, 0);
+
     return mat4.multiply(
       mat4.create(),
       mat4.perspective(mat4.create(), Math.PI / 3, 1, 1, 1e7),
-      mat4.lookAt(
-        mat4.create(),
-        vec3.fromValues(
-          CENTRE,
-          CENTRE - distance * Math.sin(tilt),
-          distance * Math.cos(tilt)
-        ),
-        vec3.fromValues(CENTRE, CENTRE, 0),
-        vec3.fromValues(0, Math.cos(tilt), Math.sin(tilt))
-      )
+      mat4.lookAt(mat4.create(), eye, target, up)
     );
   }
 
   const lodAt = (view: ChunkStoreView, distance: number, tiltDeg: number) => {
-    view.updateChunksForImage(
-      { z: 0, c: [0], t: 0 },
-      camera(distance, tiltDeg),
-      BUFFER
-    );
+    view.updateChunksForImage(SLICE, camera(distance, tiltDeg), BUFFER);
     return view.currentLOD;
   };
 
