@@ -103,8 +103,7 @@ export abstract class Layer {
     RenderableObject[]
   >();
   private state_: LayerState = "initialized";
-  private attachment_: { context: IdetikContext; viewport: Viewport } | null =
-    null;
+  private attached_ = false;
   private readonly callbacks_: StateChangeCallback[] = [];
   private opacity_: number;
 
@@ -168,25 +167,16 @@ export abstract class Layer {
 
   /** Whether the layer is attached to a viewport. */
   public get attached(): boolean {
-    return this.attachment_ !== null;
-  }
-
-  /** Returns whether this layer has the given runtime and viewport attachment. */
-  public isAttachedTo(context: IdetikContext, viewport: Viewport): boolean {
-    return (
-      this.attachment_?.context === context &&
-      this.attachment_.viewport === viewport
-    );
+    return this.attached_;
   }
 
   /**
    * Attaches the layer to a viewport.
    *
    * @param context - The shared runtime context.
-   * @param viewport - The owning viewport.
    */
-  public onAttached(context: IdetikContext, viewport: Viewport): void {
-    if (this.attachment_) {
+  public onAttached(context: IdetikContext): void {
+    if (this.attached_) {
       throw new Error(
         `${this.type} cannot be attached to multiple viewports simultaneously.`
       );
@@ -195,18 +185,18 @@ export abstract class Layer {
       throw new Error(`${this.type} cannot both occlude and read scene depth.`);
     }
     this.attach(context);
-    this.attachment_ = { context, viewport };
+    this.attached_ = true;
   }
 
   /**
-   * Detaches the layer from a viewport if it owns the current attachment.
+   * Releases the layer's runtime resources. Called by the attaching runtime.
    *
-   * @param viewport - The viewport being detached.
+   * @param context - The context used to attach this layer.
    */
-  public onDetached(viewport: Viewport): void {
-    if (!this.attachment_ || this.attachment_.viewport !== viewport) return;
-    this.detach(this.attachment_.context);
-    this.attachment_ = null;
+  public onDetached(context: IdetikContext): void {
+    if (!this.attached_) return;
+    this.detach(context);
+    this.attached_ = false;
   }
 
   /** @hidden */
