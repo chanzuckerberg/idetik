@@ -7,7 +7,6 @@ import { generateID } from "../utilities/id_generator";
 import { Logger } from "../utilities/logger";
 import { EventContext, EventDispatcher } from "./event_dispatcher";
 import { Ray } from "../math/ray";
-import { IdetikContext } from "../idetik";
 
 /**
  * Initialization properties for constructing a viewport.
@@ -57,8 +56,6 @@ export class Viewport {
   /** Input controls driving the camera. */
   public cameraControls?: CameraControls;
 
-  private context_?: IdetikContext;
-
   private layers_: Layer[] = [];
 
   constructor(props: ViewportProps) {
@@ -106,12 +103,13 @@ export class Viewport {
    * @param layer - The layer to add.
    */
   public addLayer(layer: Layer): void {
-    if (this.context_) layer.onAttached(this.context_, this);
     this.layers_.push(layer);
   }
 
   /**
    * Removes a previously added layer.
+   * Runtime resources are released before the next render pass, or when the
+   * runtime removes this viewport. While stopped, cleanup remains pending.
    *
    * @param layer - The layer to remove.
    */
@@ -121,42 +119,11 @@ export class Viewport {
       throw new Error(`Layer to remove not found: ${layer}`);
     }
     this.layers_.splice(index, 1);
-    layer.onDetached(this);
   }
 
-  /** Removes all layers from the viewport. */
+  /** Removes all layers. Runtime cleanup follows the same timing as {@link removeLayer}. */
   public removeAllLayers(): void {
-    for (const layer of this.layers_) {
-      layer.onDetached(this);
-    }
     this.layers_ = [];
-  }
-
-  public attachToIdetik(context: IdetikContext): void {
-    if (this.context_) {
-      throw new Error(`Viewport "${this.id}" is already attached`);
-    }
-    const attached: Layer[] = [];
-    try {
-      for (const layer of this.layers_) {
-        layer.onAttached(context, this);
-        attached.push(layer);
-      }
-      this.context_ = context;
-    } catch (error) {
-      for (const layer of attached.reverse()) {
-        layer.onDetached(this);
-      }
-      throw error;
-    }
-  }
-
-  public detachFromIdetik(): void {
-    if (!this.context_) return;
-    for (const layer of this.layers_) {
-      layer.onDetached(this);
-    }
-    this.context_ = undefined;
   }
 
   /**
@@ -266,35 +233,5 @@ export class Viewport {
     }
     const aspectRatio = width / height;
     this.camera.setAspectRatio(aspectRatio);
-  }
-}
-
-export function validateNewViewport(
-  viewport: { id: string; domElement: HTMLElement },
-  existingViewports: { id: string; domElement: HTMLElement }[]
-): void {
-  for (const existing of existingViewports) {
-    if (existing.id === viewport.id) {
-      throw new Error(
-        `Duplicate viewport ID "${viewport.id}". Each viewport must have a unique ID.`
-      );
-    }
-    if (existing.domElement === viewport.domElement) {
-      const elementDescription =
-        viewport.domElement.tagName.toLowerCase() +
-        (viewport.domElement.id
-          ? `#${viewport.domElement.id}`
-          : "[element has no id]");
-      throw new Error(
-        "Multiple viewports cannot share the same HTML element: " +
-          `viewports "${existing.id}" and "${viewport.id}" both use ${elementDescription}`
-      );
-    }
-  }
-}
-
-export function validateViewports(viewports: Viewport[]): void {
-  for (let i = 0; i < viewports.length; i++) {
-    validateNewViewport(viewports[i], viewports.slice(0, i));
   }
 }

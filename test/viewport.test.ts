@@ -1,12 +1,7 @@
 import { expect, test } from "vitest";
 
 import { Viewport } from "@/core/viewport";
-import {
-  createTestCamera,
-  createTestContext,
-  createTestElement,
-  TrackingLayer,
-} from "./helpers";
+import { createTestCamera, createTestElement, TrackingLayer } from "./helpers";
 
 function createViewport(id: string, element = createTestElement(id)): Viewport {
   return new Viewport({ id, domElement: element, camera: createTestCamera() });
@@ -52,24 +47,8 @@ test("Viewport layer mutations do not require a runtime", () => {
   viewport.removeLayer(first);
   expect(viewport.layers).toEqual([second]);
   expect(first.detachCount).toBe(0);
-});
-
-test("Viewport layer removal eagerly detaches attached layers", () => {
-  const first = new TrackingLayer();
-  const second = new TrackingLayer();
-  const viewport = new Viewport({
-    domElement: createTestElement(),
-    camera: createTestCamera(),
-    layers: [first, second],
-  });
-  const context = createTestContext();
-  first.onAttached(context, viewport);
-  second.onAttached(context, viewport);
-
-  viewport.removeLayer(first);
-  expect(first.detachCount).toBe(1);
 
   viewport.removeAllLayers();
-  expect(second.detachCount).toBe(1);
   expect(viewport.layers).toEqual([]);
+  expect(second.detachCount).toBe(0);
 });

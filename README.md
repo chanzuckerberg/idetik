@@ -35,6 +35,7 @@ This example displays a single slice from [Zebrahub](https://zebrahub.sf.czbiohu
 import {
   Idetik,
   ImageLayer,
+  Viewport,
   OmeZarrImageSource,
   OrthographicCamera,
   PanZoomControls,
@@ -56,14 +57,14 @@ const camera = new OrthographicCamera({
   top: 0, bottom: y.lods[0].size * y.lods[0].scale
 });
 
-const idetik = new Idetik({
-  canvas: document.querySelector('canvas')!,
-  viewports: [{
-    camera,
-    layers: [layer],
-    cameraControls: new PanZoomControls(camera)
-  }],
+const canvas = document.querySelector<HTMLCanvasElement>('canvas')!;
+const viewport = new Viewport({
+  domElement: canvas,
+  camera,
+  layers: [layer],
+  cameraControls: new PanZoomControls(camera),
 });
+const idetik = new Idetik({ canvas, viewports: [viewport] });
 
 idetik.start();
 ```
