@@ -88,7 +88,7 @@ export class ChunkStoreView {
     return this.store_.channelCount;
   }
 
-  public getImageExtent(): Box2 {
+  private getImageExtent(): Box2 {
     const dimensions = this.store_.dimensions;
     const uLod0 = dimensions[this.axes_.u]!.lods[0];
     const vLod0 = dimensions[this.axes_.v]!.lods[0];
@@ -137,14 +137,13 @@ export class ChunkStoreView {
       bufferSizePx
     );
 
-    const viewBounds2D = worldViewRect;
-    const lodChanged = this.setLOD(footprints, viewBounds2D, bufferSizePx);
+    const lodChanged = this.setLOD(footprints, worldViewRect, bufferSizePx);
 
     const sliceBounds = this.getSliceAxisBounds(sliceCoords);
     const changed =
       this.policyChanged_ ||
       lodChanged ||
-      this.viewBounds2DChanged(viewBounds2D) ||
+      this.viewBounds2DChanged(worldViewRect) ||
       this.sliceBoundsChanged(sliceBounds) ||
       this.lastTCoord_ !== sliceCoords.t ||
       this.cCoordsChanged(sliceCoords.c);
@@ -162,9 +161,9 @@ export class ChunkStoreView {
     }
 
     const viewBoundsCenter2D = vec2.create();
-    vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
+    vec2.lerp(viewBoundsCenter2D, worldViewRect.min, worldViewRect.max, 0.5);
 
-    const viewBounds3D = this.makeViewBounds3D(viewBounds2D, sliceBounds);
+    const viewBounds3D = this.makeViewBounds3D(worldViewRect, sliceBounds);
 
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
@@ -218,7 +217,7 @@ export class ChunkStoreView {
     );
 
     this.policyChanged_ = false;
-    this.lastViewBounds2D_ = viewBounds2D.clone();
+    this.lastViewBounds2D_ = worldViewRect.clone();
     this.lastSliceBounds_ = sliceBounds;
     this.lastTCoord_ = sliceCoords.t;
     this.lastCCoords_ = sliceCoords.c ? [...sliceCoords.c] : undefined;
@@ -351,14 +350,14 @@ export class ChunkStoreView {
     bufferSizePx: { width: number; height: number }
   ): boolean {
     const [finest, coarsest] = this.availableLODs();
-    const resolvable = this.wantedLOD(footprints, finest, coarsest);
-    const texelBudget =
+    const wanted = this.wantedLOD(footprints, finest, coarsest);
+    const maxTexels =
       bufferSizePx.width * bufferSizePx.height * MAX_TEXEL_OVERDRAW;
-    const target = this.closestAffordableLOD(
-      resolvable,
+    const target = this.overdrawLimitedLOD(
+      wanted,
       coarsest,
       worldViewRect,
-      texelBudget
+      maxTexels
     );
 
     if (target === this.currentLOD_) return false;
@@ -393,11 +392,11 @@ export class ChunkStoreView {
     return clamp(Math.round(mean), finest, coarsest);
   }
 
-  private closestAffordableLOD(
+  private overdrawLimitedLOD(
     lod: number,
     coarsest: number,
     rect: Box2,
-    texelBudget: number
+    maxTexels: number
   ): number {
     const dimensions = this.store_.dimensions;
 
@@ -406,7 +405,7 @@ export class ChunkStoreView {
         dimensions[this.axes_.u]!.lods[lod].chunkSize *
         dimensions[this.axes_.v]!.lods[lod].chunkSize;
 
-      if (this.chunkCountFor(rect, lod) * texelsPerChunkSlice <= texelBudget)
+      if (this.chunkCountFor(rect, lod) * texelsPerChunkSlice <= maxTexels)
         break;
       ++lod;
     }
@@ -421,17 +420,26 @@ export class ChunkStoreView {
     return [min, max];
   }
 
+  // Chunks the rect covers in the slice plane. Counts grid cells the rect
+  // touches, not its width in chunks: a one-chunk-wide rect straddling a
+  // boundary needs two. Mirrors `chunkIndexRange` for the two in-plane axes.
   private chunkCountFor(rect: Box2, lod: number): number {
-    const dimensions = this.store_.dimensions;
-    const uLod = dimensions[this.axes_.u]!.lods[lod];
-    const vLod = dimensions[this.axes_.v]!.lods[lod];
-    const across = Math.ceil(
-      (rect.max[0] - rect.min[0]) / (uLod.chunkSize * uLod.scale)
+    const spanIn = (axis: SpatialAxis, low: number, high: number) => {
+      const { chunkSize, scale, size, translation } =
+        this.store_.dimensions[axis]!.lods[lod];
+      const stride = chunkSize * scale;
+      const first = Math.max(0, Math.floor((low - translation) / stride));
+      const last = Math.min(
+        Math.ceil(size / chunkSize),
+        Math.ceil((high - translation) / stride)
+      );
+      return Math.max(0, last - first);
+    };
+
+    return (
+      spanIn(this.axes_.u, rect.min[0], rect.max[0]) *
+      spanIn(this.axes_.v, rect.min[1], rect.max[1])
     );
-    const down = Math.ceil(
-      (rect.max[1] - rect.min[1]) / (vLod.chunkSize * vLod.scale)
-    );
-    return Math.max(0, across) * Math.max(0, down);
   }
 
   private markTimeChunksForPrefetchImage(
