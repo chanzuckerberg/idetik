@@ -13,6 +13,7 @@ Render a volume from a remote OME-Zarr source:
 ```typescript
 import {
   Idetik,
+  Viewport,
   PerspectiveCamera,
   OrbitControls,
   VolumeLayer,
@@ -45,13 +46,17 @@ const center = (d: typeof dims.x) => d.lods[0].translation + span(d) / 2
 const target: [number, number, number] = [center(dims.x), center(dims.y), center(dims.z!)]
 const radius = 1.2 * Math.max(span(dims.x), span(dims.y), span(dims.z!))
 
+const canvas = document.querySelector<HTMLCanvasElement>('canvas')!
+const viewport = new Viewport({
+  domElement: canvas,
+  camera,
+  layers: [layer],
+  cameraControls: new OrbitControls(camera, { radius, target }),
+})
+
 const idetik = new Idetik({
-  canvas: document.querySelector<HTMLCanvasElement>('canvas')!,
-  viewports: [{
-    camera,
-    layers: [layer],
-    cameraControls: new OrbitControls(camera, { radius, target }),
-  }],
+  canvas,
+  viewports: [viewport],
 })
 
 idetik.start()

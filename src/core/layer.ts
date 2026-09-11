@@ -1,9 +1,9 @@
-import { IdetikContext } from "../idetik";
+import type { IdetikContext } from "../idetik";
 import { RenderableObject } from "./renderable_object";
 import { clamp } from "../utilities/clamp";
 import { Logger } from "../utilities/logger";
 import { EventContext } from "./event_dispatcher";
-import { Viewport } from "./viewport";
+import type { Viewport } from "./viewport";
 
 /**
  * The loading lifecycle state of a layer.
@@ -165,10 +165,13 @@ export abstract class Layer {
    */
   public onEvent(_event: EventContext): void {}
 
+  /** Whether the layer is attached to a viewport. */
+  public get attached(): boolean {
+    return this.attached_;
+  }
+
   /**
-   * Lifecycle hook that is called automatically when a layer is
-   * is attached to a viewport. A layer can only be attached to one viewport
-   * at a time.
+   * Attaches the layer to a viewport.
    *
    * @param context - The shared runtime context.
    */
@@ -186,10 +189,9 @@ export abstract class Layer {
   }
 
   /**
-   * Lifecycle hook that is called automatically when a layer is detached
-   * from a viewport.
+   * Releases the layer's runtime resources. Called by the attaching runtime.
    *
-   * @param context - The shared runtime context.
+   * @param context - The context used to attach this layer.
    */
   public onDetached(context: IdetikContext): void {
     if (!this.attached_) return;
