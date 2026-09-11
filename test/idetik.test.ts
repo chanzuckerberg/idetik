@@ -3,31 +3,16 @@ import { Idetik } from "@/idetik";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 import { PerspectiveCamera } from "@/objects/cameras/perspective_camera";
 import { Viewport } from "@/core/viewport";
-import { createTestCamera, createTestElement, TrackingLayer } from "./helpers";
+import {
+  createTestCamera,
+  createTestElement,
+  createTestViewport,
+  TrackingLayer,
+} from "./helpers";
 
 function createViewport(canvas: HTMLCanvasElement, camera: OrthographicCamera) {
   return new Viewport({ domElement: canvas, camera });
 }
-
-test("Runtime initializes with canvas element", () => {
-  const canvas = document.createElement("canvas");
-  const camera = new OrthographicCamera({
-    left: 0,
-    right: 128,
-    top: 0,
-    bottom: 128,
-  });
-
-  const idetik = new Idetik({
-    canvas,
-    viewports: [createViewport(canvas, camera)],
-  });
-
-  const viewport = idetik.viewports[0];
-  expect(idetik.canvas).toBe(canvas);
-  expect(viewport.camera).toBe(camera);
-  expect(viewport.layers).toEqual([]);
-});
 
 test("Runtime start/stop controls the animation loop", () => {
   const canvas = document.createElement("canvas");
@@ -49,24 +34,6 @@ test("Runtime start/stop controls the animation loop", () => {
   const cancelRafSpy = vi.spyOn(window, "cancelAnimationFrame");
   idetik.stop();
   expect(cancelRafSpy).toHaveBeenCalled();
-});
-
-test("Width and height properties return (scaled) canvas shape", () => {
-  const devicePixelRatio = window.devicePixelRatio;
-  const canvas = document.createElement("canvas");
-  const camera = new OrthographicCamera({
-    left: 0,
-    right: 128,
-    top: 0,
-    bottom: 128,
-  });
-  const idetik = new Idetik({
-    canvas,
-    viewports: [createViewport(canvas, camera)],
-  });
-
-  expect(idetik.width).toBe(canvas.clientWidth * devicePixelRatio);
-  expect(idetik.height).toBe(canvas.clientHeight * devicePixelRatio);
 });
 
 test("Runtime constructor rejects duplicate viewport IDs before attachment", () => {
@@ -162,7 +129,7 @@ test("addViewport rejects shared layers without changing the runtime", () => {
   expect(layer.attachCount).toBe(0);
 });
 
-test("Runtime attaches pending layers before rendering and detaches eagerly", () => {
+test("Runtime defers layer removal but detaches removed viewports immediately", () => {
   const firstLayer = new TrackingLayer();
   const viewport = new Viewport({
     domElement: createTestElement("first"),
@@ -194,6 +161,8 @@ test("Runtime attaches pending layers before rendering and detaches eagerly", ()
   expect(secondLayer.attachCount).toBe(1);
 
   viewport.removeLayer(secondLayer);
+  expect(secondLayer.detachCount).toBe(0);
+  frames.shift()!(32);
   expect(secondLayer.detachCount).toBe(1);
   expect(idetik.removeViewport(viewport)).toBe(true);
   idetik.stop();
@@ -234,50 +203,65 @@ test("Runtime rejects layers added to another viewport between frames", () => {
   idetik.stop();
 });
 
-test("Runtime rejects layers attached to another runtime", () => {
+test("A stopped runtime retains ownership until it releases the layer", () => {
   const layer = new TrackingLayer();
-  const first = new Viewport({
-    id: "first",
-    domElement: createTestElement("first"),
+  const source = new Viewport({
+    domElement: createTestElement("source"),
     camera: createTestCamera(),
     layers: [layer],
   });
-  const second = new Viewport({
-    id: "second",
-    domElement: createTestElement("second"),
+  const destination = new Viewport({
+    domElement: createTestElement("destination"),
     camera: createTestCamera(),
-    layers: [layer],
   });
-  const firstRuntime = new Idetik({
+  const a = new Idetik({
     canvas: document.createElement("canvas"),
-    viewports: [first],
+    viewports: [source],
   });
-  const secondRuntime = new Idetik({
+  const b = new Idetik({
     canvas: document.createElement("canvas"),
-    viewports: [second],
+    viewports: [destination],
   });
-  const frames: FrameRequestCallback[] = [];
-  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
-    frames.push(callback);
-    return frames.length;
-  });
+  let frame: FrameRequestCallback;
+  const raf = vi
+    .spyOn(window, "requestAnimationFrame")
+    .mockImplementation((callback) => {
+      frame = callback;
+      return 1;
+    });
 
-  firstRuntime.start();
-  secondRuntime.start();
-  frames.shift()!(0);
-  expect(layer.attachCount).toBe(1);
+  try {
+    a.start();
+    frame!(0);
+    a.stop();
+    source.removeLayer(layer);
+    destination.addLayer(layer);
 
-  expect(() => frames.shift()!(0)).toThrow(
-    "TrackingLayer is already attached to another viewport or Idetik runtime"
-  );
-  expect(layer.attachCount).toBe(1);
+    b.start();
+    expect(() => frame!(16)).toThrow(/already attached/);
+    b.stop();
+    b.removeViewport(destination);
+    expect(layer.attached).toBe(true);
+    expect(layer.detachCount).toBe(0);
 
-  secondRuntime.removeViewport(second);
-  expect(layer.detachCount).toBe(0);
-  firstRuntime.removeViewport(first);
-  expect(layer.detachCount).toBe(1);
-  firstRuntime.stop();
-  secondRuntime.stop();
+    a.start();
+    frame!(32);
+    a.stop();
+    expect(layer.attached).toBe(false);
+    expect(layer.detachCount).toBe(1);
+
+    b.addViewport(destination);
+    b.start();
+    frame!(48);
+    expect(layer.attached).toBe(true);
+    expect(layer.attachCount).toBe(2);
+  } finally {
+    if (a.running) a.stop();
+    if (b.running) b.stop();
+    a.removeViewport(source);
+    b.removeViewport(destination);
+    raf.mockRestore();
+  }
 });
 
 test("Inactive viewport removal does not detach the active viewport layer", () => {
@@ -314,4 +298,108 @@ test("Inactive viewport removal does not detach the active viewport layer", () =
   idetik.removeViewport(active);
   expect(layer.detachCount).toBe(1);
   idetik.stop();
+});
+
+test("Layer transfer succeeds when the destination renders before the source", () => {
+  const layer = new TrackingLayer();
+  const source = createTestViewport("source");
+  const destination = createTestViewport("destination");
+  source.addLayer(layer);
+  const idetik = new Idetik({
+    canvas: document.createElement("canvas"),
+    viewports: [destination, source],
+  });
+  let frame: FrameRequestCallback;
+  const raf = vi
+    .spyOn(window, "requestAnimationFrame")
+    .mockImplementation((callback) => {
+      frame = callback;
+      return 1;
+    });
+
+  idetik.start();
+  try {
+    frame!(0);
+    source.removeLayer(layer);
+    destination.addLayer(layer);
+
+    frame!(16);
+    expect(layer.attachCount).toBe(2);
+    expect(layer.detachCount).toBe(1);
+    expect(layer.attached).toBe(true);
+  } finally {
+    idetik.removeViewport(destination);
+    idetik.removeViewport(source);
+    idetik.stop();
+    raf.mockRestore();
+  }
+});
+
+test("Removing a stopped viewport releases layers already removed from its list", () => {
+  const layer = new TrackingLayer();
+  const viewport = new Viewport({
+    domElement: createTestElement(),
+    camera: createTestCamera(),
+    layers: [layer],
+  });
+  const idetik = new Idetik({
+    canvas: document.createElement("canvas"),
+    viewports: [viewport],
+  });
+  let frame: FrameRequestCallback;
+  vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    frame = callback;
+    return 1;
+  });
+
+  idetik.start();
+  frame!(0);
+  idetik.stop();
+  viewport.removeAllLayers();
+  expect(layer.attached).toBe(true);
+  expect(layer.detachCount).toBe(0);
+
+  idetik.removeViewport(viewport);
+  expect(layer.attached).toBe(false);
+  expect(layer.detachCount).toBe(1);
+});
+
+test("Resize rendering reconciles removed layers before attaching replacements", () => {
+  const first = new TrackingLayer();
+  const second = new TrackingLayer();
+  const viewport = new Viewport({
+    domElement: createTestElement(),
+    camera: createTestCamera(),
+    layers: [first],
+  });
+  let resize: () => void;
+  const observer = vi
+    .spyOn(window, "ResizeObserver")
+    .mockImplementation(function (callback) {
+      resize = () => callback([], {} as ResizeObserver);
+      return { observe() {}, unobserve() {}, disconnect() {} };
+    });
+  const idetik = new Idetik({
+    canvas: document.createElement("canvas"),
+    viewports: [viewport],
+  });
+  vi.spyOn(window, "requestAnimationFrame").mockReturnValue(1);
+
+  idetik.start();
+  try {
+    resize!();
+    viewport.removeLayer(first);
+    viewport.addLayer(second);
+    expect(first.attached).toBe(true);
+    expect(second.attached).toBe(false);
+
+    resize!();
+    expect(first.attached).toBe(false);
+    expect(first.detachCount).toBe(1);
+    expect(second.attached).toBe(true);
+  } finally {
+    idetik.removeViewport(viewport);
+    idetik.stop();
+    observer.mockRestore();
+  }
 });

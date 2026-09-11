@@ -61,7 +61,6 @@ export type { CameraControls } from "./objects/cameras/controls";
 export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
 export type { PerspectiveCameraProps } from "./objects/cameras/perspective_camera";
 
-
 export {
   createExplorationPolicy,
   createImageSourcePolicy,

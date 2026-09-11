@@ -5,6 +5,7 @@ import { Renderer } from "./core/renderer";
 import { createStats, type Stats } from "./utilities/stats";
 import { Viewport } from "./core/viewport";
 import { PixelSizeObserver } from "./utilities/pixel_size_observer";
+import type { Layer } from "./core/layer";
 
 const DEFAULT_MEMORY_LIMIT_MB = 2048;
 
@@ -157,6 +158,7 @@ export class Idetik {
   private readonly context_: IdetikContext;
   private readonly renderer_: Renderer;
   private readonly viewports_: Viewport[];
+  private readonly attachments_ = new Map<Layer, Viewport>();
   private readonly stats_?: Stats;
   private readonly sizeObserver_: PixelSizeObserver;
 
@@ -227,6 +229,7 @@ export class Idetik {
     }
     this.sizeObserver_ = new PixelSizeObserver(sizeDependents, () => {
       this.renderer_.updateSize();
+      this.detachRemovedLayers();
       this.renderer_.beginFrame();
       for (const viewport of this.viewports_) {
         viewport.updateSize();
@@ -339,9 +342,10 @@ export class Idetik {
     }
 
     this.viewports_.splice(index, 1);
-    for (const layer of viewport.layers) {
-      if (layer.isAttachedTo(this.context_, viewport)) {
-        layer.onDetached(viewport);
+    for (const [layer, owner] of this.attachments_) {
+      if (owner === viewport) {
+        layer.onDetached(this.context_);
+        this.attachments_.delete(layer);
       }
     }
     Logger.info("Idetik", `Removed viewport "${viewport.id}"`);
@@ -406,9 +410,21 @@ export class Idetik {
     return this;
   }
 
+  private detachRemovedLayers(): void {
+    for (const [layer, viewport] of this.attachments_) {
+      if (
+        !this.viewports_.includes(viewport) ||
+        !viewport.layers.includes(layer)
+      ) {
+        layer.onDetached(this.context_);
+        this.attachments_.delete(layer);
+      }
+    }
+  }
+
   private renderViewport(viewport: Viewport): void {
     for (const layer of viewport.layers) {
-      if (layer.attached && !layer.isAttachedTo(this.context_, viewport)) {
+      if (layer.attached && this.attachments_.get(layer) !== viewport) {
         throw new Error(
           `${layer.type} is already attached to another viewport or Idetik runtime.`
         );
@@ -416,7 +432,10 @@ export class Idetik {
     }
 
     for (const layer of viewport.layers) {
-      if (!layer.attached) layer.onAttached(this.context_, viewport);
+      if (!layer.attached) {
+        layer.onAttached(this.context_);
+        this.attachments_.set(layer, viewport);
+      }
     }
 
     this.renderer_.render(viewport);
@@ -429,6 +448,7 @@ export class Idetik {
     const dt = Math.min(timestamp - this.lastTimestamp_, 100) / 1000;
 
     this.lastTimestamp_ = timestamp;
+    this.detachRemovedLayers();
 
     this.renderer_.beginFrame();
     for (const viewport of this.viewports_) {
