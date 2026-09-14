@@ -69,7 +69,7 @@ As mentioned, Idetik automatically responds to changes to the canvas size. The f
 
 A layer renders data from a source. [`ImageLayer`](/api/classes/ImageLayer.html) draws one 2D slice of a multi-channel image and streams the chunks that intersect the current view at a resolution matched to the zoom level. Its constructor takes the source, the slice, and the appearance of each channel.
 
-Slice coordinates select the data in the same world units the camera uses. The image has five axes: time, channel, z, y, and x.
+Slice coordinates select the data in the same world units the camera uses. Idetik models five axes: time, channel, z, y, and x; matching the OME-NGFF v0.4 and v0.5 specs. Data axes are mapped onto these by name, so `x` and `y` must be present while `t`, `c`, and `z` are picked up when the metadata declares them.
 
 The image layer shows the XY plane by default. The slice therefore fixes a time point and a z position and lists which channels to load.
 
