@@ -63,7 +63,6 @@ onMounted(async () => {
       source,
       sliceCoords,
       channelProps: [{ contrastLimits: [0, 60] }],
-      policy: createPlaybackPolicy(),
     });
 
     idetik = new Idetik({
