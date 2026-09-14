@@ -61,7 +61,7 @@ const camera = new OrthographicCamera({
 const controls = new PanZoomControls(camera);
 ```
 
-The camera starts out framing the whole image. The frame is padded rather than stretched when the canvas's aspect ratio differs from the frame's.
+As mentioned, Idetik automatically responds to changes to the canvas size. The frame is padded rather than stretched when the canvas's aspect ratio differs from the frame's.
 
 [`PanZoomControls`](/api/classes/PanZoomControls.html) turns pointer and wheel events into pan and zoom on the camera. Controls are separate from the camera so that any camera can be driven by any input scheme or by one you write yourself.
 
