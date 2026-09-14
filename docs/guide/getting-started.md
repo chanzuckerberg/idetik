@@ -87,7 +87,7 @@ These coordinates pick a slice halfway through the time-lapse and halfway throug
 
 [`channelProps`](/api/classes/ImageLayer.html#property-channelprops) takes one entry per channel in the source. Each entry sets the channel's visibility, tint color, and contrast limits. Contrast limits are the intensity range mapped onto the display. The signal in this dataset lies below 60. The limits are set tightly to bring out the embryo. `visible` defaults to `true` and `color` defaults to white.
 
-Which resolution levels to load and how far ahead to fetch are decided by the layer's streaming policy. The default suits interactive panning and zooming.
+Which resolution levels to load and how far ahead to fetch are decided by the layer's [loading policy](/api/classes/ImageLayer.html#property-policy). The default suits interactive panning and zooming.
 
 ## Starting the Runtime
 
