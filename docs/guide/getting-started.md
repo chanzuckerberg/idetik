@@ -10,6 +10,8 @@ Idetik is published to npm as `@idetik/core`. The package ships ES modules with 
 npm install @idetik/core
 ```
 
+## Adding a Canvas
+
 Idetik needs a single canvas element to draw into.
 
 ```html
