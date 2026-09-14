@@ -42,9 +42,7 @@ Only metadata has been fetched at this point. The source knows the image's axes,
 
 ## Configuring the Camera
 
-A camera defines which part of the world a viewport shows. [`OrthographicCamera`](/api/classes/OrthographicCamera.html) uses a parallel projection that draws every pixel at the same size regardless of depth. That makes it the camera for 2D image viewing.
-
-The camera is typically framed to the image's extent. Idetik works in world units rather than pixels. The source's [`getDimensions`](/api/classes/OmeZarrImageSource.html#getdimensions) method describes the image's extent with one record per axis. Each record lists the size, chunk size, scale, and translation at every level of detail from finest to coarsest.
+A camera defines which part of the world a viewport shows. [`OrthographicCamera`](/api/classes/OrthographicCamera.html) uses a parallel projection that draws every pixel at the same size regardless of depth. That makes it the camera for 2D image viewing. Its constructor takes the extent of the visible frame. The source metadata can be used to set the initial view to frame the whole image.
 
 ```typescript
 import { OrthographicCamera, PanZoomControls } from '@idetik/core';
