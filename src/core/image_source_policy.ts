@@ -43,30 +43,18 @@ export type ImageSourcePolicyProps = {
  * {@link createImageSourcePolicy} rather than by hand.
  */
 export type ImageSourcePolicy = Readonly<{
-  /** Names the policy in logs and stats. */
   profile: string;
-  /** How far to prefetch beyond the visible region per axis. */
   prefetch: {
-    /** Chunks to prefetch along x. */
     x: number;
-    /** Chunks to prefetch along y. */
     y: number;
-    /** Chunks to prefetch along z. */
     z: number;
-    /** Timepoints to prefetch ahead. */
     t: number;
   };
-  /** Request categories from highest to lowest priority. */
   priorityOrder: readonly PriorityCategory[];
-  /** Priority index per category derived from `priorityOrder`. */
   priorityMap: Readonly<Record<PriorityCategory, number>>;
-  /** Bounds and bias for level of detail selection. */
   lod: {
-    /** Finest level allowed to load. */
     min: number;
-    /** Coarsest level allowed to load. */
     max: number;
-    /** Shifts level selection coarser as it grows. */
     bias: number;
   };
 }>;
@@ -124,7 +112,7 @@ export function createPlaybackPolicy(
 }
 
 /**
- * Creates a loading policy that loads only visible chunks.
+ * Creates a loading policy with spatial and temporal prefetching disabled.
  *
  * No spatial or temporal prefetching happens, which minimizes memory
  * use and network traffic for static scenes.

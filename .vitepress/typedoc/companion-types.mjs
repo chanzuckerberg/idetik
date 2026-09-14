@@ -29,6 +29,7 @@ const ADOPTED_ALIASES = {
   SourceDimensionMap: "OmeZarrImageSource",
   SourceDimension: "OmeZarrImageSource",
   SourceDimensionLod: "OmeZarrImageSource",
+  ImageSourcePolicyProps: "LoadingPolicies",
   ImageSourcePolicy: "LoadingPolicies",
   PriorityCategory: "LoadingPolicies",
 };
