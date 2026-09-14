@@ -16,6 +16,7 @@ import {
   renameGroupsToDisplayTitles,
   stripSourcesToSuppressDefinedIn,
 } from "./project-transforms.mjs";
+import { createTopicPages } from "./topic-pages.mjs";
 import { IdetikTheme } from "./theme.mjs";
 
 const UNRENDERED_TAGS = ["@see", "@throws"];
@@ -36,6 +37,7 @@ export function load(app) {
     const declarationFiles = collectDeclarationFiles(project);
     removeImplicitConstructors(project, declarationFiles);
     stripSourcesToSuppressDefinedIn(project);
+    createTopicPages(project);
     foldCompanionAliasesIntoOwnerClasses(project, declarationFiles);
   });
 
