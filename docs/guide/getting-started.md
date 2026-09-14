@@ -1,6 +1,6 @@
 # Getting Started
 
-Idetik is a high-performance library for exploring multi-dimensional OME-Zarr datasets right in the browser. This guide builds the smallest complete Idetik application: a viewer that pans and zooms through one slice of a terabyte-scale image. Along the way it introduces the base concepts every Idetik application is made of.
+Idetik is a high-performance library for exploring multi-dimensional [OME-Zarr](https://ngff.openmicroscopy.org/) datasets right in the browser. This guide builds the smallest complete Idetik application: a viewer that pans and zooms through one slice of a terabyte-scale image. Along the way it introduces the base concepts every Idetik application is made of.
 
 ## Installing Idetik
 
