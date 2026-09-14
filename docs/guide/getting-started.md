@@ -38,7 +38,7 @@ const source = await OmeZarrImageSource.fromHttp({
 });
 ```
 
-Only metadata has been fetched at this point. The source knows the image's axes, resolution levels, and channel count. No pixel data has been downloaded yet. The layer requests chunks later and only for the part of the image on screen.
+Only metadata has been fetched at this point. The source knows the image's axes, resolution levels, and channel count. No pixel data has been downloaded yet.
 
 ## Configuring the Camera
 
