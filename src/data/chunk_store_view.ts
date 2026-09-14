@@ -18,7 +18,6 @@ access key, preventing accidental external mutation.
 export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
 
 const MAX_TEXEL_OVERDRAW = 8;
-const CHUNKS_PER_VIEW_WARNING = 4096;
 
 export class ChunkStoreView {
   private readonly store_: ChunkStore;
@@ -362,17 +361,6 @@ export class ChunkStoreView {
 
     if (target === this.currentLOD_) return false;
     this.currentLOD_ = target;
-
-    const chunks = this.chunkCountFor(worldViewRect, target);
-    if (chunks > CHUNKS_PER_VIEW_WARNING) {
-      Logger.warn(
-        "ChunkStoreView",
-        `LOD ${target} needs ${chunks} chunks for one view; ` +
-          `${this.store_.dimensions[this.axes_.u]!.lods[target].chunkSize}px ` +
-          `chunks may be too small for this source`
-      );
-    }
-
     return true;
   }
 
@@ -405,7 +393,7 @@ export class ChunkStoreView {
         dimensions[this.axes_.u]!.lods[lod].chunkSize *
         dimensions[this.axes_.v]!.lods[lod].chunkSize;
 
-      if (this.chunkCountFor(rect, lod) * texelsPerChunkSlice <= maxTexels)
+      if (this.chunkCountInRect(rect, lod) * texelsPerChunkSlice <= maxTexels)
         break;
       ++lod;
     }
@@ -420,26 +408,22 @@ export class ChunkStoreView {
     return [min, max];
   }
 
-  // Chunks the rect covers in the slice plane. Counts grid cells the rect
-  // touches, not its width in chunks: a one-chunk-wide rect straddling a
-  // boundary needs two. Mirrors `chunkIndexRange` for the two in-plane axes.
-  private chunkCountFor(rect: Box2, lod: number): number {
-    const spanIn = (axis: SpatialAxis, low: number, high: number) => {
-      const { chunkSize, scale, size, translation } =
-        this.store_.dimensions[axis]!.lods[lod];
-      const stride = chunkSize * scale;
-      const first = Math.max(0, Math.floor((low - translation) / stride));
-      const last = Math.min(
-        Math.ceil(size / chunkSize),
-        Math.ceil((high - translation) / stride)
-      );
-      return Math.max(0, last - first);
+  // Chunks one view of the slice covers. The cross-axis span is left unbounded
+  // so it never empties the range, then dropped: only the in-plane axes count.
+  private chunkCountInRect(rect: Box2, lod: number): number {
+    const range = this.chunkIndexRange(
+      this.makeViewBounds3D(rect, [-Infinity, Infinity]),
+      lod
+    );
+    if (!range) return 0;
+
+    const span = {
+      x: range.xMax - range.xMin,
+      y: range.yMax - range.yMin,
+      z: range.zMax - range.zMin,
     };
 
-    return (
-      spanIn(this.axes_.u, rect.min[0], rect.max[0]) *
-      spanIn(this.axes_.v, rect.min[1], rect.max[1])
-    );
+    return span[this.axes_.u] * span[this.axes_.v];
   }
 
   private markTimeChunksForPrefetchImage(
