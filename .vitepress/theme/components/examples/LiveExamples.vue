@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import ExampleNavigator from "./ExampleNavigator.vue";
+import VolumeRenderer from "./viewers/VolumeRenderer.vue";
 import { examples } from "./examples";
 
 const selected = ref(examples[0].id);
@@ -18,7 +19,8 @@ const selected = ref(examples[0].id);
         Get started with Idetik <span class="arrow">&rarr;</span>
       </a>
       <div class="stage">
-        <ExampleNavigator v-model="selected" />
+        <VolumeRenderer class="viewer" />
+        <ExampleNavigator v-model="selected" class="navigator" />
       </div>
     </div>
   </section>
@@ -51,7 +53,6 @@ const selected = ref(examples[0].id);
 
 .title {
   margin: 0;
-  font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -96,23 +97,30 @@ const selected = ref(examples[0].id);
 }
 
 .stage {
+  position: relative;
   display: flex;
   gap: 20px;
   margin-top: 48px;
   padding: 20px;
-  height: 520px;
-  border: 1px solid var(--vp-c-gutter);
+  height: 562px;
+  border: 1px solid #2a2a30;
   border-radius: 12px;
-  background-color: var(--vp-c-bg-soft);
-  background-image: radial-gradient(rgb(17 17 20 / 0.12) 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-position: 12px 12px;
+  background-color: #1b1b1f;
   overflow: hidden;
 }
 
 @media (min-width: 960px) {
   .stage {
-    height: 640px;
+    height: 691px;
   }
+}
+
+.viewer {
+  position: absolute;
+  inset: 0;
+}
+
+.navigator {
+  position: relative;
 }
 </style>
