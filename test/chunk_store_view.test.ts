@@ -104,6 +104,29 @@ describe("ChunkStoreView multiscale rendering", () => {
       expect(lodsOf()).toEqual([1, 2]);
     }
   );
+
+  // The `changed` check runs at chunk-slab granularity, but drawing picks
+  // chunks at finer LODs, whose z chunks are smaller than that slab.
+  test("moving z within one slab still picks the right finer chunk", () => {
+    const store = new ChunkStore(createPyramidDimensions());
+    const view = store.addView(createNoPrefetchPolicy());
+    makeResident(store, 0);
+    const finerZ = () =>
+      new Set(
+        view
+          .getChunksToRender()
+          .filter((chunk) => chunk.lod === 0)
+          .map((chunk) => chunk.chunkIndex.z)
+      );
+
+    // LOD 1's z chunks span [0,2) and [2,4), so z=0 and z=1 share a slab.
+    view.updateChunksForImage({ z: 0, c: [0] }, viewOfWidth(256));
+    expect(view.currentLOD).toBe(1);
+    expect(finerZ()).toEqual(new Set([0]));
+
+    view.updateChunksForImage({ z: 1, c: [0] }, viewOfWidth(256));
+    expect(finerZ()).toEqual(new Set([1]));
+  });
 });
 
 // A 512-unit view over `bufferWidthPx` pixels: 256 selects LOD 1, 512 LOD 0.
@@ -115,15 +138,10 @@ function viewOfWidth(bufferWidthPx: number) {
 }
 
 function makeResident(store: ChunkStore, lod: number) {
-  const grid = store.getChunkGrid(lod, 0, 0)!;
-  for (const yPlane of grid) {
-    for (const xRow of yPlane) {
-      for (const chunk of xRow) {
-        chunk.state = "loaded";
-        chunk.texture = {} as Chunk["texture"];
-        store.addResidentChunk(chunk);
-      }
-    }
+  for (const chunk of store.getChunkGrid(lod, 0, 0)!.flat(2)) {
+    chunk.state = "loaded";
+    chunk.texture = {} as Chunk["texture"];
+    store.addResidentChunk(chunk);
   }
 }
 
