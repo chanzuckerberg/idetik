@@ -184,7 +184,7 @@ export class ChunkStoreView {
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     const channels = this.channelsOfInterest(sliceCoords);
-    const fallbackLOD = this.fallbackLOD();
+    const fallbackLOD = this.lodRange().max;
     const prefetchAabb = this.getPaddedBounds(viewBounds3D);
     const visibleRegion = new VisibleSliceRegion(
       this.axes_,
@@ -274,7 +274,7 @@ export class ChunkStoreView {
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     const channels = this.channelsOfInterest(sliceCoords);
-    const fallbackLOD = this.fallbackLOD();
+    const fallbackLOD = this.lodRange().max;
 
     const markVolumeChunkVisible = (chunk: Chunk) => {
       const isFallbackLOD = chunk.lod === fallbackLOD;
@@ -319,7 +319,7 @@ export class ChunkStoreView {
   }
 
   public allVisibleFallbackLODLoaded(): boolean {
-    const fallbackLOD = this.fallbackLOD();
+    const fallbackLOD = this.lodRange().max;
     let foundAny = false;
     for (const [chunk, state] of this.chunkViewStates_) {
       if (!state.visible || chunk.lod !== fallbackLOD) continue;
@@ -549,17 +549,11 @@ export class ChunkStoreView {
     }
   }
 
-  // The levels this view may use: policy bounds intersected with the dataset.
-  // As in `policy.lod`, `min` is the finest level and `max` the coarsest.
   private lodRange(): { min: number; max: number } {
     const lowestResLOD = this.store_.getLowestResLOD();
     const min = Math.max(0, Math.min(lowestResLOD, this.policy_.lod.min));
     const max = Math.max(min, Math.min(lowestResLOD, this.policy_.lod.max));
     return { min, max };
-  }
-
-  private fallbackLOD(): number {
-    return this.lodRange().max;
   }
 
   private timeIndex(sliceCoords: SliceCoordinates): number {
