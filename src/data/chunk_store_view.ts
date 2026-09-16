@@ -23,8 +23,11 @@ export class ChunkStoreView {
   private currentLOD_: number = 0;
   private readonly axes_: SliceAxes;
   private readonly scale0_: number;
+  private mode_: "image" | "volume" | null = null;
   private lastViewBounds2D_: Box2 | null = null;
   private lastViewProjection_: mat4 | null = null;
+
+  private lastSliceCoordW_?: number;
   private lastSliceBounds_?: [number, number];
   private lastTCoord_?: number;
   private lastCCoords_?: number[];
@@ -98,25 +101,60 @@ export class ChunkStoreView {
   }
 
   public getChunksToRender(): Chunk[] {
-    // Iterates `chunkViewStates_` (only chunks touched by the most recent
-    // updateChunks*ForRegion) instead of every chunk at the time index, so the
-    // cost is bounded by visible+prefetch+fallback set size, not dataset size.
-    const fallbackLOD = this.fallbackLOD();
+    const drawable =
+      this.mode_ === "image"
+        ? this.drawableChunksForSlice()
+        : this.markedVisibleChunks();
+
     const currentLOD = this.currentLOD_;
-    const currentLODChunks: Chunk[] = [];
-    const lowResChunks: Chunk[] = [];
+    return drawable.sort(
+      (a, b) => lodRank(a.lod, currentLOD) - lodRank(b.lod, currentLOD)
+    );
+  }
 
+  private markedVisibleChunks(): Chunk[] {
+    const chunks: Chunk[] = [];
     for (const [chunk, state] of this.chunkViewStates_) {
-      if (!state.visible || chunk.state !== "loaded" || !chunk.texture)
-        continue;
-      if (chunk.lod === currentLOD) {
-        currentLODChunks.push(chunk);
-      } else if (chunk.lod === fallbackLOD && currentLOD !== fallbackLOD) {
-        lowResChunks.push(chunk);
-      }
+      if (state.visible && isResident(chunk)) chunks.push(chunk);
     }
+    return chunks;
+  }
 
-    return [...currentLODChunks, ...lowResChunks];
+  private drawableChunksForSlice(): Chunk[] {
+    const viewRect = this.lastViewBounds2D_!;
+    const sliceCoordW = this.lastSliceCoordW_;
+    const timeIndex = this.timeIndex({ t: this.lastTCoord_ });
+    const channels = this.channelsOfInterest({ c: this.lastCCoords_ });
+
+    const chunks: Chunk[] = [];
+    for (const chunk of this.store_.residentChunks) {
+      if (!isResident(chunk)) continue;
+      if (chunk.chunkIndex.t !== timeIndex) continue;
+      if (!channels.includes(chunk.chunkIndex.c)) continue;
+      if (!this.spansSlice(chunk, sliceCoordW)) continue;
+      if (!Box2.intersects(this.chunkPlaneRect(chunk), viewRect)) continue;
+      chunks.push(chunk);
+    }
+    return chunks;
+  }
+
+  private spansSlice(chunk: Chunk, sliceCoordW: number | undefined): boolean {
+    if (sliceCoordW === undefined) return true;
+    const w = this.axes_.w;
+    const min = chunk.offset[w];
+    const max = min + chunk.shape[w] * chunk.scale[w];
+    return sliceCoordW >= min && sliceCoordW < max;
+  }
+
+  private chunkPlaneRect(chunk: Chunk): Box2 {
+    const { u, v } = this.axes_;
+    return new Box2(
+      vec2.fromValues(chunk.offset[u], chunk.offset[v]),
+      vec2.fromValues(
+        chunk.offset[u] + chunk.shape[u] * chunk.scale[u],
+        chunk.offset[v] + chunk.shape[v] * chunk.scale[v]
+      )
+    );
   }
 
   public updateChunksForImage(
@@ -147,6 +185,7 @@ export class ChunkStoreView {
         "ChunkStoreView",
         "updateChunkViewStates called with no chunks initialized"
       );
+      this.mode_ = null;
       this.chunkViewStates_.forEach(resetChunkViewState);
       return;
     }
@@ -208,8 +247,10 @@ export class ChunkStoreView {
     );
 
     this.policyChanged_ = false;
+    this.mode_ = "image";
     this.lastViewBounds2D_ = viewBounds2D.clone();
     this.lastSliceBounds_ = sliceBounds;
+    this.lastSliceCoordW_ = sliceCoords[this.axes_.w];
     this.lastTCoord_ = sliceCoords.t;
     this.lastCCoords_ = sliceCoords.c ? [...sliceCoords.c] : undefined;
   }
@@ -232,6 +273,7 @@ export class ChunkStoreView {
         "ChunkStoreView",
         "updateChunksForVolume called with no chunks initialized"
       );
+      this.mode_ = null;
       this.chunkViewStates_.forEach(resetChunkViewState);
       return;
     }
@@ -282,6 +324,7 @@ export class ChunkStoreView {
     this.markTimeChunksForPrefetchVolume(currentTimeIndex, sliceCoords);
 
     this.policyChanged_ = false;
+    this.mode_ = "volume";
     this.lastTCoord_ = sliceCoords.t;
     this.lastCCoords_ = sliceCoords.c ? [...sliceCoords.c] : undefined;
     this.lastViewProjection_ = viewProjection;
@@ -657,6 +700,16 @@ export class ChunkStoreView {
 
     return du * du + dv * dv;
   }
+}
+
+function isResident(chunk: Chunk): boolean {
+  return chunk.state === "loaded" && chunk.texture !== undefined;
+}
+
+function lodRank(lod: number, currentLOD: number): number {
+  if (lod === currentLOD) return 0;
+  const distance = Math.abs(lod - currentLOD);
+  return lod > currentLOD ? 2 * distance : 2 * distance + 1;
 }
 
 function resetChunkViewState(state: ChunkViewState): void {
