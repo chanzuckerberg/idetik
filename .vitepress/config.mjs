@@ -124,6 +124,7 @@ export default defineConfig({
           text: 'User Guide',
           items: [
             { text: 'Getting Started', link: '/guide/getting-started' },
+            { text: 'How Idetik Works', link: '/guide/how-idetik-works' },
           ],
         },
       ],

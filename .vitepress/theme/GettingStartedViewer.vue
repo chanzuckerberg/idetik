@@ -38,7 +38,6 @@ onMounted(async () => {
       OmeZarrImageSource,
       OrthographicCamera,
       PanZoomControls,
-      createPlaybackPolicy,
     } = await import("@idetik/core");
 
     const baseUrl = "https://public.czbiohub.org/royerlab/zebrahub/imaging";
