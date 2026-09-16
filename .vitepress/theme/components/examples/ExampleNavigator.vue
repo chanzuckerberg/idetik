@@ -61,10 +61,10 @@ const expanded = ref(true);
 .example-navigator {
   flex-shrink: 0;
   align-self: flex-start;
-  width: 280px;
-  border: 1px solid var(--vp-c-gutter);
+  width: 240px;
+  border: 1px solid var(--panel-border);
   border-radius: 8px;
-  background: var(--vp-c-bg);
+  background: var(--panel-bg);
   text-align: left;
   overflow: hidden;
 }
@@ -73,39 +73,39 @@ const expanded = ref(true);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px 10px 18px;
+  padding: 8px 10px 8px 14px;
 }
 
 .label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--vp-c-text-2);
+  color: var(--panel-text-2);
 }
 
 .toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 4px;
-  color: var(--vp-c-text-2);
+  color: var(--panel-text-2);
   transition:
     color 0.2s,
     background-color 0.2s;
 }
 
 .toggle:hover {
-  color: var(--vp-c-text-1);
-  background-color: var(--vp-c-bg-soft);
+  color: var(--panel-text-1);
+  background-color: var(--panel-hover);
 }
 
 .chevron {
   display: inline-flex;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   transition: transform 0.25s;
 }
 
@@ -126,26 +126,26 @@ const expanded = ref(true);
 
 .body-inner {
   min-height: 0;
-  border-top: 1px solid var(--vp-c-gutter);
+  border-top: 1px solid var(--panel-border);
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   margin: 0;
-  padding: 10px;
+  padding: 8px;
   list-style: none;
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 10px 12px;
+  padding: 7px 10px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   text-align: left;
   transition:
     background-color 0.2s,
@@ -153,20 +153,20 @@ const expanded = ref(true);
 }
 
 .item:hover {
-  background-color: var(--vp-c-bg-soft);
+  background-color: var(--panel-hover);
 }
 
 .item.active {
-  border-color: rgb(var(--brand-rgb) / 0.22);
-  background-color: rgb(var(--brand-rgb) / 0.07);
+  border-color: rgb(var(--brand-rgb) / 0.4);
+  background-color: rgb(var(--brand-rgb) / 0.2);
 }
 
 .icon {
   display: inline-flex;
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  color: var(--vp-c-brand-1);
+  width: 16px;
+  height: 16px;
+  color: var(--panel-accent);
 }
 
 .icon :deep(svg),
@@ -176,28 +176,28 @@ const expanded = ref(true);
 }
 
 .item-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.4;
-  color: var(--vp-c-text-1);
+  color: var(--panel-text-1);
 }
 
 .footer {
-  padding: 14px 18px;
-  border-top: 1px solid var(--vp-c-gutter);
+  padding: 10px 14px;
+  border-top: 1px solid var(--panel-border);
 }
 
 .source {
   display: inline-block;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.5;
-  color: var(--vp-c-brand-1);
+  color: var(--panel-accent);
   transition: color 0.25s;
 }
 
 .source:hover {
-  color: var(--vp-c-brand-2);
+  color: var(--panel-accent-hover);
 }
 
 .arrow {

@@ -10,7 +10,7 @@ const selected = ref(examples[0].id);
 <template>
   <section class="live-examples">
     <div class="container">
-      <h2 class="title">Explore Idetik live</h2>
+      <h2 class="title">Explore Idetik</h2>
       <p class="description">
         Tour a sample of Idetik features in an interactive viewer running in
         your browser.
@@ -97,6 +97,14 @@ const selected = ref(examples[0].id);
 }
 
 .stage {
+  --panel-bg: #232329;
+  --panel-border: rgb(255 255 255 / 0.08);
+  --panel-text-1: rgb(255 255 245 / 0.86);
+  --panel-text-2: rgb(235 235 245 / 0.6);
+  --panel-hover: rgb(255 255 255 / 0.06);
+  --panel-accent: var(--vp-c-brand-3);
+  --panel-accent-hover: #b6a8fc;
+
   position: relative;
   display: flex;
   gap: 20px;
@@ -118,6 +126,24 @@ const selected = ref(examples[0].id);
 .viewer {
   position: absolute;
   inset: 0;
+}
+
+.stage :deep(.viewer-controls) {
+  --vp-c-text-2: var(--panel-text-2);
+  --vp-c-divider: var(--panel-border);
+  --vp-c-brand-1: var(--panel-accent);
+
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  width: min(520px, calc(100% - 40px));
+  padding: 10px 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  font-size: 13px;
+  line-height: 1.4;
+  transform: translateX(-50%);
 }
 
 .navigator {

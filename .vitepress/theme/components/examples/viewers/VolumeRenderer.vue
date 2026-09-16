@@ -1,11 +1,31 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import {
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  shallowReactive,
+  shallowRef,
+} from "vue";
 import type { Idetik, SourceDimension } from "@idetik/core";
+import RangeSlider from "../../../RangeSlider.vue";
+
+type Range = { min: number; max: number; step: number };
 
 const canvas = ref<HTMLCanvasElement | null>(null);
+const timeRange = shallowRef<Range | null>(null);
+const sliceCoords = shallowReactive({ t: 180 });
 
 let idetik: Idetik | null = null;
 let unmounted = false;
+
+function rangeOf(dim: SourceDimension): Range {
+  const { translation, size, scale } = dim.lods[0];
+  return {
+    min: translation,
+    max: translation + (size - 1) * scale,
+    step: scale,
+  };
+}
 
 function extentOf(dim: SourceDimension): number {
   const { size, scale } = dim.lods[0];
@@ -42,13 +62,14 @@ onMounted(async () => {
     const x = dims.x;
     const y = dims.y;
     const z = dims.z!;
+    timeRange.value = rangeOf(dims.t!);
 
     const camera = new PerspectiveCamera();
-    const radius = 0.75 * Math.hypot(extentOf(x), extentOf(y), extentOf(z));
+    const radius = 0.85 * Math.hypot(extentOf(x), extentOf(y), extentOf(z));
 
     const layer = new VolumeLayer({
       source,
-      sliceCoords: { t: 220 },
+      sliceCoords,
       policy: createExplorationPolicy({ lod: { min: 2, max: 2 } }),
       channelProps: [
         { color: Color.CYAN, contrastLimits: [0, 1200] },
@@ -56,7 +77,8 @@ onMounted(async () => {
       ],
     });
 
-    layer.opacityMultiplier = 0.02;
+    layer.opacityMultiplier = 0.015;
+    layer.relativeStepSize = 0.3;
 
     idetik = new Idetik({
       canvas: target,
@@ -87,10 +109,21 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <canvas ref="canvas" class="canvas"></canvas>
+  <div class="volume-renderer">
+    <canvas ref="canvas" class="canvas"></canvas>
+    <div v-if="timeRange" class="viewer-controls">
+      <RangeSlider v-model="sliceCoords.t" label="t" v-bind="timeRange" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.volume-renderer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .canvas {
   display: block;
   width: 100%;
