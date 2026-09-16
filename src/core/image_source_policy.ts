@@ -88,9 +88,8 @@ export function createExplorationPolicy(
 /**
  * Creates a loading policy tuned for playing through timepoints.
  *
- * Prefetches twenty timepoints ahead and prioritizes time prefetch over
- * refining the current view, keeping playback smooth at the cost of
- * sharpness while frames advance.
+ * Prefetches twenty timepoints ahead, buffering at the current LOD
+ * for smooth playback without reduced quality.
  *
  * @param overrides - Properties merged over.
  */
@@ -102,8 +101,8 @@ export function createPlaybackPolicy(
     prefetch: { x: 0, y: 0, z: 0, t: 20 },
     priorityOrder: [
       "fallbackVisible",
-      "prefetchTime",
       "visibleCurrent",
+      "prefetchTime",
       "fallbackBackground",
       "prefetchSpace",
     ],

@@ -368,7 +368,6 @@ export class ChunkStoreView {
   ): void {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
-    const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
     const channels = this.channelsOfInterest(sliceCoords);
 
@@ -376,7 +375,7 @@ export class ChunkStoreView {
       const t = (currentTimeIndex + i) % numTimePoints;
       this.iterateChunksInBox(
         t,
-        fallbackLOD,
+        this.currentLOD_,
         channels,
         viewBounds3D,
         (chunk) => {
@@ -408,13 +407,12 @@ export class ChunkStoreView {
   ) {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
-    const fallbackLOD = this.fallbackLOD();
     const priority = this.policy_.priorityMap["prefetchTime"];
     const channels = this.channelsOfInterest(sliceCoords);
 
     for (let i = 1; i <= windowSize; ++i) {
       const t = (currentTimeIndex + i) % numTimePoints;
-      this.iterateAllChunksAtLod(t, fallbackLOD, channels, (chunk) => {
+      this.iterateAllChunksAtLod(t, this.currentLOD_, channels, (chunk) => {
         const orderKey = i; // nearer along the playback loop first
         this.chunkViewStates_.set(chunk, {
           visible: false,
