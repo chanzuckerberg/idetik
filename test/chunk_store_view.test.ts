@@ -75,13 +75,12 @@ describe("ChunkStoreView disposal", () => {
   });
 });
 
-// Guards the reason multiscale drawing exists: zooming in must keep drawing the
-// level just left behind, not drop to the coarse backdrop while the finer one
-// loads.
+// Drawing opportunistic resident chunks the update pass never marked means re-deriving which of
+// them cover the slice
 describe("ChunkStoreView multiscale rendering", () => {
-  // Parameterized over z because z is downsampled in this pyramid, so a
-  // coarser chunk spans several finer slices and the slice coordinate lands
-  // mid-chunk for some values. Only z=0 is exact at every level.
+  // parameterized over z because z is downsampled in this pyramid
+  // coarser chunks span several finer slices
+  // the slice coordinate lands mid-chunk for some values
   test.each([0, 1, 2, 3])(
     "zooming in at z=%i keeps the level just left behind ahead of the backdrop",
     (z) => {
@@ -105,8 +104,8 @@ describe("ChunkStoreView multiscale rendering", () => {
     }
   );
 
-  // The `changed` check runs at chunk-slab granularity, but drawing picks
-  // chunks at finer LODs, whose z chunks are smaller than that slab.
+  // the `changed` check operates at 1-z-chunk-thick slab granularity
+  // but z chunks may be smaller than that slab for finer LODs
   test("moving z within one slab still picks the right finer chunk", () => {
     const store = new ChunkStore(createPyramidDimensions());
     const view = store.addView(createNoPrefetchPolicy());
@@ -119,7 +118,7 @@ describe("ChunkStoreView multiscale rendering", () => {
           .map((chunk) => chunk.chunkIndex.z)
       );
 
-    // LOD 1's z chunks span [0,2) and [2,4), so z=0 and z=1 share a slab.
+    // LOD 1's z chunks span [0,2) and [2,4), so z=0 and z=1 share a slab
     view.updateChunksForImage({ z: 0, c: [0] }, viewOfWidth(256));
     expect(view.currentLOD).toBe(1);
     expect(finerZ()).toEqual(new Set([0]));
