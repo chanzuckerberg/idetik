@@ -56,6 +56,16 @@ export interface CameraControls {
   onEvent(event: EventContext): void;
 }
 
+export type ScrollZoomMode = "always" | "modifier" | "never";
+
+/**
+ * Initialization properties for constructing pan and zoom controls.
+ */
+export type PanZoomControlsProps = {
+  /** When the scroll wheel zooms. Defaults to `"always"`. */
+  scrollZoom?: ScrollZoomMode;
+};
+
 /**
  * Camera controls for 2D pan and zoom with an orthographic camera.
  *
@@ -85,6 +95,7 @@ export interface CameraControls {
  */
 export class PanZoomControls implements CameraControls {
   private readonly camera_: OrthographicCamera;
+  private readonly scrollZoom_: ScrollZoomMode;
   private dragActive_ = false;
   private dragStart_: vec3 = vec3.create();
 
@@ -92,9 +103,11 @@ export class PanZoomControls implements CameraControls {
    * Creates pan and zoom controls for the given camera.
    *
    * @param camera - The orthographic camera to control.
+   * @param params - Initialization properties.
    */
-  constructor(camera: OrthographicCamera) {
+  constructor(camera: OrthographicCamera, params?: PanZoomControlsProps) {
     this.camera_ = camera;
+    this.scrollZoom_ = params?.scrollZoom ?? "always";
   }
 
   /** Whether a pan drag is in progress. */
@@ -136,6 +149,9 @@ export class PanZoomControls implements CameraControls {
   private onWheel(event: EventContext) {
     if (!event.worldPos || !event.clipPos) return;
     const e = event.event as WheelEvent;
+
+    if (this.scrollZoom_ === "never") return;
+    if (this.scrollZoom_ === "modifier" && !(e.ctrlKey || e.metaKey)) return;
 
     // Prevent the page from scrolling, the default action for wheel events.
     e.preventDefault();
