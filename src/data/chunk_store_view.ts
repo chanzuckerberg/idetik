@@ -120,14 +120,14 @@ export class ChunkStoreView {
   }
 
   private drawableChunksForSlice(): Chunk[] {
-    const { u, v } = this.axes_;
-    const viewRect = this.lastViewBounds2D_!;
-    const sliceCoordW = this.lastSliceCoordW_;
     const timeIndex = this.timeIndex({ t: this.lastTCoord_ });
     const channels = new Set(this.channelsOfInterest({ c: this.lastCCoords_ }));
-
     const { min: minLOD, max: maxLOD } = this.lodRange();
-    const chunkRect = new Box2();
+    const visibleRegion = new VisibleSliceRegion(
+      this.axes_,
+      this.lastSliceCoordW_,
+      this.lastViewBounds2D_!
+    );
 
     const chunks: Chunk[] = [];
     for (const chunk of this.store_.residentChunks) {
@@ -135,23 +135,10 @@ export class ChunkStoreView {
       if (chunk.lod < minLOD || chunk.lod > maxLOD) continue;
       if (chunk.chunkIndex.t !== timeIndex) continue;
       if (!channels.has(chunk.chunkIndex.c)) continue;
-      if (!this.spansSlice(chunk, sliceCoordW)) continue;
-
-      chunkRect.min[0] = chunk.offset[u];
-      chunkRect.min[1] = chunk.offset[v];
-      chunkRect.max[0] = chunkEnd(chunk, u);
-      chunkRect.max[1] = chunkEnd(chunk, v);
-      if (!Box2.intersects(chunkRect, viewRect)) continue;
-
+      if (!visibleRegion.contains(chunk)) continue;
       chunks.push(chunk);
     }
     return chunks;
-  }
-
-  private spansSlice(chunk: Chunk, sliceCoordW: number | undefined): boolean {
-    if (sliceCoordW === undefined) return true;
-    const w = this.axes_.w;
-    return sliceCoordW >= chunk.offset[w] && sliceCoordW < chunkEnd(chunk, w);
   }
 
   public updateChunksForImage(
@@ -199,6 +186,11 @@ export class ChunkStoreView {
     const channels = this.channelsOfInterest(sliceCoords);
     const fallbackLOD = this.fallbackLOD();
     const prefetchAabb = this.getPaddedBounds(viewBounds3D);
+    const visibleRegion = new VisibleSliceRegion(
+      this.axes_,
+      sliceCoords[this.axes_.w],
+      viewBounds2D
+    );
 
     // Range-query the prefetch AABB at currentLOD (and fallbackLOD when
     // distinct); fallback chunks act as a backdrop while currentLOD loads.
@@ -214,8 +206,8 @@ export class ChunkStoreView {
         lod,
         channels,
         prefetchAabb,
-        (chunk, chunkBox) => {
-          const isInBounds = Box3.intersects(chunkBox, viewBounds3D);
+        (chunk) => {
+          const isInBounds = visibleRegion.contains(chunk);
           const prefetch = isCurrent && !isInBounds;
           const priority = this.computePriority(
             isFallback,
@@ -694,6 +686,40 @@ export class ChunkStoreView {
 
 function isResident(chunk: Chunk): boolean {
   return chunk.state === "loaded" && chunk.texture !== undefined;
+}
+
+class VisibleSliceRegion {
+  private readonly axes_: SliceAxes;
+  private readonly sliceCoordW_?: number;
+  private readonly viewRect_: Box2;
+  private readonly chunkRect_ = new Box2();
+
+  constructor(
+    axes: SliceAxes,
+    sliceCoordW: number | undefined,
+    viewRect: Box2
+  ) {
+    this.axes_ = axes;
+    this.sliceCoordW_ = sliceCoordW;
+    this.viewRect_ = viewRect;
+  }
+
+  public contains(chunk: Chunk): boolean {
+    const { u, v, w } = this.axes_;
+    const sliceCoordW = this.sliceCoordW_;
+    if (
+      sliceCoordW !== undefined &&
+      (sliceCoordW < chunk.offset[w] || sliceCoordW >= chunkEnd(chunk, w))
+    ) {
+      return false;
+    }
+
+    this.chunkRect_.min[0] = chunk.offset[u];
+    this.chunkRect_.min[1] = chunk.offset[v];
+    this.chunkRect_.max[0] = chunkEnd(chunk, u);
+    this.chunkRect_.max[1] = chunkEnd(chunk, v);
+    return Box2.intersects(this.chunkRect_, this.viewRect_);
+  }
 }
 
 function chunkEnd(chunk: Chunk, axis: SpatialAxis): number {
