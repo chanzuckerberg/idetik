@@ -5,6 +5,21 @@ import VolumeRenderer from "./viewers/VolumeRenderer.vue";
 import { examples } from "./examples";
 
 const selected = ref(examples[0].id);
+
+const isMac =
+  typeof navigator !== "undefined" &&
+  /Mac|iPhone|iPad/.test(navigator.userAgent);
+const scrollHint = ref(false);
+let scrollHintTimer: ReturnType<typeof setTimeout> | undefined;
+
+function onWheel(e: WheelEvent) {
+  if (!(e.target instanceof HTMLCanvasElement)) return;
+  clearTimeout(scrollHintTimer);
+  scrollHint.value = !(e.ctrlKey || e.metaKey);
+  if (scrollHint.value) {
+    scrollHintTimer = setTimeout(() => (scrollHint.value = false), 800);
+  }
+}
 </script>
 
 <template>
@@ -18,9 +33,14 @@ const selected = ref(examples[0].id);
       <a class="link" href="/guide/getting-started">
         Get started with Idetik <span class="arrow">&rarr;</span>
       </a>
-      <div class="stage">
+      <div class="stage" @wheel.passive="onWheel">
         <VolumeRenderer class="viewer" />
         <ExampleNavigator v-model="selected" class="navigator" />
+        <Transition name="fade">
+          <div v-if="scrollHint" class="scroll-hint" aria-hidden="true">
+            Use {{ isMac ? "⌘" : "Ctrl" }} + scroll to zoom
+          </div>
+        </Transition>
       </div>
     </div>
   </section>
@@ -148,5 +168,31 @@ const selected = ref(examples[0].id);
 
 .navigator {
   position: relative;
+}
+
+.scroll-hint {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 0.45);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.fade-enter-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-leave-active {
+  transition: opacity 0.4s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

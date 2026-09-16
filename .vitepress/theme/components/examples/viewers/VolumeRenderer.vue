@@ -88,6 +88,7 @@ onMounted(async () => {
           cameraControls: new OrbitControls(camera, {
             radius,
             target: [centerOf(x), centerOf(y), centerOf(z)],
+            scrollZoom: "modifier",
           }),
           layers: [layer],
         },
