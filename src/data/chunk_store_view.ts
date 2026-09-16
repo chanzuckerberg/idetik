@@ -28,7 +28,6 @@ export class ChunkStoreView {
   private lastViewProjection_: mat4 | null = null;
 
   private lastSliceCoordW_?: number;
-  private lastSliceBounds_?: [number, number];
   private lastTCoord_?: number;
   private lastCCoords_?: number[];
 
@@ -121,18 +120,34 @@ export class ChunkStoreView {
   }
 
   private drawableChunksForSlice(): Chunk[] {
+    const { u, v } = this.axes_;
     const viewRect = this.lastViewBounds2D_!;
     const sliceCoordW = this.lastSliceCoordW_;
     const timeIndex = this.timeIndex({ t: this.lastTCoord_ });
-    const channels = this.channelsOfInterest({ c: this.lastCCoords_ });
+    const channels = new Set(this.channelsOfInterest({ c: this.lastCCoords_ }));
+
+    // Reused across the loop, which covers the whole resident set every frame;
+    // a box per chunk would be thousands of throwaway allocations.
+    const chunkRect = new Box2();
+
+    const { min: minLOD, max: maxLOD } = this.lodRange();
 
     const chunks: Chunk[] = [];
     for (const chunk of this.store_.residentChunks) {
       if (!isResident(chunk)) continue;
+      // Residency is shared by every view of the source, so levels outside
+      // this view's own policy have to be filtered out here.
+      if (chunk.lod < minLOD || chunk.lod > maxLOD) continue;
       if (chunk.chunkIndex.t !== timeIndex) continue;
-      if (!channels.includes(chunk.chunkIndex.c)) continue;
+      if (!channels.has(chunk.chunkIndex.c)) continue;
       if (!this.spansSlice(chunk, sliceCoordW)) continue;
-      if (!Box2.intersects(this.chunkPlaneRect(chunk), viewRect)) continue;
+
+      chunkRect.min[0] = chunk.offset[u];
+      chunkRect.min[1] = chunk.offset[v];
+      chunkRect.max[0] = chunkEnd(chunk, u);
+      chunkRect.max[1] = chunkEnd(chunk, v);
+      if (!Box2.intersects(chunkRect, viewRect)) continue;
+
       chunks.push(chunk);
     }
     return chunks;
@@ -141,20 +156,7 @@ export class ChunkStoreView {
   private spansSlice(chunk: Chunk, sliceCoordW: number | undefined): boolean {
     if (sliceCoordW === undefined) return true;
     const w = this.axes_.w;
-    const min = chunk.offset[w];
-    const max = min + chunk.shape[w] * chunk.scale[w];
-    return sliceCoordW >= min && sliceCoordW < max;
-  }
-
-  private chunkPlaneRect(chunk: Chunk): Box2 {
-    const { u, v } = this.axes_;
-    return new Box2(
-      vec2.fromValues(chunk.offset[u], chunk.offset[v]),
-      vec2.fromValues(
-        chunk.offset[u] + chunk.shape[u] * chunk.scale[u],
-        chunk.offset[v] + chunk.shape[v] * chunk.scale[v]
-      )
-    );
+    return sliceCoordW >= chunk.offset[w] && sliceCoordW < chunkEnd(chunk, w);
   }
 
   public updateChunksForImage(
@@ -173,7 +175,7 @@ export class ChunkStoreView {
       this.policyChanged_ ||
       lodChanged ||
       this.viewBounds2DChanged(viewBounds2D) ||
-      this.sliceBoundsChanged(sliceBounds) ||
+      this.lastSliceCoordW_ !== sliceCoords[this.axes_.w] ||
       this.lastTCoord_ !== sliceCoords.t ||
       this.cCoordsChanged(sliceCoords.c);
 
@@ -249,7 +251,6 @@ export class ChunkStoreView {
     this.policyChanged_ = false;
     this.mode_ = "image";
     this.lastViewBounds2D_ = viewBounds2D.clone();
-    this.lastSliceBounds_ = sliceBounds;
     this.lastSliceCoordW_ = sliceCoords[this.axes_.w];
     this.lastTCoord_ = sliceCoords.t;
     this.lastCCoords_ = sliceCoords.c ? [...sliceCoords.c] : undefined;
@@ -358,6 +359,7 @@ export class ChunkStoreView {
 
   public dispose(): void {
     this.isDisposed_ = true;
+    this.mode_ = null;
     this.chunkViewStates_.forEach(resetChunkViewState);
   }
 
@@ -386,18 +388,8 @@ export class ChunkStoreView {
     const sourceAdjusted = bias - Math.log2(this.scale0_) - lodFactor;
     const desiredLOD = Math.floor(sourceAdjusted);
 
-    const lowestResLOD = this.store_.getLowestResLOD();
-    // Intersect dataset bounds with policy bounds.
-    const minPolicyLOD = Math.max(
-      0,
-      Math.min(lowestResLOD, this.policy_.lod.min)
-    );
-    const maxPolicyLOD = Math.max(
-      minPolicyLOD,
-      Math.min(lowestResLOD, this.policy_.lod.max)
-    );
-
-    const target = clamp(desiredLOD, minPolicyLOD, maxPolicyLOD);
+    const { min, max } = this.lodRange();
+    const target = clamp(desiredLOD, min, max);
     if (target === this.currentLOD_) return false;
     this.currentLOD_ = target;
     return true;
@@ -581,8 +573,17 @@ export class ChunkStoreView {
     );
   }
 
+  // The levels this view may use: policy bounds intersected with the dataset.
+  // As in `policy.lod`, `min` is the finest level and `max` the coarsest.
+  private lodRange(): { min: number; max: number } {
+    const lowestResLOD = this.store_.getLowestResLOD();
+    const min = Math.max(0, Math.min(lowestResLOD, this.policy_.lod.min));
+    const max = Math.max(min, Math.min(lowestResLOD, this.policy_.lod.max));
+    return { min, max };
+  }
+
   private fallbackLOD(): number {
-    return Math.min(this.policy_.lod.max, this.store_.getLowestResLOD());
+    return this.lodRange().max;
   }
 
   private timeIndex(sliceCoords: SliceCoordinates): number {
@@ -653,12 +654,6 @@ export class ChunkStoreView {
     );
   }
 
-  private sliceBoundsChanged(newBounds: [number, number]): boolean {
-    return (
-      !this.lastSliceBounds_ || !vec2.equals(this.lastSliceBounds_, newBounds)
-    );
-  }
-
   private cCoordsChanged(newC?: number[]): boolean {
     if (!this.lastCCoords_ && !newC) return false;
     if (!this.lastCCoords_ || !newC) return true;
@@ -706,10 +701,13 @@ function isResident(chunk: Chunk): boolean {
   return chunk.state === "loaded" && chunk.texture !== undefined;
 }
 
+function chunkEnd(chunk: Chunk, axis: SpatialAxis): number {
+  return chunk.offset[axis] + chunk.shape[axis] * chunk.scale[axis];
+}
+
+// Distance from the current LOD, with coarser winning ties.
 function lodRank(lod: number, currentLOD: number): number {
-  if (lod === currentLOD) return 0;
-  const distance = Math.abs(lod - currentLOD);
-  return lod > currentLOD ? 2 * distance : 2 * distance + 1;
+  return 2 * Math.abs(lod - currentLOD) + (lod < currentLOD ? 1 : 0);
 }
 
 function resetChunkViewState(state: ChunkViewState): void {
