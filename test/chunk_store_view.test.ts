@@ -104,8 +104,8 @@ describe("ChunkStoreView multiscale rendering", () => {
     }
   );
 
-  // the `changed` check operates at 1-z-chunk-thick slab granularity
-  // but z chunks may be smaller than that slab for finer LODs
+  // LODs may have different slab thickness, so a sub-slab move changes which
+  // of them cover the slice
   test("moving z within one slab still picks the right finer chunk", () => {
     const store = new ChunkStore(createPyramidDimensions());
     const view = store.addView(createNoPrefetchPolicy());
