@@ -58,6 +58,7 @@ export type {
   OrthographicCameraProps,
 } from "./objects/cameras/orthographic_camera";
 export { PanZoomControls } from "./objects/cameras/controls";
+export type { PanZoomControlsProps } from "./objects/cameras/controls";
 export type { CameraControls } from "./objects/cameras/controls";
 export { PerspectiveCamera } from "./objects/cameras/perspective_camera";
 export type { PerspectiveCameraProps } from "./objects/cameras/perspective_camera";

@@ -1,4 +1,4 @@
-import { CameraControls } from "./controls";
+import { CameraControls, ScrollZoomMode } from "./controls";
 import { EventContext } from "../../core/event_dispatcher";
 import { PerspectiveCamera } from "./perspective_camera";
 import { Spherical } from "../../math/spherical";
@@ -30,6 +30,8 @@ export type OrbitControlsProps = {
   target?: vec3;
   /** Velocity decay rate between `0` and `1`. Defaults to `0.5`. */
   dampingFactor?: number;
+  /** When the scroll wheel zooms. Defaults to `"always"`. */
+  scrollZoom?: ScrollZoomMode;
 };
 
 /**
@@ -67,6 +69,7 @@ export class OrbitControls implements CameraControls {
   private readonly currCenter_ = vec3.create();
 
   private readonly dampingFactor_: number;
+  private readonly scrollZoom_: ScrollZoomMode;
 
   private currMouseButton_ = MOUSE_BUTTON_NONE;
 
@@ -94,6 +97,8 @@ export class OrbitControls implements CameraControls {
       0,
       1
     );
+
+    this.scrollZoom_ = params?.scrollZoom ?? "always";
 
     this.updateCamera();
   }
@@ -220,6 +225,10 @@ export class OrbitControls implements CameraControls {
 
   private onWheel(event: EventContext) {
     const e = event.event as WheelEvent;
+
+    if (this.scrollZoom_ === "never") return;
+    if (this.scrollZoom_ === "modifier" && !(e.ctrlKey || e.metaKey)) return;
+
     e.preventDefault(); // prevent the page from scrolling
 
     const dy = e.deltaY ?? 0;
