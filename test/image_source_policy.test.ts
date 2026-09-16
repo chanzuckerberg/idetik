@@ -66,8 +66,8 @@ test("createPlaybackPolicy sets playback defaults", () => {
   expect(Object.keys(p.priorityMap)).toHaveLength(5);
   expect(p.priorityMap).toEqual({
     fallbackVisible: 0,
-    prefetchTime: 1,
-    visibleCurrent: 2,
+    visibleCurrent: 1,
+    prefetchTime: 2,
     fallbackBackground: 3,
     prefetchSpace: 4,
   });
