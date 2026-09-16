@@ -510,7 +510,7 @@ export class ChunkStoreView {
     lod: number,
     channels: number[],
     bounds: Box3,
-    callback: (chunk: Chunk, chunkBox: Box3) => void
+    callback: (chunk: Chunk) => void
   ): void {
     const range = this.chunkIndexRange(bounds, lod);
     if (!range) return;
@@ -523,7 +523,7 @@ export class ChunkStoreView {
           const xRow = yPlane[yi];
           for (let xi = range.xMin; xi < range.xMax; ++xi) {
             const chunk = xRow[xi];
-            callback(chunk, this.getChunkAabb(chunk));
+            callback(chunk);
           }
         }
       }
@@ -534,7 +534,7 @@ export class ChunkStoreView {
     timeIndex: number,
     lod: number,
     channels: number[],
-    callback: (chunk: Chunk, chunkBox: Box3) => void
+    callback: (chunk: Chunk) => void
   ): void {
     for (const c of channels) {
       const grid = this.store_.getChunkGrid(lod, timeIndex, c);
@@ -542,22 +542,11 @@ export class ChunkStoreView {
       for (const yPlane of grid) {
         for (const xRow of yPlane) {
           for (const chunk of xRow) {
-            callback(chunk, this.getChunkAabb(chunk));
+            callback(chunk);
           }
         }
       }
     }
-  }
-
-  private getChunkAabb(chunk: Chunk): Box3 {
-    return new Box3(
-      vec3.fromValues(chunk.offset.x, chunk.offset.y, chunk.offset.z),
-      vec3.fromValues(
-        chunk.offset.x + chunk.shape.x * chunk.scale.x,
-        chunk.offset.y + chunk.shape.y * chunk.scale.y,
-        chunk.offset.z + chunk.shape.z * chunk.scale.z
-      )
-    );
   }
 
   // The levels this view may use: policy bounds intersected with the dataset.
