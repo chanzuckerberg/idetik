@@ -126,17 +126,12 @@ export class ChunkStoreView {
     const timeIndex = this.timeIndex({ t: this.lastTCoord_ });
     const channels = new Set(this.channelsOfInterest({ c: this.lastCCoords_ }));
 
-    // Reused across the loop, which covers the whole resident set every frame;
-    // a box per chunk would be thousands of throwaway allocations.
-    const chunkRect = new Box2();
-
     const { min: minLOD, max: maxLOD } = this.lodRange();
+    const chunkRect = new Box2();
 
     const chunks: Chunk[] = [];
     for (const chunk of this.store_.residentChunks) {
       if (!isResident(chunk)) continue;
-      // Residency is shared by every view of the source, so levels outside
-      // this view's own policy have to be filtered out here.
       if (chunk.lod < minLOD || chunk.lod > maxLOD) continue;
       if (chunk.chunkIndex.t !== timeIndex) continue;
       if (!channels.has(chunk.chunkIndex.c)) continue;
