@@ -1,6 +1,7 @@
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./data/chunk_manager";
+import type { ChunkStats } from "./data/chunk_stats";
 import { Renderer } from "./core/renderer";
 import { createStats, type Stats } from "./utilities/stats";
 import {
@@ -184,6 +185,11 @@ export class Idetik {
   /** Counts of queued and in-flight chunk requests. */
   public get chunkQueueStats() {
     return this.chunkManager_.queueStats;
+  }
+
+  /* Counts of requested and loaded chunks, by source, LOD, and timepoint.*/
+  public get chunkStats(): ChunkStats {
+    return this.chunkManager_.chunkStats;
   }
 
   /** A snapshot of current CPU/GPU/JS heap memory usage. */
