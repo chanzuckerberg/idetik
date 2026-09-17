@@ -102,8 +102,8 @@ export class ChunkStoreView {
   public getChunksToRender(): Chunk[] {
     const drawable =
       this.mode_ === "image"
-        ? this.drawableChunksForSlice()
-        : this.markedVisibleChunks();
+        ? this.residentChunksForSlice()
+        : this.residentChunksMarkedVisible();
 
     const currentLOD = this.currentLOD_;
     return drawable.sort(
@@ -111,15 +111,17 @@ export class ChunkStoreView {
     );
   }
 
-  private markedVisibleChunks(): Chunk[] {
+  private residentChunksMarkedVisible(): Chunk[] {
     const chunks: Chunk[] = [];
     for (const [chunk, state] of this.chunkViewStates_) {
-      if (state.visible && isResident(chunk)) chunks.push(chunk);
+      if (state.visible && chunk.state === "loaded" && chunk.texture) {
+        chunks.push(chunk);
+      }
     }
     return chunks;
   }
 
-  private drawableChunksForSlice(): Chunk[] {
+  private residentChunksForSlice(): Chunk[] {
     const timeIndex = this.timeIndex({ t: this.lastTCoord_ });
     const channels = new Set(this.channelsOfInterest({ c: this.lastCCoords_ }));
     const { min: minLOD, max: maxLOD } = this.lodRange();
@@ -131,7 +133,6 @@ export class ChunkStoreView {
 
     const chunks: Chunk[] = [];
     for (const chunk of this.store_.residentChunks) {
-      if (!isResident(chunk)) continue;
       if (chunk.lod < minLOD || chunk.lod > maxLOD) continue;
       if (chunk.chunkIndex.t !== timeIndex) continue;
       if (!channels.has(chunk.chunkIndex.c)) continue;
@@ -665,10 +666,6 @@ export class ChunkStoreView {
 
     return du * du + dv * dv;
   }
-}
-
-function isResident(chunk: Chunk): boolean {
-  return chunk.state === "loaded" && chunk.texture !== undefined;
 }
 
 class VisibleSliceRegion {
