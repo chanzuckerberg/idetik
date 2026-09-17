@@ -76,7 +76,7 @@ describe("ChunkStoreView disposal", () => {
 });
 
 // Drawing opportunistic resident chunks the update pass never marked means re-deriving which of
-// them cover the slice
+// them cover the slice, here we just test that the math matches
 describe("ChunkStoreView multiscale rendering", () => {
   // parameterized over z because z is downsampled in this pyramid
   // coarser chunks span several finer slices
