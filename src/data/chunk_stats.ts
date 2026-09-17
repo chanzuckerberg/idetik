@@ -1,13 +1,13 @@
 import { Chunk, ChunkSource } from "./chunk";
 import type { ChunkStore } from "./chunk_store";
 
-/** Counts at one timepoint, for the level of detail being drawn. */
-export type ResidencyBucket = {
+/** Chunk counts for one timepoint, at the level of detail being drawn. */
+export type TimepointChunkStats = {
   /** The timepoint. */
   index: number;
   /** Chunks the layers want here. */
   wanted: number;
-  /** How many of those are loaded. */
+  /** How many of `wanted` have their data. */
   loaded: number;
 };
 
@@ -15,41 +15,32 @@ export type ResidencyBucket = {
 export type LodChunkStats = {
   /** The level of detail, `0` being finest. */
   lod: number;
-  /** What the layers are asking for at this level. */
-  demand: {
-    /** Chunks the layers want. */
-    wanted: number;
-    /** How many of those are loaded. */
-    loaded: number;
-  };
+  /** Chunks the layers want at this level. */
+  wanted: number;
+  /** How many of `wanted` have their data. */
+  loaded: number;
 };
 
 /** Chunk counts for one source. */
 export type SourceChunkStats = {
   /** The source the counts describe. */
   source: ChunkSource;
-  /** What the layers are asking for. */
-  demand: {
-    /** Chunks the layers want. The budget may defer fetching them. */
-    wanted: number;
-    /** How many of those are loaded. */
-    loaded: number;
-  };
+  /** Chunks the layers want. The budget may defer fetching them. */
+  wanted: number;
+  /** How many of `wanted` have their data. */
+  loaded: number;
   /** Counts per level of detail, finest first. Idle levels are omitted. */
   lods: readonly LodChunkStats[];
   /** Counts per timepoint, covering the whole time axis. */
-  timepoints: readonly ResidencyBucket[];
+  timepoints: readonly TimepointChunkStats[];
 };
 
 /** A snapshot of what the layers want and how much of it has loaded. */
 export type ChunkStats = {
-  /** Demand summed across sources. */
-  demand: {
-    /** Chunks the layers want. The budget may defer fetching them. */
-    wanted: number;
-    /** How many of those are loaded. Loaded is not yet drawable. */
-    loaded: number;
-  };
+  /** Chunks the layers want, across all sources. */
+  wanted: number;
+  /** How many of `wanted` have their data. Drawable only once uploaded. */
+  loaded: number;
   /** One entry per chunk source, with per-LOD and per-timepoint detail. */
   sources: readonly SourceChunkStats[];
 };
@@ -66,13 +57,14 @@ export function computeChunkStats(
     statsForStore(source, store)
   );
 
-  const demand = { wanted: 0, loaded: 0 };
+  let wanted = 0;
+  let loaded = 0;
   for (const stats of sources) {
-    demand.wanted += stats.demand.wanted;
-    demand.loaded += stats.demand.loaded;
+    wanted += stats.wanted;
+    loaded += stats.loaded;
   }
 
-  return { demand, sources };
+  return { wanted, loaded, sources };
 }
 
 function statsForStore(
@@ -91,7 +83,7 @@ function statsForStore(
   }
 
   const numTimePoints = store.dimensions.t?.lods[0].size ?? 1;
-  const timepoints: ResidencyBucket[] = Array.from(
+  const timepoints: TimepointChunkStats[] = Array.from(
     { length: numTimePoints },
     (_, index) => ({ index, wanted: 0, loaded: 0 })
   );
@@ -100,32 +92,34 @@ function statsForStore(
   const lodEntry = (lod: number): LodChunkStats => {
     let entry = lods.get(lod);
     if (entry === undefined) {
-      entry = { lod, demand: { wanted: 0, loaded: 0 } };
+      entry = { lod, wanted: 0, loaded: 0 };
       lods.set(lod, entry);
     }
     return entry;
   };
 
-  const demand = { wanted: 0, loaded: 0 };
+  let wanted = 0;
+  let loaded = 0;
 
   for (const [chunk, atCurrentLOD] of wantedChunks) {
     const isLoaded = chunk.state === "loaded";
-    demand.wanted += 1;
-    if (isLoaded) demand.loaded += 1;
+    wanted += 1;
+    if (isLoaded) loaded += 1;
 
-    const lod = lodEntry(chunk.lod).demand;
+    const lod = lodEntry(chunk.lod);
     lod.wanted += 1;
     if (isLoaded) lod.loaded += 1;
 
     if (!atCurrentLOD) continue;
-    const bucket = timepoints[chunk.chunkIndex.t];
-    bucket.wanted += 1;
-    if (isLoaded) bucket.loaded += 1;
+    const timepoint = timepoints[chunk.chunkIndex.t];
+    timepoint.wanted += 1;
+    if (isLoaded) timepoint.loaded += 1;
   }
 
   return {
     source,
-    demand,
+    wanted,
+    loaded,
     lods: [...lods.values()].sort((a, b) => a.lod - b.lod),
     timepoints,
   };
