@@ -189,3 +189,24 @@
 .VPNavBar .github-stars {
   margin-left: 20px;
 }
+
+.vp-doc p:has(> img:only-child) {
+  margin: 32px 0 0;
+}
+
+.vp-doc p:has(> img:only-child) > img {
+  display: block;
+  width: 100%;
+}
+
+.vp-doc p:has(> img:only-child) + p:has(> em:only-child) {
+  margin: 12px 0 32px;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--vp-c-text-2);
+}
+
+.vp-doc p:has(> img:only-child) + p:has(> em:only-child) > em {
+  font-style: normal;
+}
