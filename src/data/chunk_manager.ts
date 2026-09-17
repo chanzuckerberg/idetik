@@ -235,10 +235,8 @@ export class ChunkManager {
   }
 
   private disposeChunkTexture(chunk: Chunk) {
-    if (!this.disposeTexture_) return;
-
     if (chunk.texture === undefined) return;
-    this.disposeTexture_(chunk.texture);
+    this.disposeTexture_?.(chunk.texture);
     chunk.texture = undefined;
 
     for (const { store } of this.stores_) store.removeResidentChunk(chunk);
