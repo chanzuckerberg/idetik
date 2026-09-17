@@ -1,4 +1,10 @@
-import { Chunk, ChunkViewState, coordToIndex, SliceCoordinates } from "./chunk";
+import {
+  Chunk,
+  ChunkViewState,
+  coordToIndex,
+  SliceCoordinates,
+  SourceDimension,
+} from "./chunk";
 import { AxisComponent, SliceAxes, SpatialAxis } from "../math/axes";
 import type { ChunkStore } from "./chunk_store";
 import { ImageSourcePolicy } from "../core/image_source_policy";
@@ -128,7 +134,8 @@ export class ChunkStoreView {
     const visibleRegion = new VisibleSliceRegion(
       this.axes_,
       this.lastSliceCoordW_,
-      this.lastViewBounds2D_!
+      this.lastViewBounds2D_!,
+      this.store_.dimensions[this.axes_.w]
     );
 
     const chunks: Chunk[] = [];
@@ -190,7 +197,8 @@ export class ChunkStoreView {
     const visibleRegion = new VisibleSliceRegion(
       this.axes_,
       sliceCoords[this.axes_.w],
-      viewBounds2D
+      viewBounds2D,
+      this.store_.dimensions[this.axes_.w]
     );
 
     // Range-query the prefetch AABB at currentLOD (and fallbackLOD when
@@ -667,23 +675,32 @@ export class ChunkStoreView {
 
 class VisibleSliceRegion {
   private readonly axes_: SliceAxes;
-  private readonly sliceCoordW_?: number;
   private readonly viewRect_: Box2;
   private readonly chunkRect_ = new Box2();
+  private readonly sliceCoordByLod_?: readonly number[];
 
   constructor(
     axes: SliceAxes,
     sliceCoordW: number | undefined,
-    viewRect: Box2
+    viewRect: Box2,
+    wDim: SourceDimension | undefined
   ) {
     this.axes_ = axes;
-    this.sliceCoordW_ = sliceCoordW;
     this.viewRect_ = viewRect;
+    if (sliceCoordW !== undefined && wDim !== undefined) {
+      this.sliceCoordByLod_ = wDim.lods.map((lod) =>
+        clamp(
+          sliceCoordW,
+          lod.translation,
+          lod.translation + (lod.size - 1) * lod.scale
+        )
+      );
+    }
   }
 
   public contains(chunk: Chunk): boolean {
     const { u, v, w } = this.axes_;
-    const sliceCoordW = this.sliceCoordW_;
+    const sliceCoordW = this.sliceCoordByLod_?.[chunk.lod];
     if (
       sliceCoordW !== undefined &&
       (sliceCoordW < chunk.offset[w] || sliceCoordW >= chunkEnd(chunk, w))
