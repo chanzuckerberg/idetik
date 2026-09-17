@@ -12,6 +12,7 @@ export class ChunkStore {
   private readonly dimensions_: SourceDimensionMap;
   private readonly views_: ChunkStoreView[] = [];
   private hasHadViews_ = false;
+  private readonly resident_ = new Set<Chunk>();
 
   constructor(dimensions: SourceDimensionMap) {
     this.dimensions_ = dimensions;
@@ -129,6 +130,18 @@ export class ChunkStore {
 
   public get views(): ReadonlyArray<ChunkStoreView> {
     return this.views_;
+  }
+
+  public get residentChunks(): ReadonlySet<Chunk> {
+    return this.resident_;
+  }
+
+  public addResidentChunk(chunk: Chunk): void {
+    this.resident_.add(chunk);
+  }
+
+  public removeResidentChunk(chunk: Chunk): void {
+    this.resident_.delete(chunk);
   }
 
   public canDispose(): boolean {

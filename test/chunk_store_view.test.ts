@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { ChunkStore } from "@/data/chunk_store";
-import { SourceDimensionMap } from "@/data/chunk";
+import { Chunk, SourceDimensionMap } from "@/data/chunk";
+import { Box2 } from "@/math/box2";
+import { vec2 } from "gl-matrix";
 import { createNoPrefetchPolicy } from "@/core/image_source_policy";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 import { Viewport } from "@/core/viewport";
@@ -72,6 +74,96 @@ describe("ChunkStoreView disposal", () => {
     }
   });
 });
+
+// Drawing opportunistic resident chunks the update pass never marked means re-deriving which of
+// them cover the slice, here we just test that the math matches
+describe("ChunkStoreView multiscale rendering", () => {
+  // parameterized over z because z is downsampled in this pyramid
+  // coarser chunks span several finer slices
+  // the slice coordinate lands mid-chunk for some values
+  test.each([0, 1, 2, 3])(
+    "zooming in at z=%i keeps the level just left behind ahead of the backdrop",
+    (z) => {
+      const store = new ChunkStore(createPyramidDimensions());
+      const view = store.addView(createNoPrefetchPolicy());
+      const lodsOf = () => [
+        ...new Set(view.getChunksToRender().map((chunk) => chunk.lod)),
+      ];
+
+      view.updateChunksForImage({ z, c: [0] }, viewOfWidth(256));
+      expect(view.currentLOD).toBe(1);
+      makeResident(store, 1);
+      makeResident(store, 2);
+      store.updateAndCollectChunkChanges();
+      expect(lodsOf()).toEqual([1, 2]);
+
+      view.updateChunksForImage({ z, c: [0] }, viewOfWidth(512));
+      expect(view.currentLOD).toBe(0);
+      store.updateAndCollectChunkChanges();
+      expect(lodsOf()).toEqual([1, 2]);
+    }
+  );
+
+  // LODs may have different slab thickness, so a sub-slab move changes which
+  // of them cover the slice
+  test("moving z within one slab still picks the right finer chunk", () => {
+    const store = new ChunkStore(createPyramidDimensions());
+    const view = store.addView(createNoPrefetchPolicy());
+    makeResident(store, 0);
+    const finerZ = () =>
+      new Set(
+        view
+          .getChunksToRender()
+          .filter((chunk) => chunk.lod === 0)
+          .map((chunk) => chunk.chunkIndex.z)
+      );
+
+    // LOD 1's z chunks span [0,2) and [2,4), so z=0 and z=1 share a slab
+    view.updateChunksForImage({ z: 0, c: [0] }, viewOfWidth(256));
+    expect(view.currentLOD).toBe(1);
+    expect(finerZ()).toEqual(new Set([0]));
+
+    view.updateChunksForImage({ z: 1, c: [0] }, viewOfWidth(256));
+    expect(finerZ()).toEqual(new Set([1]));
+  });
+});
+
+// A 512-unit view over `bufferWidthPx` pixels: 256 selects LOD 1, 512 LOD 0.
+function viewOfWidth(bufferWidthPx: number) {
+  return {
+    worldViewRect: new Box2(vec2.fromValues(0, 0), vec2.fromValues(512, 512)),
+    bufferWidthPx,
+  };
+}
+
+function makeResident(store: ChunkStore, lod: number) {
+  for (const chunk of store.getChunkGrid(lod, 0, 0)!.flat(2)) {
+    chunk.state = "loaded";
+    chunk.texture = {} as Chunk["texture"];
+    store.addResidentChunk(chunk);
+  }
+}
+
+function createPyramidDimensions(): SourceDimensionMap {
+  const plane = [512, 256, 128].map((size, lod) => ({
+    size,
+    scale: 2 ** lod,
+    chunkSize: 64,
+    translation: 0,
+  }));
+  const z = [4, 2, 1].map((size, lod) => ({
+    size,
+    scale: 2 ** lod,
+    chunkSize: 1,
+    translation: 0,
+  }));
+  return {
+    x: { name: "x", index: 0, lods: plane },
+    y: { name: "y", index: 1, lods: plane },
+    z: { name: "z", index: 2, lods: z },
+    numLods: 3,
+  };
+}
 
 function createSimpleDimensions(): SourceDimensionMap {
   return {
