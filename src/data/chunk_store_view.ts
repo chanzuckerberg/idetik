@@ -122,8 +122,8 @@ export class ChunkStoreView {
   }
 
   private residentChunksForSlice(): Chunk[] {
-    const timeIndex = this.timeIndex({ t: this.lastTCoord_ });
-    const channels = new Set(this.channelsOfInterest({ c: this.lastCCoords_ }));
+    const timeIndex = this.timeIndex(this.lastTCoord_);
+    const channels = new Set(this.channelsOfInterest(this.lastCCoords_));
     const { min: minLOD, max: maxLOD } = this.lodRange();
     const visibleRegion = new VisibleSliceRegion(
       this.axes_,
@@ -164,7 +164,7 @@ export class ChunkStoreView {
 
     if (!changed) return;
 
-    const currentTimeIndex = this.timeIndex(sliceCoords);
+    const currentTimeIndex = this.timeIndex(sliceCoords.t);
     if (!this.store_.hasChunksAtTime(currentTimeIndex)) {
       Logger.warn(
         "ChunkStoreView",
@@ -184,7 +184,7 @@ export class ChunkStoreView {
     // logic below will override this for chunks that are actually visible/prefetch
     this.chunkViewStates_.forEach(resetChunkViewState);
 
-    const channels = this.channelsOfInterest(sliceCoords);
+    const channels = this.channelsOfInterest(sliceCoords.c);
     const fallbackLOD = this.lodRange().max;
     const prefetchAabb = this.getPaddedBounds(viewBounds3D);
     const visibleRegion = new VisibleSliceRegion(
@@ -256,7 +256,7 @@ export class ChunkStoreView {
 
     if (!changed) return;
 
-    const currentTimeIndex = this.timeIndex(sliceCoords);
+    const currentTimeIndex = this.timeIndex(sliceCoords.t);
     if (!this.store_.hasChunksAtTime(currentTimeIndex)) {
       Logger.warn(
         "ChunkStoreView",
@@ -274,7 +274,7 @@ export class ChunkStoreView {
 
     this.chunkViewStates_.forEach(resetChunkViewState);
 
-    const channels = this.channelsOfInterest(sliceCoords);
+    const channels = this.channelsOfInterest(sliceCoords.c);
     const fallbackLOD = this.lodRange().max;
 
     const markVolumeChunkVisible = (chunk: Chunk) => {
@@ -392,7 +392,7 @@ export class ChunkStoreView {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
     const priority = this.policy_.priorityMap["prefetchTime"];
-    const channels = this.channelsOfInterest(sliceCoords);
+    const channels = this.channelsOfInterest(sliceCoords.c);
 
     for (let i = 1; i <= windowSize; ++i) {
       const t = (currentTimeIndex + i) % numTimePoints;
@@ -431,7 +431,7 @@ export class ChunkStoreView {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
     const priority = this.policy_.priorityMap["prefetchTime"];
-    const channels = this.channelsOfInterest(sliceCoords);
+    const channels = this.channelsOfInterest(sliceCoords.c);
 
     for (let i = 1; i <= windowSize; ++i) {
       const t = (currentTimeIndex + i) % numTimePoints;
@@ -465,11 +465,8 @@ export class ChunkStoreView {
     return null;
   }
 
-  private channelsOfInterest(sliceCoords: SliceCoordinates): number[] {
-    return (
-      sliceCoords.c ??
-      Array.from({ length: this.store_.channelCount }, (_, i) => i)
-    );
+  private channelsOfInterest(c: number[] | undefined): number[] {
+    return c ?? Array.from({ length: this.store_.channelCount }, (_, i) => i);
   }
 
   // Half-open chunk-index range [min, max) at a given LOD that covers `bounds`.
@@ -557,10 +554,10 @@ export class ChunkStoreView {
     return { min, max };
   }
 
-  private timeIndex(sliceCoords: SliceCoordinates): number {
+  private timeIndex(t: number | undefined): number {
     const tDim = this.store_.dimensions.t;
-    if (sliceCoords.t === undefined || tDim === undefined) return 0;
-    return coordToIndex(tDim.lods[0], sliceCoords.t);
+    if (t === undefined || tDim === undefined) return 0;
+    return coordToIndex(tDim.lods[0], t);
   }
 
   private getSliceAxisBounds(sliceCoords: SliceCoordinates): [number, number] {
