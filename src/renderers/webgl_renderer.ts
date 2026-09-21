@@ -42,8 +42,8 @@ export class WebGLRenderer extends Renderer {
   private currentViewportSize_: [number, number] = [0, 0];
   private currentViewportHasSceneDepth_ = false;
 
-  constructor(canvas: HTMLCanvasElement) {
-    super(canvas);
+  constructor(canvas: HTMLCanvasElement, pixelRatio?: number) {
+    super(canvas, pixelRatio);
 
     const gl = this.canvas.getContext("webgl2", {
       depth: true,

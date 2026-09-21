@@ -106,5 +106,6 @@ export function createTestViewport(id: string = "test-viewport"): Viewport {
     element: createTestElement(id),
     camera: createTestCamera(),
     context: createTestContext(),
+    pixelRatio: () => 1,
   });
 }

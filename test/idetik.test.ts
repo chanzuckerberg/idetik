@@ -52,3 +52,45 @@ test("Width and height properties return (scaled) canvas shape", () => {
   expect(idetik.width).toBe(canvas.clientWidth * devicePixelRatio);
   expect(idetik.height).toBe(canvas.clientHeight * devicePixelRatio);
 });
+
+test("pixelRatio option sizes the drawing buffer independently of the display", () => {
+  const canvas = document.createElement("canvas");
+  canvas.style.cssText = "width: 200px; height: 100px;";
+  document.body.appendChild(canvas);
+  const camera = new OrthographicCamera({
+    left: 0,
+    right: 128,
+    top: 0,
+    bottom: 128,
+  });
+
+  const idetik = new Idetik({
+    canvas,
+    pixelRatio: 0.5,
+    viewports: [{ camera }],
+  });
+
+  expect(idetik.width).toBe(100);
+  expect(idetik.height).toBe(50);
+  expect(canvas.width).toBe(100);
+  expect(canvas.height).toBe(50);
+
+  canvas.remove();
+});
+
+test("pixelRatio option rejects non-positive values", () => {
+  const canvas = document.createElement("canvas");
+  const camera = new OrthographicCamera({
+    left: 0,
+    right: 128,
+    top: 0,
+    bottom: 128,
+  });
+
+  expect(
+    () => new Idetik({ canvas, pixelRatio: 0, viewports: [{ camera }] })
+  ).toThrow("pixelRatio must be a positive number");
+  expect(
+    () => new Idetik({ canvas, pixelRatio: NaN, viewports: [{ camera }] })
+  ).toThrow("pixelRatio must be a positive number");
+});

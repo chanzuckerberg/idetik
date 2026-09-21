@@ -29,6 +29,7 @@ interface ResolvedViewportProps extends ViewportProps {
   id: string;
   element: HTMLElement;
   context: IdetikContext;
+  pixelRatio: () => number;
 }
 
 /**
@@ -71,6 +72,7 @@ export class Viewport {
   // To be removed when the chunk-infrastructure refactor folds chunk management
   // into the source and the attach lifecycle goes away.
   private readonly context_: IdetikContext;
+  private readonly pixelRatio_: () => number;
 
   private layers_: Layer[] = [];
 
@@ -80,6 +82,7 @@ export class Viewport {
     this.element = props.element;
     this.camera = props.camera;
     this.context_ = props.context;
+    this.pixelRatio_ = props.pixelRatio;
     this.cameraControls = props.cameraControls;
     this.updateAspectRatio();
     this.events = new EventDispatcher(this.element);
@@ -166,13 +169,13 @@ export class Viewport {
   public getBoxRelativeTo(canvas: HTMLCanvasElement): Box2 {
     const viewportRect = this.getBox().toRect();
     const canvasRect = canvas.getBoundingClientRect();
-    const devicePixelRatio = window.devicePixelRatio || 1;
+    const pixelRatio = this.pixelRatio_();
 
     // convert canvas rect to device pixels
     // viewport rect is already in device pixels
-    const canvasX = canvasRect.left * devicePixelRatio;
-    const canvasY = canvasRect.top * devicePixelRatio;
-    const canvasHeight = canvasRect.height * devicePixelRatio;
+    const canvasX = canvasRect.left * pixelRatio;
+    const canvasY = canvasRect.top * pixelRatio;
+    const canvasHeight = canvasRect.height * pixelRatio;
 
     const relativeX = viewportRect.x - canvasX;
     const relativeY = viewportRect.y - canvasY;
@@ -232,12 +235,12 @@ export class Viewport {
 
   private getBox(): Box2 {
     const viewportRect = this.element.getBoundingClientRect();
-    const devicePixelRatio = window.devicePixelRatio || 1;
+    const pixelRatio = this.pixelRatio_();
 
-    const x = viewportRect.left * devicePixelRatio;
-    const y = viewportRect.top * devicePixelRatio;
-    const width = viewportRect.width * devicePixelRatio;
-    const height = viewportRect.height * devicePixelRatio;
+    const x = viewportRect.left * pixelRatio;
+    const y = viewportRect.top * pixelRatio;
+    const width = viewportRect.width * pixelRatio;
+    const height = viewportRect.height * pixelRatio;
 
     return new Box2(
       vec2.fromValues(x, y),
@@ -292,7 +295,8 @@ function validateViewportProps(viewportProps: ResolvedViewportProps[]): void {
 export function parseViewportProps(
   props: ViewportProps[],
   canvas: HTMLCanvasElement,
-  context: IdetikContext
+  context: IdetikContext,
+  pixelRatio: () => number
 ): Viewport[] {
   const viewportProps: ResolvedViewportProps[] = props.map((config) => {
     const element = config.element ?? canvas;
@@ -301,6 +305,7 @@ export function parseViewportProps(
       element,
       id: config.id ?? element.id ?? generateID("viewport"),
       context,
+      pixelRatio,
     };
   });
   validateViewportProps(viewportProps);
