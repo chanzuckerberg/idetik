@@ -4,7 +4,7 @@ import layout from "../../icons/layout.svg?raw";
 import play from "../../icons/play.svg?raw";
 import tag from "../../icons/tag.svg?raw";
 
-export type Example = {
+type Example = {
   id: string;
   title: string;
   icon: string;

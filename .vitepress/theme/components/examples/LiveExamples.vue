@@ -38,27 +38,29 @@ function onWheel(e: WheelEvent) {
       <a class="link" href="/guide/getting-started">
         Get started with Idetik <span class="arrow">&rarr;</span>
       </a>
-      <div class="stage" @wheel.passive="onWheel">
-        <component
-          v-if="viewers[selected]"
-          :is="viewers[selected]"
-          class="viewer"
-        />
-        <div v-else class="viewer placeholder">
-          <span
-            class="placeholder-icon"
-            aria-hidden="true"
-            v-html="current.icon"
-          ></span>
-          <span class="placeholder-title">{{ current.title }}</span>
-          <span class="placeholder-note">Live viewer coming soon</span>
-        </div>
-        <ExampleNavigator v-model="selected" class="navigator" />
-        <Transition name="fade">
-          <div v-if="scrollHint" class="scroll-hint" aria-hidden="true">
-            Use {{ isMac ? "⌘" : "Ctrl" }} + scroll to zoom
+      <div class="showcase">
+        <ExampleNavigator v-model="selected" />
+        <div class="stage" @wheel.passive="onWheel">
+          <component
+            v-if="viewers[selected]"
+            :is="viewers[selected]"
+            class="viewer"
+          />
+          <div v-else class="viewer placeholder">
+            <span
+              class="placeholder-icon"
+              aria-hidden="true"
+              v-html="current.icon"
+            ></span>
+            <span class="placeholder-title">{{ current.title }}</span>
+            <span class="placeholder-note">Live viewer coming soon</span>
           </div>
-        </Transition>
+          <Transition name="fade">
+            <div v-if="scrollHint" class="scroll-hint" aria-hidden="true">
+              Use {{ isMac ? "⌘" : "Ctrl" }} + scroll to zoom
+            </div>
+          </Transition>
+        </div>
       </div>
     </div>
   </section>
@@ -91,6 +93,7 @@ function onWheel(e: WheelEvent) {
 
 .title {
   margin: 0;
+  font-size: 32px;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
@@ -134,30 +137,42 @@ function onWheel(e: WheelEvent) {
   transform: translateX(3px);
 }
 
+.showcase {
+  display: flex;
+  margin-top: 48px;
+  height: 562px;
+  border: 1px solid var(--vp-c-gutter);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgb(17 17 20 / 0.04),
+    0 12px 32px rgb(17 17 20 / 0.08);
+  text-align: left;
+  overflow: hidden;
+}
+
+@media (min-width: 960px) {
+  .showcase {
+    height: 691px;
+  }
+}
+
 .stage {
   --panel-bg: #232329;
   --panel-border: rgb(255 255 255 / 0.08);
   --panel-text-1: rgb(255 255 245 / 0.86);
   --panel-text-2: rgb(235 235 245 / 0.6);
-  --panel-hover: rgb(255 255 255 / 0.06);
   --panel-accent: var(--vp-c-brand-3);
-  --panel-accent-hover: #b6a8fc;
 
   position: relative;
-  display: flex;
-  gap: 20px;
-  margin-top: 48px;
-  padding: 20px;
-  height: 562px;
-  border: 1px solid #2a2a30;
-  border-radius: 12px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   background-color: #1b1b1f;
-  overflow: hidden;
 }
 
-@media (min-width: 960px) {
-  .stage {
-    height: 691px;
+@media (max-width: 767px) {
+  .showcase {
+    flex-direction: column;
   }
 }
 
@@ -217,10 +232,6 @@ function onWheel(e: WheelEvent) {
   font-size: 13px;
   line-height: 1.4;
   transform: translateX(-50%);
-}
-
-.navigator {
-  position: relative;
 }
 
 .scroll-hint {
