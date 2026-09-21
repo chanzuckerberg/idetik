@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref, type Component } from "vue";
 import ExampleNavigator from "./ExampleNavigator.vue";
 import VolumeRenderer from "./viewers/VolumeRenderer.vue";
 import { examples } from "./examples";
 
+const viewers: Record<string, Component> = {
+  "volume-rendering": VolumeRenderer,
+};
+
 const selected = ref(examples[0].id);
+const current = computed(() => examples.find((e) => e.id === selected.value)!);
 
 const isMac =
   typeof navigator !== "undefined" &&
@@ -34,7 +39,20 @@ function onWheel(e: WheelEvent) {
         Get started with Idetik <span class="arrow">&rarr;</span>
       </a>
       <div class="stage" @wheel.passive="onWheel">
-        <VolumeRenderer class="viewer" />
+        <component
+          v-if="viewers[selected]"
+          :is="viewers[selected]"
+          class="viewer"
+        />
+        <div v-else class="viewer placeholder">
+          <span
+            class="placeholder-icon"
+            aria-hidden="true"
+            v-html="current.icon"
+          ></span>
+          <span class="placeholder-title">{{ current.title }}</span>
+          <span class="placeholder-note">Live viewer coming soon</span>
+        </div>
         <ExampleNavigator v-model="selected" class="navigator" />
         <Transition name="fade">
           <div v-if="scrollHint" class="scroll-hint" aria-hidden="true">
@@ -146,6 +164,41 @@ function onWheel(e: WheelEvent) {
 .viewer {
   position: absolute;
   inset: 0;
+}
+
+.placeholder {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  color: var(--panel-text-2);
+}
+
+.placeholder-icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 8px;
+  padding: 11px;
+  border: 1px solid rgb(var(--brand-rgb) / 0.4);
+  border-radius: 10px;
+  background: rgb(var(--brand-rgb) / 0.2);
+  color: var(--panel-accent);
+}
+
+.placeholder-icon :deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.placeholder-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--panel-text-1);
+}
+
+.placeholder-note {
+  font-size: 13px;
 }
 
 .stage :deep(.viewer-controls) {
