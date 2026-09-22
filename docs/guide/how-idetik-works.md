@@ -22,6 +22,8 @@ Idetik has no user interface and holds no application state. The application cre
 
 Everything in Idetik is in world units. An OME-Zarr image declares a scale and a translation for each axis at each resolution level, and Idetik uses them to place every chunk in physical space, typically micrometers.
 
+Idetik applies the scale and translation as given and does not interpret the axis unit. The unit is passed through in the source's dimensions, but no conversion takes place. This only matters when sources disagree: an image whose axes are in Å overlaid with labels in nm will draw at the wrong relative size.
+
 The camera frames a region of that space and [`SliceCoordinates`](/api/classes/Layer.html#slicecoordinates) select data in it: a `z` of 278 means 278 µm into the stack no matter which resolution level is drawn or how the array is chunked. The channel coordinate is the exception. A channel has no position in space, so `c` takes channel indices rather than a world value.
 
 The same placement makes slicing cheap. Idetik uploads every chunk to the GPU as a small 3D texture, even for 2D layers. A 2D layer draws each chunk as a quad at the chunk's world position, and the shader reads the texture at the fragment's world position. Moving `z` within a chunk moves the quad so the shader samples a different plane of the same texture. Nothing is fetched or uploaded until the slice leaves the chunk.
@@ -84,7 +86,7 @@ Every layer carries three presentation settings. [`opacity`](/api/classes/Layer.
 
 [`occludes`](/api/classes/Layer.html#occludes) declares whether the layer hides what is behind it. Occluding layers draw first in a depth pass followed by a color pass, wherever they sit in the stack. Non-occluding layers draw afterwards in stack order and blend over them. When not set `occludes` is inferred from the blend mode at construction. The image layer sets it explicitly because it blends its channels additively within the layer yet should read as solid to the layers above it.
 
-A renderable object is a geometry, a shader program, textures, and one transform. The built-in layers create theirs from the chunks they receive.
+A renderable object is a geometry, a shader program, textures, and one transform. A new layer type is a subclass of [`Layer`](/api/classes/Layer.html) that owns some: it registers them with [`addObject`](/api/classes/Layer.html#addobject), rebuilds them in `update()` when its data changes, and sets its state to `ready`. The built-in renderables are exported for this, so a layer that draws points or lines needs no shader work. The built-in layers create theirs from the chunks they receive.
 
 | Layer                                          | Draws                                                | Per frame                                                                                        |
 | ---------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -122,6 +124,8 @@ Every chunk resident on the GPU counts against one budget, set by [`memoryLimitM
 Chunks that fall out of view are not freed. Their textures stay resident, marked as released, so panning back or scrubbing to a recent time point is instant. Only when a new request needs the space does the manager evict, taking the least important chunk first and the longest released among equals.
 
 As a result [`memoryStats`](/api/classes/Idetik.html#memorystats-1) reports GPU usage that climbs toward the budget and stays there. That is the cache working, not a leak. The budget can be changed at any time with [`setMemoryLimitMB`](/api/classes/Idetik.html#setmemorylimitmb). [`chunkQueueStats`](/api/classes/Idetik.html#chunkqueuestats) reports how many requests are waiting and in flight, which is the number to watch when tuning a policy or judging a connection.
+
+The budget counts only the textures Idetik uploads. The canvas, other pages, and other applications draw from the same graphics memory, and the browser offers no way to read its size, so the limit has to be chosen for the devices an application targets. The default suits a discrete GPU or a recent laptop. Set it lower for devices with little graphics memory to spare, and raise it only when the hardware is known.
 
 ## Conclusion
 
