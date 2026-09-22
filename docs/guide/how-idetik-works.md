@@ -74,7 +74,7 @@ Cameras are plain objects and controls are an interface. [`PanZoomControls`](/ap
 
 Viewports and layers can be added and removed while the runtime is running. A layer belongs to one viewport at a time and adding it to a second throws.
 
-Synchronizing views follows from the plain-object model. Two layers constructed with the same slice coordinate object show the same time point and move together when it changes. Layers that share a channel appearance array recolor together. Layers on the same source share every chunk the source loads, whichever viewport they draw in.
+Synchronizing views follows from the plain-object model. Two layers constructed with the same slice coordinate object show the same time point and move together when it changes. Channel appearance is scoped to each layer, so the application must call `setChannelProps()` on each layer to recolor several views together. Layers on the same source share every chunk the source loads, whichever viewport they draw in.
 
 ## Layers and Renderables
 
