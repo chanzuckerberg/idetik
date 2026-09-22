@@ -40,7 +40,7 @@ Once every viewport has drawn, the chunk manager runs. It gathers what all the l
 
 _One frame, then the path of a single chunk. Layers request while drawing, the manager acts after every viewport has drawn, and a chunk on screen in frame N+2 was requested in frame N._
 
-The ordering has a consequence the diagram makes visible. Layers declare their needs while drawing, and the manager acts on the aggregate afterwards. A chunk requested in one frame is fetched and decoded off the main thread, arrives during a later frame, is uploaded at the end of that frame, and is drawn by the layer in the frame after that.
+The ordering has a consequence the diagram makes visible. Layers declare their needs while drawing, and the manager acts on the aggregate afterwards. A chunk requested in one frame is fetched and decoded off the main thread, arrives during a later frame, is uploaded at the end of that frame, and is ready to be drawn in the frame after that.
 
 Data is on screen one to two frames after it arrives. The delay is invisible in practice, and the arrangement keeps every frame's work bounded: uploads per frame are capped, so a burst of arriving chunks spreads over several frames instead of stalling one.
 
