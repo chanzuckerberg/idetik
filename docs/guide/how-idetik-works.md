@@ -78,7 +78,7 @@ Synchronizing views follows from the plain-object model. Two layers constructed 
 
 ## Layers and Renderables
 
-A layer decides what to draw and how events should be handled. It reports its lifecycle through a [`LayerState`](/api/classes/Layer.html#layerstate) that begins at `initialized` and reaches `ready` once the layer has something to show. The renderer skips layers that are not ready and applications can subscribe to state changes to defer work until the first data has arrived.
+A layer decides what to draw and how to handle input. Its [`LayerState`](/api/classes/Layer.html#layerstate) controls whether the renderer draws it. The renderer calls `update()` every frame, but skips drawing until the state is `ready`. Built-in streaming layers switch to `ready` on their first update after attachment, whether or not any chunks have arrived. Applications can subscribe to state changes, but `ready` is not a signal that image data is available.
 
 Every layer carries three presentation settings. [`opacity`](/api/classes/Layer.html#opacity) scales its output. [`blendMode`](/api/classes/Layer.html#blendmode-1) chooses how its pixels combine with what is already drawn and also how objects within the layer combine with each other.
 
