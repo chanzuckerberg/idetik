@@ -4,7 +4,7 @@ This guide describes Idetik's architecture at a high level. It is for anyone who
 
 ## Objects and Ownership
 
-Every Idetik application is a small tree of objects. At the root is the [`Idetik`](/api/classes/Idetik.html) runtime. It owns the canvas, the renderer, the chunk manager that streams data for it, and any number of viewports. A [`Viewport`](/api/classes/Viewport.html) owns a camera, optional camera controls, an element that defines its area, and an ordered stack of layers. A [`Layer`](/api/classes/Layer.html) owns the renderable objects it draws.
+Every Idetik application is a small tree of objects. At the root is the [`Idetik`](/api/classes/Idetik.html) runtime. It owns the canvas, the renderer, the chunk manager that streams data for it, and any number of viewports. A [`Viewport`](/api/classes/Viewport.html) owns a camera, optional camera controls, an element that defines its area, and an ordered stack of layers. A [`Layer`](/api/classes/Layer.html) manages a collection of [renderable objects](/api/classes/RenderableObject.html) to be drawn by the renderer.
 
 A source stands outside the tree. The application creates it and layers read from it.
 
