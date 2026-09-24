@@ -48,6 +48,7 @@ onMounted(async () => {
       PerspectiveCamera,
       Color,
       VolumeLayer,
+      Viewport,
       createExplorationPolicy,
     } = await import("@idetik/core");
 
@@ -83,7 +84,8 @@ onMounted(async () => {
     idetik = new Idetik({
       canvas: target,
       viewports: [
-        {
+        new Viewport({
+          domElement: target,
           camera,
           cameraControls: new OrbitControls(camera, {
             radius,
@@ -92,7 +94,7 @@ onMounted(async () => {
             dampingFactor: 0.25,
           }),
           layers: [layer],
-        },
+        }),
       ],
     }).start();
   } catch (e) {
