@@ -15,7 +15,7 @@ const version = __IDETIK_VERSION__;
   margin-left: 8px;
   padding: 2px 10px;
   border: 1px solid var(--vp-button-alt-border);
-  border-radius: 9999px;
+  border-radius: var(--radius-pill);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: normal;

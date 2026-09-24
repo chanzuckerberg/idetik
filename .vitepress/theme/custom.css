@@ -6,6 +6,8 @@
   --vp-code-link-color: var(--vp-c-text-1);
   --vp-code-link-hover-color: var(--vp-c-text-1);
 
+  --radius-pill: 9999px;
+
   --brand-rgb: 110 79 249;
 
   --vp-c-brand-1: rgb(var(--brand-rgb));
@@ -34,15 +36,19 @@
 
 .VPButton.VPButton.medium,
 .VPButton.VPButton.big {
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
 }
 
 .VPNavBar .divider .divider-line {
   background-color: var(--vp-c-gutter);
 }
 
-.VPNavBar .VPNavBarTitle .logo {
-  margin-right: 1px;
+.VPNavBar.home {
+  background-color: var(--vp-nav-bg-color);
+}
+
+.VPNavBar.home.top .divider {
+  background-color: var(--vp-c-gutter);
 }
 
 .VPNavBar .VPNavBarTitle .title {
@@ -58,15 +64,24 @@
 
 @media (min-width: 960px) {
   .VPHero .heading .text {
-    max-width: 800px;
+    max-width: 840px;
+    font-size: 64px;
   }
 }
 
 .VPHero .main .tagline {
   padding-top: 24px;
   font-size: 18px;
-  font-weight: 400;
+  font-weight: 450;
   line-height: 1.6;
+  color: #5f5f69;
+}
+
+@media (min-width: 960px) {
+  .VPHero .main .tagline {
+    max-width: 740px;
+    font-size: 24px;
+  }
 }
 
 .vp-doc blockquote {
@@ -129,37 +144,62 @@
 }
 
 .VPHome {
+  position: relative;
+  isolation: isolate;
   overflow-x: clip;
 }
 
-.VPHome .VPFeatures .container {
-  position: relative;
+.VPContent.is-home .VPHome {
+  margin-bottom: 64px;
 }
 
-.VPHome .VPFeatures .container::before {
+.VPHome::before,
+.VPHome::after {
   content: '';
   position: absolute;
-  inset: -96px -80px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 920px;
+  z-index: -1;
   pointer-events: none;
-  filter: blur(48px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent);
+}
+
+.VPHome::before {
   background:
-    radial-gradient(620px 340px at 6% 2%, rgb(var(--brand-rgb) / 0.09), transparent 68%),
-    radial-gradient(700px 420px at 98% 34%, rgb(84 132 250 / 0.13), transparent 70%),
-    radial-gradient(560px 320px at 46% 112%, rgb(168 120 252 / 0.11), transparent 70%);
+    radial-gradient(38% 36% at 92% 46%, rgb(var(--brand-rgb) / 0.07), transparent 72%),
+    radial-gradient(45% 40% at 2% 60%, rgb(var(--brand-rgb) / 0.035), transparent 70%);
+}
+
+.VPHome::after {
+  opacity: 0.08;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.VPHome .VPFeatures .container {
+  padding-top: 32px;
+  border-top: 1px solid var(--vp-c-divider);
 }
 
 .VPHome .VPFeatures .items {
-  position: relative;
-  z-index: 1;
+  row-gap: 24px;
+  margin: 0 -16px;
+}
+
+.VPHome .VPFeatures .item {
+  padding: 0 16px;
 }
 
 .VPHome .VPFeatures .VPFeature {
-  border-radius: 12px;
-  border: 1px solid rgb(17 17 20 / 0.07);
-  background-color: rgb(255 255 255 / 0.55);
-  -webkit-backdrop-filter: blur(28px) saturate(140%);
-  backdrop-filter: blur(28px) saturate(140%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+.VPHome .VPFeatures .VPFeature .box {
+  padding: 0;
 }
 
 .VPHome .VPFeatures .VPFeature .details {
@@ -167,27 +207,54 @@
 }
 
 .VPHome .VPFeatures .VPFeature .icon {
-  width: 40px;
-  height: 40px;
+  justify-content: flex-start;
+  width: auto;
+  height: auto;
   margin-bottom: 16px;
-  border-radius: 8px;
-  border: 1px solid rgb(var(--brand-rgb) / 0.22);
-  background-color: rgb(var(--brand-rgb) / 0.07);
-  color: var(--vp-c-brand-1);
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--vp-c-text-1);
 }
 
 .VPHome .VPFeatures .VPFeature .icon svg {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+}
+
+.VPFooter .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1152px;
+}
+
+@media (min-width: 960px) {
+  .VPFooter {
+    padding: 32px 64px;
+  }
 }
 
 .VPFooter .container .message,
 .VPFooter .container .copyright {
+  font-weight: 400;
   color: #6e6e78;
 }
 
-.VPNavBar .github-stars {
-  margin-left: 20px;
+.VPFooter .container .copyright a {
+  display: block;
+  opacity: 0.35;
+  transition: opacity 0.25s;
+}
+
+.VPFooter .container .copyright a:hover {
+  opacity: 0.6;
+}
+
+.VPFooter .container .copyright img {
+  display: block;
+  height: 22px;
+  width: auto;
 }
 
 .vp-doc p:has(> img:only-child) {

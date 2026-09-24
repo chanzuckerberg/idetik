@@ -13,7 +13,7 @@ type Range = { min: number; max: number; step: number };
 
 const canvas = ref<HTMLCanvasElement | null>(null);
 const timeRange = shallowRef<Range | null>(null);
-const sliceCoords = shallowReactive({ t: 180 });
+const sliceCoords = shallowReactive({ t: 130 });
 
 let idetik: Idetik | null = null;
 let unmounted = false;
@@ -89,6 +89,7 @@ onMounted(async () => {
             radius,
             target: [centerOf(x), centerOf(y), centerOf(z)],
             scrollZoom: "modifier",
+            dampingFactor: 0.25,
           }),
           layers: [layer],
         },
