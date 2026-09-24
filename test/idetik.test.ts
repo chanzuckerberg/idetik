@@ -89,8 +89,8 @@ test("pixelRatio option rejects non-positive values", () => {
 
   expect(
     () => new Idetik({ canvas, pixelRatio: 0, viewports: [{ camera }] })
-  ).toThrow("pixelRatio must be a positive number");
+  ).toThrow("pixel ratio must be a positive number");
   expect(
     () => new Idetik({ canvas, pixelRatio: NaN, viewports: [{ camera }] })
-  ).toThrow("pixelRatio must be a positive number");
+  ).toThrow("pixel ratio must be a positive number");
 });
