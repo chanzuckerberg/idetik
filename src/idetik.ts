@@ -130,6 +130,7 @@ export class Idetik {
   private readonly viewports_: Viewport[];
   private readonly stats_?: Stats;
   private readonly sizeObserver_: PixelSizeObserver;
+  private readonly pixelRatio_?: number;
 
   private lastAnimationId_?: number;
   private lastTimestamp_: DOMHighResTimeStamp = 0;
@@ -141,6 +142,7 @@ export class Idetik {
    */
   constructor(params: IdetikProps) {
     this.canvas = params.canvas;
+    this.pixelRatio_ = params.pixelRatio;
 
     this.renderer_ = new WebGLRenderer(this.canvas, params.pixelRatio);
     const memoryLimitMB = params.memoryLimitMB ?? DEFAULT_MEMORY_LIMIT_MB;
@@ -161,7 +163,7 @@ export class Idetik {
       params.viewports ?? [],
       this.canvas,
       this.context_,
-      () => this.renderer_.pixelRatio
+      this.pixelRatio_
     );
 
     this.overlays = [...(params.overlays ?? [])];
@@ -253,7 +255,7 @@ export class Idetik {
       [props],
       this.canvas,
       this.context_,
-      () => this.renderer_.pixelRatio
+      this.pixelRatio_
     );
 
     validateNewViewport(viewport, this.viewports_);

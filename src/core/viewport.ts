@@ -29,7 +29,7 @@ interface ResolvedViewportProps extends ViewportProps {
   id: string;
   element: HTMLElement;
   context: IdetikContext;
-  pixelRatio: () => number;
+  pixelRatio?: number;
 }
 
 /**
@@ -72,7 +72,7 @@ export class Viewport {
   // To be removed when the chunk-infrastructure refactor folds chunk management
   // into the source and the attach lifecycle goes away.
   private readonly context_: IdetikContext;
-  private readonly pixelRatio_: () => number;
+  private readonly pixelRatio_?: number;
 
   private layers_: Layer[] = [];
 
@@ -169,7 +169,7 @@ export class Viewport {
   public getBoxRelativeTo(canvas: HTMLCanvasElement): Box2 {
     const viewportRect = this.getBox().toRect();
     const canvasRect = canvas.getBoundingClientRect();
-    const pixelRatio = this.pixelRatio_();
+    const pixelRatio = this.pixelRatio_ ?? (window.devicePixelRatio || 1);
 
     // convert canvas rect to device pixels
     // viewport rect is already in device pixels
@@ -235,7 +235,7 @@ export class Viewport {
 
   private getBox(): Box2 {
     const viewportRect = this.element.getBoundingClientRect();
-    const pixelRatio = this.pixelRatio_();
+    const pixelRatio = this.pixelRatio_ ?? (window.devicePixelRatio || 1);
 
     const x = viewportRect.left * pixelRatio;
     const y = viewportRect.top * pixelRatio;
@@ -296,7 +296,7 @@ export function parseViewportProps(
   props: ViewportProps[],
   canvas: HTMLCanvasElement,
   context: IdetikContext,
-  pixelRatio: () => number
+  pixelRatio?: number
 ): Viewport[] {
   const viewportProps: ResolvedViewportProps[] = props.map((config) => {
     const element = config.element ?? canvas;

@@ -17,7 +17,6 @@ test("Viewport constructor uses provided ID", () => {
     element,
     camera,
     context,
-    pixelRatio: () => 1,
   });
   expect(viewport.id).toBe("custom-viewport");
 });
@@ -32,7 +31,6 @@ test("Viewport constructor falls back to element ID", () => {
     element,
     camera,
     context,
-    pixelRatio: () => 1,
   });
   expect(viewport.id).toBe("element-id");
 });
@@ -48,7 +46,6 @@ test("Viewport constructor requires an ID", () => {
     element,
     camera,
     context,
-    pixelRatio: () => 1,
   });
   expect(viewport.id).toBe("generated-id");
 });
@@ -66,7 +63,7 @@ test("parseViewportProps creates viewports with validation", () => {
     { id: "viewport2", element: element2, camera: camera2 },
   ];
 
-  const viewports = parseViewportProps(configs, canvas, context, () => 1);
+  const viewports = parseViewportProps(configs, canvas, context);
 
   expect(viewports).toHaveLength(2);
   expect(viewports[0].id).toBe("viewport1");
@@ -88,7 +85,7 @@ test("parseViewportProps throws on duplicate IDs", () => {
     { id: "duplicate", element: element2, camera: camera2 },
   ];
 
-  expect(() => parseViewportProps(configs, canvas, context, () => 1)).toThrow(
+  expect(() => parseViewportProps(configs, canvas, context)).toThrow(
     'Duplicate viewport ID "duplicate"'
   );
 });
@@ -105,7 +102,7 @@ test("parseViewportProps throws on shared elements", () => {
     { id: "viewport2", element: sharedElement, camera: camera2 },
   ];
 
-  expect(() => parseViewportProps(configs, canvas, context, () => 1)).toThrow(
+  expect(() => parseViewportProps(configs, canvas, context)).toThrow(
     "Multiple viewports cannot share the same HTML element"
   );
 });
@@ -123,7 +120,7 @@ test("parseViewportProps allows viewports without explicit IDs", () => {
     { element: element2, camera: camera2 },
   ];
 
-  const viewports = parseViewportProps(configs, canvas, context, () => 1);
+  const viewports = parseViewportProps(configs, canvas, context);
 
   expect(viewports).toHaveLength(2);
   expect(viewports[0].id).toBe("element1");
