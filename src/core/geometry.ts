@@ -34,6 +34,7 @@ type GeometryAttribute = {
 };
 
 export class Geometry extends Node {
+  public instanceCount: number | null = null;
   private boundingBox_: Box3 | null = null;
   protected primitive_: Primitive;
   protected attributes_: GeometryAttribute[];

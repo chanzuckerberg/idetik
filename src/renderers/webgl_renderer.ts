@@ -47,7 +47,7 @@ export class WebGLRenderer extends Renderer {
 
     const gl = this.canvas.getContext("webgl2", {
       depth: true,
-      antialias: true,
+      antialias: false,
       stencil: true,
     });
     if (!gl) {
@@ -363,7 +363,25 @@ export class WebGLRenderer extends Renderer {
 
     const primitive = this.glGetPrimitive(geometry.primitive);
     const index = geometry.indexData;
-    if (index.length) {
+    const { instanceCount } = geometry;
+    if (instanceCount !== null) {
+      if (index.length) {
+        this.gl_.drawElementsInstanced(
+          primitive,
+          index.length,
+          this.gl_.UNSIGNED_INT,
+          0,
+          instanceCount
+        );
+      } else {
+        this.gl_.drawArraysInstanced(
+          primitive,
+          0,
+          geometry.vertexCount,
+          instanceCount
+        );
+      }
+    } else if (index.length) {
       this.gl_.drawElements(primitive, index.length, this.gl_.UNSIGNED_INT, 0);
     } else {
       this.gl_.drawArrays(primitive, 0, geometry.vertexCount);
