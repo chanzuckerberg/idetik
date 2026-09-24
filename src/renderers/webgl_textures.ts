@@ -330,6 +330,13 @@ export class WebGLTextures {
         type: this.gl_.UNSIGNED_BYTE,
       };
     }
+    if (format === "rgba" && type === "unsigned_int") {
+      return {
+        internalFormat: this.gl_.RGBA32UI,
+        format: this.gl_.RGBA_INTEGER,
+        type: this.gl_.UNSIGNED_INT,
+      };
+    }
     if (format === "rgb" && type === "unsigned_byte") {
       return {
         internalFormat: this.gl_.RGB8,
