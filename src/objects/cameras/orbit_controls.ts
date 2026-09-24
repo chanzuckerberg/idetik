@@ -44,17 +44,16 @@ export type OrbitControlsProps = {
  * ```ts
  * const camera = new PerspectiveCamera({ near: 1.0 });
  *
- * const idetik = new Idetik({
- *   canvas,
- *   viewports: [{
- *     camera,
- *     layers: [volumeLayer],
- *     cameraControls: new OrbitControls(camera, {
- *       radius: 100,
- *       target: [40, 40, 10],
- *     }),
- *   }],
+ * const viewport = new Viewport({
+ *   domElement: canvas,
+ *   camera,
+ *   layers: [volumeLayer],
+ *   cameraControls: new OrbitControls(camera, {
+ *     radius: 100,
+ *     target: [40, 40, 10],
+ *   }),
  * });
+ * const idetik = new Idetik({ canvas, viewports: [viewport] });
  * ```
  *
  * @group Controls

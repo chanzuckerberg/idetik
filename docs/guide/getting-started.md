@@ -94,12 +94,17 @@ Which resolution levels to load and how far ahead to fetch are decided by the la
 [`Idetik`](/api/classes/Idetik.html) is the entry point of an application. An instance owns the renderer and the chunk manager and drives the render loop for its viewports. A viewport pairs a camera and its controls with a stack of layers and draws into the canvas. Everything built so far comes together in the constructor.
 
 ```typescript
-import { Idetik } from '@idetik/core';
+import { Idetik, Viewport } from '@idetik/core';
 
-const idetik = new Idetik({
-  canvas: document.querySelector<HTMLCanvasElement>('#viewer')!,
-  viewports: [{ camera, cameraControls: controls, layers: [layer] }],
+const canvas = document.querySelector<HTMLCanvasElement>('#viewer')!;
+const viewport = new Viewport({
+  domElement: canvas,
+  camera,
+  cameraControls: controls,
+  layers: [layer],
 });
+
+const idetik = new Idetik({ canvas, viewports: [viewport] });
 
 idetik.start();
 ```
@@ -120,6 +125,7 @@ The complete program fits in forty lines and is the shape of every Idetik applic
 import {
   Idetik,
   ImageLayer,
+  Viewport,
   OmeZarrImageSource,
   OrthographicCamera,
   PanZoomControls,
@@ -150,9 +156,17 @@ const layer = new ImageLayer({
   channelProps: [{ contrastLimits: [0, 60] }],
 });
 
+const canvas = document.querySelector<HTMLCanvasElement>('#viewer')!;
+const viewport = new Viewport({
+  domElement: canvas,
+  camera,
+  cameraControls: controls,
+  layers: [layer],
+});
+
 const idetik = new Idetik({
-  canvas: document.querySelector<HTMLCanvasElement>('#viewer')!,
-  viewports: [{ camera, cameraControls: controls, layers: [layer] }],
+  canvas,
+  viewports: [viewport],
 });
 
 idetik.start();
