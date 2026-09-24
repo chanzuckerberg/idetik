@@ -97,8 +97,6 @@ export default defineConfig({
   },
 
   themeConfig: {
-    logo: '/icon.svg',
-
     search: {
       provider: 'local',
       options: {
@@ -137,6 +135,8 @@ export default defineConfig({
 
     footer: {
       message: 'Released under the MIT License',
+      copyright:
+        '<a href="https://biohub.ai" target="_blank" rel="noopener"><img src="/biohub-logo.svg" alt="Biohub"></a>',
     },
   },
 })

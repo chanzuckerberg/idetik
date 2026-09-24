@@ -5,8 +5,7 @@ const selected = defineModel<string>({ required: true });
 </script>
 
 <template>
-  <aside class="example-navigator">
-    <header class="header">Features</header>
+  <nav class="example-navigator" aria-label="Features">
     <ul class="list">
       <li v-for="example in examples" :key="example.id">
         <button
@@ -21,56 +20,34 @@ const selected = defineModel<string>({ required: true });
         </button>
       </li>
     </ul>
-    <footer class="footer">
-      <a
-        class="source"
-        href="https://github.com/chanzuckerberg/idetik"
-        target="_blank"
-        rel="noopener"
-      >
-        View source <span class="arrow">&rarr;</span>
-      </a>
-    </footer>
-  </aside>
+  </nav>
 </template>
 
 <style scoped>
 .example-navigator {
-  display: flex;
-  flex-direction: column;
   flex-shrink: 0;
-  width: 260px;
-  background: var(--vp-c-bg);
-}
-
-.header {
-  padding: 12px 16px;
   border-bottom: 1px solid var(--vp-c-gutter);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--vp-c-text-2);
+  background: var(--vp-c-bg);
 }
 
 .list {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
   margin: 0;
-  padding: 8px;
+  padding: 12px 16px;
   list-style: none;
 }
 
 .item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  text-align: left;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--vp-c-gutter);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
   transition:
     background-color 0.2s,
     border-color 0.2s;
@@ -100,53 +77,15 @@ const selected = defineModel<string>({ required: true });
 
 .item-title {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
   color: var(--vp-c-text-1);
 }
 
-.footer {
-  margin-top: auto;
-  padding: 12px 16px;
-  border-top: 1px solid var(--vp-c-gutter);
-}
-
-.source {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.5;
-  color: var(--vp-c-brand-1);
-  transition: color 0.25s;
-}
-
-.source:hover {
-  color: var(--vp-c-brand-2);
-}
-
-.arrow {
-  display: inline-block;
-  transition: transform 0.25s;
-}
-
-.source:hover .arrow {
-  transform: translateX(3px);
-}
-
 @media (max-width: 767px) {
-  .example-navigator {
-    width: 100%;
-  }
-
-  .header,
-  .footer {
-    display: none;
-  }
-
   .list {
-    flex-direction: row;
-    gap: 8px;
-    padding: 12px 16px;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -157,14 +96,6 @@ const selected = defineModel<string>({ required: true });
 
   .list li {
     flex-shrink: 0;
-  }
-
-  .item {
-    width: auto;
-    padding: 6px 12px;
-    border-color: var(--vp-c-gutter);
-    border-radius: 999px;
-    white-space: nowrap;
   }
 
   .item-title {
