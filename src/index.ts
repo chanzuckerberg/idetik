@@ -30,6 +30,17 @@ export type { ImageLayerProps } from "./layers/image_layer";
 export { VolumeLayer } from "./layers/volume_layer";
 export type { VolumeLayerProps } from "./layers/volume_layer";
 export { LabelLayer } from "./layers/label_layer";
+export { GaussianSplatLayer } from "./layers/gaussian_splat_layer";
+export type { GaussianSplatLayerProps } from "./layers/gaussian_splat_layer";
+export {
+  loadGaussianSplatsPly,
+  packGaussianSplats,
+  parseGaussianSplatsPly,
+} from "./data/gaussian_splats";
+export type {
+  GaussianSplatAttributes,
+  GaussianSplats,
+} from "./data/gaussian_splats";
 export type { LabelLayerProps } from "./layers/label_layer";
 export type {
   LabelColorMap,
