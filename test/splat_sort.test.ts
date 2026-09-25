@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { sortSplatsBackToFront } from "@/utilities/splat_sort";
+import { sortSplatsBackToFront } from "@/objects/renderable/gaussian_splat_renderable";
 
 function sort(positions: number[], stride: number, viewZ: number[]) {
   const count = positions.length / stride;
