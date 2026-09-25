@@ -20,6 +20,9 @@ export {
   loadOmeZarrWell,
 } from "./data/ome_zarr/metadata_loaders";
 
+export { GaussianSplatSource } from "./data/gaussian_splat_source";
+export type { GaussianSplatDimension } from "./data/gaussian_splat_source";
+
 export { Layer } from "./core/layer";
 export type { BlendMode, LayerProps, StateChangeCallback } from "./core/layer";
 export type { PointPickingResult } from "./layers/point_picking";

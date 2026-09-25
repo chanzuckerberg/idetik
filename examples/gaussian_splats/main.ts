@@ -1,6 +1,7 @@
 import { vec3 } from "gl-matrix";
 import {
   GaussianSplatLayer,
+  GaussianSplatSource,
   Idetik,
   OrbitControls,
   PerspectiveCamera,
@@ -13,11 +14,16 @@ import {
 const url =
   "https://raw.githubusercontent.com/vispy/demo-data/main/gaussian_splatting/cluster/cluster_fly_S.ply";
 
-const layer = await GaussianSplatLayer.fromPly(url);
+const source = await GaussianSplatSource.fromPly(url);
+const layer = new GaussianSplatLayer({ source });
 
-const { min, max } = layer.bounds;
-const center = vec3.lerp(vec3.create(), min, max, 0.5);
-const diagonal = vec3.distance(min, max);
+const [x, y, z] = source.getDimensions().map((dim) => dim.range);
+const center = vec3.fromValues(
+  (x[0] + x[1]) / 2,
+  (y[0] + y[1]) / 2,
+  (z[0] + z[1]) / 2
+);
+const diagonal = Math.hypot(x[1] - x[0], y[1] - y[0], z[1] - z[0]);
 
 const camera = new PerspectiveCamera({
   near: diagonal * 0.001,
@@ -41,4 +47,4 @@ const idetik = new Idetik({
 idetik.start();
 
 document.querySelector("#splat-count")!.textContent =
-  `${layer.splatCount.toLocaleString()} splats`;
+  `${source.splatCount.toLocaleString()} splats`;
