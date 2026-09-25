@@ -1,8 +1,10 @@
+import { mat4 } from "gl-matrix";
+
 import { RenderableObject } from "../../core/renderable_object";
-import { Box3 } from "../../math/box3";
 import { PlaneGeometry } from "../geometry/plane_geometry";
 import { Texture2D } from "../textures/texture_2d";
 import { GaussianSplats, SPLAT_WORDS } from "../../data/gaussian_splats";
+import { sortSplatsBackToFront } from "../../utilities/splat_sort";
 
 const MAX_TEXTURE_WIDTH = 4096;
 
@@ -10,17 +12,6 @@ function textureShape(texels: number) {
   const width = Math.max(1, Math.min(MAX_TEXTURE_WIDTH, texels));
   const height = Math.max(1, Math.ceil(texels / width));
   return { width, height };
-}
-
-/**
- * Returns the length of an order buffer that fills the order texture for a
- * given number of splats.
- *
- * @param count - The number of splats.
- */
-export function splatOrderLength(count: number) {
-  const { width, height } = textureShape(count);
-  return width * height;
 }
 
 /**
@@ -33,22 +24,27 @@ export function splatOrderLength(count: number) {
  * @group Renderables
  */
 export class GaussianSplatRenderable extends RenderableObject {
-  private splats_: Texture2D;
-  private order_: Texture2D;
-  private count_ = 0;
-  private bounds_ = new Box3();
+  private readonly splats_: GaussianSplats;
+  private readonly positions_: Float32Array;
+  private readonly order_: Texture2D;
+  private readonly orderData_: Uint32Array;
+  private readonly depths_: Float32Array;
 
-  constructor() {
+  /** @param splats - The splats to draw. */
+  constructor(splats: GaussianSplats) {
     super();
     this.programName = "gaussianSplat";
 
     const geometry = new PlaneGeometry(2, 2, 1, 1);
-    geometry.instanceCount = 0;
+    geometry.instanceCount = splats.count;
     this.geometry = geometry;
 
-    this.splats_ = createSplatTexture(new Uint32Array(0), 0);
-    this.order_ = createOrderTexture(0);
-    this.setTexture(0, this.splats_);
+    this.splats_ = splats;
+    this.positions_ = new Float32Array(splats.data.buffer);
+    this.orderData_ = createIdentityOrder(splats.count);
+    this.order_ = createOrderTexture(this.orderData_, splats.count);
+    this.depths_ = new Float32Array(splats.count);
+    this.setTexture(0, createSplatTexture(splats.data));
     this.setTexture(1, this.order_);
   }
 
@@ -56,46 +52,27 @@ export class GaussianSplatRenderable extends RenderableObject {
     return "GaussianSplatRenderable";
   }
 
-  /** The number of splats drawn. */
-  public get count() {
-    return this.count_;
-  }
-
   public override get boundingBox() {
-    return this.bounds_.clone();
+    const box = this.splats_.extent.clone();
+    box.applyTransform(this.transform.matrix);
+    return box;
   }
 
   /**
-   * Replaces the splats and resets the draw order to storage order.
+   * Orders the splats back to front for a model-view matrix.
    *
-   * @param splats - The splats to draw.
-   * @param bounds - World-space bounds enclosing the splats.
+   * @param modelView - The model-view matrix of the view to sort for.
    */
-  public setSplats(splats: GaussianSplats, bounds: Box3) {
-    this.markStaleTexture(this.splats_);
-    this.markStaleTexture(this.order_);
-    this.splats_ = createSplatTexture(splats.data, splats.count);
-    this.order_ = createOrderTexture(splats.count);
-    this.setTexture(0, this.splats_);
-    this.setTexture(1, this.order_);
-    this.count_ = splats.count;
-    this.bounds_ = bounds.clone();
-    this.geometry.instanceCount = splats.count;
-  }
-
-  /**
-   * Sets the order in which splats are drawn.
-   *
-   * @param order - Splat indices in draw order, with length
-   *   {@link splatOrderLength} of the current count.
-   */
-  public setOrder(order: Uint32Array) {
-    if (order.length !== splatOrderLength(this.count_)) {
-      throw new Error(
-        `Order of length ${order.length} does not match ${this.count_} splats`
-      );
-    }
-    this.order_.data = order;
+  public sortBackToFront(modelView: mat4) {
+    const viewZ = [modelView[2], modelView[6], modelView[10], modelView[14]];
+    sortSplatsBackToFront(
+      this.positions_,
+      SPLAT_WORDS,
+      viewZ,
+      this.orderData_,
+      this.depths_
+    );
+    this.order_.data = this.orderData_;
   }
 
   public override getUniforms() {
@@ -103,18 +80,23 @@ export class GaussianSplatRenderable extends RenderableObject {
   }
 }
 
-function createSplatTexture(data: Uint32Array, count: number) {
-  const { width, height } = textureShape((count * SPLAT_WORDS) / 4);
+function createSplatTexture(data: Uint32Array) {
+  const { width, height } = textureShape(data.length / 4);
   const padded = new Uint32Array(width * height * 4);
-  padded.set(data.subarray(0, count * SPLAT_WORDS));
+  padded.set(data);
   const texture = new Texture2D(padded, width, height);
   texture.dataFormat = "rgba";
   return texture;
 }
 
-function createOrderTexture(count: number) {
+function createIdentityOrder(count: number) {
   const { width, height } = textureShape(count);
   const order = new Uint32Array(width * height);
   for (let i = 0; i < count; i++) order[i] = i;
+  return order;
+}
+
+function createOrderTexture(order: Uint32Array, count: number) {
+  const { width, height } = textureShape(count);
   return new Texture2D(order, width, height);
 }

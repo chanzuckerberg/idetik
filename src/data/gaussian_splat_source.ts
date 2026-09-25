@@ -24,9 +24,14 @@ export type GaussianSplatDimension = {
  */
 export class GaussianSplatSource {
   private readonly splats_: GaussianSplats;
+  private readonly dimensions_: GaussianSplatDimension[];
 
-  private constructor(splats: GaussianSplats) {
+  private constructor(
+    splats: GaussianSplats,
+    dimensions: GaussianSplatDimension[]
+  ) {
     this.splats_ = splats;
+    this.dimensions_ = dimensions;
   }
 
   /**
@@ -39,7 +44,15 @@ export class GaussianSplatSource {
    * @param url - The URL of the PLY file.
    */
   public static async fromPly(url: string) {
-    return new GaussianSplatSource(await loadGaussianSplatsPly(url));
+    const splats = await loadGaussianSplatsPly(url);
+    const { min, max } = splats.bounds;
+    const dimensions = ["x", "y", "z"].map(
+      (name, i): GaussianSplatDimension => ({
+        name,
+        range: [min[i], max[i]],
+      })
+    );
+    return new GaussianSplatSource(splats, dimensions);
   }
 
   /** The number of splats. */
@@ -52,11 +65,7 @@ export class GaussianSplatSource {
    * sources have `x`, `y`, and `z`.
    */
   public getDimensions(): GaussianSplatDimension[] {
-    const { min, max } = this.splats_.bounds;
-    return ["x", "y", "z"].map((name, i) => ({
-      name,
-      range: [min[i], max[i]],
-    }));
+    return this.dimensions_.map((dim) => ({ ...dim, range: [...dim.range] }));
   }
 
   /** @hidden */

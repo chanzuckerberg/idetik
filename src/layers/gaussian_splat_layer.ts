@@ -1,15 +1,9 @@
-import { vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 
 import { Layer } from "../core/layer";
 import { Viewport } from "../core/viewport";
-import { Box3 } from "../math/box3";
-import { GaussianSplats } from "../data/gaussian_splats";
 import { GaussianSplatSource } from "../data/gaussian_splat_source";
-import {
-  GaussianSplatRenderable,
-  splatOrderLength,
-} from "../objects/renderable/gaussian_splat_renderable";
-import { sortSplatsBackToFront } from "../utilities/splat_sort";
+import { GaussianSplatRenderable } from "../objects/renderable/gaussian_splat_renderable";
 
 // Re-sort when the view direction has rotated more than one degree.
 const RESORT_COS_ANGLE = Math.cos((1 * Math.PI) / 180);
@@ -42,10 +36,11 @@ export class GaussianSplatLayer extends Layer {
   /** Identifies the layer type as `GaussianSplatLayer`. */
   public readonly type = "GaussianSplatLayer";
 
-  private readonly renderable_ = new GaussianSplatRenderable();
-  private readonly splats_: GaussianSplats;
-  private readonly depths_: Float32Array;
-  private sortedDirection_: vec3 | null = null;
+  private readonly renderable_: GaussianSplatRenderable;
+  private readonly modelView_ = mat4.create();
+  private readonly direction_ = vec3.create();
+  private readonly sortedDirection_ = vec3.create();
+  private sorted_ = false;
 
   /**
    * Creates a layer that renders splats from a source.
@@ -54,48 +49,35 @@ export class GaussianSplatLayer extends Layer {
    */
   constructor({ source, opacity = 1 }: GaussianSplatLayerProps) {
     super({ opacity, blendMode: "premultipliedOver", occludes: false });
-    const { splats } = source;
-    this.splats_ = splats;
-    this.depths_ = new Float32Array(splats.count);
-    this.renderable_.setSplats(splats, splatBounds(splats.bounds));
+    this.renderable_ = new GaussianSplatRenderable(source.splats);
     this.addObject(this.renderable_);
     this.setState("ready");
   }
 
   public update(viewport?: Viewport) {
-    if (!viewport || this.splats_.count === 0) return;
-    const view = viewport.camera.viewMatrix;
-    const viewZ = [view[2], view[6], view[10], view[14]];
+    if (!viewport) return;
+    const modelView = mat4.multiply(
+      this.modelView_,
+      viewport.camera.viewMatrix,
+      this.renderable_.transform.matrix
+    );
     // Depth order depends only on the view direction, and changes slowly with
     // it, so small rotations reuse the previous order.
-    const direction = vec3.fromValues(viewZ[0], viewZ[1], viewZ[2]);
+    const direction = vec3.set(
+      this.direction_,
+      modelView[2],
+      modelView[6],
+      modelView[10]
+    );
     vec3.normalize(direction, direction);
     if (
-      this.sortedDirection_ &&
+      this.sorted_ &&
       vec3.dot(direction, this.sortedDirection_) > RESORT_COS_ANGLE
     ) {
       return;
     }
-    this.sortedDirection_ = direction;
-
-    const order = new Uint32Array(splatOrderLength(this.splats_.count));
-    sortSplatsBackToFront(this.splats_.centers, viewZ, order, this.depths_);
-    this.renderable_.setOrder(order);
+    vec3.copy(this.sortedDirection_, direction);
+    this.sorted_ = true;
+    this.renderable_.sortBackToFront(modelView);
   }
-}
-
-// Pads center bounds so culling keeps splats that extend past them.
-function splatBounds(bounds: Box3) {
-  const box = bounds.clone();
-  const size = Math.max(
-    box.max[0] - box.min[0],
-    box.max[1] - box.min[1],
-    box.max[2] - box.min[2]
-  );
-  const pad = 0.05 * size;
-  for (let i = 0; i < 3; i++) {
-    box.min[i] -= pad;
-    box.max[i] += pad;
-  }
-  return box;
 }

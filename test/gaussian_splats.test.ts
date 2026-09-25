@@ -1,28 +1,12 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
-import {
-  SPLAT_WORDS,
-  packGaussianSplats,
-  toHalfBits,
-} from "@/data/gaussian_splats";
-
-function halfToFloat(bits: number) {
-  const sign = bits & 0x8000 ? -1 : 1;
-  const exp = (bits >> 10) & 0x1f;
-  const mant = bits & 0x3ff;
-  if (exp === 0) return sign * mant * 2 ** -24;
-  if (exp === 0x1f) return mant ? NaN : sign * Infinity;
-  return sign * (1 + mant / 1024) * 2 ** (exp - 15);
-}
+import { SPLAT_WORDS, packGaussianSplats } from "@/data/gaussian_splats";
 
 // Reconstructs the covariance of splat i from the packed data.
 function covariance(data: Uint32Array, i: number) {
   const o = i * SPLAT_WORDS;
   const s = new Float32Array(data.buffer)[o + 3];
-  const h = [4, 5, 6].flatMap((w) => [
-    halfToFloat(data[o + w] & 0xffff),
-    halfToFloat(data[o + w] >>> 16),
-  ]);
+  const h = new Float16Array(data.buffer, 4 * (o + 4), 6);
   const L = [
     [h[0], 0, 0],
     [h[1], h[2], 0],
@@ -33,33 +17,25 @@ function covariance(data: Uint32Array, i: number) {
   );
 }
 
-describe("toHalfBits", () => {
-  test.each([0, 1, -2.5, 0.1, 3.14159, 65504, 1e-5, 6e-8])(
-    "round trips %f",
-    (v) => {
-      expect(Math.abs(halfToFloat(toHalfBits(v)) - v)).toBeLessThanOrEqual(
-        Math.max(Math.abs(v) * 2 ** -11, 2 ** -25)
-      );
-    }
-  );
-
-  test("overflows to infinity", () => {
-    expect(halfToFloat(toHalfBits(1e6))).toBe(Infinity);
-  });
-});
-
 describe("packGaussianSplats", () => {
-  test("packs centers, colors, and bounds", () => {
+  test("packs centers, colors, bounds, and extent", () => {
     const splats = packGaussianSplats({
       positions: [1, 2, 3, -1, 0, 5],
-      scales: [1, 1, 1, 1, 1, 1],
+      scales: [1, 1, 1, 1, 1, 2],
       rotations: [1, 0, 0, 0, 1, 0, 0, 0],
       colors: [1, 0, 0.5, 0.25, 0, 1, 0, 1],
     });
     expect(splats.count).toBe(2);
-    expect(Array.from(splats.centers)).toEqual([1, 2, 3, -1, 0, 5]);
+    const floats = new Float32Array(splats.data.buffer);
+    expect(Array.from(floats.subarray(0, 3))).toEqual([1, 2, 3]);
+    expect(Array.from(floats.subarray(SPLAT_WORDS, SPLAT_WORDS + 3))).toEqual([
+      -1, 0, 5,
+    ]);
     expect(Array.from(splats.bounds.min)).toEqual([-1, 0, 3]);
     expect(Array.from(splats.bounds.max)).toEqual([1, 2, 5]);
+    // Three standard deviations of each splat's largest scale.
+    expect(Array.from(splats.extent.min)).toEqual([-7, -6, -1]);
+    expect(Array.from(splats.extent.max)).toEqual([5, 6, 11]);
     const rgba = splats.data[7];
     expect([
       rgba & 255,
@@ -99,5 +75,21 @@ describe("packGaussianSplats", () => {
     expect(cov[0][0] / 4e-12).toBeCloseTo(1, 2);
     expect(cov[1][1] / 1e-12).toBeCloseTo(1, 2);
     expect(cov[2][2]).toBeLessThan(1e-17);
+  });
+
+  test("explains when Float16Array is unavailable", () => {
+    vi.stubGlobal("Float16Array", undefined);
+    try {
+      expect(() =>
+        packGaussianSplats({
+          positions: [0, 0, 0],
+          scales: [1, 1, 1],
+          rotations: [1, 0, 0, 0],
+          colors: [1, 1, 1, 1],
+        })
+      ).toThrow("Float16Array");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

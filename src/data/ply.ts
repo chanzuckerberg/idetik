@@ -128,11 +128,14 @@ export function readPlyVertices<Name extends string>(
 ): { count: number; properties: Record<Name, Float32Array> } {
   const { elements, dataOffset } = parseHeader(buffer);
   let offset = dataOffset;
+  let vertex: PlyElement | undefined;
   for (const element of elements) {
-    if (element.name === "vertex") break;
+    if (element.name === "vertex") {
+      vertex = element;
+      break;
+    }
     offset += element.count * element.stride;
   }
-  const vertex = elements.find((element) => element.name === "vertex");
   if (!vertex) {
     throw new Error("PLY file has no vertex element");
   }
