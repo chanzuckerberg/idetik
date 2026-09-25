@@ -15,7 +15,7 @@ export function sortSplatsBackToFront(
   centers: Float32Array,
   viewZ: ArrayLike<number>,
   out: Uint32Array,
-  depths = new Float32Array(centers.length / 3)
+  depths: Float32Array = new Float32Array(centers.length / 3)
 ) {
   const count = centers.length / 3;
   const [a, b, c, d] = [viewZ[0], viewZ[1], viewZ[2], viewZ[3]];

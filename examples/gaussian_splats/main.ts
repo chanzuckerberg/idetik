@@ -4,7 +4,6 @@ import {
   Idetik,
   OrbitControls,
   PerspectiveCamera,
-  loadGaussianSplatsPly,
 } from "@";
 
 // Cluster fly by Dany Bittel (https://www.danybittel.ch), licensed CC BY 4.0
@@ -14,10 +13,9 @@ import {
 const url =
   "https://raw.githubusercontent.com/vispy/demo-data/main/gaussian_splatting/cluster/cluster_fly_S.ply";
 
-const splats = await loadGaussianSplatsPly(url);
-const layer = new GaussianSplatLayer({ splats });
+const layer = await GaussianSplatLayer.fromPly(url);
 
-const { min, max } = splats.bounds;
+const { min, max } = layer.bounds;
 const center = vec3.lerp(vec3.create(), min, max, 0.5);
 const diagonal = vec3.distance(min, max);
 
@@ -43,4 +41,4 @@ const idetik = new Idetik({
 idetik.start();
 
 document.querySelector("#splat-count")!.textContent =
-  `${splats.count.toLocaleString()} splats`;
+  `${layer.splatCount.toLocaleString()} splats`;
