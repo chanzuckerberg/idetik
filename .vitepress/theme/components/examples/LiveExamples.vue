@@ -2,10 +2,18 @@
 import { computed, ref, type Component } from "vue";
 import ExampleNavigator from "./ExampleNavigator.vue";
 import VolumeRenderer from "./viewers/VolumeRenderer.vue";
+import MultiscaleImage from "./viewers/MultiscaleImage.vue";
+import MultipleViewports from "./viewers/MultipleViewports.vue";
+import TemporalPlayback from "./viewers/TemporalPlayback.vue";
+import SegmentationLabels from "./viewers/SegmentationLabels.vue";
 import { examples } from "./examples";
 
 const viewers: Record<string, Component> = {
   "volume-rendering": VolumeRenderer,
+  "multiscale-image": MultiscaleImage,
+  "multiple-viewports": MultipleViewports,
+  "temporal-playback": TemporalPlayback,
+  "segmentation-labels": SegmentationLabels,
 };
 
 const selected = ref(examples[0].id);
@@ -18,7 +26,8 @@ const scrollHint = ref(false);
 let scrollHintTimer: ReturnType<typeof setTimeout> | undefined;
 
 function onWheel(e: WheelEvent) {
-  if (!(e.target instanceof HTMLCanvasElement)) return;
+  if (!(e.target instanceof Element) || !e.target.closest("canvas, .viewport"))
+    return;
   clearTimeout(scrollHintTimer);
   scrollHint.value = !(e.ctrlKey || e.metaKey);
   if (scrollHint.value) {
@@ -108,17 +117,27 @@ function onWheel(e: WheelEvent) {
   --panel-text-1: rgb(255 255 245 / 0.86);
   --panel-text-2: rgb(235 235 245 / 0.6);
   --panel-accent: var(--vp-c-brand-3);
+  --controls-height: 52px;
 
   position: relative;
   flex: 1;
   min-width: 0;
   min-height: 0;
-  background-color: #1b1b1f;
+  background-color: #000;
 }
 
 .viewer {
   position: absolute;
   inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stage :deep(canvas) {
+  display: block;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
 }
 
 .placeholder {
@@ -161,17 +180,14 @@ function onWheel(e: WheelEvent) {
   --vp-c-divider: var(--panel-border);
   --vp-c-brand-1: var(--panel-accent);
 
-  position: absolute;
-  left: 50%;
-  bottom: 20px;
-  width: min(520px, calc(100% - 40px));
-  padding: 10px 14px;
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: var(--controls-height);
+  padding: 0 20px;
+  border-top: 1px solid var(--panel-border);
   background: var(--panel-bg);
   font-size: 13px;
   line-height: 1.4;
-  transform: translateX(-50%);
 }
 
 .scroll-hint {
@@ -185,6 +201,10 @@ function onWheel(e: WheelEvent) {
   font-size: 20px;
   font-weight: 600;
   pointer-events: none;
+}
+
+.stage:has(.viewer-controls) .scroll-hint {
+  bottom: var(--controls-height);
 }
 
 .fade-enter-active {

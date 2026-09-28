@@ -11,8 +11,8 @@ type Example = {
 };
 
 export const examples: Example[] = [
-  { id: "volume-rendering", title: "Volume Rendering", icon: box },
   { id: "multiscale-image", title: "Multiscale Image", icon: zoom },
+  { id: "volume-rendering", title: "Volume Rendering", icon: box },
   { id: "multiple-viewports", title: "Multiple Viewports", icon: layout },
   { id: "temporal-playback", title: "Temporal Playback", icon: play },
   { id: "segmentation-labels", title: "Segmentation Labels", icon: tag },
