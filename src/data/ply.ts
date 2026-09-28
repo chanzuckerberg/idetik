@@ -81,8 +81,12 @@ function parseHeader(buffer: ArrayBuffer) {
   }
 
   const elements: PlyElement[] = [];
+  const comments: string[] = [];
   for (const line of text.slice(0, end).split(/\r?\n/)) {
     const [keyword, ...rest] = line.trim().split(/\s+/);
+    if (keyword === "comment") {
+      comments.push(line.trim().slice("comment".length).trim());
+    }
     if (keyword === "format" && rest[0] !== "binary_little_endian") {
       throw new Error(`Unsupported PLY format: ${rest[0]}`);
     }
@@ -111,7 +115,7 @@ function parseHeader(buffer: ArrayBuffer) {
       element.stride += TYPE_BYTES[type];
     }
   }
-  return { elements, dataOffset: end + marker.length };
+  return { elements, comments, dataOffset: end + marker.length };
 }
 
 /**
@@ -120,13 +124,18 @@ function parseHeader(buffer: ArrayBuffer) {
  *
  * @param buffer - The PLY file contents.
  * @param names - The vertex properties to read.
- * @returns The vertex count and one array per requested property.
+ * @returns The vertex count, one array per requested property, and the
+ *   header comments.
  */
 export function readPlyVertices<Name extends string>(
   buffer: ArrayBuffer,
   names: readonly Name[]
-): { count: number; properties: Record<Name, Float32Array> } {
-  const { elements, dataOffset } = parseHeader(buffer);
+): {
+  count: number;
+  properties: Record<Name, Float32Array>;
+  comments: string[];
+} {
+  const { elements, comments, dataOffset } = parseHeader(buffer);
   let offset = dataOffset;
   let vertex: PlyElement | undefined;
   for (const element of elements) {
@@ -154,5 +163,5 @@ export function readPlyVertices<Name extends string>(
     }
     properties[name] = values;
   }
-  return { count: vertex.count, properties };
+  return { count: vertex.count, properties, comments };
 }

@@ -23,15 +23,25 @@ export type GaussianSplatDimension = {
  * @group Data Loading
  */
 export class GaussianSplatSource {
+  /**
+   * Whether the splats were trained with anti-aliasing (Mip-Splatting
+   * style). Layers compensate opacity for their screen-space dilation by
+   * default when this is `true`. Detected from the header comment Postshot
+   * writes, since the PLY layout has no standard field for it.
+   */
+  public readonly antialiased: boolean;
+
   private readonly splats_: GaussianSplats;
   private readonly dimensions_: GaussianSplatDimension[];
 
   private constructor(
     splats: GaussianSplats,
-    dimensions: GaussianSplatDimension[]
+    dimensions: GaussianSplatDimension[],
+    antialiased: boolean
   ) {
     this.splats_ = splats;
     this.dimensions_ = dimensions;
+    this.antialiased = antialiased;
   }
 
   /**
@@ -44,7 +54,7 @@ export class GaussianSplatSource {
    * @param url - The URL of the PLY file.
    */
   public static async fromPly(url: string) {
-    const splats = await loadGaussianSplatsPly(url);
+    const { splats, antialiased } = await loadGaussianSplatsPly(url);
     const { min, max } = splats.bounds;
     const dimensions = ["x", "y", "z"].map(
       (name, i): GaussianSplatDimension => ({
@@ -52,7 +62,7 @@ export class GaussianSplatSource {
         range: [min[i], max[i]],
       })
     );
-    return new GaussianSplatSource(splats, dimensions);
+    return new GaussianSplatSource(splats, dimensions, antialiased);
   }
 
   /** The number of splats. */

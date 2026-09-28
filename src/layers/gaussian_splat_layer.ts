@@ -16,6 +16,11 @@ export type GaussianSplatLayerProps = {
   source: GaussianSplatSource;
   /** Layer opacity in `[0, 1]`. Defaults to `1`. */
   opacity?: number;
+  /**
+   * Compensates opacity for the screen-space dilation, as expected by scenes
+   * trained with anti-aliasing. Defaults to the source's `antialiased`.
+   */
+  antialias?: boolean;
 };
 
 /**
@@ -36,6 +41,14 @@ export class GaussianSplatLayer extends Layer {
   /** Identifies the layer type as `GaussianSplatLayer`. */
   public readonly type = "GaussianSplatLayer";
 
+  /**
+   * Whether opacity is compensated for the screen-space dilation that keeps
+   * sub-pixel splats from aliasing. Scenes trained with anti-aliasing expect
+   * it; scenes trained like the original 3D Gaussian Splatting would render
+   * too faint with it.
+   */
+  public antialias: boolean;
+
   private readonly renderable_: GaussianSplatRenderable;
   private readonly modelView_ = mat4.create();
   private readonly direction_ = vec3.create();
@@ -47,8 +60,13 @@ export class GaussianSplatLayer extends Layer {
    *
    * @param props - Initialization properties.
    */
-  constructor({ source, opacity = 1 }: GaussianSplatLayerProps) {
+  constructor({
+    source,
+    opacity = 1,
+    antialias = source.antialiased,
+  }: GaussianSplatLayerProps) {
     super({ opacity, blendMode: "premultipliedOver", occludes: false });
+    this.antialias = antialias;
     this.renderable_ = new GaussianSplatRenderable(source.splats);
     this.addObject(this.renderable_);
     this.setState("ready");
@@ -79,5 +97,9 @@ export class GaussianSplatLayer extends Layer {
     vec3.copy(this.sortedDirection_, direction);
     this.sorted_ = true;
     this.renderable_.sortBackToFront(modelView);
+  }
+
+  public override getUniforms() {
+    return { u_antialias: Number(this.antialias) };
   }
 }

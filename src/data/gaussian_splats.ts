@@ -146,8 +146,12 @@ const SH_C0 = 0.28209479177387814;
 // The layout written by the reference 3D Gaussian Splatting implementation:
 // scales are logs, opacity is a logit, and color uses only the degree-0
 // spherical harmonic.
-export function parseGaussianSplatsPly(buffer: ArrayBuffer): GaussianSplats {
-  const { count, properties: p } = readPlyVertices(buffer, PLY_PROPERTIES);
+export function parseGaussianSplatsPly(buffer: ArrayBuffer) {
+  const {
+    count,
+    properties: p,
+    comments,
+  } = readPlyVertices(buffer, PLY_PROPERTIES);
   const positions = new Float32Array(count * 3);
   const scales = new Float32Array(count * 3);
   const rotations = new Float32Array(count * 4);
@@ -168,7 +172,11 @@ export function parseGaussianSplatsPly(buffer: ArrayBuffer): GaussianSplats {
     colors[4 * i + 2] = 0.5 + SH_C0 * p.f_dc_2[i];
     colors[4 * i + 3] = 1 / (1 + Math.exp(-p.opacity[i]));
   }
-  return packGaussianSplats({ positions, scales, rotations, colors });
+  return {
+    splats: packGaussianSplats({ positions, scales, rotations, colors }),
+    // The PLY layout has no field for this; Postshot records it as a comment.
+    antialiased: comments.includes("postshot.anti_aliasing=1"),
+  };
 }
 
 export async function loadGaussianSplatsPly(url: string) {

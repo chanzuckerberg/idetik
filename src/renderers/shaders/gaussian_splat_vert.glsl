@@ -12,6 +12,9 @@ uniform mat4 u_projection;
 uniform mat4 u_modelView;
 uniform vec2 u_resolution;
 uniform float u_opacity;
+// Whether to scale opacity down for the dilation, for scenes trained with
+// anti-aliasing.
+uniform bool u_antialias;
 
 // Two RGBA32UI texels per splat, see GaussianSplats.data.
 uniform usampler2D u_splats;
@@ -95,8 +98,8 @@ void main() {
     float b = dot(J0, covJ1);
     float c = dot(J1, covJ1);
 
-    // Scale opacity down by the dilation so a splat's integrated contribution
-    // doesn't grow as it shrinks below a pixel.
+    // With anti-aliasing, opacity is scaled down by the dilation so a splat's
+    // integrated contribution doesn't grow as it shrinks below a pixel.
     float detRaw = a * c - b * b;
     a += DILATION;
     c += DILATION;
@@ -110,7 +113,8 @@ void main() {
 
     float maxExtent = max(u_resolution.x, u_resolution.y) * MAX_EXTENT_FACTOR;
     float coverageFade = 1.0 - smoothstep(0.5 * maxExtent, maxExtent, MAX_SIGMAS * sqrt(lambda1));
-    float alpha = color.a * u_opacity * dilationCompensation * coverageFade;
+    float alpha = color.a * u_opacity * coverageFade;
+    if (u_antialias) alpha *= dilationCompensation;
     if (alpha < MIN_ALPHA || !(det > 0.0)) {
         cull();
         return;
