@@ -178,7 +178,6 @@ export class ChunkManager {
       }
     }
 
-    // Drawn chunks go last so they outlive prefetched ones.
     return victims.sort((x, y) => {
       if (x.drawn !== y.drawn) return x.drawn ? 1 : -1;
       const byRankDescending = -comparePriority(x.chunk, y.chunk);
@@ -199,13 +198,13 @@ export class ChunkManager {
       comparePriority(victims[0].chunk, candidate) > 0 &&
       (!victims[0].drawn || candidate.visible)
     ) {
-      const { store, chunk } = victims.shift()!;
-      if (chunk.texture === undefined) continue;
+      const victim = victims.shift()!;
+      if (victim.chunk.texture === undefined) continue;
 
-      committedBytes -= textureStorageBytes(chunk.texture);
-      this.disposeChunkTexture(store, chunk);
-      chunk.state = "unloaded";
-      chunk.releasedAt = undefined;
+      committedBytes -= textureStorageBytes(victim.chunk.texture);
+      this.disposeChunkTexture(victim.store, victim.chunk);
+      victim.chunk.state = "unloaded";
+      victim.chunk.releasedAt = undefined;
     }
 
     return committedBytes;

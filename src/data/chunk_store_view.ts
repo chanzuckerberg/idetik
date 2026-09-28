@@ -111,7 +111,6 @@ export class ChunkStoreView {
         ? this.residentChunksForSlice()
         : this.residentChunksMarkedVisible();
 
-    // Coarser wins exact ties, matching Math.round in currentLOD.
     const targetLOD = this.targetLOD_;
     return drawable.sort(
       (a, b) =>
