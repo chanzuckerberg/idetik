@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { ChunkStore } from "@/data/chunk_store";
-import { Chunk, SourceDimensionMap } from "@/data/chunk";
+import { SourceDimensionMap } from "@/data/chunk";
+import { Texture } from "@/objects/textures/texture";
 import { Box2 } from "@/math/box2";
 import { vec2 } from "gl-matrix";
 import { createNoPrefetchPolicy } from "@/core/image_source_policy";
@@ -139,8 +140,7 @@ function viewOfWidth(bufferWidthPx: number) {
 function makeResident(store: ChunkStore, lod: number) {
   for (const chunk of store.getChunkGrid(lod, 0, 0)!.flat(2)) {
     chunk.state = "loaded";
-    chunk.texture = {} as Chunk["texture"];
-    store.addResidentChunk(chunk);
+    store.setChunkTexture(chunk, {} as Texture);
   }
 }
 

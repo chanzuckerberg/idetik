@@ -107,7 +107,7 @@ export class ChunkManager {
       if (!store.canDispose()) continue;
 
       for (const chunk of [...store.residentChunks]) {
-        this.disposeChunkTexture(chunk);
+        this.disposeChunkTexture(store, chunk);
         chunk.state = "unloaded";
       }
       this.stores_.splice(i, 1);
@@ -134,7 +134,7 @@ export class ChunkManager {
     candidates.sort((a, b) => comparePriority(a.chunk, b.chunk));
 
     let committedBytes = this.getGpuResidentBytes_();
-    let victims: Chunk[] | null = null;
+    let victims: { store: ChunkStore; chunk: Chunk }[] | null = null;
 
     for (const { source, chunk } of candidates) {
       const bytes = this.chunkBytes(source, chunk);
@@ -162,17 +162,17 @@ export class ChunkManager {
     }
   }
 
-  private evictionCandidates(): Chunk[] {
-    const victims: Chunk[] = [];
+  private evictionCandidates(): { store: ChunkStore; chunk: Chunk }[] {
+    const victims: { store: ChunkStore; chunk: Chunk }[] = [];
 
     for (const { store } of this.stores_) {
       for (const chunk of store.residentChunks) {
         if (chunk.visible) continue;
-        victims.push(chunk);
+        victims.push({ store, chunk });
       }
     }
 
-    return victims.sort((a, b) => {
+    return victims.sort(({ chunk: a }, { chunk: b }) => {
       const byRankDescending = -comparePriority(a, b);
       if (byRankDescending !== 0) return byRankDescending;
       return (a.releasedAt ?? 0) - (b.releasedAt ?? 0);
@@ -183,20 +183,20 @@ export class ChunkManager {
     committedBytes: number,
     pendingBytes: number,
     candidate: Chunk,
-    victims: Chunk[]
+    victims: { store: ChunkStore; chunk: Chunk }[]
   ): number {
     while (
       committedBytes + pendingBytes > this.memoryLimitBytes_ &&
       victims.length > 0 &&
-      comparePriority(victims[0], candidate) > 0
+      comparePriority(victims[0].chunk, candidate) > 0
     ) {
-      const victim = victims.shift()!;
-      if (victim.texture === undefined) continue;
+      const { store, chunk } = victims.shift()!;
+      if (chunk.texture === undefined) continue;
 
-      committedBytes -= textureStorageBytes(victim.texture);
-      this.disposeChunkTexture(victim);
-      victim.state = "unloaded";
-      victim.releasedAt = undefined;
+      committedBytes -= textureStorageBytes(chunk.texture);
+      this.disposeChunkTexture(store, chunk);
+      chunk.state = "unloaded";
+      chunk.releasedAt = undefined;
     }
 
     return committedBytes;
@@ -228,17 +228,13 @@ export class ChunkManager {
       const chunk = pending[i];
       const texture = Texture3D.createWithChunk(chunk);
       this.uploadTexture_(texture);
-      chunk.texture = texture;
-      store.addResidentChunk(chunk);
+      store.setChunkTexture(chunk, texture);
       clearChunkData(chunk);
     }
   }
 
-  private disposeChunkTexture(chunk: Chunk) {
-    if (chunk.texture === undefined) return;
-    this.disposeTexture_?.(chunk.texture);
-    chunk.texture = undefined;
-
-    for (const { store } of this.stores_) store.removeResidentChunk(chunk);
+  private disposeChunkTexture(store: ChunkStore, chunk: Chunk) {
+    const texture = store.clearChunkTexture(chunk);
+    if (texture !== undefined) this.disposeTexture_?.(texture);
   }
 }
