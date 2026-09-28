@@ -13,26 +13,59 @@ const memberCell = (name, isOptional, type) =>
 const singleLine = (text) => text.replaceAll("\n", " ");
 
 export function foldedPropertiesTable(context, properties) {
-  const rows = context.helpers
-    .getFlattenedDeclarations(properties)
-    .map((property) => {
-      const anchor = context.router.hasUrl(property)
-        ? `<a id="${context.router.getAnchor(property)}"></a> `
-        : "";
-
-      const type = singleLine(context.partials.someType(property.type));
-
-      const description = property.comment
-        ? singleLine(
-            context.partials.comment(property.comment, { isTableColumn: true })
-          )
-        : "";
-
-      const cell = memberCell(property.name, property.flags?.isOptional, type);
-      return `| ${anchor}${cell} | ${description} |`;
-    });
-
+  const rows = properties.flatMap((property) =>
+    propertyRows(context, property)
+  );
   return twoColumnTable("Property", rows);
+}
+
+// Nested object members get their own rows (`a.b`, or `a[].b` through arrays)
+// so their comments render instead of collapsing into the parent's type.
+function propertyRows(context, property, namePrefix = "") {
+  const name = namePrefix ? `${namePrefix}.${property.name}` : property.name;
+  const anchor =
+    !namePrefix && context.router.hasUrl(property)
+      ? `<a id="${context.router.getAnchor(property)}"></a> `
+      : "";
+
+  const nested = nestedObject(property.type);
+  const type = nested
+    ? `${nested.readonly ? "readonly " : ""}\`object\`${nested.arraySuffix}`
+    : singleLine(context.partials.someType(property.type));
+
+  const description = property.comment
+    ? singleLine(
+        context.partials.comment(property.comment, { isTableColumn: true })
+      )
+    : "";
+
+  const cell = memberCell(name, property.flags?.isOptional, type);
+  const row = `| ${anchor}${cell} | ${description} |`;
+  if (!nested) return [row];
+
+  const childPrefix = `${name}${nested.arraySuffix}`;
+  return [
+    row,
+    ...nested.children.flatMap((child) =>
+      propertyRows(context, child, childPrefix)
+    ),
+  ];
+}
+
+function nestedObject(type) {
+  let readonly = false;
+  let arraySuffix = "";
+  let current = type;
+  if (current?.type === "typeOperator" && current.operator === "readonly") {
+    readonly = true;
+    current = current.target;
+  }
+  while (current?.type === "array") {
+    arraySuffix += "[]";
+    current = current.elementType;
+  }
+  const children = current?.declaration?.children;
+  return children?.length ? { readonly, arraySuffix, children } : undefined;
 }
 
 export function twoColumnParametersTable(context, model) {
