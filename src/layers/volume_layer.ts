@@ -3,7 +3,7 @@ import { Layer } from "../core/layer";
 import { Camera } from "../objects/cameras/camera";
 import { Viewport } from "../core/viewport";
 import { VolumeRenderable } from "../objects/renderable/volume_renderable";
-import { IdetikContext } from "../idetik";
+import type { IdetikContext } from "../idetik";
 import { ChunkStoreView, INTERNAL_POLICY_KEY } from "../data/chunk_store_view";
 import {
   createExplorationPolicy,
@@ -326,6 +326,11 @@ export class VolumeLayer extends Layer implements ChannelsEnabled {
     for (const volume of volumes) {
       this.addObject(volume);
     }
+  }
+
+  /** @hidden */
+  public get chunkStoreView(): ChunkStoreView | undefined {
+    return this.chunkStoreView_;
   }
 
   /** Returns the ray marching uniforms for this layer. */

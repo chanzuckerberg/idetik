@@ -1,126 +1,155 @@
 import { Chunk, ChunkSource } from "./chunk";
 import type { ChunkStore } from "./chunk_store";
-
-/** Chunk counts for one timepoint, at the level of detail being drawn. */
-export type TimepointChunkStats = {
-  /** The timepoint. */
-  index: number;
-  /** Chunks the layers want here. */
-  wanted: number;
-  /** How many of `wanted` have their data. */
-  loaded: number;
-};
-
-/** Chunk counts for one level of detail of one source. */
-export type LodChunkStats = {
-  /** The level of detail, `0` being finest. */
-  lod: number;
-  /** Chunks the layers want at this level. */
-  wanted: number;
-  /** How many of `wanted` have their data. */
-  loaded: number;
-};
-
-/** Chunk counts for one source. */
-export type SourceChunkStats = {
-  /** The source the counts describe. */
-  source: ChunkSource;
-  /** Chunks the layers want. The budget may defer fetching them. */
-  wanted: number;
-  /** How many of `wanted` have their data. */
-  loaded: number;
-  /** Counts per level of detail, finest first. Idle levels are omitted. */
-  lods: readonly LodChunkStats[];
-  /** Counts per timepoint, covering the whole time axis. */
-  timepoints: readonly TimepointChunkStats[];
-};
-
-/** A snapshot of what the layers want and how much of it has loaded. */
-export type ChunkStats = {
-  /** Chunks the layers want, across all sources. */
-  wanted: number;
-  /** How many of `wanted` have their data. Drawable only once uploaded. */
-  loaded: number;
-  /** One entry per chunk source, with per-LOD and per-timepoint detail. */
-  sources: readonly SourceChunkStats[];
-};
+import type { ChunkStoreView } from "./chunk_store_view";
 
 /**
- * Derives chunk statistics from the manager's stores.
+ * A snapshot of chunk demand and GPU residency.
  *
- * @param stores - The manager's sources and their stores.
+ * Requested counts include prefetch. When the memory limit cannot hold every
+ * requested chunk, some are never fetched and `resident` stays below
+ * `requested`.
  */
-export function computeChunkStats(
-  stores: readonly { source: ChunkSource; store: ChunkStore }[]
-): ChunkStats {
-  const sources = stores.map(({ source, store }) =>
-    statsForStore(source, store)
-  );
+export type ChunkStats = {
+  /** Cache state per source, combined across all of its views. */
+  sources: readonly {
+    /** The source the counts describe. */
+    source: ChunkSource;
+    /**
+     * Chunks requested by any view, visible or prefetch, at any LOD. A chunk
+     * requested by several views counts once. The budget may defer fetching.
+     */
+    requested: number;
+    /** How many of `requested` are on the GPU and drawable. */
+    resident: number;
+    /** Counts per level of detail, finest first, covering every level. */
+    lods: readonly {
+      /** The level of detail, `0` being finest. */
+      lod: number;
+      /** Chunks at this level requested by any view. */
+      requested: number;
+      /** How many of `requested` are on the GPU. */
+      resident: number;
+    }[];
+  }[];
+  /**
+   * Loading progress per viewport, summed across its chunked layers.
+   * Viewports without chunked layers are omitted.
+   */
+  viewports: readonly {
+    /** The viewport the counts describe. */
+    viewportId: string;
+    /**
+     * Visible and prefetch chunks at any LOD, including the fallback LOD
+     * drawn while the current one loads.
+     */
+    requested: number;
+    /** How many of `requested` are on the GPU. */
+    resident: number;
+    /**
+     * Visible and prefetch chunks, indexed by timepoint and covering the
+     * longest time axis among the viewport's sources.
+     */
+    timepoints: {
+      /** Chunks requested at each timepoint. */
+      requested: Uint32Array;
+      /** How many of `requested` are on the GPU at each timepoint. */
+      resident: Uint32Array;
+    };
+  }[];
+};
 
-  let wanted = 0;
-  let loaded = 0;
-  for (const stats of sources) {
-    wanted += stats.wanted;
-    loaded += stats.loaded;
-  }
+type SourceChunkStats = ChunkStats["sources"][number];
+type ViewportChunkStats = ChunkStats["viewports"][number];
+type LodChunkStats = SourceChunkStats["lods"][number];
 
-  return { wanted, loaded, sources };
-}
-
-function statsForStore(
+/**
+ * Counts one source's chunks across all of its views.
+ *
+ * @param source - The source the store holds.
+ * @param store - The store to count.
+ */
+export function computeSourceChunkStats(
   source: ChunkSource,
   store: ChunkStore
 ): SourceChunkStats {
-  // multiple views may want the same chunk, so collect before counting
-  const wantedChunks = new Map<Chunk, boolean>();
-  for (const view of store.views) {
+  const lods: LodChunkStats[] = [];
+  for (let lod = 0; lod < store.lodCount; lod++) {
+    lods.push({ lod, requested: 0, resident: 0 });
+  }
+
+  let requested = 0;
+  let resident = 0;
+
+  const views = store.views;
+  for (let i = 0; i < views.length; i++) {
+    for (const [chunk, state] of views[i].chunkViewStates) {
+      if (state.priority === null) continue;
+      if (isRequestedByEarlierView(chunk, views, i)) continue;
+
+      const isResident = chunk.texture !== undefined;
+      requested += 1;
+      lods[chunk.lod].requested += 1;
+      if (isResident) {
+        resident += 1;
+        lods[chunk.lod].resident += 1;
+      }
+    }
+  }
+
+  return { source, requested, resident, lods };
+}
+
+// avoids allocating a set per call to count chunks shared by views once
+function isRequestedByEarlierView(
+  chunk: Chunk,
+  views: ReadonlyArray<ChunkStoreView>,
+  index: number
+): boolean {
+  for (let i = 0; i < index; i++) {
+    const state = views[i].chunkViewStates.get(chunk);
+    if (state !== undefined && state.priority !== null) return true;
+  }
+  return false;
+}
+
+/**
+ * Sums the chunks requested by a viewport's views.
+ *
+ * @param viewportId - The viewport the views render into.
+ * @param views - The viewport's views and the stores they belong to.
+ */
+export function computeViewportChunkStats(
+  viewportId: string,
+  views: readonly { store: ChunkStore; view: ChunkStoreView }[]
+): ViewportChunkStats {
+  let numTimepoints = 1;
+  for (const { store } of views) {
+    numTimepoints = Math.max(
+      numTimepoints,
+      store.dimensions.t?.lods[0].size ?? 1
+    );
+  }
+  const timepoints = {
+    requested: new Uint32Array(numTimepoints),
+    resident: new Uint32Array(numTimepoints),
+  };
+
+  let requested = 0;
+  let resident = 0;
+
+  for (const { view } of views) {
     for (const [chunk, state] of view.chunkViewStates) {
       if (state.priority === null) continue;
-      const atCurrentLOD =
-        (wantedChunks.get(chunk) ?? false) || chunk.lod === view.currentLOD;
-      wantedChunks.set(chunk, atCurrentLOD);
+
+      const t = chunk.chunkIndex.t;
+      requested += 1;
+      timepoints.requested[t] += 1;
+      if (chunk.texture !== undefined) {
+        resident += 1;
+        timepoints.resident[t] += 1;
+      }
     }
   }
 
-  const numTimePoints = store.dimensions.t?.lods[0].size ?? 1;
-  const timepoints: TimepointChunkStats[] = Array.from(
-    { length: numTimePoints },
-    (_, index) => ({ index, wanted: 0, loaded: 0 })
-  );
-
-  const lods = new Map<number, LodChunkStats>();
-  const lodEntry = (lod: number): LodChunkStats => {
-    let entry = lods.get(lod);
-    if (entry === undefined) {
-      entry = { lod, wanted: 0, loaded: 0 };
-      lods.set(lod, entry);
-    }
-    return entry;
-  };
-
-  let wanted = 0;
-  let loaded = 0;
-
-  for (const [chunk, atCurrentLOD] of wantedChunks) {
-    const isLoaded = chunk.state === "loaded";
-    wanted += 1;
-    if (isLoaded) loaded += 1;
-
-    const lod = lodEntry(chunk.lod);
-    lod.wanted += 1;
-    if (isLoaded) lod.loaded += 1;
-
-    if (!atCurrentLOD) continue;
-    const timepoint = timepoints[chunk.chunkIndex.t];
-    timepoint.wanted += 1;
-    if (isLoaded) timepoint.loaded += 1;
-  }
-
-  return {
-    source,
-    wanted,
-    loaded,
-    lods: [...lods.values()].sort((a, b) => a.lod - b.lod),
-    timepoints,
-  };
+  return { viewportId, requested, resident, timepoints };
 }

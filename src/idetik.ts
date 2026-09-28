@@ -1,6 +1,9 @@
 import { WebGLRenderer } from "./renderers/webgl_renderer";
 import { Logger } from "./utilities/logger";
 import { ChunkManager } from "./data/chunk_manager";
+import { ImageLayer } from "./layers/image_layer";
+import { LabelLayer } from "./layers/label_layer";
+import { VolumeLayer } from "./layers/volume_layer";
 import type { ChunkStats } from "./data/chunk_stats";
 import { Renderer } from "./core/renderer";
 import { createStats, type Stats } from "./utilities/stats";
@@ -187,9 +190,31 @@ export class Idetik {
     return this.chunkManager_.queueStats;
   }
 
-  /* Counts of requested and loaded chunks, by source, LOD, and timepoint.*/
+  /**
+   * Chunk demand and GPU residency per source, and loading progress per
+   * viewport. Each read walks every view's chunk states and returns a
+   * new snapshot, so poll it at the rate you need rather than every frame.
+   */
   public get chunkStats(): ChunkStats {
-    return this.chunkManager_.chunkStats;
+    const viewports: ChunkStats["viewports"][number][] = [];
+    for (const viewport of this.viewports_) {
+      const views = [];
+      for (const layer of viewport.layers) {
+        // TODO: replace with a generic hook once non-image chunked layers
+        // (e.g. meshes, point clouds) exist
+        if (
+          !(layer instanceof ImageLayer) &&
+          !(layer instanceof LabelLayer) &&
+          !(layer instanceof VolumeLayer)
+        ) {
+          continue;
+        }
+        if (layer.chunkStoreView) views.push(layer.chunkStoreView);
+      }
+      if (views.length === 0) continue;
+      viewports.push(this.chunkManager_.viewportChunkStats(viewport.id, views));
+    }
+    return { sources: this.chunkManager_.sourceChunkStats, viewports };
   }
 
   /** A snapshot of current CPU/GPU/JS heap memory usage. */
