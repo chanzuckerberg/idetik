@@ -26,7 +26,7 @@ export class ChunkStoreView {
   private readonly store_: ChunkStore;
   private policy_: ImageSourcePolicy;
   private policyChanged_ = false;
-  private currentLOD_: number = 0;
+  private targetLOD_: number = 0;
   private readonly axes_: SliceAxes;
   private readonly scale0_: number;
   private mode_: "image" | "volume" | null = null;
@@ -111,9 +111,12 @@ export class ChunkStoreView {
         ? this.residentChunksForSlice()
         : this.residentChunksMarkedVisible();
 
-    const currentLOD = this.currentLOD_;
+    // Coarser wins exact ties, matching Math.round in currentLOD.
+    const targetLOD = this.targetLOD_;
     return drawable.sort(
-      (a, b) => lodRank(a.lod, currentLOD) - lodRank(b.lod, currentLOD)
+      (a, b) =>
+        Math.abs(a.lod - targetLOD) - Math.abs(b.lod - targetLOD) ||
+        b.lod - a.lod
     );
   }
 
@@ -203,12 +206,11 @@ export class ChunkStoreView {
 
     // Range-query the prefetch AABB at currentLOD (and fallbackLOD when
     // distinct); fallback chunks act as a backdrop while currentLOD loads.
+    const currentLOD = this.currentLOD;
     const lodsToVisit =
-      this.currentLOD_ === fallbackLOD
-        ? [this.currentLOD_]
-        : [this.currentLOD_, fallbackLOD];
+      currentLOD === fallbackLOD ? [currentLOD] : [currentLOD, fallbackLOD];
     for (const lod of lodsToVisit) {
-      const isCurrent = lod === this.currentLOD_;
+      const isCurrent = lod === currentLOD;
       const isFallback = lod === fallbackLOD;
       this.iterateChunksInBox(
         currentTimeIndex,
@@ -278,16 +280,17 @@ export class ChunkStoreView {
     // TODO: Calculate LOD dynamically based on view frustum for volume rendering
     // (similar to zoom-based LOD calculation in updateChunksForImage).
     // Currently uses a fixed LOD from policy.
-    this.currentLOD_ = this.policy_.lod.min;
+    this.targetLOD_ = this.policy_.lod.min;
 
     this.chunkViewStates_.forEach(resetChunkViewState);
 
     const channels = this.channelsOfInterest(sliceCoords.c);
     const fallbackLOD = this.lodRange().max;
+    const currentLOD = this.currentLOD;
 
     const markVolumeChunkVisible = (chunk: Chunk) => {
       const isFallbackLOD = chunk.lod === fallbackLOD;
-      const isCurrentLOD = chunk.lod === this.currentLOD_;
+      const isCurrentLOD = chunk.lod === currentLOD;
       const priority = this.computePriority(
         isFallbackLOD,
         isCurrentLOD,
@@ -305,11 +308,11 @@ export class ChunkStoreView {
     };
     this.iterateAllChunksAtLod(
       currentTimeIndex,
-      this.currentLOD_,
+      currentLOD,
       channels,
       markVolumeChunkVisible
     );
-    if (this.currentLOD_ !== fallbackLOD) {
+    if (currentLOD !== fallbackLOD) {
       this.iterateAllChunksAtLod(
         currentTimeIndex,
         fallbackLOD,
@@ -339,7 +342,8 @@ export class ChunkStoreView {
   }
 
   public get currentLOD(): number {
-    return this.currentLOD_;
+    const { min, max } = this.lodRange();
+    return clamp(Math.round(this.targetLOD_), min, max);
   }
 
   public maybeForgetChunk(chunk: Chunk): void {
@@ -380,15 +384,11 @@ export class ChunkStoreView {
     // With 2x downsampling per LOD, selection happens in log2 space.
     const bias = this.policy_.lod.bias;
 
-    // How many LOD 0 pixels per screen pixel, normalized by source scale and bias.
-    const sourceAdjusted = bias - Math.log2(this.scale0_) - lodFactor;
-    const desiredLOD = Math.floor(sourceAdjusted);
-
-    const { min, max } = this.lodRange();
-    const target = clamp(desiredLOD, min, max);
-    if (target === this.currentLOD_) return false;
-    this.currentLOD_ = target;
-    return true;
+    // How many LOD 0 pixels per screen pixel, normalized by source scale.
+    const sourceAdjusted = -Math.log2(this.scale0_) - lodFactor;
+    const previousLOD = this.currentLOD;
+    this.targetLOD_ = bias - 0.5 + sourceAdjusted;
+    return this.currentLOD !== previousLOD;
   }
 
   private markTimeChunksForPrefetchImage(
@@ -406,7 +406,7 @@ export class ChunkStoreView {
       const t = (currentTimeIndex + i) % numTimePoints;
       this.iterateChunksInBox(
         t,
-        this.currentLOD_,
+        this.currentLOD,
         channels,
         viewBounds3D,
         (chunk) => {
@@ -443,7 +443,7 @@ export class ChunkStoreView {
 
     for (let i = 1; i <= windowSize; ++i) {
       const t = (currentTimeIndex + i) % numTimePoints;
-      this.iterateAllChunksAtLod(t, this.currentLOD_, channels, (chunk) => {
+      this.iterateAllChunksAtLod(t, this.currentLOD, channels, (chunk) => {
         const orderKey = i; // nearer along the playback loop first
         this.chunkViewStates_.set(chunk, {
           visible: false,
@@ -572,7 +572,7 @@ export class ChunkStoreView {
     const wDim = this.store_.dimensions[this.axes_.w];
     if (wDim === undefined) return [0, 1];
 
-    const wLod = wDim.lods[this.currentLOD_];
+    const wLod = wDim.lods[this.currentLOD];
 
     // If slice coordinate is undefined, return bounds that encompass the whole axis (for volume rendering)
     const sliceValue = sliceCoords[this.axes_.w];
@@ -640,9 +640,9 @@ export class ChunkStoreView {
   private getPaddedBounds(bounds: Box3): Box3 {
     const { u, v, w } = this.axes_;
     const dimensions = this.store_.dimensions;
-    const uLod = dimensions[u]!.lods[this.currentLOD_];
-    const vLod = dimensions[v]!.lods[this.currentLOD_];
-    const wLod = dimensions[w]?.lods[this.currentLOD_];
+    const uLod = dimensions[u]!.lods[this.currentLOD];
+    const vLod = dimensions[v]!.lods[this.currentLOD];
+    const wLod = dimensions[w]?.lods[this.currentLOD];
 
     const pad = vec3.create();
     pad[AxisComponent[u]] =
@@ -718,11 +718,6 @@ class VisibleSliceRegion {
 
 function chunkEnd(chunk: Chunk, axis: SpatialAxis): number {
   return chunk.offset[axis] + chunk.shape[axis] * chunk.scale[axis];
-}
-
-// Distance from the current LOD, with coarser winning ties.
-function lodRank(lod: number, currentLOD: number): number {
-  return 2 * Math.abs(lod - currentLOD) + (lod < currentLOD ? 1 : 0);
 }
 
 function resetChunkViewState(state: ChunkViewState): void {

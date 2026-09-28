@@ -134,7 +134,7 @@ export class ChunkManager {
     candidates.sort((a, b) => comparePriority(a.chunk, b.chunk));
 
     let committedBytes = this.getGpuResidentBytes_();
-    let victims: { store: ChunkStore; chunk: Chunk }[] | null = null;
+    const victims = this.evictionCandidates();
 
     for (const { source, chunk } of candidates) {
       const bytes = this.chunkBytes(source, chunk);
@@ -144,7 +144,6 @@ export class ChunkManager {
       if (bytes > this.memoryLimitBytes_) continue;
 
       if (committedBytes + bytes > this.memoryLimitBytes_) {
-        victims ??= this.evictionCandidates();
         committedBytes = this.evictWorseChunks(
           committedBytes,
           bytes,
@@ -162,20 +161,29 @@ export class ChunkManager {
     }
   }
 
-  private evictionCandidates(): { store: ChunkStore; chunk: Chunk }[] {
-    const victims: { store: ChunkStore; chunk: Chunk }[] = [];
+  private evictionCandidates(): {
+    store: ChunkStore;
+    chunk: Chunk;
+    drawn: boolean;
+  }[] {
+    const victims: { store: ChunkStore; chunk: Chunk; drawn: boolean }[] = [];
 
     for (const { store } of this.stores_) {
+      const drawn = new Set(
+        store.views.flatMap((view) => view.getChunksToRender())
+      );
       for (const chunk of store.residentChunks) {
         if (chunk.visible) continue;
-        victims.push({ store, chunk });
+        victims.push({ store, chunk, drawn: drawn.has(chunk) });
       }
     }
 
-    return victims.sort(({ chunk: a }, { chunk: b }) => {
-      const byRankDescending = -comparePriority(a, b);
+    // Drawn chunks go last so they outlive prefetched ones.
+    return victims.sort((x, y) => {
+      if (x.drawn !== y.drawn) return x.drawn ? 1 : -1;
+      const byRankDescending = -comparePriority(x.chunk, y.chunk);
       if (byRankDescending !== 0) return byRankDescending;
-      return (a.releasedAt ?? 0) - (b.releasedAt ?? 0);
+      return (x.chunk.releasedAt ?? 0) - (y.chunk.releasedAt ?? 0);
     });
   }
 
@@ -183,12 +191,13 @@ export class ChunkManager {
     committedBytes: number,
     pendingBytes: number,
     candidate: Chunk,
-    victims: { store: ChunkStore; chunk: Chunk }[]
+    victims: { store: ChunkStore; chunk: Chunk; drawn: boolean }[]
   ): number {
     while (
       committedBytes + pendingBytes > this.memoryLimitBytes_ &&
       victims.length > 0 &&
-      comparePriority(victims[0].chunk, candidate) > 0
+      comparePriority(victims[0].chunk, candidate) > 0 &&
+      (!victims[0].drawn || candidate.visible)
     ) {
       const { store, chunk } = victims.shift()!;
       if (chunk.texture === undefined) continue;

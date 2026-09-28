@@ -105,6 +105,28 @@ describe("ChunkStoreView multiscale rendering", () => {
     }
   );
 
+  // LOD 1 is current at both widths, but its resident neighbours swap order
+  // as the view moves from one side of the band to the other
+  test.each([
+    [338, [0, 2]],
+    [194, [2, 0]],
+  ])(
+    "zooming out at width %i draws the nearest resident level first",
+    (width, expected) => {
+      const store = new ChunkStore(createPyramidDimensions());
+      const view = store.addView(createNoPrefetchPolicy());
+      makeResident(store, 0);
+      makeResident(store, 2);
+
+      view.updateChunksForImage({ z: 0, c: [0] }, viewOfWidth(width));
+      expect(view.currentLOD).toBe(1);
+      const lods = [
+        ...new Set(view.getChunksToRender().map((chunk) => chunk.lod)),
+      ];
+      expect(lods).toEqual(expected);
+    }
+  );
+
   // LODs may have different slab thickness, so a sub-slab move changes which
   // of them cover the slice
   test("moving z within one slab still picks the right finer chunk", () => {
