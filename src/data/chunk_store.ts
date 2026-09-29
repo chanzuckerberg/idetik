@@ -4,6 +4,7 @@ import { almostEqual } from "../utilities/almost_equal";
 import { Logger } from "../utilities/logger";
 import { ChunkStoreView } from "./chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
+import { Texture } from "../objects/textures/texture";
 
 export class ChunkStore {
   // Chunks indexed as chunks_[lod][t][c][z][y][x].
@@ -12,6 +13,7 @@ export class ChunkStore {
   private readonly dimensions_: SourceDimensionMap;
   private readonly views_: ChunkStoreView[] = [];
   private hasHadViews_ = false;
+  private readonly resident_ = new Set<Chunk>();
 
   constructor(dimensions: SourceDimensionMap) {
     this.dimensions_ = dimensions;
@@ -129,6 +131,22 @@ export class ChunkStore {
 
   public get views(): ReadonlyArray<ChunkStoreView> {
     return this.views_;
+  }
+
+  public get residentChunks(): ReadonlySet<Chunk> {
+    return this.resident_;
+  }
+
+  public setChunkTexture(chunk: Chunk, texture: Texture): void {
+    chunk.texture = texture;
+    this.resident_.add(chunk);
+  }
+
+  public clearChunkTexture(chunk: Chunk): Texture | undefined {
+    const texture = chunk.texture;
+    chunk.texture = undefined;
+    this.resident_.delete(chunk);
+    return texture;
   }
 
   public canDispose(): boolean {
