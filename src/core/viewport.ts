@@ -14,7 +14,7 @@ import { Ray } from "../math/ray";
 export type ViewportProps = {
   /** Unique id. Defaults to the element id or a generated id. */
   id?: string;
-  /** Host element defining the viewport's area. */
+  /** Host element. */
   domElement: HTMLElement;
   /** The camera the viewport renders with. */
   camera: Camera;
@@ -28,8 +28,12 @@ export type ViewportProps = {
  * A region of the canvas that renders a stack of layers through a camera.
  *
  * Every viewport draws into the shared canvas through the area of its host
- * element. Viewports also route pointer and wheel input through their layers
- * and camera controls.
+ * element. The element must be unique across viewports.
+ *
+ * Viewports also route input. Pointer and wheel events on the host element
+ * are enriched with clip and world coordinates and a picking ray, sent to
+ * each layer in order and passed to the camera controls unless a layer stops
+ * propagation.
  *
  * ```ts
  * const viewport = new Viewport({
@@ -108,8 +112,6 @@ export class Viewport {
 
   /**
    * Removes a previously added layer.
-   * Runtime resources are released before the next render pass, or when the
-   * runtime removes this viewport. While stopped, cleanup remains pending.
    *
    * @param layer - The layer to remove.
    */
@@ -121,7 +123,7 @@ export class Viewport {
     this.layers_.splice(index, 1);
   }
 
-  /** Removes all layers. Runtime cleanup follows the same timing as {@link removeLayer}. */
+  /** Removes all layers from the viewport. */
   public removeAllLayers(): void {
     this.layers_ = [];
   }

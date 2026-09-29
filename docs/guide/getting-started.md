@@ -97,14 +97,10 @@ Which resolution levels to load and how far ahead to fetch are decided by the la
 import { Idetik, Viewport } from '@idetik/core';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#viewer')!;
-const viewport = new Viewport({
-  domElement: canvas,
-  camera,
-  cameraControls: controls,
-  layers: [layer],
+const idetik = new Idetik({
+  canvas,
+  viewports: [new Viewport({ domElement: canvas, camera, cameraControls: controls, layers: [layer] })],
 });
-
-const idetik = new Idetik({ canvas, viewports: [viewport] });
 
 idetik.start();
 ```
@@ -157,16 +153,9 @@ const layer = new ImageLayer({
 });
 
 const canvas = document.querySelector<HTMLCanvasElement>('#viewer')!;
-const viewport = new Viewport({
-  domElement: canvas,
-  camera,
-  cameraControls: controls,
-  layers: [layer],
-});
-
 const idetik = new Idetik({
   canvas,
-  viewports: [viewport],
+  viewports: [new Viewport({ domElement: canvas, camera, cameraControls: controls, layers: [layer] })],
 });
 
 idetik.start();

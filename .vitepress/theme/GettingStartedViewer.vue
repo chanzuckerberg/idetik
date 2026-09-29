@@ -65,13 +65,17 @@ onMounted(async () => {
       channelProps: [{ contrastLimits: [0, 60] }],
     });
 
-    const viewport = new Viewport({
-      domElement: target,
-      camera,
-      cameraControls: new PanZoomControls(camera),
-      layers: [layer],
-    });
-    idetik = new Idetik({ canvas: target, viewports: [viewport] }).start();
+    idetik = new Idetik({
+      canvas: target,
+      viewports: [
+        new Viewport({
+          domElement: target,
+          camera,
+          cameraControls: new PanZoomControls(camera),
+          layers: [layer],
+        }),
+      ],
+    }).start();
 
     ranges.value = { z: rangeOf(dims.z!), t: rangeOf(dims.t!) };
   } catch (e) {

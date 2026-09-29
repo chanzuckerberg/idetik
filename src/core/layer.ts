@@ -171,7 +171,9 @@ export abstract class Layer {
   }
 
   /**
-   * Attaches the layer to a viewport.
+   * Lifecycle hook that is called automatically when a layer is
+   * is attached to a viewport. A layer can only be attached to one viewport
+   * at a time.
    *
    * @param context - The shared runtime context.
    */
@@ -189,9 +191,10 @@ export abstract class Layer {
   }
 
   /**
-   * Releases the layer's runtime resources. Called by the attaching runtime.
+   * Lifecycle hook that is called automatically when a layer is detached
+   * from a viewport.
    *
-   * @param context - The context used to attach this layer.
+   * @param context - The shared runtime context.
    */
   public onDetached(context: IdetikContext): void {
     if (!this.attached_) return;

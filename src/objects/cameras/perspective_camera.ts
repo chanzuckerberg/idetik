@@ -43,13 +43,10 @@ export type PerspectiveCameraProps = {
  * });
  *
  * const canvas = document.querySelector<HTMLCanvasElement>('canvas')!;
- * const viewport = new Viewport({
- *   domElement: canvas,
- *   camera,
- *   layers: [volumeLayer],
- *   cameraControls: controls,
+ * const idetik = new Idetik({
+ *   canvas,
+ *   viewports: [new Viewport({ domElement: canvas, camera, layers: [volumeLayer], cameraControls: controls })],
  * });
- * const idetik = new Idetik({ canvas, viewports: [viewport] });
  * ```
  *
  * @see {@link OrthographicCamera} for 2D image viewing with parallel

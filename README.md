@@ -58,13 +58,15 @@ const camera = new OrthographicCamera({
 });
 
 const canvas = document.querySelector<HTMLCanvasElement>('canvas')!;
-const viewport = new Viewport({
-  domElement: canvas,
-  camera,
-  layers: [layer],
-  cameraControls: new PanZoomControls(camera),
+const idetik = new Idetik({
+  canvas,
+  viewports: [new Viewport({
+    domElement: canvas,
+    camera,
+    layers: [layer],
+    cameraControls: new PanZoomControls(camera)
+  })],
 });
-const idetik = new Idetik({ canvas, viewports: [viewport] });
 
 idetik.start();
 ```

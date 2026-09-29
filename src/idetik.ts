@@ -133,13 +133,15 @@ function validateViewport(
  * });
  *
  * const canvas = document.querySelector<HTMLCanvasElement>('canvas')!;
- * const viewport = new Viewport({
- *   domElement: canvas,
- *   camera,
- *   layers: [layer],
- *   cameraControls: new PanZoomControls(camera),
+ * const idetik = new Idetik({
+ *   canvas,
+ *   viewports: [new Viewport({
+ *     domElement: canvas,
+ *     camera,
+ *     layers: [layer],
+ *     cameraControls: new PanZoomControls(camera),
+ *   })],
  * });
- * const idetik = new Idetik({ canvas, viewports: [viewport] });
  *
  * idetik.start();
  * ```
@@ -168,31 +170,7 @@ export class Idetik {
   /**
    * Creates an Idetik runtime for the given canvas.
    *
-   * @param params - Configuration parameters for the Idetik instance
-   * @param params.canvas - HTMLCanvasElement to render to
-   * @param params.viewports - Optional array of viewport configurations.
-   *   Each viewport renders with its own camera, layers, and controls.
-   *   Elements and IDs must be unique across viewports.
-   * @param params.overlays - Optional array of overlay objects that update each frame (e.g., for HUD elements)
-   * @param params.showStats - Optional flag to display performance statistics
-   *
-   * @example
-   * const canvas = document.querySelector('canvas')!;
-   * const camera = new OrthographicCamera({
-   *   left: 0,
-   *   right: 1024,
-   *   top: 0,
-   *   bottom: 1024
-   * });
-   * const viewport = new Viewport({
-   *   domElement: canvas,
-   *   camera,
-   *   layers: [imageLayer],
-   *   cameraControls: new PanZoomControls(camera)
-   * });
-   * const idetik = new Idetik({ canvas, viewports: [viewport] });
-   *
-   * @throws {Error} If viewports have duplicate IDs, shared elements, or shared layers
+   * @param params - Initialization properties.
    */
   constructor(params: IdetikProps) {
     this.canvas = params.canvas;
@@ -288,15 +266,15 @@ export class Idetik {
   /**
    * Finds a viewport by its id.
    *
-   * @param id - The viewport id.
-   * @returns The matching viewport or `undefined`.
+   * @param id - The id given in the viewport's definition.
+   * @returns The matching viewport or `undefined` if none matches.
    */
   public getViewport(id: string): Viewport | undefined {
-    return this.viewports_.find((viewport) => viewport.id === id);
+    return this.viewports_.find((v) => v.id === id);
   }
 
   /**
-   * Adds an existing viewport at runtime.
+   * Adds a viewport at runtime.
    *
    * @param viewport - The viewport to add.
    * @returns The added viewport.
