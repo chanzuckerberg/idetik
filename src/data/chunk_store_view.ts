@@ -4,6 +4,7 @@ import {
   coordToIndex,
   SliceCoordinates,
   SourceDimension,
+  SourceDimensionLod,
 } from "./chunk";
 import { AxisComponent, SliceAxes, SpatialAxis } from "../math/axes";
 import type { ChunkStore } from "./chunk_store";
@@ -216,6 +217,11 @@ export class ChunkStoreView {
         lod,
         channels,
         prefetchAabb,
+        this.sliceIndexRange(
+          sliceCoords[this.axes_.w],
+          lod,
+          this.policy_.prefetch.z
+        ),
         (chunk) => {
           const isInBounds = visibleRegion.contains(chunk);
           const prefetch = isCurrent && !isInBounds;
@@ -400,6 +406,11 @@ export class ChunkStoreView {
     const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
     const priority = this.policy_.priorityMap["prefetchTime"];
     const channels = this.channelsOfInterest(sliceCoords.c);
+    const sliceRange = this.sliceIndexRange(
+      sliceCoords[this.axes_.w],
+      this.currentLOD,
+      0
+    );
 
     for (let i = 1; i <= windowSize; ++i) {
       const t = (currentTimeIndex + i) % numTimePoints;
@@ -408,6 +419,7 @@ export class ChunkStoreView {
         this.currentLOD,
         channels,
         viewBounds3D,
+        sliceRange,
         (chunk) => {
           const squareDistance = this.squareDistance2D(
             chunk,
@@ -476,9 +488,14 @@ export class ChunkStoreView {
     return c ?? Array.from({ length: this.store_.channelCount }, (_, i) => i);
   }
 
-  // Half-open chunk-index range [min, max) at a given LOD that covers `bounds`.
-  // Returns null if the bounds don't overlap the data grid.
-  private chunkIndexRange(bounds: Box3, lod: number) {
+  // Half-open chunk-index range [min, max) at a given LOD that covers `bounds`,
+  // with `sliceRange` along the slice axis. Returns null if the bounds don't
+  // overlap the data grid.
+  private chunkIndexRange(
+    bounds: Box3,
+    sliceRange: [number, number],
+    lod: number
+  ) {
     const dim = this.store_.dimensions;
     const xLod = dim.x.lods[lod];
     const yLod = dim.y.lods[lod];
@@ -506,8 +523,47 @@ export class ChunkStoreView {
       ? Math.min(zCount, Math.ceil((bounds.max[2] - zTran) / zStride))
       : 1;
 
-    if (xMin >= xMax || yMin >= yMax || zMin >= zMax) return null;
-    return { xMin, xMax, yMin, yMax, zMin, zMax };
+    const range = { xMin, xMax, yMin, yMax, zMin, zMax };
+    const w = this.axes_.w;
+    [range[`${w}Min`], range[`${w}Max`]] = sliceRange;
+
+    if (
+      range.xMin >= range.xMax ||
+      range.yMin >= range.yMax ||
+      range.zMin >= range.zMax
+    ) {
+      return null;
+    }
+    return range;
+  }
+
+  // Half-open index range along the slice axis at `lod`: the chunk holding the
+  // slice, padded by `pad` chunks at the current LOD. Taken from the slice
+  // coordinate directly because chunk edges stored in a Box3 lose precision.
+  private sliceIndexRange(
+    sliceCoordW: number | undefined,
+    lod: number,
+    pad: number
+  ): [number, number] {
+    const wDim = this.store_.dimensions[this.axes_.w];
+    if (wDim === undefined) return [0, 1];
+
+    const wLod = wDim.lods[lod];
+    const count = Math.ceil(wLod.size / wLod.chunkSize);
+    if (sliceCoordW === undefined) return [0, count];
+
+    // other LODs pad by enough of their own chunks to cover the same depth
+    const current = wDim.lods[this.currentLOD];
+    const lodPad =
+      lod === this.currentLOD
+        ? pad
+        : Math.ceil(
+            (pad * current.chunkSize * current.scale) /
+              (wLod.chunkSize * wLod.scale)
+          );
+
+    const index = sliceChunkIndex(wLod, sliceCoordW);
+    return [Math.max(0, index - lodPad), Math.min(count, index + lodPad + 1)];
   }
 
   private iterateChunksInBox(
@@ -515,9 +571,10 @@ export class ChunkStoreView {
     lod: number,
     channels: number[],
     bounds: Box3,
+    sliceRange: [number, number],
     callback: (chunk: Chunk) => void
   ): void {
-    const range = this.chunkIndexRange(bounds, lod);
+    const range = this.chunkIndexRange(bounds, sliceRange, lod);
     if (!range) return;
     for (const c of channels) {
       const grid = this.store_.getChunkGrid(lod, timeIndex, c);
@@ -713,6 +770,14 @@ class VisibleSliceRegion {
     this.chunkRect_.max[1] = chunkEnd(chunk, v);
     return Box2.intersects(this.chunkRect_, this.viewRect_);
   }
+}
+
+// Floors to the voxel before dividing so the chunk index is exact integer
+// arithmetic, clamped to the chunk grid.
+function sliceChunkIndex(lod: SourceDimensionLod, coord: number): number {
+  const voxel = Math.floor((coord - lod.translation) / lod.scale);
+  const count = Math.ceil(lod.size / lod.chunkSize);
+  return clamp(Math.floor(voxel / lod.chunkSize), 0, count - 1);
 }
 
 function chunkEnd(chunk: Chunk, axis: SpatialAxis): number {

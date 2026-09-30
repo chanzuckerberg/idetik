@@ -4,7 +4,10 @@ import { SourceDimensionMap } from "@/data/chunk";
 import { Texture } from "@/objects/textures/texture";
 import { Box2 } from "@/math/box2";
 import { vec2 } from "gl-matrix";
-import { createNoPrefetchPolicy } from "@/core/image_source_policy";
+import {
+  createNoPrefetchPolicy,
+  createPlaybackPolicy,
+} from "@/core/image_source_policy";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 import { Viewport } from "@/core/viewport";
 import { createTestViewport } from "./helpers";
@@ -129,6 +132,31 @@ describe("ChunkStoreView multiscale rendering", () => {
   });
 });
 
+describe("ChunkStoreView slice range", () => {
+  // 128 * 2.48 has no exact float32 form, so a chunk edge stored in a Box3
+  // lands just past the edge and used to pull in the next z chunk
+  test("requests only the chunk holding the slice at every timepoint", () => {
+    const store = new ChunkStore(createInexactDepthDimensions());
+    const view = store.addView(
+      createPlaybackPolicy({ prefetch: { x: 0, y: 0, z: 0, t: 2 } })
+    );
+
+    view.updateChunksForImage({ z: 100, t: 0, c: [0] }, viewOfWidth(512));
+
+    const requested = [...view.chunkViewStates]
+      .filter(([, state]) => state.priority !== null)
+      .map(([chunk]) => chunk);
+    expect(new Set(requested.map((chunk) => chunk.chunkIndex.z))).toEqual(
+      new Set([0])
+    );
+    for (const t of [0, 1, 2]) {
+      expect(
+        requested.filter((chunk) => chunk.chunkIndex.t === t)
+      ).toHaveLength(4);
+    }
+  });
+});
+
 // A 512-unit view over `bufferWidthPx` pixels: 256 selects LOD 1, 512 LOD 0.
 function viewOfWidth(bufferWidthPx: number) {
   return {
@@ -202,6 +230,25 @@ function createSimpleDimensions(): SourceDimensionMap {
           translation: 0,
         },
       ],
+    },
+    numLods: 1,
+  };
+}
+
+function createInexactDepthDimensions(): SourceDimensionMap {
+  const plane = [{ size: 512, scale: 1, chunkSize: 256, translation: 0 }];
+  return {
+    x: { name: "x", index: 0, lods: plane },
+    y: { name: "y", index: 1, lods: plane },
+    z: {
+      name: "z",
+      index: 2,
+      lods: [{ size: 256, scale: 2.48, chunkSize: 128, translation: 0 }],
+    },
+    t: {
+      name: "t",
+      index: 3,
+      lods: [{ size: 3, scale: 1, chunkSize: 1, translation: 0 }],
     },
     numLods: 1,
   };
