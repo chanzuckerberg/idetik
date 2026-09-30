@@ -132,6 +132,28 @@ describe("ChunkStoreView multiscale rendering", () => {
   });
 });
 
+describe("ChunkStoreView complete visible LOD", () => {
+  test("a resident current LOD is complete without the fallback", () => {
+    const store = new ChunkStore(createPyramidDimensions());
+    const view = store.addView(createNoPrefetchPolicy());
+    view.updateChunksForImage({ z: 0, c: [0] }, viewOfWidth(512));
+    expect(view.currentLOD).toBe(0);
+    expect(view.hasCompleteVisibleLOD()).toBe(false);
+
+    makeResident(store, 0);
+    expect(view.hasCompleteVisibleLOD()).toBe(true);
+  });
+
+  test("a resident fallback LOD is complete on its own", () => {
+    const store = new ChunkStore(createPyramidDimensions());
+    const view = store.addView(createNoPrefetchPolicy());
+    view.updateChunksForImage({ z: 0, c: [0] }, viewOfWidth(512));
+
+    makeResident(store, 2);
+    expect(view.hasCompleteVisibleLOD()).toBe(true);
+  });
+});
+
 describe("ChunkStoreView slice chunk range", () => {
   // A slice's z range is the extent of the chunk holding it, and is stored in a
   // Box3 as float32. Here z chunk 0 spans [0, 128 * 2.48) = [0, 317.44), but

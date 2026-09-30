@@ -248,7 +248,7 @@ export class LabelLayer extends Layer {
     if (
       this.visibleChunks_.size > 0 &&
       visibleChunksResident &&
-      !this.chunkStoreView_.allVisibleFallbackLODLoaded() &&
+      !this.chunkStoreView_.hasCompleteVisibleLOD() &&
       !this.isPresentationStale()
     ) {
       return;

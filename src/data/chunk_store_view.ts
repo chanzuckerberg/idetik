@@ -333,11 +333,17 @@ export class ChunkStoreView {
     this.lastViewProjection_ = viewProjection;
   }
 
-  public allVisibleFallbackLODLoaded(): boolean {
-    const fallbackLOD = this.lodRange().max;
+  public hasCompleteVisibleLOD(): boolean {
+    return (
+      this.allVisibleLoadedAt(this.lodRange().max) ||
+      this.allVisibleLoadedAt(this.currentLOD)
+    );
+  }
+
+  private allVisibleLoadedAt(lod: number): boolean {
     let foundAny = false;
     for (const [chunk, state] of this.chunkViewStates_) {
-      if (!state.visible || chunk.lod !== fallbackLOD) continue;
+      if (!state.visible || chunk.lod !== lod) continue;
       foundAny = true;
       if (chunk.texture === undefined) return false;
     }
