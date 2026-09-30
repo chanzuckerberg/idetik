@@ -4,13 +4,13 @@ import {
   coordToIndex,
   SliceCoordinates,
   SourceDimension,
+  SourceDimensionLod,
 } from "./chunk";
-import { AxisComponent, SliceAxes, SpatialAxis } from "../math/axes";
+import { SliceAxes, SpatialAxis } from "../math/axes";
 import type { ChunkStore } from "./chunk_store";
 import { ImageSourcePolicy } from "../core/image_source_policy";
-import { ReadonlyVec2, vec2, vec3, mat4 } from "gl-matrix";
+import { vec2, mat4 } from "gl-matrix";
 import { Box2 } from "../math/box2";
-import { Box3 } from "../math/box3";
 import { Logger } from "../utilities/logger";
 import { clamp } from "../utilities/clamp";
 
@@ -32,6 +32,7 @@ export class ChunkStoreView {
   private mode_: "image" | "volume" | null = null;
   private lastViewBounds2D_: Box2 | null = null;
   private lastViewProjection_: mat4 | null = null;
+  private lastRegion_: ChunkRegion | null = null;
 
   private lastSliceCoordW_?: number;
   private lastTCoord_?: number;
@@ -133,19 +134,15 @@ export class ChunkStoreView {
     const timeIndex = this.timeIndex(this.lastTCoord_);
     const channels = new Set(this.channelsOfInterest(this.lastCCoords_));
     const { min: minLOD, max: maxLOD } = this.lodRange();
-    const visibleRegion = new VisibleSliceRegion(
-      this.axes_,
-      this.lastSliceCoordW_,
-      this.lastViewBounds2D_!,
-      this.store_.dimensions[this.axes_.w]
-    );
+    const region = this.lastRegion_;
+    if (region === null) return [];
 
     const chunks: Chunk[] = [];
     for (const chunk of this.store_.residentChunks) {
       if (chunk.lod < minLOD || chunk.lod > maxLOD) continue;
       if (chunk.chunkIndex.t !== timeIndex) continue;
       if (!channels.has(chunk.chunkIndex.c)) continue;
-      if (!visibleRegion.contains(chunk)) continue;
+      if (!region.contains(chunk)) continue;
       chunks.push(chunk);
     }
     return chunks;
@@ -162,7 +159,6 @@ export class ChunkStoreView {
 
     const lodChanged = this.setLOD(lodFactor);
 
-    const sliceBounds = this.getSliceAxisBounds(sliceCoords);
     const changed =
       this.policyChanged_ ||
       lodChanged ||
@@ -184,65 +180,30 @@ export class ChunkStoreView {
       return;
     }
 
-    const viewBoundsCenter2D = vec2.create();
-    vec2.lerp(viewBoundsCenter2D, viewBounds2D.min, viewBounds2D.max, 0.5);
-
-    const viewBounds3D = this.makeViewBounds3D(viewBounds2D, sliceBounds);
-
     // reset all existing chunk view states to "not needed" to start
     // logic below will override this for chunks that are actually visible/prefetch
     this.chunkViewStates_.forEach(resetChunkViewState);
 
-    const channels = this.channelsOfInterest(sliceCoords.c);
-    const fallbackLOD = this.lodRange().max;
-    const prefetchAabb = this.getPaddedBounds(viewBounds3D);
-    const visibleRegion = new VisibleSliceRegion(
-      this.axes_,
-      sliceCoords[this.axes_.w],
-      viewBounds2D,
-      this.store_.dimensions[this.axes_.w]
-    );
-
-    // Range-query the prefetch AABB at currentLOD (and fallbackLOD when
-    // distinct); fallback chunks act as a backdrop while currentLOD loads.
+    const sliceCoordW = sliceCoords[this.axes_.w];
     const currentLOD = this.currentLOD;
-    const lodsToVisit =
-      currentLOD === fallbackLOD ? [currentLOD] : [currentLOD, fallbackLOD];
-    for (const lod of lodsToVisit) {
-      const isCurrent = lod === currentLOD;
-      const isFallback = lod === fallbackLOD;
-      this.iterateChunksInBox(
-        currentTimeIndex,
-        lod,
-        channels,
-        prefetchAabb,
-        (chunk) => {
-          const isInBounds = visibleRegion.contains(chunk);
-          const prefetch = isCurrent && !isInBounds;
-          const priority = this.computePriority(
-            isFallback,
-            isCurrent,
-            isInBounds,
-            prefetch,
-            true
-          );
-          if (priority !== null) {
-            this.chunkViewStates_.set(chunk, {
-              visible: isInBounds,
-              prefetch,
-              priority,
-              orderKey: this.squareDistance2D(chunk, viewBoundsCenter2D),
-            });
-          }
-        }
-      );
-    }
-
-    this.markTimeChunksForPrefetchImage(
+    this.markChunks(
+      ChunkRegion.forSlice(
+        this.store_,
+        this.axes_,
+        viewBounds2D,
+        sliceCoordW,
+        currentLOD
+      ),
+      ChunkRegion.forSlice(
+        this.store_,
+        this.axes_,
+        viewBounds2D,
+        sliceCoordW,
+        currentLOD,
+        this.policy_.prefetch
+      ),
       currentTimeIndex,
-      sliceCoords,
-      viewBounds3D,
-      viewBoundsCenter2D
+      this.channelsOfInterest(sliceCoords.c)
     );
 
     this.policyChanged_ = false;
@@ -283,44 +244,13 @@ export class ChunkStoreView {
 
     this.chunkViewStates_.forEach(resetChunkViewState);
 
-    const channels = this.channelsOfInterest(sliceCoords.c);
-    const fallbackLOD = this.lodRange().max;
-    const currentLOD = this.currentLOD;
-
-    const markVolumeChunkVisible = (chunk: Chunk) => {
-      const isFallbackLOD = chunk.lod === fallbackLOD;
-      const isCurrentLOD = chunk.lod === currentLOD;
-      const priority = this.computePriority(
-        isFallbackLOD,
-        isCurrentLOD,
-        true,
-        false,
-        true
-      );
-      if (priority === null) return;
-      this.chunkViewStates_.set(chunk, {
-        visible: true,
-        prefetch: false,
-        priority,
-        orderKey: 0,
-      });
-    };
-    this.iterateAllChunksAtLod(
+    const region = ChunkRegion.forVolume(this.store_);
+    this.markChunks(
+      region,
+      region,
       currentTimeIndex,
-      currentLOD,
-      channels,
-      markVolumeChunkVisible
+      this.channelsOfInterest(sliceCoords.c)
     );
-    if (currentLOD !== fallbackLOD) {
-      this.iterateAllChunksAtLod(
-        currentTimeIndex,
-        fallbackLOD,
-        channels,
-        markVolumeChunkVisible
-      );
-    }
-
-    this.markTimeChunksForPrefetchVolume(currentTimeIndex, sliceCoords);
 
     this.policyChanged_ = false;
     this.mode_ = "volume";
@@ -390,68 +320,66 @@ export class ChunkStoreView {
     return this.currentLOD !== previousLOD;
   }
 
-  private markTimeChunksForPrefetchImage(
+  // Marks the region's chunks at the current and fallback LODs, the prefetch
+  // region's other chunks, and the region at the current LOD for each
+  // timepoint in the prefetch window.
+  private markChunks(
+    region: ChunkRegion,
+    prefetchRegion: ChunkRegion,
     currentTimeIndex: number,
-    sliceCoords: SliceCoordinates,
-    viewBounds3D: Box3,
-    viewBoundsCenter2D: ReadonlyVec2
+    channels: number[]
   ): void {
-    const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
-    const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
-    const priority = this.policy_.priorityMap["prefetchTime"];
-    const channels = this.channelsOfInterest(sliceCoords.c);
+    const currentLOD = this.currentLOD;
+    const fallbackLOD = this.lodRange().max;
+    const lodsToVisit =
+      currentLOD === fallbackLOD ? [currentLOD] : [currentLOD, fallbackLOD];
 
-    for (let i = 1; i <= windowSize; ++i) {
-      const t = (currentTimeIndex + i) % numTimePoints;
-      this.iterateChunksInBox(
-        t,
-        this.currentLOD,
-        channels,
-        viewBounds3D,
-        (chunk) => {
-          const squareDistance = this.squareDistance2D(
-            chunk,
-            viewBoundsCenter2D
-          );
-          const normalizedDistance = clamp(
-            squareDistance / this.sourceMaxSquareDistance2D_,
-            0,
-            1 - Number.EPSILON
-          );
-          const orderKey = i + normalizedDistance;
-
-          this.chunkViewStates_.set(chunk, {
-            visible: false,
-            prefetch: true,
-            priority,
-            orderKey,
-          });
-        }
-      );
+    // fallback chunks act as a backdrop while currentLOD loads
+    for (const lod of lodsToVisit) {
+      const isCurrent = lod === currentLOD;
+      const isFallback = lod === fallbackLOD;
+      prefetchRegion.forEachChunk(lod, currentTimeIndex, channels, (chunk) => {
+        const isInBounds = region.contains(chunk);
+        const prefetch = isCurrent && !isInBounds;
+        const priority = this.computePriority(
+          isFallback,
+          isCurrent,
+          isInBounds,
+          prefetch,
+          true
+        );
+        if (priority === null) return;
+        this.chunkViewStates_.set(chunk, {
+          visible: isInBounds,
+          prefetch,
+          priority,
+          orderKey: region.orderDistance(chunk),
+        });
+      });
     }
-  }
 
-  private markTimeChunksForPrefetchVolume(
-    currentTimeIndex: number,
-    sliceCoords: SliceCoordinates
-  ) {
     const numTimePoints = this.store_.dimensions.t?.lods[0].size ?? 1;
     const windowSize = Math.min(this.policy_.prefetch.t, numTimePoints - 1);
     const priority = this.policy_.priorityMap["prefetchTime"];
-    const channels = this.channelsOfInterest(sliceCoords.c);
-
     for (let i = 1; i <= windowSize; ++i) {
       const t = (currentTimeIndex + i) % numTimePoints;
-      this.iterateAllChunksAtLod(t, this.currentLOD, channels, (chunk) => {
-        const orderKey = i; // nearer along the playback loop first
+      region.forEachChunk(currentLOD, t, channels, (chunk) => {
+        // nearer along the playback loop first, then nearer the view centre
+        const normalizedDistance = clamp(
+          region.orderDistance(chunk) / this.sourceMaxSquareDistance2D_,
+          0,
+          1 - Number.EPSILON
+        );
         this.chunkViewStates_.set(chunk, {
           visible: false,
           prefetch: true,
           priority,
-          orderKey,
+          orderKey: i + normalizedDistance,
         });
       });
     }
+
+    this.lastRegion_ = region;
   }
 
   private computePriority(
@@ -476,84 +404,6 @@ export class ChunkStoreView {
     return c ?? Array.from({ length: this.store_.channelCount }, (_, i) => i);
   }
 
-  // Half-open chunk-index range [min, max) at a given LOD that covers `bounds`.
-  // Returns null if the bounds don't overlap the data grid.
-  private chunkIndexRange(bounds: Box3, lod: number) {
-    const dim = this.store_.dimensions;
-    const xLod = dim.x.lods[lod];
-    const yLod = dim.y.lods[lod];
-    const zLod = dim.z?.lods[lod];
-
-    const xCount = Math.ceil(xLod.size / xLod.chunkSize);
-    const yCount = Math.ceil(yLod.size / yLod.chunkSize);
-    const zCount = zLod ? Math.ceil(zLod.size / zLod.chunkSize) : 1;
-
-    const xStride = xLod.chunkSize * xLod.scale;
-    const yStride = yLod.chunkSize * yLod.scale;
-    const zStride = zLod ? zLod.chunkSize * zLod.scale : 1;
-    const xTran = xLod.translation;
-    const yTran = yLod.translation;
-    const zTran = zLod?.translation ?? 0;
-
-    const xMin = Math.max(0, Math.floor((bounds.min[0] - xTran) / xStride));
-    const xMax = Math.min(xCount, Math.ceil((bounds.max[0] - xTran) / xStride));
-    const yMin = Math.max(0, Math.floor((bounds.min[1] - yTran) / yStride));
-    const yMax = Math.min(yCount, Math.ceil((bounds.max[1] - yTran) / yStride));
-    const zMin = zLod
-      ? Math.max(0, Math.floor((bounds.min[2] - zTran) / zStride))
-      : 0;
-    const zMax = zLod
-      ? Math.min(zCount, Math.ceil((bounds.max[2] - zTran) / zStride))
-      : 1;
-
-    if (xMin >= xMax || yMin >= yMax || zMin >= zMax) return null;
-    return { xMin, xMax, yMin, yMax, zMin, zMax };
-  }
-
-  private iterateChunksInBox(
-    timeIndex: number,
-    lod: number,
-    channels: number[],
-    bounds: Box3,
-    callback: (chunk: Chunk) => void
-  ): void {
-    const range = this.chunkIndexRange(bounds, lod);
-    if (!range) return;
-    for (const c of channels) {
-      const grid = this.store_.getChunkGrid(lod, timeIndex, c);
-      if (!grid) continue;
-      for (let zi = range.zMin; zi < range.zMax; ++zi) {
-        const yPlane = grid[zi];
-        for (let yi = range.yMin; yi < range.yMax; ++yi) {
-          const xRow = yPlane[yi];
-          for (let xi = range.xMin; xi < range.xMax; ++xi) {
-            const chunk = xRow[xi];
-            callback(chunk);
-          }
-        }
-      }
-    }
-  }
-
-  private iterateAllChunksAtLod(
-    timeIndex: number,
-    lod: number,
-    channels: number[],
-    callback: (chunk: Chunk) => void
-  ): void {
-    for (const c of channels) {
-      const grid = this.store_.getChunkGrid(lod, timeIndex, c);
-      if (!grid) continue;
-      for (const yPlane of grid) {
-        for (const xRow of yPlane) {
-          for (const chunk of xRow) {
-            callback(chunk);
-          }
-        }
-      }
-    }
-  }
-
   private lodRange(): { min: number; max: number } {
     const lowestResLOD = this.store_.getLowestResLOD();
     const min = Math.max(0, Math.min(lowestResLOD, this.policy_.lod.min));
@@ -565,53 +415,6 @@ export class ChunkStoreView {
     const tDim = this.store_.dimensions.t;
     if (t === undefined || tDim === undefined) return 0;
     return coordToIndex(tDim.lods[0], t);
-  }
-
-  private getSliceAxisBounds(sliceCoords: SliceCoordinates): [number, number] {
-    const wDim = this.store_.dimensions[this.axes_.w];
-    if (wDim === undefined) return [0, 1];
-
-    const wLod = wDim.lods[this.currentLOD];
-
-    // If slice coordinate is undefined, return bounds that encompass the whole axis (for volume rendering)
-    const sliceValue = sliceCoords[this.axes_.w];
-    if (sliceValue === undefined) {
-      return [wLod.translation, wLod.translation + wLod.size * wLod.scale];
-    }
-
-    const wShape = wLod.size;
-    const wScale = wLod.scale;
-    const wTran = wLod.translation;
-    const wPoint = Math.floor((sliceValue - wTran) / wScale);
-    const chunkDepth = wLod.chunkSize;
-
-    const wChunk = Math.max(
-      0,
-      Math.min(
-        Math.floor(wPoint / chunkDepth),
-        Math.ceil(wShape / chunkDepth) - 1
-      )
-    );
-
-    return [
-      wTran + wChunk * chunkDepth * wScale,
-      wTran + (wChunk + 1) * chunkDepth * wScale,
-    ];
-  }
-
-  private makeViewBounds3D(
-    viewBounds2D: Box2,
-    sliceBounds: [number, number]
-  ): Box3 {
-    const min = vec3.create();
-    const max = vec3.create();
-    min[AxisComponent[this.axes_.u]] = viewBounds2D.min[0];
-    max[AxisComponent[this.axes_.u]] = viewBounds2D.max[0];
-    min[AxisComponent[this.axes_.v]] = viewBounds2D.min[1];
-    max[AxisComponent[this.axes_.v]] = viewBounds2D.max[1];
-    min[AxisComponent[this.axes_.w]] = sliceBounds[0];
-    max[AxisComponent[this.axes_.w]] = sliceBounds[1];
-    return new Box3(min, max);
   }
 
   private viewBounds2DChanged(newBounds: Box2): boolean {
@@ -635,88 +438,171 @@ export class ChunkStoreView {
     if (this.lastCCoords_.length !== newC.length) return true;
     return !this.lastCCoords_.every((v, i) => v === newC[i]);
   }
+}
 
-  private getPaddedBounds(bounds: Box3): Box3 {
-    const { u, v, w } = this.axes_;
-    const dimensions = this.store_.dimensions;
-    const uLod = dimensions[u]!.lods[this.currentLOD];
-    const vLod = dimensions[v]!.lods[this.currentLOD];
-    const wLod = dimensions[w]?.lods[this.currentLOD];
+type IndexRanges = Record<SpatialAxis, [number, number]>;
 
-    const pad = vec3.create();
-    pad[AxisComponent[u]] =
-      uLod.chunkSize * uLod.scale * this.policy_.prefetch.x;
-    pad[AxisComponent[v]] =
-      vLod.chunkSize * vLod.scale * this.policy_.prefetch.y;
-    if (wLod) {
-      pad[AxisComponent[w]] =
-        wLod.chunkSize * wLod.scale * this.policy_.prefetch.z;
-    }
+// The chunks a view covers, as half-open chunk-index ranges on each axis at
+// each LOD. Slices bound the plane by the view rect and the slice axis by the
+// chunk holding the slice. Volumes cover every chunk for now.
+class ChunkRegion {
+  private readonly store_: ChunkStore;
+  private readonly ranges_: readonly IndexRanges[];
+  private readonly center_?: { axes: SliceAxes; point: vec2 };
 
-    return new Box3(
-      vec3.subtract(vec3.create(), bounds.min, pad),
-      vec3.add(vec3.create(), bounds.max, pad)
-    );
+  private constructor(
+    store: ChunkStore,
+    ranges: readonly IndexRanges[],
+    center?: { axes: SliceAxes; point: vec2 }
+  ) {
+    this.store_ = store;
+    this.ranges_ = ranges;
+    this.center_ = center;
   }
 
-  private squareDistance2D(chunk: Chunk, center: ReadonlyVec2): number {
-    function axisCenter(axis: SpatialAxis) {
-      return chunk.offset[axis] + 0.5 * chunk.shape[axis] * chunk.scale[axis];
+  // `pad` grows the plane by whole chunks of the current LOD in world units
+  // and the slice axis by chunks, converted for other LODs.
+  public static forSlice(
+    store: ChunkStore,
+    axes: SliceAxes,
+    viewRect: Box2,
+    sliceCoordW: number | undefined,
+    currentLOD: number,
+    pad: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 }
+  ): ChunkRegion {
+    const { u, v, w } = axes;
+    const dimensions = store.dimensions;
+    const uLods = dimensions[u]!.lods;
+    const vLods = dimensions[v]!.lods;
+    const wDim = dimensions[w];
+    const uPad = uLods[currentLOD].chunkSize * uLods[currentLOD].scale * pad.x;
+    const vPad = vLods[currentLOD].chunkSize * vLods[currentLOD].scale * pad.y;
+
+    const ranges: IndexRanges[] = [];
+    for (let lod = 0; lod < store.lodCount; lod++) {
+      const range = wholeGrid(store, lod);
+      range[u] = axisIndexRange(
+        uLods[lod],
+        viewRect.min[0] - uPad,
+        viewRect.max[0] + uPad
+      );
+      range[v] = axisIndexRange(
+        vLods[lod],
+        viewRect.min[1] - vPad,
+        viewRect.max[1] + vPad
+      );
+      if (wDim !== undefined && sliceCoordW !== undefined) {
+        range[w] = sliceIndexRange(wDim, lod, currentLOD, sliceCoordW, pad.z);
+      }
+      ranges.push(range);
     }
 
-    const { u, v } = this.axes_;
-    const du = axisCenter(u) - center[0];
-    const dv = axisCenter(v) - center[1];
+    const center = vec2.lerp(vec2.create(), viewRect.min, viewRect.max, 0.5);
+    return new ChunkRegion(store, ranges, { axes, point: center });
+  }
 
+  // TODO: bound by the view frustum
+  public static forVolume(store: ChunkStore): ChunkRegion {
+    const ranges: IndexRanges[] = [];
+    for (let lod = 0; lod < store.lodCount; lod++) {
+      ranges.push(wholeGrid(store, lod));
+    }
+    return new ChunkRegion(store, ranges);
+  }
+
+  public contains(chunk: Chunk): boolean {
+    const { x, y, z } = this.ranges_[chunk.lod];
+    const index = chunk.chunkIndex;
+    return inRange(index.x, x) && inRange(index.y, y) && inRange(index.z, z);
+  }
+
+  public forEachChunk(
+    lod: number,
+    t: number,
+    channels: number[],
+    callback: (chunk: Chunk) => void
+  ): void {
+    const { x, y, z } = this.ranges_[lod];
+    for (const c of channels) {
+      const grid = this.store_.getChunkGrid(lod, t, c);
+      if (!grid) continue;
+      for (let zi = z[0]; zi < z[1]; ++zi) {
+        for (let yi = y[0]; yi < y[1]; ++yi) {
+          for (let xi = x[0]; xi < x[1]; ++xi) {
+            callback(grid[zi][yi][xi]);
+          }
+        }
+      }
+    }
+  }
+
+  // Squared distance from the view centre in the slice plane, used to order
+  // requests. Zero for volumes.
+  public orderDistance(chunk: Chunk): number {
+    if (this.center_ === undefined) return 0;
+    const { axes, point } = this.center_;
+    const du = chunkCenter(chunk, axes.u) - point[0];
+    const dv = chunkCenter(chunk, axes.v) - point[1];
     return du * du + dv * dv;
   }
 }
 
-class VisibleSliceRegion {
-  private readonly axes_: SliceAxes;
-  private readonly viewRect_: Box2;
-  private readonly chunkRect_ = new Box2();
-  private readonly sliceCoordByLod_?: readonly number[];
-
-  constructor(
-    axes: SliceAxes,
-    sliceCoordW: number | undefined,
-    viewRect: Box2,
-    wDim: SourceDimension | undefined
-  ) {
-    this.axes_ = axes;
-    this.viewRect_ = viewRect;
-    if (sliceCoordW !== undefined && wDim !== undefined) {
-      this.sliceCoordByLod_ = wDim.lods.map((lod) =>
-        clamp(
-          sliceCoordW,
-          lod.translation,
-          lod.translation + (lod.size - 1) * lod.scale
-        )
-      );
-    }
-  }
-
-  public contains(chunk: Chunk): boolean {
-    const { u, v, w } = this.axes_;
-    const sliceCoordW = this.sliceCoordByLod_?.[chunk.lod];
-    if (
-      sliceCoordW !== undefined &&
-      (sliceCoordW < chunk.offset[w] || sliceCoordW >= chunkEnd(chunk, w))
-    ) {
-      return false;
-    }
-
-    this.chunkRect_.min[0] = chunk.offset[u];
-    this.chunkRect_.min[1] = chunk.offset[v];
-    this.chunkRect_.max[0] = chunkEnd(chunk, u);
-    this.chunkRect_.max[1] = chunkEnd(chunk, v);
-    return Box2.intersects(this.chunkRect_, this.viewRect_);
-  }
+function wholeGrid(store: ChunkStore, lod: number): IndexRanges {
+  const count = (axis: SpatialAxis): [number, number] => {
+    const dim = store.dimensions[axis]?.lods[lod];
+    return [0, dim ? Math.ceil(dim.size / dim.chunkSize) : 1];
+  };
+  return { x: count("x"), y: count("y"), z: count("z") };
 }
 
-function chunkEnd(chunk: Chunk, axis: SpatialAxis): number {
-  return chunk.offset[axis] + chunk.shape[axis] * chunk.scale[axis];
+function axisIndexRange(
+  lod: SourceDimensionLod,
+  min: number,
+  max: number
+): [number, number] {
+  const stride = lod.chunkSize * lod.scale;
+  const count = Math.ceil(lod.size / lod.chunkSize);
+  return [
+    Math.max(0, Math.floor((min - lod.translation) / stride)),
+    Math.min(count, Math.ceil((max - lod.translation) / stride)),
+  ];
+}
+
+// The chunk holding the slice, padded by `pad` chunks at the current LOD.
+// Computed from the slice coordinate rather than chunk edges in world units,
+// which lose precision.
+function sliceIndexRange(
+  wDim: SourceDimension,
+  lod: number,
+  currentLOD: number,
+  sliceCoordW: number,
+  pad: number
+): [number, number] {
+  const wLod = wDim.lods[lod];
+  const count = Math.ceil(wLod.size / wLod.chunkSize);
+
+  // other LODs pad by enough of their own chunks to cover the same depth
+  const current = wDim.lods[currentLOD];
+  const lodPad =
+    lod === currentLOD
+      ? pad
+      : Math.ceil(
+          (pad * current.chunkSize * current.scale) /
+            (wLod.chunkSize * wLod.scale)
+        );
+
+  // floors to the voxel before dividing so the chunk index is exact
+  const voxel = Math.floor((sliceCoordW - wLod.translation) / wLod.scale);
+  const index = clamp(Math.floor(voxel / wLod.chunkSize), 0, count - 1);
+  return [Math.max(0, index - lodPad), Math.min(count, index + lodPad + 1)];
+}
+
+function inRange(index: number, [min, max]: [number, number]): boolean {
+  return index >= min && index < max;
+}
+
+function chunkCenter(chunk: Chunk, axis: SpatialAxis): number {
+  return chunk.offset[axis] + 0.5 * chunk.shape[axis] * chunk.scale[axis];
 }
 
 function resetChunkViewState(state: ChunkViewState): void {
