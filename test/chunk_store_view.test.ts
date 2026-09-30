@@ -4,7 +4,10 @@ import { SourceDimensionMap } from "@/data/chunk";
 import { Texture } from "@/objects/textures/texture";
 import { Box2 } from "@/math/box2";
 import { vec2 } from "gl-matrix";
-import { createNoPrefetchPolicy } from "@/core/image_source_policy";
+import {
+  createNoPrefetchPolicy,
+  createPlaybackPolicy,
+} from "@/core/image_source_policy";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 import { Viewport } from "@/core/viewport";
 import { createTestViewport } from "./helpers";
@@ -129,6 +132,34 @@ describe("ChunkStoreView multiscale rendering", () => {
   });
 });
 
+describe("ChunkStoreView slice chunk range", () => {
+  // A slice's z range is the extent of the chunk holding it, and is stored in a
+  // Box3 as float32. Here z chunk 0 spans [0, 128 * 2.48) = [0, 317.44), but
+  // 317.44 is stored as 317.44000244. Divided by the chunk depth that gives
+  // 1.0000000077, and rounding up used to request z chunk 1 as well: as
+  // spatial prefetch at the current timepoint, and at every prefetched one.
+  test("a slice inside z chunk 0 requests no chunks from z chunk 1", () => {
+    const store = new ChunkStore(createFloat32EdgeDimensions());
+    const view = store.addView(
+      createPlaybackPolicy({ prefetch: { x: 0, y: 0, z: 0, t: 2 } })
+    );
+
+    view.updateChunksForImage({ z: 100, t: 0, c: [0] }, viewOfWidth(512));
+
+    const requested = [...view.chunkViewStates]
+      .filter(([, state]) => state.priority !== null)
+      .map(([chunk]) => chunk);
+    const zChunks = new Set(requested.map((chunk) => chunk.chunkIndex.z));
+    expect(zChunks).toEqual(new Set([0]));
+
+    // the 2x2 chunks in view, at the current timepoint and both prefetched
+    for (const t of [0, 1, 2]) {
+      const atT = requested.filter((chunk) => chunk.chunkIndex.t === t);
+      expect(atT).toHaveLength(4);
+    }
+  });
+});
+
 // A 512-unit view over `bufferWidthPx` pixels: 256 selects LOD 1, 512 LOD 0.
 function viewOfWidth(bufferWidthPx: number) {
   return {
@@ -202,6 +233,27 @@ function createSimpleDimensions(): SourceDimensionMap {
           translation: 0,
         },
       ],
+    },
+    numLods: 1,
+  };
+}
+
+// Two 128-voxel z chunks at 2.48 units per voxel, so the edge between them is
+// 317.44, which float32 can't represent exactly.
+function createFloat32EdgeDimensions(): SourceDimensionMap {
+  const plane = [{ size: 512, scale: 1, chunkSize: 256, translation: 0 }];
+  return {
+    x: { name: "x", index: 0, lods: plane },
+    y: { name: "y", index: 1, lods: plane },
+    z: {
+      name: "z",
+      index: 2,
+      lods: [{ size: 256, scale: 2.48, chunkSize: 128, translation: 0 }],
+    },
+    t: {
+      name: "t",
+      index: 3,
+      lods: [{ size: 3, scale: 1, chunkSize: 1, translation: 0 }],
     },
     numLods: 1,
   };

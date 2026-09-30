@@ -22,6 +22,10 @@ access key, preventing accidental external mutation.
 */
 export const INTERNAL_POLICY_KEY = Symbol("INTERNAL_POLICY_KEY");
 
+// Box3 stores bounds as float32, so a bound exactly on a chunk edge can land
+// just past it. In chunk-index units, this keeps it from adding a neighbour.
+const CHUNK_EDGE_TOLERANCE = 1e-6;
+
 export class ChunkStoreView {
   private readonly store_: ChunkStore;
   private policy_: ImageSourcePolicy;
@@ -495,15 +499,15 @@ export class ChunkStoreView {
     const yTran = yLod.translation;
     const zTran = zLod?.translation ?? 0;
 
-    const xMin = Math.max(0, Math.floor((bounds.min[0] - xTran) / xStride));
-    const xMax = Math.min(xCount, Math.ceil((bounds.max[0] - xTran) / xStride));
-    const yMin = Math.max(0, Math.floor((bounds.min[1] - yTran) / yStride));
-    const yMax = Math.min(yCount, Math.ceil((bounds.max[1] - yTran) / yStride));
+    const xMin = Math.max(0, floorIndex((bounds.min[0] - xTran) / xStride));
+    const xMax = Math.min(xCount, ceilIndex((bounds.max[0] - xTran) / xStride));
+    const yMin = Math.max(0, floorIndex((bounds.min[1] - yTran) / yStride));
+    const yMax = Math.min(yCount, ceilIndex((bounds.max[1] - yTran) / yStride));
     const zMin = zLod
-      ? Math.max(0, Math.floor((bounds.min[2] - zTran) / zStride))
+      ? Math.max(0, floorIndex((bounds.min[2] - zTran) / zStride))
       : 0;
     const zMax = zLod
-      ? Math.min(zCount, Math.ceil((bounds.max[2] - zTran) / zStride))
+      ? Math.min(zCount, ceilIndex((bounds.max[2] - zTran) / zStride))
       : 1;
 
     if (xMin >= xMax || yMin >= yMax || zMin >= zMax) return null;
@@ -713,6 +717,14 @@ class VisibleSliceRegion {
     this.chunkRect_.max[1] = chunkEnd(chunk, v);
     return Box2.intersects(this.chunkRect_, this.viewRect_);
   }
+}
+
+function floorIndex(value: number): number {
+  return Math.floor(value + CHUNK_EDGE_TOLERANCE);
+}
+
+function ceilIndex(value: number): number {
+  return Math.ceil(value - CHUNK_EDGE_TOLERANCE);
 }
 
 function chunkEnd(chunk: Chunk, axis: SpatialAxis): number {
