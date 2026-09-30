@@ -4,7 +4,11 @@ import { ChunkManager } from "./data/chunk_manager";
 import { ImageLayer } from "./layers/image_layer";
 import { LabelLayer } from "./layers/label_layer";
 import { VolumeLayer } from "./layers/volume_layer";
-import type { ChunkStats } from "./data/chunk_stats";
+import {
+  computeViewportChunkStats,
+  type ChunkStats,
+  type ViewportChunkStats,
+} from "./data/chunk_stats";
 import { Renderer } from "./core/renderer";
 import { createStats, type Stats } from "./utilities/stats";
 import {
@@ -191,12 +195,12 @@ export class Idetik {
   }
 
   /**
-   * Chunk demand and GPU residency per source, and loading progress per
-   * viewport. Each read walks every view's chunk states and returns a
+   * Chunk demand and GPU residency per source, by timepoint, and loading
+   * progress per viewport. Each read walks every view's chunk states and returns a
    * new snapshot, so poll it at the rate you need rather than every frame.
    */
   public get chunkStats(): ChunkStats {
-    const viewports: ChunkStats["viewports"][number][] = [];
+    const viewports: ViewportChunkStats[] = [];
     for (const viewport of this.viewports_) {
       const views = [];
       for (const layer of viewport.layers) {
@@ -212,7 +216,7 @@ export class Idetik {
         if (layer.chunkStoreView) views.push(layer.chunkStoreView);
       }
       if (views.length === 0) continue;
-      viewports.push(this.chunkManager_.viewportChunkStats(viewport.id, views));
+      viewports.push(computeViewportChunkStats(viewport.id, views));
     }
     return { sources: this.chunkManager_.sourceChunkStats, viewports };
   }

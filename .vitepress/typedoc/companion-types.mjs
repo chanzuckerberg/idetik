@@ -16,6 +16,8 @@ const ADOPTED_ALIASES = {
   MemoryStats: "Idetik",
   QueueStats: "Idetik",
   ChunkStats: "Idetik",
+  SourceChunkStats: "Idetik",
+  ViewportChunkStats: "Idetik",
   ChannelProps: "Layer",
   SliceCoordinates: "Layer",
   SliceOrientation: "Layer",

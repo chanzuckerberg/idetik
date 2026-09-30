@@ -80,7 +80,11 @@ export type { ChannelProps } from "./core/channel";
 export type { LayerState } from "./core/layer";
 export type { IdetikProps, MemoryStats, Overlay } from "./idetik";
 export type { QueueStats } from "./data/chunk_manager";
-export type { ChunkStats } from "./data/chunk_stats";
+export type {
+  ChunkStats,
+  SourceChunkStats,
+  ViewportChunkStats,
+} from "./data/chunk_stats";
 export type { SliceCoordinates } from "./data/chunk";
 export type { SliceOrientation } from "./math/axes";
 

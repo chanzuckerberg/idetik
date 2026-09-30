@@ -3,11 +3,7 @@ import { SliceAxes } from "../math/axes";
 import { ChunkQueue, comparePriority } from "./chunk_queue";
 import { chunkMemoryStats, clearChunkData } from "./chunk_memory";
 import { ChunkStore } from "./chunk_store";
-import {
-  ChunkStats,
-  computeSourceChunkStats,
-  computeViewportChunkStats,
-} from "./chunk_stats";
+import { computeSourceChunkStats, SourceChunkStats } from "./chunk_stats";
 import { ChunkStoreView } from "./chunk_store_view";
 import { ImageSourcePolicy } from "../core/image_source_policy";
 import { Texture, textureStorageBytes } from "../objects/textures/texture";
@@ -71,24 +67,10 @@ export class ChunkManager {
     return chunkMemoryStats();
   }
 
-  public get sourceChunkStats(): ChunkStats["sources"] {
+  public get sourceChunkStats(): SourceChunkStats[] {
     return this.stores_.map(({ source, store }) =>
       computeSourceChunkStats(source, store)
     );
-  }
-
-  public viewportChunkStats(
-    viewportId: string,
-    views: readonly ChunkStoreView[]
-  ): ChunkStats["viewports"][number] {
-    const entries = [];
-    for (const view of views) {
-      const entry = this.stores_.find(({ store }) =>
-        store.views.includes(view)
-      );
-      if (entry) entries.push({ store: entry.store, view });
-    }
-    return computeViewportChunkStats(viewportId, entries);
   }
 
   public addView(

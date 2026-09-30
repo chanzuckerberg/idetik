@@ -40,15 +40,13 @@ describe("chunk stats", () => {
     expect(visible.length).toBeGreaterThan(0);
     visible[0].texture = {} as Texture;
 
-    const stats = computeViewportChunkStats("viewport", [{ store, view }]);
+    const stats = computeViewportChunkStats("viewport", [view]);
 
     expect(stats.requested).toBe(visible.length);
     expect(stats.resident).toBe(1);
-    expect([...stats.timepoints.requested]).toEqual([visible.length, 0, 0]);
-    expect([...stats.timepoints.resident]).toEqual([1, 0, 0]);
   });
 
-  test("source counts chunks shared by views once", () => {
+  test("source counts chunks shared by views once, per timepoint", () => {
     const store = new ChunkStore(createDimensions());
     const view1 = store.addView(createNoPrefetchPolicy());
     const view2 = store.addView(createNoPrefetchPolicy());
@@ -62,6 +60,8 @@ describe("chunk stats", () => {
 
     expect(stats.requested).toBe(visible.length);
     expect(stats.resident).toBe(1);
+    expect([...stats.timepoints.requested]).toEqual([visible.length, 0, 0]);
+    expect([...stats.timepoints.resident]).toEqual([1, 0, 0]);
   });
 });
 

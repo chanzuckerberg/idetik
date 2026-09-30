@@ -10,57 +10,48 @@ import type { ChunkStoreView } from "./chunk_store_view";
  * `requested`.
  */
 export type ChunkStats = {
-  /** Cache state per source, combined across all of its views. */
-  sources: readonly {
-    /** The source the counts describe. */
-    source: ChunkSource;
-    /**
-     * Chunks requested by any view, visible or prefetch, at any LOD. A chunk
-     * requested by several views counts once. The budget may defer fetching.
-     */
-    requested: number;
-    /** How many of `requested` are on the GPU and drawable. */
-    resident: number;
-    /** Counts per level of detail, finest first, covering every level. */
-    lods: readonly {
-      /** The level of detail, `0` being finest. */
-      lod: number;
-      /** Chunks at this level requested by any view. */
-      requested: number;
-      /** How many of `requested` are on the GPU. */
-      resident: number;
-    }[];
-  }[];
-  /**
-   * Loading progress per viewport, summed across its chunked layers.
-   * Viewports without chunked layers are omitted.
-   */
-  viewports: readonly {
-    /** The viewport the counts describe. */
-    viewportId: string;
-    /**
-     * Visible and prefetch chunks at any LOD, including the fallback LOD
-     * drawn while the current one loads.
-     */
-    requested: number;
-    /** How many of `requested` are on the GPU. */
-    resident: number;
-    /**
-     * Visible and prefetch chunks, indexed by timepoint and covering the
-     * longest time axis among the viewport's sources.
-     */
-    timepoints: {
-      /** Chunks requested at each timepoint. */
-      requested: Uint32Array;
-      /** How many of `requested` are on the GPU at each timepoint. */
-      resident: Uint32Array;
-    };
-  }[];
+  /** Cache state per source. */
+  sources: readonly SourceChunkStats[];
+  /** Loading progress per viewport. Viewports without chunked layers are omitted. */
+  viewports: readonly ViewportChunkStats[];
 };
 
-type SourceChunkStats = ChunkStats["sources"][number];
-type ViewportChunkStats = ChunkStats["viewports"][number];
-type LodChunkStats = SourceChunkStats["lods"][number];
+/** Cache state for one source, combined across all of its views. */
+export type SourceChunkStats = {
+  /** The source the counts describe. */
+  source: ChunkSource;
+  /**
+   * Chunks requested by any view, visible or prefetch, at any LOD. A chunk
+   * requested by several views counts once. The budget may defer fetching.
+   */
+  requested: number;
+  /** How many of `requested` are on the GPU and drawable. */
+  resident: number;
+  /**
+   * The same counts by timepoint index, the position along the source's time
+   * axis rather than the world `t` coordinate. A timepoint is fully loaded for
+   * every view of the source when its two counts are equal.
+   */
+  timepoints: {
+    /** `requested[t]` is the chunks requested at timepoint index `t`. */
+    requested: Uint32Array;
+    /** `resident[t]` is how many of `requested[t]` are on the GPU. */
+    resident: Uint32Array;
+  };
+};
+
+/** Loading progress for one viewport, summed across its chunked layers. */
+export type ViewportChunkStats = {
+  /** The viewport the counts describe. */
+  viewportId: string;
+  /**
+   * Visible and prefetch chunks at any LOD, including the fallback LOD
+   * drawn while the current one loads.
+   */
+  requested: number;
+  /** How many of `requested` are on the GPU. */
+  resident: number;
+};
 
 /**
  * Counts one source's chunks across all of its views.
@@ -72,10 +63,11 @@ export function computeSourceChunkStats(
   source: ChunkSource,
   store: ChunkStore
 ): SourceChunkStats {
-  const lods: LodChunkStats[] = [];
-  for (let lod = 0; lod < store.lodCount; lod++) {
-    lods.push({ lod, requested: 0, resident: 0 });
-  }
+  const numTimepoints = store.dimensions.t?.lods[0].size ?? 1;
+  const timepoints = {
+    requested: new Uint32Array(numTimepoints),
+    resident: new Uint32Array(numTimepoints),
+  };
 
   let requested = 0;
   let resident = 0;
@@ -86,17 +78,17 @@ export function computeSourceChunkStats(
       if (state.priority === null) continue;
       if (isRequestedByEarlierView(chunk, views, i)) continue;
 
-      const isResident = chunk.texture !== undefined;
+      const t = chunk.chunkIndex.t;
       requested += 1;
-      lods[chunk.lod].requested += 1;
-      if (isResident) {
+      timepoints.requested[t] += 1;
+      if (chunk.texture !== undefined) {
         resident += 1;
-        lods[chunk.lod].resident += 1;
+        timepoints.resident[t] += 1;
       }
     }
   }
 
-  return { source, requested, resident, lods };
+  return { source, requested, resident, timepoints };
 }
 
 // avoids allocating a set per call to count chunks shared by views once
@@ -116,40 +108,22 @@ function isRequestedByEarlierView(
  * Sums the chunks requested by a viewport's views.
  *
  * @param viewportId - The viewport the views render into.
- * @param views - The viewport's views and the stores they belong to.
+ * @param views - The viewport's views.
  */
 export function computeViewportChunkStats(
   viewportId: string,
-  views: readonly { store: ChunkStore; view: ChunkStoreView }[]
+  views: readonly ChunkStoreView[]
 ): ViewportChunkStats {
-  let numTimepoints = 1;
-  for (const { store } of views) {
-    numTimepoints = Math.max(
-      numTimepoints,
-      store.dimensions.t?.lods[0].size ?? 1
-    );
-  }
-  const timepoints = {
-    requested: new Uint32Array(numTimepoints),
-    resident: new Uint32Array(numTimepoints),
-  };
-
   let requested = 0;
   let resident = 0;
 
-  for (const { view } of views) {
+  for (const view of views) {
     for (const [chunk, state] of view.chunkViewStates) {
       if (state.priority === null) continue;
-
-      const t = chunk.chunkIndex.t;
       requested += 1;
-      timepoints.requested[t] += 1;
-      if (chunk.texture !== undefined) {
-        resident += 1;
-        timepoints.resident[t] += 1;
-      }
+      if (chunk.texture !== undefined) resident += 1;
     }
   }
 
-  return { viewportId, requested, resident, timepoints };
+  return { viewportId, requested, resident };
 }
