@@ -52,8 +52,8 @@ export class GaussianSplatLayer extends Layer {
   private readonly renderable_: GaussianSplatRenderable;
   private readonly modelView_ = mat4.create();
   private readonly direction_ = vec3.create();
+  // Zero until the first sort, so the first update always sorts.
   private readonly sortedDirection_ = vec3.create();
-  private sorted_ = false;
 
   /**
    * Creates a layer that renders splats from a source.
@@ -88,14 +88,8 @@ export class GaussianSplatLayer extends Layer {
       modelView[10]
     );
     vec3.normalize(direction, direction);
-    if (
-      this.sorted_ &&
-      vec3.dot(direction, this.sortedDirection_) > RESORT_COS_ANGLE
-    ) {
-      return;
-    }
+    if (vec3.dot(direction, this.sortedDirection_) > RESORT_COS_ANGLE) return;
     vec3.copy(this.sortedDirection_, direction);
-    this.sorted_ = true;
     this.renderable_.sortBackToFront(modelView);
   }
 

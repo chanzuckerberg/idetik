@@ -48,26 +48,18 @@ type PlyElement = {
   properties: PlyProperty[];
 };
 
-function readValue(view: DataView, offset: number, type: PlyType): number {
-  switch (type) {
-    case "int8":
-      return view.getInt8(offset);
-    case "uint8":
-      return view.getUint8(offset);
-    case "int16":
-      return view.getInt16(offset, true);
-    case "uint16":
-      return view.getUint16(offset, true);
-    case "int32":
-      return view.getInt32(offset, true);
-    case "uint32":
-      return view.getUint32(offset, true);
-    case "float32":
-      return view.getFloat32(offset, true);
-    case "float64":
-      return view.getFloat64(offset, true);
-  }
-}
+type Reader = (view: DataView, offset: number) => number;
+
+const READERS: Record<PlyType, Reader> = {
+  int8: (view, offset) => view.getInt8(offset),
+  uint8: (view, offset) => view.getUint8(offset),
+  int16: (view, offset) => view.getInt16(offset, true),
+  uint16: (view, offset) => view.getUint16(offset, true),
+  int32: (view, offset) => view.getInt32(offset, true),
+  uint32: (view, offset) => view.getUint32(offset, true),
+  float32: (view, offset) => view.getFloat32(offset, true),
+  float64: (view, offset) => view.getFloat64(offset, true),
+};
 
 function parseHeader(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
@@ -149,19 +141,26 @@ export function readPlyVertices<Name extends string>(
     throw new Error("PLY file has no vertex element");
   }
 
-  const view = new DataView(buffer);
-  const properties = {} as Record<Name, Float32Array>;
-  for (const name of names) {
+  const { count, stride } = vertex;
+  const columns = names.map((name) => {
     const property = vertex.properties.find((p) => p.name === name);
     if (!property) {
       throw new Error(`PLY vertex element has no property ${name}`);
     }
-    const values = new Float32Array(vertex.count);
-    for (let i = 0; i < vertex.count; i++) {
-      const at = offset + i * vertex.stride + property.offset;
-      values[i] = readValue(view, at, property.type);
+    return { ...property, values: new Float32Array(count) };
+  });
+
+  // One pass over the vertices is much faster than one per property.
+  const view = new DataView(buffer);
+  const readers = columns.map((c) => READERS[c.type]);
+  for (let i = 0; i < count; i++) {
+    const row = offset + i * stride;
+    for (let j = 0; j < columns.length; j++) {
+      columns[j].values[i] = readers[j](view, row + columns[j].offset);
     }
-    properties[name] = values;
   }
-  return { count: vertex.count, properties, comments };
+
+  const properties = {} as Record<Name, Float32Array>;
+  columns.forEach((c, j) => (properties[names[j]] = c.values));
+  return { count, properties, comments };
 }

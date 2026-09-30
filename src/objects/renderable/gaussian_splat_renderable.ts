@@ -7,6 +7,10 @@ import { GaussianSplats, SPLAT_WORDS } from "../../data/gaussian_splats";
 
 const MAX_TEXTURE_WIDTH = 4096;
 
+// One texture per set of splats, so layers on the same source share GPU
+// memory.
+const splatTextures = new WeakMap<GaussianSplats, Texture2D>();
+
 function textureShape(texels: number) {
   const width = Math.max(1, Math.min(MAX_TEXTURE_WIDTH, texels));
   const height = Math.max(1, Math.ceil(texels / width));
@@ -43,7 +47,7 @@ export class GaussianSplatRenderable extends RenderableObject {
     this.orderData_ = createIdentityOrder(splats.count);
     this.order_ = createOrderTexture(this.orderData_, splats.count);
     this.depths_ = new Float32Array(splats.count);
-    this.setTexture(0, createSplatTexture(splats.data));
+    this.setTexture(0, getSplatTexture(splats));
     this.setTexture(1, this.order_);
   }
 
@@ -79,12 +83,15 @@ export class GaussianSplatRenderable extends RenderableObject {
   }
 }
 
-function createSplatTexture(data: Uint32Array) {
-  const { width, height } = textureShape(data.length / 4);
+function getSplatTexture(splats: GaussianSplats) {
+  let texture = splatTextures.get(splats);
+  if (texture) return texture;
+  const { width, height } = textureShape(splats.data.length / 4);
   const padded = new Uint32Array(width * height * 4);
-  padded.set(data);
-  const texture = new Texture2D(padded, width, height);
+  padded.set(splats.data);
+  texture = new Texture2D(padded, width, height);
   texture.dataFormat = "rgba";
+  splatTextures.set(splats, texture);
   return texture;
 }
 
@@ -114,7 +121,7 @@ const SORT_BUCKETS = 1 << 16;
  * @param out - Receives the splat indices in draw order.
  * @param depths - Scratch space with one entry per splat.
  */
-export function sortSplatsBackToFront(
+function sortSplatsBackToFront(
   positions: Float32Array,
   stride: number,
   viewZ: ArrayLike<number>,
