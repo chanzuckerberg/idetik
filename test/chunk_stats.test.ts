@@ -6,7 +6,12 @@ import {
   computeSourceChunkStats,
   computeViewportChunkStats,
 } from "@/data/chunk_stats";
-import { createNoPrefetchPolicy } from "@/core/image_source_policy";
+import {
+  createNoPrefetchPolicy,
+  createPlaybackPolicy,
+} from "@/core/image_source_policy";
+import { Box2 } from "@/math/box2";
+import { vec2 } from "gl-matrix";
 import type { Texture } from "@/objects/textures/texture";
 import { OrthographicCamera } from "@/objects/cameras/orthographic_camera";
 import { createTestViewport } from "./helpers";
@@ -44,6 +49,47 @@ describe("chunk stats", () => {
 
     expect(stats.requested).toBe(visible.length);
     expect(stats.resident).toBe(1);
+  });
+
+  test("viewport current counts exclude fallback and prefetch", () => {
+    const store = new ChunkStore(createTwoLodDimensions());
+    const view = store.addView(
+      createPlaybackPolicy({ prefetch: { x: 0, y: 0, z: 0, t: 2 } })
+    );
+    // one world unit per pixel selects LOD 0, so LOD 1 is the fallback
+    view.updateChunksForImage(
+      { z: 0, c: [0], t: 0 },
+      {
+        worldViewRect: new Box2(
+          vec2.fromValues(0, 0),
+          vec2.fromValues(512, 512)
+        ),
+        bufferWidthPx: 512,
+      }
+    );
+    expect(view.currentLOD).toBe(0);
+
+    const states = [...view.chunkViewStates];
+    const drawn = states.filter(
+      ([chunk, state]) => state.visible && chunk.lod === 0
+    );
+    const fallback = states.filter(
+      ([chunk, state]) => state.visible && chunk.lod === 1
+    );
+    const prefetched = states.filter(([chunk]) => chunk.chunkIndex.t !== 0);
+    expect(drawn).toHaveLength(4);
+    expect(fallback).toHaveLength(1);
+    expect(prefetched).toHaveLength(8);
+
+    drawn[0][0].texture = {} as Texture;
+    fallback[0][0].texture = {} as Texture;
+    prefetched[0][0].texture = {} as Texture;
+
+    const stats = computeViewportChunkStats("viewport", [view]);
+
+    expect(stats.requested).toBe(13);
+    expect(stats.resident).toBe(3);
+    expect(stats.current).toEqual({ requested: 4, resident: 1 });
   });
 
   test("source counts chunks shared by views once, per timepoint", () => {
@@ -88,5 +134,31 @@ function createDimensions(): SourceDimensionMap {
       lods: [{ size: 3, scale: 1, chunkSize: 1, translation: 0 }],
     },
     numLods: 1,
+  };
+}
+
+// 512 × 512 in 256 chunks at LOD 0, and one 256 chunk at LOD 1.
+function createTwoLodDimensions(): SourceDimensionMap {
+  const plane = [
+    { size: 512, scale: 1, chunkSize: 256, translation: 0 },
+    { size: 256, scale: 2, chunkSize: 256, translation: 0 },
+  ];
+  const single = [
+    { size: 1, scale: 1, chunkSize: 1, translation: 0 },
+    { size: 1, scale: 1, chunkSize: 1, translation: 0 },
+  ];
+  return {
+    x: { name: "x", index: 0, lods: plane },
+    y: { name: "y", index: 1, lods: plane },
+    z: { name: "z", index: 2, lods: single },
+    t: {
+      name: "t",
+      index: 3,
+      lods: [
+        { size: 3, scale: 1, chunkSize: 1, translation: 0 },
+        { size: 3, scale: 1, chunkSize: 1, translation: 0 },
+      ],
+    },
+    numLods: 2,
   };
 }

@@ -51,6 +51,17 @@ export type ViewportChunkStats = {
   requested: number;
   /** How many of `requested` are on the GPU. */
   resident: number;
+  /**
+   * The same counts excluding fallback and prefetch: chunks visible at each
+   * layer's current LOD and timepoint. The viewport is fully drawn at its
+   * selected LOD when these are equal.
+   */
+  current: {
+    /** Chunks visible at each layer's current LOD and timepoint. */
+    requested: number;
+    /** How many of `requested` are on the GPU. */
+    resident: number;
+  };
 };
 
 /**
@@ -116,14 +127,23 @@ export function computeViewportChunkStats(
 ): ViewportChunkStats {
   let requested = 0;
   let resident = 0;
+  const current = { requested: 0, resident: 0 };
 
   for (const view of views) {
+    const currentLOD = view.currentLOD;
     for (const [chunk, state] of view.chunkViewStates) {
       if (state.priority === null) continue;
+      const isResident = chunk.texture !== undefined;
       requested += 1;
-      if (chunk.texture !== undefined) resident += 1;
+      if (isResident) resident += 1;
+
+      // only the current timepoint is marked visible, so this skips temporal
+      // prefetch as well as spatial prefetch and fallback
+      if (!state.visible || chunk.lod !== currentLOD) continue;
+      current.requested += 1;
+      if (isResident) current.resident += 1;
     }
   }
 
-  return { viewportId, requested, resident };
+  return { viewportId, requested, resident, current };
 }
