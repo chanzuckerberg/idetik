@@ -6,6 +6,7 @@ import { Texture } from "../objects/textures/texture";
 
 export abstract class Renderer {
   private readonly canvas_: HTMLCanvasElement | null;
+  private readonly pixelRatio_?: number;
   private width_ = 0;
   private height_ = 0;
 
@@ -18,8 +19,18 @@ export abstract class Renderer {
   ): void;
   protected abstract clear(): void;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, pixelRatio?: number) {
+    if (
+      pixelRatio !== undefined &&
+      !(Number.isFinite(pixelRatio) && pixelRatio > 0)
+    ) {
+      throw new Error(
+        `Failed to initialize renderer: pixel ratio must be a positive number, got ${pixelRatio}`
+      );
+    }
+
     this.canvas_ = canvas;
+    this.pixelRatio_ = pixelRatio;
     this.updateRendererSize();
   }
 
@@ -33,8 +44,8 @@ export abstract class Renderer {
   }
 
   private updateRendererSize() {
-    this.width_ = this.canvas.clientWidth * window.devicePixelRatio;
-    this.height_ = this.canvas.clientHeight * window.devicePixelRatio;
+    this.width_ = this.canvas.clientWidth * this.pixelRatio;
+    this.height_ = this.canvas.clientHeight * this.pixelRatio;
 
     if (this.canvas.width !== this.width_) this.canvas.width = this.width_;
     if (this.canvas.height !== this.height_) this.canvas.height = this.height_;
@@ -42,6 +53,10 @@ export abstract class Renderer {
 
   protected get canvas() {
     return this.canvas_!;
+  }
+
+  public get pixelRatio(): number {
+    return this.pixelRatio_ ?? (window.devicePixelRatio || 1);
   }
 
   public get width() {

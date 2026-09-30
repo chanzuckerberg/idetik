@@ -60,6 +60,8 @@ export type IdetikProps = {
   maxConcurrentRequests?: number;
   /** Max GPU texture uploads per frame. Defaults to `4`. */
   maxGpuUploadsPerUpdate?: number;
+  /** Device pixels per CSS pixel. Defaults to `window.devicePixelRatio`. */
+  pixelRatio?: number;
 };
 
 export type IdetikContext = {
@@ -136,6 +138,7 @@ export class Idetik {
   private readonly viewports_: Viewport[];
   private readonly stats_?: Stats;
   private readonly sizeObserver_: PixelSizeObserver;
+  private readonly pixelRatio_?: number;
 
   private lastAnimationId_?: number;
   private lastTimestamp_: DOMHighResTimeStamp = 0;
@@ -147,8 +150,9 @@ export class Idetik {
    */
   constructor(params: IdetikProps) {
     this.canvas = params.canvas;
+    this.pixelRatio_ = params.pixelRatio;
 
-    this.renderer_ = new WebGLRenderer(this.canvas);
+    this.renderer_ = new WebGLRenderer(this.canvas, params.pixelRatio);
     const memoryLimitMB = params.memoryLimitMB ?? DEFAULT_MEMORY_LIMIT_MB;
     const memoryLimitBytes = memoryLimitMB * 1024 * 1024;
     this.chunkManager_ = new ChunkManager(
@@ -166,7 +170,8 @@ export class Idetik {
     this.viewports_ = parseViewportProps(
       params.viewports ?? [],
       this.canvas,
-      this.context_
+      this.context_,
+      this.pixelRatio_
     );
 
     this.overlays = [...(params.overlays ?? [])];
@@ -281,7 +286,12 @@ export class Idetik {
    * @returns The created viewport.
    */
   public addViewport(props: ViewportProps): Viewport {
-    const [viewport] = parseViewportProps([props], this.canvas, this.context_);
+    const [viewport] = parseViewportProps(
+      [props],
+      this.canvas,
+      this.context_,
+      this.pixelRatio_
+    );
 
     validateNewViewport(viewport, this.viewports_);
     this.viewports_.push(viewport);
