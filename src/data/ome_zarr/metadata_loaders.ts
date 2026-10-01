@@ -6,7 +6,11 @@ import { Image } from "./0.5/image";
 import { Plate } from "./0.5/plate";
 import { Well } from "./0.5/well";
 import { OmeZarrImageSource } from "./image_source";
-import { Version as ZarrVersion, openGroup } from "../zarr/open";
+import {
+  Version as ZarrVersion,
+  createHttpStore,
+  openGroup,
+} from "../zarr/open";
 
 const versions = ["0.4", "0.5"] as const;
 const versionsSet: ReadonlySet<string> = new Set(versions);
@@ -58,7 +62,7 @@ export async function loadOmeZarrPlate(
   url: string,
   version?: Version
 ): Promise<AdaptedOme<Plate["ome"]>> {
-  const store = new zarr.FetchStore(url);
+  const store = createHttpStore(url);
   const location = new zarr.Location(store);
   const zarrVersion = omeZarrToZarrVersion(version);
   const group = await openGroup(location, zarrVersion);
@@ -135,9 +139,10 @@ export async function loadOmeZarrWell(
   path: string,
   version?: Version
 ): Promise<AdaptedOme<Well["ome"]>> {
-  const fullUrl = url + "/" + path;
-  const store = new zarr.FetchStore(fullUrl);
-  const location = new zarr.Location(store);
+  const location = new zarr.Location(
+    createHttpStore(url),
+    `/${path.replace(/^\/+/, "")}`
+  );
   const zarrVersion = omeZarrToZarrVersion(version);
   const group = await openGroup(location, zarrVersion);
   try {

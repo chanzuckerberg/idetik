@@ -22,7 +22,9 @@ Idetik matches its drawing surface to the canvas element's layout size and follo
 
 ## Loading an OME-Zarr Image
 
-A source connects a layer to the data it renders. [`OmeZarrImageSource`](/api/classes/OmeZarrImageSource.html) opens a multiscale OME-Zarr image from an HTTP store or a local directory. Its static method [`fromHttp`](/api/classes/OmeZarrImageSource.html#fromhttp) takes the URL of the image's root group and returns a promise that resolves to the source once the store's metadata has been read.
+A source connects a layer to the data it renders. [`OmeZarrImageSource`](/api/classes/OmeZarrImageSource.html) opens a multiscale OME-Zarr image from an HTTP store, a local directory, or an OZX archive. Its static method [`fromHttp`](/api/classes/OmeZarrImageSource.html#fromhttp) takes the URL of the image's root group or archive and returns a promise that resolves to the source once the store's metadata has been read.
+
+For local data, `fromFileSystem({ directory, path })` opens a directory, while `fromFileSystem({ file, path })` opens an OZX `File` or `Blob`. Supply exactly one of `directory` and `file`.
 
 ::: info
 This guide uses a light-sheet time-lapse of a developing zebrafish embryo from [Zebrahub](https://zebrahub.sf.czbiohub.org/), a sequencing and imaging atlas of zebrafish development.
