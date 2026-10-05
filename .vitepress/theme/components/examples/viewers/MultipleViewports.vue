@@ -229,7 +229,7 @@ const canvas = useIdetikViewer(
 
 .label {
   position: absolute;
-  top: 10px;
+  bottom: 10px;
   left: 10px;
   font-size: 12px;
   font-weight: bold;
