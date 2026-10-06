@@ -23,6 +23,7 @@ const TOPIC_PAGES = [
       "createExplorationPolicy",
       "createPlaybackPolicy",
       "createNoPrefetchPolicy",
+      "createThumbnailPolicy",
       "createImageSourcePolicy",
     ],
   },

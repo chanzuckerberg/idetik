@@ -25,7 +25,24 @@ export abstract class Renderer {
 
   public beginFrame(): void {}
 
-  public abstract render(viewport: Viewport): void;
+  /** Updates the viewport's layers (visible chunks, LOD), then draws it. */
+  public render(viewport: Viewport): void {
+    this.updateLayers(viewport);
+    this.draw(viewport);
+  }
+
+  /**
+   * Updates each layer for the viewport without drawing: works out what is
+   * visible and requests the chunks it needs.
+   */
+  public updateLayers(viewport: Viewport): void {
+    for (const layer of viewport.layers) {
+      layer.update(viewport);
+    }
+  }
+
+  /** Draws the viewport's layers as last updated. */
+  public abstract draw(viewport: Viewport): void;
 
   public updateSize(): void {
     this.updateRendererSize();

@@ -17,6 +17,8 @@ export type QueueStats = {
   pending: number;
   /** Number of requests currently in flight. */
   running: number;
+  /** Number of loaded chunks waiting for GPU upload. */
+  awaitingUpload: number;
 };
 
 const DEFAULT_MAX_CONCURRENT_REQUESTS = 8;
@@ -31,6 +33,7 @@ export class ChunkManager {
   private readonly getGpuResidentBytes_: () => number;
   private memoryLimitBytes_: number;
   private readonly maxGpuUploadsPerUpdate_: number;
+  private awaitingUpload_ = 0;
 
   constructor(
     uploadTexture?: (texture: Texture) => void,
@@ -60,6 +63,7 @@ export class ChunkManager {
     return {
       pending: this.queue_.pendingCount,
       running: this.queue_.runningCount,
+      awaitingUpload: this.awaitingUpload_,
     };
   }
 
@@ -88,6 +92,7 @@ export class ChunkManager {
 
   public update() {
     const candidates: { source: ChunkSource; chunk: Chunk }[] = [];
+    this.awaitingUpload_ = 0;
 
     for (const { source, store } of this.stores_) {
       const updatedChunks = store.updateAndCollectChunkChanges();
@@ -103,7 +108,7 @@ export class ChunkManager {
         }
       }
 
-      this.uploadLoadedChunks(store, updatedChunks);
+      this.awaitingUpload_ += this.uploadLoadedChunks(store, updatedChunks);
     }
 
     this.enqueueWithinBudget(candidates);
@@ -222,8 +227,8 @@ export class ChunkManager {
     return chunk.shape.x * chunk.shape.y * chunk.shape.z * bytesPerElement;
   }
 
-  private uploadLoadedChunks(store: ChunkStore, chunks: Set<Chunk>) {
-    if (!this.uploadTexture_) return;
+  private uploadLoadedChunks(store: ChunkStore, chunks: Set<Chunk>): number {
+    if (!this.uploadTexture_) return 0;
 
     const pending: Chunk[] = [];
 
@@ -233,7 +238,7 @@ export class ChunkManager {
       }
     }
 
-    if (pending.length === 0) return;
+    if (pending.length === 0) return 0;
 
     pending.sort(comparePriority);
 
@@ -246,6 +251,8 @@ export class ChunkManager {
       store.setChunkTexture(chunk, texture);
       clearChunkData(chunk);
     }
+
+    return pending.length - limit;
   }
 
   private disposeChunkTexture(store: ChunkStore, chunk: Chunk) {
