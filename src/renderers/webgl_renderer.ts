@@ -81,14 +81,10 @@ export class WebGLRenderer extends Renderer {
     return this.textures_.textureCount;
   }
 
-  public render(viewport: Viewport) {
+  public draw(viewport: Viewport) {
     this.renderedObjects_ = 0;
     this.renderedObjectsPerFrame_ = 0;
     this.stencilRef_ = 0;
-
-    for (const layer of viewport.layers) {
-      layer.update(viewport);
-    }
 
     if (getComputedStyle(viewport.element).visibility === "hidden") return;
 

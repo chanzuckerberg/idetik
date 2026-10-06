@@ -30,13 +30,15 @@ The same placement makes slicing cheap. Idetik uploads every chunk to the GPU as
 
 ## The Frame
 
-[`start`](/api/classes/Idetik.html#start) begins a render loop driven by `requestAnimationFrame`. The loop never idles. There is no dirty flag and nothing tells Idetik that a camera moved or a slice coordinate changed. Each frame reads the current state of every object and draws it.
+[`start`](/api/classes/Idetik.html#start) begins a render loop driven by `requestAnimationFrame`. In the default `"continuous"` [render mode](/api/type-aliases/RenderMode.html) the loop never idles. There is no dirty flag and nothing tells Idetik that a camera moved or a slice coordinate changed. Each frame reads the current state of every object and draws it.
 
-This approach yields a runtime with no invalidation logic and no missed updates but the cost is real: the loop draws every frame even when nothing has changed. Rendering only on change is a candidate for a future release.
+This approach yields a runtime with no invalidation logic and no missed updates but the cost is real: the loop draws every frame even when nothing has changed. Rendering only on change for interactive applications is a candidate for a future release.
 
-A frame proceeds in a fixed order. Each viewport, in order, integrates its camera controls, updates its layers, and draws them. A layer's update is where streaming decisions are made: it inspects the camera, decides which chunks it needs at which resolution, and rebuilds its renderable objects from the chunks that have already arrived.
+The `"manual"` render mode is for non-interactive rendering such as thumbnails. It draws only when [`requestRender`](/api/classes/Idetik.html#requestrender) is called. Frames still run while chunks load, without drawing, and the loop goes idle once loading is done. [`whenSettled`](/api/classes/Idetik.html#whensettled) waits for that point and rejects if some visible chunks could not be loaded, so `await idetik.whenSettled()` followed by `await idetik.requestRender()` draws one complete frame.
 
-Once every viewport has drawn, the chunk manager runs. It gathers what all the layers asked for, admits requests against the memory budget, hands them to the loading queue, uploads a few finished chunks to the GPU, and evicts if it must. The overlays run last.
+A frame proceeds in a fixed order. Each viewport integrates its camera controls, then every viewport updates its layers. A layer's update is where streaming decisions are made: it inspects the camera, decides which chunks it needs at which resolution, and rebuilds its renderable objects from the chunks that have already arrived.
+
+The chunk manager runs next. It gathers what all the layers asked for, admits requests against the memory budget, hands them to the loading queue, uploads a few finished chunks to the GPU, and evicts if it must. Chunks uploaded in a frame are drawn from the next frame, once the layers have picked them up. Finally each viewport draws its layers and the overlays run.
 
 ![One frame in Idetik, and the path of a chunk through three frames](/diagrams/architecture_diagram_1.png)
 

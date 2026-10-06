@@ -39,8 +39,9 @@ export type ImageSourcePolicyProps = {
  * A resolved and frozen loading policy consumed by layers.
  *
  * Create instances with {@link createExplorationPolicy},
- * {@link createPlaybackPolicy}, {@link createNoPrefetchPolicy}, or
- * {@link createImageSourcePolicy} rather than by hand.
+ * {@link createPlaybackPolicy}, {@link createNoPrefetchPolicy},
+ * {@link createThumbnailPolicy}, or {@link createImageSourcePolicy} rather
+ * than by hand.
  */
 export type ImageSourcePolicy = Readonly<{
   profile: string;
@@ -131,6 +132,33 @@ export function createNoPrefetchPolicy(
       "prefetchSpace",
       "prefetchTime",
     ],
+  };
+  return createImageSourcePolicy(mergeProps(base, overrides));
+}
+
+/**
+ * Creates a loading policy for small still images such as thumbnails.
+ *
+ * Loads only the coarsest LOD with no prefetching, so a single level is
+ * fetched and nothing beyond what the image shows. Pair it with the
+ * `"manual"` render mode.
+ *
+ * @param overrides - Properties merged over.
+ */
+export function createThumbnailPolicy(
+  overrides: Partial<ImageSourcePolicyProps> = {}
+): ImageSourcePolicy {
+  const base: ImageSourcePolicyProps = {
+    profile: "thumbnail",
+    prefetch: { x: 0, y: 0, z: 0, t: 0 },
+    priorityOrder: [
+      "fallbackVisible",
+      "visibleCurrent",
+      "fallbackBackground",
+      "prefetchSpace",
+      "prefetchTime",
+    ],
+    lod: { min: Number.MAX_SAFE_INTEGER },
   };
   return createImageSourcePolicy(mergeProps(base, overrides));
 }

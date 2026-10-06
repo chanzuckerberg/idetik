@@ -68,6 +68,7 @@ export {
   createImageSourcePolicy,
   createNoPrefetchPolicy,
   createPlaybackPolicy,
+  createThumbnailPolicy,
 } from "./core/image_source_policy";
 
 export type {
@@ -78,7 +79,7 @@ export type {
 
 export type { ChannelProps } from "./core/channel";
 export type { LayerState } from "./core/layer";
-export type { IdetikProps, MemoryStats, Overlay } from "./idetik";
+export type { IdetikProps, MemoryStats, Overlay, RenderMode } from "./idetik";
 export type { QueueStats } from "./data/chunk_manager";
 export type {
   ChunkStats,
