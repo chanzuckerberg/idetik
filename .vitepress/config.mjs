@@ -49,7 +49,7 @@ export default defineConfig({
   description: 'A library for creating interactive viewers for large bioimaging data',
 
   srcDir: 'docs',
-  appearance: false,
+  appearance: 'force-dark',
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' }],

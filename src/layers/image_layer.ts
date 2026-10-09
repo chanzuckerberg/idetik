@@ -254,7 +254,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     if (
       this.visibleChunks_.size > 0 &&
       visibleChunksResident &&
-      !this.chunkStoreView_.allVisibleFallbackLODLoaded() &&
+      !this.chunkStoreView_.hasCompleteVisibleLOD() &&
       !this.isPresentationStale()
     ) {
       return;
@@ -342,8 +342,7 @@ export class ImageLayer extends Layer implements ChannelsEnabled {
     return { world, value };
   }
 
-  // exposed for use in chunk info overlay
-  /** The layer's chunk store view for diagnostic overlays. */
+  /** @hidden */
   public get chunkStoreView(): ChunkStoreView | undefined {
     return this.chunkStoreView_;
   }
