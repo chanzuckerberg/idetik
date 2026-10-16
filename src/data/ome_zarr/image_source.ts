@@ -1,10 +1,10 @@
-import { Location, Readable, FetchStore } from "zarrita";
+import { Location, Readable } from "zarrita";
 import {
-  openArrayFromParams,
+  createZarrLocation,
+  openArray,
   openGroup,
-  createZarrArrayParams,
+  ZarrLocationParams,
 } from "../zarr/open";
-import WebFileSystemStore from "../zarr/web_file_system_store";
 import { OmeZarrImageLoader } from "./image_loader";
 import {
   omeZarrToZarrVersion,
@@ -12,6 +12,8 @@ import {
   Version as OmeZarrVersion,
 } from "./metadata_loaders";
 import { SourceDimensionMap } from "../chunk";
+
+let nextSourceId = 0;
 
 type OmeZarrImageSourceProps = {
   location: Location<Readable>;
@@ -23,30 +25,43 @@ type OmeZarrImageSourceProps = {
  * Input to {@link OmeZarrImageSource.fromHttp}.
  */
 export type HttpOmeZarrImageSourceProps = {
-  /** URL of the OME-Zarr root group. */
+  /** URL of an OME-Zarr root group or an .ozx archive. */
   url: string;
   /** OME-Zarr version. Detected from metadata when omitted. */
   version?: OmeZarrVersion;
+  /** Image path within the store or archive. Defaults to the root. */
+  path?: `/${string}`;
+  /** Known archive size in bytes, avoiding an HTTP HEAD request. */
+  contentLength?: number;
 };
 
 /**
  * Input to {@link OmeZarrImageSource.fromFileSystem}.
  */
 export type FileSystemOmeZarrImageSourceProps = {
-  /** Directory handle with read permission. */
-  directory: FileSystemDirectoryHandle;
   /** OME-Zarr version. Detected from metadata when omitted. */
   version?: OmeZarrVersion;
-  /** Image path within the directory. Defaults to the root. */
+  /** Image path within the directory or archive. Defaults to the root. */
   path?: `/${string}`;
-};
+} & (
+  | {
+      /** Directory handle with read permission. */
+      directory: FileSystemDirectoryHandle;
+      file?: never;
+    }
+  | {
+      /** Local OZX archive, for example a File from an input element. */
+      file: Blob;
+      directory?: never;
+    }
+);
 
 /**
  * A multiscale image opened from an OME-Zarr store.
  *
  * Instances are created with {@link fromHttp} or {@link fromFileSystem}
- * rather than the constructor. Both factories read the store's metadata up
- * front so the returned source already knows its axes, resolution levels,
+ * rather than the constructor. Both factories read
+ * the store's metadata up front so the returned source knows its axes, resolution levels,
  * and channel count. OME-Zarr versions `0.4` and `0.5` are supported and
  * the version is detected from metadata when not given.
  *
@@ -81,6 +96,7 @@ export class OmeZarrImageSource {
 
   private static async openLoader(
     location: Location<Readable>,
+    locationParams: ZarrLocationParams,
     version?: OmeZarrVersion
   ): Promise<OmeZarrImageLoader> {
     let zarrVersion = omeZarrToZarrVersion(version);
@@ -99,11 +115,17 @@ export class OmeZarrImageSource {
     if (!zarrVersion) {
       zarrVersion = omeZarrToZarrVersion(adaptedOmeImage.originalVersion);
     }
-    const arrayParams = metadata.datasets.map((d) =>
-      createZarrArrayParams(location, d.path, zarrVersion)
-    );
+    const sourceId = nextSourceId++;
+    const arrayParams = metadata.datasets.map((dataset) => ({
+      ...locationParams,
+      sourceId,
+      arrayPath: dataset.path,
+      zarrVersion,
+    }));
     const arrays = await Promise.all(
-      arrayParams.map((params) => openArrayFromParams(params))
+      metadata.datasets.map((dataset) =>
+        openArray(location.resolve(dataset.path), zarrVersion)
+      )
     );
 
     const shape = arrays[0].shape;
@@ -114,6 +136,19 @@ export class OmeZarrImageSource {
       );
     }
     return new OmeZarrImageLoader({ metadata, arrays, arrayParams });
+  }
+
+  private static async fromLocationParams(
+    params: ZarrLocationParams,
+    version?: OmeZarrVersion
+  ): Promise<OmeZarrImageSource> {
+    const location = createZarrLocation(params);
+    const loader = await OmeZarrImageSource.openLoader(
+      location,
+      params,
+      version
+    );
+    return new OmeZarrImageSource({ location, version, loader });
   }
 
   /**
@@ -141,36 +176,50 @@ export class OmeZarrImageSource {
   }
 
   /**
-   * Opens an OME-Zarr image over HTTP(S).
+   * Opens an OME-Zarr image over HTTP(S), including .ozx archives.
    *
-   * @param props - The store url and optional version.
+   * Archive URLs must end in .ozx before any query or fragment. The server
+   * must support byte-range requests and expose Content-Length to browsers.
+   * Pass contentLength when the archive size is known and HEAD is unavailable.
+   *
+   * @param props - The store URL, optional image path, size, and version.
    */
   public static async fromHttp(
     props: HttpOmeZarrImageSourceProps
   ): Promise<OmeZarrImageSource> {
-    const location = new Location(new FetchStore(props.url));
-    const loader = await OmeZarrImageSource.openLoader(location, props.version);
-    return new OmeZarrImageSource({ location, version: props.version, loader });
+    return OmeZarrImageSource.fromLocationParams(
+      {
+        type: "http",
+        url: props.url,
+        contentLength: props.contentLength,
+        path: props.path ?? "/",
+      },
+      props.version
+    );
   }
 
   /**
-   * Opens an OME-Zarr image from a local directory.
+   * Opens an OME-Zarr image from a local directory or OZX archive.
    *
-   * Uses the File System Access API so it only works in Chromium-based
-   * browsers. Pass the handle returned by `window.showDirectoryPicker()`.
-   * The optional path lets an application ask once for root permission
-   * and open many images.
+   * Pass either a directory handle from `window.showDirectoryPicker()` or
+   * a File/Blob containing an OZX archive. Directory handles require browser
+   * support for the File System Access API; archive files do not.
+   * The optional path selects an image within the directory or archive.
    *
-   * @param props - The directory handle, optional version, and path.
+   * @param props - Either a directory or file, optional version, and image path.
    */
   public static async fromFileSystem(
     props: FileSystemOmeZarrImageSourceProps
   ): Promise<OmeZarrImageSource> {
-    const location = new Location(
-      new WebFileSystemStore(props.directory),
-      props.path
+    if ((props.file !== undefined) === (props.directory !== undefined)) {
+      throw new Error("Provide either file or directory, but not both");
+    }
+    const path = props.path ?? "/";
+    return OmeZarrImageSource.fromLocationParams(
+      props.file !== undefined
+        ? { type: "file", file: props.file, path }
+        : { type: "filesystem", directoryHandle: props.directory, path },
+      props.version
     );
-    const loader = await OmeZarrImageSource.openLoader(location, props.version);
-    return new OmeZarrImageSource({ location, version: props.version, loader });
   }
 }

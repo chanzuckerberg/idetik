@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
 import * as zarr from "zarrita";
-import { openArrayFromParams, ZarrArrayParams } from "../zarr/open";
+import { createZarrLocation, openArray, ZarrArrayParams } from "../zarr/open";
 import { isChunkData, ChunkData } from "../chunk";
 import { SliceSpec, processChunk } from "./chunk_processing";
 
@@ -36,7 +36,11 @@ export type ZarrWorkerResponse = {
     }
 );
 
-const arrayCache = new Map<string, zarr.Array<zarr.DataType, zarr.Readable>>();
+const arrayCache = new Map<
+  string,
+  Promise<zarr.Array<zarr.DataType, zarr.Readable>>
+>();
+const locationCache = new Map<number, zarr.Location<zarr.Readable>>();
 const ARRAY_CACHE_LIMIT = 100;
 const activeRequests = new Map<number, AbortController>();
 
@@ -78,11 +82,10 @@ async function handleGetChunkMessage(
   const abortController = new AbortController();
   activeRequests.set(id, abortController);
 
-  const array = await getOrOpenArray(arrayParams);
-
   const fetchStart = performance.now();
   let chunk;
   try {
+    const array = await getOrOpenArray(arrayParams);
     chunk = await array.getChunk(index, { signal: abortController.signal });
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
@@ -117,36 +120,45 @@ async function handleGetChunkMessage(
   }
 }
 
-// we need to open arrays in each worker since we can't transfer them
-// workers cache opened arrays to avoid reopening for each chunk request
-// this is a simple LRU cache relying on Map's insertion order to track usage
-async function getOrOpenArray(
+// Reuse each archive's directory across resolution levels in this worker.
+function getOrCreateRootLocation(
   params: ZarrArrayParams
-): Promise<zarr.Array<zarr.DataType, zarr.Readable>> {
-  const cacheKey = getArrayCacheKey(params);
-  let array = arrayCache.get(cacheKey);
-  if (!array) {
-    if (arrayCache.size >= ARRAY_CACHE_LIMIT) {
-      const firstKey = arrayCache.keys().next().value;
-      if (firstKey) arrayCache.delete(firstKey);
-    }
-
-    try {
-      array = await openArrayFromParams(params);
-      arrayCache.set(cacheKey, array);
-    } catch (openError) {
-      throw new Error(
-        `Failed to open zarr array: ${openError instanceof Error ? openError.message : String(openError)}`
-      );
-    }
+): zarr.Location<zarr.Readable> {
+  let location = locationCache.get(params.sourceId);
+  if (location) {
+    locationCache.delete(params.sourceId);
   } else {
-    arrayCache.delete(cacheKey);
-    arrayCache.set(cacheKey, array);
+    if (locationCache.size >= ARRAY_CACHE_LIMIT) {
+      const firstId = locationCache.keys().next().value;
+      if (firstId !== undefined) locationCache.delete(firstId);
+    }
+    location = createZarrLocation(params);
   }
-  return array;
+  locationCache.set(params.sourceId, location);
+  return location;
 }
 
-function getArrayCacheKey(params: ZarrArrayParams): string {
-  const storeKey = params.type === "filesystem" ? params.path : params.url;
-  return `${params.type}::${storeKey}::${params.arrayPath}`;
+// Cache in-flight opens too: concurrent chunks must share the same array.
+function getOrOpenArray(
+  params: ZarrArrayParams
+): Promise<zarr.Array<zarr.DataType, zarr.Readable>> {
+  const cacheKey = `${params.sourceId}::${params.arrayPath}`;
+  let array = arrayCache.get(cacheKey);
+  if (array) {
+    arrayCache.delete(cacheKey);
+    arrayCache.set(cacheKey, array);
+    return array;
+  }
+  if (arrayCache.size >= ARRAY_CACHE_LIMIT) {
+    const firstKey = arrayCache.keys().next().value;
+    if (firstKey !== undefined) arrayCache.delete(firstKey);
+  }
+  const location = getOrCreateRootLocation(params);
+  array = openArray(location.resolve(params.arrayPath), params.zarrVersion);
+  arrayCache.set(cacheKey, array);
+  // A failed open must not poison subsequent requests for this array.
+  void array.catch(() => {
+    if (arrayCache.get(cacheKey) === array) arrayCache.delete(cacheKey);
+  });
+  return array;
 }

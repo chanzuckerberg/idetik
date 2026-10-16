@@ -25,6 +25,7 @@ type DatasetConfig = {
   id: string;
   label: string;
   url: string;
+  path?: `/${string}`;
   version?: "0.4" | "0.5";
   channel: number;
   contrastLimits: [number, number];
@@ -64,6 +65,14 @@ const PRESETS: DatasetConfig[] = [
     channel: 0,
     contrastLimits: [0, 1],
   },
+  {
+    id: "dynacell_ozx",
+    label: "DynaCell A549 (OZX)",
+    url: "https://dynacell.s3.us-west-2.amazonaws.com/v1/demo/dynacell_a549_demo.ozx",
+    path: "/mock/0/fov0006",
+    channel: 0,
+    contrastLimits: [-0.2, 0.2],
+  },
 ];
 
 const CUSTOM_LABEL = "Custom URL...";
@@ -71,6 +80,7 @@ const CUSTOM_LABEL = "Custom URL...";
 function parseHash(): {
   preset?: DatasetConfig;
   customUrl?: string;
+  customPath?: `/${string}`;
 } {
   const params = new URLSearchParams(window.location.hash.slice(1));
   const datasetId = params.get("dataset");
@@ -79,7 +89,12 @@ function parseHash(): {
     if (preset) return { preset };
   }
   const url = params.get("url");
-  if (url) return { customUrl: url };
+  if (url) {
+    return {
+      customUrl: url,
+      customPath: `/${(params.get("path") ?? "").replace(/^\/+/, "")}`,
+    };
+  }
   return { preset: PRESETS[0] };
 }
 
@@ -93,6 +108,7 @@ const config: DatasetConfig = parsed.preset ?? {
   id: "custom",
   label: "Custom",
   url: parsed.customUrl!,
+  path: parsed.customPath,
   channel: 0,
   contrastLimits: [0, 65535],
 };
@@ -103,6 +119,7 @@ datasetInfoDiv.textContent = `Loading ${config.label}…\n${config.url}`;
 const source = await OmeZarrImageSource.fromHttp({
   url: config.url,
   version: config.version,
+  path: config.path,
 });
 const dimensions = source.getDimensions();
 
@@ -224,6 +241,7 @@ const gui = new GUI({ width: 380 });
 const datasetState = {
   selection: parsed.preset?.label ?? CUSTOM_LABEL,
   customUrl: parsed.customUrl ?? "",
+  customPath: parsed.customPath ?? "/",
 };
 const allLabels = [...PRESETS.map((p) => p.label), CUSTOM_LABEL];
 const datasetSelect = gui
@@ -232,13 +250,20 @@ const datasetSelect = gui
 const customUrlController = gui
   .add(datasetState, "customUrl")
   .name("Custom URL");
+const customPathController = gui
+  .add(datasetState, "customPath")
+  .name("Image path");
 const customLoadController = gui
   .add(
     {
       load: () => {
         const url = datasetState.customUrl.trim();
         if (!url) return;
-        setHashAndReload(`#url=${encodeURIComponent(url)}`);
+        const params = new URLSearchParams({
+          url,
+          path: datasetState.customPath.trim(),
+        });
+        setHashAndReload(`#${params}`);
       },
     },
     "load"
@@ -247,9 +272,11 @@ const customLoadController = gui
 function updateCustomVisibility(label: string) {
   if (label === CUSTOM_LABEL) {
     customUrlController.show();
+    customPathController.show();
     customLoadController.show();
   } else {
     customUrlController.hide();
+    customPathController.hide();
     customLoadController.hide();
   }
 }
