@@ -30,21 +30,21 @@ The same placement makes slicing cheap. Idetik uploads every chunk to the GPU as
 
 ## The Frame
 
-[`start`](/api/classes/Idetik.html#start) begins a render loop driven by `requestAnimationFrame`. The loop never idles. There is no dirty flag and nothing tells Idetik that a camera moved or a slice coordinate changed. Each frame reads the current state of every object and draws it.
+[`start`](/api/classes/Idetik.html#start) begins a render loop driven by `requestAnimationFrame`, and everything described here happens once it has been called. The loop runs every frame and each frame reads the current state of every object. Nothing tells Idetik that a camera moved or a slice coordinate changed: each viewport compares its camera and layout with the last frame, and each layer compares what it would show with what it last drew.
 
-This approach yields a runtime with no invalidation logic and no missed updates but the cost is real: the loop draws every frame even when nothing has changed. Rendering only on change is a candidate for a future release.
+Idetik draws only when something changed. A frame in which no camera, layout, or layer changed skips drawing, so an idle view costs only the per-frame updates. Setters that change appearance, such as a layer's opacity or channel settings, mark the layer so the next frame draws it. [`requestRender`](/api/classes/Idetik.html#requestrender) draws the next frame even when nothing changed.
 
-A frame proceeds in a fixed order. Each viewport, in order, integrates its camera controls, updates its layers, and draws them. A layer's update is where streaming decisions are made: it inspects the camera, decides which chunks it needs at which resolution, and rebuilds its renderable objects from the chunks that have already arrived.
+A frame proceeds in a fixed order. Every viewport first integrates its camera controls. Then the chunk manager uploads a few of the chunks that finished loading since the last frame to the GPU, and every layer updates. A layer's update is where streaming decisions are made: it inspects the camera, decides which chunks it needs at which resolution, and rebuilds its renderable objects from the chunks that have already arrived. If anything changed, the viewports draw.
 
-Once every viewport has drawn, the chunk manager runs. It gathers what all the layers asked for, admits requests against the memory budget, hands them to the loading queue, uploads a few finished chunks to the GPU, and evicts if it must. The overlays run last.
+After that the chunk manager runs again. It gathers what all the layers asked for, admits requests against the memory budget, hands them to the loading queue, and evicts if it must. The overlays run last, whether or not the frame drew.
 
 ![One frame in Idetik, and the path of a chunk through three frames](/diagrams/architecture_diagram_1.png)
 
 _One frame, then the path of a single chunk. Layers request while drawing, the manager acts after every viewport has drawn, and a chunk on screen in frame N+2 was requested in frame N._
 
-The ordering has a consequence the diagram makes visible. Layers declare their needs while drawing, and the manager acts on the aggregate afterwards. A chunk requested in one frame is fetched and decoded off the main thread, arrives during a later frame, is uploaded at the end of that frame, and is ready to be drawn in the frame after that.
+The ordering has a consequence. Layers declare their needs during their update, and the manager acts on the aggregate afterwards. A chunk requested in one frame is fetched and decoded off the main thread and arrives between two later frames. The next frame uploads it before its layers update, so it is drawn in that same frame.
 
-Data is on screen one to two frames after it arrives. The delay is invisible in practice, and the arrangement keeps every frame's work bounded: uploads per frame are capped, so a burst of arriving chunks spreads over several frames instead of stalling one.
+Data is on screen in the frame after it arrives. The delay is invisible in practice, and the arrangement keeps every frame's work bounded: uploads per frame are capped, so a burst of arriving chunks spreads over several frames instead of stalling one.
 
 ## Viewports and Input
 
@@ -80,13 +80,13 @@ Synchronizing views follows from the plain-object model. Two layers constructed 
 
 ## Layers and Renderables
 
-A layer decides what to draw and how to handle input. Its [`LayerState`](/api/classes/Layer.html#layerstate) controls whether the renderer draws it. The renderer calls `update()` every frame, but skips drawing until the state is `ready`. Built-in streaming layers switch to `ready` on their first update after attachment, whether or not any chunks have arrived. Applications can subscribe to state changes, but `ready` is not a signal that image data is available.
+A layer decides what to draw and how to handle input. Its [`LayerState`](/api/classes/Layer.html#layerstate) controls whether the renderer draws it. The runtime calls `update()` every frame, and the renderer skips drawing the layer until its state is `ready`. Built-in streaming layers switch to `ready` on their first update after attachment, whether or not any chunks have arrived. Applications can subscribe to state changes, but `ready` is not a signal that image data is available.
 
 Every layer carries three presentation settings. [`opacity`](/api/classes/Layer.html#opacity) scales its output. [`blendMode`](/api/classes/Layer.html#blendmode-1) chooses how its pixels combine with what is already drawn and also how objects within the layer combine with each other.
 
 [`occludes`](/api/classes/Layer.html#occludes) declares whether the layer hides what is behind it. Occluding layers draw first in a depth pass followed by a color pass, wherever they sit in the stack. Non-occluding layers draw afterwards in stack order and blend over them. When not set `occludes` is inferred from the blend mode at construction. The image layer sets it explicitly because it blends its channels additively within the layer yet should read as solid to the layers above it.
 
-A renderable object is a geometry, a shader program, textures, and one transform. A new layer type is a subclass of [`Layer`](/api/classes/Layer.html) that owns some: it registers them with [`addObject`](/api/classes/Layer.html#addobject), rebuilds them in `update()` when its data changes, and sets its state to `ready`. The built-in renderables are exported for this, so a layer that draws points or lines needs no shader work. The built-in layers create theirs from the chunks they receive.
+A renderable object is a geometry, a shader program, textures, and one transform. A new layer type is a subclass of [`Layer`](/api/classes/Layer.html) that owns some: it registers them with [`addObject`](/api/classes/Layer.html#addobject), rebuilds them in `update()` when its data changes, and sets its state to `ready`. `update()` returns `true` when it changed what the layer draws, and changes made elsewhere, such as in a setter, call `invalidate()`. Otherwise its changes appear only when something else causes a draw. The built-in renderables are exported for this, so a layer that draws points or lines needs no shader work. The built-in layers create theirs from the chunks they receive.
 
 | Layer                                          | Draws                                                | Per frame                                                                                        |
 | ---------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
